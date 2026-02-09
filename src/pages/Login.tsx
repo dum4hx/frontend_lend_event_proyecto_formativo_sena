@@ -2,11 +2,11 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import Encabezado from '../components/Encabezado'
 import PiePagina from '../components/PiePagina'
+import styles from './Login.module.css'
 
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [showPass, setShowPass] = useState(false)
   const [remember, setRemember] = useState(false)
 
   function handleSubmit(e: React.FormEvent) {
@@ -15,85 +15,173 @@ export default function Login() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="min-h-screen flex flex-col bg-black">
       <Encabezado />
 
-      <main className="flex-1 flex items-center justify-center py-12 px-4">
-        <div className="w-full max-w-md">
-          <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-            <div className="p-8">
-              <div className="text-center mb-6">
-                <h2 className="text-2xl font-bold">Bienvenido</h2>
-                <p className="text-gray-500 text-sm">Ingresa tus credenciales para continuar</p>
+      <main className="flex-grow flex flex-col md:flex-row">
+        {/* Sección Izquierda - Solo en Desktop */}
+        <div className={`hidden md:flex md:w-1/2 ${styles.bgOverlay} p-12 lg:p-20 flex-col justify-center relative border-r border-zinc-800 z-0`}>
+        <div className="z-20">
+          {/* Logo */}
+          <div className="flex items-center space-x-2 mb-12">
+            <div className="bg-yellow-400 p-2 rounded-lg shadow-lg">
+              <svg
+                className="w-6 h-6 text-black"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                />
+              </svg>
+            </div>
+            <span className="text-2xl text-white font-bold tracking-tight italic">
+              Lend<span className="text-yellow-400">Event</span>
+            </span>
+          </div>
+
+          {/* Título */}
+          <h1 className="text-5xl text-white lg:text-6xl font-extrabold mb-6 leading-tight">
+            Centro de<br />
+            <span className="text-yellow-400">Gestión Global</span>
+          </h1>
+
+          {/* Descripción */}
+          <p className="text-gray-300 text-lg max-w-md mb-12 leading-relaxed">
+            Acceda a su plataforma personalizada para gestionar eventos, licencias de equipo y
+            análisis de datos en tiempo real.
+          </p>
+
+          {/* Características */}
+          <div className="grid grid-cols-1 gap-6">
+            <div className="flex items-center space-x-4 bg-white/5 p-4 rounded-xl border border-white/10">
+              <div className="w-10 h-10 bg-yellow-400/20 rounded-lg flex items-center justify-center border border-yellow-400/30">
+                <span className="text-yellow-400 text-xl font-bold">✓</span>
               </div>
-
-              <button className="w-full mb-4 flex items-center justify-center gap-3 py-2 rounded-lg border">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" width={18} alt="Google" />
-                <span className="font-bold text-sm">Continuar con Google</span>
-              </button>
-
-              <div className="relative my-4">
-                <hr className="border-gray-200" />
-                <span className="absolute left-1/2 -translate-x-1/2 -top-2 bg-white px-3 text-gray-500 text-sm">o usa tu correo</span>
+              <div>
+                <p className="font-bold text-white">Seguridad Empresarial</p>
+                <p className="text-sm text-gray-400">Protección de datos cifrada de extremo a extremo.</p>
               </div>
-
-              <form onSubmit={handleSubmit}>
-                <div className="mb-4">
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">Correo electrónico</label>
-                  <div className="flex items-center border rounded-lg overflow-hidden">
-                    <span className="px-3 text-gray-400"><i className="fas fa-envelope"></i></span>
-                    <input
-                      id="email"
-                      type="email"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="nombre@ejemplo.com"
-                      className="w-full px-3 py-2 focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="mb-4">
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">Contraseña</label>
-                  <div className="flex items-center border rounded-lg overflow-hidden">
-                    <span className="px-3 text-gray-400"><i className="fas fa-lock"></i></span>
-                    <input
-                      id="password"
-                      type={showPass ? 'text' : 'password'}
-                      required
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="w-full px-3 py-2 focus:outline-none"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPass(s => !s)}
-                      className="px-3"
-                      aria-label={showPass ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                    >
-                      <i className={`fas ${showPass ? 'fa-eye-slash' : 'fa-eye'}`} />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="mb-6 flex items-center justify-between">
-                  <label className="flex items-center gap-2 text-sm text-gray-600">
-                    <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
-                    <span>Recordarme</span>
-                  </label>
-                  <Link to="#" className="text-sm font-bold text-gray-700">¿Olvidaste tu contraseña?</Link>
-                </div>
-
-                <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-bold shadow">
-                  Iniciar sesión
-                </button>
-
-                <p className="text-center text-sm text-gray-600 mt-4">¿No tienes una cuenta? <Link to="#" className="font-bold">Regístrate ahora</Link></p>
-              </form>
+            </div>
+            <div className="flex items-center space-x-4 bg-white/5 p-4 rounded-xl border border-white/10">
+              <div className="w-10 h-10 bg-yellow-400/20 rounded-lg flex items-center justify-center border border-yellow-400/30">
+                <span className="text-yellow-400 text-xl font-bold">✓</span>
+              </div>
+              <div>
+                <p className="font-bold text-white">Acceso Multi-nivel</p>
+                <p className="text-sm text-gray-400">Portal único para administradores y clientes.</p>
+              </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Sección Derecha - Formulario */}
+      <div className="flex-grow md:w-1/2 flex items-center justify-center p-8 bg-black">
+        <div className="w-full max-w-md">
+          <h2 className="text-4xl font-extrabold mb-2">Bienvenido</h2>
+          <p className="text-gray-400 mb-10">Ingrese sus credenciales corporativas para continuar</p>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Email */}
+            <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
+                Correo Corporativo
+              </label>
+              <div className="relative group">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 group-focus-within:text-yellow-400 transition-colors">
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                    />
+                  </svg>
+                </span>
+                <input
+                  type="email"
+                  placeholder="nombre@empresa.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 pl-12 pr-4 text-white focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 outline-none transition duration-200"
+                />
+              </div>
+            </div>
+
+            {/* Contraseña */}
+            <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
+                Contraseña
+              </label>
+              <div className="relative group">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 group-focus-within:text-yellow-400 transition-colors">
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                    />
+                  </svg>
+                </span>
+                <input
+                  type="password"
+                  placeholder="••••••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 pl-12 pr-4 text-white focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 outline-none transition duration-200"
+                />
+              </div>
+            </div>
+
+            {/* Recordar y Olvidó contraseña */}
+            <div className="flex items-center justify-between text-sm">
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={remember}
+                  onChange={(e) => setRemember(e.target.checked)}
+                  className="w-4 h-4 accent-yellow-400 bg-zinc-800 border-zinc-700 rounded"
+                />
+                <span className="text-gray-400 hover:text-white transition">Recordar sesión</span>
+              </label>
+              <Link to="/recuperar-contrasena" className="text-yellow-400 hover:text-yellow-300 font-bold transition">
+                ¿Olvidó su contraseña?
+              </Link>
+            </div>
+
+            {/* Botón Iniciar Sesión */}
+            <button
+              type="submit"
+              className={`w-full bg-yellow-400 text-black font-extrabold py-4 rounded-xl text-lg ${styles.glowButton} mt-4 shadow-xl hover:bg-yellow-300`}
+            >
+              Iniciar Sesión
+            </button>
+          </form>
+
+          {/* Link a Planes */}
+          <p className="text-center text-sm text-gray-500 mt-8">
+            ¿Aún no tienes una licencia?{' '}
+            <Link to="/paquetes" className="text-yellow-400 font-bold hover:underline">
+              Ver planes
+            </Link>
+          </p>
+        </div>
         </div>
       </main>
 

@@ -1,0 +1,9 @@
+.glow_button {
+  box-shadow: 0 0 20px rgba(252, 211, 7, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glow_button:hover {
+  box-shadow: 0 0 30px rgba(252, 211, 7, 0.5);
+  transform: translateY(-2px) scale(1.02);
+}

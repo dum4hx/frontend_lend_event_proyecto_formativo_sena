@@ -6,18 +6,6 @@ export default function PiePagina() {
         {/* GRID PRINCIPAL */}
         <div className="grid grid-cols-2 md:grid-cols-6 gap-8">
 
-          {/* Producto */}
-          <div>
-            <h6 className="font-bold mb-4 text-white">Producto</h6>
-            <ul className="space-y-2">
-              <li><a href="#" className="hover:text-white">Panel de control</a></li>
-              <li><a href="#" className="hover:text-white">Apps e Integraciones</a></li>
-              <li><a href="#" className="hover:text-white">Empresarial</a></li>
-              <li><a href="#" className="hover:text-white">Accesibilidad</a></li>
-              <li><a href="#" className="hover:text-white">Registro de cambios</a></li>
-            </ul>
-          </div>
-
           {/* Soporte */}
           <div>
             <h6 className="font-bold mb-4 text-white">Soporte técnico</h6>

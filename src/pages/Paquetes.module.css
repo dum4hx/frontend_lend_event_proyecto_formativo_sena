@@ -1,0 +1,15 @@
+.glowButton {
+  box-shadow: 0 0 15px rgba(250, 204, 21, 0.3);
+  transition: all 0.3s ease;
+}
+
+.glowButton:hover {
+  box-shadow: 0 0 25px rgba(250, 204, 21, 0.5);
+  transform: translateY(-2px);
+}
+
+.checkIcon {
+  color: #facc15;
+  margin-right: 0.75rem;
+  font-size: 0.8rem;
+}
