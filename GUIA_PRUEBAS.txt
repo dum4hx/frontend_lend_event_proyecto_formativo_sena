@@ -1,0 +1,430 @@
+"""
+Guía de Pruebas - Validaciones de Autenticación
+Última Actualización: Febrero 10, 2026
+"""
+
+# ==============================================================================
+# PRUEBAS DE VALIDACIÓN - LOGIN
+# ==============================================================================
+
+TEST_LOGIN_001 - Email Válido - Contraseña Válida
+├─ Datos Ingresados:
+│  ├─ Email: usuario@empresa.com
+│  ├─ Contraseña: MyPassword123!
+│  └─ Recordar sesión: ✓
+├─ Validaciones Esperadas: ✅ Todas pasan
+├─ Comportamiento Esperado:
+│  ├─ Button muestra "Iniciando sesión..."
+│  ├─ Inputs deshabilitados
+│  ├─ POST /auth/login se envía
+│  └─ Redirige a /dashboard
+└─ Resultado: EXITOSO
+
+
+TEST_LOGIN_002 - Email Inválido
+├─ Datos Ingresados:
+│  ├─ Email: usuarioempresa.com (sin @)
+│  └─ Contraseña: MyPassword123!
+├─ Validación Esperada:
+│  └─ ❌ "Ingresa un correo válido"
+├─ Comportamiento Esperado:
+│  ├─ Error mostrado en box rojo
+│  ├─ NO envía solicitud a API
+│  └─ Permanece en página de login
+└─ Resultado: VALIDADO
+
+
+TEST_LOGIN_003 - Email Vacío
+├─ Datos Ingresados:
+│  ├─ Email: (vacío)
+│  └─ Contraseña: MyPassword123!
+├─ Validación Esperada:
+│  └─ ❌ "El correo es requerido"
+├─ Comportamiento Esperado:
+│  ├─ Error mostrado
+│  └─ NO envía solicitud
+└─ Resultado: VALIDADO
+
+
+TEST_LOGIN_004 - Contraseña Vacía
+├─ Datos Ingresados:
+│  ├─ Email: usuario@empresa.com
+│  └─ Contraseña: (vacío)
+├─ Validación Esperada:
+│  └─ ❌ "La contraseña es requerida"
+├─ Comportamiento Esperado:
+│  ├─ Error mostrado
+│  └─ NO envía solicitud
+└─ Resultado: VALIDADO
+
+
+TEST_LOGIN_005 - Credenciales Incorrectas
+├─ Datos Ingresados:
+│  ├─ Email: usuario@empresa.com
+│  └─ Contraseña: IncorrectPass123!
+├─ Validaciones Esperadas: ✅ Validación local OK
+├─ Comportamiento Esperado:
+│  ├─ POST /auth/login enviado
+│  ├─ Servidor responde con error
+│  ├─ Mensaje de error de API mostrado
+│  └─ Permanece en login
+└─ Resultado: USUARIO RECIBE FEEDBACK
+
+
+# ==============================================================================
+# PRUEBAS DE VALIDACIÓN - REGISTRO
+# ==============================================================================
+
+TEST_REGISTRO_001 - Todos los Datos Válidos
+├─ Datos Ingresados:
+│  ├─ Nombre: John
+│  ├─ Apellido: Doe
+│  ├─ Empresa: My Company Inc
+│  ├─ Email: john@mycompany.com
+│  ├─ Teléfono: +573001234567
+│  ├─ Contraseña: MyPassword123!
+│  └─ Confirmar: MyPassword123!
+├─ Validaciones Esperadas: ✅ Todas OK
+├─ Comportamiento Esperado:
+│  ├─ Button muestra "Creando cuenta..."
+│  ├─ Inputs deshabilitados
+│  ├─ POST /auth/register enviado con:
+│  │  {
+│  │    "email": "john@mycompany.com",
+│  │    "password": "MyPassword123!",
+│  │    "organizationName": "My Company Inc",
+│  │    "profile": {
+│  │      "firstName": "John",
+│  │      "lastName": "Doe",
+│  │      "phone": "+573001234567"
+│  │    }
+│  │  }
+│  ├─ Alert: "Cuenta creada exitosamente"
+│  └─ Redirige a /login
+└─ Resultado: EXITOSO
+
+
+TEST_REGISTRO_002 - Nombre Muy Corto
+├─ Datos Ingresados:
+│  ├─ Nombre: J (1 carácter)
+│  └─ Otros campos: válidos
+├─ Validación Esperada:
+│  └─ ❌ "El nombre debe tener al menos 2 caracteres"
+├─ Comportamiento Esperado:
+│  └─ Error mostrado, NO envía solicitud
+└─ Resultado: VALIDADO
+
+
+TEST_REGISTRO_003 - Nombre Muy Largo
+├─ Datos Ingresados:
+│  ├─ Nombre: (más de 50 caracteres)
+│  └─ Otros campos: válidos
+├─ Validación Esperada:
+│  └─ ❌ "El nombre no debe exceder 50 caracteres"
+├─ Comportamiento Esperado:
+│  └─ Error mostrado, NO envía solicitud
+└─ Resultado: VALIDADO
+
+
+TEST_REGISTRO_004 - Empresa Muy Corta
+├─ Datos Ingresados:
+│  ├─ Empresa: A (1 carácter)
+│  └─ Otros campos: válidos
+├─ Validación Esperada:
+│  └─ ❌ "El nombre de la empresa debe tener al menos 2 caracteres"
+├─ Comportamiento Esperado:
+│  └─ Error mostrado, NO envía solicitud
+└─ Resultado: VALIDADO
+
+
+TEST_REGISTRO_005 - Contraseña Sin Mayúscula
+├─ Datos Ingresados:
+│  ├─ Contraseña: mypassword123!
+│  └─ Otros campos: válidos
+├─ Validación Esperada:
+│  └─ ❌ "La contraseña debe contener al menos una mayúscula"
+├─ Comportamiento Esperado:
+│  └─ Error mostrado, NO envía solicitud
+└─ Resultado: VALIDADO
+
+
+TEST_REGISTRO_006 - Contraseña Sin Número
+├─ Datos Ingresados:
+│  ├─ Contraseña: MyPassword!
+│  └─ Otros campos: válidos
+├─ Validación Esperada:
+│  └─ ❌ "La contraseña debe contener al menos un número"
+├─ Comportamiento Esperado:
+│  └─ Error mostrado, NO envía solicitud
+└─ Resultado: VALIDADO
+
+
+TEST_REGISTRO_007 - Contraseña Sin Carácter Especial
+├─ Datos Ingresados:
+│  ├─ Contraseña: MyPassword123
+│  └─ Otros campos: válidos
+├─ Validación Esperada:
+│  └─ ❌ "La contraseña debe contener al menos un carácter especial (!@#$%^&*)"
+├─ Comportamiento Esperado:
+│  └─ Error mostrado, NO envía solicitud
+└─ Resultado: VALIDADO
+
+
+TEST_REGISTRO_008 - Contraseña Muy Corta
+├─ Datos Ingresados:
+│  ├─ Contraseña: Pass1! (6 caracteres)
+│  └─ Otros campos: válidos
+├─ Validación Esperada:
+│  └─ ❌ "La contraseña debe tener al menos 8 caracteres"
+├─ Comportamiento Esperado:
+│  └─ Error mostrado, NO envía solicitud
+└─ Resultado: VALIDADO
+
+
+TEST_REGISTRO_009 - Contraseñas No Coinciden
+├─ Datos Ingresados:
+│  ├─ Contraseña: MyPassword123!
+│  ├─ Confirmar: DifferentPass456@
+│  └─ Otros campos: válidos
+├─ Validación Esperada:
+│  └─ ❌ "Las contraseñas no coinciden"
+├─ Comportamiento Esperado:
+│  └─ Error mostrado, NO envía solicitud
+└─ Resultado: VALIDADO
+
+
+TEST_REGISTRO_010 - Email Inválido
+├─ Datos Ingresados:
+│  ├─ Email: johnatmycompany.com (sin @)
+│  └─ Otros campos: válidos
+├─ Validación Esperada:
+│  └─ ❌ "Ingresa un correo válido"
+├─ Comportamiento Esperado:
+│  └─ Error mostrado, NO envía solicitud
+└─ Resultado: VALIDADO
+
+
+TEST_REGISTRO_011 - Teléfono Inválido
+├─ Datos Ingresados:
+│  ├─ Teléfono: 123 (muy corto)
+│  └─ Otros campos: válidos
+├─ Validación Esperada:
+│  └─ ❌ "Ingresa un número de teléfono válido"
+├─ Comportamiento Esperado:
+│  └─ Error mostrado, NO envía solicitud
+└─ Resultado: VALIDADO
+
+
+TEST_REGISTRO_012 - Sin Teléfono (Opcional)
+├─ Datos Ingresados:
+│  ├─ Teléfono: (vacío - es opcional)
+│  └─ Otros campos: válidos
+├─ Validación Esperada: ✅ OK
+├─ Comportamiento Esperado:
+│  ├─ phone enviado como undefined en API
+│  └─ Registro exitoso
+└─ Resultado: VALIDADO
+
+
+# ==============================================================================
+# PRUEBAS DE VALIDACIÓN - CAMBIO DE CONTRASEÑA
+# ==============================================================================
+
+TEST_CAMBIO_PASS_001 - Paso 1: Email Válido
+├─ Datos Ingresados:
+│  └─ Email: usuario@empresa.com
+├─ Validación Esperada: ✅ Email válido
+├─ Comportamiento Esperado:
+│  ├─ Avanza a Paso 2
+│  └─ Muestra "Hemos enviado un código a usuario@empresa.com"
+└─ Resultado: EXITOSO
+
+
+TEST_CAMBIO_PASS_002 - Paso 1: Email Inválido
+├─ Datos Ingresados:
+│  └─ Email: usuarioempresa.com (sin @)
+├─ Validación Esperada:
+│  └─ ❌ "Ingresa un correo válido"
+├─ Comportamiento Esperado:
+│  ├─ Error mostrado en box rojo
+│  └─ Permanece en Paso 1
+└─ Resultado: VALIDADO
+
+
+TEST_CAMBIO_PASS_003 - Paso 2: Código Válido
+├─ Datos Ingresados:
+│  └─ Código: 123456 (exactamente 6 dígitos)
+├─ Validación Esperada: ✅ Código válido
+├─ Comportamiento Esperado:
+│  ├─ Avanza a Paso 3
+│  └─ Muestra campos para nueva contraseña
+└─ Resultado: EXITOSO
+
+
+TEST_CAMBIO_PASS_004 - Paso 2: Código Muy Corto
+├─ Datos Ingresados:
+│  └─ Código: 12345 (5 dígitos)
+├─ Validación Esperada:
+│  └─ ❌ "El código debe tener exactamente 6 dígitos"
+├─ Comportamiento Esperado:
+│  ├─ Error mostrado
+│  └─ Permanece en Paso 2
+└─ Resultado: VALIDADO
+
+
+TEST_CAMBIO_PASS_005 - Paso 2: Código Con Letras
+├─ Datos Ingresados:
+│  └─ Código: 12345A (contiene letra)
+├─ Comportamiento Esperado:
+│  └─ Solo se aceptan dígitos (letra rechazada)
+└─ Resultado: VALIDADO
+
+
+TEST_CAMBIO_PASS_006 - Paso 3: Contraseña Actual Correcta
+├─ Datos Ingresados:
+│  ├─ Contraseña Actual: CurrentPass123!
+│  ├─ Nueva Contraseña: NewPassword456!
+│  └─ Confirmar: NewPassword456!
+├─ Validaciones Esperadas: ✅ Todas OK
+├─ Comportamiento Esperado:
+│  ├─ Button muestra "Cambiando contraseña..."
+│  ├─ POST /auth/change-password con:
+│  │  {
+│  │    "currentPassword": "CurrentPass123!",
+│  │    "newPassword": "NewPassword456!"
+│  │  }
+│  ├─ Alert: "Contraseña cambiada correctamente"
+│  └─ Redirige a /login
+└─ Resultado: EXITOSO
+
+
+TEST_CAMBIO_PASS_007 - Paso 3: Nueva Contraseña Sin Mayúscula
+├─ Datos Ingresados:
+│  ├─ Contraseña Actual: CurrentPass123!
+│  ├─ Nueva Contraseña: newpassword456!
+│  └─ Confirmar: newpassword456!
+├─ Validación Esperada:
+│  └─ ❌ "La contraseña debe contener al menos una mayúscula"
+├─ Comportamiento Esperado:
+│  ├─ Error mostrado
+│  └─ NO envía solicitud
+└─ Resultado: VALIDADO
+
+
+TEST_CAMBIO_PASS_008 - Paso 3: Contraseña Igual a la Actual
+├─ Datos Ingresados:
+│  ├─ Contraseña Actual: CurrentPass123!
+│  ├─ Nueva Contraseña: CurrentPass123!
+│  └─ Confirmar: CurrentPass123!
+├─ Validación Esperada:
+│  └─ ❌ "La nueva contraseña debe ser diferente a la actual"
+├─ Comportamiento Esperado:
+│  ├─ Error mostrado
+│  └─ NO envía solicitud
+└─ Resultado: VALIDADO
+
+
+TEST_CAMBIO_PASS_009 - Paso 3: Nuevas Contraseñas No Coinciden
+├─ Datos Ingresados:
+│  ├─ Contraseña Actual: CurrentPass123!
+│  ├─ Nueva Contraseña: NewPassword456!
+│  └─ Confirmar: DifferentPass789@
+├─ Validación Esperada:
+│  └─ ❌ "Las contraseñas no coinciden"
+├─ Comportamiento Esperado:
+│  ├─ Error mostrado
+│  └─ NO envía solicitud
+└─ Resultado: VALIDADO
+
+
+# ==============================================================================
+# EJEMPLOS DE CONTRASEÑAS
+# ==============================================================================
+
+VÁLIDAS ✅
+├─ MyPassword123!
+├─ SecurePass456@
+├─ CompanyName789#
+├─ LendEvent2024$
+├─ TestAccount001%
+└─ ValidPass999^
+
+INVÁLIDAS ❌
+├─ password123! (sin mayúscula)
+├─ Password! (sin número)
+├─ Password123 (sin especial)
+├─ Pass1! (muy corta)
+├─ ALLUPPERCASE1! (sin minúscula)
+├─ 123456789! (sin letra)
+└─ NoSpecialChar123 (sin especial)
+
+
+# ==============================================================================
+# CHECKLIST DE VALIDACIONES
+# ==============================================================================
+
+✓ Email
+  ├─ Formato válido (contiene @)
+  └─ No puede estar vacío
+
+✓ Contraseña (Registro & Cambio)
+  ├─ Mínimo 8 caracteres
+  ├─ Al menos 1 mayúscula
+  ├─ Al menos 1 número
+  ├─ Al menos 1 carácter especial (!@#$%^&*)
+  └─ Diferente a la actual (en cambio de contraseña)
+
+✓ Nombre
+  ├─ Mínimo 2 caracteres
+  ├─ Máximo 50 caracteres
+  └─ No puede estar vacío
+
+✓ Apellido
+  ├─ Mínimo 2 caracteres
+  ├─ Máximo 50 caracteres
+  └─ No puede estar vacío
+
+✓ Empresa
+  ├─ Mínimo 2 caracteres
+  ├─ Máximo 100 caracteres
+  └─ No puede estar vacío
+
+✓ Teléfono (Opcional)
+  ├─ Mínimo 7 dígitos
+  ├─ Máximo 15 dígitos
+  └─ Acepta formato internacional
+
+✓ Código (Cambio de contraseña)
+  ├─ Exactamente 6 dígitos
+  ├─ Solo números
+  └─ No puede estar vacío
+
+✓ Confirmación de Contraseña
+  └─ Debe coincidir exactamente
+
+
+# ==============================================================================
+# NOTAS DE IMPLEMENTACIÓN
+# ==============================================================================
+
+⚠️ IMPORTANTE:
+├─ API Base URL: http://localhost:8080/api/v1
+├─ Cookies HTTP-only se manejan automáticamente
+├─ Token de acceso: 15 minutos
+├─ Token de refresco: 7 días
+└─ Todos los errores se muestran en boxes rojos
+
+💡 TIPS DE TESTING:
+├─ Probar cada validación individualmente
+├─ Probar combinaciones de errores
+├─ Verificar loading states
+├─ Verificar que los inputs se deshabiliten
+├─ Verificar redirecciones correctas
+└─ Abrir DevTools para ver requests
+
+🔍 DEBUGGING:
+├─ Ver logs en consola del navegador
+├─ Inspeccionar Network tab para requests
+├─ Verificar errores en problemas de VS Code
+└─ Usar React Developer Tools Extension
+

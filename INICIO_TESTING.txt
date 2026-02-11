@@ -1,0 +1,298 @@
+"""
+🚀 INSTRUCCIONES PARA COMENZAR - VALIDACIONES DE AUTENTICACIÓN
+"""
+
+═══════════════════════════════════════════════════════════════════════════════
+✅ PASO 1: VERIFICAR SETUP
+═══════════════════════════════════════════════════════════════════════════════
+
+[ ] Node.js instalado (v16+)
+[ ] npm instalado
+[ ] Proyecto en: c:\Users\duvil\Frontend_Lend Event
+[ ] Backend corriendo en: http://localhost:8080
+[ ] API accesible: http://localhost:8080/api/v1
+
+
+═══════════════════════════════════════════════════════════════════════════════
+🔧 PASO 2: INSTALAR DEPENDENCIAS (Si es necesario)
+═══════════════════════════════════════════════════════════════════════════════
+
+cd c:\Users\duvil\Frontend_Lend Event
+npm install
+
+
+═══════════════════════════════════════════════════════════════════════════════
+🏃 PASO 3: INICIAR SERVIDOR DE DESARROLLO
+═══════════════════════════════════════════════════════════════════════════════
+
+npm run dev
+
+Esto iniciará el servidor en: http://localhost:3000
+
+
+═══════════════════════════════════════════════════════════════════════════════
+🧪 PASO 4: TESTING - REGISTRO
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Navegar a: http://localhost:3000/registro
+
+2. Llenar formulario con datos VÁLIDOS:
+   ├─ Nombre: John
+   ├─ Apellido: Doe
+   ├─ Email: john@empresa.com
+   ├─ Empresa: My Company
+   ├─ Teléfono: +573001234567 (opcional)
+   ├─ Contraseña: MyPassword123!
+   └─ Confirmar: MyPassword123!
+
+3. Clic en "Crear Cuenta"
+
+4. ESPERADO:
+   ├─ Button muestra "Creando cuenta..."
+   ├─ Inputs se deshabilitan
+   ├─ POST /auth/register se envía (ver Network tab)
+   ├─ Alert: "Cuenta creada exitosamente"
+   └─ Redirige a /login
+
+5. Si hay ERROR:
+   ├─ Verificar mensaje en box rojo
+   ├─ Consola del navegador (F12)
+   ├─ Network tab para ver response
+
+
+═══════════════════════════════════════════════════════════════════════════════
+🧪 PASO 5: TESTING - LOGIN
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Navegar a: http://localhost:3000/login
+
+2. Llenar formulario:
+   ├─ Email: john@empresa.com
+   └─ Contraseña: MyPassword123!
+
+3. Clic en "Iniciar Sesión"
+
+4. ESPERADO:
+   ├─ Button muestra "Iniciando sesión..."
+   ├─ Inputs se deshabilitan
+   ├─ POST /auth/login se envía
+   ├─ Cookies se guardan (F12 → Application → Cookies)
+   └─ Redirige a /dashboard
+
+5. Si hay ERROR:
+   ├─ Mensaje en box rojo
+   ├─ Verificar credenciales
+   ├─ Consola para logs
+
+
+═══════════════════════════════════════════════════════════════════════════════
+🧪 PASO 6: TESTING - CAMBIO DE CONTRASEÑA
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Navegar a: http://localhost:3000/recuperar-contrasena
+
+2. PASO 1 - Email:
+   ├─ Ingresar: john@empresa.com
+   └─ Clic: "Enviar Código"
+
+3. PASO 2 - Código (6 dígitos):
+   ├─ Ingresar: 123456 (o el código enviado)
+   └─ Clic: "Validar y Continuar"
+
+4. PASO 3 - Nueva Contraseña:
+   ├─ Contraseña Actual: MyPassword123!
+   ├─ Nueva Contraseña: NewPassword456!
+   ├─ Confirmar: NewPassword456!
+   └─ Clic: "Cambiar Contraseña"
+
+5. ESPERADO:
+   ├─ Button muestra "Cambiando contraseña..."
+   ├─ POST /auth/change-password se envía
+   ├─ Alert: "Contraseña cambiada correctamente"
+   └─ Redirige a /login
+
+
+═══════════════════════════════════════════════════════════════════════════════
+🧪 PASO 7: TESTING DE VALIDACIONES
+═══════════════════════════════════════════════════════════════════════════════
+
+Probar cada validación:
+
+EMAIL INVÁLIDO:
+  └─ Ingresar: usuarioempresa.com (sin @)
+  └─ ERROR: "Ingresa un correo válido"
+
+CONTRASEÑA SIN MAYÚSCULA:
+  └─ Ingresar: mypassword123!
+  └─ ERROR: "La contraseña debe contener al menos una mayúscula"
+
+CONTRASEÑA SIN NÚMERO:
+  └─ Ingresar: MyPassword!
+  └─ ERROR: "La contraseña debe contener al menos un número"
+
+CONTRASEÑA SIN CARÁCTER ESPECIAL:
+  └─ Ingresar: MyPassword123
+  └─ ERROR: "La contraseña debe contener al menos un carácter especial (!@#$%^&*)"
+
+CONTRASEÑA MUY CORTA:
+  └─ Ingresar: Pass1! (6 caracteres)
+  └─ ERROR: "La contraseña debe tener al menos 8 caracteres"
+
+CONTRASEÑAS NO COINCIDEN:
+  └─ Contraseña: MyPassword123!
+  └─ Confirmar: DifferentPass456@
+  └─ ERROR: "Las contraseñas no coinciden"
+
+
+═══════════════════════════════════════════════════════════════════════════════
+🔍 DEBUGGING - CONSOLE
+═══════════════════════════════════════════════════════════════════════════════
+
+Abrir DevTools: F12
+
+1. Ir a "Console" tab
+   └─ Ver logs de validación y errores
+
+2. Ir a "Network" tab
+   └─ Ver requests POST
+   └─ Ver responses de API
+   └─ Ver status codes
+
+3. Ir a "Application" → "Cookies"
+   └─ Ver accessToken (debe existir después de login)
+   └─ Ver refreshToken (debe existir después de login)
+
+4. Ir a "Application" → "Local Storage"
+   └─ Verificar cualquier dato guardado
+
+
+═══════════════════════════════════════════════════════════════════════════════
+⚠️ PROBLEMAS COMUNES Y SOLUCIONES
+═══════════════════════════════════════════════════════════════════════════════
+
+PROBLEMA: "Error de conexión"
+SOLUCIÓN:
+  1. Verificar que backend está corriendo: http://localhost:8080
+  2. Verificar que API es accesible: http://localhost:8080/api/v1
+  3. Ver console del navegador (F12) para error exacto
+  4. Verificar CORS está configurado para http://localhost:3000
+
+PROBLEMA: "Validación fallida" pero datos parecen correctos
+SOLUCIÓN:
+  1. Ver mensaje de error exacto (en box rojo)
+  2. Ver console para detalles
+  3. Verificar requirements de contraseña
+  4. Probar con diferentes datos
+
+PROBLEMA: No aparecen cookies
+SOLUCIÓN:
+  1. Verificar que login fue exitoso
+  2. F12 → Application → Cookies (debe haber accessToken)
+  3. Verificar que HTTP-only está activado
+  4. Si no aparecen, error en API response
+
+PROBLEMA: Botón sigue diciendo "Creando cuenta..." eternamente
+SOLUCIÓN:
+  1. Ver Network tab para ver si request se envió
+  2. Ver response de API (error?)
+  3. Abrir console para errores de JavaScript
+  4. Verificar conexión a API
+
+
+═══════════════════════════════════════════════════════════════════════════════
+📊 CHECKLIST DE VALIDACIÓN
+═══════════════════════════════════════════════════════════════════════════════
+
+REGISTRO:
+  [ ] Validación de email
+  [ ] Validación de nombre (2-50 chars)
+  [ ] Validación de apellido (2-50 chars)
+  [ ] Validación de empresa (2-100 chars)
+  [ ] Validación de teléfono (opcional)
+  [ ] Validación de contraseña (8+, mayúscula, número, especial)
+  [ ] Validación de confirmación
+  [ ] POST /auth/register se envía
+  [ ] Redirige a /login
+
+LOGIN:
+  [ ] Validación de email
+  [ ] Validación de contraseña requerida
+  [ ] POST /auth/login se envía
+  [ ] Cookies se guardan
+  [ ] Redirige a /dashboard
+
+CAMBIO:
+  [ ] Validación de email (paso 1)
+  [ ] Validación de código 6 dígitos (paso 2)
+  [ ] Validación de contraseña actual
+  [ ] Validación de nueva contraseña
+  [ ] Validación de confirmación
+  [ ] POST /auth/change-password se envía
+  [ ] Redirige a /login
+
+
+═══════════════════════════════════════════════════════════════════════════════
+💡 TIPS DE TESTING
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Usar Postman para probar API directamente:
+   POST http://localhost:8080/api/v1/auth/login
+   Body: { "email": "...", "password": "..." }
+
+2. Verificar logs en servidor backend para errors
+
+3. Usar React DevTools Extension para inspeccionar componentes
+
+4. Usar Network tab para ver exactamente qué se envía/recibe
+
+5. Probar con diferentes navegadores (Chrome, Firefox, Edge)
+
+6. Limpiar cookies entre tests:
+   F12 → Application → Cookies → Delete All
+
+7. Usar contraseñas fuertes de verdad para testing:
+   ✓ MyTestPass123!
+   ✓ SecureTest456@
+   ✓ Password789#
+
+
+═══════════════════════════════════════════════════════════════════════════════
+📚 DOCUMENTACIÓN A CONSULTAR
+═══════════════════════════════════════════════════════════════════════════════
+
+Técnica Completa:
+  └─ VALIDACIONES_API.md
+
+Resumen Visual:
+  └─ RESUMEN_CAMBIOS.md
+
+Test Cases:
+  └─ GUIA_PRUEBAS.txt
+
+Estructura:
+  └─ ESTRUCTURA_PROYECTO.txt
+
+Quick Start:
+  └─ REFERENCIA_RAPIDA.txt
+
+Ejemplos de Código:
+  └─ EJEMPLOS_USO.md
+
+
+═══════════════════════════════════════════════════════════════════════════════
+✅ CUANDO TODO ESTÉ VALIDADO
+═══════════════════════════════════════════════════════════════════════════════
+
+Una vez hayas probado todo y todo funcione:
+
+1. Revisar PROYECTO_COMPLETADO.txt para resumen
+2. Leer próximos pasos recomendados
+3. Considerar implementar:
+   └─ Persistencia de sesión
+   └─ Auto-refresh de tokens
+   └─ Logout integrado
+   └─ Rutas protegidas
+
+
+═══════════════════════════════════════════════════════════════════════════════
+"""

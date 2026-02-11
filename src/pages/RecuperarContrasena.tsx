@@ -2,6 +2,13 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Encabezado from '../components/Encabezado'
 import PiePagina from '../components/PiePagina'
+import { changePassword } from '../services/authService'
+import {
+  validateEmail,
+  validateCode,
+  validateChangePasswordForm,
+  validatePassword,
+} from '../utils/validators'
 import styles from './RecuperarContrasena.module.css'
 
 export default function RecuperarContrasena() {
@@ -11,11 +18,14 @@ export default function RecuperarContrasena() {
   const [codigo, setCodigo] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [currentPassword, setCurrentPassword] = useState('')
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
   const handleGoToStep2 = () => {
-    if (!email.includes('@')) {
-      setError('Por favor, ingresa un correo válido.')
+    const emailValidation = validateEmail(email)
+    if (!emailValidation.isValid) {
+      setError(emailValidation.message || 'Validación fallida')
       return
     }
     setError('')
@@ -23,28 +33,47 @@ export default function RecuperarContrasena() {
   }
 
   const handleValidarCodigo = () => {
-    if (codigo.length !== 6) {
-      setError('El código debe tener 6 dígitos.')
+    const codeValidation = validateCode(codigo)
+    if (!codeValidation.isValid) {
+      setError(codeValidation.message || 'Validación fallida')
       return
     }
     setError('')
     setPaso(3)
   }
 
-  const handleCambiarContrasena = () => {
-    if (newPassword.length < 8) {
-      setError('La contraseña debe tener al menos 8 caracteres.')
+  const handleCambiarContrasena = async () => {
+    const formValidation = validateChangePasswordForm({
+      currentPassword,
+      newPassword,
+      confirmPassword,
+    })
+
+    if (!formValidation.isValid) {
+      setError(formValidation.message || 'Validación fallida')
       return
     }
-    if (newPassword !== confirmPassword) {
-      setError('Las contraseñas no coinciden.')
-      return
+
+    setLoading(true)
+
+    try {
+      const response = await changePassword({
+        currentPassword,
+        newPassword,
+      })
+
+      if (response.status === 'error') {
+        setError(response.message || 'Error al cambiar la contraseña. Por favor intenta nuevamente.')
+        return
+      }
+
+      alert('Contraseña cambiada correctamente. Redirigiendo a login...')
+      navigate('/login')
+    } catch (err: any) {
+      setError('Error de conexión. Por favor intenta nuevamente.')
+    } finally {
+      setLoading(false)
     }
-    setError('')
-    // Aquí iría la lógica para cambiar la contraseña en el servidor
-    console.log({ email, codigo, newPassword })
-    alert('Contraseña cambiada correctamente. Redirigiendo a login...')
-    navigate('/login')
   }
 
   return (
@@ -114,6 +143,13 @@ export default function RecuperarContrasena() {
                 <p className="text-gray-400 mb-10">Ingresa tu correo para recibir un código de seguridad.</p>
 
                 <div className="space-y-6">
+                  {/* Error Message */}
+                  {error && (
+                    <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
+                      <p className="text-red-400 text-sm font-medium">{error}</p>
+                    </div>
+                  )}
+
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
                       Correo Corporativo
@@ -134,18 +170,18 @@ export default function RecuperarContrasena() {
                         placeholder="nombre@empresa.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 pl-12 pr-4 text-white focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 outline-none transition duration-200"
+                        disabled={loading}
+                        className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 pl-12 pr-4 text-white focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 outline-none transition duration-200 disabled:opacity-50"
                       />
                     </div>
                   </div>
 
-                  {error && <p className="text-red-500 text-sm">{error}</p>}
-
                   <button
                     onClick={handleGoToStep2}
-                    className={`w-full bg-yellow-400 text-black font-extrabold py-4 rounded-xl text-lg ${styles.glowButton} shadow-xl hover:bg-yellow-300`}
+                    disabled={loading}
+                    className={`w-full bg-yellow-400 text-black font-extrabold py-4 rounded-xl text-lg ${styles.glowButton} shadow-xl hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed transition`}
                   >
-                    Enviar Código
+                    {loading ? 'Enviando código...' : 'Enviar Código'}
                   </button>
                 </div>
               </div>
@@ -160,6 +196,13 @@ export default function RecuperarContrasena() {
                 </p>
 
                 <div className="space-y-6">
+                  {/* Error Message */}
+                  {error && (
+                    <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
+                      <p className="text-red-400 text-sm font-medium">{error}</p>
+                    </div>
+                  )}
+
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
                       Código de 6 dígitos
@@ -186,25 +229,26 @@ export default function RecuperarContrasena() {
                         placeholder="000000"
                         value={codigo}
                         onChange={(e) => setCodigo(e.target.value.replace(/\D/g, ''))}
-                        className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 pl-12 pr-4 text-white font-mono text-2xl tracking-[0.5em] focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 outline-none transition duration-200 text-center"
+                        disabled={loading}
+                        className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 pl-12 pr-4 text-white font-mono text-2xl tracking-[0.5em] focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 outline-none transition duration-200 text-center disabled:opacity-50"
                       />
                     </div>
                   </div>
 
-                  {error && <p className="text-red-500 text-sm">{error}</p>}
-
                   <button
                     onClick={handleValidarCodigo}
-                    className={`w-full bg-yellow-400 text-black font-extrabold py-4 rounded-xl text-lg ${styles.glowButton} shadow-xl hover:bg-yellow-300`}
+                    disabled={loading}
+                    className={`w-full bg-yellow-400 text-black font-extrabold py-4 rounded-xl text-lg ${styles.glowButton} shadow-xl hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed transition`}
                   >
-                    Validar y Continuar
+                    {loading ? 'Validando...' : 'Validar y Continuar'}
                   </button>
 
                   <p className="text-center text-sm text-gray-500">
                     ¿No recibiste el código?{' '}
                     <button
                       onClick={() => setError('')}
-                      className="text-yellow-400 font-bold hover:underline"
+                      disabled={loading}
+                      className="text-yellow-400 font-bold hover:underline disabled:opacity-50"
                     >
                       Reenviar
                     </button>
@@ -220,9 +264,16 @@ export default function RecuperarContrasena() {
                 <p className="text-gray-400 mb-10">Crea tu nueva contraseña corporativa.</p>
 
                 <div className="space-y-6">
+                  {/* Error Message */}
+                  {error && (
+                    <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
+                      <p className="text-red-400 text-sm font-medium">{error}</p>
+                    </div>
+                  )}
+
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                      Nueva Contraseña
+                      Contraseña Actual
                     </label>
                     <div className="relative group">
                       <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 group-focus-within:text-yellow-400 transition-colors">
@@ -237,10 +288,40 @@ export default function RecuperarContrasena() {
                       </span>
                       <input
                         type="password"
-                        placeholder="Mínimo 8 caracteres"
+                        placeholder="Tu contraseña actual"
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        disabled={loading}
+                        className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 pl-12 pr-4 text-white focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 outline-none transition duration-200 disabled:opacity-50"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
+                      Nueva Contraseña
+                    </label>
+                    <div className="text-xs text-gray-400 mb-2">
+                      Mínimo 8 caracteres, 1 mayúscula, 1 número y 1 carácter especial (!@#$%^&*)
+                    </div>
+                    <div className="relative group">
+                      <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 group-focus-within:text-yellow-400 transition-colors">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                          />
+                        </svg>
+                      </span>
+                      <input
+                        type="password"
+                        placeholder="Tu nueva contraseña"
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
-                        className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 pl-12 pr-4 text-white focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 outline-none transition duration-200"
+                        disabled={loading}
+                        className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 pl-12 pr-4 text-white focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 outline-none transition duration-200 disabled:opacity-50"
                       />
                     </div>
                   </div>
@@ -265,22 +346,22 @@ export default function RecuperarContrasena() {
                         placeholder="Repite tu contraseña"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 pl-12 pr-4 text-white focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 outline-none transition duration-200"
+                        disabled={loading}
+                        className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 pl-12 pr-4 text-white focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 outline-none transition duration-200 disabled:opacity-50"
                       />
                     </div>
                   </div>
 
-                  {error && <p className="text-red-500 text-sm">{error}</p>}
-
                   <button
                     onClick={handleCambiarContrasena}
-                    className={`w-full bg-yellow-400 text-black font-extrabold py-4 rounded-xl text-lg ${styles.glowButton} shadow-xl hover:bg-yellow-300`}
+                    disabled={loading}
+                    className={`w-full bg-yellow-400 text-black font-extrabold py-4 rounded-xl text-lg ${styles.glowButton} shadow-xl hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed transition`}
                   >
-                    Cambiar Contraseña
+                    {loading ? 'Cambiando contraseña...' : 'Cambiar Contraseña'}
                   </button>
 
                   <p className="text-center text-xs text-gray-500">
-                    La contraseña debe tener al menos 8 caracteres
+                    La contraseña debe tener al menos 8 caracteres, una mayúscula, un número y un carácter especial.
                   </p>
                 </div>
               </div>

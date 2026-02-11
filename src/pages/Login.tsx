@@ -1,17 +1,52 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import Encabezado from '../components/Encabezado'
 import PiePagina from '../components/PiePagina'
+import { loginUser } from '../services/authService'
+import { validateLoginForm } from '../utils/validators'
+import { useAuth } from '../contexts/AuthContext'
 import styles from './Login.module.css'
 
 export default function Login() {
+  const navigate = useNavigate()
+  const { checkAuth } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [remember, setRemember] = useState(false)
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    console.log({ email, password, remember })
+    setError('')
+
+    // Validate form
+    const validation = validateLoginForm({ email, password })
+    if (!validation.isValid) {
+      setError(validation.message || 'Validación fallida')
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      const response = await loginUser({ email, password })
+
+      if (response.status === 'error') {
+        setError(response.message || 'Error al iniciar sesión. Por favor intenta nuevamente.')
+        return
+      }
+
+      // Verificar autenticación después del login
+      await checkAuth()
+
+      // Success - navigate to dashboard
+      navigate('/admin')
+    } catch (err: any) {
+      setError('Error de conexión. Por favor intenta nuevamente.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -87,6 +122,13 @@ export default function Login() {
           <p className="text-gray-400 mb-10">Ingrese sus credenciales corporativas para continuar</p>
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Error Message */}
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
+                <p className="text-red-400 text-sm font-medium">{error}</p>
+              </div>
+            )}
+
             {/* Email */}
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
@@ -113,7 +155,8 @@ export default function Login() {
                   placeholder="nombre@empresa.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 pl-12 pr-4 text-white focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 outline-none transition duration-200"
+                  disabled={loading}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 pl-12 pr-4 text-white focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 outline-none transition duration-200 disabled:opacity-50"
                 />
               </div>
             </div>
@@ -144,7 +187,8 @@ export default function Login() {
                   placeholder="••••••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 pl-12 pr-4 text-white focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 outline-none transition duration-200"
+                  disabled={loading}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 pl-12 pr-4 text-white focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 outline-none transition duration-200 disabled:opacity-50"
                 />
               </div>
             </div>
@@ -156,7 +200,8 @@ export default function Login() {
                   type="checkbox"
                   checked={remember}
                   onChange={(e) => setRemember(e.target.checked)}
-                  className="w-4 h-4 accent-yellow-400 bg-zinc-800 border-zinc-700 rounded"
+                  disabled={loading}
+                  className="w-4 h-4 accent-yellow-400 bg-zinc-800 border-zinc-700 rounded disabled:opacity-50"
                 />
                 <span className="text-gray-400 hover:text-white transition">Recordar sesión</span>
               </label>
@@ -168,9 +213,10 @@ export default function Login() {
             {/* Botón Iniciar Sesión */}
             <button
               type="submit"
-              className={`w-full bg-yellow-400 text-black font-extrabold py-4 rounded-xl text-lg ${styles.glowButton} mt-4 shadow-xl hover:bg-yellow-300`}
+              disabled={loading}
+              className={`w-full bg-yellow-400 text-black font-extrabold py-4 rounded-xl text-lg ${styles.glowButton} mt-4 shadow-xl hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed transition`}
             >
-              Iniciar Sesión
+              {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
             </button>
           </form>
 

@@ -1,19 +1,101 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import Encabezado from '../components/Encabezado'
 import PiePagina from '../components/PiePagina'
+import { registerUser } from '../services/authService'
+import { validateRegistrationForm } from '../utils/validators'
 import styles from './Registro.module.css'
 
 export default function Registro() {
-  const [nombreCompleto, setNombreCompleto] = useState('')
-  const [empresa, setEmpresa] = useState('')
+  const navigate = useNavigate()
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [organizationName, setOrganizationName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [phone, setPhone] = useState('')
+  const [error, setError] = useState('')
+  const [legalName, setLegalName] = useState('')
+  const [taxId, setTaxId] = useState('')
+  const [street, setStreet] = useState('')
+  const [city, setCity] = useState('')
+  const [country, setCountry] = useState('')
+  const [postalCode, setPostalCode] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    console.log({ nombreCompleto, empresa, email, password, confirmPassword })
+    setError('')
+
+    // Validate form
+    const validation = validateRegistrationForm({
+      firstName,
+      lastName,
+      email,
+      organizationName,
+      legalName,
+      taxId,
+      street,
+      city,
+      country,
+      postalCode,
+      password,
+      confirmPassword,
+      phone,
+    })
+
+    if (!validation.isValid) {
+      setError(validation.message || 'Validación fallida')
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      // Build payload matching API documentation: organization + owner
+      const payload = {
+        organization: {
+          name: organizationName,
+          legalName: legalName || undefined,
+          email: email,
+          phone: phone || undefined,
+          taxId: taxId,
+          address: {
+            street,
+            city,
+            country,
+            postalCode,
+          },
+        },
+        owner: {
+          email: email,
+          password: password,
+          phone: phone || undefined,
+          name: {
+            firstName: firstName,
+            secondName: undefined,
+            firstSurname: lastName || undefined,
+            secondSurname: undefined,
+          },
+        },
+      }
+
+      const response = await registerUser(payload)
+
+      if (response.status === 'error') {
+        setError(response.message || 'Error al crear la cuenta. Por favor intenta nuevamente.')
+        return
+      }
+
+      // Success - navigate to login
+      alert('Cuenta creada exitosamente. Por favor inicia sesión.')
+      navigate('/login')
+    } catch (err: any) {
+      setError('Error de conexión. Por favor intenta nuevamente.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -80,17 +162,40 @@ export default function Registro() {
             <p className="text-gray-400 mb-10">Cree su cuenta de Lend Event hoy mismo</p>
 
             <form onSubmit={handleSubmit} className="space-y-5">
-              {/* Nombre Completo */}
+              {/* Error Message */}
+              {error && (
+                <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
+                  <p className="text-red-400 text-sm font-medium">{error}</p>
+                </div>
+              )}
+
+              {/* Nombre */}
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                  Nombre Completo
+                  Nombre
                 </label>
                 <input
                   type="text"
-                  placeholder="John Doe"
-                  value={nombreCompleto}
-                  onChange={(e) => setNombreCompleto(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 px-4 text-white focus:border-yellow-400 outline-none transition duration-200"
+                  placeholder="John"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  disabled={loading}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 px-4 text-white focus:border-yellow-400 outline-none transition duration-200 disabled:opacity-50"
+                />
+              </div>
+
+              {/* Apellido */}
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
+                  Apellido
+                </label>
+                <input
+                  type="text"
+                  placeholder="Doe"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  disabled={loading}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 px-4 text-white focus:border-yellow-400 outline-none transition duration-200 disabled:opacity-50"
                 />
               </div>
 
@@ -102,9 +207,40 @@ export default function Registro() {
                 <input
                   type="text"
                   placeholder="Tu Empresa Inc."
-                  value={empresa}
-                  onChange={(e) => setEmpresa(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 px-4 text-white focus:border-yellow-400 outline-none transition duration-200"
+                  value={organizationName}
+                  onChange={(e) => setOrganizationName(e.target.value)}
+                  disabled={loading}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 px-4 text-white focus:border-yellow-400 outline-none transition duration-200 disabled:opacity-50"
+                />
+              </div>
+
+              {/* Razón Social (Legal Name) - Opcional */}
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
+                  Razón Social (Legal Name) <span className="text-gray-600">(Opcional)</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Tu Empresa S.A."
+                  value={legalName}
+                  onChange={(e) => setLegalName(e.target.value)}
+                  disabled={loading}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 px-4 text-white focus:border-yellow-400 outline-none transition duration-200 disabled:opacity-50"
+                />
+              </div>
+
+              {/* NIT / Tax ID */}
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
+                  NIT / Tax ID
+                </label>
+                <input
+                  type="text"
+                  placeholder="123-456-789"
+                  value={taxId}
+                  onChange={(e) => setTaxId(e.target.value)}
+                  disabled={loading}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 px-4 text-white focus:border-yellow-400 outline-none transition duration-200 disabled:opacity-50"
                 />
               </div>
 
@@ -118,7 +254,80 @@ export default function Registro() {
                   placeholder="tu@empresa.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 px-4 text-white focus:border-yellow-400 outline-none transition duration-200"
+                  disabled={loading}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 px-4 text-white focus:border-yellow-400 outline-none transition duration-200 disabled:opacity-50"
+                />
+              </div>
+
+              {/* Teléfono (Opcional) */}
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
+                  Teléfono <span className="text-gray-600">(Opcional)</span>
+                </label>
+                <input
+                  type="tel"
+                  placeholder="+1234567890"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  disabled={loading}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 px-4 text-white focus:border-yellow-400 outline-none transition duration-200 disabled:opacity-50"
+                />
+              </div>
+
+              {/* Dirección */}
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
+                  Dirección
+                </label>
+                <input
+                  type="text"
+                  placeholder="Calle 123"
+                  value={street}
+                  onChange={(e) => setStreet(e.target.value)}
+                  disabled={loading}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 px-4 text-white focus:border-yellow-400 outline-none transition duration-200 disabled:opacity-50"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
+                  Ciudad
+                </label>
+                <input
+                  type="text"
+                  placeholder="Bogotá"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  disabled={loading}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 px-4 text-white focus:border-yellow-400 outline-none transition duration-200 disabled:opacity-50"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
+                  País
+                </label>
+                <input
+                  type="text"
+                  placeholder="Colombia"
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
+                  disabled={loading}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 px-4 text-white focus:border-yellow-400 outline-none transition duration-200 disabled:opacity-50"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
+                  Código Postal
+                </label>
+                <input
+                  type="text"
+                  placeholder="110111"
+                  value={postalCode}
+                  onChange={(e) => setPostalCode(e.target.value)}
+                  disabled={loading}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 px-4 text-white focus:border-yellow-400 outline-none transition duration-200 disabled:opacity-50"
                 />
               </div>
 
@@ -127,12 +336,16 @@ export default function Registro() {
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
                   Contraseña
                 </label>
+                <div className="text-xs text-gray-400 mb-2">
+                  Mínimo 8 caracteres, 1 mayúscula, 1 número y 1 carácter especial (!@#$%^&*)
+                </div>
                 <input
                   type="password"
-                  placeholder="Mínimo 8 caracteres"
+                  placeholder="••••••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 px-4 text-white focus:border-yellow-400 outline-none transition duration-200"
+                  disabled={loading}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 px-4 text-white focus:border-yellow-400 outline-none transition duration-200 disabled:opacity-50"
                 />
               </div>
 
@@ -146,16 +359,18 @@ export default function Registro() {
                   placeholder="Repita su contraseña"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 px-4 text-white focus:border-yellow-400 outline-none transition duration-200"
+                  disabled={loading}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 px-4 text-white focus:border-yellow-400 outline-none transition duration-200 disabled:opacity-50"
                 />
               </div>
 
               {/* Botón Crear Cuenta */}
               <button
                 type="submit"
-                className={`w-full bg-yellow-400 text-black font-extrabold py-4 rounded-xl text-lg ${styles.glowButton} mt-4 shadow-xl hover:bg-yellow-300`}
+                disabled={loading}
+                className={`w-full bg-yellow-400 text-black font-extrabold py-4 rounded-xl text-lg ${styles.glowButton} mt-4 shadow-xl hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed transition`}
               >
-                Crear Cuenta
+                {loading ? 'Creando cuenta...' : 'Crear Cuenta'}
               </button>
             </form>
 
