@@ -23,8 +23,9 @@ interface AuthContextValue {
   /**
    * Re-fetch /auth/me and update the context.
    * Call this after login or logout to sync the UI.
+   * Returns the fetched user, or `null` if unauthenticated.
    */
-  checkAuth: () => Promise<void>;
+  checkAuth: () => Promise<User | null>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -39,10 +40,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const checkAuth = useCallback(async () => {
+  const checkAuth = useCallback(async (): Promise<User | null> => {
     try {
       const response = await getCurrentUser();
       setUser(response.data.user);
+      return response.data.user;
     } catch (error: unknown) {
       // 401 is expected when the user is not logged in.
       if (error instanceof ApiError && error.statusCode === 401) {
@@ -52,6 +54,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         console.error("[AuthContext] Failed to verify session:", error);
         setUser(null);
       }
+      return null;
     } finally {
       setIsLoading(false);
     }

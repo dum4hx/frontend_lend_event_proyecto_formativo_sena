@@ -34,10 +34,10 @@ export default function Login() {
       await loginUser({ email, password });
 
       // Verify authentication after login
-      await checkAuth();
+      const loggedUser = await checkAuth();
 
-      // Success - navigate to dashboard
-      navigate("/admin");
+      // Navigate based on the user's role
+      navigate(loggedUser?.role === "super_admin" ? "/super-admin" : "/admin");
     } catch (err: unknown) {
       const message =
         err instanceof ApiError ? err.message : "Error de conexión. Por favor intenta nuevamente.";
@@ -46,8 +46,8 @@ export default function Login() {
       if (err instanceof ApiError && err.statusCode === 401) {
         try {
           await refreshToken();
-          await checkAuth();
-          navigate("/admin");
+          const refreshedUser = await checkAuth();
+          navigate(refreshedUser?.role === "super_admin" ? "/super-admin" : "/admin");
           return;
         } catch {
           // fall through to setError below
