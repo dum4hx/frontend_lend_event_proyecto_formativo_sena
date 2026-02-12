@@ -14,6 +14,7 @@ import type {
   LoginResponseData,
   ChangePasswordPayload,
   MeResponseData,
+  PaymentStatusData,
 } from "../types/api";
 
 // --- Register ---------------------------------------------------------------
@@ -37,10 +38,7 @@ export async function registerUser(
     },
   };
 
-  return post<RegisterResponseData, RegisterPayload>(
-    "/auth/register",
-    normalised,
-  );
+  return post<RegisterResponseData, RegisterPayload>("/auth/register", normalised);
 }
 
 // --- Login ------------------------------------------------------------------
@@ -79,9 +77,7 @@ export async function logoutUser(): Promise<ApiSuccessResponse<null>> {
 // --- Current User -----------------------------------------------------------
 
 /** Fetch the profile of the currently authenticated user. */
-export async function getCurrentUser(): Promise<
-  ApiSuccessResponse<MeResponseData>
-> {
+export async function getCurrentUser(): Promise<ApiSuccessResponse<MeResponseData>> {
   return get<MeResponseData>("/auth/me");
 }
 
@@ -96,4 +92,14 @@ export async function getCurrentUser(): Promise<
  */
 export async function refreshToken(): Promise<ApiSuccessResponse<null>> {
   return post<null>("/auth/refresh");
+}
+
+// --- Payment Status ---------------------------------------------------------
+
+/**
+ * Check if the authenticated owner's organization has an active subscription.
+ * Only accessible by users with the "owner" role.
+ */
+export async function getPaymentStatus(): Promise<ApiSuccessResponse<PaymentStatusData>> {
+  return get<PaymentStatusData>("/auth/payment-status");
 }

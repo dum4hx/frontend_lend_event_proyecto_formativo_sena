@@ -2,10 +2,10 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Encabezado from "../components/Encabezado";
 import PiePagina from "../components/PiePagina";
-import { loginUser } from "../services/authService";
+import { loginUser, refreshToken } from "../services/authService";
 import { ApiError } from "../lib/api";
 import { validateLoginForm } from "../utils/validators";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../contexts/useAuth";
 import styles from "./Login.module.css";
 
 export default function Login() {
@@ -17,7 +17,7 @@ export default function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
 
@@ -40,9 +40,20 @@ export default function Login() {
       navigate("/admin");
     } catch (err: unknown) {
       const message =
-        err instanceof ApiError
-          ? err.message
-          : "Error de conexión. Por favor intenta nuevamente.";
+        err instanceof ApiError ? err.message : "Error de conexión. Por favor intenta nuevamente.";
+
+      // Try refreshing access token on 401, in case the session expired but the cookie is still valid.
+      if (err instanceof ApiError && err.statusCode === 401) {
+        try {
+          await refreshToken();
+          await checkAuth();
+          navigate("/admin");
+          return;
+        } catch {
+          // fall through to setError below
+        }
+      }
+
       setError(message);
     } finally {
       setLoading(false);
@@ -90,8 +101,8 @@ export default function Login() {
 
             {/* Descripción */}
             <p className="text-gray-300 text-lg max-w-md mb-12 leading-relaxed">
-              Acceda a su plataforma personalizada para gestionar eventos,
-              licencias de equipo y análisis de datos en tiempo real.
+              Acceda a su plataforma personalizada para gestionar eventos, licencias de equipo y
+              análisis de datos en tiempo real.
             </p>
 
             {/* Características */}
@@ -145,12 +156,7 @@ export default function Login() {
                 </label>
                 <div className="relative group">
                   <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 group-focus-within:text-yellow-400 transition-colors">
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -177,12 +183,7 @@ export default function Login() {
                 </label>
                 <div className="relative group">
                   <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 group-focus-within:text-yellow-400 transition-colors">
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -212,9 +213,7 @@ export default function Login() {
                     disabled={loading}
                     className="w-4 h-4 accent-yellow-400 bg-zinc-800 border-zinc-700 rounded disabled:opacity-50"
                   />
-                  <span className="text-gray-400 hover:text-white transition">
-                    Recordar sesión
-                  </span>
+                  <span className="text-gray-400 hover:text-white transition">Recordar sesión</span>
                 </label>
                 <Link
                   to="/recuperar-contrasena"
@@ -237,10 +236,7 @@ export default function Login() {
             {/* Link a Planes */}
             <p className="text-center text-sm text-gray-500 mt-8">
               ¿Aún no tienes una licencia?{" "}
-              <Link
-                to="/paquetes"
-                className="text-yellow-400 font-bold hover:underline"
-              >
+              <Link to="/paquetes" className="text-yellow-400 font-bold hover:underline">
                 Ver planes
               </Link>
             </p>

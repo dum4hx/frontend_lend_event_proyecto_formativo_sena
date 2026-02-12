@@ -6,14 +6,7 @@
  * pages call after login / logout to refresh the state.
  */
 
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useCallback,
-  type ReactNode,
-} from "react";
+import { createContext, useState, useEffect, useCallback, type ReactNode } from "react";
 import { getCurrentUser } from "../services/authService";
 import { ApiError } from "../lib/api";
 import type { User } from "../types/api";
@@ -70,25 +63,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [checkAuth]);
 
   return (
-    <AuthContext.Provider
-      value={{ user, isLoggedIn: user !== null, isLoading, checkAuth }}
-    >
+    <AuthContext.Provider value={{ user, isLoggedIn: user !== null, isLoading, checkAuth }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
-// -- Hook --------------------------------------------------------------------
-
-/**
- * Access the authentication context.
- *
- * @throws if used outside `<AuthProvider>`.
- */
-export function useAuth(): AuthContextValue {
-  const ctx = useContext(AuthContext);
-  if (ctx === undefined) {
-    throw new Error("useAuth must be used within an <AuthProvider>");
-  }
-  return ctx;
-}
+export { AuthContext };

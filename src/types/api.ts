@@ -146,11 +146,7 @@ export interface AvailablePlan {
 
 // ─── Customer ──────────────────────────────────────────────────────────────
 
-export type DocumentType =
-  | "national_id"
-  | "passport"
-  | "drivers_license"
-  | "tax_id";
+export type DocumentType = "national_id" | "passport" | "drivers_license" | "tax_id";
 
 export type CustomerStatus = "active" | "inactive" | "blacklisted";
 
@@ -268,12 +264,7 @@ export interface CreatePackagePayload {
 
 // ─── Loan Requests ─────────────────────────────────────────────────────────
 
-export type LoanRequestStatus =
-  | "pending"
-  | "approved"
-  | "rejected"
-  | "ready"
-  | "cancelled";
+export type LoanRequestStatus = "pending" | "approved" | "rejected" | "ready" | "cancelled";
 
 export interface LoanRequestItem {
   materialTypeId?: string;
@@ -550,6 +541,12 @@ export interface LoginResponseData {
 
 export interface MeResponseData {
   user: User;
+}
+
+export interface PaymentStatusData {
+  isActive: boolean;
+  plan: string;
+  organizationStatus: string;
 }
 
 // ─── User Management Payloads ──────────────────────────────────────────────
