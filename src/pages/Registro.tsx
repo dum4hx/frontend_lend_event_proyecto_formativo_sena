@@ -1,32 +1,33 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import Encabezado from '../components/Encabezado'
-import PiePagina from '../components/PiePagina'
-import { registerUser } from '../services/authService'
-import { validateRegistrationForm } from '../utils/validators'
-import styles from './Registro.module.css'
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import Encabezado from "../components/Encabezado";
+import PiePagina from "../components/PiePagina";
+import { registerUser } from "../services/authService";
+import { ApiError } from "../lib/api";
+import { validateRegistrationForm } from "../utils/validators";
+import styles from "./Registro.module.css";
 
 export default function Registro() {
-  const navigate = useNavigate()
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
-  const [organizationName, setOrganizationName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [phone, setPhone] = useState('')
-  const [error, setError] = useState('')
-  const [legalName, setLegalName] = useState('')
-  const [taxId, setTaxId] = useState('')
-  const [street, setStreet] = useState('')
-  const [city, setCity] = useState('')
-  const [country, setCountry] = useState('')
-  const [postalCode, setPostalCode] = useState('')
-  const [loading, setLoading] = useState(false)
+  const navigate = useNavigate();
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [organizationName, setOrganizationName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [phone, setPhone] = useState("");
+  const [error, setError] = useState("");
+  const [legalName, setLegalName] = useState("");
+  const [taxId, setTaxId] = useState("");
+  const [street, setStreet] = useState("");
+  const [city, setCity] = useState("");
+  const [country, setCountry] = useState("");
+  const [postalCode, setPostalCode] = useState("");
+  const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setError('')
+    e.preventDefault();
+    setError("");
 
     // Validate form
     const validation = validateRegistrationForm({
@@ -43,14 +44,14 @@ export default function Registro() {
       password,
       confirmPassword,
       phone,
-    })
+    });
 
     if (!validation.isValid) {
-      setError(validation.message || 'Validación fallida')
-      return
+      setError(validation.message || "Validación fallida");
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
 
     try {
       // Build payload matching API documentation: organization + owner
@@ -79,22 +80,23 @@ export default function Registro() {
             secondSurname: undefined,
           },
         },
+      };
+
+      const response = await registerUser(payload);
+
+      if (response.status === "success") {
+        // Success - navigate to login
+        alert("Cuenta creada exitosamente. Por favor inicia sesión.");
+        navigate("/login");
       }
-
-      const response = await registerUser(payload)
-
-      if (response.status === 'error') {
-        setError(response.message || 'Error al crear la cuenta. Por favor intenta nuevamente.')
-        return
-      }
-
-      // Success - navigate to login
-      alert('Cuenta creada exitosamente. Por favor inicia sesión.')
-      navigate('/login')
-    } catch (err: any) {
-      setError('Error de conexión. Por favor intenta nuevamente.')
+    } catch (err: unknown) {
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : "Error de conexión. Por favor intenta nuevamente.";
+      setError(message);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
@@ -104,7 +106,9 @@ export default function Registro() {
 
       <main className="flex-grow flex flex-col md:flex-row">
         {/* Sección Izquierda - Solo en Desktop */}
-        <div className={`hidden md:flex md:w-1/2 ${styles.bgOverlay} p-12 lg:p-20 flex-col justify-center relative border-r border-zinc-800 z-0`}>
+        <div
+          className={`hidden md:flex md:w-1/2 ${styles.bgOverlay} p-12 lg:p-20 flex-col justify-center relative border-r border-zinc-800 z-0`}
+        >
           <div className="z-20">
             {/* Logo */}
             <div className="flex items-center space-x-2 mb-12">
@@ -130,14 +134,15 @@ export default function Registro() {
 
             {/* Título */}
             <h1 className="text-5xl text-white lg:text-6xl font-extrabold mb-6 leading-tight">
-              Cree su cuenta<br />
+              Cree su cuenta
+              <br />
               <span className="text-yellow-400">Corporativa</span>
             </h1>
 
             {/* Descripción */}
             <p className="text-gray-300 text-lg max-w-md mb-12 leading-relaxed">
-              Únase a las empresas que ya están revolucionando sus eventos con nuestra tecnología
-              de vanguardia.
+              Únase a las empresas que ya están revolucionando sus eventos con
+              nuestra tecnología de vanguardia.
             </p>
 
             {/* Características */}
@@ -147,8 +152,12 @@ export default function Registro() {
                   <span className="text-yellow-400 text-xl font-bold">✓</span>
                 </div>
                 <div>
-                  <p className="font-bold text-white">Configuración Instantánea</p>
-                  <p className="text-sm text-gray-400">Acceda a su panel de control en menos de 2 minutos.</p>
+                  <p className="font-bold text-white">
+                    Configuración Instantánea
+                  </p>
+                  <p className="text-sm text-gray-400">
+                    Acceda a su panel de control en menos de 2 minutos.
+                  </p>
                 </div>
               </div>
             </div>
@@ -159,7 +168,9 @@ export default function Registro() {
         <div className="flex-grow md:w-1/2 flex items-center justify-center p-8 bg-black relative z-10 overflow-y-auto">
           <div className="w-full max-w-md py-12">
             <h2 className="text-4xl font-extrabold mb-2">Comenzar</h2>
-            <p className="text-gray-400 mb-10">Cree su cuenta de Lend Event hoy mismo</p>
+            <p className="text-gray-400 mb-10">
+              Cree su cuenta de Lend Event hoy mismo
+            </p>
 
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Error Message */}
@@ -217,7 +228,8 @@ export default function Registro() {
               {/* Razón Social (Legal Name) - Opcional */}
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                  Razón Social (Legal Name) <span className="text-gray-600">(Opcional)</span>
+                  Razón Social (Legal Name){" "}
+                  <span className="text-gray-600">(Opcional)</span>
                 </label>
                 <input
                   type="text"
@@ -337,7 +349,8 @@ export default function Registro() {
                   Contraseña
                 </label>
                 <div className="text-xs text-gray-400 mb-2">
-                  Mínimo 8 caracteres, 1 mayúscula, 1 número y 1 carácter especial (!@#$%^&*)
+                  Mínimo 8 caracteres, 1 mayúscula, 1 número y 1 carácter
+                  especial (!@#$%^&*)
                 </div>
                 <input
                   type="password"
@@ -370,14 +383,17 @@ export default function Registro() {
                 disabled={loading}
                 className={`w-full bg-yellow-400 text-black font-extrabold py-4 rounded-xl text-lg ${styles.glowButton} mt-4 shadow-xl hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed transition`}
               >
-                {loading ? 'Creando cuenta...' : 'Crear Cuenta'}
+                {loading ? "Creando cuenta..." : "Crear Cuenta"}
               </button>
             </form>
 
             {/* Link a Login */}
             <p className="text-center text-sm text-gray-500 mt-8">
-              ¿Ya tiene una cuenta?{' '}
-              <Link to="/login" className="text-yellow-400 font-bold hover:underline">
+              ¿Ya tiene una cuenta?{" "}
+              <Link
+                to="/login"
+                className="text-yellow-400 font-bold hover:underline"
+              >
                 Inicie sesión
               </Link>
             </p>
@@ -387,5 +403,5 @@ export default function Registro() {
 
       <PiePagina />
     </div>
-  )
+  );
 }

@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, Bell, Lock, Palette, Save } from 'lucide-react';
-import { StatCard } from '../components';
-import { getOrganization, updateOrganization } from '../../../services/adminService';
+import { useState, useEffect } from "react";
+import { Settings as SettingsIcon, Bell, Lock, Palette, Save } from "lucide-react";
+import { StatCard } from "../components";
+import { getOrganization, updateOrganization } from "../../../services/adminService";
+import { ApiError } from "../../../lib/api";
 
 type Setting = {
   id: string;
@@ -11,19 +12,39 @@ type Setting = {
 };
 
 const settings: Setting[] = [
-  { id: '1', category: 'Notifications', icon: <Bell size={28} />, description: 'Manage notification preferences' },
-  { id: '2', category: 'Security', icon: <Lock size={28} />, description: 'Update security settings' },
-  { id: '3', category: 'Appearance', icon: <Palette size={28} />, description: 'Customize interface theme' },
-  { id: '4', category: 'Account', icon: <SettingsIcon size={28} />, description: 'Manage account settings' },
+  {
+    id: "1",
+    category: "Notifications",
+    icon: <Bell size={28} />,
+    description: "Manage notification preferences",
+  },
+  {
+    id: "2",
+    category: "Security",
+    icon: <Lock size={28} />,
+    description: "Update security settings",
+  },
+  {
+    id: "3",
+    category: "Appearance",
+    icon: <Palette size={28} />,
+    description: "Customize interface theme",
+  },
+  {
+    id: "4",
+    category: "Account",
+    icon: <SettingsIcon size={28} />,
+    description: "Manage account settings",
+  },
 ];
 
 export default function Settings() {
   const [orgData, setOrgData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    legalName: '',
-    taxId: '',
+    name: "",
+    email: "",
+    phone: "",
+    legalName: "",
+    taxId: "",
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -35,21 +56,19 @@ export default function Settings() {
       try {
         setLoading(true);
         const response = await getOrganization();
+        const org = response.data.organization;
 
-        if (response.status === 'success' && response.data) {
-          setOrgData({
-            name: response.data.name || '',
-            email: response.data.email || '',
-            phone: response.data.phone || '',
-            legalName: response.data.legalName || '',
-            taxId: response.data.taxId || '',
-          });
-          setError(null);
-        } else {
-          setError(response.message || 'Error loading organization data');
-        }
-      } catch (err: any) {
-        setError(err.message || 'Failed to load organization data');
+        setOrgData({
+          name: org?.name || "",
+          email: org?.email || "",
+          phone: org?.phone || "",
+          legalName: org?.legalName || "",
+          taxId: org?.taxId || "",
+        });
+        setError(null);
+      } catch (err: unknown) {
+        const message = err instanceof ApiError ? err.message : "Failed to load organization data";
+        setError(message);
       } finally {
         setLoading(false);
       }
@@ -61,7 +80,7 @@ export default function Settings() {
   const handleSaveSettings = async () => {
     try {
       setSaving(true);
-      const response = await updateOrganization({
+      await updateOrganization({
         name: orgData.name,
         email: orgData.email,
         phone: orgData.phone,
@@ -69,15 +88,12 @@ export default function Settings() {
         taxId: orgData.taxId,
       });
 
-      if (response.status !== 'success') {
-        setError(response.message || 'Error updating organization');
-        return;
-      }
-
+      setError(null);
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
-    } catch (err: any) {
-      setError(err.message || 'Error updating settings');
+    } catch (err: unknown) {
+      const message = err instanceof ApiError ? err.message : "Error updating settings";
+      setError(message);
     } finally {
       setSaving(false);
     }
@@ -103,14 +119,16 @@ export default function Settings() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <StatCard label="Settings Sections" value={settings.length} icon={<SettingsIcon size={28} />} />
-        <StatCard label="Organization" value={orgData.name || 'N/A'} icon={<Bell size={28} />} />
+        <StatCard
+          label="Settings Sections"
+          value={settings.length}
+          icon={<SettingsIcon size={28} />}
+        />
+        <StatCard label="Organization" value={orgData.name || "N/A"} icon={<Bell size={28} />} />
       </div>
 
       {error && (
-        <div className="bg-red-900 border border-red-600 rounded-lg p-4 text-red-200">
-          {error}
-        </div>
+        <div className="bg-red-900 border border-red-600 rounded-lg p-4 text-red-200">{error}</div>
       )}
 
       {success && (
@@ -126,7 +144,9 @@ export default function Settings() {
 
           <div className="space-y-4">
             <div>
-              <label className="block text-gray-400 text-sm font-medium mb-2">Organization Name</label>
+              <label className="block text-gray-400 text-sm font-medium mb-2">
+                Organization Name
+              </label>
               <input
                 type="text"
                 value={orgData.name}
@@ -195,7 +215,10 @@ export default function Settings() {
         <h2 className="text-xl font-semibold text-white mb-4">Settings Categories</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
           {settings.map((setting) => (
-            <div key={setting.id} className="bg-[#121212] border border-[#333] rounded-[12px] p-6 hover:border-[#FFD700] transition-all cursor-pointer">
+            <div
+              key={setting.id}
+              className="bg-[#121212] border border-[#333] rounded-[12px] p-6 hover:border-[#FFD700] transition-all cursor-pointer"
+            >
               <div className="flex items-center gap-4 mb-3">
                 <div className="text-[#FFD700]">{setting.icon}</div>
                 <h3 className="text-white font-semibold text-lg">{setting.category}</h3>
@@ -217,7 +240,7 @@ export default function Settings() {
           className="flex items-center gap-2 px-6 py-3 bg-[#FFD700] text-black font-bold rounded-lg hover:bg-yellow-400 transition disabled:opacity-50"
         >
           <Save size={20} />
-          {saving ? 'Saving...' : 'Save Settings'}
+          {saving ? "Saving..." : "Save Settings"}
         </button>
       </div>
     </div>

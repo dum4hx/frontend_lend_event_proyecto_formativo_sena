@@ -1,228 +1,99 @@
-/**
- * Auth Service - Handles all authentication API calls
- * Base URL: http://api.test.local/api/v1
+﻿/**
+ * Authentication service.
+ *
+ * All calls go through the typed fetch wrapper in `src/lib/api.ts`.
+ * The backend uses HttpOnly cookies, so credentials are handled
+ * transparently by the browser -- no manual token storage is needed.
  */
 
-const API_BASE_URL = 'http://api.test.local/api/v1'
+import { post, get, type ApiSuccessResponse } from "../lib/api";
+import type {
+  RegisterPayload,
+  RegisterResponseData,
+  LoginPayload,
+  LoginResponseData,
+  ChangePasswordPayload,
+  MeResponseData,
+} from "../types/api";
 
-// Register payload follows API documentation: organization and owner objects
-interface RegisterPayload {
-  organization: {
-    name: string
-    legalName?: string
-    email?: string
-    phone?: string
-    taxId?: string
-    address?: any
-  }
-  owner: {
-    email: string
-    password: string
-    phone?: string
-    name: {
-      firstName: string
-      secondName?: string
-      firstSurname?: string
-      secondSurname?: string
-    }
-  }
+// --- Register ---------------------------------------------------------------
+
+/**
+ * Register a new organization together with its owner account.
+ * Emails are normalised to lowercase before being sent to the API.
+ */
+export async function registerUser(
+  payload: RegisterPayload,
+): Promise<ApiSuccessResponse<RegisterResponseData>> {
+  const normalised: RegisterPayload = {
+    ...payload,
+    organization: {
+      ...payload.organization,
+      email: payload.organization.email?.toLowerCase(),
+    },
+    owner: {
+      ...payload.owner,
+      email: payload.owner.email.toLowerCase(),
+    },
+  };
+
+  return post<RegisterResponseData, RegisterPayload>(
+    "/auth/register",
+    normalised,
+  );
 }
 
-interface LoginPayload {
-  email: string
-  password: string
+// --- Login ------------------------------------------------------------------
+
+/**
+ * Authenticate a user.  The backend responds with Set-Cookie headers
+ * that the browser stores automatically.
+ */
+export async function loginUser(
+  payload: LoginPayload,
+): Promise<ApiSuccessResponse<LoginResponseData>> {
+  const normalised: LoginPayload = {
+    ...payload,
+    email: payload.email.toLowerCase(),
+  };
+
+  return post<LoginResponseData, LoginPayload>("/auth/login", normalised);
 }
 
-interface ChangePasswordPayload {
-  currentPassword: string
-  newPassword: string
+// --- Change Password --------------------------------------------------------
+
+/** Change the password of the currently authenticated user. */
+export async function changePassword(
+  payload: ChangePasswordPayload,
+): Promise<ApiSuccessResponse<null>> {
+  return post<null, ChangePasswordPayload>("/auth/change-password", payload);
 }
 
-interface ApiResponse<T> {
-  status: 'success' | 'error'
-  message?: string
-  data?: T
-  code?: string
-  details?: any
+// --- Logout -----------------------------------------------------------------
+
+/** Clear authentication cookies on the server. */
+export async function logoutUser(): Promise<ApiSuccessResponse<null>> {
+  return post<null>("/auth/logout");
 }
 
-// Register - Create new organization and owner
-export const registerUser = async (payload: RegisterPayload): Promise<ApiResponse<any>> => {
-  try {
-    const normalizedPayload: RegisterPayload = {
-      ...payload,
-      organization: {
-        ...payload.organization,
-        email: payload.organization.email?.toLowerCase(),
-      },
-      owner: {
-        ...payload.owner,
-        email: payload.owner.email.toLowerCase(),
-      },
-    }
+// --- Current User -----------------------------------------------------------
 
-    const response = await fetch(`${API_BASE_URL}/auth/register`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include', // Include cookies
-      body: JSON.stringify(normalizedPayload),
-    })
-
-    const data: ApiResponse<any> = await response.json()
-
-    if (!response.ok) {
-      throw new Error(data.message || 'Error en registro')
-    }
-
-    return data
-  } catch (error: any) {
-    return {
-      status: 'error',
-      message: error.message || 'Error de conexión con el servidor',
-    }
-  }
+/** Fetch the profile of the currently authenticated user. */
+export async function getCurrentUser(): Promise<
+  ApiSuccessResponse<MeResponseData>
+> {
+  return get<MeResponseData>("/auth/me");
 }
 
-// Login
-export const loginUser = async (payload: LoginPayload): Promise<ApiResponse<any>> => {
-  try {
-    const normalizedPayload: LoginPayload = {
-      ...payload,
-      email: payload.email.toLowerCase(),
-    }
+// --- Refresh Token ----------------------------------------------------------
 
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include', // Include cookies
-      body: JSON.stringify(normalizedPayload),
-    })
-
-    const data: ApiResponse<any> = await response.json()
-
-    if (!response.ok) {
-      throw new Error(data.message || 'Error en inicio de sesión')
-    }
-
-    // Backend sets HTTP-only cookies automatically (access_token, refresh_token)
-    // No need to manually store tokens
-    return data
-  } catch (error: any) {
-    return {
-      status: 'error',
-      message: error.message || 'Error de conexión con el servidor',
-    }
-  }
-}
-
-// Change Password
-export const changePassword = async (
-  payload: ChangePasswordPayload
-): Promise<ApiResponse<any>> => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/auth/change-password`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include', // Include cookies
-      body: JSON.stringify(payload),
-    })
-
-    const data: ApiResponse<any> = await response.json()
-
-    if (!response.ok) {
-      throw new Error(data.message || 'Error al cambiar contraseña')
-    }
-    return data
-  } catch (error: any) {
-    return {
-      status: 'error',
-      message: error.message || 'Error de conexión con el servidor',
-    }
-  }
-}
-
-// Logout
-export const logoutUser = async (): Promise<ApiResponse<any>> => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/auth/logout`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-    })
-
-    const data: ApiResponse<any> = await response.json()
-
-    if (!response.ok) {
-      throw new Error(data.message || 'Error al cerrar sesión')
-    }
-
-    // Clear HTTP-only cookies by calling backend logout
-    // Cookies are cleared automatically by the backend
-    return data
-  } catch (error: any) {
-    return {
-      status: 'error',
-      message: error.message || 'Error de conexión con el servidor',
-    }
-  }
-}
-
-// Get Current User
-export const getCurrentUser = async (): Promise<ApiResponse<any>> => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/auth/me`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include', // Sends HTTP-only cookies automatically
-    })
-
-    const data: ApiResponse<any> = await response.json()
-
-    if (!response.ok) {
-      throw new Error(data.message || 'Error al obtener usuario actual')
-    }
-
-    return data
-  } catch (error: any) {
-    return {
-      status: 'error',
-      message: error.message || 'Error de conexión con el servidor',
-    }
-  }
-}
-
-// Refresh Token
-export const refreshToken = async (): Promise<ApiResponse<any>> => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-    })
-
-    const data: ApiResponse<any> = await response.json()
-
-    if (!response.ok) {
-      throw new Error(data.message || 'Error al refrescar token')
-    }
-
-    return data
-  } catch (error: any) {
-    return {
-      status: 'error',
-      message: error.message || 'Error de conexión con el servidor',
-    }
-  }
+/**
+ * Manually trigger a token refresh.
+ *
+ * In most cases callers should NOT need this -- the fetch wrapper
+ * handles 401 -> refresh automatically.  Exposed here in case the UI
+ * wants to pro-actively refresh before a known expensive call.
+ */
+export async function refreshToken(): Promise<ApiSuccessResponse<null>> {
+  return post<null>("/auth/refresh");
 }

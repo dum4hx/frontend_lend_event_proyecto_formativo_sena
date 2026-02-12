@@ -1,14 +1,21 @@
-import { useState, useEffect } from 'react';
-import { Users, Shield, Plus, Trash2, Edit } from 'lucide-react';
-import { StatCard } from '../components';
-import { getUsers, inviteUser, updateUser, updateUserRole, deactivateUser } from '../../../services/adminService';
+import { useState, useEffect } from "react";
+import { Users, Shield, Plus, Trash2, Edit } from "lucide-react";
+import { StatCard } from "../components";
+import {
+  getUsers,
+  inviteUser,
+  updateUser,
+  updateUserRole,
+  deactivateUser,
+} from "../../../services/adminService";
+import { ApiError } from "../../../lib/api";
 
 type TeamMember = {
   id: string;
   name: string;
   email: string;
   role: string;
-  status: 'active' | 'inactive';
+  status: "active" | "inactive";
 };
 
 export default function Team() {
@@ -18,9 +25,9 @@ export default function Team() {
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    role: 'commercial_advisor',
+    name: "",
+    email: "",
+    role: "commercial_advisor",
   });
 
   const fetchTeamMembers = async () => {
@@ -28,27 +35,33 @@ export default function Team() {
       setLoading(true);
       const response = await getUsers();
 
-      if (response.status === 'success' && response.data) {
-        const members: TeamMember[] = response.data.users?.map((user: any) => {
-          const profile = user.profile || user.name || {};
-          const firstName = profile.firstName || '';
-          const lastName = profile.lastName || profile.firstSurname || '';
+      const members: TeamMember[] = (response.data.users ?? []).map(
+        (user: Record<string, unknown>) => {
+          const profile = (user.profile || user.name || {}) as Record<
+            string,
+            string
+          >;
+          const firstName = profile.firstName || "";
+          const lastName = profile.lastName || profile.firstSurname || "";
           return {
-            id: user._id || user.id,
-            name: `${firstName} ${lastName}`.trim() || user.email,
-            email: user.email,
-            role: user.role || 'commercial_advisor',
-            status: user.status === 'inactive' ? 'inactive' : 'active',
+            id: (user._id as string) || (user.id as string),
+            name: `${firstName} ${lastName}`.trim() || (user.email as string),
+            email: user.email as string,
+            role: (user.role as string) || "commercial_advisor",
+            status:
+              user.status === "inactive"
+                ? ("inactive" as const)
+                : ("active" as const),
           };
-        }) || [];
+        },
+      );
 
-        setTeamMembers(members);
-        setError(null);
-      } else {
-        setError(response.message || 'Error loading team members');
-      }
-    } catch (err: any) {
-      setError(err.message || 'Failed to load team members');
+      setTeamMembers(members);
+      setError(null);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to load team members";
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -68,7 +81,7 @@ export default function Team() {
       });
     } else {
       setEditingId(null);
-      setFormData({ name: '', email: '', role: 'commercial_advisor' });
+      setFormData({ name: "", email: "", role: "commercial_advisor" });
     }
     setShowModal(true);
   };
@@ -76,75 +89,65 @@ export default function Team() {
   const handleCloseModal = () => {
     setShowModal(false);
     setEditingId(null);
-    setFormData({ name: '', email: '', role: 'commercial_advisor' });
+    setFormData({ name: "", email: "", role: "commercial_advisor" });
   };
 
   const handleSaveUser = async () => {
     try {
       if (!formData.name || !formData.email) {
-        alert('Por favor completa todos los campos');
+        alert("Por favor completa todos los campos");
         return;
       }
 
-      const [firstName, ...rest] = formData.name.trim().split(' ');
-      const lastName = rest.join(' ').trim();
+      const [firstName, ...rest] = formData.name.trim().split(" ");
+      const lastName = rest.join(" ").trim();
 
       if (editingId) {
-        const response = await updateUser(editingId, {
+        await updateUser(editingId, {
           profile: {
             firstName: firstName || formData.name,
-            lastName: lastName || '',
+            lastName: lastName || "",
           },
         });
-        if (response.status !== 'success') {
-          alert('Error: ' + response.message);
-          return;
-        }
 
-        const roleResponse = await updateUserRole(editingId, formData.role);
-        if (roleResponse.status !== 'success') {
-          alert('Error: ' + roleResponse.message);
-          return;
-        }
-      } else {
-        const response = await inviteUser({
-          email: formData.email,
-          role: formData.role,
-          profile: {
-            firstName: firstName || formData.name,
-            lastName: lastName || '',
-          },
+        await updateUserRole(editingId, {
+          role: formData.role as import("../../../types/api").UserRole,
         });
-        if (response.status !== 'success') {
-          alert('Error: ' + response.message);
-          return;
-        }
+      } else {
+        await inviteUser({
+          email: formData.email,
+          phone: "",
+          name: {
+            firstName: firstName || formData.name,
+            firstSurname: lastName || "",
+          },
+          role: formData.role as import("../../../types/api").UserRole,
+        });
       }
 
       handleCloseModal();
       await fetchTeamMembers();
-    } catch (err: any) {
-      alert('Error: ' + err.message);
+    } catch (err: unknown) {
+      const message = err instanceof ApiError ? err.message : "Unknown error";
+      alert("Error: " + message);
     }
   };
 
   const handleDeleteUser = async (userId: string) => {
-    if (!confirm('¿Estás seguro de que deseas desactivar este usuario?')) return;
+    if (!confirm("¿Estás seguro de que deseas desactivar este usuario?"))
+      return;
 
     try {
-      const response = await deactivateUser(userId);
-      if (response.status !== 'success') {
-        alert('Error: ' + response.message);
-        return;
-      }
+      await deactivateUser(userId);
       await fetchTeamMembers();
-    } catch (err: any) {
-      alert('Error: ' + err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      alert("Error: " + message);
     }
   };
 
-  const activeCount = teamMembers.filter(m => m.status === 'active').length;
-  const rolesCount = new Set(teamMembers.map(m => m.role)).size;
+  const activeCount = teamMembers.filter((m) => m.status === "active").length;
+  const rolesCount = new Set(teamMembers.map((m) => m.role)).size;
 
   return (
     <div className="space-y-8">
@@ -163,8 +166,16 @@ export default function Team() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard label="Total Members" value={teamMembers.length} icon={<Users size={28} />} />
-        <StatCard label="Active Members" value={activeCount} icon={<Shield size={28} />} />
+        <StatCard
+          label="Total Members"
+          value={teamMembers.length}
+          icon={<Users size={28} />}
+        />
+        <StatCard
+          label="Active Members"
+          value={activeCount}
+          icon={<Shield size={28} />}
+        />
         <StatCard label="Roles" value={rolesCount} icon={<Users size={28} />} />
       </div>
 
@@ -172,31 +183,50 @@ export default function Team() {
         <h2 className="text-xl font-semibold text-white mb-4">Team List</h2>
         <div className="bg-[#121212] border border-[#333] rounded-[12px] overflow-hidden">
           {loading ? (
-            <div className="p-6 text-center text-gray-400">Loading team members...</div>
+            <div className="p-6 text-center text-gray-400">
+              Loading team members...
+            </div>
           ) : error ? (
             <div className="p-6 text-center text-red-400">{error}</div>
           ) : teamMembers.length === 0 ? (
-            <div className="p-6 text-center text-gray-400">No team members found</div>
+            <div className="p-6 text-center text-gray-400">
+              No team members found
+            </div>
           ) : (
             <table className="w-full">
               <thead className="bg-[#1a1a1a] border-b border-[#333]">
                 <tr>
-                  <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">Name</th>
-                  <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">Email</th>
-                  <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">Role</th>
-                  <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">Status</th>
-                  <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">Actions</th>
+                  <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">
+                    Name
+                  </th>
+                  <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">
+                    Email
+                  </th>
+                  <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">
+                    Role
+                  </th>
+                  <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">
+                    Status
+                  </th>
+                  <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {teamMembers.map((member) => (
-                  <tr key={member.id} className="border-b border-[#333] hover:bg-[#1a1a1a] transition-all">
+                  <tr
+                    key={member.id}
+                    className="border-b border-[#333] hover:bg-[#1a1a1a] transition-all"
+                  >
                     <td className="px-6 py-4 text-white">{member.name}</td>
                     <td className="px-6 py-4 text-gray-400">{member.email}</td>
                     <td className="px-6 py-4 text-gray-400">{member.role}</td>
                     <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${member.status === 'active' ? 'bg-green-900 text-green-200' : 'bg-gray-700 text-gray-300'}`}>
-                        {member.status === 'active' ? 'Active' : 'Inactive'}
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-medium ${member.status === "active" ? "bg-green-900 text-green-200" : "bg-gray-700 text-gray-300"}`}
+                      >
+                        {member.status === "active" ? "Active" : "Inactive"}
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -230,27 +260,35 @@ export default function Team() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-[#121212] border border-[#333] rounded-lg p-6 w-full max-w-md">
             <h2 className="text-2xl font-bold text-white mb-4">
-              {editingId ? 'Edit Member' : 'Invite New Member'}
+              {editingId ? "Edit Member" : "Invite New Member"}
             </h2>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-gray-400 text-sm font-medium mb-2">Name</label>
+                <label className="block text-gray-400 text-sm font-medium mb-2">
+                  Name
+                </label>
                 <input
                   type="text"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
                   className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded text-white focus:outline-none focus:border-[#FFD700]"
                   placeholder="Full name"
                 />
               </div>
 
               <div>
-                <label className="block text-gray-400 text-sm font-medium mb-2">Email</label>
+                <label className="block text-gray-400 text-sm font-medium mb-2">
+                  Email
+                </label>
                 <input
                   type="email"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
                   disabled={!!editingId}
                   className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded text-white focus:outline-none focus:border-[#FFD700] disabled:opacity-50"
                   placeholder="email@example.com"
@@ -258,10 +296,14 @@ export default function Team() {
               </div>
 
               <div>
-                <label className="block text-gray-400 text-sm font-medium mb-2">Role</label>
+                <label className="block text-gray-400 text-sm font-medium mb-2">
+                  Role
+                </label>
                 <select
                   value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, role: e.target.value })
+                  }
                   className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded text-white focus:outline-none focus:border-[#FFD700]"
                 >
                   <option value="owner">Owner</option>

@@ -1,73 +1,72 @@
-# React + TypeScript + Vite
+# LendEvent — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React 19 + TypeScript + Vite SPA for the **LendEvent** event-rental management platform.
 
-Currently, two official plugins are available:
+## Quick start
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+```bash
+# 1. Install dependencies
+npm install
 
-## React Compiler
+# 2. Copy the env template and adjust as needed
+cp .env.example .env
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# 3. Start the dev server
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Environment variables
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+| Variable            | Description                        | Default                        |
+| ------------------- | ---------------------------------- | ------------------------------ |
+| `VITE_API_BASE_URL` | Base URL of the LendEvent REST API | `http://api.test.local/api/v1` |
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+> Create a `.env` file in the project root (see `.env.example`).
+
+## Available scripts
+
+| Script                  | Purpose                               |
+| ----------------------- | ------------------------------------- |
+| `npm run dev`           | Start Vite dev server with HMR        |
+| `npm run build`         | Type-check & production build         |
+| `npm run lint`          | Run ESLint across the project         |
+| `npm run format`        | Format all source files with Prettier |
+| `npm run format:check`  | Check formatting without writing      |
+| `npm run test`          | Run all tests once (Vitest)           |
+| `npm run test:watch`    | Run tests in watch mode               |
+| `npm run test:coverage` | Run tests with V8 coverage report     |
+| `npm run preview`       | Preview the production build locally  |
+
+## Architecture highlights
+
+- **Typed fetch wrapper** — `src/lib/api.ts`. Every HTTP call goes through this module (no axios/ky). It handles JSON serialisation, query params, `credentials: 'include'`, error parsing, and automatic 401 → token refresh.
+- **Domain services** — `src/services/*.ts`. One file per domain entity (users, customers, materials, loans …). Each function is fully typed with interfaces from `src/types/api.ts`.
+- **API types** — `src/types/api.ts`. TypeScript interfaces derived directly from `API_DOCUMENTATION.md`.
+- **Auth via HttpOnly cookies** — the backend sets `access_token` (15 min) and `refresh_token` (7 days) as HttpOnly cookies. The frontend never touches `localStorage` for tokens.
+
+## Testing
+
+Tests use **Vitest** + **MSW** (Mock Service Worker).
+
+```bash
+npm test               # single run
+npm run test:watch     # interactive watch mode
+npm run test:coverage  # coverage report
 ```
+
+Test files live beside their module: `src/lib/__tests__/api.test.ts`, `src/services/__tests__/authService.test.ts`.
+
+## PR checklist
+
+Before requesting a review, ensure every item is checked:
+
+- [ ] **Types** — no `any`; all new code uses interfaces from `src/types/api.ts`.
+- [ ] **Fetch wrapper** — all HTTP calls go through `src/lib/api.ts` (no raw `fetch`, no axios).
+- [ ] **Error handling** — callers catch `ApiError` (instanceof check), never inspect `response.status === 'error'`.
+- [ ] **English comments** — code comments and docstrings are in English.
+- [ ] **Environment vars** — any new env var is added to both `.env.example` and this README.
+- [ ] **Tests pass** — `npm test` exits 0.
+- [ ] **Lint clean** — `npm run lint` exits 0.
+- [ ] **Format check** — `npm run format:check` exits 0.
+- [ ] **No console.log** — remove debugging logs before pushing.
+- [ ] **Reviewed on mobile** — responsive layout has not regressed (if applicable).

@@ -1,56 +1,94 @@
-import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import { getCurrentUser } from '../services/authService';
+﻿/**
+ * Authentication context.
+ *
+ * Provides the currently-authenticated user (or null) to the
+ * entire component tree and exposes a `checkAuth` helper that
+ * pages call after login / logout to refresh the state.
+ */
 
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-}
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  type ReactNode,
+} from "react";
+import { getCurrentUser } from "../services/authService";
+import { ApiError } from "../lib/api";
+import type { User } from "../types/api";
 
-interface AuthContextType {
+// -- Context shape -----------------------------------------------------------
+
+interface AuthContextValue {
+  /** The logged-in user, or `null` when unauthenticated. */
   user: User | null;
+  /** Shorthand boolean for `user !== null`. */
   isLoggedIn: boolean;
+  /** `true` while the initial auth check is still in-flight. */
   isLoading: boolean;
+  /**
+   * Re-fetch /auth/me and update the context.
+   * Call this after login or logout to sync the UI.
+   */
   checkAuth: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+// -- Provider ----------------------------------------------------------------
+
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     try {
       const response = await getCurrentUser();
-      if (response.status === 'success' && response.data) {
-        setUser(response.data);
+      setUser(response.data.user);
+    } catch (error: unknown) {
+      // 401 is expected when the user is not logged in.
+      if (error instanceof ApiError && error.statusCode === 401) {
+        setUser(null);
       } else {
+        // Network or unexpected errors -- still clear the user.
+        console.error("[AuthContext] Failed to verify session:", error);
         setUser(null);
       }
-    } catch (error) {
-      setUser(null);
     } finally {
       setIsLoading(false);
     }
-  };
-
-  useEffect(() => {
-    checkAuth();
   }, []);
 
+  // Check auth once on mount.
+  useEffect(() => {
+    void checkAuth();
+  }, [checkAuth]);
+
   return (
-    <AuthContext.Provider value={{ user, isLoggedIn: !!user, isLoading, checkAuth }}>
+    <AuthContext.Provider
+      value={{ user, isLoggedIn: user !== null, isLoading, checkAuth }}
+    >
       {children}
     </AuthContext.Provider>
   );
-};
+}
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
+// -- Hook --------------------------------------------------------------------
+
+/**
+ * Access the authentication context.
+ *
+ * @throws if used outside `<AuthProvider>`.
+ */
+export function useAuth(): AuthContextValue {
+  const ctx = useContext(AuthContext);
+  if (ctx === undefined) {
+    throw new Error("useAuth must be used within an <AuthProvider>");
   }
-  return context;
-};
+  return ctx;
+}
