@@ -1,32 +1,44 @@
 import { useEffect, useState, useCallback } from "react";
-import { Pencil, Check, X } from "lucide-react";
+import { Pencil, Check, X, Plus, Trash2, Package } from "lucide-react";
 import {
   getSubscriptionTypes,
+  createSubscriptionType,
   updateSubscriptionType,
   deleteSubscriptionType,
 } from "../../../services/subscriptionTypeService";
-import { ApiError } from "../../../lib/api";
-import type { SubscriptionType } from "../../../types/api";
+import { LoadingSpinner, ErrorDisplay, ConfirmDialog, EmptyState } from "../../../components/ui";
+import { normalizeError, logError } from "../../../utils/errorHandling";
+import type { SubscriptionType, CreateSubscriptionTypePayload, BillingModel } from "../../../types/api";
 
 // --- Validation helpers ----------------------------------------------------
 
 interface PlanValidationErrors {
+  plan?: string;
   displayName?: string;
+  description?: string;
   baseCost?: string;
   pricePerSeat?: string;
   maxSeats?: string;
   maxCatalogItems?: string;
+  billingModel?: string;
 }
 
 function validatePlanFields(
-  fields: Partial<
-    Pick<
-      SubscriptionType,
-      "displayName" | "baseCost" | "pricePerSeat" | "maxSeats" | "maxCatalogItems"
-    >
-  >,
+  fields: Partial<CreateSubscriptionTypePayload>,
+  isCreate = false
 ): PlanValidationErrors {
   const errors: PlanValidationErrors = {};
+
+  if (isCreate && fields.plan !== undefined) {
+    const plan = fields.plan.trim();
+    if (!plan) {
+      errors.plan = "Plan identifier is required.";
+    } else if (!/^[a-z][a-z0-9_]*$/.test(plan)) {
+      errors.plan = "Must be lowercase alphanumeric with underscores.";
+    } else if (plan.length > 50) {
+      errors.plan = "Max 50 characters.";
+    }
+  }
 
   if (fields.displayName !== undefined) {
     const name = fields.displayName.trim();
@@ -34,15 +46,19 @@ function validatePlanFields(
     else if (name.length > 100) errors.displayName = "Max 100 characters.";
   }
 
+  if (fields.description !== undefined && fields.description.length > 500) {
+    errors.description = "Max 500 characters.";
+  }
+
   if (fields.baseCost !== undefined) {
     if (!Number.isFinite(fields.baseCost) || fields.baseCost < 0) {
-      errors.baseCost = "Must be a non-negative number.";
+      errors.baseCost = "Must be a non-negative number (in cents).";
     }
   }
 
   if (fields.pricePerSeat !== undefined) {
     if (!Number.isFinite(fields.pricePerSeat) || fields.pricePerSeat < 0) {
-      errors.pricePerSeat = "Must be a non-negative number.";
+      errors.pricePerSeat = "Must be a non-negative number (in cents).";
     }
   }
 
@@ -56,6 +72,10 @@ function validatePlanFields(
     if (!Number.isInteger(fields.maxCatalogItems) || fields.maxCatalogItems < -1) {
       errors.maxCatalogItems = "Must be -1 (unlimited) or a positive integer.";
     }
+  }
+
+  if (isCreate && !fields.billingModel) {
+    errors.billingModel = "Billing model is required.";
   }
 
   return errors;
@@ -80,16 +100,38 @@ const CARD_BORDER: Record<string, string> = {
   enterprise: "border-[#333]",
 };
 
+const DEFAULT_CREATE_STATE: Partial<CreateSubscriptionTypePayload> = {
+  billingModel: 'dynamic',
+  baseCost: 0,
+  pricePerSeat: 0,
+  maxSeats: -1,
+  maxCatalogItems: -1,
+  sortOrder: 0,
+  status: 'active',
+  features: [],
+};
+
 // ---------------------------------------------------------------------------
 
 export default function PlanConfiguration() {
   const [plans, setPlans] = useState<SubscriptionType[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<string>("");
+  
+  // Edit mode
   const [editingPlan, setEditingPlan] = useState<string | null>(null);
   const [editFields, setEditFields] = useState<Partial<SubscriptionType>>({});
   const [validationErrors, setValidationErrors] = useState<PlanValidationErrors>({});
   const [saving, setSaving] = useState(false);
+
+  // Create mode
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [createFields, setCreateFields] = useState<Partial<CreateSubscriptionTypePayload>>(DEFAULT_CREATE_STATE);
+  const [createErrors, setCreateErrors] = useState<PlanValidationErrors>({});
+  const [creating, setCreating] = useState(false);
+
+  // Delete confirmation
+  const [deleteConfirm, setDeleteConfirm] = useState<{ plan: string; displayName: string } | null>(null);
 
   const fetchPlans = useCallback(async () => {
     try {
@@ -98,7 +140,9 @@ export default function PlanConfiguration() {
       const res = await getSubscriptionTypes();
       setPlans(res.data.subscriptionTypes);
     } catch (err: unknown) {
-      setError(err instanceof ApiError ? err.message : "Failed to load plans.");
+      const normalized = normalizeError(err);
+      setError(normalized.message);
+      logError(err, 'PlanConfiguration.fetchPlans');
     } finally {
       setLoading(false);
     }
@@ -132,7 +176,7 @@ export default function PlanConfiguration() {
   const saveEdit = async () => {
     if (!editingPlan) return;
 
-    const errors = validatePlanFields(editFields);
+    const errors = validatePlanFields(editFields, false);
     setValidationErrors(errors);
     if (hasErrors(errors)) return;
 
@@ -149,49 +193,102 @@ export default function PlanConfiguration() {
       setEditFields({});
       await fetchPlans();
     } catch (err: unknown) {
-      alert(err instanceof ApiError ? err.message : "Failed to update plan.");
+      const normalized = normalizeError(err);
+      alert(normalized.message);
+      logError(err, 'PlanConfiguration.saveEdit');
     } finally {
       setSaving(false);
     }
   };
 
-  // Set to draft (soft delete)
-  const setToDraft = async (plan: string) => {
-    if (!confirm(`Deactivate the "${plan}" plan? It will no longer be visible to users.`)) return;
+  // Create new plan
+  const handleCreate = async () => {
+    const errors = validatePlanFields(createFields, true);
+    setCreateErrors(errors);
+    if (hasErrors(errors)) return;
+
+    // Ensure required fields are present
+    if (!createFields.plan || !createFields.displayName || !createFields.billingModel) {
+      alert('Please fill in all required fields.');
+      return;
+    }
 
     try {
-      await deleteSubscriptionType(plan);
+      setCreating(true);
+      await createSubscriptionType({
+        plan: createFields.plan,
+        displayName: createFields.displayName,
+        description: createFields.description,
+        billingModel: createFields.billingModel as BillingModel,
+        baseCost: createFields.baseCost ?? 0,
+        pricePerSeat: createFields.pricePerSeat ?? 0,
+        maxSeats: createFields.maxSeats ?? -1,
+        maxCatalogItems: createFields.maxCatalogItems ?? -1,
+        features: createFields.features ?? [],
+        sortOrder: createFields.sortOrder ?? 0,
+        status: createFields.status,
+      });
+
+      // Reset form and refresh
+      setShowCreateForm(false);
+      setCreateFields(DEFAULT_CREATE_STATE);
+      setCreateErrors({});
       await fetchPlans();
     } catch (err: unknown) {
-      alert(err instanceof ApiError ? err.message : "Failed to deactivate plan.");
+      const normalized = normalizeError(err);
+      alert(normalized.message);
+      logError(err, 'PlanConfiguration.handleCreate');
+    } finally {
+      setCreating(false);
     }
   };
 
-  // --- Render ---------------------------------------------------------------
+  // Cancel create
+  const cancelCreate = () => {
+    setShowCreateForm(false);
+    setCreateFields(DEFAULT_CREATE_STATE);
+    setCreateErrors({});
+  };
 
+  // Confirm and delete plan
+  const handleDelete = async () => {
+    if (!deleteConfirm) return;
+
+    try {
+      await deleteSubscriptionType(deleteConfirm.plan);
+      setDeleteConfirm(null);
+      await fetchPlans();
+    } catch (err: unknown) {
+      const normalized = normalizeError(err);
+      alert(normalized.message);
+      logError(err, 'PlanConfiguration.handleDelete');
+    }
+  };
+
+  // Render loading state
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFD700] mx-auto mb-4" />
-          <p className="text-gray-400">Loading plans…</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner fullScreen message="Loading subscription plans…" />;
   }
 
+  // Render error state
   if (error) {
+    return <ErrorDisplay error={error} onRetry={fetchPlans} fullScreen />;
+  }
+
+  // Render empty state
+  if (plans.length === 0 && !showCreateForm) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center max-w-md">
-          <p className="text-red-400 mb-4">{error}</p>
-          <button
-            onClick={fetchPlans}
-            className="px-6 py-2 bg-[#FFD700] text-black font-semibold rounded-lg hover:bg-yellow-300 transition"
-          >
-            Retry
-          </button>
+      <div>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-white">Plan Configuration</h1>
+          <p className="text-gray-400 mt-1">Manage subscription plans, pricing, and features</p>
         </div>
+        <EmptyState
+          icon={Package}
+          title="No subscription plans"
+          description="Get started by creating your first subscription plan for organizations."
+          action={{ label: 'Create Plan', onClick: () => setShowCreateForm(true) }}
+        />
       </div>
     );
   }
@@ -199,10 +296,168 @@ export default function PlanConfiguration() {
   return (
     <div>
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white">Plan Configuration</h1>
-        <p className="text-gray-400 mt-1">Manage subscription plans, pricing, and features</p>
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-white">Plan Configuration</h1>
+          <p className="text-gray-400 mt-1">Manage subscription plans, pricing, and features</p>
+        </div>
+        {!showCreateForm && (
+          <button
+            onClick={() => setShowCreateForm(true)}
+            className="flex items-center gap-2 bg-[#FFD700] text-black font-semibold px-5 py-2.5 rounded-lg hover:bg-yellow-300 transition"
+          >
+            <Plus size={18} />
+            Create Plan
+          </button>
+        )}
       </div>
+
+      {/* Create Form */}
+      {showCreateForm && (
+        <div className="bg-[#121212] border border-[#FFD700] rounded-xl p-6 mb-6">
+          <h2 className="text-xl font-bold text-white mb-4">Create New Plan</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            {/* Plan identifier */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-400 mb-2">
+                Plan ID * <span className="text-xs font-normal">(lowercase, alphanumeric, underscores)</span>
+              </label>
+              <input
+                value={createFields.plan ?? ''}
+                onChange={(e) => setCreateFields(f => ({ ...f, plan: e.target.value.toLowerCase() }))}
+                placeholder="e.g., premium_pro"
+                className="w-full bg-[#1a1a1a] border border-[#444] rounded-lg px-4 py-2.5 text-white focus:border-[#FFD700] outline-none"
+              />
+              {createErrors.plan && <p className="text-red-400 text-xs mt-1">{createErrors.plan}</p>}
+            </div>
+
+            {/* Display name */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-400 mb-2">Display Name *</label>
+              <input
+                value={createFields.displayName ?? ''}
+                onChange={(e) => setCreateFields(f => ({ ...f, displayName: e.target.value }))}
+                placeholder="e.g., Premium Pro"
+                className="w-full bg-[#1a1a1a] border border-[#444] rounded-lg px-4 py-2.5 text-white focus:border-[#FFD700] outline-none"
+              />
+              {createErrors.displayName && <p className="text-red-400 text-xs mt-1">{createErrors.displayName}</p>}
+            </div>
+
+            {/* Billing model */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-400 mb-2">Billing Model *</label>
+              <select
+                value={createFields.billingModel ?? 'dynamic'}
+                onChange={(e) => setCreateFields(f => ({ ...f, billingModel: e.target.value as BillingModel }))}
+                className="w-full bg-[#1a1a1a] border border-[#444] rounded-lg px-4 py-2.5 text-white focus:border-[#FFD700] outline-none"
+              >
+                <option value="dynamic">Dynamic (per-seat pricing)</option>
+                <option value="fixed">Fixed (flat rate)</option>
+              </select>
+            </div>
+
+            {/* Base cost */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-400 mb-2">
+                Base Cost (cents) *
+              </label>
+              <input
+                type="number"
+                min={0}
+                value={createFields.baseCost ?? 0}
+                onChange={(e) => setCreateFields(f => ({ ...f, baseCost: Number(e.target.value) }))}
+                className="w-full bg-[#1a1a1a] border border-[#444] rounded-lg px-4 py-2.5 text-white focus:border-[#FFD700] outline-none"
+              />
+              {createErrors.baseCost && <p className="text-red-400 text-xs mt-1">{createErrors.baseCost}</p>}
+            </div>
+
+            {/* Price per seat */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-400 mb-2">
+                Price Per Seat (cents)
+              </label>
+              <input
+                type="number"
+                min={0}
+                value={createFields.pricePerSeat ?? 0}
+                onChange={(e) => setCreateFields(f => ({ ...f, pricePerSeat: Number(e.target.value) }))}
+                className="w-full bg-[#1a1a1a] border border-[#444] rounded-lg px-4 py-2.5 text-white focus:border-[#FFD700] outline-none"
+              />
+            </div>
+
+            {/* Max seats */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-400 mb-2">
+                Max Seats <span className="text-xs font-normal">(-1 = unlimited)</span>
+              </label>
+              <input
+                type="number"
+                value={createFields.maxSeats ?? -1}
+                onChange={(e) => setCreateFields(f => ({ ...f, maxSeats: Number(e.target.value) }))}
+                className="w-full bg-[#1a1a1a] border border-[#444] rounded-lg px-4 py-2.5 text-white focus:border-[#FFD700] outline-none"
+              />
+            </div>
+
+            {/* Max catalog items */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-400 mb-2">
+                Max Catalog Items <span className="text-xs font-normal">(-1 = unlimited)</span>
+              </label>
+              <input
+                type="number"
+                value={createFields.maxCatalogItems ?? -1}
+                onChange={(e) => setCreateFields(f => ({ ...f, maxCatalogItems: Number(e.target.value) }))}
+                className="w-full bg-[#1a1a1a] border border-[#444] rounded-lg px-4 py-2.5 text-white focus:border-[#FFD700] outline-none"
+              />
+            </div>
+
+            {/* Sort order */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-400 mb-2">
+                Sort Order
+              </label>
+              <input
+                type="number"
+                value={createFields.sortOrder ?? 0}
+                onChange={(e) => setCreateFields(f => ({ ...f, sortOrder: Number(e.target.value) }))}
+                className="w-full bg-[#1a1a1a] border border-[#444] rounded-lg px-4 py-2.5 text-white focus:border-[#FFD700] outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Description */}
+          <div className="mb-4">
+            <label className="block text-sm font-semibold text-gray-400 mb-2">Description</label>
+            <textarea
+              value={createFields.description ?? ''}
+              onChange={(e) => setCreateFields(f => ({ ...f, description: e.target.value }))}
+              rows={2}
+              maxLength={500}
+              className="w-full bg-[#1a1a1a] border border-[#444] rounded-lg px-4 py-2.5 text-white focus:border-[#FFD700] outline-none resize-none"
+              placeholder="Brief description of this plan..."
+            />
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center justify-end gap-3">
+            <button
+              onClick={cancelCreate}
+              disabled={creating}
+              className="px-5 py-2.5 border border-[#333] text-gray-300 rounded-lg hover:bg-[#1a1a1a] hover:text-white transition font-medium disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleCreate}
+              disabled={creating}
+              className="px-5 py-2.5 bg-[#FFD700] text-black font-semibold rounded-lg hover:bg-yellow-300 transition disabled:opacity-50"
+            >
+              {creating ? 'Creating...' : 'Create Plan'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Plan Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -217,11 +472,11 @@ export default function PlanConfiguration() {
             >
               {/* Card Header */}
               <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-1">
                   <div className="w-8 h-8 rounded-lg bg-[#1a1a1a] flex items-center justify-center">
                     <span className="text-lg">⚡</span>
                   </div>
-                  <div>
+                  <div className="flex-1">
                     {isEditing ? (
                       <div>
                         <input
@@ -254,23 +509,37 @@ export default function PlanConfiguration() {
                       onClick={saveEdit}
                       disabled={saving}
                       className="w-8 h-8 rounded-lg bg-green-900/30 hover:bg-green-900/50 flex items-center justify-center text-green-400 transition disabled:opacity-50"
+                      title="Save changes"
                     >
                       <Check size={16} />
                     </button>
                     <button
                       onClick={cancelEdit}
                       className="w-8 h-8 rounded-lg bg-red-900/30 hover:bg-red-900/50 flex items-center justify-center text-red-400 transition"
+                      title="Cancel"
                     >
                       <X size={16} />
                     </button>
                   </div>
                 ) : (
-                  <button
-                    onClick={() => startEdit(plan)}
-                    className="w-8 h-8 rounded-lg bg-[#1a1a1a] hover:bg-[#333] flex items-center justify-center text-gray-400 hover:text-[#FFD700] transition"
-                  >
-                    <Pencil size={16} />
-                  </button>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => startEdit(plan)}
+                      className="w-8 h-8 rounded-lg bg-[#1a1a1a] hover:bg-[#333] flex items-center justify-center text-gray-400 hover:text-[#FFD700] transition"
+                      title="Edit plan"
+                    >
+                      <Pencil size={16} />
+                    </button>
+                    {plan.status === 'active' && (
+                      <button
+                        onClick={() => setDeleteConfirm({ plan: plan.plan, displayName: plan.displayName })}
+                        className="w-8 h-8 rounded-lg bg-red-900/20 hover:bg-red-900/40 flex items-center justify-center text-red-400 transition"
+                        title="Deactivate plan"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
 
@@ -290,7 +559,7 @@ export default function PlanConfiguration() {
                             baseCost: Number(e.target.value),
                           }))
                         }
-                        className="bg-[#1a1a1a] border border-[#444] rounded px-2 py-1 text-white text-lg font-bold w-24 focus:border-[#FFD700] outline-none"
+                        className="bg-[#1a1a1a] border border-[#444] rounded px-2 py-1 text-white text-lg font-bold w-32 focus:border-[#FFD700] outline-none"
                       />
                       {validationErrors.baseCost && (
                         <p className="text-red-400 text-xs mt-1">{validationErrors.baseCost}</p>
@@ -340,7 +609,7 @@ export default function PlanConfiguration() {
               </div>
 
               {/* Limits */}
-              <div className="text-xs text-gray-500 mb-4 space-y-1">
+              <div className="text-xs text-gray-500 space-y-1">
                 <p>
                   Max seats:{" "}
                   <span className="text-white">
@@ -357,21 +626,25 @@ export default function PlanConfiguration() {
                   Price per seat:{" "}
                   <span className="text-white">${formatDollars(plan.pricePerSeat)}</span>
                 </p>
+                <p>
+                  Billing: <span className="text-white capitalize">{plan.billingModel}</span>
+                </p>
               </div>
-
-              {/* Set to Draft button */}
-              {plan.status === "active" && (
-                <button
-                  onClick={() => setToDraft(plan.plan)}
-                  className="w-full border border-[#333] text-gray-400 hover:text-white hover:border-[#555] py-2.5 rounded-lg text-sm font-medium transition"
-                >
-                  Set to Draft
-                </button>
-              )}
             </div>
           );
         })}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        onConfirm={handleDelete}
+        title="Deactivate Plan"
+        message={`Are you sure you want to deactivate the "${deleteConfirm?.displayName}" plan? It will no longer be visible to new customers, but existing subscriptions will not be affected.`}
+        confirmText="Deactivate"
+        variant="danger"
+      />
     </div>
   );
 }

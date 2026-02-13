@@ -1,4 +1,3 @@
-import React from 'react';
 import { Bot, Zap, Settings as SettingsIcon } from 'lucide-react';
 import { StatCard } from '../components';
 

@@ -1,11 +1,19 @@
 import { useEffect, useState, useCallback } from "react";
-import { Cpu, MessageSquare, Clock, DollarSign } from "lucide-react";
+import { Cpu, MessageSquare, Clock, DollarSign, AlertCircle } from "lucide-react";
 import { SuperAdminStatCard } from "../components";
-import { getAnalyticsDashboard } from "../../../services/adminAnalyticsService";
-import { ApiError } from "../../../lib/api";
+import { fetchDashboard } from "../../../services/superAdminService";
+import { LoadingSpinner, ErrorDisplay } from "../../../components/ui";
+import { normalizeError, logError } from "../../../utils/errorHandling";
 import type { AdminDashboardData } from "../../../types/api";
 
-// --- Types for display-only mock AI data -----------------------------------
+// ---------------------------------------------------------------------------
+// AI Chatbot metrics types (display-only demonstration data).
+//
+// The current API does not expose AI/chatbot-specific endpoints.
+// These types and generators produce deterministic placeholder data so the
+// UI has realistic content to render.  When the backend adds AI endpoints,
+// replace the generators with real service calls.
+// ---------------------------------------------------------------------------
 
 interface TokenUsagePoint {
   date: string;
@@ -111,10 +119,12 @@ export default function AIChatbotMonitor() {
     try {
       setLoading(true);
       setError("");
-      const res = await getAnalyticsDashboard();
+      const res = await fetchDashboard();
       setDashboard(res.data);
     } catch (err: unknown) {
-      setError(err instanceof ApiError ? err.message : "Failed to load AI analytics.");
+      const normalized = normalizeError(err);
+      setError(normalized.message);
+      logError(err, 'AIChatbotMonitor.fetchData');
     } finally {
       setLoading(false);
     }
@@ -125,30 +135,11 @@ export default function AIChatbotMonitor() {
   }, [fetchData]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFD700] mx-auto mb-4" />
-          <p className="text-gray-400">Loading AI metrics…</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner fullScreen message="Loading AI metrics…" />;
   }
 
   if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center max-w-md">
-          <p className="text-red-400 mb-4">{error}</p>
-          <button
-            onClick={fetchData}
-            className="px-6 py-2 bg-[#FFD700] text-black font-semibold rounded-lg hover:bg-yellow-300 transition"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
+    return <ErrorDisplay error={error} onRetry={fetchData} fullScreen />;
   }
 
   const totalTokens = clientUsage.reduce((s, c) => s + c.tokensUsed, 0);
@@ -166,7 +157,7 @@ export default function AIChatbotMonitor() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <SuperAdminStatCard
           label="Total Tokens Used"
           value={`${(totalTokens / 1_000_000).toFixed(2)}M`}
@@ -195,6 +186,15 @@ export default function AIChatbotMonitor() {
           trend="Last 7 days"
           trendUp={false}
         />
+      </div>
+
+      {/* Demo data notice — API does not expose AI/chatbot endpoints */}
+      <div className="mb-8 bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 flex items-center gap-3">
+        <AlertCircle className="w-5 h-5 text-blue-400 flex-shrink-0" />
+        <p className="text-sm text-blue-300">
+          AI chatbot metrics shown on this page are <strong>demonstration data</strong>.
+          Connect a real AI provider to display live analytics.
+        </p>
       </div>
 
       {/* Charts Row */}

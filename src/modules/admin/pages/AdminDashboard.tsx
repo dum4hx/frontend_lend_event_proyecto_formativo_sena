@@ -32,37 +32,25 @@ export default function AdminDashboard() {
         const totalEmployees = usersRes.data.users?.length ?? 0;
 
         let activeEvents = 0;
-        let totalAttendees = 0;
-        let totalCapacity = 0;
         const loans = loansRes.data.loans ?? [];
         const now = new Date();
-        activeEvents = loans.filter((loan: Record<string, unknown>) => {
-          const startDate = new Date(loan.start_date as string);
-          const endDate = new Date(loan.end_date as string);
+        activeEvents = loans.filter((loan) => {
+          const startDate = new Date(loan.startDate);
+          const endDate = new Date(loan.endDate);
           return startDate <= now && now <= endDate;
         }).length;
 
-        totalAttendees = loans.reduce(
-          (sum: number, loan: Record<string, unknown>) =>
-            sum + ((loan.borrowed_items as unknown[])?.length || 0),
-          0,
-        );
-        totalCapacity = loans.reduce(
-          (sum: number, loan: Record<string, unknown>) =>
-            sum + ((loan.items as unknown[])?.length || 0),
-          0,
-        );
+        const totalLoans = loans.length;
 
         const attendance =
-          totalCapacity > 0
-            ? Math.round((totalAttendees / totalCapacity) * 100)
+          totalLoans > 0
+            ? Math.round((activeEvents / totalLoans) * 100)
             : 0;
 
         let monthlySpend = "$0";
-        const summary = invoicesRes.data as Record<string, unknown>;
-        const totalAmount = (summary?.summary as Record<string, unknown>)
-          ?.total_amount;
-        if (typeof totalAmount === "number") {
+        const summary = invoicesRes.data;
+        const totalAmount = summary.pending.total + summary.paid.total;
+        if (totalAmount > 0) {
           monthlySpend = `$${totalAmount.toLocaleString()}`;
         }
 

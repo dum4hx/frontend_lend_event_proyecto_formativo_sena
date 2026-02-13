@@ -6,6 +6,28 @@
  * safety across the entire frontend.
  */
 
+// ─── API Error Codes ───────────────────────────────────────────────────────
+
+/** Known API error codes returned by the backend. */
+export type ApiErrorCode =
+  | 'BAD_REQUEST'
+  | 'PLAN_LIMIT_REACHED'
+  | 'UNAUTHORIZED'
+  | 'ORGANIZATION_SUSPENDED'
+  | 'FORBIDDEN'
+  | 'NOT_FOUND'
+  | 'CONFLICT'
+  | 'RATE_LIMIT_EXCEEDED'
+  | 'VALIDATION_ERROR'
+  | 'INTERNAL_ERROR';
+
+/** Rate-limit information extracted from response headers. */
+export interface RateLimitInfo {
+  limit: number;
+  remaining: number;
+  resetSeconds: number;
+}
+
 // ─── Shared / Utility ──────────────────────────────────────────────────────
 
 /** Paginated list metadata returned by list endpoints. */
@@ -146,7 +168,13 @@ export interface AvailablePlan {
 
 // ─── Customer ──────────────────────────────────────────────────────────────
 
-export type DocumentType = "national_id" | "passport" | "drivers_license" | "tax_id";
+export type DocumentType = "cc" | "ce" | "passport" | "nit" | "other";
+
+export interface DocumentTypeInfo {
+  value: DocumentType;
+  displayName: string;
+  description: string;
+}
 
 export type CustomerStatus = "active" | "inactive" | "blacklisted";
 
@@ -499,6 +527,54 @@ export interface AdminDashboardData {
   generatedAt: string;
 }
 
+// ─── Super Admin Operations ────────────────────────────────────────────────
+
+/** Result of a bulk operation on subscription types. */
+export interface BulkOperationResult<T> {
+  succeeded: T[];
+  failed: Array<{ item: T; error: string }>;
+  total: number;
+}
+
+/** Filter options for analytics queries. */
+export interface AnalyticsFilter {
+  periodMonths?: number;
+  startDate?: string;
+  endDate?: string;
+  plan?: string;
+  status?: string;
+}
+
+/** Pagination request with optional filters. */
+export interface PaginatedRequest<TFilter = Record<string, unknown>> {
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+  filters?: TFilter;
+}
+
+/** Generic paginated response wrapper. */
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+}
+
+/** Operation status for async/batch operations. */
+export type OperationStatus = 'pending' | 'in-progress' | 'completed' | 'failed' | 'partial';
+
+export interface OperationResult {
+  status: OperationStatus;
+  message: string;
+  timestamp: string;
+  details?: Record<string, unknown>;
+}
+
 // ─── Auth Payloads ─────────────────────────────────────────────────────────
 
 export interface RegisterPayload {
@@ -525,6 +601,25 @@ export interface LoginPayload {
 
 export interface ChangePasswordPayload {
   currentPassword: string;
+  newPassword: string;
+}
+
+export interface ForgotPasswordPayload {
+  email: string;
+}
+
+export interface VerifyResetCodePayload {
+  email: string;
+  code: string;
+}
+
+export interface VerifyResetCodeResponseData {
+  resetToken: string;
+}
+
+export interface ResetPasswordPayload {
+  email: string;
+  resetToken: string;
   newPassword: string;
 }
 
@@ -613,4 +708,26 @@ export interface InvoicesQueryParams extends PaginationParams {
   status?: InvoiceStatus;
   type?: InvoiceType;
   overdue?: boolean;
+}
+
+// ─── Admin Analytics Query Params ──────────────────────────────────────────
+
+export interface AnalyticsQueryParams {
+  periodMonths?: number;
+}
+
+export interface ActivityQueryParams {
+  limit?: number;
+}
+
+// ─── Billing History ───────────────────────────────────────────────────────
+
+export interface BillingHistoryEntry {
+  id: string;
+  type: string;
+  amount: number;
+  currency: string;
+  status: string;
+  createdAt: string;
+  description?: string;
 }

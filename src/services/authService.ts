@@ -13,6 +13,10 @@ import type {
   LoginPayload,
   LoginResponseData,
   ChangePasswordPayload,
+  ForgotPasswordPayload,
+  VerifyResetCodePayload,
+  VerifyResetCodeResponseData,
+  ResetPasswordPayload,
   MeResponseData,
   PaymentStatusData,
 } from "../types/api";
@@ -65,6 +69,53 @@ export async function changePassword(
   payload: ChangePasswordPayload,
 ): Promise<ApiSuccessResponse<null>> {
   return post<null, ChangePasswordPayload>("/auth/change-password", payload);
+}
+
+// --- Forgot Password --------------------------------------------------------
+
+/**
+ * Initiate the password reset flow.
+ * Sends a 6-digit verification code to the user's email.
+ * Always returns success to prevent email enumeration.
+ */
+export async function forgotPassword(
+  payload: ForgotPasswordPayload,
+): Promise<ApiSuccessResponse<null>> {
+  return post<null, ForgotPasswordPayload>("/auth/forgot-password", {
+    email: payload.email.toLowerCase(),
+  });
+}
+
+// --- Verify Reset Code ------------------------------------------------------
+
+/**
+ * Verify the 6-digit OTP code and obtain a reset token
+ * required for the final password change.
+ */
+export async function verifyResetCode(
+  payload: VerifyResetCodePayload,
+): Promise<ApiSuccessResponse<VerifyResetCodeResponseData>> {
+  return post<VerifyResetCodeResponseData, VerifyResetCodePayload>(
+    "/auth/verify-reset-code",
+    { email: payload.email.toLowerCase(), code: payload.code },
+  );
+}
+
+// --- Reset Password ---------------------------------------------------------
+
+/**
+ * Reset the user's password using the verified reset token.
+ * Password must meet strength requirements:
+ * min 8 chars, uppercase, lowercase, digit, special char.
+ */
+export async function resetPassword(
+  payload: ResetPasswordPayload,
+): Promise<ApiSuccessResponse<null>> {
+  return post<null, ResetPasswordPayload>("/auth/reset-password", {
+    email: payload.email.toLowerCase(),
+    resetToken: payload.resetToken,
+    newPassword: payload.newPassword,
+  });
 }
 
 // --- Logout -----------------------------------------------------------------

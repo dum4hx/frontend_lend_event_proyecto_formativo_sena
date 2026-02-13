@@ -2,12 +2,11 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Encabezado from "../components/Encabezado";
 import PiePagina from "../components/PiePagina";
-import { changePassword } from "../services/authService";
+import { forgotPassword, verifyResetCode, resetPassword } from "../services/authService";
 import { ApiError } from "../lib/api";
 import {
   validateEmail,
   validateCode,
-  validateChangePasswordForm,
   validatePassword,
 } from "../utils/validators";
 import styles from "./RecuperarContrasena.module.css";
@@ -17,61 +16,112 @@ export default function RecuperarContrasena() {
   const [paso, setPaso] = useState(1);
   const [email, setEmail] = useState("");
   const [codigo, setCodigo] = useState("");
+  const [resetToken, setResetToken] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [currentPassword, setCurrentPassword] = useState("");
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleGoToStep2 = () => {
+  // Step 1: POST /auth/forgot-password
+  const handleSendCode = async () => {
     const emailValidation = validateEmail(email);
     if (!emailValidation.isValid) {
       setError(emailValidation.message || "Validación fallida");
       return;
     }
+
     setError("");
-    setPaso(2);
+    setLoading(true);
+
+    try {
+      await forgotPassword({ email });
+      setSuccess("Si la cuenta existe, se ha enviado un código de verificación.");
+      setPaso(2);
+    } catch (err: unknown) {
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : "Error de conexión. Por favor intenta nuevamente.";
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleValidarCodigo = () => {
+  // Step 2: POST /auth/verify-reset-code
+  const handleVerifyCode = async () => {
     const codeValidation = validateCode(codigo);
     if (!codeValidation.isValid) {
       setError(codeValidation.message || "Validación fallida");
       return;
     }
+
     setError("");
-    setPaso(3);
-  };
-
-  const handleCambiarContrasena = async () => {
-    const formValidation = validateChangePasswordForm({
-      currentPassword,
-      newPassword,
-      confirmPassword,
-    });
-
-    if (!formValidation.isValid) {
-      setError(formValidation.message || "Validación fallida");
-      return;
-    }
-
+    setSuccess("");
     setLoading(true);
 
     try {
-      const response = await changePassword({
-        currentPassword,
-        newPassword,
-      });
-
-      if (response.status === "success") {
-        alert("Contraseña cambiada correctamente. Redirigiendo a login...");
-        navigate("/login");
-      }
+      const response = await verifyResetCode({ email, code: codigo });
+      setResetToken(response.data.resetToken);
+      setPaso(3);
     } catch (err: unknown) {
       const message =
         err instanceof ApiError
           ? err.message
-          : "Error de conexi\u00f3n. Por favor intenta nuevamente.";
+          : "Error de conexión. Por favor intenta nuevamente.";
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Step 3: POST /auth/reset-password
+  const handleResetPassword = async () => {
+    const passwordValidation = validatePassword(newPassword);
+    if (!passwordValidation.isValid) {
+      setError(passwordValidation.message || "Validación fallida");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setError("Las contraseñas no coinciden.");
+      return;
+    }
+
+    setError("");
+    setLoading(true);
+
+    try {
+      await resetPassword({ email, resetToken, newPassword });
+      alert("Contraseña restablecida correctamente. Redirigiendo a login...");
+      navigate("/login");
+    } catch (err: unknown) {
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : "Error de conexión. Por favor intenta nuevamente.";
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Resend code handler
+  const handleResendCode = async () => {
+    setError("");
+    setSuccess("");
+    setLoading(true);
+
+    try {
+      await forgotPassword({ email });
+      setSuccess("Código reenviado. Revisa tu bandeja de entrada.");
+      setCodigo("");
+    } catch (err: unknown) {
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : "Error al reenviar código.";
       setError(message);
     } finally {
       setLoading(false);
@@ -201,7 +251,7 @@ export default function RecuperarContrasena() {
                   </div>
 
                   <button
-                    onClick={handleGoToStep2}
+                    onClick={handleSendCode}
                     disabled={loading}
                     className={`w-full bg-yellow-400 text-black font-extrabold py-4 rounded-xl text-lg ${styles.glowButton} shadow-xl hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed transition`}
                   >
@@ -221,6 +271,13 @@ export default function RecuperarContrasena() {
                 </p>
 
                 <div className="space-y-6">
+                  {/* Success Message */}
+                  {success && (
+                    <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4">
+                      <p className="text-green-400 text-sm font-medium">{success}</p>
+                    </div>
+                  )}
+
                   {/* Error Message */}
                   {error && (
                     <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
@@ -234,6 +291,9 @@ export default function RecuperarContrasena() {
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
                       Código de 6 dígitos
                     </label>
+                    <p className="text-xs text-gray-500 mb-2">
+                      El código expira en 10 minutos. Máximo 5 intentos.
+                    </p>
                     <div className="relative group">
                       <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 group-focus-within:text-yellow-400 transition-colors">
                         <svg
@@ -265,7 +325,7 @@ export default function RecuperarContrasena() {
                   </div>
 
                   <button
-                    onClick={handleValidarCodigo}
+                    onClick={handleVerifyCode}
                     disabled={loading}
                     className={`w-full bg-yellow-400 text-black font-extrabold py-4 rounded-xl text-lg ${styles.glowButton} shadow-xl hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed transition`}
                   >
@@ -275,7 +335,7 @@ export default function RecuperarContrasena() {
                   <p className="text-center text-sm text-gray-500">
                     ¿No recibiste el código?{" "}
                     <button
-                      onClick={() => setError("")}
+                      onClick={handleResendCode}
                       disabled={loading}
                       className="text-yellow-400 font-bold hover:underline disabled:opacity-50"
                     >
@@ -306,41 +366,10 @@ export default function RecuperarContrasena() {
 
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                      Contraseña Actual
-                    </label>
-                    <div className="relative group">
-                      <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 group-focus-within:text-yellow-400 transition-colors">
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                          />
-                        </svg>
-                      </span>
-                      <input
-                        type="password"
-                        placeholder="Tu contraseña actual"
-                        value={currentPassword}
-                        onChange={(e) => setCurrentPassword(e.target.value)}
-                        disabled={loading}
-                        className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 pl-12 pr-4 text-white focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 outline-none transition duration-200 disabled:opacity-50"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
                       Nueva Contraseña
                     </label>
                     <div className="text-xs text-gray-400 mb-2">
-                      Mínimo 8 caracteres, 1 mayúscula, 1 número y 1 carácter
+                      Mínimo 8 caracteres, 1 mayúscula, 1 minúscula, 1 número y 1 carácter
                       especial (!@#$%^&*)
                     </div>
                     <div className="relative group">
@@ -402,16 +431,16 @@ export default function RecuperarContrasena() {
                   </div>
 
                   <button
-                    onClick={handleCambiarContrasena}
+                    onClick={handleResetPassword}
                     disabled={loading}
                     className={`w-full bg-yellow-400 text-black font-extrabold py-4 rounded-xl text-lg ${styles.glowButton} shadow-xl hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed transition`}
                   >
-                    {loading ? "Cambiando contraseña..." : "Cambiar Contraseña"}
+                    {loading ? "Restableciendo..." : "Restablecer Contraseña"}
                   </button>
 
                   <p className="text-center text-xs text-gray-500">
                     La contraseña debe tener al menos 8 caracteres, una
-                    mayúscula, un número y un carácter especial.
+                    mayúscula, una minúscula, un número y un carácter especial.
                   </p>
                 </div>
               </div>

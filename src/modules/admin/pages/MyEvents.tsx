@@ -48,7 +48,7 @@ export default function MyEvents() {
       const response = await getRequests();
 
       const mappedEvents: Event[] = (response.data.requests ?? []).map(
-        (request: Record<string, unknown>) => {
+        (request: any) => {
           const startRaw =
             (request.requestedStartDate as string) ||
             (request.requested_start_date as string) ||
@@ -120,7 +120,7 @@ export default function MyEvents() {
 
       setCustomers(customersRes.data.customers || []);
       setPackages(packagesRes.data.packages || []);
-    } catch (_err) {
+    } catch  {
       // Non-critical: ignore
     }
   };
@@ -188,6 +188,9 @@ export default function MyEvents() {
         packageId: formData.packageId,
         requestedStartDate: formData.startDate,
         requestedEndDate: formData.endDate,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        items: [],
         deposit: {
           amount: formData.depositAmount ? Number(formData.depositAmount) : 0,
           method: formData.depositMethod,

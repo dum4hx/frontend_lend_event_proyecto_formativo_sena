@@ -25,8 +25,10 @@ export default function Team() {
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    name: "",
+    firstName: "",
+    firstSurname: "",
     email: "",
+    phone: "",
     role: "commercial_advisor",
   });
 
@@ -36,7 +38,7 @@ export default function Team() {
       const response = await getUsers();
 
       const members: TeamMember[] = (response.data.users ?? []).map(
-        (user: Record<string, unknown>) => {
+        (user: any) => {
           const profile = (user.profile || user.name || {}) as Record<
             string,
             string
@@ -74,14 +76,18 @@ export default function Team() {
   const handleOpenModal = (member?: TeamMember) => {
     if (member) {
       setEditingId(member.id);
+      const [firstName, ...rest] = member.name.trim().split(" ");
+      const firstSurname = rest.join(" ").trim();
       setFormData({
-        name: member.name,
+        firstName: firstName || "",
+        firstSurname: firstSurname || "",
         email: member.email,
+        phone: "",
         role: member.role,
       });
     } else {
       setEditingId(null);
-      setFormData({ name: "", email: "", role: "commercial_advisor" });
+      setFormData({ firstName: "", firstSurname: "", email: "", phone: "", role: "commercial_advisor" });
     }
     setShowModal(true);
   };
@@ -89,24 +95,34 @@ export default function Team() {
   const handleCloseModal = () => {
     setShowModal(false);
     setEditingId(null);
-    setFormData({ name: "", email: "", role: "commercial_advisor" });
+    setFormData({ firstName: "", firstSurname: "", email: "", phone: "", role: "commercial_advisor" });
   };
 
   const handleSaveUser = async () => {
     try {
-      if (!formData.name || !formData.email) {
-        alert("Por favor completa todos los campos");
+      if (!formData.firstName || !formData.firstSurname || !formData.email) {
+        alert("Por favor completa todos los campos requeridos");
         return;
       }
 
-      const [firstName, ...rest] = formData.name.trim().split(" ");
-      const lastName = rest.join(" ").trim();
+      // Validate phone format (E.164) only for new users
+      if (!editingId) {
+        if (!formData.phone) {
+          alert("El teléfono es requerido");
+          return;
+        }
+        const phoneRegex = /^\+?[1-9]\d{1,14}$/;
+        if (!phoneRegex.test(formData.phone.replace(/\s/g, ""))) {
+          alert("Formato de teléfono inválido. Use formato E.164 (ej: +573001234567)");
+          return;
+        }
+      }
 
       if (editingId) {
         await updateUser(editingId, {
-          profile: {
-            firstName: firstName || formData.name,
-            lastName: lastName || "",
+          name: {
+            firstName: formData.firstName,
+            firstSurname: formData.firstSurname,
           },
         });
 
@@ -116,10 +132,10 @@ export default function Team() {
       } else {
         await inviteUser({
           email: formData.email,
-          phone: "",
+          phone: formData.phone,
           name: {
-            firstName: firstName || formData.name,
-            firstSurname: lastName || "",
+            firstName: formData.firstName,
+            firstSurname: formData.firstSurname,
           },
           role: formData.role as import("../../../types/api").UserRole,
         });
@@ -266,22 +282,39 @@ export default function Team() {
             <div className="space-y-4">
               <div>
                 <label className="block text-gray-400 text-sm font-medium mb-2">
-                  Name
+                  Primer Nombre *
                 </label>
                 <input
                   type="text"
-                  value={formData.name}
+                  value={formData.firstName}
                   onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
+                    setFormData({ ...formData, firstName: e.target.value })
                   }
                   className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded text-white focus:outline-none focus:border-[#FFD700]"
-                  placeholder="Full name"
+                  placeholder="Juan"
+                  maxLength={50}
                 />
               </div>
 
               <div>
                 <label className="block text-gray-400 text-sm font-medium mb-2">
-                  Email
+                  Primer Apellido *
+                </label>
+                <input
+                  type="text"
+                  value={formData.firstSurname}
+                  onChange={(e) =>
+                    setFormData({ ...formData, firstSurname: e.target.value })
+                  }
+                  className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded text-white focus:outline-none focus:border-[#FFD700]"
+                  placeholder="Pérez"
+                  maxLength={50}
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-400 text-sm font-medium mb-2">
+                  Email *
                 </label>
                 <input
                   type="email"
@@ -294,6 +327,23 @@ export default function Team() {
                   placeholder="email@example.com"
                 />
               </div>
+
+              {!editingId && (
+                <div>
+                  <label className="block text-gray-400 text-sm font-medium mb-2">
+                    Teléfono * (formato E.164)
+                  </label>
+                  <input
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) =>
+                      setFormData({ ...formData, phone: e.target.value })
+                    }
+                    className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded text-white focus:outline-none focus:border-[#FFD700]"
+                    placeholder="+573001234567"
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="block text-gray-400 text-sm font-medium mb-2">

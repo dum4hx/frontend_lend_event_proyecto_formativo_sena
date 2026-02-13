@@ -12,6 +12,7 @@ import type {
   CreatePortalPayload,
   UpdateSeatsPayload,
   CancelSubscriptionPayload,
+  BillingHistoryEntry,
 } from "../types/api";
 
 // ─── Checkout ──────────────────────────────────────────────────────────────
@@ -58,6 +59,6 @@ export async function cancelSubscription(
 /** Get billing history for the organization. */
 export async function getBillingHistory(
   limit = 50,
-): Promise<ApiSuccessResponse<{ history: unknown[] }>> {
-  return get<{ history: unknown[] }>("/billing/history", { limit });
+): Promise<ApiSuccessResponse<{ history: BillingHistoryEntry[] }>> {
+  return get<{ history: BillingHistoryEntry[] }>("/billing/history", { limit });
 }

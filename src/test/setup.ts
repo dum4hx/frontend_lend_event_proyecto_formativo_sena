@@ -8,7 +8,7 @@
 import "@testing-library/jest-dom/vitest";
 
 // Provide a deterministic base URL for tests.
-(import.meta as Record<string, unknown>).env = {
+(import.meta as unknown as Record<string, unknown>).env = {
   ...(import.meta.env ?? {}),
   VITE_API_BASE_URL: "http://localhost:3000/api/v1",
 };

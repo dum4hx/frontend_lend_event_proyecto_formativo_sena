@@ -76,7 +76,7 @@ export default function Registro() {
           name: {
             firstName: firstName,
             secondName: undefined,
-            firstSurname: lastName || undefined,
+            firstSurname: lastName || "",
             secondSurname: undefined,
           },
         },

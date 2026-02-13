@@ -91,6 +91,32 @@ interface RequestOptions<TBody = unknown> {
    * @default false
    */
   skipRefresh?: boolean;
+  /**
+   * Maximum number of automatic retries for transient failures
+   * (5xx, network errors, 429).  Defaults to `0` (no retries).
+   */
+  maxRetries?: number;
+  /**
+   * Base delay in ms for exponential back-off between retries.
+   * @default 1000
+   */
+  retryDelay?: number;
+}
+
+/** Determines whether the error is transient and retryable. */
+function isRetryableStatus(status: number): boolean {
+  return status === 429 || status >= 500;
+}
+
+/**
+ * Parse `Retry-After` header and return ms to wait, or `null`.
+ */
+function parseRetryAfter(res: Response): number | null {
+  const header = res.headers.get("Retry-After");
+  if (!header) return null;
+  const seconds = Number(header);
+  if (Number.isFinite(seconds)) return seconds * 1000;
+  return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -191,7 +217,15 @@ export async function request<TData, TBody = unknown>(
   path: string,
   options: RequestOptions<TBody> = {},
 ): Promise<ApiSuccessResponse<TData>> {
-  const { method = "GET", body, params, headers, skipRefresh = false } = options;
+  const {
+    method = "GET",
+    body,
+    params,
+    headers,
+    skipRefresh = false,
+    maxRetries = 0,
+    retryDelay = 1000,
+  } = options;
 
   const url = buildUrl(path, params);
 
@@ -208,34 +242,67 @@ export async function request<TData, TBody = unknown>(
     init.body = JSON.stringify(body);
   }
 
-  const res = await fetch(url, init);
+  let lastError: ApiError | undefined;
 
-  // -- Handle 401: attempt a silent token refresh then retry once. ----------
-  if (res.status === 401 && !skipRefresh && !path.includes("/auth/")) {
-    const refreshed = await refreshAccessToken();
-
-    if (refreshed) {
-      return request<TData, TBody>(path, { ...options, skipRefresh: true });
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    // Wait before retrying (skip first attempt).
+    if (attempt > 0) {
+      const delay = retryDelay * Math.pow(2, attempt - 1);
+      await new Promise<void>((resolve) => setTimeout(resolve, delay));
     }
 
-    // Refresh failed — throw so the UI can redirect to /login.
-    throw new ApiError("Session expired. Please log in again.", 401, "UNAUTHORIZED");
+    let res: Response;
+    try {
+      res = await fetch(url, init);
+    } catch {
+      // Network error – retryable.
+      if (attempt < maxRetries) continue;
+      throw new ApiError("Network connection failed. Please check your internet.", 0);
+    }
+
+    // -- Handle 401: attempt a silent token refresh then retry once. --------
+    if (res.status === 401 && !skipRefresh && !path.includes("/auth/")) {
+      const refreshed = await refreshAccessToken();
+
+      if (refreshed) {
+        return request<TData, TBody>(path, { ...options, skipRefresh: true });
+      }
+
+      // Refresh failed — throw so the UI can redirect to /login.
+      throw new ApiError("Session expired. Please log in again.", 401, "UNAUTHORIZED");
+    }
+
+    // -- Handle rate limiting: respect Retry-After when retrying. -----------
+    if (res.status === 429 && attempt < maxRetries) {
+      const retryAfterMs = parseRetryAfter(res) ?? retryDelay * Math.pow(2, attempt);
+      await new Promise<void>((resolve) => setTimeout(resolve, retryAfterMs));
+      continue;
+    }
+
+    // -- Retry on transient server errors. ----------------------------------
+    if (isRetryableStatus(res.status) && attempt < maxRetries) {
+      continue;
+    }
+
+    // -- Parse JSON body (always expected from this API). -------------------
+    const json: ApiResponse<TData> = await res.json();
+
+    if (!res.ok || isApiError(json)) {
+      const errBody = json as ApiErrorResponse;
+      lastError = new ApiError(
+        errBody.message ?? `Request failed with status ${res.status}`,
+        res.status,
+        errBody.code,
+        errBody.details,
+      );
+      throw lastError;
+    }
+
+    return json as ApiSuccessResponse<TData>;
   }
 
-  // -- Parse JSON body (always expected from this API). ---------------------
-  const json: ApiResponse<TData> = await res.json();
-
-  if (!res.ok || isApiError(json)) {
-    const errBody = json as ApiErrorResponse;
-    throw new ApiError(
-      errBody.message ?? `Request failed with status ${res.status}`,
-      res.status,
-      errBody.code,
-      errBody.details,
-    );
-  }
-
-  return json as ApiSuccessResponse<TData>;
+  // Should not reach here, but satisfy the compiler.
+  throw lastError ?? new ApiError("Request failed after retries.", 0);
 }
 
 // ---------------------------------------------------------------------------

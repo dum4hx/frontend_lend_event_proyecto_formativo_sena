@@ -1,5 +1,8 @@
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
+import { RequireRole } from "./utils/roleGuard";
+import { LoadingSpinner } from "./components/ui";
 
 // Páginas públicas
 import Dashboard from "./pages/Dashboard";
@@ -17,17 +20,18 @@ import Unauthorized from "./pages/Unauthorized";
 import AdminLayout from "./modules/admin/layouts/AdminLayout";
 import AdminDashboard from "./modules/admin/pages/AdminDashboard";
 import MyEvents from "./modules/admin/pages/MyEvents";
+import Customers from "./modules/admin/pages/Customers";
 import Team from "./modules/admin/pages/Team";
 import IASettings from "./modules/admin/pages/IA_Settings";
 import Settings from "./modules/admin/pages/Settings";
 
-// Super Admin
-import SuperAdminLayout from "./modules/super-admin/layouts/SuperAdminLayout";
-import SalesOverview from "./modules/super-admin/pages/SalesOverview";
-import ClientManagement from "./modules/super-admin/pages/ClientManagement";
-import PlanConfiguration from "./modules/super-admin/pages/PlanConfiguration";
-import AIChatbotMonitor from "./modules/super-admin/pages/AIChatbotMonitor";
-import SystemSettings from "./modules/super-admin/pages/SystemSettings";
+// Super Admin — lazy-loaded for code-splitting
+const SuperAdminLayout = lazy(() => import("./modules/super-admin/layouts/SuperAdminLayout"));
+const SalesOverview = lazy(() => import("./modules/super-admin/pages/SalesOverview"));
+const ClientManagement = lazy(() => import("./modules/super-admin/pages/ClientManagement"));
+const PlanConfiguration = lazy(() => import("./modules/super-admin/pages/PlanConfiguration"));
+const AIChatbotMonitor = lazy(() => import("./modules/super-admin/pages/AIChatbotMonitor"));
+const SystemSettings = lazy(() => import("./modules/super-admin/pages/SystemSettings"));
 
 function App() {
   return (
@@ -46,13 +50,23 @@ function App() {
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
             <Route path="events" element={<MyEvents />} />
+            <Route path="customers" element={<Customers />} />
             <Route path="team" element={<Team />} />
             <Route path="ia-settings" element={<IASettings />} />
             <Route path="settings" element={<Settings />} />
           </Route>
 
-          {/* Rutas super-admin */}
-          <Route path="/super-admin" element={<SuperAdminLayout />}>
+          {/* Rutas super-admin - require super_admin role */}
+          <Route 
+            path="/super-admin" 
+            element={
+              <RequireRole allowedRoles={['super_admin']}>
+                <Suspense fallback={<LoadingSpinner />}>
+                  <SuperAdminLayout />
+                </Suspense>
+              </RequireRole>
+            }
+          >
             <Route index element={<SalesOverview />} />
             <Route path="clients" element={<ClientManagement />} />
             <Route path="plans" element={<PlanConfiguration />} />

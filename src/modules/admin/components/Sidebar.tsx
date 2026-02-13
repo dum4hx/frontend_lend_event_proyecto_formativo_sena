@@ -7,6 +7,7 @@ import {
   Settings,
   Bot,
   LogOut,
+  UserCircle,
 } from "lucide-react";
 import { logoutUser } from "../../../services/authService";
 import { ApiError } from "../../../lib/api";
@@ -30,6 +31,12 @@ const navItems: NavItem[] = [
     label: "My Events",
     icon: <Calendar size={20} />,
     path: "/admin/events",
+  },
+  {
+    id: "customers",
+    label: "Clientes",
+    icon: <UserCircle size={20} />,
+    path: "/admin/customers",
   },
   { id: "team", label: "Team", icon: <Users size={20} />, path: "/admin/team" },
   {

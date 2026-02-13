@@ -11,7 +11,17 @@ import type {
   UpdateCustomerPayload,
   CustomersQueryParams,
   PaginationMeta,
+  DocumentTypeInfo,
 } from "../types/api";
+
+// ─── Document Types ────────────────────────────────────────────────────────
+
+/** Fetch available document types. */
+export async function getDocumentTypes(): Promise<
+  ApiSuccessResponse<{ documentTypes: DocumentTypeInfo[] }>
+> {
+  return get<{ documentTypes: DocumentTypeInfo[] }>("/customers/document-types");
+}
 
 // ─── List ──────────────────────────────────────────────────────────────────
 

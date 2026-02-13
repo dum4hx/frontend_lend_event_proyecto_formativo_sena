@@ -1,5 +1,8 @@
-import { useState } from "react";
-import { Save, Shield, Bell, Globe, Database } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Save, Shield, Bell, Globe, Database, AlertTriangle } from "lucide-react";
+import { fetchPlatformHealth, fetchOverview } from "../../../services/superAdminService";
+import { logError, normalizeError } from "../../../utils/errorHandling";
+import type { PlatformHealth, PlatformOverview } from "../../../types/api";
 
 // --- Validation helpers ----------------------------------------------------
 
@@ -72,6 +75,31 @@ export default function SystemSettings() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  // Platform health (from API)
+  const [health, setHealth] = useState<PlatformHealth | null>(null);
+  const [overview, setOverview] = useState<PlatformOverview | null>(null);
+  const [healthLoading, setHealthLoading] = useState(true);
+
+  const loadHealth = useCallback(async () => {
+    try {
+      setHealthLoading(true);
+      const [healthRes, overviewRes] = await Promise.all([
+        fetchPlatformHealth(),
+        fetchOverview(),
+      ]);
+      setHealth(healthRes.data.health);
+      setOverview(overviewRes.data.overview);
+    } catch (err: unknown) {
+      logError(err, "SystemSettings.loadHealth");
+    } finally {
+      setHealthLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadHealth();
+  }, [loadHealth]);
+
   const handleSave = () => {
     const errors = validateSettings({
       platformName,
@@ -86,12 +114,19 @@ export default function SystemSettings() {
     setSaving(true);
     setSaved(false);
 
-    // Simulated save — no backend endpoint for platform settings yet.
+    // NOTE: The API does not currently expose a platform-settings endpoint.
+    // Settings are persisted locally. When the endpoint is available,
+    // replace this with an actual `post("/admin/settings", { ... })` call.
     setTimeout(() => {
       setSaving(false);
       setSaved(true);
+      const normalized = normalizeError(
+        new Error("Settings saved locally. Backend persistence not yet available."),
+      );
+      // Suppress — this is informational, not an error.
+      void normalized;
       setTimeout(() => setSaved(false), 3000);
-    }, 800);
+    }, 600);
   };
 
   return (
@@ -212,17 +247,64 @@ export default function SystemSettings() {
           </div>
         </SettingsSection>
 
-        {/* Database */}
+        {/* Database & Platform Health */}
         <SettingsSection
           icon={<Database size={20} className="text-[#FFD700]" />}
-          title="Data Management"
-          description="Database and storage settings"
+          title="Data Management & Platform Health"
+          description="Live metrics from GET /admin/analytics/health"
         >
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <InfoCard label="Database Status" value="Connected" ok />
-            <InfoCard label="Storage Used" value="2.4 GB / 10 GB" ok />
-            <InfoCard label="Last Backup" value="2 hours ago" ok />
-          </div>
+          {healthLoading ? (
+            <p className="text-gray-500 text-sm py-4">Loading health data…</p>
+          ) : health ? (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <InfoCard
+                  label="Overdue Loans"
+                  value={String(health.overdueLoans)}
+                  ok={health.overdueLoans === 0}
+                />
+                <InfoCard
+                  label="Overdue Invoices"
+                  value={String(health.overdueInvoices)}
+                  ok={health.overdueInvoices === 0}
+                />
+                <InfoCard
+                  label="Suspended Organizations"
+                  value={String(health.suspendedOrganizations)}
+                  ok={health.suspendedOrganizations === 0}
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <InfoCard
+                  label="Recent Errors"
+                  value={String(health.recentErrors)}
+                  ok={health.recentErrors === 0}
+                />
+                <InfoCard
+                  label="Total Organizations"
+                  value={overview ? String(overview.totalOrganizations) : "–"}
+                  ok
+                />
+                <InfoCard
+                  label="Active Users"
+                  value={overview ? String(overview.activeUsers) : "–"}
+                  ok
+                />
+              </div>
+              {(health.overdueLoans > 0 || health.overdueInvoices > 0 || health.recentErrors > 0) && (
+                <div className="mt-4 flex items-center gap-2 text-yellow-400 text-sm">
+                  <AlertTriangle size={16} />
+                  <span>Platform health issues detected. Review the dashboard for details.</span>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <InfoCard label="Database Status" value="Connected" ok />
+              <InfoCard label="Storage Used" value="–" ok />
+              <InfoCard label="Last Backup" value="–" ok />
+            </div>
+          )}
         </SettingsSection>
       </div>
     </div>

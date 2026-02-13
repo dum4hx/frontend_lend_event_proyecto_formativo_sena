@@ -388,6 +388,111 @@ Changes the authenticated user's password.
 
 ---
 
+#### POST /auth/forgot-password
+
+Initiates a password reset flow by sending a 6-digit verification code to the user's email.
+
+| Parameter | Location | Type   | Required | Description            |
+| --------- | -------- | ------ | -------- | ---------------------- |
+| email     | body     | string | Yes      | Registered user email  |
+
+**Rate Limit:** 3 requests per hour per IP
+
+**Response:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "message": "If an account with that email exists, a verification code has been sent."
+}
+```
+
+**Notes:**
+
+- Always returns success regardless of whether the email exists (prevents email enumeration)
+- The verification code is 6 digits and expires in 10 minutes
+- Any previous unused codes for the same user are invalidated
+
+---
+
+#### POST /auth/verify-reset-code
+
+Verifies the 6-digit OTP code sent to the user's email. Returns a reset token required for the final password change.
+
+| Parameter | Location | Type   | Required | Description                        |
+| --------- | -------- | ------ | -------- | ---------------------------------- |
+| email     | body     | string | Yes      | Email used in forgot-password step |
+| code      | body     | string | Yes      | 6-digit verification code          |
+
+**Rate Limit:** 3 requests per hour per IP
+
+**Response:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "resetToken": "507f1f77bcf86cd799439015"
+  },
+  "message": "Code verified successfully. Use the reset token to set a new password."
+}
+```
+
+**Error Responses:**
+
+| Status | Condition                   | Message                                                 |
+| ------ | --------------------------- | ------------------------------------------------------- |
+| 400    | No reset request found      | No password reset request found for this email          |
+| 400    | Code expired                | Verification code has expired. Please request a new one.|
+| 400    | Too many failed attempts    | Too many failed attempts. Please request a new code.    |
+| 400    | Wrong code                  | Invalid verification code                               |
+
+**Notes:**
+
+- Maximum 5 verification attempts per code
+- After 5 failed attempts, the code is invalidated and a new one must be requested
+
+---
+
+#### POST /auth/reset-password
+
+Resets the user's password using the verified reset token from the previous step.
+
+| Parameter   | Location | Type   | Required | Description                                                         |
+| ----------- | -------- | ------ | -------- | ------------------------------------------------------------------- |
+| email       | body     | string | Yes      | Email used in previous steps                                        |
+| resetToken  | body     | string | Yes      | Token returned by verify-reset-code                                 |
+| newPassword | body     | string | Yes      | New password (min 8 chars, uppercase, lowercase, digit, special)    |
+
+**Rate Limit:** 3 requests per hour per IP
+
+**Password Requirements:**
+
+- Minimum 8 characters, maximum 128 characters
+- At least one uppercase letter
+- At least one lowercase letter
+- At least one digit
+- At least one special character
+
+**Response:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "message": "Password has been reset successfully. You can now log in with your new password."
+}
+```
+
+**Error Responses:**
+
+| Status | Condition               | Message                                                                     |
+| ------ | ----------------------- | --------------------------------------------------------------------------- |
+| 400    | Invalid/expired token   | Invalid or expired reset token. Please restart the password reset process.  |
+| 400    | Token expired           | Reset token has expired. Please request a new code.                         |
+| 400    | Password too weak       | Password must be at least 8 characters (and other validation rules)         |
+
+---
+
 #### GET /auth/me
 
 Returns current authenticated user's information.
@@ -668,7 +773,11 @@ Gets available subscription plans.
         "billingModel": "dynamic",
         "maxCatalogItems": 500,
         "maxSeats": 20,
-        "features": ["Up to 20 team members", "500 catalog items", "Priority support"],
+        "features": [
+          "Up to 20 team members",
+          "500 catalog items",
+          "Priority support"
+        ],
         "basePriceMonthly": 99,
         "pricePerSeat": 4
       }
@@ -1155,6 +1264,66 @@ Gets all analytics in a single call for dashboard rendering.
 
 ### Customer Endpoints
 
+#### GET /customers/document-types
+
+Gets all valid document types with their display names.
+
+**Authentication Required:** Yes
+
+**Permission Required:** None (available to all authenticated users)
+
+**Example Request:**
+
+```bash
+curl -X GET https://api.test.local/api/v1/customers/document-types \
+  -b cookies.txt
+```
+
+**Response:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "documentTypes": [
+      {
+        "value": "cc",
+        "displayName": "Cédula de Ciudadanía",
+        "description": "Colombian National ID"
+      },
+      {
+        "value": "ce",
+        "displayName": "Cédula de Extranjería",
+        "description": "Colombian Foreign ID"
+      },
+      {
+        "value": "passport",
+        "displayName": "Passport",
+        "description": "International Passport"
+      },
+      {
+        "value": "nit",
+        "displayName": "NIT",
+        "description": "Tax Identification Number"
+      },
+      {
+        "value": "other",
+        "displayName": "Other",
+        "description": "Other identification type"
+      }
+    ]
+  }
+}
+```
+
+**Notes:**
+
+- This endpoint provides reference data for customer document types
+- Use the `value` field when creating or updating customers
+- The `displayName` field should be used in user interfaces
+
+---
+
 #### GET /customers
 
 Lists all customers in the organization.
@@ -1622,6 +1791,16 @@ async function checkPaymentStatus() {
   return response.json();
 }
 
+// Get document types
+async function getDocumentTypes() {
+  const response = await fetch(`${API_BASE}/customers/document-types`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) throw new Error("Failed to fetch document types");
+  return response.json();
+}
+
 // List customers with pagination
 async function listCustomers(page = 1, limit = 20, search = "") {
   const params = new URLSearchParams({ page, limit });
@@ -1672,12 +1851,16 @@ async function main() {
       console.log(`Current plan: ${paymentStatus.plan}`);
     }
 
+    // Get available document types
+    const { data: docTypes } = await getDocumentTypes();
+    console.log("Available document types:", docTypes.documentTypes);
+
     // Create a customer
     const newCustomer = await createCustomer({
       name: { firstName: "Jane", firstSurname: "Doe" },
       email: "jane@example.com",
       phone: "+15551234567",
-      documentType: "national_id",
+      documentType: "cc",
       documentNumber: "123456789",
     });
 
@@ -1762,6 +1945,10 @@ class AlquiEventAPI {
   }
 
   // Customers
+  getDocumentTypes() {
+    return this.request("/customers/document-types");
+  }
+
   listCustomers(params = {}) {
     const query = new URLSearchParams(params).toString();
     return this.request(`/customers?${query}`);

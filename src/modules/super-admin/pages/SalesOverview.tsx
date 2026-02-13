@@ -1,10 +1,15 @@
 import { useEffect, useState, useCallback } from "react";
 import { DollarSign, Users, CreditCard, TrendingDown } from "lucide-react";
 import { SuperAdminStatCard } from "../components";
-import { getAnalyticsDashboard } from "../../../services/adminAnalyticsService";
-import { getSubscriptionTypes } from "../../../services/subscriptionTypeService";
-import { ApiError } from "../../../lib/api";
-import type { AdminDashboardData, SubscriptionType } from "../../../types/api";
+import { fetchSalesOverviewData } from "../../../services/superAdminService";
+import { LoadingSpinner, ErrorDisplay } from "../../../components/ui";
+import { normalizeError, logError } from "../../../utils/errorHandling";
+import type {
+  AdminDashboardData,
+  SubscriptionType,
+  RevenueStats,
+  MonthlyTrend,
+} from "../../../types/api";
 
 function formatCurrency(cents: number): string {
   return `$${(cents / 100).toLocaleString("en-US", {
@@ -16,6 +21,7 @@ function formatCurrency(cents: number): string {
 export default function SalesOverview() {
   const [dashboard, setDashboard] = useState<AdminDashboardData | null>(null);
   const [plans, setPlans] = useState<SubscriptionType[]>([]);
+  const [revenue, setRevenue] = useState<RevenueStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -24,17 +30,15 @@ export default function SalesOverview() {
       setLoading(true);
       setError("");
 
-      const [dashRes, plansRes] = await Promise.all([
-        getAnalyticsDashboard(),
-        getSubscriptionTypes(),
-      ]);
+      const result = await fetchSalesOverviewData();
 
-      setDashboard(dashRes.data);
-      setPlans(plansRes.data.subscriptionTypes);
+      setDashboard(result.dashboard);
+      setPlans(result.plans);
+      setRevenue(result.revenue);
     } catch (err: unknown) {
-      const message = err instanceof ApiError ? err.message : "Failed to load analytics data.";
-      setError(message);
-      console.error("[SalesOverview]", err);
+      const normalized = normalizeError(err);
+      setError(normalized.message);
+      logError(err, 'SalesOverview.fetchData');
     } finally {
       setLoading(false);
     }
@@ -45,30 +49,11 @@ export default function SalesOverview() {
   }, [fetchData]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFD700] mx-auto mb-4" />
-          <p className="text-gray-400">Loading analytics…</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner fullScreen message="Loading analytics…" />;
   }
 
   if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center max-w-md">
-          <p className="text-red-400 mb-4">{error}</p>
-          <button
-            onClick={fetchData}
-            className="px-6 py-2 bg-[#FFD700] text-black font-semibold rounded-lg hover:bg-yellow-300 transition"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
+    return <ErrorDisplay error={error} onRetry={fetchData} fullScreen />;
   }
 
   if (!dashboard) return null;
@@ -240,12 +225,23 @@ export default function SalesOverview() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-lg font-bold text-white">Revenue Analytics</h2>
-            <p className="text-xs text-gray-500">8-month revenue trend</p>
+            <p className="text-xs text-gray-500">
+              {revenue ? `$${revenue.totalRevenue.toLocaleString()} total • ` : ""}
+              Monthly revenue trend
+            </p>
           </div>
+          {revenue && (
+            <span className="text-xs text-gray-500">
+              Avg per org: ${revenue.averageRevenuePerOrganization.toLocaleString()}
+            </span>
+          )}
         </div>
 
         {/* Simple SVG line chart */}
-        <RevenueLineChart data={dashboard} />
+        <RevenueLineChart
+          trend={revenue?.monthlyTrend ?? []}
+          fallbackData={dashboard}
+        />
       </div>
     </div>
   );
@@ -255,15 +251,26 @@ export default function SalesOverview() {
 // Revenue line chart (SVG)
 // ---------------------------------------------------------------------------
 
-function RevenueLineChart({ data }: { data: AdminDashboardData }) {
-  const stats = data.organizationStats;
-  const trend = stats.growthTrend.slice(-8);
+function RevenueLineChart({
+  trend,
+  fallbackData,
+}: {
+  trend: MonthlyTrend[];
+  fallbackData: AdminDashboardData;
+}) {
+  // Prefer real revenue trend; fall back to org growth trend
+  const useRevenueTrend = trend.length >= 2;
+  const displayTrend = useRevenueTrend
+    ? trend.slice(-8)
+    : fallbackData.organizationStats.growthTrend.slice(-8);
 
-  if (trend.length < 2) {
+  if (displayTrend.length < 2) {
     return <p className="text-gray-500 text-center py-8">Not enough data to render chart.</p>;
   }
 
-  const values = trend.map((t) => t.newOrganizations ?? 0);
+  const values = displayTrend.map((t) =>
+    "revenue" in t ? (t as MonthlyTrend).revenue : ((t as { newOrganizations?: number }).newOrganizations ?? 0),
+  );
   const max = Math.max(...values, 1);
   const min = 0;
 
@@ -307,8 +314,8 @@ function RevenueLineChart({ data }: { data: AdminDashboardData }) {
       ))}
 
       {/* X labels */}
-      {trend.map((t, i) => {
-        const x = padX + (i / (trend.length - 1)) * chartW;
+      {displayTrend.map((t, i) => {
+        const x = padX + (i / (displayTrend.length - 1)) * chartW;
         return (
           <text key={i} x={x} y={height - 2} fill="#888" fontSize="9" textAnchor="middle">
             {t.period}
