@@ -16,10 +16,28 @@ import type {
   MonthlyTrend,
 } from "../../../types/api";
 
-function formatCurrency(cents: number): string {
-  return `$${(cents / 100).toLocaleString("en-US", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
+type SubscriptionTypeApi = SubscriptionType & { basePriceMonthly?: number };
+
+function normalizePlan(plan: SubscriptionTypeApi): SubscriptionType {
+  if (plan.baseCost !== null && plan.baseCost !== undefined) return plan;
+  if (plan.basePriceMonthly === null || plan.basePriceMonthly === undefined) return plan;
+
+  return {
+    ...plan,
+    baseCost: Math.round(plan.basePriceMonthly * 100),
+    pricePerSeat:
+      plan.pricePerSeat === null || plan.pricePerSeat === undefined
+        ? plan.pricePerSeat
+        : Math.round(plan.pricePerSeat * 100),
+  };
+}
+
+function formatCurrency(cents: number | null | undefined): string {
+  if (cents === null || cents === undefined) return "$0";
+  const dollars = cents / 100;
+  return `$${dollars.toLocaleString("en-US", {
+    minimumFractionDigits: dollars < 1 ? 2 : 0,
+    maximumFractionDigits: 2,
   })}`;
 }
 
@@ -45,8 +63,12 @@ export default function SalesOverview() {
 
       const result = await fetchSalesOverviewData();
 
+      const normalizedPlans = result.plans.map((plan) =>
+        normalizePlan(plan as SubscriptionTypeApi),
+      );
+
       setDashboard(result.dashboard);
-      setPlans(result.plans);
+      setPlans(normalizedPlans);
       setRevenue(result.revenue);
     } catch (err: unknown) {
       const normalized = normalizeError(err);

@@ -10,32 +10,29 @@ import {
 } from "lucide-react";
 import Encabezado from "../components/Encabezado";
 import PiePagina from "../components/PiePagina";
-import { getSubscriptionTypes } from "../services/subscriptionTypeService";
+import { getAvailablePlans } from "../services/organizationService";
 import { ApiError } from "../lib/api";
-import type { SubscriptionType } from "../types/api";
+import type { AvailablePlan } from "../types/api";
 import styles from "./Paquetes.module.css";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
-/** Format a cent amount as dollars (e.g. 4900 → "49"). */
-function formatPrice(cents: number | null | undefined): string {
-  try {
-
-    cents = parseFloat(cents?.toString() ?? "invalid"); 
-    if (!isFinite(cents)) throw new Error("Invalid price");
-      
-    const dollars = cents / 100;
-    return dollars % 1 === 0 ? dollars.toFixed(0) : dollars.toFixed(2);
-  
-  } catch {
-    return "No price";
-  }
-  }
+/** Format a monthly price in dollars. */
+function formatPrice(amount: number | null | undefined): string {
+  if (amount === null || amount === undefined) return "No price";
+  const value = Number(amount);
+  return value.toLocaleString("en-US", {
+    minimumFractionDigits: value < 1 ? 2 : 0,
+    maximumFractionDigits: 2,
+  });
+}
 
 // ─── Plan Card ─────────────────────────────────────────────────────────────
 
+type PublicPlan = AvailablePlan & { description?: string };
+
 interface PlanCardProps {
-  plan: SubscriptionType;
+  plan: PublicPlan;
   featured: boolean;
   onSelect: () => void;
 }
@@ -70,7 +67,7 @@ function PlanCard({ plan, featured, onSelect }: PlanCardProps) {
         <span
           className={`font-extrabold ${featured ? "text-5xl" : "text-4xl"}`}
         >
-          ${formatPrice(plan.baseCost)}
+          ${formatPrice(plan.basePriceMonthly)}
         </span>
         <span className="text-gray-500 ml-1">/mo</span>
         {plan.billingModel === "dynamic" && plan.pricePerSeat > 0 && (
@@ -125,7 +122,7 @@ function PlanCard({ plan, featured, onSelect }: PlanCardProps) {
 
 export default function Packages() {
   const navigate = useNavigate();
-  const [plans, setPlans] = useState<SubscriptionType[]>([]);
+  const [plans, setPlans] = useState<PublicPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -134,12 +131,10 @@ export default function Packages() {
 
     async function load() {
       try {
-        const res = await getSubscriptionTypes();
+        const res = await getAvailablePlans();
+        console.log("API RESPONSE:", res.data);
         if (cancelled) return;
-        const sorted = [...res.data.subscriptionTypes].sort(
-          (a, b) => a.sortOrder - b.sortOrder,
-        );
-        setPlans(sorted);
+        setPlans(res.data.plans);
       } catch (err) {
         if (cancelled) return;
         setError(
@@ -158,8 +153,8 @@ export default function Packages() {
     };
   }, []);
 
-  const handleSelect = (plan: SubscriptionType) => {
-    navigate(`/checkout?plan=${encodeURIComponent(plan.plan)}`);
+  const handleSelect = (plan: PublicPlan) => {
+    navigate(`/checkout?plan=${encodeURIComponent(plan.name)}`);
   };
 
   // Highlight the middle card when there are 3+ plans
@@ -223,7 +218,7 @@ export default function Packages() {
             >
               {plans.map((plan, idx) => (
                 <PlanCard
-                  key={plan._id}
+                  key={plan.name}
                   plan={plan}
                   featured={idx === featuredIdx}
                   onSelect={() => handleSelect(plan)}

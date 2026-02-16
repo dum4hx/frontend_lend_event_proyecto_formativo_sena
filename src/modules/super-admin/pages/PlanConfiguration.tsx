@@ -92,11 +92,29 @@ function hasErrors(errors: PlanValidationErrors): boolean {
 
 // --- Helpers ----------------------------------------------------------------
 
-function formatDollars(cents: number): string {
-  return (cents / 100).toLocaleString("en-US", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
+function formatDollars(cents: number | null | undefined): string {
+  if (cents === null || cents === undefined) return "No price";
+  const dollars = cents / 100;
+  return dollars.toLocaleString("en-US", {
+    minimumFractionDigits: dollars < 1 ? 2 : 0,
+    maximumFractionDigits: 2,
   });
+}
+
+type SubscriptionTypeApi = SubscriptionType & { basePriceMonthly?: number };
+
+function normalizePlan(plan: SubscriptionTypeApi): SubscriptionType {
+  if (plan.baseCost !== null && plan.baseCost !== undefined) return plan;
+  if (plan.basePriceMonthly === null || plan.basePriceMonthly === undefined) return plan;
+
+  return {
+    ...plan,
+    baseCost: Math.round(plan.basePriceMonthly * 100),
+    pricePerSeat:
+      plan.pricePerSeat === null || plan.pricePerSeat === undefined
+        ? plan.pricePerSeat
+        : Math.round(plan.pricePerSeat * 100),
+  };
 }
 
 const CARD_BORDER: Record<string, string> = {
@@ -151,7 +169,11 @@ export default function PlanConfiguration() {
       setLoading(true);
       setError("");
       const res = await getSubscriptionTypes();
-      setPlans(res.data.subscriptionTypes);
+      console.log("API RESPONSE:", res.data);
+      const normalized = res.data.subscriptionTypes.map((plan) =>
+        normalizePlan(plan as SubscriptionTypeApi),
+      );
+      setPlans(normalized);
     } catch (err: unknown) {
       const normalized = normalizeError(err);
       setError(normalized.message);
