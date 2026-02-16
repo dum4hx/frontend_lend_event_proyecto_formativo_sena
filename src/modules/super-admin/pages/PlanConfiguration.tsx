@@ -1,13 +1,18 @@
-import { useEffect, useState, useCallback } from "react";
-import { Pencil, Check, X, Plus, Trash2, Package } from "lucide-react";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { Pencil, Check, X, Plus, Trash2, Package, Download } from "lucide-react";
 import {
   getSubscriptionTypes,
   createSubscriptionType,
   updateSubscriptionType,
   deleteSubscriptionType,
 } from "../../../services/subscriptionTypeService";
-import { LoadingSpinner, ErrorDisplay, ConfirmDialog, EmptyState } from "../../../components/ui";
+import { LoadingSpinner, ErrorDisplay, ConfirmDialog, EmptyState, AlertContainer } from "../../../components/ui";
 import { normalizeError, logError } from "../../../utils/errorHandling";
+import { useAuth } from "../../../contexts/useAuth";
+import { useAlerts } from "../../../hooks/useAlerts";
+import { ExportSettingsModal } from "../../../components/export/ExportSettingsModal";
+import { exportService, PLAN_CONFIGURATION_POLICY } from "../../../services/export";
+import type { ExportConfig, ExportProgress } from "../../../types/export";
 import type { SubscriptionType, CreateSubscriptionTypePayload, BillingModel } from "../../../types/api";
 
 // --- Validation helpers ----------------------------------------------------
@@ -133,6 +138,14 @@ export default function PlanConfiguration() {
   // Delete confirmation
   const [deleteConfirm, setDeleteConfirm] = useState<{ plan: string; displayName: string } | null>(null);
 
+  // Export state
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState<ExportProgress | undefined>();
+  const exportAbort = useRef<AbortController | null>(null);
+  const { user } = useAuth();
+  const { alerts, showAlert, dismissAlert } = useAlerts();
+
   const fetchPlans = useCallback(async () => {
     try {
       setLoading(true);
@@ -151,6 +164,67 @@ export default function PlanConfiguration() {
   useEffect(() => {
     void fetchPlans();
   }, [fetchPlans]);
+
+  /** Build flat export rows from plans array. */
+  const buildExportRows = useCallback((): Record<string, unknown>[] => {
+    return plans.map((p) => ({
+      _id: p._id,
+      plan: p.plan,
+      displayName: p.displayName,
+      description: p.description,
+      billingModel: p.billingModel,
+      baseCost: p.baseCost,
+      pricePerSeat: p.pricePerSeat,
+      maxSeats: p.maxSeats,
+      maxCatalogItems: p.maxCatalogItems,
+      features: p.features,
+      sortOrder: p.sortOrder,
+      status: p.status,
+    }));
+  }, [plans]);
+
+  const handleExport = useCallback(async (config: ExportConfig) => {
+    const rawData = buildExportRows();
+    if (rawData.length === 0) {
+      showAlert('warning', 'No plans available to export.');
+      return;
+    }
+    const abort = new AbortController();
+    exportAbort.current = abort;
+    setExporting(true);
+    setExportProgress(undefined);
+
+    const result = await exportService.export(
+      rawData,
+      config,
+      user?.id ?? 'anonymous',
+      (p) => setExportProgress(p),
+      abort.signal,
+    );
+
+    setExporting(false);
+    setExportProgress(undefined);
+    exportAbort.current = null;
+
+    if (result.status === 'success') {
+      showAlert('success', `Exported ${result.metadata.recordCount} plans as ${result.filename}`);
+      setExportOpen(false);
+    } else if (result.status === 'cancelled') {
+      showAlert('info', result.reason);
+    } else {
+      showAlert('error', result.error);
+    }
+  }, [buildExportRows, user?.id, showAlert]);
+
+  const handleExportPreview = useCallback(async (config: ExportConfig) => {
+    const rawData = buildExportRows();
+    if (rawData.length === 0) return undefined;
+    return exportService.preview(rawData, config, user?.id ?? 'anonymous');
+  }, [buildExportRows, user?.id]);
+
+  const handleCancelExport = useCallback(() => {
+    exportAbort.current?.abort();
+  }, []);
 
   // Start editing a plan
   const startEdit = (plan: SubscriptionType) => {
@@ -295,21 +369,46 @@ export default function PlanConfiguration() {
 
   return (
     <div>
+      {/* Alerts */}
+      <AlertContainer alerts={alerts} onDismiss={dismissAlert} position="top-right" />
+
+      {/* Export Modal */}
+      <ExportSettingsModal
+        isOpen={exportOpen}
+        onClose={() => setExportOpen(false)}
+        onExport={(config) => void handleExport(config)}
+        onPreview={handleExportPreview}
+        module="plan-configuration"
+        policy={PLAN_CONFIGURATION_POLICY}
+        exporting={exporting}
+        progress={exportProgress}
+        onCancel={handleCancelExport}
+      />
+
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-white">Plan Configuration</h1>
           <p className="text-gray-400 mt-1">Manage subscription plans, pricing, and features</p>
         </div>
-        {!showCreateForm && (
+        <div className="flex items-center gap-3">
           <button
-            onClick={() => setShowCreateForm(true)}
-            className="flex items-center gap-2 bg-[#FFD700] text-black font-semibold px-5 py-2.5 rounded-lg hover:bg-yellow-300 transition"
+            onClick={() => setExportOpen(true)}
+            className="export-btn flex items-center gap-2"
           >
-            <Plus size={18} />
-            Create Plan
+            <Download size={18} />
+            Export
           </button>
-        )}
+          {!showCreateForm && (
+            <button
+              onClick={() => setShowCreateForm(true)}
+              className="flex items-center gap-2 bg-[#FFD700] text-black font-semibold px-5 py-2.5 rounded-lg hover:bg-yellow-300 transition"
+            >
+              <Plus size={18} />
+              Create Plan
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Create Form */}

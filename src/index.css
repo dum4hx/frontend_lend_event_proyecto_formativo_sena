@@ -141,3 +141,331 @@
     @apply animate-spin rounded-full border-2 border-gray-700 border-t-[#FFD700];
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Alert Card — Global Tokens & Layout
+   Neon palettes, semi-transparent backgrounds, progress bar transitions.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Neon color tokens */
+  --alert-success-neon: #39ff14;
+  --alert-success-bg: rgba(57, 255, 20, 0.08);
+  --alert-success-border: rgba(57, 255, 20, 0.35);
+  --alert-success-overlay: rgba(57, 255, 20, 0.05);
+  --alert-success-text: #6bff4a;
+  --alert-success-icon: #39ff14;
+
+  --alert-info-neon: #00d4ff;
+  --alert-info-bg: rgba(0, 212, 255, 0.08);
+  --alert-info-border: rgba(0, 212, 255, 0.35);
+  --alert-info-overlay: rgba(0, 212, 255, 0.05);
+  --alert-info-text: #4ae4ff;
+  --alert-info-icon: #00d4ff;
+
+  --alert-warning-neon: #ffb800;
+  --alert-warning-bg: rgba(255, 184, 0, 0.08);
+  --alert-warning-border: rgba(255, 184, 0, 0.35);
+  --alert-warning-overlay: rgba(255, 184, 0, 0.05);
+  --alert-warning-text: #ffc944;
+  --alert-warning-icon: #ffb800;
+
+  --alert-error-neon: #ff2d55;
+  --alert-error-bg: rgba(255, 45, 85, 0.08);
+  --alert-error-border: rgba(255, 45, 85, 0.35);
+  --alert-error-overlay: rgba(255, 45, 85, 0.05);
+  --alert-error-text: #ff5c7c;
+  --alert-error-icon: #ff2d55;
+
+  /* Alert layout tokens */
+  --alert-radius: 12px;
+  --alert-padding-x: 16px;
+  --alert-padding-y: 14px;
+  --alert-gap: 12px;
+  --alert-progress-height: 3px;
+  --alert-transition-speed: 300ms;
+  --alert-max-width: 440px;
+
+  /* Export button tokens */
+  --export-btn-bg: rgba(255, 215, 0, 0.1);
+  --export-btn-border: rgba(255, 215, 0, 0.3);
+  --export-btn-text: #FFD700;
+}
+
+/* ─── Alert Card Base ──────────────────────────────────────────────────── */
+
+.alert-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--alert-radius);
+  border: 1px solid transparent;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  max-width: var(--alert-max-width);
+  width: 100%;
+  outline: none;
+  transition:
+    opacity var(--alert-transition-speed) ease,
+    transform var(--alert-transition-speed) ease;
+  animation: alertSlideIn var(--alert-transition-speed) ease-out;
+}
+
+.alert-card:focus-visible {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4);
+}
+
+@keyframes alertSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ─── Overlay (colored tint behind content) ────────────────────────────── */
+
+.alert-card__overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ─── Content Layout ───────────────────────────────────────────────────── */
+
+.alert-card__content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--alert-gap);
+  padding: var(--alert-padding-y) var(--alert-padding-x);
+}
+
+.alert-card__icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.alert-card__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.alert-card__title {
+  font-weight: 700;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  margin-bottom: 2px;
+  color: white;
+}
+
+.alert-card__message {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.alert-card__close {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
+  background: transparent;
+  border: none;
+}
+
+.alert-card__close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.alert-card__close:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
+}
+
+/* ─── Progress Bar ─────────────────────────────────────────────────────── */
+
+.alert-card__progress-track {
+  position: relative;
+  z-index: 1;
+  height: var(--alert-progress-height);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.alert-card__progress-bar {
+  height: 100%;
+  transition: width 80ms linear;
+  border-radius: 0 0 var(--alert-radius) var(--alert-radius);
+}
+
+/* ─── Variant: Success ─────────────────────────────────────────────────── */
+
+.alert-card--success {
+  background: var(--alert-success-bg);
+  border-color: var(--alert-success-border);
+}
+.alert-card__overlay--success {
+  background: var(--alert-success-overlay);
+}
+.alert-card__icon--success {
+  color: var(--alert-success-icon);
+}
+.alert-card--success .alert-card__title {
+  color: var(--alert-success-text);
+}
+.alert-card__progress-bar--success {
+  background: var(--alert-success-neon);
+}
+
+/* ─── Variant: Info ────────────────────────────────────────────────────── */
+
+.alert-card--info {
+  background: var(--alert-info-bg);
+  border-color: var(--alert-info-border);
+}
+.alert-card__overlay--info {
+  background: var(--alert-info-overlay);
+}
+.alert-card__icon--info {
+  color: var(--alert-info-icon);
+}
+.alert-card--info .alert-card__title {
+  color: var(--alert-info-text);
+}
+.alert-card__progress-bar--info {
+  background: var(--alert-info-neon);
+}
+
+/* ─── Variant: Warning ─────────────────────────────────────────────────── */
+
+.alert-card--warning {
+  background: var(--alert-warning-bg);
+  border-color: var(--alert-warning-border);
+}
+.alert-card__overlay--warning {
+  background: var(--alert-warning-overlay);
+}
+.alert-card__icon--warning {
+  color: var(--alert-warning-icon);
+}
+.alert-card--warning .alert-card__title {
+  color: var(--alert-warning-text);
+}
+.alert-card__progress-bar--warning {
+  background: var(--alert-warning-neon);
+}
+
+/* ─── Variant: Error ───────────────────────────────────────────────────── */
+
+.alert-card--error {
+  background: var(--alert-error-bg);
+  border-color: var(--alert-error-border);
+}
+.alert-card__overlay--error {
+  background: var(--alert-error-overlay);
+}
+.alert-card__icon--error {
+  color: var(--alert-error-icon);
+}
+.alert-card--error .alert-card__title {
+  color: var(--alert-error-text);
+}
+.alert-card__progress-bar--error {
+  background: var(--alert-error-neon);
+}
+
+/* ─── Alert Container (positioning) ────────────────────────────────────── */
+
+.alert-container {
+  position: fixed;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+  padding: 16px;
+}
+
+.alert-container > * {
+  pointer-events: auto;
+}
+
+.alert-container--top-right {
+  top: 0;
+  right: 0;
+}
+.alert-container--top-left {
+  top: 0;
+  left: 0;
+}
+.alert-container--bottom-right {
+  bottom: 0;
+  right: 0;
+}
+.alert-container--bottom-left {
+  bottom: 0;
+  left: 0;
+}
+.alert-container--top-center {
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* ─── Export Controls ──────────────────────────────────────────────────── */
+
+.export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 8px;
+  background: var(--export-btn-bg);
+  border: 1px solid var(--export-btn-border);
+  color: var(--export-btn-text);
+  cursor: pointer;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease;
+}
+
+.export-btn:hover {
+  background: rgba(255, 215, 0, 0.18);
+  border-color: rgba(255, 215, 0, 0.5);
+}
+
+.export-btn:focus-visible {
+  outline: 2px solid rgba(255, 215, 0, 0.5);
+  outline-offset: 2px;
+}
+
+.export-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ─── Responsive Adjustments ───────────────────────────────────────────── */
+
+@media (max-width: 480px) {
+  :root {
+    --alert-max-width: 100%;
+  }
+  .alert-container {
+    padding: 8px;
+  }
+}

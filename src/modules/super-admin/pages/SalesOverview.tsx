@@ -1,9 +1,14 @@
-import { useEffect, useState, useCallback } from "react";
-import { DollarSign, Users, CreditCard, TrendingDown } from "lucide-react";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { DollarSign, Users, CreditCard, TrendingDown, Download } from "lucide-react";
 import { SuperAdminStatCard } from "../components";
 import { fetchSalesOverviewData } from "../../../services/superAdminService";
-import { LoadingSpinner, ErrorDisplay } from "../../../components/ui";
+import { LoadingSpinner, ErrorDisplay, AlertContainer } from "../../../components/ui";
 import { normalizeError, logError } from "../../../utils/errorHandling";
+import { useAuth } from "../../../contexts/useAuth";
+import { useAlerts } from "../../../hooks/useAlerts";
+import { ExportSettingsModal } from "../../../components/export/ExportSettingsModal";
+import { exportService, SALES_OVERVIEW_POLICY } from "../../../services/export";
+import type { ExportConfig, ExportProgress, ExportSheet } from "../../../types/export";
 import type {
   AdminDashboardData,
   SubscriptionType,
@@ -24,6 +29,14 @@ export default function SalesOverview() {
   const [revenue, setRevenue] = useState<RevenueStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // Export state
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState<ExportProgress | undefined>();
+  const exportAbort = useRef<AbortController | null>(null);
+  const { user } = useAuth();
+  const { alerts, showAlert, dismissAlert } = useAlerts();
 
   const fetchData = useCallback(async () => {
     try {
@@ -47,6 +60,111 @@ export default function SalesOverview() {
   useEffect(() => {
     void fetchData();
   }, [fetchData]);
+
+  /** Build flat export rows for the "Data" sheet (per-plan + trend). */
+  const buildExportRows = useCallback((): Record<string, unknown>[] => {
+    const rows: Record<string, unknown>[] = [];
+
+    // Plan-level rows enriched with subscription counts
+    for (const plan of plans) {
+      const sub = dashboard?.subscriptionStats.subscriptionsByPlan.find((s) => s.plan === plan.plan);
+      rows.push({
+        plan: plan.plan,
+        displayName: plan.displayName,
+        billingModel: plan.billingModel,
+        baseCost: plan.baseCost,
+        pricePerSeat: plan.pricePerSeat,
+        maxSeats: plan.maxSeats,
+        maxCatalogItems: plan.maxCatalogItems,
+        count: sub?.count ?? 0,
+        percentage: sub?.percentage ?? 0,
+      });
+    }
+
+    // Monthly trend rows
+    if (revenue?.monthlyTrend) {
+      for (const t of revenue.monthlyTrend) {
+        rows.push({
+          period: t.period,
+          revenue: t.revenue,
+        });
+      }
+    }
+
+    return rows;
+  }, [plans, dashboard, revenue]);
+
+  /** Build the "Totals" additional sheet with aggregate metrics. */
+  const buildTotalsSheet = useCallback((): ExportSheet => ({
+    name: 'Totals',
+    columns: [
+      { key: 'totalRevenue', label: 'Total Revenue' },
+      { key: 'churnRate', label: 'Churn Rate (%)' },
+      { key: 'totalActiveSubscriptions', label: 'Active Subscriptions' },
+      { key: 'monthlyRecurringRevenue', label: 'MRR' },
+    ],
+    rows: [{
+      totalRevenue: revenue?.totalRevenue ?? 0,
+      churnRate: dashboard?.subscriptionStats.churnRate ?? 0,
+      totalActiveSubscriptions: dashboard?.subscriptionStats.totalActiveSubscriptions ?? 0,
+      monthlyRecurringRevenue: dashboard?.overview.monthlyRecurringRevenue ?? 0,
+    }],
+  }), [revenue, dashboard]);
+
+  const handleExport = useCallback(async (config: ExportConfig) => {
+    const rawData = buildExportRows();
+
+    if (rawData.length === 0) {
+      showAlert('warning', 'No data available to export.');
+      return;
+    }
+
+    // Attach the Totals sheet to the config
+    const configWithTotals: ExportConfig = {
+      ...config,
+      additionalSheets: [buildTotalsSheet()],
+    };
+
+    const abort = new AbortController();
+    exportAbort.current = abort;
+    setExporting(true);
+    setExportProgress(undefined);
+
+    const result = await exportService.export(
+      rawData,
+      configWithTotals,
+      user?.id ?? 'anonymous',
+      (p) => setExportProgress(p),
+      abort.signal,
+    );
+
+    setExporting(false);
+    setExportProgress(undefined);
+    exportAbort.current = null;
+
+    if (result.status === 'success') {
+      showAlert('success', `Exported ${result.metadata.recordCount} records as ${result.filename}`);
+      setExportOpen(false);
+    } else if (result.status === 'cancelled') {
+      showAlert('info', result.reason);
+    } else {
+      showAlert('error', result.error);
+    }
+  }, [buildExportRows, buildTotalsSheet, user?.id, showAlert]);
+
+  const handleExportPreview = useCallback(async (config: ExportConfig) => {
+    const rawData = buildExportRows();
+    if (rawData.length === 0) return undefined;
+    const configWithTotals: ExportConfig = {
+      ...config,
+      additionalSheets: [buildTotalsSheet()],
+    };
+    return exportService.preview(rawData, configWithTotals, user?.id ?? 'anonymous');
+  }, [buildExportRows, buildTotalsSheet, user?.id]);
+
+  const handleCancelExport = useCallback(() => {
+    exportAbort.current?.abort();
+  }, []);
 
   if (loading) {
     return <LoadingSpinner fullScreen message="Loading analytics…" />;
@@ -76,12 +194,37 @@ export default function SalesOverview() {
 
   return (
     <div>
+      {/* Alerts */}
+      <AlertContainer alerts={alerts} onDismiss={dismissAlert} position="top-right" />
+
+      {/* Export Modal */}
+      <ExportSettingsModal
+        isOpen={exportOpen}
+        onClose={() => setExportOpen(false)}
+        onExport={(config) => void handleExport(config)}
+        onPreview={handleExportPreview}
+        module="sales-overview"
+        policy={SALES_OVERVIEW_POLICY}
+        exporting={exporting}
+        progress={exportProgress}
+        onCancel={handleCancelExport}
+      />
+
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white">Sales Overview</h1>
-        <p className="text-gray-400 mt-1">
-          Complete analytics and performance metrics for Lend Event
-        </p>
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-white">Sales Overview</h1>
+          <p className="text-gray-400 mt-1">
+            Complete analytics and performance metrics for Lend Event
+          </p>
+        </div>
+        <button
+          onClick={() => setExportOpen(true)}
+          className="export-btn flex items-center gap-2"
+        >
+          <Download size={18} />
+          Export
+        </button>
       </div>
 
       {/* Stats Cards */}

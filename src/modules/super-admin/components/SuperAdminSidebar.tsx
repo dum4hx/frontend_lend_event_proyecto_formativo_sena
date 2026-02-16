@@ -21,7 +21,7 @@ const navItems: NavItem[] = [
   },
   {
     id: "clients",
-    label: "Client Management",
+    label: "User Management",
     icon: <Users size={20} />,
     path: "/super-admin/clients",
   },

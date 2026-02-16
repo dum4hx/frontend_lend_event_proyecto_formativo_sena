@@ -16,6 +16,9 @@ import RecuperarContrasena from "./pages/RecuperarContrasena";
 import NotFound from "./pages/NotFound";
 import Unauthorized from "./pages/Unauthorized";
 
+// Demo / QA pages
+import ExportDemo from "./pages/ExportDemo";
+
 // Admin (organization owner)
 import AdminLayout from "./modules/admin/layouts/AdminLayout";
 import AdminDashboard from "./modules/admin/pages/AdminDashboard";
@@ -28,7 +31,7 @@ import Settings from "./modules/admin/pages/Settings";
 // Super Admin — lazy-loaded for code-splitting
 const SuperAdminLayout = lazy(() => import("./modules/super-admin/layouts/SuperAdminLayout"));
 const SalesOverview = lazy(() => import("./modules/super-admin/pages/SalesOverview"));
-const ClientManagement = lazy(() => import("./modules/super-admin/pages/ClientManagement"));
+const UserManagement = lazy(() => import("./modules/super-admin/pages/UserManagement"));
 const PlanConfiguration = lazy(() => import("./modules/super-admin/pages/PlanConfiguration"));
 const AIChatbotMonitor = lazy(() => import("./modules/super-admin/pages/AIChatbotMonitor"));
 const SystemSettings = lazy(() => import("./modules/super-admin/pages/SystemSettings"));
@@ -45,6 +48,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/registro" element={<Registro />} />
           <Route path="/recuperar-contrasena" element={<RecuperarContrasena />} />
+          <Route path="/export-demo" element={<ExportDemo />} />
 
           {/* Rutas admin (organization owner) */}
           <Route path="/admin" element={<AdminLayout />}>
@@ -68,7 +72,7 @@ function App() {
             }
           >
             <Route index element={<SalesOverview />} />
-            <Route path="clients" element={<ClientManagement />} />
+            <Route path="clients" element={<UserManagement />} />
             <Route path="plans" element={<PlanConfiguration />} />
             <Route path="ai-monitor" element={<AIChatbotMonitor />} />
             <Route path="settings" element={<SystemSettings />} />

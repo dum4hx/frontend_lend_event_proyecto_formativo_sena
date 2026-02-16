@@ -55,8 +55,8 @@ export const validatePassword = (password: string): ValidationResult => {
   }
 
   // Check for special character
-  if (!/[!@#$%^&*]/.test(password)) {
-    return { isValid: false, message: 'La contraseña debe contener al menos un carácter especial (!@#$%^&*)' }
+  if (!/[!@#$%^&*.]/.test(password)) {
+    return { isValid: false, message: 'La contraseña debe contener al menos un carácter especial (!@#$%^&*.)' }
   }
 
   return { isValid: true }
@@ -149,6 +149,11 @@ export const validateTaxId = (taxId: string): ValidationResult => {
     return { isValid: false, message: 'El NIT/Tax ID debe tener al menos 4 caracteres' }
   }
 
+  // Only allow numbers and hyphens
+  if (!/^[0-9-]+$/.test(taxId)) {
+    return { isValid: false, message: 'El NIT/Tax ID solo puede contener números y guiones' }
+  }
+
   return { isValid: true }
 }
 
@@ -192,12 +197,35 @@ export const validatePhone = (phone?: string): ValidationResult => {
     return { isValid: true } // Phone is optional
   }
 
-  // Remove common formatting characters
-  const cleanPhone = phone.replace(/[\s\-\(\)]/g, '')
+  // Only allow numbers and plus sign
+  if (!/^\+?[0-9]+$/.test(phone)) {
+    return { isValid: false, message: 'El número de teléfono solo puede contener números y el signo +' }
+  }
 
   // Basic validation: at least 7 digits
-  if (!/^\+?[0-9]{7,15}$/.test(cleanPhone)) {
-    return { isValid: false, message: 'Ingresa un número de teléfono válido' }
+  const digitCount = phone.replace(/^\+/, '').length;
+  if (digitCount < 7 || digitCount > 15) {
+    return { isValid: false, message: 'El número de teléfono debe tener entre 7 y 15 dígitos' }
+  }
+
+  return { isValid: true }
+}
+
+/**
+ * Postal code validation (required by API, only numbers)
+ */
+export const validatePostalCode = (postalCode: string): ValidationResult => {
+  if (!postalCode.trim()) {
+    return { isValid: false, message: 'El código postal es requerido' }
+  }
+
+  // Only allow numbers
+  if (!/^[0-9]+$/.test(postalCode)) {
+    return { isValid: false, message: 'El código postal solo puede contener números' }
+  }
+
+  if (postalCode.length < 3) {
+    return { isValid: false, message: 'El código postal debe tener al menos 3 caracteres' }
   }
 
   return { isValid: true }
@@ -281,7 +309,7 @@ export const validateRegistrationForm = (formData: {
   const countryValidation = validateAddressField(formData.country, 'País')
   if (!countryValidation.isValid) return countryValidation
 
-  const postalValidation = validateAddressField(formData.postalCode, 'Código postal')
+  const postalValidation = validatePostalCode(formData.postalCode)
   if (!postalValidation.isValid) return postalValidation
 
   // Validate password

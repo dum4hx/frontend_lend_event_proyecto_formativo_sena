@@ -70,3 +70,65 @@ Before requesting a review, ensure every item is checked:
 - [ ] **Format check** — `npm run format:check` exits 0.
 - [ ] **No console.log** — remove debugging logs before pushing.
 - [ ] **Reviewed on mobile** — responsive layout has not regressed (if applicable).
+
+## Export Service
+
+Client-side data export with redaction, audit metadata, and pluggable format adapters.
+
+### Quick usage
+
+```ts
+import { exportService, PLAN_CONFIGURATION_POLICY } from './services/export';
+import type { ExportConfig } from './types/export';
+
+const config: ExportConfig = {
+  format: 'xlsx',
+  module: 'plan-configuration',
+  selectedFields: ['plan', 'displayName', 'baseCost', 'status'],
+  includeAuditMetadata: true,
+  fullExport: false,
+};
+
+const result = await exportService.export(rawData, config, userId);
+```
+
+### Architecture
+
+| Layer | File | Responsibility |
+| --- | --- | --- |
+| Types | `src/types/export.ts` | All export-related TypeScript interfaces |
+| Redaction | `src/services/export/redaction.ts` | PII pseudonymization/exclusion policies per module |
+| Validation | `src/services/export/validation.ts` | Runtime payload validation |
+| Checksum | `src/services/export/checksum.ts` | SHA-256 hashing via Web Crypto API |
+| PDF Adapter | `src/services/export/adapters/pdfAdapter.ts` | Minimal PDF-1.4 generator (no dependencies) |
+| Excel Adapter | `src/services/export/adapters/excelAdapter.ts` | Minimal XLSX generator (no dependencies) |
+| Service | `src/services/export/exportService.ts` | Orchestrates redaction → validation → adapter |
+
+### Redaction policies
+
+Each module has a default `RedactionPolicy` defining per-field actions:
+
+- **include** — value exported as-is
+- **hash** — replaced with a 16-char SHA-256 pseudonym
+- **exclude** — omitted from export (PII protection)
+- **mask** — partially masked (e.g., `j***@e***.com`)
+
+Full export (PII included) requires explicit user confirmation and is logged in audit metadata.
+
+### AlertCard component
+
+Reusable alert notification with neon styling:
+
+```tsx
+import { AlertContainer } from './components/ui';
+import { useAlerts } from './hooks/useAlerts';
+
+const { alerts, showAlert, dismissAlert } = useAlerts();
+showAlert('success', 'Export completed!');
+
+<AlertContainer alerts={alerts} onDismiss={dismissAlert} position="top-right" />
+```
+
+### Demo page
+
+Visit `/export-demo` for a manual QA page exercising exports and alert cards.
