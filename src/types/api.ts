@@ -623,6 +623,12 @@ export interface ResetPasswordPayload {
   newPassword: string;
 }
 
+export interface AcceptInvitePayload {
+  email: string;
+  token: string;
+  password: string;
+}
+
 // ─── Auth Responses ────────────────────────────────────────────────────────
 
 export interface RegisterResponseData {
@@ -642,6 +648,10 @@ export interface PaymentStatusData {
   isActive: boolean;
   plan: string;
   organizationStatus: string;
+}
+
+export interface AcceptInviteResponseData {
+  user: User;
 }
 
 // ─── User Management Payloads ──────────────────────────────────────────────
