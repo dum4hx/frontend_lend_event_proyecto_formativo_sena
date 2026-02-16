@@ -17,6 +17,8 @@ import type {
   VerifyResetCodePayload,
   VerifyResetCodeResponseData,
   ResetPasswordPayload,
+  AcceptInvitePayload,
+  AcceptInviteResponseData,
   MeResponseData,
   PaymentStatusData,
 } from "../types/api";
@@ -115,6 +117,23 @@ export async function resetPassword(
     email: payload.email.toLowerCase(),
     resetToken: payload.resetToken,
     newPassword: payload.newPassword,
+  });
+}
+
+// --- Accept Invite ----------------------------------------------------------
+
+/**
+ * Accept an organization invitation and set password.
+ * Activates the invited user account.
+ * No authentication required - uses token from invite URL.
+ */
+export async function acceptInvite(
+  payload: AcceptInvitePayload,
+): Promise<ApiSuccessResponse<AcceptInviteResponseData>> {
+  return post<AcceptInviteResponseData, AcceptInvitePayload>("/auth/accept-invite", {
+    email: payload.email.toLowerCase(),
+    token: payload.token,
+    password: payload.password,
   });
 }
 

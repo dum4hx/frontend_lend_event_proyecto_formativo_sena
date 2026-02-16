@@ -6,11 +6,14 @@ import { LoadingSpinner } from "./components/ui";
 
 // Páginas públicas
 import Dashboard from "./pages/Dashboard";
-import Paquetes from "./pages/Paquetes";
+import Paquetes from "./pages/Packages";
 import Login from "./pages/Login";
 import Registro from "./pages/Registro";
 import SobreNosotros from "./pages/SobreNosotros";
 import RecuperarContrasena from "./pages/RecuperarContrasena";
+import AcceptInvite from "./pages/AcceptInvite";
+import Checkout from "./pages/Checkout";
+import CheckoutSuccess from "./pages/CheckoutSuccess";
 
 // Fallback pages
 import NotFound from "./pages/NotFound";
@@ -48,6 +51,9 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/registro" element={<Registro />} />
           <Route path="/recuperar-contrasena" element={<RecuperarContrasena />} />
+          <Route path="/accept-invite" element={<AcceptInvite />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/checkout/success" element={<CheckoutSuccess />} />
           <Route path="/export-demo" element={<ExportDemo />} />
 
           {/* Rutas admin (organization owner) */}
