@@ -15,7 +15,7 @@ type TeamMember = {
   name: string;
   email: string;
   role: string;
-  status: "active" | "inactive";
+  status: "active" | "inactive" | "invited";
 };
 
 export default function Team() {
@@ -45,15 +45,13 @@ export default function Team() {
           >;
           const firstName = profile.firstName || "";
           const lastName = profile.lastName || profile.firstSurname || "";
+          const status = user.status === "inactive" ? "inactive" : user.status === "invited" ? "invited" : "active";
           return {
             id: (user._id as string) || (user.id as string),
             name: `${firstName} ${lastName}`.trim() || (user.email as string),
             email: user.email as string,
-            role: (user.role as string) || "commercial_advisor",
-            status:
-              user.status === "inactive"
-                ? ("inactive" as const)
-                : ("active" as const),
+            role: (user.role as string) || "undefined",
+            status: status
           };
         },
       );
@@ -240,9 +238,9 @@ export default function Team() {
                     <td className="px-6 py-4 text-gray-400">{member.role}</td>
                     <td className="px-6 py-4">
                       <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${member.status === "active" ? "bg-green-900 text-green-200" : "bg-gray-700 text-gray-300"}`}
+                        className={`px-3 py-1 rounded-full text-xs font-medium ${member.status === "active" ? "bg-green-900 text-green-200" : member.status === "inactive" ? "bg-red-900 text-red-200" : "bg-yellow-900 text-yellow-200"}`}
                       >
-                        {member.status === "active" ? "Active" : "Inactive"}
+                        {member.status === "active" ? "Active" : member.status === "inactive" ? "Inactive" : "Invited"}
                       </span>
                     </td>
                     <td className="px-6 py-4">
