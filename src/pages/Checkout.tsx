@@ -10,15 +10,10 @@ import {
   Plus,
   ArrowLeft,
 } from "lucide-react";
-<<<<<<< HEAD
-import Encabezado from "../components/Encabezado";
-import PiePagina from "../components/PiePagina";
-import LoginModal from "../components/LoginModal";
-=======
 import Header from "../components/Header";
 import Footer from "../components/Footer";
->>>>>>> PDFS-5
 import { useAuth } from "../contexts/useAuth";
+import LoginModal from "../components/LoginModal";
 import {
   getSubscriptionType,
   calculatePlanCost,
