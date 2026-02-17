@@ -227,6 +227,7 @@ export default function SalesOverview() {
         onPreview={handleExportPreview}
         module="sales-overview"
         policy={SALES_OVERVIEW_POLICY}
+        allowedFormats={['xlsx']}
         exporting={exporting}
         progress={exportProgress}
         onCancel={handleCancelExport}

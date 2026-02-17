@@ -182,6 +182,7 @@ export default function UserManagement() {
         onPreview={handleExportPreview}
         module="user-management"
         policy={USER_MANAGEMENT_POLICY}
+        allowedFormats={['xlsx']}
         exporting={exporting}
         progress={exportProgress}
         onCancel={handleCancelExport}

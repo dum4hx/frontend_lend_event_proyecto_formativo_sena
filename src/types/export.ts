@@ -193,6 +193,7 @@ export interface ExportSettingsModalProps {
   policy: RedactionPolicy;
   exporting: boolean;
   progress?: ExportProgress;
+  allowedFormats?: ExportFormat[];
 }
 
 // ─── i18n Keys ─────────────────────────────────────────────────────────────

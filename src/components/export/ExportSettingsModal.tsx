@@ -40,6 +40,7 @@ export interface ExportSettingsModalProps {
   exporting: boolean;
   progress?: ExportProgress;
   onCancel?: () => void;
+  allowedFormats?: ExportFormat[];
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -79,8 +80,16 @@ export function ExportSettingsModal({
   exporting,
   progress,
   onCancel,
+  allowedFormats,
 }: ExportSettingsModalProps) {
-  const [format, setFormat] = useState<ExportFormat>('xlsx');
+  const allowed = useMemo<ExportFormat[]>(() => {
+    if (allowedFormats && allowedFormats.length > 0) return allowedFormats;
+    return FORMAT_OPTIONS.map((o) => o.value);
+  }, [allowedFormats]);
+
+  const options = useMemo(() => FORMAT_OPTIONS.filter((o) => allowed.includes(o.value)), [allowed]);
+
+  const [format, setFormat] = useState<ExportFormat>(() => (allowed.includes('xlsx') ? 'xlsx' : allowed[0] ?? 'xlsx'));
   const [selectedFields, setSelectedFields] = useState<Set<string>>(() => {
     return new Set(
       policy.fields.filter((f) => f.defaultSelected).map((f) => f.key),
@@ -185,7 +194,7 @@ export function ExportSettingsModal({
             <div>
               <label className="form-label mb-2">{EXPORT_I18N['export.format']}</label>
               <div className="flex gap-3">
-                {FORMAT_OPTIONS.map((opt) => (
+                {options.map((opt) => (
                   <button
                     key={opt.value}
                     type="button"

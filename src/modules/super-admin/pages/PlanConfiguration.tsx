@@ -402,6 +402,7 @@ export default function PlanConfiguration() {
         onPreview={handleExportPreview}
         module="plan-configuration"
         policy={PLAN_CONFIGURATION_POLICY}
+        allowedFormats={['xlsx']}
         exporting={exporting}
         progress={exportProgress}
         onCancel={handleCancelExport}
