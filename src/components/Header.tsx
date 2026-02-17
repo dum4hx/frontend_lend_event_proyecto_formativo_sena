@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
-import styles from './Encabezado.module.css'
+import styles from './Header.module.css'
 
-export default function Encabezado() {
+export default function Header() {
   return (
     <header className="w-full bg-black text-white border-b border-zinc-800">
       <nav className="max-w-7xl mx-auto flex items-center justify-between px-6 md:px-12 py-8">
@@ -12,36 +12,36 @@ export default function Encabezado() {
           </Link>
         </div>
 
-        <ul className="hidden md:flex items-center space-x-10 text-sm font-medium text-gray-400">
+          <ul className="hidden md:flex items-center space-x-10 text-sm font-medium text-gray-400">
           <li>
             <Link to="/" className="hover:text-white transition-colors">
-              Inicio
+              Home
             </Link>
           </li>
           <li>
-            <Link to="/paquetes" className="hover:text-white transition-colors">
-              Paquetes
+            <Link to="/packages" className="hover:text-white transition-colors">
+              Packages
             </Link>
           </li>
           <li>
-            <Link to="/sobre-nosotros" className="hover:text-white transition-colors">
-              Sobre nosotros
+            <Link to="/about" className="hover:text-white transition-colors">
+              About
             </Link>
           </li>
         </ul>
 
-        <div className="flex items-center space-x-4 md:space-x-6">
+          <div className="flex items-center space-x-4 md:space-x-6">
           <Link
             to="/login"
             className="hidden sm:block text-sm font-semibold text-white hover:text-gray-300 transition-colors"
           >
-            Iniciar Sesión
+            Login
           </Link>
           <Link
-            to="/registro"
+            to="/sign-up"
             className={`bg-yellow-400 text-black px-4 py-2 md:px-6 md:py-2.5 rounded-lg font-bold text-sm ${styles.glow_button}`}
           >
-            Registrarse
+            Sign Up
           </Link>
         </div>
       </nav>

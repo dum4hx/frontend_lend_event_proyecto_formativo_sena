@@ -10,9 +10,14 @@ import {
   Plus,
   ArrowLeft,
 } from "lucide-react";
+<<<<<<< HEAD
 import Encabezado from "../components/Encabezado";
 import PiePagina from "../components/PiePagina";
 import LoginModal from "../components/LoginModal";
+=======
+import Header from "../components/Header";
+import Footer from "../components/Footer";
+>>>>>>> PDFS-5
 import { useAuth } from "../contexts/useAuth";
 import {
   getSubscriptionType,
@@ -150,7 +155,7 @@ export default function Checkout() {
         plan: planId,
         seatCount,
         successUrl: `${origin}/checkout/success`,
-        cancelUrl: `${origin}/paquetes`,
+        cancelUrl: `${origin}/packages`,
       });
 
       // Redirect to Stripe Checkout — the only place card details are
@@ -176,12 +181,12 @@ export default function Checkout() {
   if (authLoading || loading) {
     return (
       <div className="bg-black text-white min-h-screen flex flex-col">
-        <Encabezado />
+        <Header />
         <main className="flex-grow flex items-center justify-center">
           <Loader2 className="w-8 h-8 text-yellow-400 animate-spin" />
           <span className="ml-3 text-gray-400">Loading…</span>
         </main>
-        <PiePagina />
+        <Footer />
       </div>
     );
   }
@@ -191,18 +196,18 @@ export default function Checkout() {
   if (error && !plan) {
     return (
       <div className="bg-black text-white min-h-screen flex flex-col">
-        <Encabezado />
+        <Header />
         <main className="flex-grow flex flex-col items-center justify-center px-4">
           <AlertCircle className="w-12 h-12 text-red-400 mb-4" />
           <p className="text-red-400 mb-6 text-center max-w-md">{error}</p>
           <Link
-            to="/paquetes"
+            to="/packages"
             className="text-yellow-400 underline hover:text-yellow-300"
           >
             ← Back to Plans
           </Link>
         </main>
-        <PiePagina />
+        <Footer />
       </div>
     );
   }
@@ -211,7 +216,7 @@ export default function Checkout() {
 
   return (
     <div className="bg-black text-white min-h-screen flex flex-col">
-      <Encabezado />
+      <Header />
 
       <main className="flex-grow py-12 px-4">
         <div className="max-w-2xl mx-auto">
@@ -228,7 +233,7 @@ export default function Checkout() {
 
           {/* Back link */}
           <Link
-            to="/paquetes"
+            to="/packages"
             className="inline-flex items-center text-gray-400 hover:text-yellow-400 mb-8 transition-colors"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -373,7 +378,7 @@ export default function Checkout() {
         </div>
       </main>
 
-      <PiePagina />
+      <Footer />
     </div>
   );
 }

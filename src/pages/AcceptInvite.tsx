@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { CheckCircle, AlertCircle } from "lucide-react";
-import Encabezado from "../components/Encabezado";
-import PiePagina from "../components/PiePagina";
+import Header from "../components/Header";
+import Footer from "../components/Footer";
 import { acceptInvite } from "../services/authService";
 import { ApiError } from "../lib/api";
 import { validatePassword } from "../utils/validators";
@@ -26,7 +26,7 @@ export default function AcceptInvite() {
 
     if (!emailParam || !tokenParam) {
       setError(
-        "Enlace de invitación inválido. Por favor solicita un nuevo enlace a tu administrador."
+        "Invalid invitation link. Please request a new link from your administrator."
       );
       return;
     }
@@ -42,18 +42,18 @@ export default function AcceptInvite() {
     // Validate password
     const passwordValidation = validatePassword(password);
     if (!passwordValidation.isValid) {
-      setError(passwordValidation.message || "Validación fallida");
+      setError(passwordValidation.message || "Validation failed");
       return;
     }
 
     // Confirm password match
     if (password !== confirmPassword) {
-      setError("Las contraseñas no coinciden");
+      setError("Passwords do not match");
       return;
     }
 
     if (!email || !token) {
-      setError("Faltan parámetros de invitación");
+      setError("Missing invite parameters");
       return;
     }
 
@@ -71,7 +71,7 @@ export default function AcceptInvite() {
       const message =
         err instanceof ApiError
           ? err.message
-          : "Error de conexión. Por favor intenta nuevamente.";
+          : "Network error. Please try again.";
       setError(message);
     } finally {
       setLoading(false);
@@ -80,15 +80,15 @@ export default function AcceptInvite() {
 
   return (
     <div className={styles.bgOverlay}>
-      <Encabezado />
+      <Header />
       <div className="min-h-screen flex items-center justify-center px-4 py-12">
         <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border border-[#FFD700] rounded-2xl p-8 w-full max-w-md shadow-2xl">
           <div className="text-center mb-6">
             <h1 className="text-3xl font-bold text-white mb-2">
-              Activar Cuenta
+              Activate Account
             </h1>
             <p className="text-gray-400">
-              Configura tu contraseña para comenzar
+              Set your password to get started
             </p>
           </div>
 
@@ -98,10 +98,10 @@ export default function AcceptInvite() {
                 <CheckCircle className="text-green-500" size={24} />
                 <div>
                   <p className="text-green-400 font-semibold">
-                    ¡Cuenta activada exitosamente!
+                    Account activated successfully!
                   </p>
                   <p className="text-gray-400 text-sm mt-1">
-                    Redirigiendo al inicio de sesión...
+                    Redirecting to sign in...
                   </p>
                 </div>
               </div>
@@ -132,7 +132,7 @@ export default function AcceptInvite() {
                     htmlFor="password"
                     className="block text-sm font-medium text-gray-300 mb-2"
                   >
-                    Contraseña
+                    Password
                   </label>
                   <input
                     id="password"
@@ -140,13 +140,12 @@ export default function AcceptInvite() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full bg-[#1a1a1a] border border-[#333] text-white rounded-lg px-4 py-3 focus:outline-none focus:border-[#FFD700] focus:ring-1 focus:ring-[#FFD700] transition-all"
-                    placeholder="Mínimo 8 caracteres"
+                    placeholder="Minimum 8 characters"
                     required
                     disabled={loading || !email || !token}
                   />
                   <p className="text-xs text-gray-500 mt-2">
-                    Debe incluir: mayúscula, minúscula, número y carácter
-                    especial
+                    Must include: uppercase, lowercase, number and special character
                   </p>
                 </div>
 
@@ -155,7 +154,7 @@ export default function AcceptInvite() {
                     htmlFor="confirmPassword"
                     className="block text-sm font-medium text-gray-300 mb-2"
                   >
-                    Confirmar Contraseña
+                    Confirm Password
                   </label>
                   <input
                     id="confirmPassword"
@@ -163,7 +162,7 @@ export default function AcceptInvite() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     className="w-full bg-[#1a1a1a] border border-[#333] text-white rounded-lg px-4 py-3 focus:outline-none focus:border-[#FFD700] focus:ring-1 focus:ring-[#FFD700] transition-all"
-                    placeholder="Repite tu contraseña"
+                    placeholder="Repeat your password"
                     required
                     disabled={loading || !email || !token}
                   />
@@ -174,18 +173,18 @@ export default function AcceptInvite() {
                   disabled={loading || !email || !token}
                   className={`w-full bg-[#FFD700] text-black font-semibold py-3 px-4 rounded-lg hover:bg-[#FFC700] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${styles.glowButton}`}
                 >
-                  {loading ? "Activando..." : "Activar Cuenta"}
+                  {loading ? "Activating..." : "Activate Account"}
                 </button>
               </form>
 
               <div className="mt-6 text-center">
                 <p className="text-gray-400 text-sm">
-                  ¿Ya tienes una cuenta?{" "}
+                  Already have an account?{" "}
                   <a
                     href="/login"
                     className="text-[#FFD700] hover:text-[#FFC700] font-medium transition-colors"
                   >
-                    Iniciar sesión
+                    Sign in
                   </a>
                 </p>
               </div>
@@ -193,7 +192,7 @@ export default function AcceptInvite() {
           )}
         </div>
       </div>
-      <PiePagina />
+      <Footer />
     </div>
   );
 }

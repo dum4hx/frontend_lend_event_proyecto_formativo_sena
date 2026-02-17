@@ -66,8 +66,8 @@ export default function Customers() {
         console.error("Failed to fetch document types:", err);
         // Fallback to default types if API fails
         setDocumentTypes([
-          { value: "cc", displayName: "Cédula de Ciudadanía", description: "Colombian National ID" },
-          { value: "ce", displayName: "Cédula de Extranjería", description: "Colombian Foreign ID" },
+          { value: "cc", displayName: "Colombian National ID", description: "Colombian National ID" },
+          { value: "ce", displayName: "Colombian Foreign ID", description: "Colombian Foreign ID" },
           { value: "passport", displayName: "Passport", description: "International Passport" },
           { value: "nit", displayName: "NIT", description: "Tax Identification Number" },
           { value: "other", displayName: "Other", description: "Other identification type" },
@@ -94,7 +94,7 @@ export default function Customers() {
       setTotal(response.data.total);
       setTotalPages(response.data.totalPages);
     } catch (err) {
-      const message = err instanceof ApiError ? err.message : "Error al cargar clientes";
+      const message = err instanceof ApiError ? err.message : "Error loading customers";
       setError(message);
     } finally {
       setLoading(false);
@@ -112,32 +112,32 @@ export default function Customers() {
     if (!formData.name.firstName.trim()) {
       errors.firstName = "El nombre es requerido";
     } else if (formData.name.firstName.length > 50) {
-      errors.firstName = "Máximo 50 caracteres";
+      errors.firstName = "Maximum 50 characters";
     }
 
     if (!formData.name.firstSurname.trim()) {
       errors.firstSurname = "El apellido es requerido";
     } else if (formData.name.firstSurname.length > 50) {
-      errors.firstSurname = "Máximo 50 caracteres";
+      errors.firstSurname = "Maximum 50 characters";
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!formData.email.trim()) {
       errors.email = "El email es requerido";
     } else if (!emailRegex.test(formData.email)) {
-      errors.email = "Email inválido";
+      errors.email = "Invalid email";
     }
 
     // E.164 format: +[country code][number]
     const phoneRegex = /^\+?[1-9]\d{1,14}$/;
     if (!formData.phone.trim()) {
-      errors.phone = "El teléfono es requerido";
+      errors.phone = "Phone number is required";
     } else if (!phoneRegex.test(formData.phone.replace(/\s/g, ""))) {
-      errors.phone = "Formato inválido (ej: +573001234567)";
+      errors.phone = "Invalid format (e.g: +573001234567)";
     }
 
     if (!formData.documentNumber.trim()) {
-      errors.documentNumber = "El número de documento es requerido";
+      errors.documentNumber = "Document number is required";
     } else if (formData.documentNumber.length > 50) {
       errors.documentNumber = "Máximo 50 caracteres";
     }
@@ -158,7 +158,7 @@ export default function Customers() {
       resetForm();
       await fetchCustomers();
     } catch (err) {
-      const message = err instanceof ApiError ? err.message : "Error al crear cliente";
+      const message = err instanceof ApiError ? err.message : "Failed to create customer";
       setError(message);
     } finally {
       setSubmitting(false);
@@ -188,7 +188,7 @@ export default function Customers() {
       resetForm();
       await fetchCustomers();
     } catch (err) {
-      const message = err instanceof ApiError ? err.message : "Error al actualizar cliente";
+      const message = err instanceof ApiError ? err.message : "Failed to update customer";
       setError(message);
     } finally {
       setSubmitting(false);
@@ -197,26 +197,26 @@ export default function Customers() {
 
   // Blacklist customer
   const handleBlacklist = async (customer: Customer) => {
-    if (!confirm(`¿Bloquear a ${customer.name.firstName} ${customer.name.firstSurname}?`)) return;
+    if (!confirm(`Block ${customer.name.firstName} ${customer.name.firstSurname}?`)) return;
 
     try {
       await blacklistCustomer(customer._id);
       await fetchCustomers();
     } catch (err) {
-      const message = err instanceof ApiError ? err.message : "Error al bloquear cliente";
+      const message = err instanceof ApiError ? err.message : "Failed to blacklist customer";
       alert(message);
     }
   };
 
   // Delete customer
   const handleDelete = async (customer: Customer) => {
-    if (!confirm(`¿Eliminar a ${customer.name.firstName} ${customer.name.firstSurname}?`)) return;
+    if (!confirm(`Delete ${customer.name.firstName} ${customer.name.firstSurname}?`)) return;
 
     try {
       await deleteCustomer(customer._id);
       await fetchCustomers();
     } catch (err) {
-      const message = err instanceof ApiError ? err.message : "Error al eliminar cliente";
+      const message = err instanceof ApiError ? err.message : "Failed to delete customer";
       alert(message);
     }
   };
@@ -276,8 +276,8 @@ export default function Customers() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Clientes</h1>
-          <p className="text-gray-400">Gestiona los clientes de tu organización</p>
+          <h1 className="text-3xl font-bold mb-2">Customers</h1>
+          <p className="text-gray-400">Manage your organization's customers</p>
         </div>
 
         {/* Global Error */}
@@ -332,11 +332,11 @@ export default function Customers() {
         {loading || loadingDocTypes ? (
           <div className="card flex items-center justify-center py-12">
             <div className="spinner w-8 h-8"></div>
-            <p className="mt-4 text-gray-400">Cargando clientes...</p>
+            <p className="mt-4 text-gray-400">Loading customers...</p>
           </div>
         ) : customers.length === 0 ? (
           <div className="card text-center py-12">
-            <p className="text-gray-400">No se encontraron clientes</p>
+            <p className="text-gray-400">No customers found</p>
           </div>
         ) : (
           <>
@@ -404,7 +404,7 @@ export default function Customers() {
             {totalPages > 1 && (
               <div className="card mt-6 flex items-center justify-between">
                 <p className="text-sm text-gray-400">
-                  Mostrando {(currentPage - 1) * 10 + 1} - {Math.min(currentPage * 10, total)} de {total} clientes
+                  Showing {(currentPage - 1) * 10 + 1} - {Math.min(currentPage * 10, total)} of {total} customers
                 </p>
                 <div className="flex items-center gap-2">
                   <button
@@ -555,10 +555,10 @@ export default function Customers() {
 
                   {/* Address (optional) */}
                   <div className="form-group">
-                    <label className="form-label">Dirección (opcional)</label>
+                    <label className="form-label">Address (optional)</label>
                     <input
                       type="text"
-                      placeholder="Calle, ciudad, país..."
+                      placeholder="Street, city, country..."
                       value={formData.address?.street || ""}
                       onChange={(e) =>
                         setFormData({
@@ -573,10 +573,10 @@ export default function Customers() {
                 </div>
                 <div className="modal-footer">
                   <button type="button" onClick={() => setShowCreateModal(false)} className="btn-secondary" disabled={submitting}>
-                    Cancelar
+                    Cancel
                   </button>
                   <button type="submit" className="btn-primary" disabled={submitting}>
-                    {submitting ? "Creando..." : "Crear Cliente"}
+                    {submitting ? "Creating..." : "Create Customer"}
                   </button>
                 </div>
               </form>

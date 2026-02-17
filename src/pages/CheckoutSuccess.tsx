@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { CheckCircle, ArrowRight } from "lucide-react";
-import Encabezado from "../components/Encabezado";
-import PiePagina from "../components/PiePagina";
+import Header from "../components/Header";
+import Footer from "../components/Footer";
 import { useAuth } from "../contexts/useAuth";
 
 export default function CheckoutSuccess() {
@@ -24,7 +24,7 @@ export default function CheckoutSuccess() {
 
   return (
     <div className="bg-black text-white min-h-screen flex flex-col">
-      <Encabezado />
+      <Header />
 
       <main className="flex-grow flex items-center justify-center px-4">
         <div className="max-w-lg text-center">
@@ -49,7 +49,7 @@ export default function CheckoutSuccess() {
               <ArrowRight className="w-5 h-5" />
             </Link>
             <Link
-              to="/paquetes"
+              to="/packages"
               className="text-gray-400 hover:text-yellow-400 transition-colors text-sm"
             >
               View Plans
@@ -64,7 +64,7 @@ export default function CheckoutSuccess() {
         </div>
       </main>
 
-      <PiePagina />
+      <Footer />
     </div>
   );
 }

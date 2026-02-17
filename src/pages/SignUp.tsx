@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import Encabezado from "../components/Encabezado";
-import PiePagina from "../components/PiePagina";
+import Header from "../components/Header";
+import Footer from "../components/Footer";
 import { registerUser } from "../services/authService";
 import { ApiError } from "../lib/api";
 import { validateRegistrationForm } from "../utils/validators";
-import styles from "./Registro.module.css";
+import styles from "./SignUp.module.css";
 
-export default function Registro() {
+export default function SignUp() {
   const navigate = useNavigate();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -47,7 +47,7 @@ export default function Registro() {
     });
 
     if (!validation.isValid) {
-      setError(validation.message || "Validación fallida");
+      setError(validation.message || "Validation failed");
       return;
     }
 
@@ -86,14 +86,14 @@ export default function Registro() {
 
       if (response.status === "success") {
         // Success - navigate to login
-        alert("Cuenta creada exitosamente. Por favor inicia sesión.");
+        alert("Account created successfully. Please log in.");
         navigate("/login");
       }
     } catch (err: unknown) {
       const message =
         err instanceof ApiError
           ? err.message
-          : "Error de conexión. Por favor intenta nuevamente.";
+          : "Network error. Please try again.";
       setError(message);
     } finally {
       setLoading(false);
@@ -102,10 +102,10 @@ export default function Registro() {
 
   return (
     <div className="min-h-screen flex flex-col bg-black">
-      <Encabezado />
+      <Header />
 
       <main className="flex-grow flex flex-col md:flex-row">
-        {/* Sección Izquierda - Solo en Desktop */}
+        {/* Left Section - Desktop Only */}
         <div
           className={`hidden md:flex md:w-1/2 ${styles.bgOverlay} p-12 lg:p-20 flex-col justify-center relative border-r border-zinc-800 z-0`}
         >
@@ -132,20 +132,19 @@ export default function Registro() {
               </span>
             </div>
 
-            {/* Título */}
+            {/* Title */}
             <h1 className="text-5xl text-white lg:text-6xl font-extrabold mb-6 leading-tight">
-              Cree su cuenta
+              Create your account
               <br />
-              <span className="text-yellow-400">Corporativa</span>
+              <span className="text-yellow-400">for Business</span>
             </h1>
 
-            {/* Descripción */}
+            {/* Description */}
             <p className="text-gray-300 text-lg max-w-md mb-12 leading-relaxed">
-              Únase a las empresas que ya están revolucionando sus eventos con
-              nuestra tecnología de vanguardia.
+              Join the companies already transforming their events with our cutting-edge technology.
             </p>
 
-            {/* Características */}
+            {/* Features */}
             <div className="grid grid-cols-1 gap-6">
               <div className="flex items-center space-x-4 bg-white/5 p-4 rounded-xl border border-white/10">
                 <div className="w-10 h-10 bg-yellow-400/20 rounded-lg flex items-center justify-center border border-yellow-400/30">
@@ -153,10 +152,10 @@ export default function Registro() {
                 </div>
                 <div>
                   <p className="font-bold text-white">
-                    Configuración Instantánea
+                    Instant Setup
                   </p>
                   <p className="text-sm text-gray-400">
-                    Acceda a su panel de control en menos de 2 minutos.
+                    Access your dashboard in less than 2 minutes.
                   </p>
                 </div>
               </div>
@@ -164,12 +163,12 @@ export default function Registro() {
           </div>
         </div>
 
-        {/* Sección Derecha - Formulario */}
+        {/* Right Section - Form */}
         <div className="flex-grow md:w-1/2 flex items-center justify-center p-8 bg-black relative z-10 overflow-y-auto">
           <div className="w-full max-w-md py-12">
-            <h2 className="text-4xl font-extrabold mb-2">Comenzar</h2>
+            <h2 className="text-4xl font-extrabold mb-2">Get Started</h2>
             <p className="text-gray-400 mb-10">
-              Cree su cuenta de Lend Event hoy mismo
+              Create your Lend Event account today
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-5">
@@ -182,8 +181,8 @@ export default function Registro() {
 
               {/* Nombre */}
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                  Nombre
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
+                  First Name
                 </label>
                 <input
                   type="text"
@@ -197,8 +196,8 @@ export default function Registro() {
 
               {/* Apellido */}
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                  Apellido
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
+                  Last Name
                 </label>
                 <input
                   type="text"
@@ -210,14 +209,14 @@ export default function Registro() {
                 />
               </div>
 
-              {/* Nombre de la Empresa */}
+              {/* Organization Name */}
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                  Nombre de la Empresa
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
+                  Organization Name
                 </label>
                 <input
                   type="text"
-                  placeholder="Tu Empresa Inc."
+                  placeholder="Your Company Inc."
                   value={organizationName}
                   onChange={(e) => setOrganizationName(e.target.value)}
                   disabled={loading}
@@ -225,15 +224,14 @@ export default function Registro() {
                 />
               </div>
 
-              {/* Razón Social (Legal Name) - Opcional */}
+              {/* Legal Name (Optional) */}
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                  Razón Social (Legal Name){" "}
-                  <span className="text-gray-600">(Opcional)</span>
+                  Legal Name (Optional)
                 </label>
                 <input
                   type="text"
-                  placeholder="Tu Empresa S.A."
+                  placeholder="Your Company S.A."
                   value={legalName}
                   onChange={(e) => setLegalName(e.target.value)}
                   disabled={loading}
@@ -256,14 +254,14 @@ export default function Registro() {
                 />
               </div>
 
-              {/* Correo Electrónico */}
+              {/* Email */}
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                  Correo Electrónico
+                  Email
                 </label>
                 <input
                   type="email"
-                  placeholder="tu@empresa.com"
+                  placeholder="your@company.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
@@ -271,10 +269,10 @@ export default function Registro() {
                 />
               </div>
 
-              {/* Teléfono (Opcional) */}
+              {/* Phone (Optional) */}
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                  Teléfono <span className="text-gray-600">(Opcional)</span>
+                  Phone <span className="text-gray-600">(Optional)</span>
                 </label>
                 <input
                   type="tel"
@@ -286,10 +284,10 @@ export default function Registro() {
                 />
               </div>
 
-              {/* Dirección */}
+              {/* Address */}
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                  Dirección
+                  Address
                 </label>
                 <input
                   type="text"
@@ -303,7 +301,7 @@ export default function Registro() {
 
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                  Ciudad
+                  City
                 </label>
                 <input
                   type="text"
@@ -317,7 +315,7 @@ export default function Registro() {
 
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                  País
+                  Country
                 </label>
                 <input
                   type="text"
@@ -331,7 +329,7 @@ export default function Registro() {
 
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                  Código Postal
+                  Postal Code
                 </label>
                 <input
                   type="text"
@@ -343,14 +341,14 @@ export default function Registro() {
                 />
               </div>
 
-              {/* Contraseña */}
+              {/* Password */}
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                  Contraseña
+                  Password
                 </label>
                 <div className="text-xs text-gray-400 mb-2">
-                  Mínimo 8 caracteres, 1 mayúscula, 1 número y 1 carácter
-                  especial (!@#$%^&*)
+                  Minimum 8 characters, 1 uppercase letter, 1 number and 1 special
+                  character (!@#$%^&*)
                 </div>
                 <input
                   type="password"
@@ -362,14 +360,14 @@ export default function Registro() {
                 />
               </div>
 
-              {/* Confirmar Contraseña */}
+              {/* Confirm Password */}
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                  Confirmar Contraseña
+                  Confirm Password
                 </label>
-                <input
-                  type="password"
-                  placeholder="Repita su contraseña"
+                  <input
+                    type="password"
+                    placeholder="Repeat your password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   disabled={loading}
@@ -377,31 +375,31 @@ export default function Registro() {
                 />
               </div>
 
-              {/* Botón Crear Cuenta */}
+              {/* Create Account Button */}
               <button
                 type="submit"
                 disabled={loading}
                 className={`w-full bg-yellow-400 text-black font-extrabold py-4 rounded-xl text-lg ${styles.glowButton} mt-4 shadow-xl hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed transition`}
               >
-                {loading ? "Creando cuenta..." : "Crear Cuenta"}
+                {loading ? "Creating account..." : "Create Account"}
               </button>
             </form>
 
             {/* Link a Login */}
             <p className="text-center text-sm text-gray-500 mt-8">
-              ¿Ya tiene una cuenta?{" "}
+              Already have an account?{" "}
               <Link
                 to="/login"
                 className="text-yellow-400 font-bold hover:underline"
               >
-                Inicie sesión
+                Sign in
               </Link>
             </p>
           </div>
         </div>
       </main>
 
-      <PiePagina />
+      <Footer />
     </div>
   );
 }

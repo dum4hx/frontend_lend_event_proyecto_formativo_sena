@@ -4,13 +4,13 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { RequireRole } from "./utils/roleGuard";
 import { LoadingSpinner } from "./components/ui";
 
-// Páginas públicas
+// Public pages
 import Dashboard from "./pages/Dashboard";
 import Paquetes from "./pages/Packages";
 import Login from "./pages/Login";
-import Registro from "./pages/Registro";
-import SobreNosotros from "./pages/SobreNosotros";
-import RecuperarContrasena from "./pages/RecuperarContrasena";
+import SignUp from "./pages/SignUp";
+import AboutUs from "./pages/AboutUs";
+import PasswordRecovery from "./pages/PasswordRecovery";
 import AcceptInvite from "./pages/AcceptInvite";
 import Checkout from "./pages/Checkout";
 import CheckoutSuccess from "./pages/CheckoutSuccess";
@@ -44,13 +44,13 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          {/* Rutas públicas */}
+          {/* Public Routes */}
           <Route path="/" element={<Dashboard />} />
-          <Route path="/paquetes" element={<Paquetes />} />
-          <Route path="/sobre-nosotros" element={<SobreNosotros />} />
+          <Route path="/packages" element={<Paquetes />} />
+          <Route path="/about" element={<AboutUs />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/registro" element={<Registro />} />
-          <Route path="/recuperar-contrasena" element={<RecuperarContrasena />} />
+          <Route path="/sign-up" element={<SignUp />} />
+          <Route path="/password-recovery" element={<PasswordRecovery />} />
           <Route path="/accept-invite" element={<AcceptInvite />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/checkout/success" element={<CheckoutSuccess />} />

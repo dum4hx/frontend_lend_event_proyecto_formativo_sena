@@ -106,12 +106,12 @@ export default function Team() {
       // Validate phone format (E.164) only for new users
       if (!editingId) {
         if (!formData.phone) {
-          alert("El teléfono es requerido");
+          alert("Phone number is required");
           return;
         }
         const phoneRegex = /^\+?[1-9]\d{1,14}$/;
         if (!phoneRegex.test(formData.phone.replace(/\s/g, ""))) {
-          alert("Formato de teléfono inválido. Use formato E.164 (ej: +573001234567)");
+          alert("Invalid phone format. Use E.164 format (e.g: +573001234567)");
           return;
         }
       }
@@ -148,7 +148,7 @@ export default function Team() {
   };
 
   const handleDeleteUser = async (userId: string) => {
-    if (!confirm("¿Estás seguro de que deseas desactivar este usuario?"))
+    if (!confirm("Are you sure you want to deactivate this user?"))
       return;
 
     try {
@@ -329,7 +329,7 @@ export default function Team() {
               {!editingId && (
                 <div>
                   <label className="block text-gray-400 text-sm font-medium mb-2">
-                    Teléfono * (formato E.164)
+                    Phone * (E.164 format)
                   </label>
                   <input
                     type="tel"

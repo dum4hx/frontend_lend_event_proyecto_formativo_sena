@@ -214,12 +214,12 @@ export default function MyEvents() {
   };
 
   const handleDeleteEvent = async (eventId: string) => {
-    if (!confirm("¿Estás seguro de que deseas eliminar este evento?")) return;
+    if (!confirm("Are you sure you want to delete this event?")) return;
 
     try {
       const reason = prompt(
-        "Motivo de cancelación",
-        "Cancelado por el administrador",
+        "Reason for cancellation",
+        "Cancelled by administrator",
       );
       if (reason === null) return;
       // Use rejectRequest as a cancellation mechanism

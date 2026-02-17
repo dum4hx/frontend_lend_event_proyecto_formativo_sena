@@ -16,11 +16,11 @@ export const validateEmail = (email: string): ValidationResult => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   
   if (!email.trim()) {
-    return { isValid: false, message: 'El correo es requerido' }
+    return { isValid: false, message: 'Email is required' }
   }
 
   if (!emailRegex.test(email)) {
-    return { isValid: false, message: 'Ingresa un correo válido' }
+    return { isValid: false, message: 'Enter a valid email address' }
   }
 
   return { isValid: true }
@@ -37,26 +37,26 @@ export const validateEmail = (email: string): ValidationResult => {
  */
 export const validatePassword = (password: string): ValidationResult => {
   if (!password) {
-    return { isValid: false, message: 'La contraseña es requerida' }
+    return { isValid: false, message: 'Password is required' }
   }
 
   if (password.length < 8) {
-    return { isValid: false, message: 'La contraseña debe tener al menos 8 caracteres' }
+    return { isValid: false, message: 'Password must be at least 8 characters' }
   }
 
   // Check for uppercase letter
   if (!/[A-Z]/.test(password)) {
-    return { isValid: false, message: 'La contraseña debe contener al menos una mayúscula' }
+    return { isValid: false, message: 'Password must contain at least one uppercase letter' }
   }
 
   // Check for number
   if (!/[0-9]/.test(password)) {
-    return { isValid: false, message: 'La contraseña debe contener al menos un número' }
+    return { isValid: false, message: 'Password must contain at least one number' }
   }
 
   // Check for special character
   if (!/[!@#$%^&*.]/.test(password)) {
-    return { isValid: false, message: 'La contraseña debe contener al menos un carácter especial (!@#$%^&*.)' }
+    return { isValid: false, message: 'Password must contain at least one special character (!@#$%^&*.)' }
   }
 
   return { isValid: true }
@@ -70,11 +70,11 @@ export const validateConfirmPassword = (
   confirmPassword: string
 ): ValidationResult => {
   if (!confirmPassword) {
-    return { isValid: false, message: 'Debes confirmar tu contraseña' }
+    return { isValid: false, message: 'You must confirm your password' }
   }
 
   if (password !== confirmPassword) {
-    return { isValid: false, message: 'Las contraseñas no coinciden' }
+    return { isValid: false, message: 'Passwords do not match' }
   }
 
   return { isValid: true }
@@ -85,15 +85,15 @@ export const validateConfirmPassword = (
  */
 export const validateFirstName = (firstName: string): ValidationResult => {
   if (!firstName.trim()) {
-    return { isValid: false, message: 'El nombre es requerido' }
+    return { isValid: false, message: 'First name is required' }
   }
 
   if (firstName.length < 2) {
-    return { isValid: false, message: 'El nombre debe tener al menos 2 caracteres' }
+    return { isValid: false, message: 'First name must be at least 2 characters' }
   }
 
   if (firstName.length > 50) {
-    return { isValid: false, message: 'El nombre no debe exceder 50 caracteres' }
+    return { isValid: false, message: 'First name must not exceed 50 characters' }
   }
 
   return { isValid: true }
@@ -104,15 +104,15 @@ export const validateFirstName = (firstName: string): ValidationResult => {
  */
 export const validateLastName = (lastName: string): ValidationResult => {
   if (!lastName.trim()) {
-    return { isValid: false, message: 'El apellido es requerido' }
+    return { isValid: false, message: 'Last name is required' }
   }
 
   if (lastName.length < 2) {
-    return { isValid: false, message: 'El apellido debe tener al menos 2 caracteres' }
+    return { isValid: false, message: 'Last name must be at least 2 characters' }
   }
 
   if (lastName.length > 50) {
-    return { isValid: false, message: 'El apellido no debe exceder 50 caracteres' }
+    return { isValid: false, message: 'Last name must not exceed 50 characters' }
   }
 
   return { isValid: true }
@@ -123,15 +123,15 @@ export const validateLastName = (lastName: string): ValidationResult => {
  */
 export const validateOrganizationName = (name: string): ValidationResult => {
   if (!name.trim()) {
-    return { isValid: false, message: 'El nombre de la empresa es requerido' }
+    return { isValid: false, message: 'Organization name is required' }
   }
 
   if (name.length < 2) {
-    return { isValid: false, message: 'El nombre de la empresa debe tener al menos 2 caracteres' }
+    return { isValid: false, message: 'Organization name must be at least 2 characters' }
   }
 
   if (name.length > 100) {
-    return { isValid: false, message: 'El nombre de la empresa no debe exceder 100 caracteres' }
+    return { isValid: false, message: 'Organization name must not exceed 100 characters' }
   }
 
   return { isValid: true }
@@ -142,16 +142,16 @@ export const validateOrganizationName = (name: string): ValidationResult => {
  */
 export const validateTaxId = (taxId: string): ValidationResult => {
   if (!taxId.trim()) {
-    return { isValid: false, message: 'El NIT/Tax ID es requerido' }
+    return { isValid: false, message: 'Tax ID is required' }
   }
 
   if (taxId.length < 4) {
-    return { isValid: false, message: 'El NIT/Tax ID debe tener al menos 4 caracteres' }
+    return { isValid: false, message: 'Tax ID must be at least 4 characters' }
   }
 
   // Only allow numbers and hyphens
   if (!/^[0-9-]+$/.test(taxId)) {
-    return { isValid: false, message: 'El NIT/Tax ID solo puede contener números y guiones' }
+    return { isValid: false, message: 'Tax ID may only contain numbers and hyphens' }
   }
 
   return { isValid: true }
@@ -162,28 +162,28 @@ export const validateTaxId = (taxId: string): ValidationResult => {
  */
 export const validateAddressField = (value: string, label: string): ValidationResult => {
   if (!value.trim()) {
-    return { isValid: false, message: `${label} es requerido` }
+    return { isValid: false, message: `${label} is required` }
   }
 
   if (value.length < 2) {
-    return { isValid: false, message: `${label} debe tener al menos 2 caracteres` }
+    return { isValid: false, message: `${label} must be at least 2 characters` }
   }
 
   return { isValid: true }
 }
 
 /**
- * Legal name (razón social) validation - optional
+ * Legal name (company registration name) validation - optional
  */
 export const validateLegalName = (legalName?: string): ValidationResult => {
   if (!legalName) return { isValid: true }
 
   if (legalName.length < 2) {
-    return { isValid: false, message: 'La razón social debe tener al menos 2 caracteres' }
+    return { isValid: false, message: 'Legal name must be at least 2 characters' }
   }
 
   if (legalName.length > 150) {
-    return { isValid: false, message: 'La razón social no debe exceder 150 caracteres' }
+    return { isValid: false, message: 'Legal name must not exceed 150 characters' }
   }
 
   return { isValid: true }
@@ -199,13 +199,13 @@ export const validatePhone = (phone?: string): ValidationResult => {
 
   // Only allow numbers and plus sign
   if (!/^\+?[0-9]+$/.test(phone)) {
-    return { isValid: false, message: 'El número de teléfono solo puede contener números y el signo +' }
+    return { isValid: false, message: 'Phone number may only contain numbers and the + sign' }
   }
 
   // Basic validation: at least 7 digits
   const digitCount = phone.replace(/^\+/, '').length;
   if (digitCount < 7 || digitCount > 15) {
-    return { isValid: false, message: 'El número de teléfono debe tener entre 7 y 15 dígitos' }
+    return { isValid: false, message: 'Phone number must have between 7 and 15 digits' }
   }
 
   return { isValid: true }
@@ -216,16 +216,16 @@ export const validatePhone = (phone?: string): ValidationResult => {
  */
 export const validatePostalCode = (postalCode: string): ValidationResult => {
   if (!postalCode.trim()) {
-    return { isValid: false, message: 'El código postal es requerido' }
+    return { isValid: false, message: 'Postal code is required' }
   }
 
   // Only allow numbers
   if (!/^[0-9]+$/.test(postalCode)) {
-    return { isValid: false, message: 'El código postal solo puede contener números' }
+    return { isValid: false, message: 'Postal code may only contain numbers' }
   }
 
   if (postalCode.length < 3) {
-    return { isValid: false, message: 'El código postal debe tener al menos 3 caracteres' }
+    return { isValid: false, message: 'Postal code must be at least 3 characters' }
   }
 
   return { isValid: true }
@@ -236,7 +236,7 @@ export const validatePostalCode = (postalCode: string): ValidationResult => {
  */
 export const validateCurrentPassword = (password: string): ValidationResult => {
   if (!password) {
-    return { isValid: false, message: 'Debes ingresar tu contraseña actual' }
+    return { isValid: false, message: 'You must enter your current password' }
   }
 
   return { isValid: true }
@@ -247,11 +247,11 @@ export const validateCurrentPassword = (password: string): ValidationResult => {
  */
 export const validateCode = (code: string): ValidationResult => {
   if (!code) {
-    return { isValid: false, message: 'El código es requerido' }
+    return { isValid: false, message: 'Code is required' }
   }
 
   if (!/^\d{6}$/.test(code)) {
-    return { isValid: false, message: 'El código debe tener exactamente 6 dígitos' }
+    return { isValid: false, message: 'Code must be exactly 6 digits' }
   }
 
   return { isValid: true }
@@ -300,13 +300,13 @@ export const validateRegistrationForm = (formData: {
   if (!taxValidation.isValid) return taxValidation
 
   // Validate address fields
-  const streetValidation = validateAddressField(formData.street, 'Dirección')
+  const streetValidation = validateAddressField(formData.street, 'Street')
   if (!streetValidation.isValid) return streetValidation
 
   const cityValidation = validateAddressField(formData.city, 'Ciudad')
   if (!cityValidation.isValid) return cityValidation
 
-  const countryValidation = validateAddressField(formData.country, 'País')
+  const countryValidation = validateAddressField(formData.country, 'Country')
   if (!countryValidation.isValid) return countryValidation
 
   const postalValidation = validatePostalCode(formData.postalCode)
@@ -340,7 +340,7 @@ export const validateLoginForm = (formData: {
 
   // Validate password
   if (!formData.password) {
-    return { isValid: false, message: 'La contraseña es requerida' }
+    return { isValid: false, message: 'Password is required' }
   }
 
   return { isValid: true }
@@ -368,7 +368,7 @@ export const validateChangePasswordForm = (formData: {
 
   // Ensure current password is different from new password
   if (formData.currentPassword === formData.newPassword) {
-    return { isValid: false, message: 'La nueva contraseña debe ser diferente a la actual' }
+    return { isValid: false, message: 'New password must be different from the current password' }
   }
 
   return { isValid: true }

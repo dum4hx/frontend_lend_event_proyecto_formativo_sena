@@ -35,7 +35,7 @@ const navItems: NavItem[] = [
   },
   {
     id: "customers",
-    label: "Clientes",
+    label: "Customers",
     icon: <UserCircle size={20} />,
     path: "/admin/customers",
   },
@@ -68,7 +68,7 @@ export const Sidebar: React.FC = () => {
       navigate("/login");
     } catch (error: unknown) {
       const message =
-        error instanceof ApiError ? error.message : "Error al cerrar sesión";
+        error instanceof ApiError ? error.message : "Error logging out";
       console.error("Logout error:", error);
       alert(message);
     } finally {
@@ -84,7 +84,7 @@ export const Sidebar: React.FC = () => {
         <p className="text-xs text-gray-500 mt-1">Event Management</p>
       </div>
 
-      {/* Navegación */}
+      {/* Navigation */}
       <nav className="flex-1 space-y-2">
         {navItems.map((item) => (
           <NavLink
@@ -119,7 +119,7 @@ export const Sidebar: React.FC = () => {
         className="w-full flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-red-400 rounded-[8px] transition-all disabled:opacity-50"
       >
         <LogOut size={20} />
-        <span>{isLoggingOut ? "Cerrando sesión..." : "Logout"}</span>
+        <span>{isLoggingOut ? "Logging out..." : "Logout"}</span>
       </button>
     </aside>
   );

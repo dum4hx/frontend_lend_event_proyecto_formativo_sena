@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Encabezado from "../components/Encabezado";
-import PiePagina from "../components/PiePagina";
+import Header from "../components/Header";
+import Footer from "../components/Footer";
 import { forgotPassword, verifyResetCode, resetPassword } from "../services/authService";
 import { ApiError } from "../lib/api";
 import {
@@ -9,9 +9,9 @@ import {
   validateCode,
   validatePassword,
 } from "../utils/validators";
-import styles from "./RecuperarContrasena.module.css";
+import styles from "./PasswordRecovery.module.css";
 
-export default function RecuperarContrasena() {
+export default function PasswordRecovery() {
   const navigate = useNavigate();
   const [paso, setPaso] = useState(1);
   const [email, setEmail] = useState("");
@@ -27,7 +27,7 @@ export default function RecuperarContrasena() {
   const handleSendCode = async () => {
     const emailValidation = validateEmail(email);
     if (!emailValidation.isValid) {
-      setError(emailValidation.message || "Validación fallida");
+      setError(emailValidation.message || "Validation failed");
       return;
     }
 
@@ -36,13 +36,13 @@ export default function RecuperarContrasena() {
 
     try {
       await forgotPassword({ email });
-      setSuccess("Si la cuenta existe, se ha enviado un código de verificación.");
+      setSuccess("If the account exists, a verification code has been sent.");
       setPaso(2);
     } catch (err: unknown) {
       const message =
         err instanceof ApiError
           ? err.message
-          : "Error de conexión. Por favor intenta nuevamente.";
+          : "Network error. Please try again.";
       setError(message);
     } finally {
       setLoading(false);
@@ -53,7 +53,7 @@ export default function RecuperarContrasena() {
   const handleVerifyCode = async () => {
     const codeValidation = validateCode(codigo);
     if (!codeValidation.isValid) {
-      setError(codeValidation.message || "Validación fallida");
+      setError(codeValidation.message || "Validation failed");
       return;
     }
 
@@ -69,7 +69,7 @@ export default function RecuperarContrasena() {
       const message =
         err instanceof ApiError
           ? err.message
-          : "Error de conexión. Por favor intenta nuevamente.";
+          : "Network error. Please try again.";
       setError(message);
     } finally {
       setLoading(false);
@@ -80,12 +80,12 @@ export default function RecuperarContrasena() {
   const handleResetPassword = async () => {
     const passwordValidation = validatePassword(newPassword);
     if (!passwordValidation.isValid) {
-      setError(passwordValidation.message || "Validación fallida");
+      setError(passwordValidation.message || "Validation failed");
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setError("Las contraseñas no coinciden.");
+      setError("Passwords do not match.");
       return;
     }
 
@@ -94,13 +94,13 @@ export default function RecuperarContrasena() {
 
     try {
       await resetPassword({ email, resetToken, newPassword });
-      alert("Contraseña restablecida correctamente. Redirigiendo a login...");
+      alert("Password reset successfully. Redirecting to login...");
       navigate("/login");
     } catch (err: unknown) {
       const message =
         err instanceof ApiError
           ? err.message
-          : "Error de conexión. Por favor intenta nuevamente.";
+          : "Network error. Please try again.";
       setError(message);
     } finally {
       setLoading(false);
@@ -115,13 +115,13 @@ export default function RecuperarContrasena() {
 
     try {
       await forgotPassword({ email });
-      setSuccess("Código reenviado. Revisa tu bandeja de entrada.");
+      setSuccess("Code resent. Check your inbox.");
       setCodigo("");
     } catch (err: unknown) {
       const message =
         err instanceof ApiError
           ? err.message
-          : "Error al reenviar código.";
+          : "Failed to resend code.";
       setError(message);
     } finally {
       setLoading(false);
@@ -130,10 +130,10 @@ export default function RecuperarContrasena() {
 
   return (
     <div className="min-h-screen flex flex-col bg-black">
-      <Encabezado />
+      <Header />
 
       <main className="flex-grow flex flex-col md:flex-row">
-        {/* Sección Izquierda - Solo en Desktop */}
+        {/* Left Section - Desktop Only */}
         <div
           className={`hidden md:flex md:w-1/2 ${styles.bgOverlay} p-12 lg:p-20 flex-col justify-center relative border-r border-zinc-800 z-0`}
         >
@@ -160,31 +160,31 @@ export default function RecuperarContrasena() {
               </span>
             </div>
 
-            {/* Título */}
+            {/* Title */}
             <h1 className="text-5xl text-white lg:text-6xl font-extrabold mb-6 leading-tight">
-              Recupera tu
+              Recover your
               <br />
-              <span className="text-yellow-400">Acceso Seguro</span>
+              <span className="text-yellow-400">Secure Access</span>
             </h1>
 
-            {/* Descripción dinámica */}
+            {/* Dynamic description */}
             <p className="text-gray-300 text-lg max-w-md mb-12 leading-relaxed">
               {paso === 1
-                ? "Inicia el proceso de validación para restablecer tus credenciales corporativas."
+                ? "Begin the verification process to reset your corporate credentials."
                 : paso === 2
-                  ? "Casi listo. Ingresa el código que acabamos de enviar a tu bandeja de entrada."
-                  : "Crea una contraseña fuerte y segura para tu cuenta."}
+                  ? "Almost there. Enter the code we just sent to your inbox."
+                  : "Create a strong, secure password for your account."}
             </p>
           </div>
         </div>
 
-        {/* Sección Derecha - Formulario */}
+        {/* Right Section - Form */}
         <div className="flex-grow md:w-1/2 flex items-center justify-center p-8 bg-black relative z-10">
           <div className="w-full max-w-md">
-            <button
-              onClick={() => navigate(-1)}
-              className="text-gray-500 hover:text-yellow-400 flex items-center mb-8 transition-colors group"
-            >
+              <button
+                onClick={() => navigate(-1)}
+                className="text-gray-500 hover:text-yellow-400 flex items-center mb-8 transition-colors group"
+              >
               <svg
                 className="w-5 h-5 mr-2"
                 fill="none"
@@ -198,15 +198,15 @@ export default function RecuperarContrasena() {
                   d="M10 19l-7-7m0 0l7-7m-7 7h18"
                 />
               </svg>
-              Volver
+              Back
             </button>
 
             {/* PASO 1 */}
             {paso === 1 && (
               <div>
-                <h2 className="text-4xl font-extrabold mb-2">Paso 1</h2>
+                <h2 className="text-4xl font-extrabold mb-2">Step 1</h2>
                 <p className="text-gray-400 mb-10">
-                  Ingresa tu correo para recibir un código de seguridad.
+                  Enter your email to receive a security code.
                 </p>
 
                 <div className="space-y-6">
@@ -220,8 +220,8 @@ export default function RecuperarContrasena() {
                   )}
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                      Correo Corporativo
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
+                      Corporate Email
                     </label>
                     <div className="relative group">
                       <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 group-focus-within:text-yellow-400 transition-colors">
@@ -241,7 +241,7 @@ export default function RecuperarContrasena() {
                       </span>
                       <input
                         type="email"
-                        placeholder="nombre@empresa.com"
+                        placeholder="name@company.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         disabled={loading}
@@ -255,7 +255,7 @@ export default function RecuperarContrasena() {
                     disabled={loading}
                     className={`w-full bg-yellow-400 text-black font-extrabold py-4 rounded-xl text-lg ${styles.glowButton} shadow-xl hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed transition`}
                   >
-                    {loading ? "Enviando código..." : "Enviar Código"}
+                    {loading ? "Sending code..." : "Send Code"}
                   </button>
                 </div>
               </div>
@@ -264,9 +264,9 @@ export default function RecuperarContrasena() {
             {/* PASO 2 */}
             {paso === 2 && (
               <div>
-                <h2 className="text-4xl font-extrabold mb-2">Paso 2</h2>
+                <h2 className="text-4xl font-extrabold mb-2">Step 2</h2>
                 <p className="text-gray-400 mb-10">
-                  Hemos enviado un código a{" "}
+                  We've sent a code to{" "}
                   <span className="text-yellow-400 font-bold">{email}</span>
                 </p>
 
@@ -289,10 +289,10 @@ export default function RecuperarContrasena() {
 
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                      Código de 6 dígitos
+                      6-digit code
                     </label>
                     <p className="text-xs text-gray-500 mb-2">
-                      El código expira en 10 minutos. Máximo 5 intentos.
+                      The code expires in 10 minutes. Maximum 5 attempts.
                     </p>
                     <div className="relative group">
                       <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 group-focus-within:text-yellow-400 transition-colors">
@@ -329,17 +329,17 @@ export default function RecuperarContrasena() {
                     disabled={loading}
                     className={`w-full bg-yellow-400 text-black font-extrabold py-4 rounded-xl text-lg ${styles.glowButton} shadow-xl hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed transition`}
                   >
-                    {loading ? "Validando..." : "Validar y Continuar"}
+                    {loading ? "Validating..." : "Validate and Continue"}
                   </button>
 
-                  <p className="text-center text-sm text-gray-500">
-                    ¿No recibiste el código?{" "}
+                    <p className="text-center text-sm text-gray-500">
+                    Didn't receive the code?{" "}
                     <button
                       onClick={handleResendCode}
                       disabled={loading}
                       className="text-yellow-400 font-bold hover:underline disabled:opacity-50"
                     >
-                      Reenviar
+                      Resend
                     </button>
                   </p>
                 </div>
@@ -349,9 +349,9 @@ export default function RecuperarContrasena() {
             {/* PASO 3 */}
             {paso === 3 && (
               <div>
-                <h2 className="text-4xl font-extrabold mb-2">Paso 3</h2>
+                <h2 className="text-4xl font-extrabold mb-2">Step 3</h2>
                 <p className="text-gray-400 mb-10">
-                  Crea tu nueva contraseña corporativa.
+                  Create your new corporate password.
                 </p>
 
                 <div className="space-y-6">
@@ -366,11 +366,11 @@ export default function RecuperarContrasena() {
 
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                      Nueva Contraseña
+                      New Password
                     </label>
                     <div className="text-xs text-gray-400 mb-2">
-                      Mínimo 8 caracteres, 1 mayúscula, 1 minúscula, 1 número y 1 carácter
-                      especial (!@#$%^&*)
+                      Minimum 8 characters, 1 uppercase, 1 lowercase, 1 number and 1 special
+                      character (!@#$%^&*)
                     </div>
                     <div className="relative group">
                       <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 group-focus-within:text-yellow-400 transition-colors">
@@ -390,7 +390,7 @@ export default function RecuperarContrasena() {
                       </span>
                       <input
                         type="password"
-                        placeholder="Tu nueva contraseña"
+                        placeholder="Your new password"
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
                         disabled={loading}
@@ -401,7 +401,7 @@ export default function RecuperarContrasena() {
 
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                      Confirmar Contraseña
+                      Confirm Password
                     </label>
                     <div className="relative group">
                       <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 group-focus-within:text-yellow-400 transition-colors">
@@ -421,7 +421,7 @@ export default function RecuperarContrasena() {
                       </span>
                       <input
                         type="password"
-                        placeholder="Repite tu contraseña"
+                        placeholder="Repeat your password"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         disabled={loading}
@@ -435,12 +435,12 @@ export default function RecuperarContrasena() {
                     disabled={loading}
                     className={`w-full bg-yellow-400 text-black font-extrabold py-4 rounded-xl text-lg ${styles.glowButton} shadow-xl hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed transition`}
                   >
-                    {loading ? "Restableciendo..." : "Restablecer Contraseña"}
+                    {loading ? "Resetting..." : "Reset Password"}
                   </button>
 
                   <p className="text-center text-xs text-gray-500">
-                    La contraseña debe tener al menos 8 caracteres, una
-                    mayúscula, una minúscula, un número y un carácter especial.
+                    Password must be at least 8 characters, include an uppercase letter,
+                    a lowercase letter, a number and a special character.
                   </p>
                 </div>
               </div>
@@ -449,7 +449,7 @@ export default function RecuperarContrasena() {
         </div>
       </main>
 
-      <PiePagina />
+      <Footer />
     </div>
   );
 }

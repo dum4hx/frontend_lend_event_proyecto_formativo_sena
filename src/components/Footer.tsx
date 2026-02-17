@@ -1,43 +1,38 @@
-export default function PiePagina() {
+export default function Footer() {
   return (
     <footer className="bg-black text-gray-300 mt-16">
       <div className="max-w-7xl mx-auto px-6 py-12 text-sm">
 
-        {/* GRID PRINCIPAL */}
         <div className="grid grid-cols-2 md:grid-cols-6 gap-8">
 
-          {/* Soporte */}
           <div>
-            <h6 className="font-bold mb-4 text-white">Soporte técnico</h6>
+            <h6 className="font-bold mb-4 text-white">Support</h6>
             <ul className="space-y-2">
-              <li><a href="#" className="hover:text-white">Contacto</a></li>
-              <li><a href="#" className="hover:text-white">Pagos</a></li>
+              <li><a href="#" className="hover:text-white">Contact</a></li>
+              <li><a href="#" className="hover:text-white">Billing</a></li>
             </ul>
           </div>
 
-          {/* Corporativo */}
           <div>
-            <h6 className="font-bold mb-4 text-white">Corporativo</h6>
+            <h6 className="font-bold mb-4 text-white">Company</h6>
             <ul className="space-y-2">
-              <li><a href="#" className="hover:text-white">Sobre nosotros</a></li>
-              <li><a href="#" className="hover:text-white">Negocios</a></li>
-              <li><a href="#" className="hover:text-white">Precios</a></li>
-              <li><a href="#" className="hover:text-white">Publicaciones</a></li>
+              <li><a href="#" className="hover:text-white">About</a></li>
+              <li><a href="#" className="hover:text-white">Business</a></li>
+              <li><a href="#" className="hover:text-white">Pricing</a></li>
+              <li><a href="#" className="hover:text-white">Blog</a></li>
             </ul>
           </div>
 
-          {/* Recursos */}
           <div>
-            <h6 className="font-bold mb-4 text-white">Recursos</h6>
+            <h6 className="font-bold mb-4 text-white">Resources</h6>
             <ul className="space-y-2">
-              <li><a href="#" className="hover:text-white">Novedades</a></li>
-              <li><a href="#" className="hover:text-white">Centro de ayuda</a></li>
+              <li><a href="#" className="hover:text-white">What's New</a></li>
+              <li><a href="#" className="hover:text-white">Help Center</a></li>
             </ul>
           </div>
 
-          {/* Ubicación + redes */}
           <div className="col-span-2">
-            <h6 className="font-bold mb-4 text-white">Ubicación</h6>
+            <h6 className="font-bold mb-4 text-white">Location</h6>
 
             <div className="flex items-center gap-2 mb-6">
               <img
@@ -57,11 +52,10 @@ export default function PiePagina() {
           </div>
         </div>
 
-        {/* LINEA INFERIOR */}
         <div className="border-t border-gray-800 mt-10 pt-6 flex flex-wrap gap-6 items-center text-xs text-gray-400">
           <span>© 2026 Lend-Event</span>
-          <a href="#" className="hover:text-white">Términos de servicio</a>
-          <a href="#" className="hover:text-white">Política de cookies</a>
+          <a href="#" className="hover:text-white">Terms of Service</a>
+          <a href="#" className="hover:text-white">Cookie Policy</a>
         </div>
 
       </div>

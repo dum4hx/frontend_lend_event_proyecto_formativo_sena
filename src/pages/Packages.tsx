@@ -8,12 +8,12 @@ import {
   Users,
   LayoutGrid,
 } from "lucide-react";
-import Encabezado from "../components/Encabezado";
-import PiePagina from "../components/PiePagina";
+import Header from "../components/Header";
+import Footer from "../components/Footer";
 import { getAvailablePlans } from "../services/organizationService";
 import { ApiError } from "../lib/api";
 import type { AvailablePlan } from "../types/api";
-import styles from "./Paquetes.module.css";
+import styles from "./Packages.module.css";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -170,7 +170,7 @@ export default function Packages() {
 
   return (
     <div className="bg-black text-white min-h-screen flex flex-col">
-      <Encabezado />
+      <Header />
 
       <main className="flex-grow py-16 px-4">
         <section className="max-w-7xl mx-auto text-center mb-20">
@@ -229,7 +229,7 @@ export default function Packages() {
         </section>
       </main>
 
-      <PiePagina />
+      <Footer />
     </div>
   );
 }

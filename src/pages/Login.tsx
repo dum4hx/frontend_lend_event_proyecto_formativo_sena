@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import Encabezado from "../components/Encabezado";
-import PiePagina from "../components/PiePagina";
+import Header from "../components/Header";
+import Footer from "../components/Footer";
 import { loginUser, refreshToken } from "../services/authService";
 import { ApiError } from "../lib/api";
 import { validateLoginForm } from "../utils/validators";
@@ -24,7 +24,7 @@ export default function Login() {
     // Validate form
     const validation = validateLoginForm({ email, password });
     if (!validation.isValid) {
-      setError(validation.message || "Validación fallida");
+      setError(validation.message || "Validation failed");
       return;
     }
 
@@ -40,7 +40,7 @@ export default function Login() {
       navigate(loggedUser?.role === "super_admin" ? "/super-admin" : "/admin");
     } catch (err: unknown) {
       const message =
-        err instanceof ApiError ? err.message : "Error de conexión. Por favor intenta nuevamente.";
+        err instanceof ApiError ? err.message : "Connection error. Please try again.";
 
       // Try refreshing access token on 401, in case the session expired but the cookie is still valid.
       if (err instanceof ApiError && err.statusCode === 401) {
@@ -62,10 +62,10 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex flex-col bg-black">
-      <Encabezado />
+      <Header />
 
       <main className="flex-grow flex flex-col md:flex-row">
-        {/* Sección Izquierda - Solo en Desktop */}
+        {/* Left Section - Desktop Only */}
         <div
           className={`hidden md:flex md:w-1/2 ${styles.bgOverlay} p-12 lg:p-20 flex-col justify-center relative border-r border-zinc-800 z-0`}
         >
@@ -92,29 +92,28 @@ export default function Login() {
               </span>
             </div>
 
-            {/* Título */}
+            {/* Title */}
             <h1 className="text-5xl text-white lg:text-6xl font-extrabold mb-6 leading-tight">
-              Centro de
+              Global Management
               <br />
-              <span className="text-yellow-400">Gestión Global</span>
+              <span className="text-yellow-400">Command Center</span>
             </h1>
 
-            {/* Descripción */}
+            {/* Description */}
             <p className="text-gray-300 text-lg max-w-md mb-12 leading-relaxed">
-              Acceda a su plataforma personalizada para gestionar eventos, licencias de equipo y
-              análisis de datos en tiempo real.
+              Access your personalized platform to manage events, team licenses, and real-time analytics.
             </p>
 
-            {/* Características */}
+            {/* Features */}
             <div className="grid grid-cols-1 gap-6">
               <div className="flex items-center space-x-4 bg-white/5 p-4 rounded-xl border border-white/10">
                 <div className="w-10 h-10 bg-yellow-400/20 rounded-lg flex items-center justify-center border border-yellow-400/30">
                   <span className="text-yellow-400 text-xl font-bold">✓</span>
                 </div>
                 <div>
-                  <p className="font-bold text-white">Seguridad Empresarial</p>
+                  <p className="font-bold text-white">Business Security</p>
                   <p className="text-sm text-gray-400">
-                    Protección de datos cifrada de extremo a extremo.
+                    End-to-end encrypted data protection.
                   </p>
                 </div>
               </div>
@@ -123,9 +122,9 @@ export default function Login() {
                   <span className="text-yellow-400 text-xl font-bold">✓</span>
                 </div>
                 <div>
-                  <p className="font-bold text-white">Acceso Multi-nivel</p>
+                  <p className="font-bold text-white">Multi-level Access</p>
                   <p className="text-sm text-gray-400">
-                    Portal único para administradores y clientes.
+                    Single portal for administrators and customers.
                   </p>
                 </div>
               </div>
@@ -133,12 +132,12 @@ export default function Login() {
           </div>
         </div>
 
-        {/* Sección Derecha - Formulario */}
+        {/* Right Section - Form */}
         <div className="flex-grow md:w-1/2 flex items-center justify-center p-8 bg-black">
           <div className="w-full max-w-md">
-            <h2 className="text-4xl font-extrabold mb-2">Bienvenido</h2>
+            <h2 className="text-4xl font-extrabold mb-2">Welcome</h2>
             <p className="text-gray-400 mb-10">
-              Ingrese sus credenciales corporativas para continuar
+              Enter your corporate credentials to continue
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -152,7 +151,7 @@ export default function Login() {
               {/* Email */}
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                  Correo Corporativo
+                  Corporate Email
                 </label>
                 <div className="relative group">
                   <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 group-focus-within:text-yellow-400 transition-colors">
@@ -167,7 +166,7 @@ export default function Login() {
                   </span>
                   <input
                     type="email"
-                    placeholder="nombre@empresa.com"
+                    placeholder="name@company.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={loading}
@@ -176,10 +175,10 @@ export default function Login() {
                 </div>
               </div>
 
-              {/* Contraseña */}
+              {/* Password */}
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                  Contraseña
+                  Password
                 </label>
                 <div className="relative group">
                   <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 group-focus-within:text-yellow-400 transition-colors">
@@ -203,7 +202,7 @@ export default function Login() {
                 </div>
               </div>
 
-              {/* Recordar y Olvidó contraseña */}
+              {/* Remember and Forgot Password */}
               <div className="flex items-center justify-between text-sm">
                 <label className="flex items-center space-x-2 cursor-pointer">
                   <input
@@ -213,38 +212,38 @@ export default function Login() {
                     disabled={loading}
                     className="w-4 h-4 accent-yellow-400 bg-zinc-800 border-zinc-700 rounded disabled:opacity-50"
                   />
-                  <span className="text-gray-400 hover:text-white transition">Recordar sesión</span>
+                  <span className="text-gray-400 hover:text-white transition">Remember me</span>
                 </label>
                 <Link
-                  to="/recuperar-contrasena"
+                  to="/password-recovery"
                   className="text-yellow-400 hover:text-yellow-300 font-bold transition"
                 >
-                  ¿Olvidó su contraseña?
+                  Forgot your password?
                 </Link>
               </div>
 
-              {/* Botón Iniciar Sesión */}
+              {/* Sign In Button */}
               <button
                 type="submit"
                 disabled={loading}
                 className={`w-full bg-yellow-400 text-black font-extrabold py-4 rounded-xl text-lg ${styles.glowButton} mt-4 shadow-xl hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed transition`}
               >
-                {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
+                {loading ? "Signing in..." : "Sign In"}
               </button>
             </form>
 
-            {/* Link a Planes */}
+            {/* Link to Plans */}
             <p className="text-center text-sm text-gray-500 mt-8">
-              ¿Aún no tienes una licencia?{" "}
-              <Link to="/paquetes" className="text-yellow-400 font-bold hover:underline">
-                Ver planes
+              Don't have a license?{" "}
+              <Link to="/packages" className="text-yellow-400 font-bold hover:underline">
+                View plans
               </Link>
             </p>
           </div>
         </div>
       </main>
 
-      <PiePagina />
+      <Footer />
     </div>
   );
 }
