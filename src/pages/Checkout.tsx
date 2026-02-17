@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useSearchParams, useNavigate, Link } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import {
   Loader2,
   AlertCircle,
@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import Encabezado from "../components/Encabezado";
 import PiePagina from "../components/PiePagina";
+import LoginModal from "../components/LoginModal";
 import { useAuth } from "../contexts/useAuth";
 import {
   getSubscriptionType,
@@ -32,7 +33,6 @@ function formatDollars(amount: number): string {
 
 export default function Checkout() {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const { user, isLoggedIn, isLoading: authLoading } = useAuth();
 
   const planId = searchParams.get("plan") ?? "";
@@ -45,6 +45,7 @@ export default function Checkout() {
   const [calculating, setCalculating] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   // ─── Load plan details ────────────────────────────────────────────────
 
@@ -124,10 +125,10 @@ export default function Checkout() {
   // See: https://docs.stripe.com/checkout/quickstart
 
   const handleCheckout = async () => {
-    // Redirect unauthenticated users to login with a return URL
+    // Show login modal for unauthenticated users — keeps the
+    // selected plan & seats intact so nothing is lost.
     if (!isLoggedIn) {
-      const returnUrl = `/checkout?plan=${encodeURIComponent(planId)}&seats=${seatCount}`;
-      navigate(`/login?redirect=${encodeURIComponent(returnUrl)}`);
+      setShowLoginModal(true);
       return;
     }
 
@@ -214,6 +215,17 @@ export default function Checkout() {
 
       <main className="flex-grow py-12 px-4">
         <div className="max-w-2xl mx-auto">
+          {/* Login modal */}
+          <LoginModal
+            open={showLoginModal}
+            onClose={() => setShowLoginModal(false)}
+            onAuthenticated={() => {
+              setShowLoginModal(false);
+              // Now authenticated — trigger checkout automatically
+              void handleCheckout();
+            }}
+          />
+
           {/* Back link */}
           <Link
             to="/paquetes"
@@ -333,7 +345,7 @@ export default function Checkout() {
             ) : !isLoggedIn ? (
               <>
                 <Lock className="w-5 h-5" />
-                Sign in to Subscribe
+                Sign in & Subscribe
               </>
             ) : (
               <>
