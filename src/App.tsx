@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { RequireRole } from "./utils/roleGuard";
+import { RequireActiveSubscription } from "./utils/subscriptionGuard";
 import { LoadingSpinner } from "./components/ui";
 
 // Public pages
@@ -58,7 +59,14 @@ function App() {
           <Route path="/export-demo" element={<ExportDemo />} />
 
           {/* Rutas admin (organization owner) */}
-          <Route path="/admin" element={<AdminLayout />}>
+          <Route
+            path="/admin"
+            element={
+              <RequireActiveSubscription>
+                <AdminLayout />
+              </RequireActiveSubscription>
+            }
+          >
             <Route index element={<AdminDashboard />} />
             <Route path="events" element={<MyEvents />} />
             <Route path="customers" element={<Customers />} />

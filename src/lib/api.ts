@@ -101,6 +101,11 @@ interface RequestOptions<TBody = unknown> {
    * @default 1000
    */
   retryDelay?: number;
+  /**
+   * Control the browser credentials mode. Defaults to `include` so cookies are
+   * sent for authenticated flows. Public endpoints should use `omit`.
+   */
+  credentialsMode?: RequestCredentials;
 }
 
 /** Determines whether the error is transient and retryable. */
@@ -225,13 +230,15 @@ export async function request<TData, TBody = unknown>(
     skipRefresh = false,
     maxRetries = 0,
     retryDelay = 1000,
+    credentialsMode = "include",
   } = options;
 
   const url = buildUrl(path, params);
 
   const init: RequestInit = {
     method,
-    credentials: "include", // Always send HttpOnly cookies.
+    // Send cookies for authenticated flows; allow opting-out for public calls
+    credentials: credentialsMode,
     headers: {
       "Content-Type": "application/json",
       ...(headers as Record<string, string> | undefined),
@@ -330,4 +337,16 @@ export function patch<TData, TBody = unknown>(path: string, body?: TBody) {
 /** Perform a typed DELETE request. */
 export function del<TData>(path: string) {
   return request<TData>(path, { method: "DELETE" });
+}
+
+/**
+ * Perform a typed GET request intended for public endpoints that do not
+ * require authentication. Skips the automatic refresh flow so we don't
+ * surface misleading "Session expired" messages on 401.
+ */
+export function publicGet<TData>(
+  path: string,
+  params?: Record<string, string | number | boolean | undefined>,
+) {
+  return request<TData>(path, { method: "GET", params, skipRefresh: true, credentialsMode: "omit" });
 }

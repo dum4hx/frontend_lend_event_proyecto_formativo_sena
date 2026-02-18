@@ -11,9 +11,12 @@ import {
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { getAvailablePlans } from "../services/organizationService";
+import { getSubscriptionTypesPublic } from "../services/subscriptionTypeService";
 import { ApiError } from "../lib/api";
 import type { AvailablePlan } from "../types/api";
 import styles from "./Packages.module.css";
+import { useAuth } from "../contexts/useAuth";
+import LoginModal from "../components/LoginModal";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -125,6 +128,9 @@ export default function Packages() {
   const [plans, setPlans] = useState<PublicPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const { isLoggedIn } = useAuth();
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [pendingPlan, setPendingPlan] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -137,11 +143,40 @@ export default function Packages() {
         setPlans(res.data.plans);
       } catch (err) {
         if (cancelled) return;
-        setError(
-          err instanceof ApiError
-            ? err.message
-            : "Failed to load plans. Please try again later.",
-        );
+        // Fallback: fetch subscription types publicly and map to AvailablePlan
+        try {
+          const alt = await getSubscriptionTypesPublic();
+          if (cancelled) return;
+          const mapped = alt.data.subscriptionTypes.map((t: any) => {
+            const hasMonthly = typeof t.basePriceMonthly === "number";
+            const basePriceMonthly = hasMonthly
+              ? t.basePriceMonthly
+              : (typeof t.baseCost === "number" ? t.baseCost / 100 : null);
+            const pricePerSeat = typeof t.pricePerSeat === "number"
+              ? (hasMonthly ? t.pricePerSeat : t.pricePerSeat / 100)
+              : 0;
+
+            return {
+              name: t.plan,
+              displayName: t.displayName,
+              billingModel: t.billingModel,
+              maxCatalogItems: t.maxCatalogItems ?? 0,
+              maxSeats: t.maxSeats ?? 1,
+              features: t.features ?? [],
+              basePriceMonthly,
+              pricePerSeat,
+              description: t.description,
+            } as PublicPlan;
+          });
+          setPlans(mapped);
+          setError("");
+        } catch (err2) {
+          setError(
+            err2 instanceof ApiError
+              ? err2.message
+              : "Failed to load plans. Please try again later.",
+          );
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -154,6 +189,19 @@ export default function Packages() {
   }, []);
 
   const handleSelect = (plan: PublicPlan) => {
+    // If unauthenticated, open login/register modal and remember selection
+    if (!isLoggedIn) {
+      setPendingPlan(plan.name);
+      try {
+        localStorage.setItem("pendingCheckoutPlan", plan.name);
+      } catch {
+        // ignore storage failures
+      }
+      setShowLoginModal(true);
+      return;
+    }
+
+    // Authenticated users go straight to checkout
     navigate(`/checkout?plan=${encodeURIComponent(plan.name)}`);
   };
 
@@ -174,6 +222,19 @@ export default function Packages() {
 
       <main className="flex-grow py-16 px-4">
         <section className="max-w-7xl mx-auto text-center mb-20">
+          {/* Login/Register modal — shown when unauthenticated user clicks Get Started */}
+          <LoginModal
+            open={showLoginModal}
+            onClose={() => setShowLoginModal(false)}
+            onAuthenticated={() => {
+              setShowLoginModal(false);
+              const planName = pendingPlan ?? localStorage.getItem("pendingCheckoutPlan");
+              if (planName) {
+                try { localStorage.removeItem("pendingCheckoutPlan"); } catch {}
+                navigate(`/checkout?plan=${encodeURIComponent(planName)}`);
+              }
+            }}
+          />
           <h2 className="text-4xl md:text-5xl font-extrabold mb-4">
             Simple <span className="text-yellow-400">Pricing</span>
           </h2>

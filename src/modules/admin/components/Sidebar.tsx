@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
   Calendar,
@@ -10,8 +10,8 @@ import {
   UserCircle,
   Home,
 } from "lucide-react";
-import { logoutUser } from "../../../services/authService";
 import { ApiError } from "../../../lib/api";
+import { useLogout } from "../../../hooks/useLogout";
 
 interface NavItem {
   id: string;
@@ -55,20 +55,15 @@ const navItems: NavItem[] = [
 ];
 
 export const Sidebar: React.FC = () => {
-  const navigate = useNavigate();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const { logout } = useLogout();
 
   const handleLogout = async () => {
     try {
       setIsLoggingOut(true);
-      await logoutUser();
-      // Clear any stored auth data if needed
-      localStorage.removeItem("authToken");
-      // Redirect to login
-      navigate("/login");
+      await logout();
     } catch (error: unknown) {
-      const message =
-        error instanceof ApiError ? error.message : "Error logging out";
+      const message = error instanceof ApiError ? error.message : "Error logging out";
       console.error("Logout error:", error);
       alert(message);
     } finally {

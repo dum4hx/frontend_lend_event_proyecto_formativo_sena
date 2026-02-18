@@ -4,7 +4,7 @@
  * CRUD for dynamic plan configurations and cost calculation.
  */
 
-import { get, post, patch, del, type ApiSuccessResponse } from "../lib/api";
+import { get, post, patch, del, publicGet, type ApiSuccessResponse } from "../lib/api";
 import type {
   SubscriptionType,
   CreateSubscriptionTypePayload,
@@ -18,6 +18,13 @@ export async function getSubscriptionTypes(): Promise<
   ApiSuccessResponse<{ subscriptionTypes: SubscriptionType[] }>
 > {
   return get<{ subscriptionTypes: SubscriptionType[] }>("/subscription-types");
+}
+
+/** Public variant intended for read-only display (e.g., Packages page). */
+export async function getSubscriptionTypesPublic(): Promise<
+  ApiSuccessResponse<{ subscriptionTypes: SubscriptionType[] }>
+> {
+  return publicGet<{ subscriptionTypes: SubscriptionType[] }>("/subscription-types");
 }
 
 // ─── Single ────────────────────────────────────────────────────────────────

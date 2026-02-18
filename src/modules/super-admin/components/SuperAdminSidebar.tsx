@@ -1,10 +1,10 @@
 import React, { useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { BarChart3, Users, CreditCard, Bot, Settings, LogOut, Building2 } from "lucide-react";
-import { logoutUser } from "../../../services/authService";
 import { useAuth } from "../../../contexts/useAuth";
 import { ApiError } from "../../../lib/api";
 import { useAlertModal } from "../../../hooks/useAlertModal";
+import { useLogout } from "../../../hooks/useLogout";
 
 interface NavItem {
   id: string;
@@ -53,16 +53,15 @@ const navItems: NavItem[] = [
 ];
 
 export const SuperAdminSidebar: React.FC = () => {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { showError, AlertModal } = useAlertModal();
+  const { logout } = useLogout();
 
   const handleLogout = async () => {
     try {
       setIsLoggingOut(true);
-      await logoutUser();
-      navigate("/login");
+      await logout();
     } catch (error: unknown) {
       const message = error instanceof ApiError ? error.message : "Error logging out";
       console.error("Logout error:", error);
