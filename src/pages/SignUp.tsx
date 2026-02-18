@@ -6,6 +6,7 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { registerUser } from "../services/authService";
 import { ApiError } from "../lib/api";
+import { useAlertModal } from "../hooks/useAlertModal";
 import {
   validateRegistrationForm,
   validateEmail,
@@ -42,6 +43,7 @@ const colombiaFetcher = (url: string) =>
 
 export default function SignUp() {
   const navigate = useNavigate();
+  const { showSuccess, AlertModal } = useAlertModal();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [organizationName, setOrganizationName] = useState("");
@@ -229,8 +231,8 @@ export default function SignUp() {
 
       if (response.status === "success") {
         // Success - navigate to login
-        alert("Account created successfully. Please log in.");
-        navigate("/login");
+        showSuccess("Account created successfully. Please log in.");
+        setTimeout(() => navigate("/login"), 1500);
       }
     } catch (err: unknown) {
       if (err instanceof ApiError) {
@@ -804,6 +806,7 @@ export default function SignUp() {
       </main>
 
       <Footer />
+      <AlertModal />
     </div>
   );
 }

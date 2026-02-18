@@ -81,6 +81,28 @@ export const PLAN_CONFIGURATION_POLICY: RedactionPolicy = {
   ],
 };
 
+/**
+ * Default redaction policy for OrganizationManagement module.
+ * Contains PII (name, email, phone) — hashed by default, overridable for full export.
+ */
+export const ORGANIZATION_MANAGEMENT_POLICY: RedactionPolicy = {
+  module: 'organization-management',
+  requiresFullExportConfirmation: true,
+  fields: [
+    { key: '_id', label: 'Organization ID (hashed)', redaction: 'hash', overridable: false, defaultSelected: true, category: 'identifier' },
+    { key: 'name', label: 'Name', redaction: 'include', overridable: false, defaultSelected: true, category: 'attribute' },
+    { key: 'legalName', label: 'Legal Name', redaction: 'include', overridable: false, defaultSelected: true, category: 'attribute' },
+    { key: 'email', label: 'Email', redaction: 'mask', overridable: true, defaultSelected: true, category: 'attribute' },
+    { key: 'phone', label: 'Phone', redaction: 'mask', overridable: true, defaultSelected: false, category: 'attribute' },
+    { key: 'status', label: 'Status', redaction: 'include', overridable: false, defaultSelected: true, category: 'attribute' },
+    { key: 'plan', label: 'Plan', redaction: 'include', overridable: false, defaultSelected: true, category: 'attribute' },
+    { key: 'seatCount', label: 'Seat Count', redaction: 'include', overridable: false, defaultSelected: true, category: 'metric' },
+    { key: 'country', label: 'Country', redaction: 'include', overridable: false, defaultSelected: true, category: 'attribute' },
+    { key: 'city', label: 'City', redaction: 'include', overridable: false, defaultSelected: true, category: 'attribute' },
+    { key: 'createdAt', label: 'Created At', redaction: 'include', overridable: false, defaultSelected: true, category: 'metadata' },
+  ],
+};
+
 /** Retrieve the default policy for a given module. */
 export function getDefaultPolicy(module: ExportModule): RedactionPolicy {
   switch (module) {
@@ -90,6 +112,8 @@ export function getDefaultPolicy(module: ExportModule): RedactionPolicy {
       return SALES_OVERVIEW_POLICY;
     case 'plan-configuration':
       return PLAN_CONFIGURATION_POLICY;
+    case 'organization-management':
+      return ORGANIZATION_MANAGEMENT_POLICY;
   }
 }
 

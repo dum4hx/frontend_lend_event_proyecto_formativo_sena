@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { BarChart3, Users, CreditCard, Bot, Settings, LogOut } from "lucide-react";
+import { BarChart3, Users, CreditCard, Bot, Settings, LogOut, Building2 } from "lucide-react";
 import { logoutUser } from "../../../services/authService";
 import { useAuth } from "../../../contexts/useAuth";
 import { ApiError } from "../../../lib/api";
+import { useAlertModal } from "../../../hooks/useAlertModal";
 
 interface NavItem {
   id: string;
@@ -24,6 +25,12 @@ const navItems: NavItem[] = [
     label: "User Management",
     icon: <Users size={20} />,
     path: "/super-admin/clients",
+  },
+  {
+    id: "organizations",
+    label: "Organization Management",
+    icon: <Building2 size={20} />,
+    path: "/super-admin/organizations",
   },
   {
     id: "plans",
@@ -49,6 +56,7 @@ export const SuperAdminSidebar: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const { showError, AlertModal } = useAlertModal();
 
   const handleLogout = async () => {
     try {
@@ -58,7 +66,7 @@ export const SuperAdminSidebar: React.FC = () => {
     } catch (error: unknown) {
       const message = error instanceof ApiError ? error.message : "Error logging out";
       console.error("Logout error:", error);
-      alert(message);
+      showError(message);
     } finally {
       setIsLoggingOut(false);
     }
@@ -125,6 +133,7 @@ export const SuperAdminSidebar: React.FC = () => {
           <span>{isLoggingOut ? "Logging out..." : "Logout"}</span>
         </button>
       </div>
+      <AlertModal />
     </aside>
   );
 };

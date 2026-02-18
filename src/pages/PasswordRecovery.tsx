@@ -4,6 +4,7 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { forgotPassword, verifyResetCode, resetPassword } from "../services/authService";
 import { ApiError } from "../lib/api";
+import { useAlertModal } from "../hooks/useAlertModal";
 import {
   validateEmail,
   validateCode,
@@ -13,6 +14,7 @@ import styles from "./PasswordRecovery.module.css";
 
 export default function PasswordRecovery() {
   const navigate = useNavigate();
+  const { showSuccess, AlertModal } = useAlertModal();
   const [paso, setPaso] = useState(1);
   const [email, setEmail] = useState("");
   const [codigo, setCodigo] = useState("");
@@ -94,8 +96,8 @@ export default function PasswordRecovery() {
 
     try {
       await resetPassword({ email, resetToken, newPassword });
-      alert("Password reset successfully. Redirecting to login...");
-      navigate("/login");
+      showSuccess("Password reset successfully. Redirecting to login...");
+      setTimeout(() => navigate("/login"), 1500);
     } catch (err: unknown) {
       const message =
         err instanceof ApiError
@@ -450,6 +452,7 @@ export default function PasswordRecovery() {
       </main>
 
       <Footer />
+      <AlertModal />
     </div>
   );
 }

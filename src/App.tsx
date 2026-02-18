@@ -38,6 +38,7 @@ const UserManagement = lazy(() => import("./modules/super-admin/pages/UserManage
 const PlanConfiguration = lazy(() => import("./modules/super-admin/pages/PlanConfiguration"));
 const AIChatbotMonitor = lazy(() => import("./modules/super-admin/pages/AIChatbotMonitor"));
 const SystemSettings = lazy(() => import("./modules/super-admin/pages/SystemSettings"));
+const OrganizationManagement = lazy(() => import("./modules/super-admin/pages/OrganizationManagement"));
 
 function App() {
   return (
@@ -79,6 +80,7 @@ function App() {
           >
             <Route index element={<SalesOverview />} />
             <Route path="clients" element={<UserManagement />} />
+            <Route path="organizations" element={<OrganizationManagement />} />
             <Route path="plans" element={<PlanConfiguration />} />
             <Route path="ai-monitor" element={<AIChatbotMonitor />} />
             <Route path="settings" element={<SystemSettings />} />

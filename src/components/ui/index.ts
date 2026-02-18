@@ -17,3 +17,6 @@ export type { ErrorDisplayProps } from './ErrorDisplay';
 
 export { AlertCard, AlertContainer } from './AlertCard';
 export type { AlertCardProps, AlertContainerProps, AlertItem, AlertType } from './AlertCard';
+
+export { AlertModal } from './AlertModal';
+export type { AlertModalProps, AlertModalType } from './AlertModal';

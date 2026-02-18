@@ -10,6 +10,7 @@ import { LoadingSpinner, ErrorDisplay, ConfirmDialog, EmptyState, AlertContainer
 import { normalizeError, logError } from "../../../utils/errorHandling";
 import { useAuth } from "../../../contexts/useAuth";
 import { useAlerts } from "../../../hooks/useAlerts";
+import { useAlertModal } from "../../../hooks/useAlertModal";
 import { ExportSettingsModal } from "../../../components/export/ExportSettingsModal";
 import { exportService, PLAN_CONFIGURATION_POLICY } from "../../../services/export";
 import type { ExportConfig, ExportProgress } from "../../../types/export";
@@ -163,6 +164,7 @@ export default function PlanConfiguration() {
   const exportAbort = useRef<AbortController | null>(null);
   const { user } = useAuth();
   const { alerts, showAlert, dismissAlert } = useAlerts();
+  const { showError, showWarning, AlertModal } = useAlertModal();
 
   const fetchPlans = useCallback(async () => {
     try {
@@ -290,7 +292,7 @@ export default function PlanConfiguration() {
       await fetchPlans();
     } catch (err: unknown) {
       const normalized = normalizeError(err);
-      alert(normalized.message);
+      showError(normalized.message);
       logError(err, 'PlanConfiguration.saveEdit');
     } finally {
       setSaving(false);
@@ -305,7 +307,7 @@ export default function PlanConfiguration() {
 
     // Ensure required fields are present
     if (!createFields.plan || !createFields.displayName || !createFields.billingModel) {
-      alert('Please fill in all required fields.');
+      showWarning('Please fill in all required fields.');
       return;
     }
 
@@ -332,7 +334,7 @@ export default function PlanConfiguration() {
       await fetchPlans();
     } catch (err: unknown) {
       const normalized = normalizeError(err);
-      alert(normalized.message);
+      showError(normalized.message);
       logError(err, 'PlanConfiguration.handleCreate');
     } finally {
       setCreating(false);
@@ -356,7 +358,7 @@ export default function PlanConfiguration() {
       await fetchPlans();
     } catch (err: unknown) {
       const normalized = normalizeError(err);
-      alert(normalized.message);
+      showError(normalized.message);
       logError(err, 'PlanConfiguration.handleDelete');
     }
   };
@@ -767,6 +769,9 @@ export default function PlanConfiguration() {
         confirmText="Deactivate"
         variant="danger"
       />
+
+      {/* Alert Modal */}
+      <AlertModal />
     </div>
   );
 }

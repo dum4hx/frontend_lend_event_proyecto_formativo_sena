@@ -14,6 +14,7 @@ import type {
   PlatformHealth,
   ActivityEvent,
   AdminDashboardData,
+  OrganizationsPiiResponse,
 } from "../types/api";
 
 /** Fetch high-level platform statistics. */
@@ -83,4 +84,15 @@ export async function getAnalyticsDashboard(): Promise<
   ApiSuccessResponse<AdminDashboardData>
 > {
   return get<AdminDashboardData>("/admin/analytics/dashboard");
+}
+
+/** Fetch paginated organizations list with PII details (super-admin only). */
+export async function getAnalyticsOrganizationsPii(
+  page = 1,
+  limit = 10,
+): Promise<ApiSuccessResponse<OrganizationsPiiResponse>> {
+  return get<OrganizationsPiiResponse>("/admin/analytics/organizations-pii", {
+    page,
+    limit,
+  });
 }

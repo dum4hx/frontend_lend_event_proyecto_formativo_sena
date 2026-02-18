@@ -25,6 +25,7 @@ import type {
   PlanCostResult,
   AnalyticsQueryParams,
   ActivityQueryParams,
+  OrganizationsPiiResponse,
 } from "../types/api";
 
 import {
@@ -36,6 +37,7 @@ import {
   getAnalyticsSubscriptions,
   getAnalyticsHealth,
   getAnalyticsActivity,
+  getAnalyticsOrganizationsPii,
 } from "./adminAnalyticsService";
 
 import {
@@ -91,6 +93,13 @@ export async function fetchActivity(
   params: ActivityQueryParams = {},
 ): Promise<ApiSuccessResponse<{ activity: ActivityEvent[] }>> {
   return getAnalyticsActivity(params.limit);
+}
+
+export async function fetchOrganizationsPii(
+  page = 1,
+  limit = 10,
+): Promise<ApiSuccessResponse<OrganizationsPiiResponse>> {
+  return getAnalyticsOrganizationsPii(page, limit);
 }
 
 // ─── Subscription Plans CRUD ───────────────────────────────────────────────
