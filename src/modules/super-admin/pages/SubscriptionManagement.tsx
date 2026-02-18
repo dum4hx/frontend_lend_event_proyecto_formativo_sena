@@ -53,14 +53,15 @@ const inputCls =
 interface TextInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   error?: boolean;
 }
-function TextInput({ error: _err, className = "", ...props }: TextInputProps) {
+
+function TextInput({ error: _error, className = "", ...props }: TextInputProps) {
   return <input className={`${inputCls} ${className}`} {...props} />;
 }
 
 interface NumberInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   error?: boolean;
 }
-function NumberInput({ error: _err, className = "", ...props }: NumberInputProps) {
+function NumberInput({ error: _error, className = "", ...props }: NumberInputProps) {
   return <input type="number" className={`${inputCls} ${className}`} {...props} />;
 }
 
@@ -68,7 +69,7 @@ interface SelectInputProps extends React.SelectHTMLAttributes<HTMLSelectElement>
   options: { value: string; label: string }[];
   error?: boolean;
 }
-function SelectInput({ options, error: _err, className = "", ...props }: SelectInputProps) {
+function SelectInput({ options, error: _error, className = "", ...props }: SelectInputProps) {
   return (
     <select className={`${inputCls} ${className}`} {...props}>
       {options.map((o) => (
@@ -83,7 +84,7 @@ function SelectInput({ options, error: _err, className = "", ...props }: SelectI
 interface TextareaInputProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   error?: boolean;
 }
-function TextareaInput({ error: _err, className = "", ...props }: TextareaInputProps) {
+function TextareaInput({ error: _error, className = "", ...props }: TextareaInputProps) {
   return (
     <textarea
       className={`${inputCls} resize-none ${className}`}

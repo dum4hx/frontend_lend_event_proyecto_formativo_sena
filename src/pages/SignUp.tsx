@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import useSWR, { mutate } from "swr";
 import { useDebounce } from "use-debounce";
 import Header from "../components/Header";
@@ -43,6 +43,8 @@ const colombiaFetcher = (url: string) =>
 
 export default function SignUp() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnTo = new URLSearchParams(location.search).get("returnTo");
   const { showSuccess, AlertModal } = useAlertModal();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -230,9 +232,9 @@ export default function SignUp() {
       const response = await registerUser(payload);
 
       if (response.status === "success") {
-        // Success - navigate to login
+        // Success - navigate to returnTo if provided, otherwise to login
         showSuccess("Account created successfully. Please log in.");
-        setTimeout(() => navigate("/login"), 1500);
+        setTimeout(() => navigate(returnTo ?? "/login"), 1500);
       }
     } catch (err: unknown) {
       if (err instanceof ApiError) {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Check,
   Loader2,
@@ -171,6 +171,7 @@ function PlanCard({ plan, featured, onSelect }: PlanCardProps) {
 
 export default function Packages() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [plans, setPlans] = useState<PublicPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -180,20 +181,27 @@ export default function Packages() {
   const [activePlan, setActivePlan] = useState<string | null>(null);
   const [showActiveSubModal, setShowActiveSubModal] = useState(false);
 
-  // Check for an existing active subscription when the user is logged in
+  // After returning from /sign-up via returnTo, auto-navigate to checkout
   useEffect(() => {
     if (!isLoggedIn) return;
-    getPaymentStatus()
-      .then((res) => {
-        if (res.data.isActive) {
-          setActivePlan(res.data.plan);
-          setShowActiveSubModal(true);
-        }
-      })
-      .catch(() => {
-        // Ignore — if the check fails we don't block the user
-      });
-  }, [isLoggedIn]);
+    const params = new URLSearchParams(location.search);
+    const plan = params.get("plan");
+    if (plan) {
+      // Check subscription status first before sending to checkout
+      getPaymentStatus()
+        .then((res) => {
+          if (res.data.isActive) {
+            setActivePlan(res.data.plan);
+            setShowActiveSubModal(true);
+          } else {
+            navigate(`/checkout?plan=${encodeURIComponent(plan)}`, { replace: true });
+          }
+        })
+        .catch(() => {
+          navigate(`/checkout?plan=${encodeURIComponent(plan)}`, { replace: true });
+        });
+    }
+  }, [isLoggedIn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     let cancelled = false;
@@ -270,9 +278,14 @@ export default function Packages() {
       return;
     }
 
-    // Authenticated users go straight to checkout
+    // Authenticated users without active sub go straight to checkout
     navigate(`/checkout?plan=${encodeURIComponent(plan.name)}`);
   };
+
+  // Register return URL — sends the user back here with the plan pre-selected
+  const registerReturnTo = pendingPlan
+    ? `/packages?plan=${encodeURIComponent(pendingPlan)}`
+    : "/packages";
 
   // Highlight the middle card when there are 3+ plans
   const featuredIdx = plans.length >= 3 ? Math.floor(plans.length / 2) : -1;
@@ -304,6 +317,7 @@ export default function Packages() {
           <LoginModal
             open={showLoginModal}
             onClose={() => setShowLoginModal(false)}
+            registerReturnTo={registerReturnTo}
             onAuthenticated={() => {
               setShowLoginModal(false);
               const planName = pendingPlan ?? localStorage.getItem("pendingCheckoutPlan");

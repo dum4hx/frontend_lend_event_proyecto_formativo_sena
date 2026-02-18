@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { loginUser, refreshToken } from "../services/authService";
 import { useAuth } from "../contexts/useAuth";
 import { ApiError } from "../lib/api";
@@ -10,14 +11,18 @@ interface LoginModalProps {
   onClose: () => void;
   /** Called after authentication succeeds (user is already set in context). */
   onAuthenticated: () => void;
+  /** When provided, used as the `returnTo` query param on the /sign-up redirect. */
+  registerReturnTo?: string;
 }
 
 export default function LoginModal({
   open,
   onClose,
   onAuthenticated,
+  registerReturnTo,
 }: LoginModalProps) {
   const { checkAuth } = useAuth();
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -166,6 +171,22 @@ export default function LoginModal({
               {loading ? "Signing in…" : "Sign In"}
             </button>
           </form>
+
+          {/* Register link */}
+          <p className="text-center text-sm text-gray-500 mt-5">
+            Don&apos;t have an account?{" "}
+            <button
+              onClick={() => {
+                onClose();
+                const params = new URLSearchParams();
+                if (registerReturnTo) params.set("returnTo", registerReturnTo);
+                navigate(`/sign-up${params.size > 0 ? `?${params.toString()}` : ""}`);
+              }}
+              className="text-yellow-400 hover:text-yellow-300 font-semibold transition-colors"
+            >
+              Register
+            </button>
+          </p>
         </div>
       </div>
     </>
