@@ -9,6 +9,7 @@ import type {
   SubscriptionType,
   CreateSubscriptionTypePayload,
   PlanCostResult,
+  PublicPlan,
 } from "../types/api";
 
 // ─── List ──────────────────────────────────────────────────────────────────
@@ -22,9 +23,9 @@ export async function getSubscriptionTypes(): Promise<
 
 /** Public variant intended for read-only display (e.g., Packages page). */
 export async function getSubscriptionTypesPublic(): Promise<
-  ApiSuccessResponse<{ subscriptionTypes: SubscriptionType[] }>
+  ApiSuccessResponse<{ subscriptionTypes: PublicPlan[] }>
 > {
-  return publicGet<{ subscriptionTypes: SubscriptionType[] }>("/subscription-types");
+  return publicGet<{ subscriptionTypes: PublicPlan[] }>("/subscription-types");
 }
 
 // ─── Single ────────────────────────────────────────────────────────────────

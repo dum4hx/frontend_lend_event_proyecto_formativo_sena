@@ -128,6 +128,8 @@ export interface SubscriptionType {
   status: SubscriptionStatus;
 }
 
+export type PublicPlan = AvailablePlan & { description?: string, basePriceMonthly: number, plan: string };
+
 /** Payload when creating a new subscription type (super-admin). */
 export interface CreateSubscriptionTypePayload {
   plan: string;

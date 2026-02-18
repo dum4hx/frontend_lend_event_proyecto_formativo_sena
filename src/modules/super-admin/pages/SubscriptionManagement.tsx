@@ -54,14 +54,16 @@ interface TextInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   error?: boolean;
 }
 
-function TextInput({ error: _error, className = "", ...props }: TextInputProps) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function TextInput({ error: _err, className = "", ...props }: TextInputProps) {
   return <input className={`${inputCls} ${className}`} {...props} />;
 }
 
 interface NumberInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   error?: boolean;
 }
-function NumberInput({ error: _error, className = "", ...props }: NumberInputProps) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function NumberInput({ error: _err, className = "", ...props }: NumberInputProps) {
   return <input type="number" className={`${inputCls} ${className}`} {...props} />;
 }
 
@@ -69,7 +71,8 @@ interface SelectInputProps extends React.SelectHTMLAttributes<HTMLSelectElement>
   options: { value: string; label: string }[];
   error?: boolean;
 }
-function SelectInput({ options, error: _error, className = "", ...props }: SelectInputProps) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function SelectInput({ options, error: _err, className = "", ...props }: SelectInputProps) {
   return (
     <select className={`${inputCls} ${className}`} {...props}>
       {options.map((o) => (
@@ -84,7 +87,8 @@ function SelectInput({ options, error: _error, className = "", ...props }: Selec
 interface TextareaInputProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   error?: boolean;
 }
-function TextareaInput({ error: _error, className = "", ...props }: TextareaInputProps) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function TextareaInput({ error: _err, className = "", ...props }: TextareaInputProps) {
   return (
     <textarea
       className={`${inputCls} resize-none ${className}`}

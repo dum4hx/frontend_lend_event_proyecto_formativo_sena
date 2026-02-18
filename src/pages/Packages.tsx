@@ -78,7 +78,7 @@ function ActiveSubscriptionModal({ plan, onManage, onClose }: ActiveSubscription
 
 // ─── Plan Card ─────────────────────────────────────────────────────────────
 
-type PublicPlan = AvailablePlan & { description?: string };
+type PublicPlan = AvailablePlan & { description?: string, basePriceMonthly: number };
 
 interface PlanCardProps {
   plan: PublicPlan;
@@ -218,27 +218,19 @@ export default function Packages() {
         try {
           const alt = await getSubscriptionTypesPublic();
           if (cancelled) return;
-          const mapped = alt.data.subscriptionTypes.map((t: any) => {
-            const hasMonthly = typeof t.basePriceMonthly === "number";
-            const basePriceMonthly = hasMonthly
-              ? t.basePriceMonthly
-              : (typeof t.baseCost === "number" ? t.baseCost : null);
-            const pricePerSeat = typeof t.pricePerSeat === "number"
-              ? (hasMonthly ? t.pricePerSeat : t.pricePerSeat)
-              : 0;
-
-            return {
-              name: t.plan,
-              displayName: t.displayName,
-              billingModel: t.billingModel,
-              maxCatalogItems: t.maxCatalogItems ?? 0,
-              maxSeats: t.maxSeats ?? 1,
-              features: t.features ?? [],
-              basePriceMonthly,
-              pricePerSeat,
-              description: t.description,
-            } as PublicPlan;
-          });
+          const mapped = alt.data.subscriptionTypes.map((t) => {
+              return {
+                name: t.plan,
+                displayName: t.displayName,
+                billingModel: t.billingModel,
+                maxCatalogItems: t.maxCatalogItems,
+                maxSeats: t.maxSeats,
+                features: t.features,
+                basePriceMonthly: t.basePriceMonthly,
+                pricePerSeat: t.pricePerSeat,
+                description: t.description,
+              } as PublicPlan;
+            });
           setPlans(mapped);
           setError("");
         } catch (err2) {
