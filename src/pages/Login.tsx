@@ -4,7 +4,7 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { loginUser, refreshToken } from "../services/authService";
 import { ApiError } from "../lib/api";
-import { validateLoginForm } from "../utils/validators";
+import { validateLoginForm, validateEmail } from "../utils/validators";
 import { useAuth } from "../contexts/useAuth";
 import styles from "./Login.module.css";
 
@@ -16,22 +16,45 @@ export default function Login() {
   const [remember, setRemember] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [showPassword, setShowPassword] = useState(false);
+
+  const setErrorFor = (field: string, message?: string) => {
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      if (message) next[field] = message; else delete next[field];
+      return next;
+    });
+  };
+
+  const inputClass = (hasError: boolean, withIcon?: boolean) =>
+    `w-full bg-zinc-900 rounded-xl py-4 ${withIcon ? "pl-12" : "px-4"} pr-4 text-white outline-none transition duration-200 disabled:opacity-50 border ${hasError ? "border-red-500 focus:border-red-500" : "border-zinc-800 focus:border-yellow-400"}`;
 
   async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
 
-    // Validate form
-    const validation = validateLoginForm({ email, password });
+    // Normalize inputs
+    const normalisedEmail = email.trim().toLowerCase();
+    const normalisedPassword = password.trim();
+
+    // Frontend validation
+    const validation = validateLoginForm({ email: normalisedEmail, password: normalisedPassword });
     if (!validation.isValid) {
       setError(validation.message || "Validation failed");
+      return;
+    }
+
+    // Prevent submit if field errors exist
+    if (Object.keys(fieldErrors).length > 0) {
+      setError("Please fix the highlighted fields");
       return;
     }
 
     setLoading(true);
 
     try {
-      await loginUser({ email, password });
+      await loginUser({ email: normalisedEmail, password: normalisedPassword });
 
       // Verify authentication after login
       const loggedUser = await checkAuth();
@@ -39,10 +62,7 @@ export default function Login() {
       // Navigate based on the user's role
       navigate(loggedUser?.role === "super_admin" ? "/super-admin" : "/admin");
     } catch (err: unknown) {
-      const message =
-        err instanceof ApiError ? err.message : "Connection error. Please try again.";
-
-      // Try refreshing access token on 401, in case the session expired but the cookie is still valid.
+      // Generic error message for invalid credentials; do not reveal which field
       if (err instanceof ApiError && err.statusCode === 401) {
         try {
           await refreshToken();
@@ -50,10 +70,11 @@ export default function Login() {
           navigate(refreshedUser?.role === "super_admin" ? "/super-admin" : "/admin");
           return;
         } catch {
-          // fall through to setError below
+          setError("Invalid credentials");
+          return;
         }
       }
-
+      const message = err instanceof ApiError ? err.message : "Connection error. Please try again.";
       setError(message);
     } finally {
       setLoading(false);
@@ -168,10 +189,24 @@ export default function Login() {
                     type="email"
                     placeholder="name@company.com"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    maxLength={254}
+                    onChange={(e) => {
+                      const v = e.target.value.trim(); // disallow leading/trailing spaces
+                      const lower = v.toLowerCase(); // normalize
+                      setEmail(lower);
+                      const res = validateEmail(lower);
+                      setErrorFor("email", res.isValid ? undefined : res.message);
+                    }}
+                    onBlur={() => {
+                      const res = validateEmail(email);
+                      setErrorFor("email", res.isValid ? undefined : res.message);
+                    }}
                     disabled={loading}
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 pl-12 pr-4 text-white focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 outline-none transition duration-200 disabled:opacity-50"
+                    className={inputClass(!!fieldErrors.email, true)}
                   />
+                  {fieldErrors.email && (
+                    <p className="text-red-400 text-xs mt-1">{fieldErrors.email}</p>
+                  )}
                 </div>
               </div>
 
@@ -191,14 +226,45 @@ export default function Login() {
                       />
                     </svg>
                   </span>
-                  <input
-                    type="password"
-                    placeholder="••••••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={loading}
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 pl-12 pr-4 text-white focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 outline-none transition duration-200 disabled:opacity-50"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••••••"
+                      value={password}
+                      maxLength={128}
+                      onChange={(e) => {
+                        const v = e.target.value.replace(/^\s+|\s+$/g, ""); // trim both ends
+                        setPassword(v);
+                        if (!v) {
+                          setErrorFor("password", "Password is required");
+                        } else {
+                          setErrorFor("password", undefined);
+                        }
+                      }}
+                      disabled={loading}
+                      className={inputClass(!!fieldErrors.password, true)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((s) => !s)}
+                      className="absolute inset-y-0 right-0 mr-3 my-auto text-gray-400 hover:text-white"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-7 0-10-7-10-7a18.154 18.154 0 014.854-5.559M21 12s-1.5 3.5-4.5 5.5M3 3l18 18" />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                  {fieldErrors.password && (
+                    <p className="text-red-400 text-xs mt-1">{fieldErrors.password}</p>
+                  )}
                 </div>
               </div>
 
@@ -225,7 +291,7 @@ export default function Login() {
               {/* Sign In Button */}
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || Object.keys(fieldErrors).length > 0}
                 className={`w-full bg-yellow-400 text-black font-extrabold py-4 rounded-xl text-lg ${styles.glowButton} mt-4 shadow-xl hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed transition`}
               >
                 {loading ? "Signing in..." : "Sign In"}

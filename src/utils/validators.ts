@@ -88,6 +88,16 @@ export const validateFirstName = (firstName: string): ValidationResult => {
     return { isValid: false, message: 'First name is required' }
   }
 
+  // Only letters (including accents) and spaces; no multiple consecutive spaces
+  const allowed = /^[A-Za-zÀ-ÿ ]+$/
+  if (!allowed.test(firstName)) {
+    return { isValid: false, message: 'First name can only contain letters and spaces' }
+  }
+
+  if (/\s{2,}/.test(firstName)) {
+    return { isValid: false, message: 'First name must not contain multiple consecutive spaces' }
+  }
+
   if (firstName.length < 2) {
     return { isValid: false, message: 'First name must be at least 2 characters' }
   }
@@ -105,6 +115,15 @@ export const validateFirstName = (firstName: string): ValidationResult => {
 export const validateLastName = (lastName: string): ValidationResult => {
   if (!lastName.trim()) {
     return { isValid: false, message: 'Last name is required' }
+  }
+
+  const allowed = /^[A-Za-zÀ-ÿ ]+$/
+  if (!allowed.test(lastName)) {
+    return { isValid: false, message: 'Last name can only contain letters and spaces' }
+  }
+
+  if (/\s{2,}/.test(lastName)) {
+    return { isValid: false, message: 'Last name must not contain multiple consecutive spaces' }
   }
 
   if (lastName.length < 2) {
@@ -145,13 +164,20 @@ export const validateTaxId = (taxId: string): ValidationResult => {
     return { isValid: false, message: 'Tax ID is required' }
   }
 
-  if (taxId.length < 4) {
-    return { isValid: false, message: 'Tax ID must be at least 4 characters' }
+  // Accept formatted with hyphens; validate underlying digits only
+  const digits = taxId.replace(/-/g, '')
+  if (!/^\d+$/.test(digits)) {
+    return { isValid: false, message: 'Tax ID must contain only numbers' }
   }
 
-  // Only allow numbers and hyphens
-  if (!/^[0-9-]+$/.test(taxId)) {
-    return { isValid: false, message: 'Tax ID may only contain numbers and hyphens' }
+  // Must be grouped by 3 (e.g., 123-123-123)
+  if (digits.length % 3 !== 0) {
+    return { isValid: false, message: 'Tax ID must be groups of 3 digits (e.g., 123-123-123)' }
+  }
+
+  // Reasonable length check (6 to 12 digits, multiples of 3)
+  if (digits.length < 6 || digits.length > 12) {
+    return { isValid: false, message: 'Tax ID length must be 6 to 12 digits (in groups of 3)' }
   }
 
   return { isValid: true }
@@ -176,7 +202,10 @@ export const validateAddressField = (value: string, label: string): ValidationRe
  * Legal name (company registration name) validation - optional
  */
 export const validateLegalName = (legalName?: string): ValidationResult => {
-  if (!legalName) return { isValid: true }
+  // Legal name is REQUIRED by API contract
+  if (!legalName || !legalName.trim()) {
+    return { isValid: false, message: 'Legal name is required' }
+  }
 
   if (legalName.length < 2) {
     return { isValid: false, message: 'Legal name must be at least 2 characters' }
@@ -197,26 +226,37 @@ export const validatePhone = (phone?: string): ValidationResult => {
     return { isValid: true } // Phone is optional
   }
 
-  // Only allow numbers and plus sign
-  if (!/^\+?[0-9]+$/.test(phone)) {
-    return { isValid: false, message: 'Phone number may only contain numbers and the + sign' }
+  // Must start with a single '+' and contain only digits afterwards
+  if (!phone.startsWith('+')) {
+    return { isValid: false, message: 'Phone must start with + followed by digits' }
   }
-
-  // Basic validation: at least 7 digits
-  const digitCount = phone.replace(/^\+/, '').length;
-  if (digitCount < 7 || digitCount > 15) {
+  if ((phone.match(/\+/g) || []).length > 1) {
+    return { isValid: false, message: 'The + symbol can only appear once and at the beginning' }
+  }
+  const digits = phone.slice(1)
+  if (!/^\d+$/.test(digits)) {
+    return { isValid: false, message: 'Phone may only contain numbers after the +' }
+  }
+  if (digits.length < 7 || digits.length > 15) {
     return { isValid: false, message: 'Phone number must have between 7 and 15 digits' }
   }
-
   return { isValid: true }
+}
+
+/** Required phone validation (owner) */
+export const validateRequiredPhone = (phone: string): ValidationResult => {
+  if (!phone || !phone.trim()) {
+    return { isValid: false, message: 'Phone is required' }
+  }
+  return validatePhone(phone)
 }
 
 /**
  * Postal code validation (required by API, only numbers)
  */
-export const validatePostalCode = (postalCode: string): ValidationResult => {
-  if (!postalCode.trim()) {
-    return { isValid: false, message: 'Postal code is required' }
+export const validatePostalCode = (postalCode?: string): ValidationResult => {
+  if (!postalCode || !postalCode.trim()) {
+    return { isValid: true } // Optional as part of address
   }
 
   // Only allow numbers
@@ -263,17 +303,19 @@ export const validateCode = (code: string): ValidationResult => {
 export const validateRegistrationForm = (formData: {
   firstName: string
   lastName: string
-  email: string
+  ownerEmail: string
+  organizationEmail: string
   organizationName: string
   legalName?: string
-  taxId: string
-  street: string
-  city: string
-  country: string
-  postalCode: string
+  taxId?: string
+  street?: string
+  city?: string
+  country?: string
+  postalCode?: string
   password: string
   confirmPassword: string
-  phone?: string
+  ownerPhone: string
+  organizationPhone?: string
 }): ValidationResult => {
   // Validate firstName
   const firstNameValidation = validateFirstName(formData.firstName)
@@ -283,31 +325,47 @@ export const validateRegistrationForm = (formData: {
   const lastNameValidation = validateLastName(formData.lastName)
   if (!lastNameValidation.isValid) return lastNameValidation
 
-  // Validate email
-  const emailValidation = validateEmail(formData.email)
-  if (!emailValidation.isValid) return emailValidation
+  // Validate emails (owner & organization)
+  const ownerEmailValidation = validateEmail(formData.ownerEmail)
+  if (!ownerEmailValidation.isValid) return ownerEmailValidation
+
+  const orgEmailValidation = validateEmail(formData.organizationEmail)
+  if (!orgEmailValidation.isValid) return orgEmailValidation
+
+  // Prevent using the same email for owner and organization
+  if (formData.ownerEmail.trim().toLowerCase() === formData.organizationEmail.trim().toLowerCase()) {
+    return { isValid: false, message: 'Owner email must be different from organization email' }
+  }
 
   // Validate organization
   const orgValidation = validateOrganizationName(formData.organizationName)
   if (!orgValidation.isValid) return orgValidation
 
-  // Validate legal name (optional)
+  // Validate legal name (required by API)
   const legalValidation = validateLegalName(formData.legalName)
   if (!legalValidation.isValid) return legalValidation
 
-  // Validate tax ID
-  const taxValidation = validateTaxId(formData.taxId)
-  if (!taxValidation.isValid) return taxValidation
+  // Validate tax ID (optional)
+  if (formData.taxId) {
+    const taxValidation = validateTaxId(formData.taxId)
+    if (!taxValidation.isValid) return taxValidation
+  }
 
-  // Validate address fields
-  const streetValidation = validateAddressField(formData.street, 'Street')
-  if (!streetValidation.isValid) return streetValidation
+  // Validate address fields (optional overall; validate only if provided)
+  if (formData.street) {
+    const streetValidation = validateAddressField(formData.street, 'Street')
+    if (!streetValidation.isValid) return streetValidation
+  }
 
-  const cityValidation = validateAddressField(formData.city, 'Ciudad')
-  if (!cityValidation.isValid) return cityValidation
+  if (formData.city) {
+    const cityValidation = validateAddressField(formData.city, 'City')
+    if (!cityValidation.isValid) return cityValidation
+  }
 
-  const countryValidation = validateAddressField(formData.country, 'Country')
-  if (!countryValidation.isValid) return countryValidation
+  if (formData.country) {
+    const countryValidation = validateAddressField(formData.country, 'Country')
+    if (!countryValidation.isValid) return countryValidation
+  }
 
   const postalValidation = validatePostalCode(formData.postalCode)
   if (!postalValidation.isValid) return postalValidation
@@ -320,9 +378,12 @@ export const validateRegistrationForm = (formData: {
   const confirmValidation = validateConfirmPassword(formData.password, formData.confirmPassword)
   if (!confirmValidation.isValid) return confirmValidation
 
-  // Validate phone (optional)
-  const phoneValidation = validatePhone(formData.phone)
-  if (!phoneValidation.isValid) return phoneValidation
+  // Validate phones: owner required, organization optional
+  const ownerPhoneValidation = validateRequiredPhone(formData.ownerPhone)
+  if (!ownerPhoneValidation.isValid) return ownerPhoneValidation
+
+  const organizationPhoneValidation = validatePhone(formData.organizationPhone)
+  if (!organizationPhoneValidation.isValid) return organizationPhoneValidation
 
   return { isValid: true }
 }

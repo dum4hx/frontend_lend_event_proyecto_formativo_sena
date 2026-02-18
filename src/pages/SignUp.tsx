@@ -4,7 +4,19 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { registerUser } from "../services/authService";
 import { ApiError } from "../lib/api";
-import { validateRegistrationForm } from "../utils/validators";
+import {
+  validateRegistrationForm,
+  validateEmail,
+  validateFirstName,
+  validateLastName,
+  validateOrganizationName,
+  validateLegalName,
+  validateRequiredPhone,
+  validatePhone,
+  validateTaxId,
+  validatePassword,
+  validateConfirmPassword,
+} from "../utils/validators";
 import styles from "./SignUp.module.css";
 
 export default function SignUp() {
@@ -12,10 +24,14 @@ export default function SignUp() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [organizationName, setOrganizationName] = useState("");
-  const [email, setEmail] = useState("");
+  // Separate emails: organization vs owner
+  const [organizationEmail, setOrganizationEmail] = useState("");
+  const [ownerEmail, setOwnerEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [phone, setPhone] = useState("");
+  // Separate phones: owner (required) vs organization (optional)
+  const [ownerPhone, setOwnerPhone] = useState("");
+  const [organizationPhone, setOrganizationPhone] = useState("");
   const [error, setError] = useState("");
   const [legalName, setLegalName] = useState("");
   const [taxId, setTaxId] = useState("");
@@ -24,16 +40,55 @@ export default function SignUp() {
   const [country, setCountry] = useState("");
   const [postalCode, setPostalCode] = useState("");
   const [loading, setLoading] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  // --- Helpers: input formatting/masking ---------------------------------
+  const formatNameInput = (value: string) => {
+    let v = value.replace(/[^A-Za-zÀ-ÿ\s]/g, ""); // only letters & spaces
+    v = v.replace(/\s{2,}/g, " "); // collapse multiple spaces
+    return v.slice(0, 50);
+  };
+
+  const formatPhoneInput = (value: string) => {
+    const digits = value.replace(/\D/g, "");
+    const clamped = digits.slice(0, 15); // E.164 max 15 digits
+    return clamped ? `+${clamped}` : "";
+  };
+
+  const formatTaxIdInput = (value: string) => {
+    const digits = value.replace(/\D/g, "");
+    const groups = digits.match(/.{1,3}/g) || [];
+    return groups.join("-");
+  };
+
+  const cleanTaxIdForApi = (formatted: string) => formatted.replace(/-/g, "");
+
+  const setErrorFor = (field: string, message?: string) => {
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      if (message) next[field] = message; else delete next[field];
+      return next;
+    });
+  };
+
+  const inputClass = (hasError: boolean) =>
+    `w-full bg-zinc-900 rounded-xl py-4 px-4 text-white outline-none transition duration-200 disabled:opacity-50 border ${hasError ? "border-red-500 focus:border-red-500" : "border-zinc-800 focus:border-yellow-400"}`;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
 
     // Validate form
+    // Block submit if any current field errors exist
+    if (Object.keys(fieldErrors).length > 0) {
+      setError("Please fix the highlighted fields");
+      return;
+    }
     const validation = validateRegistrationForm({
       firstName,
       lastName,
-      email,
+      ownerEmail,
+      organizationEmail,
       organizationName,
       legalName,
       taxId,
@@ -43,7 +98,8 @@ export default function SignUp() {
       postalCode,
       password,
       confirmPassword,
-      phone,
+      ownerPhone,
+      organizationPhone,
     });
 
     if (!validation.isValid) {
@@ -59,20 +115,20 @@ export default function SignUp() {
         organization: {
           name: organizationName,
           legalName: legalName || undefined,
-          email: email,
-          phone: phone || undefined,
-          taxId: taxId,
+          email: organizationEmail,
+          phone: organizationPhone || undefined,
+          taxId: taxId ? cleanTaxIdForApi(taxId) : undefined,
           address: {
-            street,
-            city,
-            country,
-            postalCode,
+            street: street || undefined,
+            city: city || undefined,
+            country: country || undefined,
+            postalCode: postalCode || undefined,
           },
         },
         owner: {
-          email: email,
+          email: ownerEmail,
           password: password,
-          phone: phone || undefined,
+          phone: ownerPhone,
           name: {
             firstName: firstName,
             secondName: undefined,
@@ -90,11 +146,16 @@ export default function SignUp() {
         navigate("/login");
       }
     } catch (err: unknown) {
-      const message =
-        err instanceof ApiError
-          ? err.message
-          : "Network error. Please try again.";
-      setError(message);
+      if (err instanceof ApiError) {
+        const code = err.code ? ` (${err.code})` : "";
+        // Attempt to surface field-level validation messages when available
+        const detailsMsg = err.details && typeof err.details === "object"
+          ? Object.values(err.details).flat().join(". ")
+          : undefined;
+        setError(detailsMsg ?? `${err.message}${code}`);
+      } else {
+        setError("Network error. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -188,10 +249,22 @@ export default function SignUp() {
                   type="text"
                   placeholder="John"
                   value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
+                  onChange={(e) => {
+                    const v = formatNameInput(e.target.value);
+                    setFirstName(v);
+                    const res = validateFirstName(v);
+                    setErrorFor("firstName", res.isValid ? undefined : res.message);
+                  }}
+                  onBlur={() => {
+                    const res = validateFirstName(firstName);
+                    setErrorFor("firstName", res.isValid ? undefined : res.message);
+                  }}
                   disabled={loading}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 px-4 text-white focus:border-yellow-400 outline-none transition duration-200 disabled:opacity-50"
+                  className={inputClass(!!fieldErrors.firstName)}
                 />
+                {fieldErrors.firstName && (
+                  <p className="text-red-400 text-xs mt-1">{fieldErrors.firstName}</p>
+                )}
               </div>
 
               {/* Apellido */}
@@ -203,10 +276,22 @@ export default function SignUp() {
                   type="text"
                   placeholder="Doe"
                   value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
+                  onChange={(e) => {
+                    const v = formatNameInput(e.target.value);
+                    setLastName(v);
+                    const res = validateLastName(v);
+                    setErrorFor("lastName", res.isValid ? undefined : res.message);
+                  }}
+                  onBlur={() => {
+                    const res = validateLastName(lastName);
+                    setErrorFor("lastName", res.isValid ? undefined : res.message);
+                  }}
                   disabled={loading}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 px-4 text-white focus:border-yellow-400 outline-none transition duration-200 disabled:opacity-50"
+                  className={inputClass(!!fieldErrors.lastName)}
                 />
+                {fieldErrors.lastName && (
+                  <p className="text-red-400 text-xs mt-1">{fieldErrors.lastName}</p>
+                )}
               </div>
 
               {/* Organization Name */}
@@ -219,24 +304,38 @@ export default function SignUp() {
                   placeholder="Your Company Inc."
                   value={organizationName}
                   onChange={(e) => setOrganizationName(e.target.value)}
+                  onBlur={() => {
+                    const res = validateOrganizationName(organizationName);
+                    setErrorFor("organizationName", res.isValid ? undefined : res.message);
+                  }}
                   disabled={loading}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 px-4 text-white focus:border-yellow-400 outline-none transition duration-200 disabled:opacity-50"
+                  className={inputClass(!!fieldErrors.organizationName)}
                 />
+                {fieldErrors.organizationName && (
+                  <p className="text-red-400 text-xs mt-1">{fieldErrors.organizationName}</p>
+                )}
               </div>
 
-              {/* Legal Name (Optional) */}
+              {/* Legal Name (Required) */}
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                  Legal Name (Optional)
+                  Legal Name
                 </label>
                 <input
                   type="text"
                   placeholder="Your Company S.A."
                   value={legalName}
                   onChange={(e) => setLegalName(e.target.value)}
+                  onBlur={() => {
+                    const res = validateLegalName(legalName);
+                    setErrorFor("legalName", res.isValid ? undefined : res.message);
+                  }}
                   disabled={loading}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 px-4 text-white focus:border-yellow-400 outline-none transition duration-200 disabled:opacity-50"
+                  className={inputClass(!!fieldErrors.legalName)}
                 />
+                {fieldErrors.legalName && (
+                  <p className="text-red-400 text-xs mt-1">{fieldErrors.legalName}</p>
+                )}
               </div>
 
               {/* NIT / Tax ID */}
@@ -246,45 +345,131 @@ export default function SignUp() {
                 </label>
                 <input
                   type="text"
-                  placeholder="123-456-789"
+                  placeholder="123-123-123"
                   value={taxId}
-                  onChange={(e) => setTaxId(e.target.value)}
+                  onChange={(e) => {
+                    const v = formatTaxIdInput(e.target.value);
+                    setTaxId(v);
+                    if (v) {
+                      const res = validateTaxId(v);
+                      setErrorFor("taxId", res.isValid ? undefined : res.message);
+                    } else {
+                      setErrorFor("taxId", undefined);
+                    }
+                  }}
                   disabled={loading}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 px-4 text-white focus:border-yellow-400 outline-none transition duration-200 disabled:opacity-50"
+                  className={inputClass(!!fieldErrors.taxId)}
                 />
+                {fieldErrors.taxId && (
+                  <p className="text-red-400 text-xs mt-1">{fieldErrors.taxId}</p>
+                )}
               </div>
 
-              {/* Email */}
+              {/* Organization Email */}
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                  Email
+                  Organization Email
                 </label>
                 <input
                   type="email"
-                  placeholder="your@company.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="admin@yourcompany.com"
+                  value={organizationEmail}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setOrganizationEmail(v);
+                    const res = validateEmail(v);
+                    setErrorFor("organizationEmail", res.isValid ? undefined : res.message);
+                  }}
+                  onBlur={() => {
+                    const res = validateEmail(organizationEmail);
+                    setErrorFor("organizationEmail", res.isValid ? undefined : res.message);
+                  }}
                   disabled={loading}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 px-4 text-white focus:border-yellow-400 outline-none transition duration-200 disabled:opacity-50"
+                  className={inputClass(!!fieldErrors.organizationEmail)}
                 />
+                {fieldErrors.organizationEmail && (
+                  <p className="text-red-400 text-xs mt-1">{fieldErrors.organizationEmail}</p>
+                )}
               </div>
 
-              {/* Phone (Optional) */}
+              {/* Owner Email */}
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                  Phone <span className="text-gray-600">(Optional)</span>
+                  Owner Email
+                </label>
+                <input
+                  type="email"
+                  placeholder="owner.personal@example.com"
+                  value={ownerEmail}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setOwnerEmail(v);
+                    const res = validateEmail(v);
+                    setErrorFor("ownerEmail", res.isValid ? undefined : res.message);
+                  }}
+                  onBlur={() => {
+                    const res = validateEmail(ownerEmail);
+                    setErrorFor("ownerEmail", res.isValid ? undefined : res.message);
+                  }}
+                  disabled={loading}
+                  className={inputClass(!!fieldErrors.ownerEmail)}
+                />
+                {fieldErrors.ownerEmail && (
+                  <p className="text-red-400 text-xs mt-1">{fieldErrors.ownerEmail}</p>
+                )}
+              </div>
+
+              {/* Organization Phone (Optional) */}
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
+                  Organization Phone <span className="text-gray-600">(Optional)</span>
                 </label>
                 <input
                   type="tel"
                   placeholder="+1234567890"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  value={organizationPhone}
+                  onChange={(e) => {
+                    const v = formatPhoneInput(e.target.value);
+                    setOrganizationPhone(v);
+                    if (v) {
+                      const res = validatePhone(v);
+                      setErrorFor("organizationPhone", res.isValid ? undefined : res.message);
+                    } else {
+                      setErrorFor("organizationPhone", undefined);
+                    }
+                  }}
                   disabled={loading}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 px-4 text-white focus:border-yellow-400 outline-none transition duration-200 disabled:opacity-50"
+                  className={inputClass(!!fieldErrors.organizationPhone)}
                 />
+                {fieldErrors.organizationPhone && (
+                  <p className="text-red-400 text-xs mt-1">{fieldErrors.organizationPhone}</p>
+                )}
               </div>
 
-              {/* Address */}
+              {/* Owner Phone (Required) */}
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
+                  Owner Phone
+                </label>
+                <input
+                  type="tel"
+                  placeholder="+1234567890"
+                  value={ownerPhone}
+                  onChange={(e) => {
+                    const v = formatPhoneInput(e.target.value);
+                    setOwnerPhone(v);
+                    const res = validateRequiredPhone(v);
+                    setErrorFor("ownerPhone", res.isValid ? undefined : res.message);
+                  }}
+                  disabled={loading}
+                  className={inputClass(!!fieldErrors.ownerPhone)}
+                />
+                {fieldErrors.ownerPhone && (
+                  <p className="text-red-400 text-xs mt-1">{fieldErrors.ownerPhone}</p>
+                )}
+              </div>
+
+              {/* Address (Optional fields) */}
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
                   Address
@@ -354,10 +539,18 @@ export default function SignUp() {
                   type="password"
                   placeholder="••••••••••••"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setPassword(v);
+                    const res = validatePassword(v);
+                    setErrorFor("password", res.isValid ? undefined : res.message);
+                  }}
                   disabled={loading}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 px-4 text-white focus:border-yellow-400 outline-none transition duration-200 disabled:opacity-50"
+                  className={inputClass(!!fieldErrors.password)}
                 />
+                {fieldErrors.password && (
+                  <p className="text-red-400 text-xs mt-1">{fieldErrors.password}</p>
+                )}
               </div>
 
               {/* Confirm Password */}
@@ -368,17 +561,25 @@ export default function SignUp() {
                   <input
                     type="password"
                     placeholder="Repeat your password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  disabled={loading}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 px-4 text-white focus:border-yellow-400 outline-none transition duration-200 disabled:opacity-50"
-                />
+                    value={confirmPassword}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setConfirmPassword(v);
+                      const res = validateConfirmPassword(password, v);
+                      setErrorFor("confirmPassword", res.isValid ? undefined : res.message);
+                    }}
+                    disabled={loading}
+                    className={inputClass(!!fieldErrors.confirmPassword)}
+                  />
+                  {fieldErrors.confirmPassword && (
+                    <p className="text-red-400 text-xs mt-1">{fieldErrors.confirmPassword}</p>
+                  )}
               </div>
 
               {/* Create Account Button */}
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || Object.keys(fieldErrors).length > 0}
                 className={`w-full bg-yellow-400 text-black font-extrabold py-4 rounded-xl text-lg ${styles.glowButton} mt-4 shadow-xl hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed transition`}
               >
                 {loading ? "Creating account..." : "Create Account"}
