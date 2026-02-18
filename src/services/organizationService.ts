@@ -4,7 +4,7 @@
  * Covers organization details, usage stats, and available plans.
  */
 
-import { get, patch, type ApiSuccessResponse } from "../lib/api";
+import { get, patch, publicGet, type ApiSuccessResponse } from "../lib/api";
 import type { Organization, OrganizationUsage, AvailablePlan } from "../types/api";
 
 // ─── Details ───────────────────────────────────────────────────────────────
@@ -38,5 +38,6 @@ export async function getOrganizationUsage(): Promise<
 
 /** Fetch available subscription plans. */
 export async function getAvailablePlans(): Promise<ApiSuccessResponse<{ plans: AvailablePlan[] }>> {
-  return get<{ plans: AvailablePlan[] }>("/organizations/plans");
+  // Public endpoint — allow unauthenticated users without triggering refresh flow
+  return publicGet<{ plans: AvailablePlan[] }>("/organizations/plans");
 }
