@@ -36,7 +36,7 @@ const navItems: NavItem[] = [
     id: "plans",
     label: "Plan Configuration",
     icon: <CreditCard size={20} />,
-    path: "/super-admin/plans",
+    path: "/super-admin/subscriptions",
   },
   {
     id: "ai-monitor",

@@ -27,7 +27,7 @@ function formatPrice(amount: number | null | undefined): string {
   if (amount === null || amount === undefined) return "No price";
   const value = Number(amount);
   return value.toLocaleString("en-US", {
-    minimumFractionDigits: value < 1 ? 2 : 0,
+    minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
 }
@@ -214,9 +214,9 @@ export default function Packages() {
             const hasMonthly = typeof t.basePriceMonthly === "number";
             const basePriceMonthly = hasMonthly
               ? t.basePriceMonthly
-              : (typeof t.baseCost === "number" ? t.baseCost / 100 : null);
+              : (typeof t.baseCost === "number" ? t.baseCost : null);
             const pricePerSeat = typeof t.pricePerSeat === "number"
-              ? (hasMonthly ? t.pricePerSeat : t.pricePerSeat / 100)
+              ? (hasMonthly ? t.pricePerSeat : t.pricePerSeat)
               : 0;
 
             return {
