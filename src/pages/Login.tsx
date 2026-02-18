@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import { loginUser, refreshToken } from "../services/authService";
+import { loginUser, refreshToken, getPaymentStatus } from "../services/authService";
 import { ApiError } from "../lib/api";
 import { validateLoginForm, validateEmail } from "../utils/validators";
 import { useAuth } from "../contexts/useAuth";
@@ -18,11 +18,13 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [showPassword, setShowPassword] = useState(false);
+  const [showNoSubModal, setShowNoSubModal] = useState(false);
 
   const setErrorFor = (field: string, message?: string) => {
     setFieldErrors((prev) => {
       const next = { ...prev };
-      if (message) next[field] = message; else delete next[field];
+      if (message) next[field] = message;
+      else delete next[field];
       return next;
     });
   };
@@ -59,6 +61,19 @@ export default function Login() {
       // Verify authentication after login
       const loggedUser = await checkAuth();
 
+      // For non-super-admin users, check subscription status before granting access
+      if (loggedUser?.role !== "super_admin" && loggedUser?.role === "owner") {
+        try {
+          const status = await getPaymentStatus();
+          if (!status.data.isActive) {
+            setShowNoSubModal(true);
+            return;
+          }
+        } catch {
+          // If status check fails (e.g. 403 for non-owner), proceed normally
+        }
+      }
+
       // Navigate based on the user's role
       navigate(loggedUser?.role === "super_admin" ? "/super-admin" : "/admin");
     } catch (err: unknown) {
@@ -67,6 +82,17 @@ export default function Login() {
         try {
           await refreshToken();
           const refreshedUser = await checkAuth();
+          if (refreshedUser?.role !== "super_admin" && refreshedUser?.role === "owner") {
+            try {
+              const status = await getPaymentStatus();
+              if (!status.data.isActive) {
+                setShowNoSubModal(true);
+                return;
+              }
+            } catch {
+              // proceed normally on failure
+            }
+          }
           navigate(refreshedUser?.role === "super_admin" ? "/super-admin" : "/admin");
           return;
         } catch {
@@ -83,6 +109,51 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex flex-col bg-black">
+      {/* No-subscription modal */}
+      {showNoSubModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
+          <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-8 max-w-md w-full shadow-2xl">
+            <div className="flex items-center justify-center w-14 h-14 bg-yellow-400/10 border border-yellow-400/30 rounded-full mx-auto mb-5">
+              <svg
+                className="w-7 h-7 text-yellow-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+                />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-extrabold text-white text-center mb-3">
+              Subscription Required
+            </h2>
+            <p className="text-gray-400 text-center text-sm mb-8 leading-relaxed">
+              Your account does not have an active subscription. You need to purchase a plan before
+              you can access your dashboard. Choose a plan that fits your needs and get started
+              right away.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={() => setShowNoSubModal(false)}
+                className="flex-1 py-3 rounded-xl border border-zinc-700 text-gray-300 font-semibold hover:bg-zinc-800 hover:text-white transition"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => navigate("/packages")}
+                className="flex-1 py-3 rounded-xl bg-yellow-400 text-black font-extrabold hover:bg-yellow-300 transition"
+              >
+                Buy Subscription
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Header />
 
       <main className="flex-grow flex flex-col md:flex-row">
@@ -122,7 +193,8 @@ export default function Login() {
 
             {/* Description */}
             <p className="text-gray-300 text-lg max-w-md mb-12 leading-relaxed">
-              Access your personalized platform to manage events, team licenses, and real-time analytics.
+              Access your personalized platform to manage events, team licenses, and real-time
+              analytics.
             </p>
 
             {/* Features */}
@@ -133,9 +205,7 @@ export default function Login() {
                 </div>
                 <div>
                   <p className="font-bold text-white">Business Security</p>
-                  <p className="text-sm text-gray-400">
-                    End-to-end encrypted data protection.
-                  </p>
+                  <p className="text-sm text-gray-400">End-to-end encrypted data protection.</p>
                 </div>
               </div>
               <div className="flex items-center space-x-4 bg-white/5 p-4 rounded-xl border border-white/10">
@@ -157,9 +227,7 @@ export default function Login() {
         <div className="flex-grow md:w-1/2 flex items-center justify-center p-8 bg-black">
           <div className="w-full max-w-md">
             <h2 className="text-4xl font-extrabold mb-2">Welcome</h2>
-            <p className="text-gray-400 mb-10">
-              Enter your corporate credentials to continue
-            </p>
+            <p className="text-gray-400 mb-10">Enter your corporate credentials to continue</p>
 
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Error Message */}
@@ -251,13 +319,38 @@ export default function Login() {
                       aria-label={showPassword ? "Hide password" : "Show password"}
                     >
                       {showPassword ? (
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-7 0-10-7-10-7a18.154 18.154 0 014.854-5.559M21 12s-1.5 3.5-4.5 5.5M3 3l18 18" />
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M13.875 18.825A10.05 10.05 0 0112 19c-7 0-10-7-10-7a18.154 18.154 0 014.854-5.559M21 12s-1.5 3.5-4.5 5.5M3 3l18 18"
+                          />
                         </svg>
                       ) : (
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                          />
                         </svg>
                       )}
                     </button>

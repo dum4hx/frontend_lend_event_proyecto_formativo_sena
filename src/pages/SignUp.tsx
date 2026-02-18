@@ -6,7 +6,6 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { registerUser } from "../services/authService";
 import { ApiError } from "../lib/api";
-import { useAlertModal } from "../hooks/useAlertModal";
 import {
   validateRegistrationForm,
   validateEmail,
@@ -45,7 +44,7 @@ export default function SignUp() {
   const navigate = useNavigate();
   const location = useLocation();
   const returnTo = new URLSearchParams(location.search).get("returnTo");
-  const { showSuccess, AlertModal } = useAlertModal();
+  const [showRegSuccessModal, setShowRegSuccessModal] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [organizationName, setOrganizationName] = useState("");
@@ -84,7 +83,7 @@ export default function SignUp() {
       ? `https://api-colombia.com/api/v1/Department/search/${encodeURIComponent(debouncedStateQuery)}`
       : null,
     colombiaFetcher,
-    { revalidateOnFocus: false, revalidateOnReconnect: false, keepPreviousData: true }
+    { revalidateOnFocus: false, revalidateOnReconnect: false, keepPreviousData: true },
   );
 
   // Invalidate cache when user deletes characters (not extending previous query)
@@ -95,7 +94,7 @@ export default function SignUp() {
         mutate(
           `https://api-colombia.com/api/v1/Department/search/${encodeURIComponent(debouncedStateQuery)}`,
           undefined,
-          { revalidate: true }
+          { revalidate: true },
         );
       }
     }
@@ -104,16 +103,17 @@ export default function SignUp() {
 
   // SWR: fetch cities for the selected department
   const { data: stateCities, isLoading: citiesLoading } = useSWR<ColombiaCity[]>(
-    selectedState
-      ? `https://api-colombia.com/api/v1/Department/${selectedState.id}/cities`
-      : null,
+    selectedState ? `https://api-colombia.com/api/v1/Department/${selectedState.id}/cities` : null,
     colombiaFetcher,
-    { revalidateOnFocus: false, revalidateOnReconnect: false }
+    { revalidateOnFocus: false, revalidateOnReconnect: false },
   );
 
   // Normalize text: remove accents/tildes for accent-insensitive matching
   const normalize = (s: string) =>
-    s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    s
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
 
   // Client-side filter: only show departments whose name matches the query
   const filteredDepartments = useMemo(() => {
@@ -155,7 +155,8 @@ export default function SignUp() {
   const setErrorFor = (field: string, message?: string) => {
     setFieldErrors((prev) => {
       const next = { ...prev };
-      if (message) next[field] = message; else delete next[field];
+      if (message) next[field] = message;
+      else delete next[field];
       return next;
     });
   };
@@ -232,18 +233,58 @@ export default function SignUp() {
       const response = await registerUser(payload);
 
       if (response.status === "success") {
-        // Success - navigate to returnTo if provided, otherwise to login
-        showSuccess("Account created successfully. Please log in.");
-        setTimeout(() => navigate(returnTo ?? "/login"), 1500);
+        setShowRegSuccessModal(true);
       }
     } catch (err: unknown) {
       if (err instanceof ApiError) {
-        const code = err.code ? ` (${err.code})` : "";
-        // Attempt to surface field-level validation messages when available
-        const detailsMsg = err.details && typeof err.details === "object"
-          ? Object.values(err.details).flat().join(". ")
-          : undefined;
-        setError(detailsMsg ?? `${err.message}${code}`);
+        const detailsCode =
+          err.details && typeof err.details === "object" && typeof err.details["code"] === "string"
+            ? (err.details["code"] as string)
+            : undefined;
+
+        // Map well-known registration conflict codes to user-friendly messages
+        // and highlight the corresponding field.
+        const REGISTER_CODE_MAP: Record<string, { field: string; message: string }> = {
+          USER_EMAIL_ALREADY_EXISTS: {
+            field: "ownerEmail",
+            message:
+              "This owner email is already registered. Please use a different email or sign in.",
+          },
+          ORG_EMAIL_ALREADY_EXISTS: {
+            field: "organizationEmail",
+            message:
+              "An organization with this email already exists. Please use a different organization email.",
+          },
+          TAX_ID_ALREADY_EXISTS: {
+            field: "taxId",
+            message: "This Tax ID (NIT) is already associated with another organization.",
+          },
+          USER_PHONE_ALREADY_EXISTS: {
+            field: "ownerPhone",
+            message:
+              "This owner phone number is already in use. Please provide a different phone number.",
+          },
+          ORG_PHONE_ALREADY_EXISTS: {
+            field: "organizationPhone",
+            message:
+              "This organization phone number is already in use. Please provide a different one.",
+          },
+        };
+
+        if (detailsCode && REGISTER_CODE_MAP[detailsCode]) {
+          const { field, message } = REGISTER_CODE_MAP[detailsCode];
+          setErrorFor(field, message);
+          setError(message);
+        } else {
+          // Fallback: surface any other detail values or the generic message
+          const detailsMsg =
+            err.details && typeof err.details === "object"
+              ? Object.values(err.details)
+                  .filter((v) => typeof v === "string")
+                  .join(". ")
+              : undefined;
+          setError(detailsMsg ?? err.message);
+        }
       } else {
         setError("Network error. Please try again.");
       }
@@ -303,9 +344,7 @@ export default function SignUp() {
                   <span className="text-yellow-400 text-xl font-bold">✓</span>
                 </div>
                 <div>
-                  <p className="font-bold text-white">
-                    Instant Setup
-                  </p>
+                  <p className="font-bold text-white">Instant Setup</p>
                   <p className="text-sm text-gray-400">
                     Access your dashboard in less than 2 minutes.
                   </p>
@@ -319,9 +358,7 @@ export default function SignUp() {
         <div className="flex-grow md:w-1/2 flex items-center justify-center p-8 bg-black relative z-10 overflow-y-auto">
           <div className="w-full max-w-md py-12">
             <h2 className="text-4xl font-extrabold mb-2">Get Started</h2>
-            <p className="text-gray-400 mb-10">
-              Create your Lend Event account today
-            </p>
+            <p className="text-gray-400 mb-10">Create your Lend Event account today</p>
 
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Error Message */}
@@ -333,7 +370,7 @@ export default function SignUp() {
 
               {/* Nombre */}
               <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
                   First Name
                 </label>
                 <input
@@ -360,7 +397,7 @@ export default function SignUp() {
 
               {/* Apellido */}
               <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
                   Last Name
                 </label>
                 <input
@@ -387,7 +424,7 @@ export default function SignUp() {
 
               {/* Organization Name */}
               <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
                   Organization Name
                 </label>
                 <input
@@ -739,8 +776,8 @@ export default function SignUp() {
                   Password
                 </label>
                 <div className="text-xs text-gray-400 mb-2">
-                  Minimum 8 characters, 1 uppercase letter, 1 number and 1 special
-                  character (!@#$%^&*)
+                  Minimum 8 characters, 1 uppercase letter, 1 number and 1 special character
+                  (!@#$%^&*)
                 </div>
                 <input
                   type="password"
@@ -765,22 +802,22 @@ export default function SignUp() {
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
                   Confirm Password
                 </label>
-                  <input
-                    type="password"
-                    placeholder="Repeat your password"
-                    value={confirmPassword}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setConfirmPassword(v);
-                      const res = validateConfirmPassword(password, v);
-                      setErrorFor("confirmPassword", res.isValid ? undefined : res.message);
-                    }}
-                    disabled={loading}
-                    className={inputClass(!!fieldErrors.confirmPassword)}
-                  />
-                  {fieldErrors.confirmPassword && (
-                    <p className="text-red-400 text-xs mt-1">{fieldErrors.confirmPassword}</p>
-                  )}
+                <input
+                  type="password"
+                  placeholder="Repeat your password"
+                  value={confirmPassword}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setConfirmPassword(v);
+                    const res = validateConfirmPassword(password, v);
+                    setErrorFor("confirmPassword", res.isValid ? undefined : res.message);
+                  }}
+                  disabled={loading}
+                  className={inputClass(!!fieldErrors.confirmPassword)}
+                />
+                {fieldErrors.confirmPassword && (
+                  <p className="text-red-400 text-xs mt-1">{fieldErrors.confirmPassword}</p>
+                )}
               </div>
 
               {/* Create Account Button */}
@@ -796,10 +833,7 @@ export default function SignUp() {
             {/* Link a Login */}
             <p className="text-center text-sm text-gray-500 mt-8">
               Already have an account?{" "}
-              <Link
-                to="/login"
-                className="text-yellow-400 font-bold hover:underline"
-              >
+              <Link to="/login" className="text-yellow-400 font-bold hover:underline">
                 Sign in
               </Link>
             </p>
@@ -808,7 +842,51 @@ export default function SignUp() {
       </main>
 
       <Footer />
-      <AlertModal />
+
+      {/* Registration Success Modal */}
+      {showRegSuccessModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
+          <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-8 max-w-md w-full shadow-2xl">
+            <div className="flex items-center justify-center w-14 h-14 bg-green-400/10 border border-green-400/30 rounded-full mx-auto mb-5">
+              <svg
+                className="w-7 h-7 text-green-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-extrabold text-white text-center mb-3">
+              Account Created!
+            </h2>
+            <p className="text-gray-400 text-center text-sm mb-8 leading-relaxed">
+              Your account has been created successfully. Before you can sign in and access your
+              dashboard, you need to purchase a subscription plan. Choose a plan that fits your
+              needs to get started.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={() => navigate("/login")}
+                className="flex-1 py-3 rounded-xl border border-zinc-700 text-gray-300 font-semibold hover:bg-zinc-800 hover:text-white transition"
+              >
+                Go to Sign In
+              </button>
+              <button
+                onClick={() => navigate(returnTo ?? "/packages")}
+                className="flex-1 py-3 rounded-xl bg-yellow-400 text-black font-extrabold hover:bg-yellow-300 transition"
+              >
+                Buy Subscription
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
