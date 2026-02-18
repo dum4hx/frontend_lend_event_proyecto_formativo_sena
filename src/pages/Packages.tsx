@@ -7,11 +7,13 @@ import {
   Package,
   Users,
   LayoutGrid,
+  ShieldCheck,
 } from "lucide-react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { getAvailablePlans } from "../services/organizationService";
 import { getSubscriptionTypesPublic } from "../services/subscriptionTypeService";
+import { getPaymentStatus } from "../services/authService";
 import { ApiError } from "../lib/api";
 import type { AvailablePlan } from "../types/api";
 import styles from "./Packages.module.css";
@@ -28,6 +30,50 @@ function formatPrice(amount: number | null | undefined): string {
     minimumFractionDigits: value < 1 ? 2 : 0,
     maximumFractionDigits: 2,
   });
+}
+
+// ─── Active Subscription Modal ─────────────────────────────────────────────
+
+interface ActiveSubscriptionModalProps {
+  plan: string;
+  onManage: () => void;
+  onClose: () => void;
+}
+
+function ActiveSubscriptionModal({ plan, onManage, onClose }: ActiveSubscriptionModalProps) {
+  return (
+    <div
+      className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="bg-zinc-900 border border-zinc-700 rounded-2xl max-w-md w-full shadow-2xl p-8 flex flex-col items-center text-center">
+        <div className="mb-4 rounded-full bg-yellow-400/10 p-4">
+          <ShieldCheck className="w-10 h-10 text-yellow-400" />
+        </div>
+        <h2 className="text-xl font-bold text-white mb-2">Active Subscription</h2>
+        <p className="text-gray-400 text-sm mb-2">
+          You already have an active <span className="text-yellow-400 font-semibold capitalize">{plan}</span> subscription.
+        </p>
+        <p className="text-gray-500 text-sm mb-8">
+          You cannot purchase a new plan while your current subscription is active. To upgrade, downgrade, or manage billing, visit the Subscription Management page.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3 w-full">
+          <button
+            onClick={onManage}
+            className="flex-1 bg-yellow-400 hover:bg-yellow-300 text-black font-bold py-2.5 rounded-xl transition-colors text-sm"
+          >
+            Manage Subscription
+          </button>
+          <button
+            onClick={onClose}
+            className="flex-1 border border-zinc-600 hover:border-zinc-400 text-gray-300 hover:text-white font-medium py-2.5 rounded-xl transition-colors text-sm"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ─── Plan Card ─────────────────────────────────────────────────────────────
@@ -131,6 +177,23 @@ export default function Packages() {
   const { isLoggedIn } = useAuth();
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [pendingPlan, setPendingPlan] = useState<string | null>(null);
+  const [activePlan, setActivePlan] = useState<string | null>(null);
+  const [showActiveSubModal, setShowActiveSubModal] = useState(false);
+
+  // Check for an existing active subscription when the user is logged in
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    getPaymentStatus()
+      .then((res) => {
+        if (res.data.isActive) {
+          setActivePlan(res.data.plan);
+          setShowActiveSubModal(true);
+        }
+      })
+      .catch(() => {
+        // Ignore — if the check fails we don't block the user
+      });
+  }, [isLoggedIn]);
 
   useEffect(() => {
     let cancelled = false;
@@ -141,7 +204,7 @@ export default function Packages() {
         console.log("API RESPONSE:", res.data);
         if (cancelled) return;
         setPlans(res.data.plans);
-      } catch (err) {
+      } catch  {
         if (cancelled) return;
         // Fallback: fetch subscription types publicly and map to AvailablePlan
         try {
@@ -201,6 +264,12 @@ export default function Packages() {
       return;
     }
 
+    // Block if there is already an active subscription
+    if (activePlan) {
+      setShowActiveSubModal(true);
+      return;
+    }
+
     // Authenticated users go straight to checkout
     navigate(`/checkout?plan=${encodeURIComponent(plan.name)}`);
   };
@@ -222,6 +291,15 @@ export default function Packages() {
 
       <main className="flex-grow py-16 px-4">
         <section className="max-w-7xl mx-auto text-center mb-20">
+          {/* Active subscription warning modal */}
+          {showActiveSubModal && activePlan && (
+            <ActiveSubscriptionModal
+              plan={activePlan}
+              onManage={() => navigate("/admin/subscription")}
+              onClose={() => setShowActiveSubModal(false)}
+            />
+          )}
+
           {/* Login/Register modal — shown when unauthenticated user clicks Get Started */}
           <LoginModal
             open={showLoginModal}
@@ -230,7 +308,10 @@ export default function Packages() {
               setShowLoginModal(false);
               const planName = pendingPlan ?? localStorage.getItem("pendingCheckoutPlan");
               if (planName) {
-                try { localStorage.removeItem("pendingCheckoutPlan"); } catch {}
+                try { localStorage.removeItem("pendingCheckoutPlan"); } 
+                catch {
+                  /* Empty fallback */
+                  } 
                 navigate(`/checkout?plan=${encodeURIComponent(planName)}`);
               }
             }}
