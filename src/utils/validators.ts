@@ -199,6 +199,22 @@ export const validateAddressField = (value: string, label: string): ValidationRe
 }
 
 /**
+ * State (Departamento) validation
+ * Must be selected from the Colombia API suggestions list.
+ */
+export const validateState = (state: string, isSelected: boolean): ValidationResult => {
+  if (!state.trim()) {
+    return { isValid: true } // Optional field
+  }
+
+  if (!isSelected) {
+    return { isValid: false, message: 'Please select a valid department from the list' }
+  }
+
+  return { isValid: true }
+}
+
+/**
  * Legal name (company registration name) validation - optional
  */
 export const validateLegalName = (legalName?: string): ValidationResult => {
@@ -310,7 +326,8 @@ export const validateRegistrationForm = (formData: {
   taxId?: string
   street?: string
   city?: string
-  country?: string
+  state?: string
+  isStateSelected?: boolean
   postalCode?: string
   password: string
   confirmPassword: string
@@ -362,9 +379,9 @@ export const validateRegistrationForm = (formData: {
     if (!cityValidation.isValid) return cityValidation
   }
 
-  if (formData.country) {
-    const countryValidation = validateAddressField(formData.country, 'Country')
-    if (!countryValidation.isValid) return countryValidation
+  if (formData.state) {
+    const stateValidation = validateState(formData.state, !!formData.isStateSelected)
+    if (!stateValidation.isValid) return stateValidation
   }
 
   const postalValidation = validatePostalCode(formData.postalCode)

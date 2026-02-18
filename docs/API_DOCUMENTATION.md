@@ -300,8 +300,18 @@ Registers a new organization with owner account.
 | organization.email      | body     | string | Yes      | Organization email (unique)               |
 | organization.taxId      | body     | string | No       | Tax identification number                 |
 | organization.phone      | body     | string | No       | Phone in E.164 format                     |
-| organization.address    | body     | object | No       | Address object                            |
+| organization.address    | body     | object | No       | Address object (see details below)        |
 | owner.name.firstName    | body     | string | Yes      | Owner's first name                        |
+
+The `organization.address` object has the following structure:
+
+| Field        | Type   | Required | Description              |
+| ------------ | ------ | -------- | ------------------------ |
+| country      | string | Yes      | Country name             |
+| state        | string | Yes      | State or department      |
+| city         | string | Yes      | City name                |
+| street       | string | Yes      | Street address           |
+| postalCode   | string | No       | Postal code              |
 | owner.name.firstSurname | body     | string | Yes      | Owner's surname                           |
 | owner.email             | body     | string | Yes      | Owner's email (unique)                    |
 | owner.password          | body     | string | Yes      | Password (min 8 chars)                    |
@@ -1173,6 +1183,54 @@ Gets aggregated organization activity statistics.
       "averageSeatCount": 3.2,
       "averageCatalogItemCount": 45.8
     }
+  }
+}
+```
+
+---
+
+#### GET /admin/analytics/organizations-pii
+
+Gets a paginated list of all organizations with their details.
+
+| Parameter | Location | Type    | Required | Description                  |
+| --------- | -------- | ------- | -------- | ---------------------------- |
+| page      | query    | integer | No       | Page number (default: 1)     |
+| limit     | query    | integer | No       | Items per page (default: 10) |
+
+**Response:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "organizations": [
+      {
+        "_id": "60d5f1b4e6b3f10015f1b3a0",
+        "name": "Innovate Inc.",
+        "legalName": "Innovate Inc. LLC",
+        "email": "contact@innovate.com",
+        "phone": "+1234567890",
+        "address": {
+          "country": "USA",
+          "city": "San Francisco",
+          "street": "123 Market St",
+          "postalCode": "94103"
+        },
+        "subscription": {
+          "plan": "professional",
+          "seatCount": 10,
+          "stripeCustomerId": "cus_12345",
+          "stripeSubscriptionId": "sub_12345"
+        },
+        "status": "active",
+        "createdAt": "2023-01-15T10:30:00.000Z"
+      }
+    ],
+    "total": 150,
+    "page": 1,
+    "limit": 10,
+    "totalPages": 15
   }
 }
 ```

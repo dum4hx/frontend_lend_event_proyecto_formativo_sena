@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import useSWR, { mutate } from "swr";
+import { useDebounce } from "use-debounce";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { registerUser } from "../services/authService";
@@ -16,8 +18,27 @@ import {
   validateTaxId,
   validatePassword,
   validateConfirmPassword,
+  validateState,
 } from "../utils/validators";
 import styles from "./SignUp.module.css";
+
+// --- Colombia API types & fetcher -------------------------------------------
+interface ColombiaDepartment {
+  id: number;
+  name: string;
+}
+
+interface ColombiaCity {
+  id: number;
+  name: string;
+  departmentId: number;
+}
+
+const colombiaFetcher = (url: string) =>
+  fetch(url).then((res) => {
+    if (!res.ok) throw new Error(`Colombia API error: ${res.status}`);
+    return res.json();
+  });
 
 export default function SignUp() {
   const navigate = useNavigate();
@@ -37,10 +58,74 @@ export default function SignUp() {
   const [taxId, setTaxId] = useState("");
   const [street, setStreet] = useState("");
   const [city, setCity] = useState("");
-  const [country, setCountry] = useState("");
   const [postalCode, setPostalCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  // --- State (Departamento) autocomplete ------------------------------------
+  const [stateQuery, setStateQuery] = useState("");
+  const [selectedState, setSelectedState] = useState<ColombiaDepartment | null>(null);
+  const [showStateSuggestions, setShowStateSuggestions] = useState(false);
+  const [debouncedStateQuery] = useDebounce(stateQuery, 500);
+  const prevStateQueryRef = useRef("");
+
+  // --- City autocomplete (depends on selected state) ------------------------
+  const [cityQuery, setCityQuery] = useState("");
+  const [selectedCity, setSelectedCity] = useState<ColombiaCity | null>(null);
+  const [showCitySuggestions, setShowCitySuggestions] = useState(false);
+
+  // SWR: search departments by keyword
+  const { data: departments, isLoading: deptLoading } = useSWR<ColombiaDepartment[]>(
+    debouncedStateQuery && !selectedState
+      ? `https://api-colombia.com/api/v1/Department/search/${encodeURIComponent(debouncedStateQuery)}`
+      : null,
+    colombiaFetcher,
+    { revalidateOnFocus: false, revalidateOnReconnect: false, keepPreviousData: true }
+  );
+
+  // Invalidate cache when user deletes characters (not extending previous query)
+  useEffect(() => {
+    if (debouncedStateQuery && prevStateQueryRef.current) {
+      const isExtending = debouncedStateQuery.startsWith(prevStateQueryRef.current);
+      if (!isExtending) {
+        mutate(
+          `https://api-colombia.com/api/v1/Department/search/${encodeURIComponent(debouncedStateQuery)}`,
+          undefined,
+          { revalidate: true }
+        );
+      }
+    }
+    prevStateQueryRef.current = debouncedStateQuery;
+  }, [debouncedStateQuery]);
+
+  // SWR: fetch cities for the selected department
+  const { data: stateCities, isLoading: citiesLoading } = useSWR<ColombiaCity[]>(
+    selectedState
+      ? `https://api-colombia.com/api/v1/Department/${selectedState.id}/cities`
+      : null,
+    colombiaFetcher,
+    { revalidateOnFocus: false, revalidateOnReconnect: false }
+  );
+
+  // Normalize text: remove accents/tildes for accent-insensitive matching
+  const normalize = (s: string) =>
+    s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+  // Client-side filter: only show departments whose name matches the query
+  const filteredDepartments = useMemo(() => {
+    if (!departments) return [];
+    if (!debouncedStateQuery.trim()) return departments;
+    const nq = normalize(debouncedStateQuery);
+    return departments.filter((d) => normalize(d.name).includes(nq));
+  }, [departments, debouncedStateQuery]);
+
+  // Client-side filter for city suggestions
+  const filteredCities = useMemo(() => {
+    if (!stateCities) return [];
+    if (!cityQuery.trim()) return stateCities;
+    const lc = cityQuery.toLowerCase();
+    return stateCities.filter((c) => c.name.toLowerCase().includes(lc));
+  }, [stateCities, cityQuery]);
 
   // --- Helpers: input formatting/masking ---------------------------------
   const formatNameInput = (value: string) => {
@@ -94,7 +179,8 @@ export default function SignUp() {
       taxId,
       street,
       city,
-      country,
+      state: stateQuery,
+      isStateSelected: !!selectedState,
       postalCode,
       password,
       confirmPassword,
@@ -121,7 +207,8 @@ export default function SignUp() {
           address: {
             street: street || undefined,
             city: city || undefined,
-            country: country || undefined,
+            state: selectedState?.name || undefined,
+            country: "Colombia",
             postalCode: postalCode || undefined,
           },
         },
@@ -484,32 +571,148 @@ export default function SignUp() {
                 />
               </div>
 
-              <div>
+              {/* State (Departamento) */}
+              <div className="relative">
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
+                  State (Departamento)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Search department..."
+                  value={stateQuery}
+                  autoComplete="off"
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setStateQuery(v);
+                    if (selectedState && v !== selectedState.name) {
+                      setSelectedState(null);
+                      setCity("");
+                      setCityQuery("");
+                      setSelectedCity(null);
+                    }
+                    setShowStateSuggestions(true);
+                    // Real-time validation
+                    const res = validateState(v, !!(selectedState && v === selectedState.name));
+                    setErrorFor("state", res.isValid ? undefined : res.message);
+                  }}
+                  onBlur={() => {
+                    setTimeout(() => setShowStateSuggestions(false), 200);
+                    const res = validateState(stateQuery, !!selectedState);
+                    setErrorFor("state", res.isValid ? undefined : res.message);
+                  }}
+                  onFocus={() => {
+                    if (filteredDepartments.length && !selectedState) {
+                      setShowStateSuggestions(true);
+                    }
+                  }}
+                  disabled={loading}
+                  className={inputClass(!!fieldErrors.state)}
+                />
+                {showStateSuggestions && stateQuery && !selectedState && (
+                  <div className="absolute z-50 w-full mt-1 bg-zinc-900 border border-zinc-700 rounded-xl max-h-48 overflow-y-auto shadow-lg">
+                    {deptLoading || stateQuery !== debouncedStateQuery ? (
+                      <div className="p-3 text-gray-400 text-sm">Searching...</div>
+                    ) : filteredDepartments.length ? (
+                      filteredDepartments.map((dept) => (
+                        <button
+                          key={dept.id}
+                          type="button"
+                          className="w-full text-left px-4 py-3 text-white hover:bg-zinc-800 transition"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => {
+                            setSelectedState(dept);
+                            setStateQuery(dept.name);
+                            setShowStateSuggestions(false);
+                            setErrorFor("state", undefined);
+                            setCityQuery("");
+                            setSelectedCity(null);
+                            setCity("");
+                          }}
+                        >
+                          {dept.name}
+                        </button>
+                      ))
+                    ) : (
+                      <div className="p-3 text-gray-400 text-sm">No departments found</div>
+                    )}
+                  </div>
+                )}
+                {fieldErrors.state && (
+                  <p className="text-red-400 text-xs mt-1">{fieldErrors.state}</p>
+                )}
+              </div>
+
+              {/* City (depends on selected state) */}
+              <div className="relative">
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
                   City
                 </label>
                 <input
                   type="text"
-                  placeholder="Bogotá"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  disabled={loading}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 px-4 text-white focus:border-yellow-400 outline-none transition duration-200 disabled:opacity-50"
+                  placeholder={selectedState ? "Search city..." : "Select a state first"}
+                  value={cityQuery}
+                  autoComplete="off"
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setCityQuery(v);
+                    if (selectedCity && v !== selectedCity.name) {
+                      setSelectedCity(null);
+                      setCity("");
+                    }
+                    setShowCitySuggestions(true);
+                    // Real-time validation: error only when text entered without a selection
+                    if (v && !(selectedCity && v === selectedCity.name)) {
+                      setErrorFor("city", "Please select a valid city from the list");
+                    } else {
+                      setErrorFor("city", undefined);
+                    }
+                  }}
+                  onBlur={() => {
+                    setTimeout(() => setShowCitySuggestions(false), 200);
+                    if (cityQuery && !selectedCity) {
+                      setErrorFor("city", "Please select a valid city from the list");
+                    } else {
+                      setErrorFor("city", undefined);
+                    }
+                  }}
+                  onFocus={() => {
+                    if (filteredCities.length && !selectedCity) {
+                      setShowCitySuggestions(true);
+                    }
+                  }}
+                  disabled={loading || !selectedState}
+                  className={inputClass(!!fieldErrors.city)}
                 />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                  Country
-                </label>
-                <input
-                  type="text"
-                  placeholder="Colombia"
-                  value={country}
-                  onChange={(e) => setCountry(e.target.value)}
-                  disabled={loading}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 px-4 text-white focus:border-yellow-400 outline-none transition duration-200 disabled:opacity-50"
-                />
+                {showCitySuggestions && selectedState && !selectedCity && (
+                  <div className="absolute z-50 w-full mt-1 bg-zinc-900 border border-zinc-700 rounded-xl max-h-48 overflow-y-auto shadow-lg">
+                    {citiesLoading ? (
+                      <div className="p-3 text-gray-400 text-sm">Loading cities...</div>
+                    ) : filteredCities.length ? (
+                      filteredCities.map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          className="w-full text-left px-4 py-3 text-white hover:bg-zinc-800 transition"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => {
+                            setSelectedCity(c);
+                            setCityQuery(c.name);
+                            setCity(c.name);
+                            setShowCitySuggestions(false);
+                            setErrorFor("city", undefined);
+                          }}
+                        >
+                          {c.name}
+                        </button>
+                      ))
+                    ) : (
+                      <div className="p-3 text-gray-400 text-sm">No cities found</div>
+                    )}
+                  </div>
+                )}
+                {fieldErrors.city && (
+                  <p className="text-red-400 text-xs mt-1">{fieldErrors.city}</p>
+                )}
               </div>
 
               <div>
