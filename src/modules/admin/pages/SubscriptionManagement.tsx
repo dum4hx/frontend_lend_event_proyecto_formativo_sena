@@ -14,16 +14,19 @@ import {
   createPortalSession,
   cancelSubscription,
   updateSeats,
+  createCheckoutSession,
 } from "../../../services/billingService";
-import { getOrganizationUsage } from "../../../services/organizationService";
+import { getOrganizationUsage, getAvailablePlans, getOrganization } from "../../../services/organizationService";
+import { getSubscriptionTypesPublic, getSubscriptionTypes } from "../../../services/subscriptionTypeService";
 import { LoadingSpinner, ErrorDisplay, AlertContainer, ConfirmDialog } from "../../../components/ui";
 import { normalizeError, logError } from "../../../utils/errorHandling";
+import { ApiError } from "../../../lib/api";
 import { useAlerts } from "../../../hooks/useAlerts";
 import { useAuth } from "../../../contexts/useAuth";
 import { ExportSettingsModal } from "../../../components/export/ExportSettingsModal";
 import { exportService, BILLING_HISTORY_POLICY } from "../../../services/export";
 import type { ExportConfig, ExportProgress } from "../../../types/export";
-import type { BillingHistoryEntry } from "../../../types/api";
+import type { BillingHistoryEntry, AvailablePlan, Organization } from "../../../types/api";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -66,6 +69,8 @@ function formatDate(iso: string): string {
 export default function SubscriptionManagement() {
   // Data
   const [history, setHistory] = useState<BillingHistoryEntry[]>([]);
+  const [plans, setPlans] = useState<AvailablePlan[]>([]);
+  const [organization, setOrganization] = useState<Organization | null>(null);
   const [usage, setUsage] = useState<{
     currentSeats: number;
     maxSeats: number;
@@ -73,6 +78,7 @@ export default function SubscriptionManagement() {
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   // Seat update
   const [seatCount, setSeatCount] = useState(1);
@@ -97,18 +103,99 @@ export default function SubscriptionManagement() {
     try {
       setLoading(true);
       setError("");
-      const [historyRes, usageRes] = await Promise.all([
+      setSessionExpired(false);
+      // Always try to fetch public plans first (does not require auth)
+      try {
+        // 1) Prefer public subscription types (commonly implemented)
+        const typesRes = await getSubscriptionTypesPublic();
+        const pubPlans = typesRes.data.subscriptionTypes ?? [];
+        if (pubPlans.length > 0) {
+          setPlans(pubPlans as unknown as AvailablePlan[]);
+        } else {
+          // 2) Try organization plans endpoint
+          try {
+            const plansRes = await getAvailablePlans();
+            const orgPlans = plansRes.data.plans ?? [];
+            if (orgPlans.length > 0) {
+              setPlans(orgPlans);
+            } else {
+              // 3) Authenticated subscription types
+              try {
+                const authTypesRes = await getSubscriptionTypes();
+                const authTypes = authTypesRes.data.subscriptionTypes ?? [];
+                const mapped = authTypes.map((p) => ({
+                  name: p.plan,
+                  displayName: p.displayName,
+                  billingModel: p.billingModel,
+                  maxCatalogItems: p.maxCatalogItems,
+                  maxSeats: p.maxSeats,
+                  features: p.features ?? [],
+                  basePriceMonthly: p.baseCost,
+                  pricePerSeat: p.pricePerSeat,
+                }));
+                setPlans(mapped);
+              } catch (e3) {
+                logError(e3, "SubscriptionManagement.fetchAuthTypes");
+                setPlans([]);
+              }
+            }
+          } catch (e2) {
+            logError(e2, "SubscriptionManagement.fetchOrgPlans");
+            setPlans([]);
+          }
+        }
+      } catch (e) {
+        logError(e, "SubscriptionManagement.fetchPlansOrder");
+        setPlans([]);
+      }
+
+      // Fetch protected endpoints individually; tolerate 401 to keep the view
+      const results = await Promise.allSettled([
         getBillingHistory(50),
         getOrganizationUsage(),
+        getOrganization(),
       ]);
-      setHistory(historyRes.data.history ?? []);
-      const u = usageRes.data.usage;
-      setUsage({
-        currentSeats: u.currentSeats ?? 0,
-        maxSeats: u.maxSeats ?? 0,
-        canAddSeat: u.canAddSeat,
-      });
-      setSeatCount(u.currentSeats ?? 1);
+
+      const [histRes, usageRes, orgRes] = results;
+
+      if (histRes.status === "fulfilled") {
+        setHistory(histRes.value.data.history ?? []);
+      } else if (histRes.status === "rejected") {
+        const err = histRes.reason;
+        if (err instanceof ApiError && err.statusCode === 401) {
+          setSessionExpired(true);
+        } else {
+          setError(normalizeError(err).message);
+        }
+      }
+
+      if (usageRes.status === "fulfilled") {
+        const u = usageRes.value.data.usage;
+        setUsage({
+          currentSeats: u.currentSeats ?? 0,
+          maxSeats: u.maxSeats ?? 0,
+          canAddSeat: u.canAddSeat,
+        });
+        setSeatCount(u.currentSeats ?? 1);
+      } else if (usageRes.status === "rejected") {
+        const err = usageRes.reason;
+        if (err instanceof ApiError && err.statusCode === 401) {
+          setSessionExpired(true);
+        } else {
+          setError(normalizeError(err).message);
+        }
+      }
+
+      if (orgRes.status === "fulfilled") {
+        setOrganization(orgRes.value.data.organization ?? null);
+      } else if (orgRes.status === "rejected") {
+        const err = orgRes.reason;
+        if (err instanceof ApiError && err.statusCode === 401) {
+          setSessionExpired(true);
+        } else {
+          setError(normalizeError(err).message);
+        }
+      }
     } catch (err: unknown) {
       const normalized = normalizeError(err);
       setError(normalized.message);
@@ -162,6 +249,28 @@ export default function SubscriptionManagement() {
       setCancelling(false);
     }
   }, [showAlert, fetchData]);
+
+  // ─── Plan Upgrade / Change ───────────────────────────────────────────────
+
+  const handleChangePlan = useCallback(
+    async (planName: string) => {
+      try {
+        const successUrl = `${window.location.origin}/admin/subscription`;
+        const cancelUrl = successUrl;
+        const result = await createCheckoutSession({
+          plan: planName,
+          seatCount: usage?.currentSeats ?? 1,
+          successUrl,
+          cancelUrl,
+        });
+        // Redirect to Stripe Checkout
+        window.location.href = result.data.checkoutUrl;
+      } catch (err: unknown) {
+        showAlert("error", normalizeError(err).message);
+      }
+    },
+    [usage?.currentSeats, showAlert],
+  );
 
   // ─── Export ────────────────────────────────────────────────────────────────
 
@@ -245,7 +354,7 @@ export default function SubscriptionManagement() {
 
   const currency = history[0]?.currency ?? "usd";
 
-  const currentPlan = history.find((e) => e.newPlan)?.newPlan;
+  const currentPlan = organization?.subscription?.plan ?? history.find((e) => e.newPlan)?.newPlan;
 
   // ─── Render ────────────────────────────────────────────────────────────────
 
@@ -253,7 +362,8 @@ export default function SubscriptionManagement() {
     return <LoadingSpinner fullScreen message="Loading subscription data…" />;
   }
 
-  if (error) {
+  // For non-auth fatal errors, show the full-screen error. For 401, we keep the view.
+  if (error && !sessionExpired) {
     return <ErrorDisplay error={error} onRetry={fetchData} fullScreen />;
   }
 
@@ -263,6 +373,19 @@ export default function SubscriptionManagement() {
     <div>
       {/* Alerts */}
       <AlertContainer alerts={alerts} onDismiss={dismissAlert} position="top-right" />
+
+      {/* Session expired banner (non-blocking) */}
+      {sessionExpired && (
+        <div className="mb-4 bg-red-900/30 border border-red-700 text-red-300 rounded-xl px-4 py-3">
+          Your session appears to have expired. Some data could not be loaded.
+          <button
+            onClick={() => (window.location.href = "/login")}
+            className="ml-3 inline-flex items-center px-3 py-1 rounded-lg bg-red-700/50 hover:bg-red-700 text-white text-xs"
+          >
+            Log in again
+          </button>
+        </div>
+      )}
 
       {/* Cancel confirm dialog */}
       <ConfirmDialog
@@ -370,6 +493,62 @@ export default function SubscriptionManagement() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Available Plans — owner only */}
+      {isOwner && (
+        <div className="bg-[#121212] border border-[#333] rounded-xl p-6 mb-8">
+          <h2 className="text-lg font-bold text-white mb-4">Available Plans</h2>
+          {plans.length === 0 ? (
+            <div className="text-gray-400 text-sm">No available plans found. Please contact support or try again later.</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {plans.map((p) => {
+                const planKey = (p as any).name ?? (p as any).plan ?? p.displayName;
+                const targetPlanName = (p as any).name ?? (p as any).plan ?? p.displayName;
+                const isActive = currentPlan && (targetPlanName === currentPlan || p.displayName.toLowerCase() === currentPlan?.toLowerCase());
+                return (
+                  <div key={planKey} className={`rounded-xl border ${isActive ? "border-yellow-500" : "border-[#333]"} bg-[#0f0f0f] p-5 flex flex-col`}>
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <div className="text-white font-semibold text-lg">{p.displayName}</div>
+                        <div className="text-xs text-gray-500 capitalize">{p.billingModel === "fixed" ? "Fixed monthly" : "Per-seat"}</div>
+                      </div>
+                      {isActive && (
+                        <span className="text-xs px-2 py-1 rounded-full bg-yellow-700/30 text-yellow-400 border border-yellow-700">Active</span>
+                      )}
+                    </div>
+                    <div className="text-white text-2xl font-bold mb-2">${p.basePriceMonthly.toLocaleString()}</div>
+                    {p.pricePerSeat > 0 && (
+                      <div className="text-gray-400 text-sm mb-2">+ ${p.pricePerSeat.toLocaleString()} per seat</div>
+                    )}
+                    <div className="text-gray-400 text-sm mb-3">
+                      Limits: {p.maxSeats < 0 ? "Unlimited" : `${p.maxSeats} seats`} · {p.maxCatalogItems < 0 ? "Unlimited" : `${p.maxCatalogItems} items`}
+                    </div>
+                    <ul className="text-gray-300 text-sm space-y-1 mb-4">
+                      {p.features.slice(0, 6).map((f, idx) => (
+                        <li key={idx} className="flex items-center gap-2">
+                          <CheckCircle size={14} className="text-yellow-400" />
+                          <span>{f}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <button
+                      onClick={() => void handleChangePlan(targetPlanName)}
+                      disabled={Boolean(isActive)}
+                      className={`mt-auto px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                        isActive ? "border border-[#333] text-gray-500 cursor-not-allowed" : "bg-[#FFD700] hover:bg-yellow-400 text-black"
+                      }`}
+                    >
+                      {isActive ? "Current Plan" : (currentPlan ? (p.basePriceMonthly > 0 ? "Upgrade / Change" : "Change Plan") : "Choose Plan")}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <p className="text-xs text-gray-500 mt-3">Plan changes use the existing payment gateway and require valid authentication.</p>
         </div>
       )}
 
