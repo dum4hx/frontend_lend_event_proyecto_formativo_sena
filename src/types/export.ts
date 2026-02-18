@@ -16,7 +16,8 @@ export type ExportModule =
   | 'user-management'
   | 'sales-overview'
   | 'plan-configuration'
-  | 'organization-management';
+  | 'organization-management'
+  | 'billing-history';
 
 // ─── Redaction Policy ──────────────────────────────────────────────────────
 

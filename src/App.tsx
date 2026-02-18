@@ -31,12 +31,13 @@ import Customers from "./modules/admin/pages/Customers";
 import Team from "./modules/admin/pages/Team";
 import IASettings from "./modules/admin/pages/IA_Settings";
 import Settings from "./modules/admin/pages/Settings";
+import AdminSubscriptionManagement from "./modules/admin/pages/SubscriptionManagement";
 
 // Super Admin — lazy-loaded for code-splitting
 const SuperAdminLayout = lazy(() => import("./modules/super-admin/layouts/SuperAdminLayout"));
 const SalesOverview = lazy(() => import("./modules/super-admin/pages/SalesOverview"));
 const UserManagement = lazy(() => import("./modules/super-admin/pages/UserManagement"));
-const PlanConfiguration = lazy(() => import("./modules/super-admin/pages/PlanConfiguration"));
+const SuperAdminSubscriptionManagement = lazy(() => import("./modules/super-admin/pages/SubscriptionManagement"));
 const AIChatbotMonitor = lazy(() => import("./modules/super-admin/pages/AIChatbotMonitor"));
 const SystemSettings = lazy(() => import("./modules/super-admin/pages/SystemSettings"));
 const OrganizationManagement = lazy(() => import("./modules/super-admin/pages/OrganizationManagement"));
@@ -73,6 +74,7 @@ function App() {
             <Route path="team" element={<Team />} />
             <Route path="ia-settings" element={<IASettings />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="subscription" element={<AdminSubscriptionManagement />} />
           </Route>
 
           {/* Rutas super-admin - require super_admin role */}
@@ -89,7 +91,7 @@ function App() {
             <Route index element={<SalesOverview />} />
             <Route path="clients" element={<UserManagement />} />
             <Route path="organizations" element={<OrganizationManagement />} />
-            <Route path="plans" element={<PlanConfiguration />} />
+            <Route path="subscriptions" element={<SuperAdminSubscriptionManagement />} />
             <Route path="ai-monitor" element={<AIChatbotMonitor />} />
             <Route path="settings" element={<SystemSettings />} />
           </Route>

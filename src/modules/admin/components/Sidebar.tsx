@@ -9,6 +9,7 @@ import {
   LogOut,
   UserCircle,
   Home,
+  CreditCard,
 } from "lucide-react";
 import { ApiError } from "../../../lib/api";
 import { useLogout } from "../../../hooks/useLogout";
@@ -45,6 +46,12 @@ const navItems: NavItem[] = [
     label: "IA Settings",
     icon: <Bot size={20} />,
     path: "/admin/ia-settings",
+  },
+  {
+    id: "subscription",
+    label: "Subscription",
+    icon: <CreditCard size={20} />,
+    path: "/admin/subscription",
   },
   {
     id: "settings",

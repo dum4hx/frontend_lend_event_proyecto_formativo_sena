@@ -31,6 +31,7 @@ const VALID_MODULES: ReadonlyArray<ExportModule> = [
   'sales-overview',
   'plan-configuration',
   'organization-management',
+  'billing-history',
 ];
 
 // ─── Validation Results ────────────────────────────────────────────────────

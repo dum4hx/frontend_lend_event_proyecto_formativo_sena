@@ -37,6 +37,7 @@ const MODULE_DISPLAY_NAMES: Record<ExportModule, string> = {
   'sales-overview': 'Sales Overview',
   'plan-configuration': 'Plan Configuration',
   'organization-management': 'Organization Management',
+  "billing-history": 'Billing History',
 };
 
 // ─── Adapter Registry ──────────────────────────────────────────────────────

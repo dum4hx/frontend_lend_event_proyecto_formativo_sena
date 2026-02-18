@@ -762,11 +762,18 @@ export interface ActivityQueryParams {
 // ─── Billing History ───────────────────────────────────────────────────────
 
 export interface BillingHistoryEntry {
-  id: string;
-  type: string;
-  amount: number;
+  _id: string;
+  organizationId: string;
+  eventType: string;
+  stripeCustomerId: string;
+  stripeEventId?: string;
+  stripeSubscriptionId?: string;
+  stripeInvoiceId?: string;
+  amount?: number;
   currency: string;
-  status: string;
+  newPlan?: string;
+  seatChange?: number;
+  processed: boolean;
   createdAt: string;
-  description?: string;
+  updatedAt: string;
 }

@@ -74,7 +74,7 @@ export function RequireActiveSubscription({ children, redirectTo = "/packages" }
   }, [isLoading, isLoggedIn, user, navigate, redirectTo]);
 
   if (checking) {
-    return <LoadingSpinner fullScreen message="Verifying subscriptionÔÇª" />;
+    return <LoadingSpinner fullScreen message="Verifying subscription" />;
   }
 
   if (!allowed) {

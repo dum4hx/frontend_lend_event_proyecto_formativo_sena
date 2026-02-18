@@ -103,6 +103,25 @@ export const ORGANIZATION_MANAGEMENT_POLICY: RedactionPolicy = {
   ],
 };
 
+/**
+ * Default redaction policy for BillingHistory module.
+ * Billing transactions — no PII, financial records only.
+ */
+export const BILLING_HISTORY_POLICY: RedactionPolicy = {
+  module: 'billing-history',
+  requiresFullExportConfirmation: false,
+  fields: [
+    { key: 'id', label: 'Transaction ID', redaction: 'include', overridable: false, defaultSelected: true, category: 'metadata' },
+    { key: 'eventType', label: 'Event Type', redaction: 'include', overridable: false, defaultSelected: true, category: 'attribute' },
+    { key: 'newPlan', label: 'Plan', redaction: 'include', overridable: true, defaultSelected: true, category: 'attribute' },
+    { key: 'seatChange', label: 'Seat Change', redaction: 'include', overridable: true, defaultSelected: true, category: 'metric' },
+    { key: 'amount', label: 'Amount', redaction: 'include', overridable: false, defaultSelected: true, category: 'metric' },
+    { key: 'currency', label: 'Currency', redaction: 'include', overridable: false, defaultSelected: true, category: 'attribute' },
+    { key: 'processed', label: 'Processed', redaction: 'include', overridable: true, defaultSelected: false, category: 'attribute' },
+    { key: 'createdAt', label: 'Date', redaction: 'include', overridable: false, defaultSelected: true, category: 'metadata' },
+  ],
+};
+
 /** Retrieve the default policy for a given module. */
 export function getDefaultPolicy(module: ExportModule): RedactionPolicy {
   switch (module) {
@@ -114,6 +133,8 @@ export function getDefaultPolicy(module: ExportModule): RedactionPolicy {
       return PLAN_CONFIGURATION_POLICY;
     case 'organization-management':
       return ORGANIZATION_MANAGEMENT_POLICY;
+    case 'billing-history':
+      return BILLING_HISTORY_POLICY;
   }
 }
 
