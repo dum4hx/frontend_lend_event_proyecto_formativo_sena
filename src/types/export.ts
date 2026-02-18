@@ -15,7 +15,8 @@ export type ExportFormat = 'pdf' | 'xlsx';
 export type ExportModule =
   | 'user-management'
   | 'sales-overview'
-  | 'plan-configuration';
+  | 'plan-configuration'
+  | 'organization-management';
 
 // ─── Redaction Policy ──────────────────────────────────────────────────────
 

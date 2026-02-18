@@ -527,6 +527,35 @@ export interface AdminDashboardData {
   generatedAt: string;
 }
 
+// ─── Organizations PII (Super Admin) ───────────────────────────────────────
+
+export interface OrganizationPiiSubscription {
+  plan: string;
+  seatCount: number;
+  stripeCustomerId?: string;
+  stripeSubscriptionId?: string;
+}
+
+export interface OrganizationPii {
+  _id: string;
+  name: string;
+  legalName: string;
+  email: string;
+  phone?: string;
+  address?: Address;
+  subscription: OrganizationPiiSubscription;
+  status: OrganizationStatus;
+  createdAt: string;
+}
+
+export interface OrganizationsPiiResponse {
+  organizations: OrganizationPii[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 // ─── Super Admin Operations ────────────────────────────────────────────────
 
 /** Result of a bulk operation on subscription types. */
