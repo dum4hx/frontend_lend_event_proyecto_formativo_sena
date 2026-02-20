@@ -242,20 +242,18 @@ export const validatePhone = (phone?: string): ValidationResult => {
     return { isValid: true } // Phone is optional
   }
 
-  // Must start with a single '+' and contain only digits afterwards
-  if (!phone.startsWith('+')) {
-    return { isValid: false, message: 'Phone must start with + followed by digits' }
+  // Colombian mobile format: +57 followed by 10 digits starting with 3
+  const normalizedPhone = phone.replace(/\s+/g, '')
+
+  if (!/^\+57\d{10}$/.test(normalizedPhone)) {
+    return { isValid: false, message: 'Phone must have Colombian format: +57 3XXXXXXXXX' }
   }
-  if ((phone.match(/\+/g) || []).length > 1) {
-    return { isValid: false, message: 'The + symbol can only appear once and at the beginning' }
+
+  const localNumber = normalizedPhone.slice(3)
+  if (!/^3\d{9}$/.test(localNumber)) {
+    return { isValid: false, message: 'Enter a valid Colombian mobile number (starts with 3)' }
   }
-  const digits = phone.slice(1)
-  if (!/^\d+$/.test(digits)) {
-    return { isValid: false, message: 'Phone may only contain numbers after the +' }
-  }
-  if (digits.length < 7 || digits.length > 15) {
-    return { isValid: false, message: 'Phone number must have between 7 and 15 digits' }
-  }
+
   return { isValid: true }
 }
 

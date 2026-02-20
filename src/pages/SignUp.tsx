@@ -40,6 +40,8 @@ const colombiaFetcher = (url: string) =>
     return res.json();
   });
 
+const COLOMBIA_PHONE_PREFIX = "+57";
+
 export default function SignUp() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -139,10 +141,12 @@ export default function SignUp() {
   };
 
   const formatPhoneInput = (value: string) => {
-    const digits = value.replace(/\D/g, "");
-    const clamped = digits.slice(0, 15); // E.164 max 15 digits
-    return clamped ? `+${clamped}` : "";
+    const digitsOnly = value.replace(/\D/g, "");
+    return digitsOnly.slice(0, 10);
   };
+
+  const toColombianPhone = (digits: string) =>
+    digits ? `${COLOMBIA_PHONE_PREFIX}${digits}` : "";
 
   const formatTaxIdInput = (value: string) => {
     const digits = value.replace(/\D/g, "");
@@ -164,9 +168,15 @@ export default function SignUp() {
   const inputClass = (hasError: boolean) =>
     `w-full bg-zinc-900 rounded-xl py-4 px-4 text-white outline-none transition duration-200 disabled:opacity-50 border ${hasError ? "border-red-500 focus:border-red-500" : "border-zinc-800 focus:border-yellow-400"}`;
 
+  const phoneInputWrapperClass = (hasError: boolean) =>
+    `w-full bg-zinc-900 rounded-xl text-white transition duration-200 disabled:opacity-50 border ${hasError ? "border-red-500 focus-within:border-red-500" : "border-zinc-800 focus-within:border-yellow-400"}`;
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+
+    const ownerPhoneForValidation = toColombianPhone(ownerPhone);
+    const organizationPhoneForValidation = toColombianPhone(organizationPhone);
 
     // Validate form
     // Block submit if any current field errors exist
@@ -189,8 +199,8 @@ export default function SignUp() {
       postalCode,
       password,
       confirmPassword,
-      ownerPhone,
-      organizationPhone,
+      ownerPhone: ownerPhoneForValidation,
+      organizationPhone: organizationPhoneForValidation,
     });
 
     if (!validation.isValid) {
@@ -207,7 +217,7 @@ export default function SignUp() {
           name: organizationName,
           legalName: legalName || undefined,
           email: organizationEmail,
-          phone: organizationPhone || undefined,
+          phone: organizationPhoneForValidation || undefined,
           taxId: taxId ? cleanTaxIdForApi(taxId) : undefined,
           address: {
             street: street || undefined,
@@ -220,7 +230,7 @@ export default function SignUp() {
         owner: {
           email: ownerEmail,
           password: password,
-          phone: ownerPhone,
+          phone: ownerPhoneForValidation,
           name: {
             firstName: firstName,
             secondName: undefined,
@@ -552,23 +562,41 @@ export default function SignUp() {
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
                   Organization Phone <span className="text-gray-600">(Optional)</span>
                 </label>
-                <input
-                  type="tel"
-                  placeholder="+1234567890"
-                  value={organizationPhone}
-                  onChange={(e) => {
-                    const v = formatPhoneInput(e.target.value);
-                    setOrganizationPhone(v);
-                    if (v) {
-                      const res = validatePhone(v);
-                      setErrorFor("organizationPhone", res.isValid ? undefined : res.message);
-                    } else {
-                      setErrorFor("organizationPhone", undefined);
-                    }
-                  }}
-                  disabled={loading}
-                  className={inputClass(!!fieldErrors.organizationPhone)}
-                />
+                <div className={phoneInputWrapperClass(!!fieldErrors.organizationPhone)}>
+                  <div className="flex items-center">
+                    <span className="text-white pl-4 pr-2 select-none whitespace-pre">
+                      {`${COLOMBIA_PHONE_PREFIX} `}
+                    </span>
+                    <input
+                      type="tel"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={10}
+                      placeholder="3001234567"
+                      value={organizationPhone}
+                      onChange={(e) => {
+                        const v = formatPhoneInput(e.target.value);
+                        setOrganizationPhone(v);
+                        if (v) {
+                          const res = validatePhone(toColombianPhone(v));
+                          setErrorFor("organizationPhone", res.isValid ? undefined : res.message);
+                        } else {
+                          setErrorFor("organizationPhone", undefined);
+                        }
+                      }}
+                      onBlur={() => {
+                        if (!organizationPhone) {
+                          setErrorFor("organizationPhone", undefined);
+                          return;
+                        }
+                        const res = validatePhone(toColombianPhone(organizationPhone));
+                        setErrorFor("organizationPhone", res.isValid ? undefined : res.message);
+                      }}
+                      disabled={loading}
+                      className="w-full bg-transparent py-4 pr-4 text-white outline-none"
+                    />
+                  </div>
+                </div>
                 {fieldErrors.organizationPhone && (
                   <p className="text-red-400 text-xs mt-1">{fieldErrors.organizationPhone}</p>
                 )}
@@ -579,19 +607,33 @@ export default function SignUp() {
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
                   Owner Phone
                 </label>
-                <input
-                  type="tel"
-                  placeholder="+1234567890"
-                  value={ownerPhone}
-                  onChange={(e) => {
-                    const v = formatPhoneInput(e.target.value);
-                    setOwnerPhone(v);
-                    const res = validateRequiredPhone(v);
-                    setErrorFor("ownerPhone", res.isValid ? undefined : res.message);
-                  }}
-                  disabled={loading}
-                  className={inputClass(!!fieldErrors.ownerPhone)}
-                />
+                <div className={phoneInputWrapperClass(!!fieldErrors.ownerPhone)}>
+                  <div className="flex items-center">
+                    <span className="text-white pl-4 pr-2 select-none whitespace-pre">
+                      {`${COLOMBIA_PHONE_PREFIX} `}
+                    </span>
+                    <input
+                      type="tel"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={10}
+                      placeholder="3001234567"
+                      value={ownerPhone}
+                      onChange={(e) => {
+                        const v = formatPhoneInput(e.target.value);
+                        setOwnerPhone(v);
+                        const res = validateRequiredPhone(toColombianPhone(v));
+                        setErrorFor("ownerPhone", res.isValid ? undefined : res.message);
+                      }}
+                      onBlur={() => {
+                        const res = validateRequiredPhone(toColombianPhone(ownerPhone));
+                        setErrorFor("ownerPhone", res.isValid ? undefined : res.message);
+                      }}
+                      disabled={loading}
+                      className="w-full bg-transparent py-4 pr-4 text-white outline-none"
+                    />
+                  </div>
+                </div>
                 {fieldErrors.ownerPhone && (
                   <p className="text-red-400 text-xs mt-1">{fieldErrors.ownerPhone}</p>
                 )}
