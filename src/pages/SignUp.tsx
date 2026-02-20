@@ -32,6 +32,7 @@ interface ColombiaCity {
   id: number;
   name: string;
   departmentId: number;
+  postalCode: string | null;
 }
 
 const colombiaFetcher = (url: string) =>
@@ -117,6 +118,9 @@ export default function SignUp() {
       .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase();
 
+  const isNormalizedEqual = (a: string, b: string) =>
+    normalize(a.trim()) === normalize(b.trim());
+
   // Client-side filter: only show departments whose name matches the query
   const filteredDepartments = useMemo(() => {
     if (!departments) return [];
@@ -129,9 +133,13 @@ export default function SignUp() {
   const filteredCities = useMemo(() => {
     if (!stateCities) return [];
     if (!cityQuery.trim()) return stateCities;
-    const lc = cityQuery.toLowerCase();
-    return stateCities.filter((c) => c.name.toLowerCase().includes(lc));
+    const normalizedCityQuery = normalize(cityQuery);
+    return stateCities.filter((c) => normalize(c.name).includes(normalizedCityQuery));
   }, [stateCities, cityQuery]);
+
+  useEffect(() => {
+    setPostalCode(selectedCity?.postalCode ?? "");
+  }, [selectedCity]);
 
   // --- Helpers: input formatting/masking ---------------------------------
   const formatNameInput = (value: string) => {
@@ -672,6 +680,7 @@ export default function SignUp() {
                       setCity("");
                       setCityQuery("");
                       setSelectedCity(null);
+                      setPostalCode("");
                     }
                     setShowStateSuggestions(true);
                     // Real-time validation
@@ -710,6 +719,7 @@ export default function SignUp() {
                             setCityQuery("");
                             setSelectedCity(null);
                             setCity("");
+                            setPostalCode("");
                           }}
                         >
                           {dept.name}
@@ -738,13 +748,14 @@ export default function SignUp() {
                   onChange={(e) => {
                     const v = e.target.value;
                     setCityQuery(v);
-                    if (selectedCity && v !== selectedCity.name) {
+                    if (selectedCity && !isNormalizedEqual(v, selectedCity.name)) {
                       setSelectedCity(null);
                       setCity("");
+                      setPostalCode("");
                     }
                     setShowCitySuggestions(true);
                     // Real-time validation: error only when text entered without a selection
-                    if (v && !(selectedCity && v === selectedCity.name)) {
+                    if (v && !(selectedCity && isNormalizedEqual(v, selectedCity.name))) {
                       setErrorFor("city", "Please select a valid city from the list");
                     } else {
                       setErrorFor("city", undefined);
@@ -781,6 +792,7 @@ export default function SignUp() {
                             setSelectedCity(c);
                             setCityQuery(c.name);
                             setCity(c.name);
+                            setPostalCode(c.postalCode ?? "");
                             setShowCitySuggestions(false);
                             setErrorFor("city", undefined);
                           }}
@@ -804,10 +816,10 @@ export default function SignUp() {
                 </label>
                 <input
                   type="text"
-                  placeholder="110111"
+                  placeholder={selectedCity ? "Auto-filled from city" : "Select a city first"}
                   value={postalCode}
-                  onChange={(e) => setPostalCode(e.target.value)}
-                  disabled={loading}
+                  readOnly
+                  disabled={loading || !selectedCity}
                   className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 px-4 text-white focus:border-yellow-400 outline-none transition duration-200 disabled:opacity-50"
                 />
               </div>
