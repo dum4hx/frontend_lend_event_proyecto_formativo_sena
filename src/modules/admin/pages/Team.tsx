@@ -124,11 +124,35 @@ export default function Team() {
           },
         });
 
+        console.log(
+          "[Team] Updating user role to:",
+          formData.role,
+          "| User ID:",
+          editingId
+        );
+
         await updateUserRole(editingId, {
           role: formData.role as import("../../../types/api").UserRole,
         });
       } else {
-        await inviteUser({
+        console.log(
+          "[Team] 🚀 Inviting new user with role:",
+          formData.role,
+          "| Email:",
+          formData.email,
+          "| Full payload:",
+          {
+            email: formData.email,
+            phone: formData.phone,
+            role: formData.role,
+            name: {
+              firstName: formData.firstName,
+              firstSurname: formData.firstSurname,
+            },
+          }
+        );
+
+        const invitePayload = {
           email: formData.email,
           phone: formData.phone,
           name: {
@@ -136,7 +160,23 @@ export default function Team() {
             firstSurname: formData.firstSurname,
           },
           role: formData.role as import("../../../types/api").UserRole,
-        });
+        };
+
+        const response = await inviteUser(invitePayload);
+        
+        console.log(
+          "[Team] ✅ Invitation sent successfully for:",
+          formData.email,
+          "| Role assigned:",
+          formData.role,
+          "| Server response:",
+          response
+        );
+        
+        console.log(
+          "[Team] 📋 User data from server:",
+          response.data?.user || "No user data returned"
+        );
       }
 
       handleCloseModal();

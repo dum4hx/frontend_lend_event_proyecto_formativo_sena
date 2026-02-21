@@ -5,6 +5,7 @@ import Footer from "../components/Footer";
 import { loginUser, refreshToken, getPaymentStatus } from "../services/authService";
 import { ApiError } from "../lib/api";
 import { validateLoginForm, validateEmail } from "../utils/validators";
+import { getDashboardUrlByRole, requiresActiveSubscription } from "../utils/roleRouting";
 import { useAuth } from "../contexts/useAuth";
 import styles from "./Login.module.css";
 
@@ -60,29 +61,85 @@ export default function Login() {
 
       // Verify authentication after login
       const loggedUser = await checkAuth();
+      console.log(
+        "✅ [Login] Login successful",
+        "| Email:",
+        loggedUser?.email,
+        "| Role:",
+        loggedUser?.role,
+        "| Status:",
+        loggedUser?.status,
+        "| Full user:",
+        loggedUser
+      );
 
-      // For non-super-admin users, check subscription status before granting access
-      if (loggedUser?.role !== "super_admin" && loggedUser?.role === "owner") {
+      if (!loggedUser) {
+        console.error("❌ [Login] checkAuth() returned null after login");
+        setError("Authentication failed. Please try again.");
+        return;
+      }
+      
+      if (!loggedUser.role) {
+        console.error("❌ [Login] User has no role assigned:", loggedUser);
+        setError("No role assigned. Please contact your administrator.");
+        return;
+      }
+
+      // For roles that require subscription, check subscription status
+      if (requiresActiveSubscription(loggedUser.role)) {
         try {
           const status = await getPaymentStatus();
+          console.log("📊 Subscription status:", status.data.isActive);
           if (!status.data.isActive) {
             setShowNoSubModal(true);
             return;
           }
         } catch {
-          // If status check fails (e.g. 403 for non-owner), proceed normally
+          // If status check fails, proceed normally
+          console.warn("⚠️ Could not verify subscription status");
         }
       }
 
       // Navigate based on the user's role
-      navigate(loggedUser?.role === "super_admin" ? "/super-admin" : "/admin");
+      const dashboardUrl = getDashboardUrlByRole(loggedUser.role);
+      console.log(
+        "🚀 [Login] Redirecting to dashboard",
+        "| User:",
+        loggedUser.email,
+        "| Role:",
+        loggedUser.role,
+        "| Dashboard URL:",
+        dashboardUrl
+      );
+      navigate(dashboardUrl);
     } catch (err: unknown) {
       // Generic error message for invalid credentials; do not reveal which field
       if (err instanceof ApiError && err.statusCode === 401) {
         try {
           await refreshToken();
           const refreshedUser = await checkAuth();
-          if (refreshedUser?.role !== "super_admin" && refreshedUser?.role === "owner") {
+          console.log(
+            "🔄 [Login] Token refreshed - User logged in",
+            "| Email:",
+            refreshedUser?.email,
+            "| Role:",
+            refreshedUser?.role,
+            "| Status:",
+            refreshedUser?.status
+          );
+
+          if (!refreshedUser) {
+            setError("Authentication failed after token refresh. Please try again.");
+            return;
+          }
+          
+          if (!refreshedUser.role) {
+            console.error("❌ [Login] Refreshed user has no role:", refreshedUser);
+            setError("No role assigned. Please contact your administrator.");
+            return;
+          }
+
+          if (requiresActiveSubscription(refreshedUser.role)) {
             try {
               const status = await getPaymentStatus();
               if (!status.data.isActive) {
@@ -93,7 +150,18 @@ export default function Login() {
               // proceed normally on failure
             }
           }
-          navigate(refreshedUser?.role === "super_admin" ? "/super-admin" : "/admin");
+          const dashboardUrl = getDashboardUrlByRole(refreshedUser.role);
+          console.log(
+            "🚀 [Login] Redirecting after token refresh",
+            "| User:",
+            refreshedUser.email,
+            "| Role:",
+            refreshedUser.role,
+            "| Dashboard URL:",
+            dashboardUrl
+          );
+          navigate(dashboardUrl);
+          navigate(dashboardUrl);
           return;
         } catch {
           setError("Invalid credentials");

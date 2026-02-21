@@ -60,11 +60,25 @@ export default function AcceptInvite() {
     setLoading(true);
 
     try {
-      await acceptInvite({ email, token, password });
+      const acceptResponse = await acceptInvite({ email, token, password });
+      console.log(
+        "✅ [AcceptInvite] Invitation accepted successfully",
+        "| Email:",
+        email,
+        "| Response:",
+        acceptResponse
+      );
+      
+      console.log(
+        "✅ [AcceptInvite] User role after acceptance:",
+        acceptResponse.data || "No data in response"
+      );
+      
       setSuccess(true);
 
       // Redirect to login after 2 seconds
       setTimeout(() => {
+        console.log("🔄 [AcceptInvite] Redirecting to login page...");
         navigate("/login");
       }, 2000);
     } catch (err: unknown) {

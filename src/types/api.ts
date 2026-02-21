@@ -691,7 +691,7 @@ export interface InviteUserPayload {
   name: PersonName;
   email: string;
   phone: string;
-  role?: UserRole;
+  role: UserRole;
 }
 
 export interface UpdateUserPayload {
