@@ -5,12 +5,14 @@
  * instances, and packages (bundles).
  */
 
-import { get, post, patch, type ApiSuccessResponse } from "../lib/api";
+import { get, post, patch, del, type ApiSuccessResponse } from "../lib/api";
 import type {
   MaterialCategory,
   CreateMaterialCategoryPayload,
+  UpdateMaterialCategoryPayload,
   MaterialType,
   CreateMaterialTypePayload,
+  UpdateMaterialTypePayload,
   MaterialInstance,
   CreateMaterialInstancePayload,
   UpdateMaterialInstanceStatusPayload,
@@ -42,6 +44,24 @@ export async function createMaterialCategory(
   );
 }
 
+/** Update a material category. */
+export async function updateMaterialCategory(
+  categoryId: string,
+  payload: UpdateMaterialCategoryPayload,
+): Promise<ApiSuccessResponse<{ category: MaterialCategory }>> {
+  return patch<{ category: MaterialCategory }, UpdateMaterialCategoryPayload>(
+    `/materials/categories/${categoryId}`,
+    payload,
+  );
+}
+
+/** Delete a material category. */
+export async function deleteMaterialCategory(
+  categoryId: string,
+): Promise<ApiSuccessResponse<{ message: string }>> {
+  return del<{ message: string }>(`/materials/categories/${categoryId}`);
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // Material Types (catalog items)
 // ═══════════════════════════════════════════════════════════════════════════
@@ -64,6 +84,24 @@ export async function createMaterialType(
     "/materials/types",
     payload,
   );
+}
+
+/** Update a material type. */
+export async function updateMaterialType(
+  typeId: string,
+  payload: UpdateMaterialTypePayload,
+): Promise<ApiSuccessResponse<{ materialType: MaterialType }>> {
+  return patch<{ materialType: MaterialType }, UpdateMaterialTypePayload>(
+    `/materials/types/${typeId}`,
+    payload,
+  );
+}
+
+/** Delete a material type. */
+export async function deleteMaterialType(
+  typeId: string,
+): Promise<ApiSuccessResponse<{ message: string }>> {
+  return del<{ message: string }>(`/materials/types/${typeId}`);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

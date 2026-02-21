@@ -10,6 +10,8 @@ import {
   UserCircle,
   CreditCard,
   Package,
+  Layers,
+  Tags,
 } from "lucide-react";
 import { ApiError } from "../../../lib/api";
 import { useLogout } from "../../../hooks/useLogout";
@@ -46,6 +48,18 @@ const navItems: NavItem[] = [
     label: "Materials",
     icon: <Package size={20} />,
     path: "/admin/materials",
+  },
+  {
+    id: "material-models",
+    label: "Material Models",
+    icon: <Layers size={20} />,
+    path: "/admin/material-models",
+  },
+  {
+    id: "material-types",
+    label: "Material Types",
+    icon: <Tags size={20} />,
+    path: "/admin/material-types",
   },
   {
     id: "ia-settings",

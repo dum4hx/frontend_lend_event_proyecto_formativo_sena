@@ -30,6 +30,8 @@ import MyEvents from "./modules/admin/pages/MyEvents";
 import Customers from "./modules/admin/pages/Customers";
 import Team from "./modules/admin/pages/Team";
 import Materials from "./modules/admin/pages/Materials";
+import MaterialModels from "./modules/admin/pages/MaterialModels";
+import MaterialTypes from "./modules/admin/pages/MaterialTypes";
 import IASettings from "./modules/admin/pages/IA_Settings";
 import Settings from "./modules/admin/pages/Settings";
 import AdminSubscriptionManagement from "./modules/admin/pages/SubscriptionManagement";
@@ -104,6 +106,8 @@ function App() {
             <Route path="customers" element={<Customers />} />
             <Route path="team" element={<Team />} />
             <Route path="materials/*" element={<Materials />} />
+            <Route path="material-models" element={<MaterialModels />} />
+            <Route path="material-types" element={<MaterialTypes />} />
             <Route path="ia-settings" element={<IASettings />} />
             <Route path="settings" element={<Settings />} />
             <Route path="subscription" element={<AdminSubscriptionManagement />} />

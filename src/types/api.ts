@@ -222,6 +222,12 @@ export interface CreateMaterialCategoryPayload {
   parentId?: string;
 }
 
+export interface UpdateMaterialCategoryPayload {
+  name?: string;
+  description?: string;
+  parentId?: string;
+}
+
 export interface MaterialType {
   _id: string;
   name: string;
@@ -236,6 +242,14 @@ export interface CreateMaterialTypePayload {
   description?: string;
   categoryId: string;
   pricePerDay: number;
+  replacementCost?: number;
+}
+
+export interface UpdateMaterialTypePayload {
+  name?: string;
+  description?: string;
+  categoryId?: string;
+  pricePerDay?: number;
   replacementCost?: number;
 }
 
