@@ -29,6 +29,7 @@ import AdminDashboard from "./modules/admin/pages/AdminDashboard";
 import MyEvents from "./modules/admin/pages/MyEvents";
 import Customers from "./modules/admin/pages/Customers";
 import Team from "./modules/admin/pages/Team";
+import Materials from "./modules/admin/pages/Materials";
 import IASettings from "./modules/admin/pages/IA_Settings";
 import Settings from "./modules/admin/pages/Settings";
 import AdminSubscriptionManagement from "./modules/admin/pages/SubscriptionManagement";
@@ -102,6 +103,7 @@ function App() {
             <Route path="events" element={<MyEvents />} />
             <Route path="customers" element={<Customers />} />
             <Route path="team" element={<Team />} />
+            <Route path="materials/*" element={<Materials />} />
             <Route path="ia-settings" element={<IASettings />} />
             <Route path="settings" element={<Settings />} />
             <Route path="subscription" element={<AdminSubscriptionManagement />} />

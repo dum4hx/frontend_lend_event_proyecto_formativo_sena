@@ -9,6 +9,7 @@ import {
   LogOut,
   UserCircle,
   CreditCard,
+  Package,
 } from "lucide-react";
 import { ApiError } from "../../../lib/api";
 import { useLogout } from "../../../hooks/useLogout";
@@ -40,6 +41,12 @@ const navItems: NavItem[] = [
     path: "/admin/customers",
   },
   { id: "team", label: "Team", icon: <Users size={20} />, path: "/admin/team" },
+  {
+    id: "materials",
+    label: "Materials",
+    icon: <Package size={20} />,
+    path: "/admin/materials",
+  },
   {
     id: "ia-settings",
     label: "IA Settings",
