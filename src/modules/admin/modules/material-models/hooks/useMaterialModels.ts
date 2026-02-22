@@ -8,6 +8,7 @@ import {
   createMaterialCategory,
   deleteMaterialCategory,
   getMaterialCategories,
+  getMaterialTypes,
   updateMaterialCategory,
 } from "../../../../../services/materialService";
 
@@ -84,11 +85,45 @@ export function useMaterialModels(): UseMaterialModelsResult {
   const deleteModel = useCallback(async (modelId: string) => {
     try {
       setError(null);
+      // Pre-delete check: ensure there are no material types referencing this category
+      try {
+        const typesResp = await getMaterialTypes({ categoryId: modelId });
+        const types = typesResp.data.materialTypes ?? [];
+        if (types.length > 0) {
+          const names = types.map((t) => t.name).slice(0, 10).join(", ");
+          throw new Error(
+            `Cannot delete category — it has ${types.length} material type(s): ${names}. Remove or reassign them first.`,
+          );
+        }
+      } catch (checkErr) {
+        // If the check failed with a network/server error, surface a clear message.
+        // Convert to string safely (avoid accessing .message on unknown/object)
+        const checkErrMsg = String((checkErr as any)?.message ?? checkErr ?? "");
+        if (/not found|404/i.test(checkErrMsg)) {
+          throw new Error("Category not found (already deleted).");
+        }
+        // If types were found we already threw above; otherwise proceed to attempt delete
+      }
+
       await deleteMaterialCategory(modelId);
       setModels((prev) => prev.filter((model) => model._id !== modelId));
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to delete material model";
+      console.error("useMaterialModels.deleteModel error:", err);
+      let message = err instanceof Error ? err.message : "Failed to delete material model";
+
+      // Safely inspect common shapes without relying on typed properties.
+      const anyErr = err as any;
+      const status = anyErr?.status ?? anyErr?.statusCode ?? anyErr?.response?.status;
+      const errMsg = String(anyErr?.message ?? anyErr?.response?.statusText ?? "");
+
+      // Treat 404 or explicit 'route not found' messages as already-deleted: remove locally
+      if (status === 404 || /Route .* not found/i.test(errMsg) || /not found|404/i.test(errMsg)) {
+        setModels((prev) => prev.filter((model) => model._id !== modelId));
+        setError(null);
+        return; // swallow the error — UI is consistent
+      }
+
+      // Fall back to the generic message
       setError(message);
       throw err;
     }

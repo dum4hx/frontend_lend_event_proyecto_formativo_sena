@@ -1,0 +1,21 @@
+*** Begin Patch
+*** Add File: a/src/routes/materials.ts
+*** End Patch
+
+---
+This is a git-style patch file placeholder. The actual TypeScript route implementations are in the companion file
+`backend-patches/DELETE-materials-categories.md` in this workspace.
+
+To apply this patch in your backend repository, replace the path `src/routes/materials.ts` with the actual router
+file path in your backend repo and run:
+
+```bash
+git apply 0001-add-delete-category.patch
+```
+
+If `git apply` fails because of path mismatch, open the patch in a text editor and copy the route handlers from
+`backend-patches/DELETE-materials-categories.md` into your material router file near the other `/materials` routes.
+
+Recommended placement: append the two DELETE handlers (safe and force) after the existing `/categories` routes.
+
+After applying, restart your backend server and test with the curl commands in the md file.

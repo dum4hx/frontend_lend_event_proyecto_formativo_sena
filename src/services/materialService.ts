@@ -104,6 +104,13 @@ export async function deleteMaterialType(
   return del<{ message: string }>(`/materials/types/${typeId}`);
 }
 
+/** Delete a material instance. */
+export async function deleteMaterialInstance(
+  instanceId: string,
+): Promise<ApiSuccessResponse<{ message: string }>> {
+  return del<{ message: string }>(`/materials/instances/${instanceId}`);
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // Material Instances
 // ═══════════════════════════════════════════════════════════════════════════

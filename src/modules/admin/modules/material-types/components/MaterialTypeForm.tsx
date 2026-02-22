@@ -20,8 +20,8 @@ interface MaterialTypeFormState {
   name: string;
   description: string;
   categoryId: string;
-  pricePerDay: number;
-  replacementCost: number;
+  pricePerDay: string;
+  replacementCost: string;
 }
 
 export function MaterialTypeForm({
@@ -35,8 +35,8 @@ export function MaterialTypeForm({
     name: "",
     description: "",
     categoryId: "",
-    pricePerDay: 0,
-    replacementCost: 0,
+    pricePerDay: "",
+    replacementCost: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -46,16 +46,16 @@ export function MaterialTypeForm({
         name: initialType.name,
         description: initialType.description ?? "",
         categoryId: initialType.categoryId,
-        pricePerDay: initialType.pricePerDay,
-        replacementCost: initialType.replacementCost ?? 0,
+        pricePerDay: initialType.pricePerDay?.toString() ?? "",
+        replacementCost: initialType.replacementCost?.toString() ?? "",
       });
     } else {
       setFormData({
         name: "",
         description: "",
         categoryId: "",
-        pricePerDay: 0,
-        replacementCost: 0,
+        pricePerDay: "",
+        replacementCost: "",
       });
     }
     setErrors({});
@@ -65,8 +65,17 @@ export function MaterialTypeForm({
     const newErrors: Record<string, string> = {};
     if (!formData.name.trim()) newErrors.name = "Name is required";
     if (!formData.categoryId.trim()) newErrors.categoryId = "Model is required";
-    if (formData.pricePerDay < 0) newErrors.pricePerDay = "Price cannot be negative";
-    if (formData.replacementCost < 0)
+    if (
+      formData.pricePerDay &&
+      !Number.isNaN(parseFloat(formData.pricePerDay)) &&
+      parseFloat(formData.pricePerDay) < 0
+    )
+      newErrors.pricePerDay = "Price cannot be negative";
+    if (
+      formData.replacementCost &&
+      !Number.isNaN(parseFloat(formData.replacementCost)) &&
+      parseFloat(formData.replacementCost) < 0
+    )
       newErrors.replacementCost = "Replacement cost cannot be negative";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -75,11 +84,10 @@ export function MaterialTypeForm({
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
-    const { name, value, type } = e.target;
-    const parsedValue = type === "number" ? parseFloat(value) || 0 : value;
+    const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: parsedValue,
+      [name]: value,
     }));
     if (errors[name]) {
       setErrors((prev) => {
@@ -98,8 +106,10 @@ export function MaterialTypeForm({
       name: formData.name.trim(),
       description: formData.description?.trim() || undefined,
       categoryId: formData.categoryId,
-      pricePerDay: formData.pricePerDay,
-      replacementCost: formData.replacementCost || undefined,
+      pricePerDay: parseFloat(formData.pricePerDay) || 0,
+      replacementCost: formData.replacementCost
+        ? parseFloat(formData.replacementCost)
+        : undefined,
     };
 
     await onSubmit(payload);
@@ -172,6 +182,9 @@ export function MaterialTypeForm({
           {errors.pricePerDay && (
             <p className="text-red-400 text-sm mt-1">{errors.pricePerDay}</p>
           )}
+          {formData.pricePerDay && !Number.isNaN(parseFloat(formData.pricePerDay)) && (
+            <p className="text-gray-400 text-sm mt-1">{new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP" }).format(parseFloat(formData.pricePerDay))}</p>
+          )}
         </div>
         <div>
           <label className="block text-gray-400 text-sm font-medium mb-2">
@@ -190,6 +203,9 @@ export function MaterialTypeForm({
           />
           {errors.replacementCost && (
             <p className="text-red-400 text-sm mt-1">{errors.replacementCost}</p>
+          )}
+          {formData.replacementCost && !Number.isNaN(parseFloat(formData.replacementCost)) && (
+            <p className="text-gray-400 text-sm mt-1">{new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP" }).format(parseFloat(formData.replacementCost))}</p>
           )}
         </div>
       </div>

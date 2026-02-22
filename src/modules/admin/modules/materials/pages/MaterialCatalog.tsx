@@ -5,9 +5,14 @@ import { MaterialList, MaterialFilters } from "../components";
 import type { MaterialFilterState } from "../components/MaterialFilters";
 import { MaterialDetailModal } from "../components/MaterialDetailModal";
 import { useMaterials, useCategories } from "../hooks";
+import { deleteMaterialType } from "../../../../../services/materialService";
 import type { MaterialType } from "../../../../../types/api";
 
-export function MaterialCatalogPage() {
+interface MaterialCatalogPageProps {
+  onCreateMaterial?: () => void;
+}
+
+export function MaterialCatalogPage({ onCreateMaterial }: MaterialCatalogPageProps) {
   const navigate = useNavigate();
   const { materials, loading, error, refreshMaterials } = useMaterials();
   const { categories } = useCategories();
@@ -15,6 +20,8 @@ export function MaterialCatalogPage() {
   const [selectedMaterial, setSelectedMaterial] = useState<MaterialType | null>(
     null,
   );
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
   const [filters, setFilters] = useState<MaterialFilterState>({
     searchTerm: "",
     categoryId: "",
@@ -22,38 +29,69 @@ export function MaterialCatalogPage() {
   });
 
   const filteredMaterials = materials.filter((material) => {
-    const matchesSearch =
-      !filters.searchTerm ||
-      material.name.toLowerCase().includes(filters.searchTerm.toLowerCase());
+    const price = material.pricePerDay ?? 0;
 
-    const matchesCategory = !filters.categoryId || material.categoryId === filters.categoryId;
+    const matchesSearch = filters.searchExact
+      ? (!filters.searchTerm || material.name.toLowerCase() === filters.searchTerm.toLowerCase())
+      : (!filters.searchTerm || material.name.toLowerCase().includes(filters.searchTerm.toLowerCase()));
 
-    const matchesPrice =
-      material.pricePerDay >= filters.priceRange.min &&
-      material.pricePerDay <= filters.priceRange.max;
+    // Always show all materials in the main list regardless of selected category.
+    // The category selector still drives the detail panel in the filters component.
+    const matchesPrice = price >= filters.priceRange.min && price <= filters.priceRange.max;
 
-    return matchesSearch && matchesCategory && matchesPrice;
+    return matchesSearch && matchesPrice;
   });
 
+  // Diagnostic log to help debug why the list may be empty at runtime.
+  console.debug("MaterialCatalog debug", {
+    materialsLength: materials.length,
+    filters,
+    filteredLength: filteredMaterials.length,
+  });
+
+  // Fallback: if the filtered result is empty but there are materials available
+  // and the user hasn't entered a search term, show all materials to avoid
+  // an empty screen on first load.
+  const visibleMaterials =
+    filteredMaterials.length > 0
+      ? filteredMaterials
+      : (!filters.searchTerm && materials.length > 0 ? materials : filteredMaterials);
+
   const handleDelete = async (materialId: string) => {
-    // TODO: Implement delete functionality
-    console.log("Delete material:", materialId);
-    await refreshMaterials();
+    if (!confirm("Are you sure you want to delete this material?")) return;
+    try {
+      await deleteMaterialType(materialId);
+      await refreshMaterials();
+    } catch (err) {
+      console.error("MaterialCatalog.delete error:", err);
+      // optionally show an in-UI message later
+    }
   };
+
+  const formatCop = (value: number) =>
+    new Intl.NumberFormat("es-CO", {
+      style: "currency",
+      currency: "COP",
+      maximumFractionDigits: 2,
+    }).format(value);
+
+  const totalPages = Math.max(1, Math.ceil((visibleMaterials?.length ?? 0) / pageSize));
+
+  const pagedMaterials = visibleMaterials.slice((page - 1) * pageSize, page * pageSize);
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Material Catalog</h1>
-          <p className="text-gray-600 text-sm mt-1">
+          <h1 className="text-3xl font-bold text-white">Material Catalog</h1>
+          <p className="text-gray-400 text-sm mt-1">
             View and manage all materials in your inventory
           </p>
         </div>
         <button
-          onClick={() => navigate("create")}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+          onClick={() => (onCreateMaterial ? onCreateMaterial() : navigate("create"))}
+          className="flex items-center gap-2 px-4 py-2 bg-[#FFD700] text-black font-bold rounded-lg hover:bg-yellow-400 transition"
         >
           <Plus className="w-5 h-5" />
           New Material
@@ -68,48 +106,70 @@ export function MaterialCatalogPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-          <p className="text-sm text-blue-600 mb-1">Total Materials</p>
-          <p className="text-2xl font-bold text-blue-900">{materials.length}</p>
+        <div className="bg-[#121212] border border-[#333] rounded-lg p-4">
+          <p className="text-sm text-gray-400 mb-1">Total Materials</p>
+          <p className="text-2xl font-bold text-white">{materials.length}</p>
         </div>
-        <div className="bg-green-50 rounded-lg p-4 border border-green-200">
-          <p className="text-sm text-green-600 mb-1">Visible</p>
-          <p className="text-2xl font-bold text-green-900">{filteredMaterials.length}</p>
+        <div className="bg-[#121212] border border-[#333] rounded-lg p-4">
+          <p className="text-sm text-gray-400 mb-1">Visible</p>
+          <p className="text-2xl font-bold text-white">
+            {visibleMaterials.length}
+          </p>
         </div>
-        <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
-          <p className="text-sm text-purple-600 mb-1">Value</p>
-          <p className="text-2xl font-bold text-purple-900">
-            ${filteredMaterials
-              .reduce((sum, m) => sum + m.pricePerDay, 0)
-              .toFixed(2)}
+        <div className="bg-[#121212] border border-[#333] rounded-lg p-4">
+          <p className="text-sm text-gray-400 mb-1">Value</p>
+          <p className="text-2xl font-bold text-white">
+            {formatCop(
+              visibleMaterials.reduce((sum, m) => sum + (m.pricePerDay ?? 0), 0),
+            )}
           </p>
         </div>
       </div>
 
       {/* Error Message */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+        <div className="bg-red-900/30 border border-red-800 rounded-lg p-4 text-red-200">
           {error}
         </div>
       )}
 
       {/* Materials List */}
       {loading ? (
-        <div className="flex items-center justify-center h-64 bg-white rounded-lg">
+        <div className="flex items-center justify-center h-64 bg-[#121212] border border-[#333] rounded-lg">
           <div className="text-center">
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
+            <div className="w-12 h-12 bg-[#1a1a1a] rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-8 h-8 border-4 border-[#333] border-t-[#FFD700] rounded-full animate-spin" />
             </div>
-            <p className="text-gray-600">Loading materials...</p>
+            <p className="text-gray-400">Loading materials...</p>
           </div>
         </div>
       ) : (
-        <MaterialList
-          materials={filteredMaterials}
-          onEdit={(material) => console.log("Edit:", material)}
-          onDelete={handleDelete}
-          onView={(material) => setSelectedMaterial(material)}
-        />
+        <>
+          <MaterialList
+            materials={pagedMaterials}
+            onEdit={(material) => console.log("Edit:", material)}
+            onDelete={handleDelete}
+            onView={(material) => setSelectedMaterial(material)}
+          />
+          {/* Pagination controls */}
+          {visibleMaterials.length > pageSize && (
+            <div className="flex items-center justify-between mt-4">
+              <div className="text-sm text-gray-400">Page {page} of {totalPages}</div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="px-3 py-1 bg-[#1a1a1a] border border-[#333] rounded text-gray-200 disabled:opacity-50"
+                >Prev</button>
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="px-3 py-1 bg-[#1a1a1a] border border-[#333] rounded text-gray-200 disabled:opacity-50"
+                >Next</button>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Detail Modal */}

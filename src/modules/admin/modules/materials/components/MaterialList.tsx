@@ -1,4 +1,4 @@
-import { Trash2, Edit, Eye, MoreVertical } from "lucide-react";
+import { Trash2, Edit, Eye } from "lucide-react";
 import type { MaterialType } from "../../../../../types/api";
 import { useState } from "react";
 
@@ -15,8 +15,14 @@ export function MaterialList({
   onDelete,
   onView,
 }: MaterialListProps) {
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const formatCop = (value: number) =>
+    new Intl.NumberFormat("es-CO", {
+      style: "currency",
+      currency: "COP",
+      maximumFractionDigits: 2,
+    }).format(value);
 
   const handleDelete = async (id: string) => {
     if (confirm("Are you sure you want to delete this material?")) {
@@ -25,39 +31,40 @@ export function MaterialList({
         await onDelete(id);
       } finally {
         setDeletingId(null);
-        setOpenMenuId(null);
       }
     }
   };
 
   if (materials.length === 0) {
     return (
-      <div className="text-center py-12 bg-white rounded-lg">
-        <p className="text-gray-500">No materials found</p>
-        <p className="text-sm text-gray-400">Create your first material to get started</p>
+      <div className="text-center py-12 bg-[#121212] border border-[#333] rounded-lg">
+        <p className="text-gray-400">No materials found</p>
+        <p className="text-sm text-gray-500">
+          Create your first material to get started
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg overflow-hidden shadow">
+    <div className="bg-[#121212] border border-[#333] rounded-lg overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-gray-50 border-b">
+          <thead className="bg-[#0f0f0f] border-b border-[#333]">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">
                 Name
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">
                 Category
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">
                 Price per Day
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">
                 Replacement Cost
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">
                 Actions
               </th>
             </tr>
@@ -66,11 +73,11 @@ export function MaterialList({
             {materials.map((material) => (
               <tr
                 key={material._id}
-                className="border-b hover:bg-gray-50 transition"
+                className="border-b border-[#333] hover:bg-[#1a1a1a] transition-all"
               >
                 <td className="px-6 py-4">
                   <div>
-                    <p className="font-medium text-gray-900">
+                    <p className="font-medium text-white">
                       {material.name}
                     </p>
                     {material.description && (
@@ -80,64 +87,50 @@ export function MaterialList({
                     )}
                   </div>
                 </td>
-                <td className="px-6 py-4 text-sm text-gray-700">
-                  <span className="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                    {material.categoryId?.slice(0, 8) || "N/A"}
+                <td className="px-6 py-4 text-sm text-gray-400">
+                  <span className="inline-block bg-[#1a1a1a] text-gray-200 px-2 py-1 rounded border border-[#333]">
+                    {(() => {
+                      const cat = (material as any).categoryId ?? (material as any).modelId;
+                      if (!cat) return "N/A";
+                      if (typeof cat === "string") return cat.slice(0, 8);
+                      // object shape: { _id, name }
+                      if (typeof cat === "object" && (cat.name || cat._id)) return cat.name ?? cat._id;
+                      return "N/A";
+                    })()}
                   </span>
                 </td>
-                <td className="px-6 py-4 text-sm text-gray-900 font-medium">
-                  ${material.pricePerDay.toFixed(2)}
+                <td className="px-6 py-4 text-sm text-white font-medium">
+                  {formatCop(material.pricePerDay)}
                 </td>
-                <td className="px-6 py-4 text-sm text-gray-900">
+                <td className="px-6 py-4 text-sm text-gray-300">
                   {material.replacementCost
-                    ? `$${material.replacementCost.toFixed(2)}`
+                    ? formatCop(material.replacementCost)
                     : "—"}
                 </td>
-                <td className="px-6 py-4 text-right">
-                  <div className="relative inline-block">
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-2">
                     <button
-                      onClick={() =>
-                        setOpenMenuId(
-                          openMenuId === material._id ? null : material._id,
-                        )
-                      }
-                      className="p-2 hover:bg-gray-200 rounded-lg transition"
+                      onClick={() => onView(material)}
+                      className="p-2 hover:bg-[#1a1a1a] rounded-md transition text-gray-300"
+                      title="View"
                     >
-                      <MoreVertical className="w-4 h-4 text-gray-500" />
+                      <Eye className="w-4 h-4" />
                     </button>
-
-                    {openMenuId === material._id && (
-                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
-                        <button
-                          onClick={() => {
-                            onView(material);
-                            setOpenMenuId(null);
-                          }}
-                          className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 text-gray-700 transition"
-                        >
-                          <Eye className="w-4 h-4" />
-                          View Details
-                        </button>
-                        <button
-                          onClick={() => {
-                            onEdit(material);
-                            setOpenMenuId(null);
-                          }}
-                          className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 text-gray-700 transition"
-                        >
-                          <Edit className="w-4 h-4" />
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(material._id)}
-                          disabled={deletingId === material._id}
-                          className="w-full text-left px-4 py-2 hover:bg-red-50 flex items-center gap-2 text-red-600 border-t transition disabled:opacity-50"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          {deletingId === material._id ? "Deleting..." : "Delete"}
-                        </button>
-                      </div>
-                    )}
+                    <button
+                      onClick={() => onEdit(material)}
+                      className="p-2 hover:bg-[#1a1a1a] rounded-md transition text-gray-300"
+                      title="Edit"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(material._id)}
+                      disabled={deletingId === material._id}
+                      className="p-2 hover:bg-red-900/30 rounded-md transition text-red-300 disabled:opacity-50"
+                      title="Delete"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </td>
               </tr>

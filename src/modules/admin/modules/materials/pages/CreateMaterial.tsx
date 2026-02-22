@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, ArrowLeft } from "lucide-react";
 import { MaterialForm, MaterialList, MaterialFilters } from "../components";
+import { deleteMaterialType } from "../../../../../services/materialService";
 import type { MaterialFilterState } from "../components/MaterialFilters";
 import { MaterialDetailModal } from "../components/MaterialDetailModal";
 import { useMaterials, useCategories } from "../hooks";
@@ -9,11 +10,10 @@ import type { MaterialType, CreateMaterialTypePayload } from "../../../../../typ
 
 interface CreateMaterialPageProps {
   onSuccess?: () => void;
+  onNavigateBack?: () => void;
 }
 
-export function CreateMaterialPage({
-  onSuccess,
-}: CreateMaterialPageProps) {
+export function CreateMaterialPage({ onSuccess, onNavigateBack }: CreateMaterialPageProps) {
   const navigate = useNavigate();
   const { materials, loading, error, createMaterial, refreshMaterials } =
     useMaterials();
@@ -67,9 +67,15 @@ export function CreateMaterialPage({
   };
 
   const handleDelete = async (materialId: string) => {
-    // TODO: Implement delete functionality when API endpoint is available
-    console.log("Delete material:", materialId);
-    await refreshMaterials();
+    if (!confirm("Are you sure you want to delete this material?")) return;
+    try {
+      await deleteMaterialType(materialId);
+      await refreshMaterials();
+    } catch (err) {
+      console.error("CreateMaterialPage.delete error:", err);
+      const message = err instanceof Error ? err.message : "Failed to delete material";
+      setSubmitError(message);
+    }
   };
 
   if (categoriesLoading) {
@@ -100,7 +106,7 @@ export function CreateMaterialPage({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button
-            onClick={() => navigate("..")}
+            onClick={() => (onNavigateBack ? onNavigateBack() : navigate(".."))}
             className="p-2 hover:bg-gray-100 rounded-lg transition"
             title="Back to catalog"
           >

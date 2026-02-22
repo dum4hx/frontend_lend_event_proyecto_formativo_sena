@@ -3,10 +3,17 @@ import type {
   CreateMaterialCategoryPayload,
   MaterialCategory,
   UpdateMaterialCategoryPayload,
+  MaterialType,
 } from "../../../../types/api";
 import { MaterialModelForm } from "./components/MaterialModelForm";
 import { MaterialModelList } from "./components/MaterialModelList";
 import { useMaterialModels } from "./hooks/useMaterialModels";
+import {
+  getMaterialTypes,
+  getMaterialInstances,
+  deleteMaterialType,
+  deleteMaterialInstance,
+} from "../../../../services/materialService";
 
 export function MaterialModelsModule() {
   const {
@@ -45,12 +52,76 @@ export function MaterialModelsModule() {
   const handleDelete = async (modelId: string) => {
     if (!confirm("Delete this material model?")) return;
     try {
+      // UI-level pre-check to show dependent types before attempting delete
+      const typesResp = await getMaterialTypes({ categoryId: modelId });
+      const dependent = typesResp.data.materialTypes ?? [];
+      if (dependent.length > 0) {
+        setDependentTypes(dependent);
+        setSelectedModelId(modelId);
+        setShowDepsModal(true);
+        return;
+      }
+
       await deleteModel(modelId);
       if (editingModel?._id === modelId) setEditingModel(null);
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to delete material model";
+      console.error("MaterialModelsModule.handleDelete error:", err);
+      const message = err instanceof Error ? err.message : "Failed to delete material model";
       setSubmitError(message);
+    }
+  };
+
+  const [showDepsModal, setShowDepsModal] = useState(false);
+  const [dependentTypes, setDependentTypes] = useState<MaterialType[]>([]);
+  const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
+  const [isForceDeleting, setIsForceDeleting] = useState(false);
+
+  const closeDepsModal = () => {
+    setShowDepsModal(false);
+    setDependentTypes([]);
+    setSelectedModelId(null);
+    setIsForceDeleting(false);
+  };
+
+  const handleForceDelete = async () => {
+    if (!selectedModelId) return;
+    if (!confirm("This will permanently delete all instances and types in this category. Continue?")) return;
+    setIsForceDeleting(true);
+    setSubmitError(null);
+
+    try {
+      // Delete instances for each dependent type, then delete the type
+      for (const t of dependentTypes) {
+        // fetch instances for this type
+        try {
+          const instResp = await getMaterialInstances({ materialTypeId: t._id });
+          const instances = instResp.data.instances ?? [];
+          for (const inst of instances) {
+            await deleteMaterialInstance(inst._id);
+          }
+        } catch (innerErr) {
+          console.error("Failed deleting instances for type", t._id, innerErr);
+          throw innerErr;
+        }
+
+        // delete the material type itself
+        try {
+          await deleteMaterialType(t._id);
+        } catch (innerErr) {
+          console.error("Failed deleting material type", t._id, innerErr);
+          throw innerErr;
+        }
+      }
+
+      // finally delete the category via hook (this will call deleteMaterialCategory)
+      await deleteModel(selectedModelId);
+      closeDepsModal();
+    } catch (err) {
+      console.error("Force delete failed:", err);
+      const message = err instanceof Error ? err.message : "Force delete failed";
+      setSubmitError(message);
+    } finally {
+      setIsForceDeleting(false);
     }
   };
 
@@ -98,6 +169,45 @@ export function MaterialModelsModule() {
           )}
         </div>
       </div>
+      {showDepsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/60" onClick={closeDepsModal} />
+          <div className="relative bg-[#0b0b0b] border border-[#333] rounded-lg p-6 w-full max-w-2xl z-10">
+            <h2 className="text-xl font-semibold text-white">Cannot delete category</h2>
+            <p className="text-gray-400 mt-2">
+              This category has the following material types. Remove or reassign them before deleting the category.
+            </p>
+            <ul className="mt-4 max-h-56 overflow-auto divide-y divide-[#222]">
+              {dependentTypes.map((t) => (
+                <li key={t._id} className="py-3 flex justify-between items-center">
+                  <div>
+                    <div className="text-white">{t.name}</div>
+                    <div className="text-gray-400 text-sm">{t.description || "—"}</div>
+                  </div>
+                  <div className="text-gray-400 text-sm">{t._id}</div>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-4 flex justify-end">
+              <div className="flex gap-2">
+                <button
+                  onClick={closeDepsModal}
+                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-white"
+                >
+                  Cerrar
+                </button>
+                <button
+                  onClick={handleForceDelete}
+                  disabled={isForceDeleting}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded text-white"
+                >
+                  {isForceDeleting ? "Eliminando..." : "Forzar eliminación"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
