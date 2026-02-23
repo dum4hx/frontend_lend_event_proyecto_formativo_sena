@@ -366,11 +366,9 @@ export const validateRegistrationForm = (formData: {
     if (!taxValidation.isValid) return taxValidation
   }
 
-  // Validate address fields (optional overall; validate only if provided)
-  if (formData.street) {
-    const streetValidation = validateAddressField(formData.street, 'Street')
-    if (!streetValidation.isValid) return streetValidation
-  }
+  // Validate structured street address (required)
+  const streetValidation = validateAddressField(formData.street ?? '', 'Street')
+  if (!streetValidation.isValid) return streetValidation
 
   if (formData.city) {
     const cityValidation = validateAddressField(formData.city, 'City')
