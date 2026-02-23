@@ -89,7 +89,7 @@ export default function SignUp() {
   const [stateQuery, setStateQuery] = useState("");
   const [selectedState, setSelectedState] = useState<ColombiaDepartment | null>(null);
   const [showStateSuggestions, setShowStateSuggestions] = useState(false);
-  const [debouncedStateQuery] = useDebounce(stateQuery, 500);
+  const [debouncedStateQuery] = useDebounce(stateQuery, 200);
   const prevStateQueryRef = useRef("");
 
   // --- City autocomplete (depends on selected state) ------------------------
@@ -143,6 +143,10 @@ export default function SignUp() {
     if (!departments) return [];
     if (!debouncedStateQuery.trim()) return departments;
     const nq = normalize(debouncedStateQuery);
+    // Prefer prefix matches for progressive "starts with" behavior
+    const prefixMatches = departments.filter((d) => normalize(d.name).startsWith(nq));
+    if (prefixMatches.length) return prefixMatches;
+    // Fallback to contains if no prefix matches
     return departments.filter((d) => normalize(d.name).includes(nq));
   }, [departments, debouncedStateQuery]);
 
@@ -151,6 +155,9 @@ export default function SignUp() {
     if (!stateCities) return [];
     if (!cityQuery.trim()) return stateCities;
     const normalizedCityQuery = normalize(cityQuery);
+    // Prefer prefix matches for progressive suggestions
+    const prefixCityMatches = stateCities.filter((c) => normalize(c.name).startsWith(normalizedCityQuery));
+    if (prefixCityMatches.length) return prefixCityMatches;
     return stateCities.filter((c) => normalize(c.name).includes(normalizedCityQuery));
   }, [stateCities, cityQuery]);
 
@@ -169,6 +176,8 @@ export default function SignUp() {
     const digitsOnly = value.replace(/\D/g, "");
     return digitsOnly.slice(0, 10);
   };
+
+  const formatEmailInput = (value: string) => value.trim().toLowerCase();
 
   const formatAddressSegmentInput = (value: string) => {
     const cleaned = value
@@ -200,7 +209,7 @@ export default function SignUp() {
     digits ? `${COLOMBIA_PHONE_PREFIX}${digits}` : "";
 
   const formatTaxIdInput = (value: string) => {
-    const digits = value.replace(/\D/g, "");
+    const digits = value.replace(/\D/g, "").slice(0, 9);
     const groups = digits.match(/.{1,3}/g) || [];
     return groups.join("-");
   };
@@ -707,8 +716,11 @@ export default function SignUp() {
                       type="email"
                       placeholder="owner.personal@example.com"
                       value={ownerEmail}
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
                       onChange={(e) => {
-                        const v = e.target.value;
+                        const v = formatEmailInput(e.target.value);
                         setOwnerEmail(v);
                         const res = validateEmail(v);
                         setErrorFor("ownerEmail", res.isValid ? undefined : res.message);
@@ -815,6 +827,9 @@ export default function SignUp() {
                       type="text"
                       placeholder="123-123-123"
                       value={taxId}
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={11}
                       onChange={(e) => {
                         const v = formatTaxIdInput(e.target.value);
                         setTaxId(v);
@@ -839,8 +854,11 @@ export default function SignUp() {
                       type="email"
                       placeholder="admin@yourcompany.com"
                       value={organizationEmail}
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
                       onChange={(e) => {
-                        const v = e.target.value;
+                        const v = formatEmailInput(e.target.value);
                         setOrganizationEmail(v);
                         const res = validateEmail(v);
                         setErrorFor("organizationEmail", res.isValid ? undefined : res.message);
