@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus } from "lucide-react";
+import { Plus, Download, Upload } from "lucide-react";
 import { MaterialList, MaterialFilters } from "../components";
 import type { MaterialFilterState } from "../components/MaterialFilters";
 import { MaterialDetailModal } from "../components/MaterialDetailModal";
@@ -14,7 +14,8 @@ interface MaterialCatalogPageProps {
 
 export function MaterialCatalogPage({ onCreateMaterial }: MaterialCatalogPageProps) {
   const navigate = useNavigate();
-  const { materials, loading, error, refreshMaterials } = useMaterials();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const { materials, loading, error, refreshMaterials, createMaterial } = useMaterials();
   const { categories } = useCategories();
 
   const [selectedMaterial, setSelectedMaterial] = useState<MaterialType | null>(
@@ -79,6 +80,25 @@ export function MaterialCatalogPage({ onCreateMaterial }: MaterialCatalogPagePro
 
   const pagedMaterials = visibleMaterials.slice((page - 1) * pageSize, page * pageSize);
 
+  const exportToExcel = async (items: MaterialType[]) => {
+    try {
+      const rows = items.map((m) => ({
+        Name: m.name,
+        CategoryId: (m.categoryId as string) || "",
+        PricePerDay: m.pricePerDay ?? 0,
+        Description: m.description ?? "",
+      }));
+      const xlsx = await import("xlsx");
+      const ws = xlsx.utils.json_to_sheet(rows);
+      const wb = xlsx.utils.book_new();
+      xlsx.utils.book_append_sheet(wb, ws, "Materials");
+      xlsx.writeFile(wb, "materials.xlsx");
+    } catch (err) {
+      console.error("Export failed:", err);
+      alert("Failed to export materials. Install 'xlsx' or check console.");
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -89,14 +109,73 @@ export function MaterialCatalogPage({ onCreateMaterial }: MaterialCatalogPagePro
             View and manage all materials in your inventory
           </p>
         </div>
-        <button
-          onClick={() => (onCreateMaterial ? onCreateMaterial() : navigate("create"))}
-          className="flex items-center gap-2 px-4 py-2 bg-[#FFD700] text-black font-bold rounded-lg hover:bg-yellow-400 transition"
-        >
-          <Plus className="w-5 h-5" />
-          New Material
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => exportToExcel(visibleMaterials)}
+            className="flex items-center gap-2 px-3 py-2 bg-[#1a1a1a] text-gray-200 border border-[#333] rounded-lg hover:opacity-90 transition"
+            title="Export visible materials to Excel"
+          >
+            <Download className="w-4 h-4" />
+            Export
+          </button>
+
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center gap-2 px-3 py-2 bg-[#1a1a1a] text-gray-200 border border-[#333] rounded-lg hover:opacity-90 transition"
+            title="Import materials from Excel"
+          >
+            <Upload className="w-4 h-4" />
+            Import
+          </button>
+
+          <button
+            onClick={() => (onCreateMaterial ? onCreateMaterial() : navigate("create"))}
+            className="flex items-center gap-2 px-4 py-2 bg-[#FFD700] text-black font-bold rounded-lg hover:bg-yellow-400 transition"
+          >
+            <Plus className="w-5 h-5" />
+            New Material
+          </button>
+        </div>
       </div>
+
+      {/* hidden file input for import */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".xlsx,.xls,.csv"
+        className="hidden"
+        onChange={async (e) => {
+          const file = e.target.files?.[0];
+          if (!file) return;
+          try {
+            const data = await file.arrayBuffer();
+            const xlsx = await import("xlsx");
+            const wb = xlsx.read(data, { type: "array" });
+            const ws = wb.Sheets[wb.SheetNames[0]];
+            const rows: any[] = xlsx.utils.sheet_to_json(ws);
+            for (const row of rows) {
+              const payload: any = {
+                name: row.Name || row.name || "",
+                categoryId: row.CategoryId || row.Category || "",
+                pricePerDay: Number(row.PricePerDay || row.pricePerDay) || 0,
+                description: row.Description || row.description || "",
+              };
+              try {
+                await createMaterial(payload);
+              } catch (err) {
+                console.error("Error creating material from row:", row, err);
+              }
+            }
+            await refreshMaterials();
+          } catch (err) {
+            console.error("Import failed:", err);
+            alert("Failed to import materials. Check console for details.");
+          } finally {
+            // reset input so same file can be re-picked if needed
+            if (fileInputRef.current) fileInputRef.current.value = "";
+          }
+        }}
+      />
 
       {/* Filters */}
       <MaterialFilters

@@ -20,7 +20,11 @@ export function MaterialsModule() {
       {/* Main catalog view showing list of materials */}
       <Route
         path=""
-        element={<MaterialCatalogPage key={refreshCatalog} />}
+        element={
+          <MaterialCatalogPage
+            key={refreshCatalog}
+          />
+        }
       />
 
       {/* Create new material form */}

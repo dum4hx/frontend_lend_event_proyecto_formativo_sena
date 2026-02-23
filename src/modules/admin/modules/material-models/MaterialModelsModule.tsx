@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import type {
   CreateMaterialCategoryPayload,
   MaterialCategory,
@@ -7,6 +7,7 @@ import type {
 } from "../../../../types/api";
 import { MaterialModelForm } from "./components/MaterialModelForm";
 import { MaterialModelList } from "./components/MaterialModelList";
+import { Download, Upload } from "lucide-react";
 import { useMaterialModels } from "./hooks/useMaterialModels";
 import {
   getMaterialTypes,
@@ -24,6 +25,8 @@ export function MaterialModelsModule() {
     updateModel,
     deleteModel,
   } = useMaterialModels();
+  const { refreshModels } = useMaterialModels();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [editingModel, setEditingModel] = useState<MaterialCategory | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -125,14 +128,87 @@ export function MaterialModelsModule() {
     }
   };
 
+  const exportModelsToExcel = async (items: typeof models) => {
+    try {
+      const rows = items.map((m) => ({
+        Name: m.name,
+        ParentId: m.parentId || "",
+        Description: m.description || "",
+      }));
+      const xlsx = await import("xlsx");
+      const ws = xlsx.utils.json_to_sheet(rows);
+      const wb = xlsx.utils.book_new();
+      xlsx.utils.book_append_sheet(wb, ws, "MaterialModels");
+      xlsx.writeFile(wb, "material-models.xlsx");
+    } catch (err) {
+      console.error("Export failed:", err);
+      alert("Failed to export material models. Install 'xlsx' or check console.");
+    }
+  };
+
+  const handleImportFile = async (file?: File | null) => {
+    if (!file) return;
+    try {
+      const data = await file.arrayBuffer();
+      const xlsx = await import("xlsx");
+      const wb = xlsx.read(data, { type: "array" });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows: any[] = xlsx.utils.sheet_to_json(ws);
+      for (const row of rows) {
+        const payload = {
+          name: row.Name || row.name || "",
+          parentId: row.ParentId || row.Parent || undefined,
+          description: row.Description || row.description || "",
+        } as any;
+        try {
+          await createModel(payload);
+        } catch (err) {
+          console.error("Error creating model from row:", row, err);
+        }
+      }
+      await refreshModels();
+    } catch (err) {
+      console.error("Import failed:", err);
+      alert("Failed to import material models. Check console for details.");
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-white">Material Models</h1>
-        <p className="text-gray-400 text-sm mt-1">
-          Create and manage material models
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-white">Material Models</h1>
+          <p className="text-gray-400 text-sm mt-1">Create and manage material models</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => exportModelsToExcel(models)}
+            className="flex items-center gap-2 px-3 py-2 bg-[#1a1a1a] text-gray-200 border border-[#333] rounded-lg hover:opacity-90 transition"
+          >
+            <Download className="w-4 h-4" />
+            Export
+          </button>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center gap-2 px-3 py-2 bg-[#1a1a1a] text-gray-200 border border-[#333] rounded-lg hover:opacity-90 transition"
+          >
+            <Upload className="w-4 h-4" />
+            Import
+          </button>
+        </div>
       </div>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".xlsx,.xls,.csv"
+        className="hidden"
+        onChange={async (e) => {
+          const file = e.target.files?.[0];
+          await handleImportFile(file);
+          if (fileInputRef.current) fileInputRef.current.value = "";
+        }}
+      />
 
       {submitError && (
         <div className="bg-red-900/30 border border-red-800 rounded-lg p-4 text-red-200">
