@@ -1583,6 +1583,14 @@ Creates a new category.
 
 ---
 
+#### DELETE /materials/categories/:id
+
+Deletes a material category. Fails if any material types reference this category.
+
+**Permission Required:** `materials:delete`
+
+---
+
 #### GET /materials/types
 
 Lists all material types (catalog items).
