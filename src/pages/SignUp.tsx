@@ -1,6 +1,6 @@
-import { useState, useRef, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import useSWR, { mutate } from "swr";
+import useSWR from "swr";
 import { useDebounce } from "use-debounce";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
@@ -15,6 +15,7 @@ import {
   validateLegalName,
   validateRequiredPhone,
   validatePhone,
+  validatePostalCode,
   validateTaxId,
   validatePassword,
   validateConfirmPassword,
@@ -84,42 +85,47 @@ export default function SignUp() {
   const [loading, setLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [currentStep, setCurrentStep] = useState(1);
+  const [submitAttempt, setSubmitAttempt] = useState(0);
+
+  // Refs for focusing/scrolling to fields with errors
+  const firstNameRef = useRef<HTMLInputElement | null>(null);
+  const lastNameRef = useRef<HTMLInputElement | null>(null);
+  const ownerEmailRef = useRef<HTMLInputElement | null>(null);
+  const ownerPhoneRef = useRef<HTMLInputElement | null>(null);
+  const organizationNameRef = useRef<HTMLInputElement | null>(null);
+  const legalNameRef = useRef<HTMLInputElement | null>(null);
+  const taxIdRef = useRef<HTMLInputElement | null>(null);
+  const organizationEmailRef = useRef<HTMLInputElement | null>(null);
+  const organizationPhoneRef = useRef<HTMLInputElement | null>(null);
+  const streetTypeRef = useRef<HTMLSelectElement | null>(null);
+  const mainNumberRef = useRef<HTMLInputElement | null>(null);
+  const secondaryNumberRef = useRef<HTMLInputElement | null>(null);
+  const complementaryNumberRef = useRef<HTMLInputElement | null>(null);
+  const additionalDetailsRef = useRef<HTMLInputElement | null>(null);
+  const stateRef = useRef<HTMLInputElement | null>(null);
+  const cityRef = useRef<HTMLInputElement | null>(null);
+  const postalCodeRef = useRef<HTMLInputElement | null>(null);
+  const passwordRef = useRef<HTMLInputElement | null>(null);
+  const confirmPasswordRef = useRef<HTMLInputElement | null>(null);
+  const createAccountButtonRef = useRef<HTMLButtonElement | null>(null);
 
   // --- State (Departamento) autocomplete ------------------------------------
   const [stateQuery, setStateQuery] = useState("");
   const [selectedState, setSelectedState] = useState<ColombiaDepartment | null>(null);
   const [showStateSuggestions, setShowStateSuggestions] = useState(false);
   const [debouncedStateQuery] = useDebounce(stateQuery, 200);
-  const prevStateQueryRef = useRef("");
 
   // --- City autocomplete (depends on selected state) ------------------------
   const [cityQuery, setCityQuery] = useState("");
   const [selectedCity, setSelectedCity] = useState<ColombiaCity | null>(null);
   const [showCitySuggestions, setShowCitySuggestions] = useState(false);
 
-  // SWR: search departments by keyword
+  // SWR: load all departments once, then filter client-side
   const { data: departments, isLoading: deptLoading } = useSWR<ColombiaDepartment[]>(
-    debouncedStateQuery && !selectedState
-      ? `https://api-colombia.com/api/v1/Department/search/${encodeURIComponent(debouncedStateQuery)}`
-      : null,
+    "https://api-colombia.com/api/v1/Department",
     colombiaFetcher,
     { revalidateOnFocus: false, revalidateOnReconnect: false, keepPreviousData: true },
   );
-
-  // Invalidate cache when user deletes characters (not extending previous query)
-  useEffect(() => {
-    if (debouncedStateQuery && prevStateQueryRef.current) {
-      const isExtending = debouncedStateQuery.startsWith(prevStateQueryRef.current);
-      if (!isExtending) {
-        mutate(
-          `https://api-colombia.com/api/v1/Department/search/${encodeURIComponent(debouncedStateQuery)}`,
-          undefined,
-          { revalidate: true },
-        );
-      }
-    }
-    prevStateQueryRef.current = debouncedStateQuery;
-  }, [debouncedStateQuery]);
 
   // SWR: fetch cities for the selected department
   const { data: stateCities, isLoading: citiesLoading } = useSWR<ColombiaCity[]>(
@@ -163,13 +169,18 @@ export default function SignUp() {
 
   useEffect(() => {
     setPostalCode(selectedCity?.postalCode ?? "");
+    setErrorFor("postalCode", undefined);
   }, [selectedCity]);
 
   // --- Helpers: input formatting/masking ---------------------------------
   const formatNameInput = (value: string) => {
     let v = value.replace(/[^A-Za-zÀ-ÿ\s]/g, ""); // only letters & spaces
     v = v.replace(/\s{2,}/g, " "); // collapse multiple spaces
-    return v.slice(0, 50);
+    v = v.slice(0, 50);
+
+    if (!v) return v;
+
+    return v.charAt(0).toUpperCase() + v.slice(1);
   };
 
   const formatPhoneInput = (value: string) => {
@@ -178,6 +189,18 @@ export default function SignUp() {
   };
 
   const formatEmailInput = (value: string) => value.trim().toLowerCase();
+
+  const formatPostalCodeInput = (value: string) => value.replace(/\D/g, "").slice(0, 6);
+
+  const formatStateInput = (value: string) =>
+    value
+      .replace(/[^A-Za-zÀ-ÿ\s]/g, "")
+      .replace(/\s{2,}/g, " ");
+
+  const formatOrganizationNameInput = (value: string) =>
+    value
+      .replace(/[^A-Za-zÀ-ÿ0-9\s]/g, "")
+      .replace(/\s{2,}/g, " ");
 
   const formatAddressSegmentInput = (value: string) => {
     const cleaned = value
@@ -241,6 +264,8 @@ export default function SignUp() {
     const normalizedDetails = additionalDetails.trim();
     return normalizedDetails ? `${formattedStreetBase}, ${normalizedDetails}` : formattedStreetBase;
   }, [formattedStreetBase, additionalDetails]);
+
+  const canEditPostalCode = !!selectedCity && !selectedCity.postalCode;
 
   const progressWidthClass =
     currentStep === 1 ? "w-1/4" : currentStep === 2 ? "w-2/4" : currentStep === 3 ? "w-3/4" : "w-full";
@@ -403,6 +428,79 @@ export default function SignUp() {
     return isValid;
   };
 
+  // After a submit attempt, scroll to the first field with an error
+  useEffect(() => {
+    if (!submitAttempt) return;
+    if (!Object.keys(fieldErrors).length) return;
+    const orderedFields: Array<[string, React.RefObject<HTMLElement>]> = [
+      ["firstName", firstNameRef as React.RefObject<HTMLElement>],
+      ["lastName", lastNameRef as React.RefObject<HTMLElement>],
+      ["ownerEmail", ownerEmailRef as React.RefObject<HTMLElement>],
+      ["ownerPhone", ownerPhoneRef as React.RefObject<HTMLElement>],
+      ["organizationName", organizationNameRef as React.RefObject<HTMLElement>],
+      ["legalName", legalNameRef as React.RefObject<HTMLElement>],
+      ["taxId", taxIdRef as React.RefObject<HTMLElement>],
+      ["organizationEmail", organizationEmailRef as React.RefObject<HTMLElement>],
+      ["organizationPhone", organizationPhoneRef as React.RefObject<HTMLElement>],
+      ["streetType", streetTypeRef as React.RefObject<HTMLElement>],
+      ["mainNumber", mainNumberRef as React.RefObject<HTMLElement>],
+      ["secondaryNumber", secondaryNumberRef as React.RefObject<HTMLElement>],
+      ["complementaryNumber", complementaryNumberRef as React.RefObject<HTMLElement>],
+      ["additionalDetails", additionalDetailsRef as React.RefObject<HTMLElement>],
+      ["state", stateRef as React.RefObject<HTMLElement>],
+      ["city", cityRef as React.RefObject<HTMLElement>],
+      ["postalCode", postalCodeRef as React.RefObject<HTMLElement>],
+      ["password", passwordRef as React.RefObject<HTMLElement>],
+      ["confirmPassword", confirmPasswordRef as React.RefObject<HTMLElement>],
+    ];
+
+    const fieldToStep: Record<string, number> = {
+      firstName: 1,
+      lastName: 1,
+      ownerEmail: 1,
+      ownerPhone: 1,
+      organizationName: 2,
+      legalName: 2,
+      taxId: 2,
+      organizationEmail: 2,
+      organizationPhone: 2,
+      streetType: 3,
+      mainNumber: 3,
+      secondaryNumber: 3,
+      complementaryNumber: 3,
+      additionalDetails: 3,
+      state: 3,
+      city: 3,
+      postalCode: 3,
+      password: 4,
+      confirmPassword: 4,
+    };
+
+    for (const [fieldName, ref] of orderedFields) {
+      if (!fieldErrors[fieldName]) continue;
+
+      const targetStep = fieldToStep[fieldName];
+      if (targetStep && targetStep !== currentStep) {
+        setCurrentStep(targetStep);
+      }
+
+      const targetRef = ref;
+      // Delay scroll/focus to allow step content to render if it changed
+      setTimeout(() => {
+        const el = targetRef.current;
+        if (!el) return;
+        try {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+          (el as HTMLInputElement | HTMLSelectElement).focus?.();
+        } catch {
+          // ignore scroll/focus errors
+        }
+      }, 0);
+
+      break;
+    }
+  }, [submitAttempt, fieldErrors, currentStep]);
+
   const validateCurrentStep = () => {
     if (currentStep === 1) return validateStepOne();
     if (currentStep === 2) return validateStepTwo();
@@ -414,9 +512,28 @@ export default function SignUp() {
     const isValid = validateCurrentStep();
     if (!isValid) {
       setError("Please fix the highlighted fields before continuing");
+      setSubmitAttempt((prev) => prev + 1);
       return;
     }
     setError("");
+
+    // If the user already tried to submit and fixed the current step,
+    // jump directly to the final step and focus the Create Account button.
+    if (submitAttempt > 0 && currentStep < TOTAL_STEPS) {
+      setCurrentStep(TOTAL_STEPS);
+      setTimeout(() => {
+        const btn = createAccountButtonRef.current;
+        if (!btn) return;
+        try {
+          btn.scrollIntoView({ behavior: "smooth", block: "center" });
+          btn.focus?.();
+        } catch {
+          // ignore scroll/focus errors
+        }
+      }, 0);
+      return;
+    }
+
     setCurrentStep((prev) => Math.min(prev + 1, TOTAL_STEPS));
   };
 
@@ -432,16 +549,16 @@ export default function SignUp() {
     const ownerPhoneForValidation = toColombianPhone(ownerPhone);
     const organizationPhoneForValidation = toColombianPhone(organizationPhone);
 
-    // Validate form
-    // Block submit if any current field errors exist
-    if (Object.keys(fieldErrors).length > 0) {
-      setError("Please fix the highlighted fields");
-      return;
-    }
+    // Validate all steps so every field with an issue is marked at once
+    const stepOneValid = validateStepOne();
+    const stepTwoValid = validateStepTwo();
+    const stepThreeValid = validateStepThree();
+    const stepFourValid = validateStepFour();
+    const allStepsValid = stepOneValid && stepTwoValid && stepThreeValid && stepFourValid;
 
-    const isAddressValid = validateStructuredAddress();
-    if (!isAddressValid) {
-      setError("Please complete the address using the required Colombian format");
+    if (!allStepsValid) {
+      setError("Please fix the highlighted fields");
+      setSubmitAttempt((prev) => prev + 1);
       return;
     }
 
@@ -466,6 +583,7 @@ export default function SignUp() {
 
     if (!validation.isValid) {
       setError(validation.message || "Validation failed");
+      setSubmitAttempt((prev) => prev + 1);
       return;
     }
 
@@ -546,6 +664,7 @@ export default function SignUp() {
           const { field, message } = REGISTER_CODE_MAP[detailsCode];
           setErrorFor(field, message);
           setError(message);
+          setSubmitAttempt((prev) => prev + 1);
         } else {
           // Fallback: surface any other detail values or the generic message
           const detailsMsg =
@@ -555,6 +674,9 @@ export default function SignUp() {
                   .join(". ")
               : undefined;
           setError(detailsMsg ?? err.message);
+          if (detailsMsg) {
+            setSubmitAttempt((prev) => prev + 1);
+          }
         }
       } else {
         setError("Network error. Please try again.");
@@ -664,6 +786,7 @@ export default function SignUp() {
                       type="text"
                       placeholder="John"
                       value={firstName}
+                      ref={firstNameRef}
                       onChange={(e) => {
                         const v = formatNameInput(e.target.value);
                         setFirstName(v);
@@ -690,6 +813,7 @@ export default function SignUp() {
                       type="text"
                       placeholder="Doe"
                       value={lastName}
+                      ref={lastNameRef}
                       onChange={(e) => {
                         const v = formatNameInput(e.target.value);
                         setLastName(v);
@@ -716,6 +840,7 @@ export default function SignUp() {
                       type="email"
                       placeholder="owner.personal@example.com"
                       value={ownerEmail}
+                      ref={ownerEmailRef}
                       autoCapitalize="none"
                       autoCorrect="off"
                       spellCheck={false}
@@ -753,6 +878,7 @@ export default function SignUp() {
                           maxLength={10}
                           placeholder="3001234567"
                           value={ownerPhone}
+                          ref={ownerPhoneRef}
                           onChange={(e) => {
                             const v = formatPhoneInput(e.target.value);
                             setOwnerPhone(v);
@@ -785,7 +911,11 @@ export default function SignUp() {
                       type="text"
                       placeholder="Your Company Inc."
                       value={organizationName}
-                      onChange={(e) => setOrganizationName(e.target.value)}
+                      ref={organizationNameRef}
+                      onChange={(e) => {
+                        const v = formatOrganizationNameInput(e.target.value);
+                        setOrganizationName(v);
+                      }}
                       onBlur={() => {
                         const res = validateOrganizationName(organizationName);
                         setErrorFor("organizationName", res.isValid ? undefined : res.message);
@@ -806,7 +936,11 @@ export default function SignUp() {
                       type="text"
                       placeholder="Your Company S.A."
                       value={legalName}
-                      onChange={(e) => setLegalName(e.target.value)}
+                      ref={legalNameRef}
+                      onChange={(e) => {
+                        const v = formatOrganizationNameInput(e.target.value);
+                        setLegalName(v);
+                      }}
                       onBlur={() => {
                         const res = validateLegalName(legalName);
                         setErrorFor("legalName", res.isValid ? undefined : res.message);
@@ -827,6 +961,7 @@ export default function SignUp() {
                       type="text"
                       placeholder="123-123-123"
                       value={taxId}
+                      ref={taxIdRef}
                       inputMode="numeric"
                       pattern="[0-9]*"
                       maxLength={11}
@@ -854,6 +989,7 @@ export default function SignUp() {
                       type="email"
                       placeholder="admin@yourcompany.com"
                       value={organizationEmail}
+                      ref={organizationEmailRef}
                       autoCapitalize="none"
                       autoCorrect="off"
                       spellCheck={false}
@@ -891,6 +1027,7 @@ export default function SignUp() {
                           maxLength={10}
                           placeholder="3001234567"
                           value={organizationPhone}
+                          ref={organizationPhoneRef}
                           onChange={(e) => {
                             const v = formatPhoneInput(e.target.value);
                             setOrganizationPhone(v);
@@ -931,6 +1068,7 @@ export default function SignUp() {
                       <select
                         title="Street Type"
                         value={streetType}
+                        ref={streetTypeRef}
                         onChange={(e) => {
                           const v = e.target.value;
                           setStreetType(v);
@@ -942,7 +1080,7 @@ export default function SignUp() {
                         disabled={loading}
                         className={inputClass(!!fieldErrors.streetType)}
                       >
-                        <option value="">Select street type</option>
+                        <option disabled value="">Select street type</option>
                         {COLOMBIA_STREET_TYPES.map((type) => (
                           <option key={type} value={type}>
                             {type}
@@ -965,6 +1103,7 @@ export default function SignUp() {
                         maxLength={ADDRESS_SEGMENT_MAX_LENGTH}
                         placeholder="8ª E"
                         value={mainNumber}
+                        ref={mainNumberRef}
                         onChange={(e) => {
                           const v = formatAddressSegmentInput(e.target.value);
                           setMainNumber(v);
@@ -994,6 +1133,7 @@ export default function SignUp() {
                         maxLength={ADDRESS_SEGMENT_MAX_LENGTH}
                         placeholder="93B"
                         value={secondaryNumber}
+                        ref={secondaryNumberRef}
                         onChange={(e) => {
                           const v = formatAddressSegmentInput(e.target.value);
                           setSecondaryNumber(v);
@@ -1023,6 +1163,7 @@ export default function SignUp() {
                         maxLength={ADDRESS_SEGMENT_MAX_LENGTH}
                         placeholder="47A"
                         value={complementaryNumber}
+                        ref={complementaryNumberRef}
                         onChange={(e) => {
                           const v = formatAddressSegmentInput(e.target.value);
                           setComplementaryNumber(v);
@@ -1052,9 +1193,10 @@ export default function SignUp() {
                         type="text"
                         placeholder="Search department..."
                         value={stateQuery}
+                        ref={stateRef}
                         autoComplete="off"
                         onChange={(e) => {
-                          const v = e.target.value;
+                          const v = formatStateInput(e.target.value);
                           setStateQuery(v);
                           if (selectedState && v !== selectedState.name) {
                             setSelectedState(null);
@@ -1062,6 +1204,7 @@ export default function SignUp() {
                             setCityQuery("");
                             setSelectedCity(null);
                             setPostalCode("");
+                            setErrorFor("postalCode", undefined);
                           }
                           setShowStateSuggestions(true);
                           const res = validateState(v, !!(selectedState && v === selectedState.name));
@@ -1100,6 +1243,7 @@ export default function SignUp() {
                                   setSelectedCity(null);
                                   setCity("");
                                   setPostalCode("");
+                                  setErrorFor("postalCode", undefined);
                                 }}
                               >
                                 {dept.name}
@@ -1121,6 +1265,7 @@ export default function SignUp() {
                         type="text"
                         placeholder={selectedState ? "Search city..." : "Select a state first"}
                         value={cityQuery}
+                        ref={cityRef}
                         autoComplete="off"
                         onChange={(e) => {
                           const v = e.target.value;
@@ -1129,6 +1274,7 @@ export default function SignUp() {
                             setSelectedCity(null);
                             setCity("");
                             setPostalCode("");
+                            setErrorFor("postalCode", undefined);
                           }
                           setShowCitySuggestions(true);
                           if (v && !(selectedCity && isNormalizedEqual(v, selectedCity.name))) {
@@ -1169,6 +1315,7 @@ export default function SignUp() {
                                   setCityQuery(c.name);
                                   setCity(c.name);
                                   setPostalCode(c.postalCode ?? "");
+                                  setErrorFor("postalCode", undefined);
                                   setShowCitySuggestions(false);
                                   setErrorFor("city", undefined);
                                 }}
@@ -1192,6 +1339,7 @@ export default function SignUp() {
                         type="text"
                         placeholder="Centro Empresarial Altos, Office 602"
                         value={additionalDetails}
+                        ref={additionalDetailsRef}
                         onChange={(e) => {
                           const v = formatAddressDetailsInput(e.target.value);
                           setAdditionalDetails(v);
@@ -1216,12 +1364,34 @@ export default function SignUp() {
                       </label>
                       <input
                         type="text"
-                        placeholder={selectedCity ? "Auto-filled from city" : "Select a city first"}
+                        placeholder={
+                          selectedCity
+                            ? canEditPostalCode
+                              ? "Enter postal code"
+                              : "Auto-filled from city"
+                            : "Select a city first"
+                        }
                         value={postalCode}
-                        readOnly
+                        ref={postalCodeRef}
+                        readOnly={!canEditPostalCode}
                         disabled={loading || !selectedCity}
+                        onChange={(e) => {
+                          if (!canEditPostalCode) return;
+                          const v = formatPostalCodeInput(e.target.value);
+                          setPostalCode(v);
+                          const res = validatePostalCode(v);
+                          setErrorFor("postalCode", res.isValid ? undefined : res.message);
+                        }}
+                        onBlur={() => {
+                          if (!canEditPostalCode) return;
+                          const res = validatePostalCode(postalCode);
+                          setErrorFor("postalCode", res.isValid ? undefined : res.message);
+                        }}
                         className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 px-4 text-white outline-none transition duration-200 disabled:opacity-50"
                       />
+                      {fieldErrors.postalCode && (
+                        <p className="text-red-400 text-xs mt-1">{fieldErrors.postalCode}</p>
+                      )}
                     </div>
 
                     <div>
@@ -1256,6 +1426,7 @@ export default function SignUp() {
                       type="password"
                       placeholder="••••••••••••"
                       value={password}
+                      ref={passwordRef}
                       onChange={(e) => {
                         const v = e.target.value;
                         setPassword(v);
@@ -1278,6 +1449,7 @@ export default function SignUp() {
                       type="password"
                       placeholder="Repeat your password"
                       value={confirmPassword}
+                      ref={confirmPasswordRef}
                       onChange={(e) => {
                         const v = e.target.value;
                         setConfirmPassword(v);
@@ -1317,6 +1489,7 @@ export default function SignUp() {
                   <button
                     type="submit"
                     disabled={loading || Object.keys(fieldErrors).length > 0}
+                    ref={createAccountButtonRef}
                     className={`px-6 py-3 rounded-xl bg-yellow-400 text-black font-extrabold ${styles.glowButton} hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed transition`}
                   >
                     {loading ? "Creating account..." : "Create Account"}

@@ -278,8 +278,8 @@ export const validatePostalCode = (postalCode?: string): ValidationResult => {
     return { isValid: false, message: 'Postal code may only contain numbers' }
   }
 
-  if (postalCode.length < 3) {
-    return { isValid: false, message: 'Postal code must be at least 3 characters' }
+  if (postalCode.length !== 6) {
+    return { isValid: false, message: 'Postal code must be exactly 6 digits' }
   }
 
   return { isValid: true }
