@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import useSWR from "swr";
 import { useDebounce } from "use-debounce";
@@ -7,7 +7,6 @@ import Footer from "../components/Footer";
 import { registerUser } from "../services/authService";
 import { ApiError } from "../lib/api";
 import {
-  validateRegistrationForm,
   validateEmail,
   validateFirstName,
   validateLastName,
@@ -56,36 +55,224 @@ const ADDRESS_DETAILS_MAX_LENGTH = 80;
 const COLOMBIAN_ADDRESS_SEGMENT_REGEX = /^[0-9]{1,4}(?:[ª°º])?(?:\s?[A-Za-z])?$/;
 const TOTAL_STEPS = 4;
 
+interface SignUpFormData {
+  firstName: string;
+  lastName: string;
+  organizationName: string;
+  organizationEmail: string;
+  ownerEmail: string;
+  password: string;
+  confirmPassword: string;
+  ownerPhone: string;
+  organizationPhone: string;
+  legalName: string;
+  taxId: string;
+  streetType: string;
+  mainNumber: string;
+  secondaryNumber: string;
+  complementaryNumber: string;
+  additionalDetails: string;
+  stateQuery: string;
+  cityQuery: string;
+  city: string;
+  postalCode: string;
+}
+
+type FormField = keyof SignUpFormData;
+type FieldValidationStatus = "pending" | "invalid" | "valid";
+
+const FIELD_ORDER: FormField[] = [
+  "firstName",
+  "lastName",
+  "ownerEmail",
+  "ownerPhone",
+  "organizationName",
+  "legalName",
+  "taxId",
+  "organizationEmail",
+  "organizationPhone",
+  "streetType",
+  "mainNumber",
+  "secondaryNumber",
+  "complementaryNumber",
+  "additionalDetails",
+  "stateQuery",
+  "cityQuery",
+  "postalCode",
+  "password",
+  "confirmPassword",
+];
+
+const STEP_FIELDS: Record<number, FormField[]> = {
+  1: ["firstName", "lastName", "ownerEmail", "ownerPhone"],
+  2: ["organizationName", "legalName", "taxId", "organizationEmail", "organizationPhone"],
+  3: [
+    "streetType",
+    "mainNumber",
+    "secondaryNumber",
+    "complementaryNumber",
+    "additionalDetails",
+    "stateQuery",
+    "cityQuery",
+    "postalCode",
+  ],
+  4: ["password", "confirmPassword"],
+};
+
+const FIELD_TO_STEP: Record<FormField, number> = {
+  firstName: 1,
+  lastName: 1,
+  ownerEmail: 1,
+  ownerPhone: 1,
+  organizationName: 2,
+  legalName: 2,
+  taxId: 2,
+  organizationEmail: 2,
+  organizationPhone: 2,
+  streetType: 3,
+  mainNumber: 3,
+  secondaryNumber: 3,
+  complementaryNumber: 3,
+  additionalDetails: 3,
+  stateQuery: 3,
+  cityQuery: 3,
+  city: 3,
+  postalCode: 3,
+  password: 4,
+  confirmPassword: 4,
+};
+
+const ALL_FIELDS_TOUCHED: Record<FormField, boolean> = {
+  firstName: true,
+  lastName: true,
+  ownerEmail: true,
+  ownerPhone: true,
+  organizationName: true,
+  legalName: true,
+  taxId: true,
+  organizationEmail: true,
+  organizationPhone: true,
+  streetType: true,
+  mainNumber: true,
+  secondaryNumber: true,
+  complementaryNumber: true,
+  additionalDetails: true,
+  stateQuery: true,
+  cityQuery: true,
+  city: true,
+  postalCode: true,
+  password: true,
+  confirmPassword: true,
+};
+
+const INITIAL_FIELD_VALIDATION_STATUS: Record<FormField, FieldValidationStatus> = {
+  firstName: "pending",
+  lastName: "pending",
+  ownerEmail: "pending",
+  ownerPhone: "pending",
+  organizationName: "pending",
+  legalName: "pending",
+  taxId: "pending",
+  organizationEmail: "pending",
+  organizationPhone: "pending",
+  streetType: "pending",
+  mainNumber: "pending",
+  secondaryNumber: "pending",
+  complementaryNumber: "pending",
+  additionalDetails: "pending",
+  stateQuery: "pending",
+  cityQuery: "pending",
+  city: "pending",
+  postalCode: "pending",
+  password: "pending",
+  confirmPassword: "pending",
+};
+
 export default function SignUp() {
   const navigate = useNavigate();
   const location = useLocation();
   const returnTo = new URLSearchParams(location.search).get("returnTo");
   const [showRegSuccessModal, setShowRegSuccessModal] = useState(false);
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [organizationName, setOrganizationName] = useState("");
-  // Separate emails: organization vs owner
-  const [organizationEmail, setOrganizationEmail] = useState("");
-  const [ownerEmail, setOwnerEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  // Separate phones: owner (required) vs organization (optional)
-  const [ownerPhone, setOwnerPhone] = useState("");
-  const [organizationPhone, setOrganizationPhone] = useState("");
+  const [formData, setFormData] = useState<SignUpFormData>({
+    firstName: "",
+    lastName: "",
+    organizationName: "",
+    organizationEmail: "",
+    ownerEmail: "",
+    password: "",
+    confirmPassword: "",
+    ownerPhone: "",
+    organizationPhone: "",
+    legalName: "",
+    taxId: "",
+    streetType: "",
+    mainNumber: "",
+    secondaryNumber: "",
+    complementaryNumber: "",
+    additionalDetails: "",
+    stateQuery: "",
+    cityQuery: "",
+    city: "",
+    postalCode: "",
+  });
   const [error, setError] = useState("");
-  const [legalName, setLegalName] = useState("");
-  const [taxId, setTaxId] = useState("");
-  const [streetType, setStreetType] = useState("");
-  const [mainNumber, setMainNumber] = useState("");
-  const [secondaryNumber, setSecondaryNumber] = useState("");
-  const [complementaryNumber, setComplementaryNumber] = useState("");
-  const [additionalDetails, setAdditionalDetails] = useState("");
-  const [city, setCity] = useState("");
-  const [postalCode, setPostalCode] = useState("");
   const [loading, setLoading] = useState(false);
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [backendErrors, setBackendErrors] = useState<Partial<Record<FormField, string>>>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [fieldValidationStatus, setFieldValidationStatus] =
+    useState<Record<FormField, FieldValidationStatus>>(INITIAL_FIELD_VALIDATION_STATUS);
+  const [submitted, setSubmitted] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
-  const [submitAttempt, setSubmitAttempt] = useState(0);
+  const [, setSubmitAttempt] = useState(0);
+
+  const {
+    firstName,
+    lastName,
+    organizationName,
+    organizationEmail,
+    ownerEmail,
+    password,
+    confirmPassword,
+    ownerPhone,
+    organizationPhone,
+    legalName,
+    taxId,
+    streetType,
+    mainNumber,
+    secondaryNumber,
+    complementaryNumber,
+    additionalDetails,
+    stateQuery,
+    cityQuery,
+    city,
+    postalCode,
+  } = formData;
+
+  const setFormField = useCallback(<K extends FormField>(field: K, value: SignUpFormData[K]) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  }, []);
+
+  const setFirstName = (value: string) => setFormField("firstName", value);
+  const setLastName = (value: string) => setFormField("lastName", value);
+  const setOrganizationName = (value: string) => setFormField("organizationName", value);
+  const setOrganizationEmail = (value: string) => setFormField("organizationEmail", value);
+  const setOwnerEmail = (value: string) => setFormField("ownerEmail", value);
+  const setPassword = (value: string) => setFormField("password", value);
+  const setConfirmPassword = (value: string) => setFormField("confirmPassword", value);
+  const setOwnerPhone = (value: string) => setFormField("ownerPhone", value);
+  const setOrganizationPhone = (value: string) => setFormField("organizationPhone", value);
+  const setLegalName = (value: string) => setFormField("legalName", value);
+  const setTaxId = (value: string) => setFormField("taxId", value);
+  const setStreetType = (value: string) => setFormField("streetType", value);
+  const setMainNumber = (value: string) => setFormField("mainNumber", value);
+  const setSecondaryNumber = (value: string) => setFormField("secondaryNumber", value);
+  const setComplementaryNumber = (value: string) => setFormField("complementaryNumber", value);
+  const setAdditionalDetails = (value: string) => setFormField("additionalDetails", value);
+  const setStateQuery = (value: string) => setFormField("stateQuery", value);
+  const setCityQuery = (value: string) => setFormField("cityQuery", value);
+  const setCity = (value: string) => setFormField("city", value);
+  const setPostalCode = (value: string) => setFormField("postalCode", value);
 
   // Refs for focusing/scrolling to fields with errors
   const firstNameRef = useRef<HTMLInputElement | null>(null);
@@ -110,13 +297,11 @@ export default function SignUp() {
   const createAccountButtonRef = useRef<HTMLButtonElement | null>(null);
 
   // --- State (Departamento) autocomplete ------------------------------------
-  const [stateQuery, setStateQuery] = useState("");
   const [selectedState, setSelectedState] = useState<ColombiaDepartment | null>(null);
   const [showStateSuggestions, setShowStateSuggestions] = useState(false);
   const [debouncedStateQuery] = useDebounce(stateQuery, 200);
 
   // --- City autocomplete (depends on selected state) ------------------------
-  const [cityQuery, setCityQuery] = useState("");
   const [selectedCity, setSelectedCity] = useState<ColombiaCity | null>(null);
   const [showCitySuggestions, setShowCitySuggestions] = useState(false);
 
@@ -135,14 +320,19 @@ export default function SignUp() {
   );
 
   // Normalize text: remove accents/tildes for accent-insensitive matching
-  const normalize = (s: string) =>
-    s
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase();
+  const normalize = useCallback(
+    (s: string) =>
+      s
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase(),
+    [],
+  );
 
-  const isNormalizedEqual = (a: string, b: string) =>
-    normalize(a.trim()) === normalize(b.trim());
+  const isNormalizedEqual = useCallback(
+    (a: string, b: string) => normalize(a.trim()) === normalize(b.trim()),
+    [normalize],
+  );
 
   // Client-side filter: only show departments whose name matches the query
   const filteredDepartments = useMemo(() => {
@@ -154,7 +344,7 @@ export default function SignUp() {
     if (prefixMatches.length) return prefixMatches;
     // Fallback to contains if no prefix matches
     return departments.filter((d) => normalize(d.name).includes(nq));
-  }, [departments, debouncedStateQuery]);
+  }, [departments, debouncedStateQuery, normalize]);
 
   // Client-side filter for city suggestions
   const filteredCities = useMemo(() => {
@@ -165,12 +355,7 @@ export default function SignUp() {
     const prefixCityMatches = stateCities.filter((c) => normalize(c.name).startsWith(normalizedCityQuery));
     if (prefixCityMatches.length) return prefixCityMatches;
     return stateCities.filter((c) => normalize(c.name).includes(normalizedCityQuery));
-  }, [stateCities, cityQuery]);
-
-  useEffect(() => {
-    setPostalCode(selectedCity?.postalCode ?? "");
-    setErrorFor("postalCode", undefined);
-  }, [selectedCity]);
+  }, [stateCities, cityQuery, normalize]);
 
   // --- Helpers: input formatting/masking ---------------------------------
   const formatNameInput = (value: string) => {
@@ -239,13 +424,336 @@ export default function SignUp() {
 
   const cleanTaxIdForApi = (formatted: string) => formatted.replace(/-/g, "");
 
+  const markFieldTouched = (field: FormField) => {
+    setTouched((prev) => (prev[field] ? prev : { ...prev, [field]: true }));
+  };
+
+  const setFieldValidation = (field: FormField, status: FieldValidationStatus) => {
+    setFieldValidationStatus((prev) => (prev[field] === status ? prev : { ...prev, [field]: status }));
+  };
+
   const setErrorFor = (field: string, message?: string) => {
-    setFieldErrors((prev) => {
+    setErrors((prev) => {
       const next = { ...prev };
       if (message) next[field] = message;
       else delete next[field];
       return next;
     });
+  };
+
+  const clearBackendError = (field: FormField) => {
+    setBackendErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
+
+  const clearFieldValue = (field: FormField) => {
+    if (field === "city") return;
+    if (field === "stateQuery") {
+      setStateQuery("");
+      setSelectedState(null);
+      setSelectedCity(null);
+      setCity("");
+      setCityQuery("");
+      setPostalCode("");
+      return;
+    }
+    if (field === "cityQuery") {
+      setCityQuery("");
+      setSelectedCity(null);
+      setCity("");
+      setPostalCode("");
+      return;
+    }
+    setFormField(field, "");
+  };
+
+  const setBackendFieldError = (field: FormField, message: string) => {
+    clearFieldValue(field);
+    setBackendErrors((prev) => ({ ...prev, [field]: message }));
+    setErrorFor(field, message);
+    markFieldTouched(field);
+    setFieldValidation(field, "invalid");
+    focusField(field);
+  };
+
+  const fieldRefs: Record<FormField, React.RefObject<HTMLElement>> = {
+    firstName: firstNameRef as React.RefObject<HTMLElement>,
+    lastName: lastNameRef as React.RefObject<HTMLElement>,
+    ownerEmail: ownerEmailRef as React.RefObject<HTMLElement>,
+    ownerPhone: ownerPhoneRef as React.RefObject<HTMLElement>,
+    organizationName: organizationNameRef as React.RefObject<HTMLElement>,
+    legalName: legalNameRef as React.RefObject<HTMLElement>,
+    taxId: taxIdRef as React.RefObject<HTMLElement>,
+    organizationEmail: organizationEmailRef as React.RefObject<HTMLElement>,
+    organizationPhone: organizationPhoneRef as React.RefObject<HTMLElement>,
+    streetType: streetTypeRef as React.RefObject<HTMLElement>,
+    mainNumber: mainNumberRef as React.RefObject<HTMLElement>,
+    secondaryNumber: secondaryNumberRef as React.RefObject<HTMLElement>,
+    complementaryNumber: complementaryNumberRef as React.RefObject<HTMLElement>,
+    additionalDetails: additionalDetailsRef as React.RefObject<HTMLElement>,
+    stateQuery: stateRef as React.RefObject<HTMLElement>,
+    cityQuery: cityRef as React.RefObject<HTMLElement>,
+    city: cityRef as React.RefObject<HTMLElement>,
+    postalCode: postalCodeRef as React.RefObject<HTMLElement>,
+    password: passwordRef as React.RefObject<HTMLElement>,
+    confirmPassword: confirmPasswordRef as React.RefObject<HTMLElement>,
+  };
+
+  const focusField = (field: FormField) => {
+    const targetStep = FIELD_TO_STEP[field];
+    if (targetStep && targetStep !== currentStep) {
+      setCurrentStep(targetStep);
+    }
+
+    const targetRef = fieldRefs[field];
+    setTimeout(() => {
+      const el = targetRef?.current;
+      if (!el) return;
+      try {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        (el as HTMLInputElement | HTMLSelectElement).focus?.();
+      } catch {
+        // ignore scroll/focus errors
+      }
+    }, 0);
+  };
+
+  const getFirstInvalidField = (validationErrors: Record<string, string>) => {
+    for (const field of FIELD_ORDER) {
+      if (validationErrors[field]) return field;
+    }
+    return undefined;
+  };
+
+  const validateAddressSegmentField = (value: string, label: string) => {
+    if (!value) {
+      return { isValid: false, message: `${label} is required` };
+    }
+
+    if (!COLOMBIAN_ADDRESS_SEGMENT_REGEX.test(value)) {
+      return {
+        isValid: false,
+        message: `${label} must follow formats like 8, 8A, 8ª or 8ª E`,
+      };
+    }
+
+    return { isValid: true };
+  };
+
+  const validateFormData = useCallback(
+    (
+      data: SignUpFormData,
+      options: {
+        touched?: Record<string, boolean>;
+        submitted?: boolean;
+      } = {},
+    ) => {
+      const validationErrors: Record<string, string> = {};
+      const touchedState = options.touched ?? touched;
+      const submittedState = options.submitted ?? submitted;
+
+      const firstNameValidation = validateFirstName(data.firstName);
+      if (!firstNameValidation.isValid && firstNameValidation.message) {
+        validationErrors.firstName = firstNameValidation.message;
+      }
+
+      const lastNameValidation = validateLastName(data.lastName);
+      if (!lastNameValidation.isValid && lastNameValidation.message) {
+        validationErrors.lastName = lastNameValidation.message;
+      }
+
+      const ownerEmailValidation = validateEmail(data.ownerEmail);
+      if (!ownerEmailValidation.isValid && ownerEmailValidation.message) {
+        validationErrors.ownerEmail = ownerEmailValidation.message;
+      }
+
+      const ownerPhoneValidation = validateRequiredPhone(toColombianPhone(data.ownerPhone));
+      if (!ownerPhoneValidation.isValid && ownerPhoneValidation.message) {
+        validationErrors.ownerPhone = ownerPhoneValidation.message;
+      }
+
+      const organizationNameValidation = validateOrganizationName(data.organizationName);
+      if (!organizationNameValidation.isValid && organizationNameValidation.message) {
+        validationErrors.organizationName = organizationNameValidation.message;
+      }
+
+      const legalNameValidation = validateLegalName(data.legalName);
+      if (!legalNameValidation.isValid && legalNameValidation.message) {
+        validationErrors.legalName = legalNameValidation.message;
+      }
+
+      const taxIdValidation = validateTaxId(data.taxId);
+      if (!taxIdValidation.isValid && taxIdValidation.message) {
+        validationErrors.taxId = taxIdValidation.message;
+      }
+
+      const organizationEmailValidation = validateEmail(data.organizationEmail);
+      if (!organizationEmailValidation.isValid && organizationEmailValidation.message) {
+        validationErrors.organizationEmail = organizationEmailValidation.message;
+      }
+
+      if (
+        data.ownerEmail.trim() &&
+        data.organizationEmail.trim() &&
+        data.ownerEmail.trim().toLowerCase() === data.organizationEmail.trim().toLowerCase()
+      ) {
+        validationErrors.organizationEmail =
+          "Organization email must be different from owner email";
+      }
+
+      if (data.organizationPhone) {
+        const organizationPhoneValidation = validatePhone(toColombianPhone(data.organizationPhone));
+        if (!organizationPhoneValidation.isValid && organizationPhoneValidation.message) {
+          validationErrors.organizationPhone = organizationPhoneValidation.message;
+        }
+      }
+
+      if (!data.streetType) {
+        validationErrors.streetType = "Street type is required";
+      }
+
+      const mainValidation = validateAddressSegmentField(data.mainNumber, "Primary number");
+      if (!mainValidation.isValid && mainValidation.message) {
+        validationErrors.mainNumber = mainValidation.message;
+      }
+
+      const secondaryValidation = validateAddressSegmentField(data.secondaryNumber, "Secondary number");
+      if (!secondaryValidation.isValid && secondaryValidation.message) {
+        validationErrors.secondaryNumber = secondaryValidation.message;
+      }
+
+      const complementaryValidation = validateAddressSegmentField(
+        data.complementaryNumber,
+        "Complementary number",
+      );
+      if (!complementaryValidation.isValid && complementaryValidation.message) {
+        validationErrors.complementaryNumber = complementaryValidation.message;
+      }
+
+      const hasStreetBase =
+        !!data.streetType && !!data.mainNumber && !!data.secondaryNumber && !!data.complementaryNumber;
+      if (!hasStreetBase) {
+        validationErrors.street = "Address is required";
+      }
+
+      if (data.additionalDetails.length > ADDRESS_DETAILS_MAX_LENGTH) {
+        validationErrors.additionalDetails =
+          `Additional business location details must not exceed ${ADDRESS_DETAILS_MAX_LENGTH} characters`;
+      }
+
+      const isStateSelected =
+        !!selectedState && isNormalizedEqual(data.stateQuery, selectedState.name);
+      const stateValidation = validateState(data.stateQuery, isStateSelected);
+      if (!stateValidation.isValid && stateValidation.message) {
+        validationErrors.stateQuery = stateValidation.message;
+      }
+
+      if (!data.cityQuery.trim()) {
+        validationErrors.cityQuery = "City is required";
+      } else if (!selectedCity || !isNormalizedEqual(data.cityQuery, selectedCity.name)) {
+        validationErrors.cityQuery = "Please select a valid city from the list";
+      }
+
+      if (selectedCity && !selectedCity.postalCode && !data.postalCode.trim()) {
+        validationErrors.postalCode = "Postal code is required";
+      } else {
+        const postalValidation = validatePostalCode(data.postalCode);
+        if (!postalValidation.isValid && postalValidation.message) {
+          validationErrors.postalCode = postalValidation.message;
+        }
+      }
+
+      const passwordValidation = validatePassword(data.password);
+      if (!passwordValidation.isValid && passwordValidation.message) {
+        validationErrors.password = passwordValidation.message;
+      }
+
+      const shouldValidateConfirmPassword =
+        submittedState || (!!data.password && !!touchedState.confirmPassword);
+      if (shouldValidateConfirmPassword) {
+        const confirmPasswordValidation = validateConfirmPassword(data.password, data.confirmPassword);
+        if (!confirmPasswordValidation.isValid && confirmPasswordValidation.message) {
+          validationErrors.confirmPassword = confirmPasswordValidation.message;
+        }
+      }
+
+      return validationErrors;
+    },
+    [touched, submitted, selectedState, selectedCity, isNormalizedEqual],
+  );
+
+  const runValidation = useCallback(
+    (
+      data: SignUpFormData = formData,
+      options: {
+        touched?: Record<string, boolean>;
+        submitted?: boolean;
+      } = {},
+    ) => {
+      const nextErrors = validateFormData(data, {
+        touched: options.touched ?? touched,
+        submitted: options.submitted ?? submitted,
+      });
+      setErrors(nextErrors);
+      const touchedState = options.touched ?? touched;
+      const submittedState = options.submitted ?? submitted;
+      const mergedErrors = { ...nextErrors, ...backendErrors };
+
+      setFieldValidationStatus((prev) => {
+        const nextStatus = { ...prev };
+        for (const field of FIELD_ORDER) {
+          if (mergedErrors[field]) {
+            nextStatus[field] = "invalid";
+          } else if (submittedState || touchedState[field]) {
+            nextStatus[field] = "valid";
+          } else {
+            nextStatus[field] = "pending";
+          }
+        }
+        return nextStatus;
+      });
+
+      return nextErrors;
+    },
+    [formData, touched, submitted, validateFormData, backendErrors],
+  );
+
+  const visibleErrors = useMemo(() => {
+    const merged: Record<string, string> = { ...errors, ...backendErrors };
+    if (submitted) return merged;
+    const next: Record<string, string> = {};
+    for (const [field, message] of Object.entries(merged)) {
+      if (touched[field]) {
+        next[field] = message;
+      }
+    }
+    return next;
+  }, [errors, backendErrors, touched, submitted]);
+
+  const fieldErrors = visibleErrors;
+  const hasInvalidFields = useMemo(
+    () => FIELD_ORDER.some((field) => fieldValidationStatus[field] === "invalid"),
+    [fieldValidationStatus],
+  );
+
+  const validateFieldOnBlur = (field: FormField, data: SignUpFormData = formData) => {
+    const nextTouched = { ...touched, [field]: true };
+    markFieldTouched(field);
+    const nextErrors = runValidation(data, { touched: nextTouched, submitted });
+    const fieldMessage = nextErrors[field] ?? backendErrors[field];
+
+    if (fieldMessage) {
+      setFieldValidation(field, "invalid");
+      return false;
+    }
+
+    clearBackendError(field);
+    setFieldValidation(field, "valid");
+    return true;
   };
 
   const inputClass = (hasError: boolean) =>
@@ -270,272 +778,54 @@ export default function SignUp() {
   const progressWidthClass =
     currentStep === 1 ? "w-1/4" : currentStep === 2 ? "w-2/4" : currentStep === 3 ? "w-3/4" : "w-full";
 
-  const validateAddressSegmentField = (value: string, label: string) => {
-    if (!value) {
-      return { isValid: false, message: `${label} is required` };
-    }
-
-    if (!COLOMBIAN_ADDRESS_SEGMENT_REGEX.test(value)) {
-      return {
-        isValid: false,
-        message: `${label} must follow formats like 8, 8A, 8ª or 8ª E`,
-      };
-    }
-
-    return { isValid: true };
-  };
-
-  const validateStructuredAddress = () => {
-    let isValid = true;
-
-    if (!streetType) {
-      setErrorFor("streetType", "Street type is required");
-      isValid = false;
-    } else {
-      setErrorFor("streetType", undefined);
-    }
-
-    const mainValidation = validateAddressSegmentField(mainNumber, "Primary number");
-    setErrorFor("mainNumber", mainValidation.isValid ? undefined : mainValidation.message);
-    if (!mainValidation.isValid) isValid = false;
-
-    const secondaryValidation = validateAddressSegmentField(secondaryNumber, "Secondary number");
-    setErrorFor("secondaryNumber", secondaryValidation.isValid ? undefined : secondaryValidation.message);
-    if (!secondaryValidation.isValid) isValid = false;
-
-    const complementaryValidation = validateAddressSegmentField(
-      complementaryNumber,
-      "Complementary number",
-    );
-    setErrorFor(
-      "complementaryNumber",
-      complementaryValidation.isValid ? undefined : complementaryValidation.message,
-    );
-    if (!complementaryValidation.isValid) isValid = false;
-
-    if (!formattedStreetBase) {
-      setErrorFor("street", "Address is required");
-      isValid = false;
-    } else {
-      setErrorFor("street", undefined);
-    }
-
-    if (additionalDetails.length > ADDRESS_DETAILS_MAX_LENGTH) {
-      setErrorFor(
-        "additionalDetails",
-        `Additional business location details must not exceed ${ADDRESS_DETAILS_MAX_LENGTH} characters`,
-      );
-      isValid = false;
-    } else {
-      setErrorFor("additionalDetails", undefined);
-    }
-
-    return isValid;
-  };
-
-  const validateStepOne = () => {
-    let isValid = true;
-
-    const firstNameValidation = validateFirstName(firstName);
-    setErrorFor("firstName", firstNameValidation.isValid ? undefined : firstNameValidation.message);
-    if (!firstNameValidation.isValid) isValid = false;
-
-    const lastNameValidation = validateLastName(lastName);
-    setErrorFor("lastName", lastNameValidation.isValid ? undefined : lastNameValidation.message);
-    if (!lastNameValidation.isValid) isValid = false;
-
-    const ownerEmailValidation = validateEmail(ownerEmail);
-    setErrorFor("ownerEmail", ownerEmailValidation.isValid ? undefined : ownerEmailValidation.message);
-    if (!ownerEmailValidation.isValid) isValid = false;
-
-    const ownerPhoneValidation = validateRequiredPhone(toColombianPhone(ownerPhone));
-    setErrorFor("ownerPhone", ownerPhoneValidation.isValid ? undefined : ownerPhoneValidation.message);
-    if (!ownerPhoneValidation.isValid) isValid = false;
-
-    return isValid;
-  };
-
-  const validateStepTwo = () => {
-    let isValid = true;
-
-    const organizationNameValidation = validateOrganizationName(organizationName);
-    setErrorFor(
-      "organizationName",
-      organizationNameValidation.isValid ? undefined : organizationNameValidation.message,
-    );
-    if (!organizationNameValidation.isValid) isValid = false;
-
-    const legalNameValidation = validateLegalName(legalName);
-    setErrorFor("legalName", legalNameValidation.isValid ? undefined : legalNameValidation.message);
-    if (!legalNameValidation.isValid) isValid = false;
-
-    const taxIdValidation = validateTaxId(taxId);
-    setErrorFor("taxId", taxIdValidation.isValid ? undefined : taxIdValidation.message);
-    if (!taxIdValidation.isValid) isValid = false;
-
-    const organizationEmailValidation = validateEmail(organizationEmail);
-    setErrorFor(
-      "organizationEmail",
-      organizationEmailValidation.isValid ? undefined : organizationEmailValidation.message,
-    );
-    if (!organizationEmailValidation.isValid) isValid = false;
-
-    if (organizationPhone) {
-      const organizationPhoneValidation = validatePhone(toColombianPhone(organizationPhone));
-      setErrorFor(
-        "organizationPhone",
-        organizationPhoneValidation.isValid ? undefined : organizationPhoneValidation.message,
-      );
-      if (!organizationPhoneValidation.isValid) isValid = false;
-    } else {
-      setErrorFor("organizationPhone", undefined);
-    }
-
-    return isValid;
-  };
-
-  const validateStepThree = () => {
-    let isValid = validateStructuredAddress();
-
-    const stateValidation = validateState(stateQuery, !!selectedState);
-    setErrorFor("state", stateValidation.isValid ? undefined : stateValidation.message);
-    if (!stateValidation.isValid) isValid = false;
-
-    if (cityQuery && !selectedCity) {
-      setErrorFor("city", "Please select a valid city from the list");
-      isValid = false;
-    } else {
-      setErrorFor("city", undefined);
-    }
-
-    return isValid;
-  };
-
-  const validateStepFour = () => {
-    let isValid = true;
-
-    const passwordValidation = validatePassword(password);
-    setErrorFor("password", passwordValidation.isValid ? undefined : passwordValidation.message);
-    if (!passwordValidation.isValid) isValid = false;
-
-    const confirmPasswordValidation = validateConfirmPassword(password, confirmPassword);
-    setErrorFor(
-      "confirmPassword",
-      confirmPasswordValidation.isValid ? undefined : confirmPasswordValidation.message,
-    );
-    if (!confirmPasswordValidation.isValid) isValid = false;
-
-    return isValid;
-  };
-
-  // After a submit attempt, scroll to the first field with an error
-  useEffect(() => {
-    if (!submitAttempt) return;
-    if (!Object.keys(fieldErrors).length) return;
-    const orderedFields: Array<[string, React.RefObject<HTMLElement>]> = [
-      ["firstName", firstNameRef as React.RefObject<HTMLElement>],
-      ["lastName", lastNameRef as React.RefObject<HTMLElement>],
-      ["ownerEmail", ownerEmailRef as React.RefObject<HTMLElement>],
-      ["ownerPhone", ownerPhoneRef as React.RefObject<HTMLElement>],
-      ["organizationName", organizationNameRef as React.RefObject<HTMLElement>],
-      ["legalName", legalNameRef as React.RefObject<HTMLElement>],
-      ["taxId", taxIdRef as React.RefObject<HTMLElement>],
-      ["organizationEmail", organizationEmailRef as React.RefObject<HTMLElement>],
-      ["organizationPhone", organizationPhoneRef as React.RefObject<HTMLElement>],
-      ["streetType", streetTypeRef as React.RefObject<HTMLElement>],
-      ["mainNumber", mainNumberRef as React.RefObject<HTMLElement>],
-      ["secondaryNumber", secondaryNumberRef as React.RefObject<HTMLElement>],
-      ["complementaryNumber", complementaryNumberRef as React.RefObject<HTMLElement>],
-      ["additionalDetails", additionalDetailsRef as React.RefObject<HTMLElement>],
-      ["state", stateRef as React.RefObject<HTMLElement>],
-      ["city", cityRef as React.RefObject<HTMLElement>],
-      ["postalCode", postalCodeRef as React.RefObject<HTMLElement>],
-      ["password", passwordRef as React.RefObject<HTMLElement>],
-      ["confirmPassword", confirmPasswordRef as React.RefObject<HTMLElement>],
-    ];
-
-    const fieldToStep: Record<string, number> = {
-      firstName: 1,
-      lastName: 1,
-      ownerEmail: 1,
-      ownerPhone: 1,
-      organizationName: 2,
-      legalName: 2,
-      taxId: 2,
-      organizationEmail: 2,
-      organizationPhone: 2,
-      streetType: 3,
-      mainNumber: 3,
-      secondaryNumber: 3,
-      complementaryNumber: 3,
-      additionalDetails: 3,
-      state: 3,
-      city: 3,
-      postalCode: 3,
-      password: 4,
-      confirmPassword: 4,
-    };
-
-    for (const [fieldName, ref] of orderedFields) {
-      if (!fieldErrors[fieldName]) continue;
-
-      const targetStep = fieldToStep[fieldName];
-      if (targetStep && targetStep !== currentStep) {
-        setCurrentStep(targetStep);
-      }
-
-      const targetRef = ref;
-      // Delay scroll/focus to allow step content to render if it changed
-      setTimeout(() => {
-        const el = targetRef.current;
-        if (!el) return;
-        try {
-          el.scrollIntoView({ behavior: "smooth", block: "center" });
-          (el as HTMLInputElement | HTMLSelectElement).focus?.();
-        } catch {
-          // ignore scroll/focus errors
-        }
-      }, 0);
-
-      break;
-    }
-  }, [submitAttempt, fieldErrors, currentStep]);
-
   const validateCurrentStep = () => {
-    if (currentStep === 1) return validateStepOne();
-    if (currentStep === 2) return validateStepTwo();
-    if (currentStep === 3) return validateStepThree();
-    return validateStepFour();
+    const currentStepFields = STEP_FIELDS[currentStep] ?? [];
+    const nextTouched = {
+      ...touched,
+      ...Object.fromEntries(currentStepFields.map((field) => [field, true])),
+    };
+    setTouched(nextTouched);
+    const nextErrors = runValidation(formData, { touched: nextTouched, submitted });
+    const mergedErrors = { ...nextErrors, ...backendErrors };
+    const firstInvalidInCurrentStep = currentStepFields.find((field) => !!mergedErrors[field]);
+    return {
+      isValid: !firstInvalidInCurrentStep,
+      firstInvalidField: firstInvalidInCurrentStep,
+    };
   };
 
   const handleNextStep = () => {
-    const isValid = validateCurrentStep();
+    const { isValid, firstInvalidField } = validateCurrentStep();
     if (!isValid) {
       setError("Please fix the highlighted fields before continuing");
       setSubmitAttempt((prev) => prev + 1);
+      if (firstInvalidField) {
+        focusField(firstInvalidField);
+      }
       return;
     }
     setError("");
 
-    // If the user already tried to submit and fixed the current step,
-    // jump directly to the final step and focus the Create Account button.
-    if (submitAttempt > 0 && currentStep < TOTAL_STEPS) {
-      setCurrentStep(TOTAL_STEPS);
-      setTimeout(() => {
-        const btn = createAccountButtonRef.current;
-        if (!btn) return;
-        try {
-          btn.scrollIntoView({ behavior: "smooth", block: "center" });
-          btn.focus?.();
-        } catch {
-          // ignore scroll/focus errors
-        }
-      }, 0);
-      return;
-    }
-
     setCurrentStep((prev) => Math.min(prev + 1, TOTAL_STEPS));
   };
+
+  useEffect(() => {
+    if (!submitted) return;
+    if (Object.keys({ ...errors, ...backendErrors }).length) return;
+    if (currentStep === TOTAL_STEPS) return;
+
+    setCurrentStep(TOTAL_STEPS);
+    setTimeout(() => {
+      const btn = createAccountButtonRef.current;
+      if (!btn) return;
+      try {
+        btn.scrollIntoView({ behavior: "smooth", block: "center" });
+        btn.focus?.();
+      } catch {
+        // ignore scroll/focus errors
+      }
+    }, 0);
+  }, [submitted, errors, backendErrors, currentStep]);
 
   const handlePreviousStep = () => {
     setError("");
@@ -545,45 +835,21 @@ export default function SignUp() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    setSubmitted(true);
+    setTouched(ALL_FIELDS_TOUCHED);
 
     const ownerPhoneForValidation = toColombianPhone(ownerPhone);
     const organizationPhoneForValidation = toColombianPhone(organizationPhone);
 
-    // Validate all steps so every field with an issue is marked at once
-    const stepOneValid = validateStepOne();
-    const stepTwoValid = validateStepTwo();
-    const stepThreeValid = validateStepThree();
-    const stepFourValid = validateStepFour();
-    const allStepsValid = stepOneValid && stepTwoValid && stepThreeValid && stepFourValid;
-
-    if (!allStepsValid) {
+    const nextErrors = runValidation(formData, { touched: ALL_FIELDS_TOUCHED, submitted: true });
+    const mergedErrors = { ...nextErrors, ...backendErrors };
+    if (Object.keys(mergedErrors).length > 0) {
       setError("Please fix the highlighted fields");
       setSubmitAttempt((prev) => prev + 1);
-      return;
-    }
-
-    const validation = validateRegistrationForm({
-      firstName,
-      lastName,
-      ownerEmail,
-      organizationEmail,
-      organizationName,
-      legalName,
-      taxId,
-      street: formattedStreet,
-      city,
-      state: stateQuery,
-      isStateSelected: !!selectedState,
-      postalCode,
-      password,
-      confirmPassword,
-      ownerPhone: ownerPhoneForValidation,
-      organizationPhone: organizationPhoneForValidation,
-    });
-
-    if (!validation.isValid) {
-      setError(validation.message || "Validation failed");
-      setSubmitAttempt((prev) => prev + 1);
+      const firstInvalidField = getFirstInvalidField(mergedErrors);
+      if (firstInvalidField) {
+        focusField(firstInvalidField);
+      }
       return;
     }
 
@@ -662,7 +928,7 @@ export default function SignUp() {
 
         if (detailsCode && REGISTER_CODE_MAP[detailsCode]) {
           const { field, message } = REGISTER_CODE_MAP[detailsCode];
-          setErrorFor(field, message);
+          setBackendFieldError(field as FormField, message);
           setError(message);
           setSubmitAttempt((prev) => prev + 1);
         } else {
@@ -790,12 +1056,12 @@ export default function SignUp() {
                       onChange={(e) => {
                         const v = formatNameInput(e.target.value);
                         setFirstName(v);
-                        const res = validateFirstName(v);
-                        setErrorFor("firstName", res.isValid ? undefined : res.message);
+                        if (touched.firstName || backendErrors.firstName) {
+                          setFieldValidation("firstName", "pending");
+                        }
                       }}
                       onBlur={() => {
-                        const res = validateFirstName(firstName);
-                        setErrorFor("firstName", res.isValid ? undefined : res.message);
+                        validateFieldOnBlur("firstName");
                       }}
                       disabled={loading}
                       className={inputClass(!!fieldErrors.firstName)}
@@ -817,12 +1083,12 @@ export default function SignUp() {
                       onChange={(e) => {
                         const v = formatNameInput(e.target.value);
                         setLastName(v);
-                        const res = validateLastName(v);
-                        setErrorFor("lastName", res.isValid ? undefined : res.message);
+                        if (touched.lastName || backendErrors.lastName) {
+                          setFieldValidation("lastName", "pending");
+                        }
                       }}
                       onBlur={() => {
-                        const res = validateLastName(lastName);
-                        setErrorFor("lastName", res.isValid ? undefined : res.message);
+                        validateFieldOnBlur("lastName");
                       }}
                       disabled={loading}
                       className={inputClass(!!fieldErrors.lastName)}
@@ -847,12 +1113,12 @@ export default function SignUp() {
                       onChange={(e) => {
                         const v = formatEmailInput(e.target.value);
                         setOwnerEmail(v);
-                        const res = validateEmail(v);
-                        setErrorFor("ownerEmail", res.isValid ? undefined : res.message);
+                        if (touched.ownerEmail || backendErrors.ownerEmail) {
+                          setFieldValidation("ownerEmail", "pending");
+                        }
                       }}
                       onBlur={() => {
-                        const res = validateEmail(ownerEmail);
-                        setErrorFor("ownerEmail", res.isValid ? undefined : res.message);
+                        validateFieldOnBlur("ownerEmail");
                       }}
                       disabled={loading}
                       className={inputClass(!!fieldErrors.ownerEmail)}
@@ -882,12 +1148,12 @@ export default function SignUp() {
                           onChange={(e) => {
                             const v = formatPhoneInput(e.target.value);
                             setOwnerPhone(v);
-                            const res = validateRequiredPhone(toColombianPhone(v));
-                            setErrorFor("ownerPhone", res.isValid ? undefined : res.message);
+                            if (touched.ownerPhone || backendErrors.ownerPhone) {
+                              setFieldValidation("ownerPhone", "pending");
+                            }
                           }}
                           onBlur={() => {
-                            const res = validateRequiredPhone(toColombianPhone(ownerPhone));
-                            setErrorFor("ownerPhone", res.isValid ? undefined : res.message);
+                            validateFieldOnBlur("ownerPhone");
                           }}
                           disabled={loading}
                           className="w-full bg-transparent py-4 pr-4 text-white outline-none"
@@ -915,10 +1181,12 @@ export default function SignUp() {
                       onChange={(e) => {
                         const v = formatOrganizationNameInput(e.target.value);
                         setOrganizationName(v);
+                        if (touched.organizationName || backendErrors.organizationName) {
+                          setFieldValidation("organizationName", "pending");
+                        }
                       }}
                       onBlur={() => {
-                        const res = validateOrganizationName(organizationName);
-                        setErrorFor("organizationName", res.isValid ? undefined : res.message);
+                        validateFieldOnBlur("organizationName");
                       }}
                       disabled={loading}
                       className={inputClass(!!fieldErrors.organizationName)}
@@ -940,10 +1208,12 @@ export default function SignUp() {
                       onChange={(e) => {
                         const v = formatOrganizationNameInput(e.target.value);
                         setLegalName(v);
+                        if (touched.legalName || backendErrors.legalName) {
+                          setFieldValidation("legalName", "pending");
+                        }
                       }}
                       onBlur={() => {
-                        const res = validateLegalName(legalName);
-                        setErrorFor("legalName", res.isValid ? undefined : res.message);
+                        validateFieldOnBlur("legalName");
                       }}
                       disabled={loading}
                       className={inputClass(!!fieldErrors.legalName)}
@@ -968,12 +1238,12 @@ export default function SignUp() {
                       onChange={(e) => {
                         const v = formatTaxIdInput(e.target.value);
                         setTaxId(v);
-                        const res = validateTaxId(v);
-                        setErrorFor("taxId", res.isValid ? undefined : res.message);
+                        if (touched.taxId || backendErrors.taxId) {
+                          setFieldValidation("taxId", "pending");
+                        }
                       }}
                       onBlur={() => {
-                        const res = validateTaxId(taxId);
-                        setErrorFor("taxId", res.isValid ? undefined : res.message);
+                        validateFieldOnBlur("taxId");
                       }}
                       disabled={loading}
                       className={inputClass(!!fieldErrors.taxId)}
@@ -996,12 +1266,12 @@ export default function SignUp() {
                       onChange={(e) => {
                         const v = formatEmailInput(e.target.value);
                         setOrganizationEmail(v);
-                        const res = validateEmail(v);
-                        setErrorFor("organizationEmail", res.isValid ? undefined : res.message);
+                        if (touched.organizationEmail || backendErrors.organizationEmail) {
+                          setFieldValidation("organizationEmail", "pending");
+                        }
                       }}
                       onBlur={() => {
-                        const res = validateEmail(organizationEmail);
-                        setErrorFor("organizationEmail", res.isValid ? undefined : res.message);
+                        validateFieldOnBlur("organizationEmail");
                       }}
                       disabled={loading}
                       className={inputClass(!!fieldErrors.organizationEmail)}
@@ -1031,20 +1301,12 @@ export default function SignUp() {
                           onChange={(e) => {
                             const v = formatPhoneInput(e.target.value);
                             setOrganizationPhone(v);
-                            if (v) {
-                              const res = validatePhone(toColombianPhone(v));
-                              setErrorFor("organizationPhone", res.isValid ? undefined : res.message);
-                            } else {
-                              setErrorFor("organizationPhone", undefined);
+                            if (touched.organizationPhone || backendErrors.organizationPhone) {
+                              setFieldValidation("organizationPhone", "pending");
                             }
                           }}
                           onBlur={() => {
-                            if (!organizationPhone) {
-                              setErrorFor("organizationPhone", undefined);
-                              return;
-                            }
-                            const res = validatePhone(toColombianPhone(organizationPhone));
-                            setErrorFor("organizationPhone", res.isValid ? undefined : res.message);
+                            validateFieldOnBlur("organizationPhone");
                           }}
                           disabled={loading}
                           className="w-full bg-transparent py-4 pr-4 text-white outline-none"
@@ -1072,10 +1334,12 @@ export default function SignUp() {
                         onChange={(e) => {
                           const v = e.target.value;
                           setStreetType(v);
-                          setErrorFor("streetType", v ? undefined : "Street type is required");
+                          if (touched.streetType || backendErrors.streetType) {
+                            setFieldValidation("streetType", "pending");
+                          }
                         }}
                         onBlur={() => {
-                          setErrorFor("streetType", streetType ? undefined : "Street type is required");
+                          validateFieldOnBlur("streetType");
                         }}
                         disabled={loading}
                         className={inputClass(!!fieldErrors.streetType)}
@@ -1107,12 +1371,12 @@ export default function SignUp() {
                         onChange={(e) => {
                           const v = formatAddressSegmentInput(e.target.value);
                           setMainNumber(v);
-                          const res = validateAddressSegmentField(v, "Primary number");
-                          setErrorFor("mainNumber", res.isValid ? undefined : res.message);
+                          if (touched.mainNumber || backendErrors.mainNumber) {
+                            setFieldValidation("mainNumber", "pending");
+                          }
                         }}
                         onBlur={() => {
-                          const res = validateAddressSegmentField(mainNumber, "Primary number");
-                          setErrorFor("mainNumber", res.isValid ? undefined : res.message);
+                          validateFieldOnBlur("mainNumber");
                         }}
                         disabled={loading}
                         className={inputClass(!!fieldErrors.mainNumber)}
@@ -1137,12 +1401,12 @@ export default function SignUp() {
                         onChange={(e) => {
                           const v = formatAddressSegmentInput(e.target.value);
                           setSecondaryNumber(v);
-                          const res = validateAddressSegmentField(v, "Secondary number");
-                          setErrorFor("secondaryNumber", res.isValid ? undefined : res.message);
+                          if (touched.secondaryNumber || backendErrors.secondaryNumber) {
+                            setFieldValidation("secondaryNumber", "pending");
+                          }
                         }}
                         onBlur={() => {
-                          const res = validateAddressSegmentField(secondaryNumber, "Secondary number");
-                          setErrorFor("secondaryNumber", res.isValid ? undefined : res.message);
+                          validateFieldOnBlur("secondaryNumber");
                         }}
                         disabled={loading}
                         className={inputClass(!!fieldErrors.secondaryNumber)}
@@ -1167,15 +1431,12 @@ export default function SignUp() {
                         onChange={(e) => {
                           const v = formatAddressSegmentInput(e.target.value);
                           setComplementaryNumber(v);
-                          const res = validateAddressSegmentField(v, "Complementary number");
-                          setErrorFor("complementaryNumber", res.isValid ? undefined : res.message);
+                          if (touched.complementaryNumber || backendErrors.complementaryNumber) {
+                            setFieldValidation("complementaryNumber", "pending");
+                          }
                         }}
                         onBlur={() => {
-                          const res = validateAddressSegmentField(
-                            complementaryNumber,
-                            "Complementary number",
-                          );
-                          setErrorFor("complementaryNumber", res.isValid ? undefined : res.message);
+                          validateFieldOnBlur("complementaryNumber");
                         }}
                         disabled={loading}
                         className={inputClass(!!fieldErrors.complementaryNumber)}
@@ -1204,16 +1465,15 @@ export default function SignUp() {
                             setCityQuery("");
                             setSelectedCity(null);
                             setPostalCode("");
-                            setErrorFor("postalCode", undefined);
                           }
                           setShowStateSuggestions(true);
-                          const res = validateState(v, !!(selectedState && v === selectedState.name));
-                          setErrorFor("state", res.isValid ? undefined : res.message);
+                          if (touched.stateQuery || backendErrors.stateQuery) {
+                            setFieldValidation("stateQuery", "pending");
+                          }
                         }}
                         onBlur={() => {
                           setTimeout(() => setShowStateSuggestions(false), 200);
-                          const res = validateState(stateQuery, !!selectedState);
-                          setErrorFor("state", res.isValid ? undefined : res.message);
+                          validateFieldOnBlur("stateQuery");
                         }}
                         onFocus={() => {
                           if (filteredDepartments.length && !selectedState) {
@@ -1221,7 +1481,7 @@ export default function SignUp() {
                           }
                         }}
                         disabled={loading}
-                        className={inputClass(!!fieldErrors.state)}
+                        className={inputClass(!!fieldErrors.stateQuery)}
                       />
                       {showStateSuggestions && stateQuery && !selectedState && (
                         <div className="absolute z-50 w-full mt-1 bg-zinc-900 border border-zinc-700 rounded-xl max-h-48 overflow-y-auto shadow-lg">
@@ -1238,12 +1498,12 @@ export default function SignUp() {
                                   setSelectedState(dept);
                                   setStateQuery(dept.name);
                                   setShowStateSuggestions(false);
-                                  setErrorFor("state", undefined);
+                                  clearBackendError("stateQuery");
+                                  setFieldValidation("stateQuery", "pending");
                                   setCityQuery("");
                                   setSelectedCity(null);
                                   setCity("");
                                   setPostalCode("");
-                                  setErrorFor("postalCode", undefined);
                                 }}
                               >
                                 {dept.name}
@@ -1254,7 +1514,9 @@ export default function SignUp() {
                           )}
                         </div>
                       )}
-                      {fieldErrors.state && <p className="text-red-400 text-xs mt-1">{fieldErrors.state}</p>}
+                      {fieldErrors.stateQuery && (
+                        <p className="text-red-400 text-xs mt-1">{fieldErrors.stateQuery}</p>
+                      )}
                     </div>
 
                     <div>
@@ -1274,22 +1536,15 @@ export default function SignUp() {
                             setSelectedCity(null);
                             setCity("");
                             setPostalCode("");
-                            setErrorFor("postalCode", undefined);
                           }
                           setShowCitySuggestions(true);
-                          if (v && !(selectedCity && isNormalizedEqual(v, selectedCity.name))) {
-                            setErrorFor("city", "Please select a valid city from the list");
-                          } else {
-                            setErrorFor("city", undefined);
+                          if (touched.cityQuery || backendErrors.cityQuery) {
+                            setFieldValidation("cityQuery", "pending");
                           }
                         }}
                         onBlur={() => {
                           setTimeout(() => setShowCitySuggestions(false), 200);
-                          if (cityQuery && !selectedCity) {
-                            setErrorFor("city", "Please select a valid city from the list");
-                          } else {
-                            setErrorFor("city", undefined);
-                          }
+                          validateFieldOnBlur("cityQuery");
                         }}
                         onFocus={() => {
                           if (filteredCities.length && !selectedCity) {
@@ -1297,7 +1552,7 @@ export default function SignUp() {
                           }
                         }}
                         disabled={loading || !selectedState}
-                        className={inputClass(!!fieldErrors.city)}
+                        className={inputClass(!!fieldErrors.cityQuery)}
                       />
                       {showCitySuggestions && selectedState && !selectedCity && (
                         <div className="absolute z-50 w-full mt-1 bg-zinc-900 border border-zinc-700 rounded-xl max-h-48 overflow-y-auto shadow-lg">
@@ -1315,9 +1570,8 @@ export default function SignUp() {
                                   setCityQuery(c.name);
                                   setCity(c.name);
                                   setPostalCode(c.postalCode ?? "");
-                                  setErrorFor("postalCode", undefined);
                                   setShowCitySuggestions(false);
-                                  setErrorFor("city", undefined);
+                                  setFieldValidation("cityQuery", "pending");
                                 }}
                               >
                                 {c.name}
@@ -1328,7 +1582,9 @@ export default function SignUp() {
                           )}
                         </div>
                       )}
-                      {fieldErrors.city && <p className="text-red-400 text-xs mt-1">{fieldErrors.city}</p>}
+                      {fieldErrors.cityQuery && (
+                        <p className="text-red-400 text-xs mt-1">{fieldErrors.cityQuery}</p>
+                      )}
                     </div>
 
                     <div className="md:col-span-2">
@@ -1343,12 +1599,12 @@ export default function SignUp() {
                         onChange={(e) => {
                           const v = formatAddressDetailsInput(e.target.value);
                           setAdditionalDetails(v);
-                          setErrorFor(
-                            "additionalDetails",
-                            v.length > ADDRESS_DETAILS_MAX_LENGTH
-                              ? `Additional business location details must not exceed ${ADDRESS_DETAILS_MAX_LENGTH} characters`
-                              : undefined,
-                          );
+                          if (touched.additionalDetails || backendErrors.additionalDetails) {
+                            setFieldValidation("additionalDetails", "pending");
+                          }
+                        }}
+                        onBlur={() => {
+                          validateFieldOnBlur("additionalDetails");
                         }}
                         disabled={loading}
                         className={inputClass(!!fieldErrors.additionalDetails)}
@@ -1379,13 +1635,13 @@ export default function SignUp() {
                           if (!canEditPostalCode) return;
                           const v = formatPostalCodeInput(e.target.value);
                           setPostalCode(v);
-                          const res = validatePostalCode(v);
-                          setErrorFor("postalCode", res.isValid ? undefined : res.message);
+                          if (touched.postalCode || backendErrors.postalCode) {
+                            setFieldValidation("postalCode", "pending");
+                          }
                         }}
                         onBlur={() => {
                           if (!canEditPostalCode) return;
-                          const res = validatePostalCode(postalCode);
-                          setErrorFor("postalCode", res.isValid ? undefined : res.message);
+                          validateFieldOnBlur("postalCode");
                         }}
                         className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 px-4 text-white outline-none transition duration-200 disabled:opacity-50"
                       />
@@ -1430,8 +1686,18 @@ export default function SignUp() {
                       onChange={(e) => {
                         const v = e.target.value;
                         setPassword(v);
-                        const res = validatePassword(v);
-                        setErrorFor("password", res.isValid ? undefined : res.message);
+                        if (touched.password || backendErrors.password) {
+                          setFieldValidation("password", "pending");
+                        }
+                        if (touched.confirmPassword || backendErrors.confirmPassword) {
+                          setFieldValidation("confirmPassword", "pending");
+                        }
+                      }}
+                      onBlur={() => {
+                        validateFieldOnBlur("password");
+                        if (touched.confirmPassword || submitted) {
+                          validateFieldOnBlur("confirmPassword");
+                        }
                       }}
                       disabled={loading}
                       className={inputClass(!!fieldErrors.password)}
@@ -1453,8 +1719,12 @@ export default function SignUp() {
                       onChange={(e) => {
                         const v = e.target.value;
                         setConfirmPassword(v);
-                        const res = validateConfirmPassword(password, v);
-                        setErrorFor("confirmPassword", res.isValid ? undefined : res.message);
+                        if (touched.confirmPassword || backendErrors.confirmPassword) {
+                          setFieldValidation("confirmPassword", "pending");
+                        }
+                      }}
+                      onBlur={() => {
+                        validateFieldOnBlur("confirmPassword");
                       }}
                       disabled={loading}
                       className={inputClass(!!fieldErrors.confirmPassword)}
@@ -1488,7 +1758,7 @@ export default function SignUp() {
                 ) : (
                   <button
                     type="submit"
-                    disabled={loading || Object.keys(fieldErrors).length > 0}
+                    disabled={loading || Object.keys(fieldErrors).length > 0 || hasInvalidFields}
                     ref={createAccountButtonRef}
                     className={`px-6 py-3 rounded-xl bg-yellow-400 text-black font-extrabold ${styles.glowButton} hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed transition`}
                   >
