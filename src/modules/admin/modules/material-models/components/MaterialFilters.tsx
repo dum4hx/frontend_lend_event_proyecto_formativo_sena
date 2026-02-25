@@ -241,9 +241,6 @@ export function MaterialFilters({
                         </div>
                         <div className="text-right">
                           <div className="text-sm text-gray-200">{new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP" }).format(t.pricePerDay)}</div>
-                          {t.replacementCost !== undefined && (
-                            <div className="text-xs text-gray-400">Replacement: {new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP" }).format(t.replacementCost)}</div>
-                          )}
                         </div>
                       </li>
                     ))}

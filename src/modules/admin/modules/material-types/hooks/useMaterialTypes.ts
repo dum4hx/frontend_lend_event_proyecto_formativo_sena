@@ -1,107 +1,72 @@
-import { useCallback, useEffect, useState } from "react";
-import type {
-  CreateMaterialTypePayload,
-  MaterialType,
-  UpdateMaterialTypePayload,
-} from "../../../../../types/api";
+import { useState, useEffect } from 'react';
 import {
-  createMaterialType,
-  deleteMaterialType,
   getMaterialTypes,
+  createMaterialType,
   updateMaterialType,
-} from "../../../../../services/materialService";
+  deleteMaterialType,
+} from '../../../../../services/materialService';
+import type {
+  MaterialType,
+  CreateMaterialTypePayload,
+  UpdateMaterialTypePayload,
+} from '../../../../../types/api';
 
-interface UseMaterialTypesResult {
-  types: MaterialType[];
-  loading: boolean;
-  error: string | null;
-  createType: (payload: CreateMaterialTypePayload) => Promise<void>;
-  updateType: (typeId: string, payload: UpdateMaterialTypePayload) => Promise<void>;
-  deleteType: (typeId: string) => Promise<void>;
-  refreshTypes: () => Promise<void>;
-}
-
-export function useMaterialTypes(): UseMaterialTypesResult {
-  const [types, setTypes] = useState<MaterialType[]>([]);
+export function useMaterialTypes() {
+  const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchTypes = useCallback(async () => {
+  const fetchMaterialTypes = async () => {
     try {
       setLoading(true);
       setError(null);
       const response = await getMaterialTypes();
-      setTypes(response.data.materialTypes ?? []);
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to fetch material types";
-      setError(message);
+      setMaterialTypes(response.data.materialTypes || []);
+    } catch (err: any) {
+      setError(err.message || 'Error fetching material types');
+      console.error('Error fetching material types:', err);
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
   useEffect(() => {
-    fetchTypes();
-  }, [fetchTypes]);
-
-  const createType = useCallback(async (payload: CreateMaterialTypePayload) => {
-    try {
-      setError(null);
-      const response = await createMaterialType(payload);
-      setTypes((prev) => [...prev, response.data.materialType]);
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to create material type";
-      setError(message);
-      throw err;
-    }
+    fetchMaterialTypes();
   }, []);
 
-  const updateType = useCallback(
-    async (typeId: string, payload: UpdateMaterialTypePayload) => {
-      try {
-        setError(null);
-        const response = await updateMaterialType(typeId, payload);
-        setTypes((prev) =>
-          prev.map((type) =>
-            type._id === typeId ? response.data.materialType : type,
-          ),
-        );
-      } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "Failed to update material type";
-        setError(message);
-        throw err;
-      }
-    },
-    [],
-  );
+  const addMaterialType = async (payload: CreateMaterialTypePayload) => {
+    console.log('Creating material type with payload:', payload);
+    const response = await createMaterialType(payload);
+    console.log('Material type created successfully:', response.data.materialType);
+    setMaterialTypes((prev) => [...prev, response.data.materialType]);
+    return response.data.materialType;
+  };
 
-  const deleteType = useCallback(async (typeId: string) => {
-    try {
-      setError(null);
-      await deleteMaterialType(typeId);
-      setTypes((prev) => prev.filter((type) => type._id !== typeId));
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to delete material type";
-      setError(message);
-      throw err;
-    }
-  }, []);
+  const updateMaterialTypeData = async (
+    typeId: string,
+    payload: UpdateMaterialTypePayload
+  ) => {
+    const response = await updateMaterialType(typeId, payload);
+    setMaterialTypes((prev) =>
+      prev.map((type) =>
+        type._id === typeId ? response.data.materialType : type
+      )
+    );
+    return response.data.materialType;
+  };
 
-  const refreshTypes = useCallback(async () => {
-    await fetchTypes();
-  }, [fetchTypes]);
+  const removeMaterialType = async (typeId: string) => {
+    await deleteMaterialType(typeId);
+    setMaterialTypes((prev) => prev.filter((type) => type._id !== typeId));
+  };
 
   return {
-    types,
+    materialTypes,
     loading,
     error,
-    createType,
-    updateType,
-    deleteType,
-    refreshTypes,
+    refetch: fetchMaterialTypes,
+    addMaterialType,
+    updateMaterialType: updateMaterialTypeData,
+    removeMaterialType,
   };
 }

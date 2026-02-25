@@ -234,7 +234,6 @@ export interface MaterialType {
   description?: string;
   categoryId: string;
   pricePerDay: number;
-  replacementCost?: number;
 }
 
 export interface CreateMaterialTypePayload {
@@ -242,7 +241,6 @@ export interface CreateMaterialTypePayload {
   description?: string;
   categoryId: string;
   pricePerDay: number;
-  replacementCost?: number;
 }
 
 export interface UpdateMaterialTypePayload {
@@ -250,7 +248,6 @@ export interface UpdateMaterialTypePayload {
   description?: string;
   categoryId?: string;
   pricePerDay?: number;
-  replacementCost?: number;
 }
 
 export type MaterialInstanceStatus =

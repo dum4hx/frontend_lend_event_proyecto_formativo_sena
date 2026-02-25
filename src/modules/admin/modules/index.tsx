@@ -1,26 +1,8 @@
-import { useState } from "react";
-import type React from "react";
-import { CreateMaterialPage, MaterialCatalogPage } from "../modules/materials";
+// Material Modules - Using new three-module structure
+// Categories: GET, POST, DELETE only (backend limitation)
+// Types (Catalog): Full CRUD implementation
+// Instances (Inventory): Full CRUD with status management
 
-type MaterialViewType = "catalog" | "create";
-
-/**
- * Materials Module Container
- * Manages navigation between catalog view and creation view
- */
-export const MaterialsModule: React.FC = () => {
-  const [currentView, setCurrentView] = useState<MaterialViewType>("catalog");
-
-  return (
-    <>
-      {currentView === "catalog" && (
-        <MaterialCatalogPage onCreateMaterial={() => setCurrentView("create")} />
-      )}
-      {currentView === "create" && (
-        <CreateMaterialPage onNavigateBack={() => setCurrentView("catalog")} />
-      )}
-    </>
-  );
-};
-
-export default MaterialsModule;
+export { CategoryCatalog as MaterialCategoriesModule } from "./material-categories/pages/CategoryCatalog";
+export { MaterialTypeCatalog as MaterialTypesModule } from "./material-types/pages/MaterialTypeCatalog";
+export { MaterialInstanceCatalog as MaterialInstancesModule } from "./material-instances/pages/MaterialInstanceCatalog";

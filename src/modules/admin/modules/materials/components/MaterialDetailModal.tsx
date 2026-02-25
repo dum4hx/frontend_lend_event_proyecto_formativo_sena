@@ -55,14 +55,6 @@ export function MaterialDetailModal({ material, onClose }: MaterialDetailModalPr
                 {formatCop(material.pricePerDay)}
               </p>
             </div>
-            {material.replacementCost && (
-              <div>
-                <p className="text-sm text-gray-400 mb-1">Replacement Cost</p>
-                <p className="font-medium text-white">
-                  {formatCop(material.replacementCost)}
-                </p>
-              </div>
-            )}
           </div>
 
           {/* Description */}

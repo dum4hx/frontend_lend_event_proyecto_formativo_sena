@@ -6,7 +6,6 @@ import type {
 } from "../../../../../types/api";
 
 interface MaterialModelFormProps {
-  models: MaterialCategory[];
   initialModel?: MaterialCategory | null;
   isLoading?: boolean;
   onCancel: () => void;
@@ -16,7 +15,6 @@ interface MaterialModelFormProps {
 }
 
 export function MaterialModelForm({
-  models,
   initialModel,
   isLoading = false,
   onCancel,
@@ -34,7 +32,7 @@ export function MaterialModelForm({
       setFormData({
         name: initialModel.name,
         description: initialModel.description ?? "",
-        parentId: initialModel.parentId ?? "",
+        parentId: "",
       });
     } else {
       setFormData({ name: "", description: "", parentId: "" });
@@ -73,13 +71,10 @@ export function MaterialModelForm({
     const payload = {
       name: formData.name.trim(),
       description: formData.description?.trim() || undefined,
-      parentId: formData.parentId || undefined,
     };
 
     await onSubmit(payload);
   };
-
-  const parentOptions = models.filter((model) => model._id !== initialModel?._id);
 
   return (
     <form
@@ -105,24 +100,7 @@ export function MaterialModelForm({
         )}
       </div>
 
-      <div>
-        <label className="block text-gray-400 text-sm font-medium mb-2">
-          Parent Model
-        </label>
-        <select
-          name="parentId"
-          value={formData.parentId ?? ""}
-          onChange={handleChange}
-          className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded text-white focus:outline-none focus:border-[#FFD700]"
-        >
-          <option value="">No parent</option>
-          {parentOptions.map((model) => (
-            <option key={model._id} value={model._id}>
-              {model.name}
-            </option>
-          ))}
-        </select>
-      </div>
+      {/* Parent removed from Material Models */}
 
       <div>
         <label className="block text-gray-400 text-sm font-medium mb-2">

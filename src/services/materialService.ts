@@ -9,7 +9,6 @@ import { get, post, patch, del, type ApiSuccessResponse } from "../lib/api";
 import type {
   MaterialCategory,
   CreateMaterialCategoryPayload,
-  UpdateMaterialCategoryPayload,
   MaterialType,
   CreateMaterialTypePayload,
   UpdateMaterialTypePayload,
@@ -47,9 +46,9 @@ export async function createMaterialCategory(
 /** Update a material category. */
 export async function updateMaterialCategory(
   categoryId: string,
-  payload: UpdateMaterialCategoryPayload,
+  payload: CreateMaterialCategoryPayload,
 ): Promise<ApiSuccessResponse<{ category: MaterialCategory }>> {
-  return patch<{ category: MaterialCategory }, UpdateMaterialCategoryPayload>(
+  return patch<{ category: MaterialCategory }, CreateMaterialCategoryPayload>(
     `/materials/categories/${categoryId}`,
     payload,
   );
@@ -80,6 +79,8 @@ export async function getMaterialTypes(
 export async function createMaterialType(
   payload: CreateMaterialTypePayload,
 ): Promise<ApiSuccessResponse<{ materialType: MaterialType }>> {
+  console.log('materialService.createMaterialType called with:', payload);
+  console.log('Endpoint:', '/materials/types');
   return post<{ materialType: MaterialType }, CreateMaterialTypePayload>(
     "/materials/types",
     payload,

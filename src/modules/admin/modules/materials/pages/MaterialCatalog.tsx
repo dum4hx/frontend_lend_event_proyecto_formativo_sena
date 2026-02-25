@@ -226,7 +226,7 @@ export function MaterialCatalogPage({ onCreateMaterial }: MaterialCatalogPagePro
         <>
           <MaterialList
             materials={pagedMaterials}
-            onEdit={(material) => console.log("Edit:", material)}
+            onEdit={(material) => navigate("create", { state: { material } })}
             onDelete={handleDelete}
             onView={(material) => setSelectedMaterial(material)}
           />

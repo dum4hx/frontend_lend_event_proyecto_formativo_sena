@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AlertCircle, Loader } from "lucide-react";
 import type {
   CreateMaterialTypePayload,
@@ -11,6 +11,7 @@ interface MaterialFormProps {
   onCancel: () => void;
   isLoading?: boolean;
   isEditing?: boolean;
+  initialData?: Partial<CreateMaterialTypePayload> & { name?: string };
 }
 
 export function MaterialForm({
@@ -19,14 +20,34 @@ export function MaterialForm({
   onCancel,
   isLoading = false,
   isEditing = false,
+  initialData,
 }: MaterialFormProps) {
   const [formData, setFormData] = useState({
     categoryId: "",
     name: "",
     pricePerDay: "",
-    replacementCost: "",
     description: "",
   });
+
+  useEffect(() => {
+    if (!initialData) return;
+    setFormData((prev) => ({
+      ...prev,
+      categoryId: (() => {
+        const catAny: any = (initialData as any).categoryId;
+        if (!catAny) return prev.categoryId;
+        if (Array.isArray(catAny)) {
+          const first = catAny[0];
+          return typeof first === "object" ? first._id ?? String(first) : String(first);
+        }
+        if (typeof catAny === "object") return catAny._id ?? String(catAny);
+        return String(catAny);
+      })(),
+      name: initialData.name ?? prev.name,
+      pricePerDay: initialData.pricePerDay ? String(initialData.pricePerDay) : prev.pricePerDay,
+      description: initialData.description ?? prev.description,
+    }));
+  }, [initialData]);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -54,12 +75,6 @@ export function MaterialForm({
     } else if (Number.parseFloat(formData.pricePerDay) < 0) {
       newErrors.pricePerDay = "Price cannot be negative";
     }
-    if (
-      formData.replacementCost.trim() &&
-      Number.parseFloat(formData.replacementCost) < 0
-    ) {
-      newErrors.replacementCost = "Replacement cost cannot be negative";
-    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -71,10 +86,7 @@ export function MaterialForm({
     >,
   ) => {
     const { name, value } = e.target;
-    const nextValue =
-      name === "pricePerDay" || name === "replacementCost"
-        ? parseNumberInput(value)
-        : value;
+    const nextValue = name === "pricePerDay" ? parseNumberInput(value) : value;
 
     setFormData((prev) => ({
       ...prev,
@@ -100,9 +112,6 @@ export function MaterialForm({
         categoryId: formData.categoryId,
         name: formData.name,
         pricePerDay: Number.parseFloat(formData.pricePerDay),
-        replacementCost: formData.replacementCost
-          ? Number.parseFloat(formData.replacementCost)
-          : undefined,
         description: formData.description || undefined,
       };
 
@@ -120,7 +129,6 @@ export function MaterialForm({
       categoryId: "",
       name: "",
       pricePerDay: "",
-      replacementCost: "",
       description: "",
     });
     setErrors({});
@@ -184,7 +192,7 @@ export function MaterialForm({
       </div>
 
       {/* Pricing */}
-      <div className="grid grid-cols-2 gap-4">
+      <div>
         <div>
           <label className="block text-gray-400 text-sm font-medium mb-2">
             Price per Day <span className="text-red-500">*</span>
@@ -207,33 +215,6 @@ export function MaterialForm({
           )}
           {errors.pricePerDay && (
             <p className="text-red-400 text-sm mt-1">{errors.pricePerDay}</p>
-          )}
-        </div>
-
-        <div>
-          <label className="block text-gray-400 text-sm font-medium mb-2">
-            Replacement Cost
-          </label>
-          <input
-            type="text"
-            name="replacementCost"
-            value={formData.replacementCost}
-            onChange={handleChange}
-            placeholder="$ 0"
-            inputMode="decimal"
-            className={`w-full px-3 py-2 bg-[#1a1a1a] border rounded text-white focus:outline-none focus:border-[#FFD700] ${
-              errors.replacementCost ? "border-red-500" : "border-[#333]"
-            }`}
-          />
-          {formData.replacementCost.trim() && !errors.replacementCost && (
-            <p className="text-gray-500 text-xs mt-1">
-              {formatCop(Number.parseFloat(formData.replacementCost))}
-            </p>
-          )}
-          {errors.replacementCost && (
-            <p className="text-red-400 text-sm mt-1">
-              {errors.replacementCost}
-            </p>
           )}
         </div>
       </div>

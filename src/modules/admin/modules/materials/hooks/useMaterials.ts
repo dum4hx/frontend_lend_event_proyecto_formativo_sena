@@ -6,6 +6,7 @@ import type {
 import {
   createMaterialType,
   getMaterialTypes,
+  updateMaterialType,
 } from "../../../../../services/materialService";
 
 interface UseMaterialsResult {
@@ -13,6 +14,10 @@ interface UseMaterialsResult {
   loading: boolean;
   error: string | null;
   createMaterial: (payload: CreateMaterialTypePayload) => Promise<void>;
+  updateMaterial: (
+    typeId: string,
+    payload: Partial<CreateMaterialTypePayload>,
+  ) => Promise<void>;
   refreshMaterials: () => Promise<void>;
 }
 
@@ -56,6 +61,24 @@ export function useMaterials(): UseMaterialsResult {
     [],
   );
 
+  const updateMaterial = useCallback(
+    async (typeId: string, payload: Partial<CreateMaterialTypePayload>) => {
+      try {
+        setError(null);
+        const response = await updateMaterialType(typeId, payload);
+        setMaterials((prev) =>
+          prev.map((m) => (m._id === typeId ? response.data.materialType : m)),
+        );
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Failed to update material";
+        setError(message);
+        throw err;
+      }
+    },
+    [],
+  );
+
   const refreshMaterials = useCallback(async () => {
     await fetchMaterials();
   }, [fetchMaterials]);
@@ -65,6 +88,7 @@ export function useMaterials(): UseMaterialsResult {
     loading,
     error,
     createMaterial,
+    updateMaterial,
     refreshMaterials,
   };
 }

@@ -29,12 +29,18 @@ import AdminDashboard from "./modules/admin/pages/AdminDashboard";
 import MyEvents from "./modules/admin/pages/MyEvents";
 import Customers from "./modules/admin/pages/Customers";
 import Team from "./modules/admin/pages/Team";
-import Materials from "./modules/admin/pages/Materials";
-import MaterialModels from "./modules/admin/pages/MaterialModels";
-import MaterialTypes from "./modules/admin/pages/MaterialTypes";
 import IASettings from "./modules/admin/pages/IA_Settings";
 import Settings from "./modules/admin/pages/Settings";
 import AdminSubscriptionManagement from "./modules/admin/pages/SubscriptionManagement";
+
+// Admin - Material Categories
+import { CategoryCatalog, CreateCategory } from "./modules/admin/modules/material-categories";
+
+// Admin - Material Types
+import { MaterialTypeCatalog, CreateMaterialType } from "./modules/admin/modules/material-types";
+
+// Admin - Material Instances
+import { MaterialInstanceCatalog, CreateMaterialInstance } from "./modules/admin/modules/material-instances";
 
 // Super Admin — lazy-loaded for code-splitting
 const SuperAdminLayout = lazy(() => import("./modules/super-admin/layouts/SuperAdminLayout"));
@@ -105,9 +111,12 @@ function App() {
             <Route path="events" element={<MyEvents />} />
             <Route path="customers" element={<Customers />} />
             <Route path="team" element={<Team />} />
-            <Route path="materials/*" element={<Materials />} />
-            <Route path="material-models" element={<MaterialModels />} />
-            <Route path="material-types" element={<MaterialTypes />} />
+            <Route path="material-categories" element={<CategoryCatalog />} />
+            <Route path="material-categories/create" element={<CreateCategory />} />
+            <Route path="material-types" element={<MaterialTypeCatalog />} />
+            <Route path="material-types/create" element={<CreateMaterialType />} />
+            <Route path="material-instances" element={<MaterialInstanceCatalog />} />
+            <Route path="material-instances/create" element={<CreateMaterialInstance />} />
             <Route path="ia-settings" element={<IASettings />} />
             <Route path="settings" element={<Settings />} />
             <Route path="subscription" element={<AdminSubscriptionManagement />} />

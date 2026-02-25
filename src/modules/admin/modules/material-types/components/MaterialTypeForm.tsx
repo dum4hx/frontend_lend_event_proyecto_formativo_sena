@@ -1,246 +1,188 @@
-import { useEffect, useState } from "react";
-import type {
-  CreateMaterialTypePayload,
-  MaterialCategory,
-  MaterialType,
-  UpdateMaterialTypePayload,
-} from "../../../../../types/api";
+import React, { useState, useEffect } from 'react';
+import { useToast } from '../../../../../contexts/ToastContext';
+import type { CreateMaterialTypePayload, MaterialCategory } from '../../../../../types/api';
 
 interface MaterialTypeFormProps {
-  models: MaterialCategory[];
-  initialType?: MaterialType | null;
-  isLoading?: boolean;
+  categories: MaterialCategory[];
+  onSubmit: (data: CreateMaterialTypePayload) => Promise<void>;
   onCancel: () => void;
-  onSubmit: (
-    payload: CreateMaterialTypePayload | UpdateMaterialTypePayload,
-  ) => Promise<void>;
+  initialData?: Partial<CreateMaterialTypePayload> & { name?: string };
+  isEditing?: boolean;
 }
 
-interface MaterialTypeFormState {
-  name: string;
-  description: string;
-  categoryId: string;
-  pricePerDay: string;
-  replacementCost: string;
-}
-
-export function MaterialTypeForm({
-  models,
-  initialType,
-  isLoading = false,
-  onCancel,
+export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
+  categories,
   onSubmit,
-}: MaterialTypeFormProps) {
-  const [formData, setFormData] = useState<MaterialTypeFormState>({
-    name: "",
-    description: "",
-    categoryId: "",
-    pricePerDay: "",
-    replacementCost: "",
+  onCancel,
+  initialData,
+  isEditing = false,
+}) => {
+  const [formData, setFormData] = useState<CreateMaterialTypePayload>({
+    name: '',
+    description: '',
+    categoryId: '',
+    pricePerDay: 0,
   });
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [priceDisplay, setPriceDisplay] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { showToast } = useToast();
+
+  const formatCop = (value: number) => {
+    return new Intl.NumberFormat('es-CO', {
+      style: 'currency',
+      currency: 'COP',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
 
   useEffect(() => {
-    if (initialType) {
-      setFormData({
-        name: initialType.name,
-        description: initialType.description ?? "",
-        categoryId: initialType.categoryId,
-        pricePerDay: initialType.pricePerDay?.toString() ?? "",
-        replacementCost: initialType.replacementCost?.toString() ?? "",
-      });
-    } else {
-      setFormData({
-        name: "",
-        description: "",
-        categoryId: "",
-        pricePerDay: "",
-        replacementCost: "",
-      });
-    }
-    setErrors({});
-  }, [initialType]);
+    if (initialData) {
+      const categoryIdFromArray = Array.isArray(initialData.categoryId)
+        ? (initialData.categoryId[0] as { _id?: string } | undefined)?._id
+        : undefined;
+      const categoryIdValue =
+        typeof initialData.categoryId === 'string'
+          ? initialData.categoryId
+          : categoryIdFromArray ||
+            (initialData as { categoryId?: { _id?: string } }).categoryId?._id ||
+            (initialData as { category?: { _id?: string } }).category?._id ||
+            '';
 
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-    if (!formData.name.trim()) newErrors.name = "Name is required";
-    if (!formData.categoryId.trim()) newErrors.categoryId = "Model is required";
-    if (
-      formData.pricePerDay &&
-      !Number.isNaN(parseFloat(formData.pricePerDay)) &&
-      parseFloat(formData.pricePerDay) < 0
-    )
-      newErrors.pricePerDay = "Price cannot be negative";
-    if (
-      formData.replacementCost &&
-      !Number.isNaN(parseFloat(formData.replacementCost)) &&
-      parseFloat(formData.replacementCost) < 0
-    )
-      newErrors.replacementCost = "Replacement cost cannot be negative";
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-    if (errors[name]) {
-      setErrors((prev) => {
-        const nextErrors = { ...prev };
-        delete nextErrors[name];
-        return nextErrors;
+      setFormData({
+        name: initialData.name || '',
+        description: initialData.description || '',
+        categoryId: categoryIdValue,
+        pricePerDay: initialData.pricePerDay || 0,
       });
+      if (initialData.pricePerDay) {
+        setPriceDisplay(formatCop(initialData.pricePerDay));
+      } else {
+        setPriceDisplay('');
+      }
     }
-  };
+  }, [initialData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateForm()) return;
+    if (!formData.name.trim()) {
+      showToast('error', 'Material name is required');
+      return;
+    }
+    if (!formData.categoryId) {
+      showToast('error', 'Category is required');
+      return;
+    }
+    if (formData.pricePerDay <= 0) {
+      showToast('error', 'Price per day must be greater than 0');
+      return;
+    }
 
-    const payload = {
-      name: formData.name.trim(),
-      description: formData.description?.trim() || undefined,
-      categoryId: formData.categoryId,
-      pricePerDay: parseFloat(formData.pricePerDay) || 0,
-      replacementCost: formData.replacementCost
-        ? parseFloat(formData.replacementCost)
-        : undefined,
-    };
-
-    await onSubmit(payload);
+    try {
+      setIsSubmitting(true);
+      console.log('Submitting material type:', formData);
+      await onSubmit(formData);
+    } catch (error: any) {
+      console.error('Error saving material type:', error);
+      const errorMessage = error.details?.errors?.[0]?.message || error.message || 'Error saving material type';
+      showToast('error', errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="space-y-4 bg-[#121212] border border-[#333] rounded-lg p-6"
-    >
+    <form onSubmit={handleSubmit} className="space-y-6">
       <div>
-        <label className="block text-gray-400 text-sm font-medium mb-2">
-          Type Name <span className="text-red-500">*</span>
-        </label>
-        <input
-          type="text"
-          name="name"
-          value={formData.name}
-          onChange={handleChange}
-          placeholder="e.g., Speaker"
-          className={`w-full px-3 py-2 bg-[#1a1a1a] border rounded text-white focus:outline-none focus:border-[#FFD700] ${
-            errors.name ? "border-red-500" : "border-[#333]"
-          }`}
-        />
-        {errors.name && (
-          <p className="text-red-400 text-sm mt-1">{errors.name}</p>
-        )}
-      </div>
-
-      <div>
-        <label className="block text-gray-400 text-sm font-medium mb-2">
-          Model <span className="text-red-500">*</span>
-        </label>
+        <label className="block text-sm font-medium text-gray-300 mb-2">
+          Category * </label>
         <select
-          name="categoryId"
           value={formData.categoryId}
-          onChange={handleChange}
-          className={`w-full px-3 py-2 bg-[#1a1a1a] border rounded text-white focus:outline-none focus:border-[#FFD700] ${
-            errors.categoryId ? "border-red-500" : "border-[#333]"
-          }`}
+          onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
+          className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-lg text-white focus:outline-none focus:border-[#FFD700]"
+          required
         >
-          <option value="">Select a model</option>
-          {models.map((model) => (
-            <option key={model._id} value={model._id}>
-              {model.name}
+          <option value="">Select a category</option>
+          {categories.map((cat) => (
+            <option key={cat._id} value={cat._id}>
+              {cat.name}
             </option>
           ))}
         </select>
-        {errors.categoryId && (
-          <p className="text-red-400 text-sm mt-1">{errors.categoryId}</p>
-        )}
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-gray-400 text-sm font-medium mb-2">
-            Price per Day
-          </label>
-          <input
-            type="number"
-            name="pricePerDay"
-            value={formData.pricePerDay}
-            onChange={handleChange}
-            step="0.01"
-            min="0"
-            className={`w-full px-3 py-2 bg-[#1a1a1a] border rounded text-white focus:outline-none focus:border-[#FFD700] ${
-              errors.pricePerDay ? "border-red-500" : "border-[#333]"
-            }`}
-          />
-          {errors.pricePerDay && (
-            <p className="text-red-400 text-sm mt-1">{errors.pricePerDay}</p>
-          )}
-          {formData.pricePerDay && !Number.isNaN(parseFloat(formData.pricePerDay)) && (
-            <p className="text-gray-400 text-sm mt-1">{new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP" }).format(parseFloat(formData.pricePerDay))}</p>
-          )}
-        </div>
-        <div>
-          <label className="block text-gray-400 text-sm font-medium mb-2">
-            Replacement Cost
-          </label>
-          <input
-            type="number"
-            name="replacementCost"
-            value={formData.replacementCost}
-            onChange={handleChange}
-            step="0.01"
-            min="0"
-            className={`w-full px-3 py-2 bg-[#1a1a1a] border rounded text-white focus:outline-none focus:border-[#FFD700] ${
-              errors.replacementCost ? "border-red-500" : "border-[#333]"
-            }`}
-          />
-          {errors.replacementCost && (
-            <p className="text-red-400 text-sm mt-1">{errors.replacementCost}</p>
-          )}
-          {formData.replacementCost && !Number.isNaN(parseFloat(formData.replacementCost)) && (
-            <p className="text-gray-400 text-sm mt-1">{new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP" }).format(parseFloat(formData.replacementCost))}</p>
-          )}
-        </div>
       </div>
 
       <div>
-        <label className="block text-gray-400 text-sm font-medium mb-2">
-          Description
+        <label className="block text-sm font-medium text-gray-300 mb-2">
+          Material Name *
         </label>
-        <textarea
-          name="description"
-          value={formData.description}
-          onChange={handleChange}
-          rows={3}
-          placeholder="Short description"
-          className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded text-white focus:outline-none focus:border-[#FFD700]"
+        <input
+          type="text"
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-lg text-white focus:outline-none focus:border-[#FFD700]"
+          placeholder="e.g., Aluminum Chair, LED Lighting..."
+          required
         />
       </div>
 
-      <div className="flex gap-3 mt-6">
+      <div>
+        <label className="block text-sm font-medium text-gray-300 mb-2">
+          Price per Day (COP) *
+        </label>
+        <input
+          type="text"
+          inputMode="numeric"
+          value={priceDisplay}
+          onChange={(e) => {
+            const raw = e.target.value.replace(/[^0-9]/g, '');
+            const numericValue = raw ? parseInt(raw, 10) : 0;
+            setFormData({ ...formData, pricePerDay: numericValue });
+            setPriceDisplay(raw ? formatCop(numericValue) : '');
+          }}
+          className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-lg text-white focus:outline-none focus:border-[#FFD700]"
+          placeholder="Ej: $ 15.000"
+          required
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-300 mb-2">
+          Description
+        </label>
+        <textarea
+          value={formData.description}
+          onChange={(e) =>
+            setFormData({ ...formData, description: e.target.value })
+          }
+          rows={4}
+          className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-lg text-white focus:outline-none focus:border-[#FFD700]"
+          placeholder="Detailed description of this material type..."
+        />
+      </div>
+
+      <div className="flex gap-4 pt-4">
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="flex-1 px-6 py-3 bg-[#FFD700] text-black font-semibold rounded-lg hover:bg-[#FFC700] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isSubmitting
+            ? isEditing
+              ? 'Updating...'
+              : 'Creating...'
+            : isEditing
+            ? 'Update Material Type'
+            : 'Create Material Type'}
+        </button>
         <button
           type="button"
           onClick={onCancel}
-          disabled={isLoading}
-          className="flex-1 px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600 transition disabled:opacity-50"
+          disabled={isSubmitting}
+          className="px-6 py-3 bg-[#1a1a1a] text-gray-300 font-semibold rounded-lg hover:bg-[#222] transition-colors border border-[#333] disabled:opacity-50"
         >
           Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="flex-1 px-4 py-2 bg-[#FFD700] text-black font-bold rounded hover:bg-yellow-400 transition disabled:opacity-50"
-        >
-          {isLoading ? "Saving..." : initialType ? "Update Type" : "Create Type"}
         </button>
       </div>
     </form>
   );
-}
+};

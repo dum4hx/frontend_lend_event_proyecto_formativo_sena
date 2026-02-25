@@ -62,9 +62,6 @@ export function MaterialList({
                 Price per Day
               </th>
               <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">
-                Replacement Cost
-              </th>
-              <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">
                 Actions
               </th>
             </tr>
@@ -101,11 +98,6 @@ export function MaterialList({
                 </td>
                 <td className="px-6 py-4 text-sm text-white font-medium">
                   {formatCop(material.pricePerDay)}
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-300">
-                  {material.replacementCost
-                    ? formatCop(material.replacementCost)
-                    : "—"}
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-2">

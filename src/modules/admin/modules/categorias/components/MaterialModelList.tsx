@@ -1,4 +1,5 @@
 import type { MaterialCategory } from "../../../../../types/api";
+import { Edit, Trash2 } from "lucide-react";
 
 interface MaterialModelListProps {
   models: MaterialCategory[];
@@ -19,7 +20,7 @@ export function MaterialModelList({
     );
   }
 
-  const modelNameById = new Map(models.map((m) => [m._id, m.name]));
+  // parent removed: no mapping needed
 
   return (
     <div className="bg-[#121212] border border-[#333] rounded-lg overflow-hidden">
@@ -30,9 +31,7 @@ export function MaterialModelList({
               <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">
                 Name
               </th>
-              <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">
-                Parent
-              </th>
+              {/* Parent column removed */}
               <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">
                 Description
               </th>
@@ -50,27 +49,25 @@ export function MaterialModelList({
                 <td className="px-6 py-4 text-white text-sm font-medium">
                   {model.name}
                 </td>
-                <td className="px-6 py-4 text-gray-400 text-sm">
-                  {model.parentId ? modelNameById.get(model.parentId) : "—"}
-                </td>
+                {/* Parent column removed */}
                 <td className="px-6 py-4 text-gray-400 text-sm">
                   {model.description || "—"}
                 </td>
                 <td className="px-6 py-4">
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-2">
                     <button
                       onClick={() => onEdit(model)}
-                      className="p-2 bg-blue-600 hover:bg-blue-700 rounded text-white transition"
+                      className="p-2 hover:bg-[#1a1a1a] rounded-md transition text-gray-300"
                       title="Edit"
                     >
-                      Edit
+                      <Edit className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => onDelete(model._id)}
-                      className="p-2 bg-red-600 hover:bg-red-700 rounded text-white transition"
+                      className="p-2 hover:bg-red-900/30 rounded-md transition text-red-300"
                       title="Delete"
                     >
-                      Delete
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </td>

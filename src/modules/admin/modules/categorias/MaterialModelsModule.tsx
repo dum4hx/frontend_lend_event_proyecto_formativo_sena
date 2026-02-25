@@ -24,8 +24,8 @@ export function MaterialModelsModule() {
     createModel,
     updateModel,
     deleteModel,
+    refreshModels,
   } = useMaterialModels();
-  const { refreshModels } = useMaterialModels();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [editingModel, setEditingModel] = useState<MaterialCategory | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -132,7 +132,6 @@ export function MaterialModelsModule() {
     try {
       const rows = items.map((m) => ({
         Name: m.name,
-        ParentId: m.parentId || "",
         Description: m.description || "",
       }));
       const xlsx = await import("xlsx");
@@ -157,7 +156,6 @@ export function MaterialModelsModule() {
       for (const row of rows) {
         const payload = {
           name: row.Name || row.name || "",
-          parentId: row.ParentId || row.Parent || undefined,
           description: row.Description || row.description || "",
         } as any;
         try {
@@ -177,8 +175,8 @@ export function MaterialModelsModule() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">Material Models</h1>
-          <p className="text-gray-400 text-sm mt-1">Create and manage material models</p>
+          <h1 className="text-3xl font-bold text-white">Categorías</h1>
+          <p className="text-gray-400 text-sm mt-1">Crear y administrar categorías</p>
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -219,7 +217,6 @@ export function MaterialModelsModule() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1">
           <MaterialModelForm
-            models={models}
             initialModel={editingModel}
             isLoading={isSubmitting}
             onCancel={() => setEditingModel(null)}

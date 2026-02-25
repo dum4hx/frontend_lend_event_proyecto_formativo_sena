@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Plus, ArrowLeft } from "lucide-react";
 import { MaterialForm, MaterialList, MaterialFilters } from "../components";
 import { deleteMaterialType } from "../../../../../services/materialService";
@@ -15,12 +15,14 @@ interface CreateMaterialPageProps {
 
 export function CreateMaterialPage({ onSuccess, onNavigateBack }: CreateMaterialPageProps) {
   const navigate = useNavigate();
-  const { materials, loading, error, createMaterial, refreshMaterials } =
+  const location = useLocation();
+  const { materials, loading, error, createMaterial, updateMaterial, refreshMaterials } =
     useMaterials();
   const { categories, loading: categoriesLoading, error: categoriesError } =
     useCategories();
 
   const [showForm, setShowForm] = useState(true);
+  const [editingMaterial, setEditingMaterial] = useState<MaterialType | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedMaterial, setSelectedMaterial] = useState<MaterialType | null>(
@@ -31,6 +33,15 @@ export function CreateMaterialPage({ onSuccess, onNavigateBack }: CreateMaterial
     categoryId: "",
     priceRange: { min: 0, max: 10000 },
   });
+
+  useEffect(() => {
+    const stateMaterial = (location.state as { material?: MaterialType } | null)?.material;
+    if (stateMaterial) {
+      setEditingMaterial(stateMaterial);
+      setShowForm(true);
+      navigate(".", { replace: true, state: null });
+    }
+  }, [location.state, navigate]);
 
   const fingeredMaterials = materials.filter((material) => {
     const matchesSearch =
@@ -50,12 +61,17 @@ export function CreateMaterialPage({ onSuccess, onNavigateBack }: CreateMaterial
     try {
       setIsSubmitting(true);
       setSubmitError(null);
-      await createMaterial(payload);
+      if (editingMaterial) {
+        await updateMaterial(editingMaterial._id, payload);
+      } else {
+        await createMaterial(payload);
+      }
       if (onSuccess) {
         onSuccess();
       }
       // Refresh materials and redirect to catalog
       await refreshMaterials();
+      setEditingMaterial(null);
       navigate("..", { replace: true });
     } catch (err) {
       const message =
@@ -146,8 +162,22 @@ export function CreateMaterialPage({ onSuccess, onNavigateBack }: CreateMaterial
               <MaterialForm
                 categories={categories}
                 onSubmit={handleSubmit}
-                onCancel={() => setShowForm(false)}
+                onCancel={() => {
+                  setShowForm(false);
+                  setEditingMaterial(null);
+                }}
                 isLoading={isSubmitting}
+                isEditing={Boolean(editingMaterial)}
+                initialData={
+                  editingMaterial
+                    ? {
+                        categoryId: editingMaterial.categoryId,
+                        name: editingMaterial.name,
+                        pricePerDay: editingMaterial.pricePerDay,
+                        description: editingMaterial.description,
+                      }
+                    : undefined
+                }
               />
             )}
 
@@ -215,7 +245,10 @@ export function CreateMaterialPage({ onSuccess, onNavigateBack }: CreateMaterial
             ) : (
               <MaterialList
                 materials={fingeredMaterials}
-                onEdit={(material) => console.log("Edit:", material)}
+                onEdit={(material) => {
+                  setEditingMaterial(material);
+                  setShowForm(true);
+                }}
                 onDelete={handleDelete}
                 onView={(material) => setSelectedMaterial(material)}
               />

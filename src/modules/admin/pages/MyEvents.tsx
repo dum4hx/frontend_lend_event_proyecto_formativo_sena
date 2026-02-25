@@ -32,6 +32,7 @@ export default function MyEvents() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [customers, setCustomers] = useState<any[]>([]);
   const [packages, setPackages] = useState<any[]>([]);
+  const [depositAmountDisplay, setDepositAmountDisplay] = useState('');
   const [formData, setFormData] = useState({
     name: "",
     customerId: "",
@@ -41,6 +42,15 @@ export default function MyEvents() {
     depositAmount: "",
     depositMethod: "cash",
   });
+
+  const formatCop = (value: number) => {
+    return new Intl.NumberFormat("es-CO", {
+      style: "currency",
+      currency: "COP",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
 
   const fetchEvents = async () => {
     try {
@@ -142,6 +152,9 @@ export default function MyEvents() {
         depositAmount: event.capacity ? String(event.capacity) : "",
         depositMethod: "cash",
       });
+      setDepositAmountDisplay(
+        event.capacity ? formatCop(event.capacity) : "",
+      );
     } else {
       setEditingId(null);
       setFormData({
@@ -153,6 +166,7 @@ export default function MyEvents() {
         depositAmount: "",
         depositMethod: "cash",
       });
+      setDepositAmountDisplay("");
     }
     setShowModal(true);
   };
@@ -169,6 +183,7 @@ export default function MyEvents() {
       depositAmount: "",
       depositMethod: "cash",
     });
+    setDepositAmountDisplay("");
   };
 
   const handleSaveEvent = async () => {
@@ -415,13 +430,18 @@ export default function MyEvents() {
                   Deposit Amount
                 </label>
                 <input
-                  type="number"
-                  value={formData.depositAmount}
-                  onChange={(e) =>
-                    setFormData({ ...formData, depositAmount: e.target.value })
-                  }
+                  type="text"
+                  inputMode="numeric"
+                  value={depositAmountDisplay}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/[^0-9]/g, "");
+                    setFormData({ ...formData, depositAmount: raw });
+                    setDepositAmountDisplay(
+                      raw ? formatCop(parseInt(raw, 10)) : "",
+                    );
+                  }}
                   className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded text-white focus:outline-none focus:border-[#FFD700]"
-                  placeholder="0"
+                  placeholder="Ej: $ 80.000"
                 />
               </div>
 

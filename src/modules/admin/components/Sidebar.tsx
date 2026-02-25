@@ -11,7 +11,7 @@ import {
   CreditCard,
   Package,
   Layers,
-  Tags,
+  FolderTree,
 } from "lucide-react";
 import { ApiError } from "../../../lib/api";
 import { useLogout } from "../../../hooks/useLogout";
@@ -44,22 +44,22 @@ const navItems: NavItem[] = [
   },
   { id: "team", label: "Team", icon: <Users size={20} />, path: "/admin/team" },
   {
-    id: "materials",
-    label: "Materials",
-    icon: <Package size={20} />,
-    path: "/admin/materials",
-  },
-  {
-    id: "material-models",
-    label: "Material Models",
-    icon: <Layers size={20} />,
-    path: "/admin/material-models",
+    id: "material-categories",
+    label: "Material Categories",
+    icon: <FolderTree size={20} />,
+    path: "/admin/material-categories",
   },
   {
     id: "material-types",
     label: "Material Types",
-    icon: <Tags size={20} />,
+    icon: <Package size={20} />,
     path: "/admin/material-types",
+  },
+  {
+    id: "material-instances",
+    label: "Material Instances",
+    icon: <Layers size={20} />,
+    path: "/admin/material-instances",
   },
   {
     id: "ia-settings",
