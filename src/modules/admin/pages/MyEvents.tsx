@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Calendar, Users, Clock, Plus, Trash2, Edit } from "lucide-react";
+import { Calendar, Users, Clock, Plus, Trash2, Edit, X } from "lucide-react";
 import { EventCard, StatCard } from "../components";
 import {
   getRequests,
@@ -9,6 +9,16 @@ import {
 import { getCustomers } from "../../../services/customerService";
 import { getPackages } from "../../../services/materialService";
 import { ApiError } from "../../../lib/api";
+import { validateAddressField } from "../../../utils/validators";
+
+type MyEventFormField =
+  | "name"
+  | "customerId"
+  | "packageId"
+  | "startDate"
+  | "endDate"
+  | "depositAmount"
+  | "depositMethod";
 
 type Event = {
   id: string;
@@ -24,15 +34,54 @@ type Event = {
   notes?: string;
 };
 
+type RequestApi = {
+  _id?: string;
+  id?: string;
+  requestedStartDate?: string;
+  requested_start_date?: string;
+  start_date?: string;
+  startDate?: string;
+  requestedEndDate?: string;
+  requested_end_date?: string;
+  end_date?: string;
+  endDate?: string;
+  customerId?: string | { _id?: string };
+  customer_id?: string;
+  packageId?: string | { _id?: string };
+  package_id?: string;
+  notes?: string;
+  name?: string;
+  deposit?: { amount?: number };
+};
+
+type CustomerOption = {
+  _id?: string;
+  id?: string;
+  email?: string;
+  name?: {
+    firstName?: string;
+    firstSurname?: string;
+  };
+};
+
+type PackageOption = {
+  _id?: string;
+  id?: string;
+  name?: string;
+};
+
 export default function MyEvents() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [customers, setCustomers] = useState<any[]>([]);
-  const [packages, setPackages] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<CustomerOption[]>([]);
+  const [packages, setPackages] = useState<PackageOption[]>([]);
   const [depositAmountDisplay, setDepositAmountDisplay] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [formErrors, setFormErrors] = useState<Partial<Record<MyEventFormField, string>>>({});
+  const [formTouched, setFormTouched] = useState<Partial<Record<MyEventFormField, boolean>>>({});
   const [formData, setFormData] = useState({
     name: "",
     customerId: "",
@@ -52,13 +101,67 @@ export default function MyEvents() {
     }).format(value);
   };
 
+  const inputClass = (hasError: boolean) =>
+    `w-full bg-zinc-900 rounded-xl py-3 px-4 text-white outline-none transition duration-200 disabled:opacity-50 border ${hasError ? "border-red-500 focus:border-red-500" : "border-zinc-800 focus:border-yellow-400"}`;
+
+  const validateField = (
+    field: MyEventFormField,
+    data = formData,
+  ): string | undefined => {
+    switch (field) {
+      case "name": {
+        const trimmed = data.name.trim();
+        if (!trimmed) return "Event name is required";
+        const result = validateAddressField(trimmed, "Event name");
+        return result.isValid ? undefined : result.message;
+      }
+      case "customerId":
+        return data.customerId ? undefined : "Customer is required";
+      case "packageId":
+        return data.packageId ? undefined : "Package is required";
+      case "startDate":
+        return data.startDate ? undefined : "Start date is required";
+      case "endDate": {
+        if (!data.endDate) return "End date is required";
+        if (data.startDate && data.endDate < data.startDate) {
+          return "End date must be on or after start date";
+        }
+        return undefined;
+      }
+      case "depositAmount": {
+        if (!data.depositAmount) return undefined;
+        const amount = Number(data.depositAmount);
+        if (Number.isNaN(amount) || amount < 0) {
+          return "Deposit amount must be a valid positive number";
+        }
+        return undefined;
+      }
+      default:
+        return undefined;
+    }
+  };
+
+  const handleFieldBlur = (field: MyEventFormField) => {
+    setFormTouched((prev) => ({ ...prev, [field]: true }));
+    const message = validateField(field);
+    setFormErrors((prev) => {
+      const next = { ...prev };
+      if (message) next[field] = message;
+      else delete next[field];
+      return next;
+    });
+  };
+
+  const getFieldError = (field: MyEventFormField) =>
+    formTouched[field] ? formErrors[field] : undefined;
+
   const fetchEvents = async () => {
     try {
       setLoading(true);
       const response = await getRequests();
 
       const mappedEvents: Event[] = (response.data.requests ?? []).map(
-        (request: any) => {
+        (request: RequestApi) => {
           const startRaw =
             (request.requestedStartDate as string) ||
             (request.requested_start_date as string) ||
@@ -168,6 +271,8 @@ export default function MyEvents() {
       });
       setDepositAmountDisplay("");
     }
+    setFormErrors({});
+    setFormTouched({});
     setShowModal(true);
   };
 
@@ -184,19 +289,38 @@ export default function MyEvents() {
       depositMethod: "cash",
     });
     setDepositAmountDisplay("");
+    setFormErrors({});
+    setFormTouched({});
   };
 
-  const handleSaveEvent = async () => {
+  const handleSaveEvent = async (e?: React.FormEvent<HTMLFormElement>) => {
+    e?.preventDefault();
     try {
-      if (
-        !formData.customerId ||
-        !formData.packageId ||
-        !formData.startDate ||
-        !formData.endDate
-      ) {
-        alert("Por favor completa todos los campos requeridos");
+      const fieldsToValidate: MyEventFormField[] = [
+        "name",
+        "customerId",
+        "packageId",
+        "startDate",
+        "endDate",
+        "depositAmount",
+      ];
+      const allTouched: Partial<Record<MyEventFormField, boolean>> = {};
+      const allErrors: Partial<Record<MyEventFormField, string>> = {};
+
+      for (const field of fieldsToValidate) {
+        allTouched[field] = true;
+        const message = validateField(field);
+        if (message) allErrors[field] = message;
+      }
+
+      setFormTouched((prev) => ({ ...prev, ...allTouched }));
+      setFormErrors(allErrors);
+
+      if (Object.keys(allErrors).length > 0) {
         return;
       }
+
+      setSubmitting(true);
 
       const payload = {
         customerId: formData.customerId,
@@ -225,6 +349,8 @@ export default function MyEvents() {
     } catch (err: unknown) {
       const message = err instanceof ApiError ? err.message : "Unknown error";
       alert("Error: " + message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -309,17 +435,17 @@ export default function MyEvents() {
                 <div className="absolute top-2 right-2 flex gap-2">
                   <button
                     onClick={() => handleOpenModal(ev)}
-                    className="p-2 bg-blue-600 hover:bg-blue-700 rounded text-white transition"
+                    className="p-2 text-[#FFD700] hover:bg-[#FFD700]/10 rounded-lg transition-colors"
                     title="Edit"
                   >
-                    <Edit size={16} />
+                    <Edit size={18} />
                   </button>
                   <button
                     onClick={() => handleDeleteEvent(ev.id)}
-                    className="p-2 bg-red-600 hover:bg-red-700 rounded text-white transition"
+                    className="p-2 text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
                     title="Delete"
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={18} />
                   </button>
                 </div>
               </div>
@@ -330,153 +456,216 @@ export default function MyEvents() {
 
       {/* Modal Create/Edit */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#121212] border border-[#333] rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-2xl font-bold text-white mb-4">
-              {editingId ? "Edit Event" : "Create New Event"}
-            </h2>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-gray-400 text-sm font-medium mb-2">
-                  Event Name
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded text-white focus:outline-none focus:border-[#FFD700]"
-                  placeholder="Event name"
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-400 text-sm font-medium mb-2">
-                  Customer
-                </label>
-                <select
-                  value={formData.customerId}
-                  onChange={(e) =>
-                    setFormData({ ...formData, customerId: e.target.value })
-                  }
-                  className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded text-white focus:outline-none focus:border-[#FFD700]"
-                >
-                  <option value="">Select a customer</option>
-                  {customers.map((customer) => (
-                    <option
-                      key={customer._id || customer.id}
-                      value={customer._id || customer.id}
-                    >
-                      {customer.name?.firstName || ""}{" "}
-                      {customer.name?.firstSurname || ""} (
-                      {customer.email || "No email"})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-gray-400 text-sm font-medium mb-2">
-                  Package
-                </label>
-                <select
-                  value={formData.packageId}
-                  onChange={(e) =>
-                    setFormData({ ...formData, packageId: e.target.value })
-                  }
-                  className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded text-white focus:outline-none focus:border-[#FFD700]"
-                >
-                  <option value="">Select a package</option>
-                  {packages.map((pkg) => (
-                    <option key={pkg._id || pkg.id} value={pkg._id || pkg.id}>
-                      {pkg.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-gray-400 text-sm font-medium mb-2">
-                  Start Date
-                </label>
-                <input
-                  type="date"
-                  value={formData.startDate}
-                  onChange={(e) =>
-                    setFormData({ ...formData, startDate: e.target.value })
-                  }
-                  className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded text-white focus:outline-none focus:border-[#FFD700]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-400 text-sm font-medium mb-2">
-                  End Date
-                </label>
-                <input
-                  type="date"
-                  value={formData.endDate}
-                  onChange={(e) =>
-                    setFormData({ ...formData, endDate: e.target.value })
-                  }
-                  className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded text-white focus:outline-none focus:border-[#FFD700]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-400 text-sm font-medium mb-2">
-                  Deposit Amount
-                </label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={depositAmountDisplay}
-                  onChange={(e) => {
-                    const raw = e.target.value.replace(/[^0-9]/g, "");
-                    setFormData({ ...formData, depositAmount: raw });
-                    setDepositAmountDisplay(
-                      raw ? formatCop(parseInt(raw, 10)) : "",
-                    );
-                  }}
-                  className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded text-white focus:outline-none focus:border-[#FFD700]"
-                  placeholder="Ej: $ 80.000"
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-400 text-sm font-medium mb-2">
-                  Deposit Method
-                </label>
-                <select
-                  value={formData.depositMethod}
-                  onChange={(e) =>
-                    setFormData({ ...formData, depositMethod: e.target.value })
-                  }
-                  className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded text-white focus:outline-none focus:border-[#FFD700]"
-                >
-                  <option value="cash">Cash</option>
-                  <option value="credit_card">Credit Card</option>
-                  <option value="bank_transfer">Bank Transfer</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="flex gap-3 mt-6">
+        <div
+          className="modal-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) handleCloseModal();
+          }}
+        >
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2 className="text-xl font-bold">
+                {editingId ? "Edit Event" : "Create New Event"}
+              </h2>
               <button
                 onClick={handleCloseModal}
-                className="flex-1 px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600 transition"
+                className="btn-icon"
+                title="Close modal"
+                aria-label="Close modal"
+                type="button"
               >
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveEvent}
-                className="flex-1 px-4 py-2 bg-[#FFD700] text-black font-bold rounded hover:bg-yellow-400 transition"
-              >
-                Save
+                <X size={20} />
               </button>
             </div>
+
+            <form onSubmit={handleSaveEvent}>
+              <div className="modal-body space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="form-group md:col-span-2">
+                    <label className="form-label">Event Name *</label>
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) =>
+                        setFormData({ ...formData, name: e.target.value })
+                      }
+                      onBlur={() => handleFieldBlur("name")}
+                      className={inputClass(!!getFieldError("name"))}
+                      placeholder="Event name"
+                      maxLength={100}
+                      disabled={submitting}
+                    />
+                    {getFieldError("name") && (
+                      <p className="text-red-400 text-xs mt-1">
+                        {getFieldError("name")}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Customer *</label>
+                    <select
+                      title="Customer"
+                      value={formData.customerId}
+                      onChange={(e) =>
+                        setFormData({ ...formData, customerId: e.target.value })
+                      }
+                      onBlur={() => handleFieldBlur("customerId")}
+                      className={inputClass(!!getFieldError("customerId"))}
+                      disabled={submitting}
+                    >
+                      <option value="">Select a customer</option>
+                      {customers.map((customer) => (
+                        <option
+                          key={customer._id || customer.id}
+                          value={customer._id || customer.id}
+                        >
+                          {customer.name?.firstName || ""}{" "}
+                          {customer.name?.firstSurname || ""} ({customer.email || "No email"})
+                        </option>
+                      ))}
+                    </select>
+                    {getFieldError("customerId") && (
+                      <p className="text-red-400 text-xs mt-1">
+                        {getFieldError("customerId")}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Package *</label>
+                    <select
+                      title="Package"
+                      value={formData.packageId}
+                      onChange={(e) =>
+                        setFormData({ ...formData, packageId: e.target.value })
+                      }
+                      onBlur={() => handleFieldBlur("packageId")}
+                      className={inputClass(!!getFieldError("packageId"))}
+                      disabled={submitting}
+                    >
+                      <option value="">Select a package</option>
+                      {packages.map((pkg) => (
+                        <option key={pkg._id || pkg.id} value={pkg._id || pkg.id}>
+                          {pkg.name}
+                        </option>
+                      ))}
+                    </select>
+                    {getFieldError("packageId") && (
+                      <p className="text-red-400 text-xs mt-1">
+                        {getFieldError("packageId")}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Start Date *</label>
+                    <input
+                      title="Start Date"
+                      type="date"
+                      value={formData.startDate}
+                      onChange={(e) =>
+                        setFormData({ ...formData, startDate: e.target.value })
+                      }
+                      onBlur={() => handleFieldBlur("startDate")}
+                      className={inputClass(!!getFieldError("startDate"))}
+                      disabled={submitting}
+                    />
+                    {getFieldError("startDate") && (
+                      <p className="text-red-400 text-xs mt-1">
+                        {getFieldError("startDate")}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">End Date *</label>
+                    <input
+                      title="End Date"
+                      type="date"
+                      value={formData.endDate}
+                      onChange={(e) =>
+                        setFormData({ ...formData, endDate: e.target.value })
+                      }
+                      onBlur={() => handleFieldBlur("endDate")}
+                      className={inputClass(!!getFieldError("endDate"))}
+                      disabled={submitting}
+                    />
+                    {getFieldError("endDate") && (
+                      <p className="text-red-400 text-xs mt-1">
+                        {getFieldError("endDate")}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Deposit Amount</label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={depositAmountDisplay}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/[^0-9]/g, "");
+                        setFormData({ ...formData, depositAmount: raw });
+                        setDepositAmountDisplay(
+                          raw ? formatCop(parseInt(raw, 10)) : "",
+                        );
+                      }}
+                      onBlur={() => handleFieldBlur("depositAmount")}
+                      className={inputClass(!!getFieldError("depositAmount"))}
+                      placeholder="Ej: $ 80.000"
+                      disabled={submitting}
+                    />
+                    {getFieldError("depositAmount") && (
+                      <p className="text-red-400 text-xs mt-1">
+                        {getFieldError("depositAmount")}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Deposit Method</label>
+                    <select
+                      title="Deposit Method"
+                      value={formData.depositMethod}
+                      onChange={(e) =>
+                        setFormData({ ...formData, depositMethod: e.target.value })
+                      }
+                      className={inputClass(false)}
+                      disabled={submitting}
+                    >
+                      <option value="cash">Cash</option>
+                      <option value="credit_card">Credit Card</option>
+                      <option value="bank_transfer">Bank Transfer</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  onClick={handleCloseModal}
+                  className="btn-secondary"
+                  disabled={submitting}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={submitting}
+                >
+                  {submitting
+                    ? editingId
+                      ? "Guardando..."
+                      : "Creando..."
+                    : editingId
+                      ? "Guardar Cambios"
+                      : "Crear Evento"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

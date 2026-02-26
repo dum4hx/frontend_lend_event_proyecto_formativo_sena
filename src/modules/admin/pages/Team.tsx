@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Users, Shield, Plus, Trash2, Edit } from "lucide-react";
+import { Users, Shield, Plus, Trash2, Edit, X } from "lucide-react";
 import { StatCard } from "../components";
 import {
   getUsers,
@@ -44,9 +44,6 @@ const inputClass = (hasError: boolean) =>
 const phoneInputWrapperClass = (hasError: boolean) =>
   `w-full bg-zinc-900 rounded-xl text-white transition duration-200 disabled:opacity-50 border ${hasError ? "border-red-500 focus-within:border-red-500" : "border-zinc-800 focus-within:border-yellow-400"}`;
 
-const selectClass = (hasError: boolean) =>
-  `w-full bg-zinc-900 rounded-xl py-4 px-4 text-white outline-none transition duration-200 disabled:opacity-50 border ${hasError ? "border-red-500 focus:border-red-500" : "border-zinc-800 focus:border-yellow-400"}`;
-
 type TeamMember = {
   id: string;
   name: string;
@@ -70,6 +67,7 @@ export default function Team() {
   });
   const [formErrors, setFormErrors] = useState<Partial<Record<TeamFormField, string>>>({});
   const [formTouched, setFormTouched] = useState<Partial<Record<TeamFormField, boolean>>>({});
+  const [submitting, setSubmitting] = useState(false);
   const [alertModal, setAlertModal] = useState<{
     open: boolean;
     type: AlertModalType;
@@ -200,7 +198,9 @@ export default function Team() {
     setFormTouched({});
   };
 
-  const handleSaveUser = async () => {
+  const handleSaveUser = async (e?: any) => {
+    e?.preventDefault?.();
+    setSubmitting(true);
     try {
       // Touch all fields and run full validation
       const fieldsToValidate: TeamFormField[] = editingId
@@ -296,6 +296,9 @@ export default function Team() {
         showAlert("error", "An unexpected error occurred. Please try again.");
       }
     }
+    finally {
+      setSubmitting(false);
+    }
   };
 
   const handleDeleteUser = async (userId: string) => {
@@ -379,17 +382,17 @@ export default function Team() {
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleOpenModal(member)}
-                          className="p-2 bg-blue-600 hover:bg-blue-700 rounded text-white transition"
+                          className="p-2 text-[#FFD700] hover:bg-[#FFD700]/10 rounded-lg transition-colors"
                           title="Edit"
                         >
-                          <Edit size={16} />
+                          <Edit size={18} />
                         </button>
                         <button
                           onClick={() => handleDeleteUser(member.id)}
-                          className="p-2 bg-red-600 hover:bg-red-700 rounded text-white transition"
+                          className="p-2 text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
                           title="Deactivate"
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={18} />
                         </button>
                       </div>
                     </td>
@@ -411,138 +414,140 @@ export default function Team() {
 
       {/* Modal Create/Edit */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#121212] border border-[#333] rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-2xl font-bold text-white mb-4">
-              {editingId ? "Edit Member" : "Invite New Member"}
-            </h2>
+        <div
+          className="modal-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) handleCloseModal();
+          }}
+        >
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2 className="text-xl font-bold">{editingId ? "Edit Member" : "Invite New Member"}</h2>
+              <button onClick={() => handleCloseModal()} className="btn-icon" title="Close modal" aria-label="Close modal">
+                <X size={20} />
+              </button>
+            </div>
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                  First Name *
-                </label>
-                <input
-                  type="text"
-                  value={formData.firstName}
-                  onChange={(e) =>
-                    setFormData({ ...formData, firstName: formatNameInput(e.target.value) })
-                  }
-                  onBlur={() => handleFieldBlur("firstName")}
-                  className={inputClass(!!getFieldError("firstName"))}
-                  placeholder="Juan"
-                  maxLength={50}
-                />
-                {getFieldError("firstName") && (
-                  <p className="text-red-400 text-xs mt-1">{getFieldError("firstName")}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                  Last Name *
-                </label>
-                <input
-                  type="text"
-                  value={formData.firstSurname}
-                  onChange={(e) =>
-                    setFormData({ ...formData, firstSurname: formatNameInput(e.target.value) })
-                  }
-                  onBlur={() => handleFieldBlur("firstSurname")}
-                  className={inputClass(!!getFieldError("firstSurname"))}
-                  placeholder="Pérez"
-                  maxLength={50}
-                />
-                {getFieldError("firstSurname") && (
-                  <p className="text-red-400 text-xs mt-1">{getFieldError("firstSurname")}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                  Email *
-                </label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: formatEmailInput(e.target.value) })
-                  }
-                  onBlur={() => handleFieldBlur("email")}
-                  disabled={!!editingId}
-                  autoCapitalize="none"
-                  autoCorrect="off"
-                  spellCheck={false}
-                  className={inputClass(!!getFieldError("email"))}
-                  placeholder="email@example.com"
-                />
-                {getFieldError("email") && (
-                  <p className="text-red-400 text-xs mt-1">{getFieldError("email")}</p>
-                )}
-              </div>
-
-              {!editingId && (
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                    Phone *
-                  </label>
-                  <div className={phoneInputWrapperClass(!!getFieldError("phone"))}>
-                    <div className="flex items-center">
-                      <span className="text-white pl-4 pr-2 select-none whitespace-pre">
-                        {`${COLOMBIA_PHONE_PREFIX} `}
-                      </span>
-                      <input
-                        type="tel"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        maxLength={10}
-                        value={formData.phone}
-                        onChange={(e) =>
-                          setFormData({ ...formData, phone: formatPhoneInput(e.target.value) })
-                        }
-                        onBlur={() => handleFieldBlur("phone")}
-                        className="w-full bg-transparent py-4 pr-4 text-white outline-none"
-                        placeholder="3001234567"
-                      />
-                    </div>
+            <form onSubmit={handleSaveUser}>
+              <div className="modal-body space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="form-group">
+                    <label className="form-label">First Name *</label>
+                    <input
+                      type="text"
+                      value={formData.firstName}
+                      onChange={(e) =>
+                        setFormData({ ...formData, firstName: formatNameInput(e.target.value) })
+                      }
+                      onBlur={() => handleFieldBlur("firstName")}
+                      className={inputClass(!!getFieldError("firstName"))}
+                      placeholder="Juan"
+                      maxLength={50}
+                      disabled={submitting}
+                    />
+                    {getFieldError("firstName") && (
+                      <p className="text-red-400 text-xs mt-1">{getFieldError("firstName")}</p>
+                    )}
                   </div>
-                  {getFieldError("phone") && (
-                    <p className="text-red-400 text-xs mt-1">{getFieldError("phone")}</p>
+
+                  <div className="form-group">
+                    <label className="form-label">Last Name *</label>
+                    <input
+                      type="text"
+                      value={formData.firstSurname}
+                      onChange={(e) =>
+                        setFormData({ ...formData, firstSurname: formatNameInput(e.target.value) })
+                      }
+                      onBlur={() => handleFieldBlur("firstSurname")}
+                      className={inputClass(!!getFieldError("firstSurname"))}
+                      placeholder="Pérez"
+                      maxLength={50}
+                      disabled={submitting}
+                    />
+                    {getFieldError("firstSurname") && (
+                      <p className="text-red-400 text-xs mt-1">{getFieldError("firstSurname")}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="form-group">
+                    <label className="form-label">Email *</label>
+                    <input
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) =>
+                        setFormData({ ...formData, email: formatEmailInput(e.target.value) })
+                      }
+                      onBlur={() => handleFieldBlur("email")}
+                      disabled={!!editingId || submitting}
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      className={inputClass(!!getFieldError("email"))}
+                      placeholder="email@example.com"
+                    />
+                    {getFieldError("email") && (
+                      <p className="text-red-400 text-xs mt-1">{getFieldError("email")}</p>
+                    )}
+                  </div>
+
+                  {!editingId && (
+                    <div className="form-group">
+                      <label className="form-label">Phone *</label>
+                      <div className={phoneInputWrapperClass(!!getFieldError("phone"))}>
+                        <div className="flex items-center">
+                          <span className="text-white pl-4 pr-2 select-none whitespace-pre">{`${COLOMBIA_PHONE_PREFIX} `}</span>
+                          <input
+                            type="tel"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            maxLength={10}
+                            value={formData.phone}
+                            onChange={(e) =>
+                              setFormData({ ...formData, phone: formatPhoneInput(e.target.value) })
+                            }
+                            onBlur={() => handleFieldBlur("phone")}
+                            className="w-full bg-transparent py-3 pr-4 text-white outline-none"
+                            placeholder="3001234567"
+                            disabled={submitting}
+                          />
+                        </div>
+                      </div>
+                      {getFieldError("phone") && (
+                        <p className="text-red-400 text-xs mt-1">{getFieldError("phone")}</p>
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
 
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                  Role
-                </label>
-                <select
-                  value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                  className={selectClass(false)}
-                >
-                  <option value="owner">Owner</option>
-                  <option value="manager">Manager</option>
-                  <option value="warehouse_operator">Warehouse Operator</option>
-                  <option value="commercial_advisor">Commercial Advisor</option>
-                </select>
+                <div>
+                  <label className="form-label">Role</label>
+                  <select
+                    title="Role"
+                    aria-label="Role"
+                    value={formData.role}
+                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                    className={inputClass(false)}
+                    disabled={submitting}
+                  >
+                    <option value="owner">Owner</option>
+                    <option value="manager">Manager</option>
+                    <option value="warehouse_operator">Warehouse Operator</option>
+                    <option value="commercial_advisor">Commercial Advisor</option>
+                  </select>
+                </div>
               </div>
-            </div>
 
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={handleCloseModal}
-                className="flex-1 px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600 transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveUser}
-                className="flex-1 px-4 py-2 bg-[#FFD700] text-black font-bold rounded hover:bg-yellow-400 transition"
-              >
-                Save
-              </button>
-            </div>
+              <div className="modal-footer">
+                <button type="button" onClick={handleCloseModal} className="btn-secondary" disabled={submitting}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn-primary" disabled={submitting}>
+                  {submitting ? (editingId ? "Guardando..." : "Enviando...") : editingId ? "Guardar Cambios" : "Invitar Usuario"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
