@@ -20,3 +20,6 @@ export type { AlertCardProps, AlertContainerProps, AlertItem, AlertType } from '
 
 export { AlertModal } from './AlertModal';
 export type { AlertModalProps, AlertModalType } from './AlertModal';
+
+export { StatCard } from './StatCard';
+export type { StatCardProps } from './StatCard';

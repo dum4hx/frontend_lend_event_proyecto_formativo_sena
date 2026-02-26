@@ -7,7 +7,7 @@ function AdminLayoutContent() {
   const { toasts, dismissToast } = useToast();
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-[#121212] text-white">
       <Sidebar />
 
       {/* Toast Notifications */}

@@ -9,16 +9,7 @@ import {
 import { getCustomers } from "../../../services/customerService";
 import { getPackages } from "../../../services/materialService";
 import { ApiError } from "../../../lib/api";
-import { validateAddressField } from "../../../utils/validators";
-
-type MyEventFormField =
-  | "name"
-  | "customerId"
-  | "packageId"
-  | "startDate"
-  | "endDate"
-  | "depositAmount"
-  | "depositMethod";
+import { useAlertModal } from "../../../hooks/useAlertModal";
 
 type Event = {
   id: string;
@@ -71,6 +62,7 @@ type PackageOption = {
 };
 
 export default function MyEvents() {
+  const { showError, AlertModal } = useAlertModal();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -293,30 +285,15 @@ export default function MyEvents() {
     setFormTouched({});
   };
 
-  const handleSaveEvent = async (e?: React.FormEvent<HTMLFormElement>) => {
-    e?.preventDefault();
+  const handleSaveEvent = async () => {
     try {
-      const fieldsToValidate: MyEventFormField[] = [
-        "name",
-        "customerId",
-        "packageId",
-        "startDate",
-        "endDate",
-        "depositAmount",
-      ];
-      const allTouched: Partial<Record<MyEventFormField, boolean>> = {};
-      const allErrors: Partial<Record<MyEventFormField, string>> = {};
-
-      for (const field of fieldsToValidate) {
-        allTouched[field] = true;
-        const message = validateField(field);
-        if (message) allErrors[field] = message;
-      }
-
-      setFormTouched((prev) => ({ ...prev, ...allTouched }));
-      setFormErrors(allErrors);
-
-      if (Object.keys(allErrors).length > 0) {
+      if (
+        !formData.customerId ||
+        !formData.packageId ||
+        !formData.startDate ||
+        !formData.endDate
+      ) {
+        showError("Por favor completa todos los campos requeridos");
         return;
       }
 
@@ -348,9 +325,7 @@ export default function MyEvents() {
       await fetchEvents();
     } catch (err: unknown) {
       const message = err instanceof ApiError ? err.message : "Unknown error";
-      alert("Error: " + message);
-    } finally {
-      setSubmitting(false);
+      showError("Error: " + message);
     }
   };
 
@@ -369,7 +344,7 @@ export default function MyEvents() {
       await fetchEvents();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Unknown error";
-      alert("Error: " + message);
+      showError("Error: " + message);
     }
   };
 
@@ -669,6 +644,7 @@ export default function MyEvents() {
           </div>
         </div>
       )}
+      <AlertModal />
     </div>
   );
 }

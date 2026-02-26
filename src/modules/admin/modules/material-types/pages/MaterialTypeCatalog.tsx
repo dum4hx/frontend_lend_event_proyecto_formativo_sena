@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Tag, X } from 'lucide-react';
 import { useMaterialTypes } from '../hooks';
 import { useCategories } from '../../material-categories/hooks';
 import { MaterialTypeList, MaterialTypeDetailModal } from '../components';
@@ -14,11 +14,36 @@ export const MaterialTypeCatalog: React.FC = () => {
   const { categories } = useCategories();
   const { showToast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<Set<string>>(new Set());
   const [selectedMaterialType, setSelectedMaterialType] = useState<MaterialType | null>(null);
 
-  const filteredMaterialTypes = materialTypes.filter((type) =>
-    type.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const toggleCategory = (id: string) => {
+    setSelectedCategoryIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  // Extracts the first categoryId string regardless of backend format (string | string[] | object[])
+  const extractCategoryId = (value: unknown): string | undefined => {
+    if (typeof value === 'string') return value;
+    if (Array.isArray(value) && value.length > 0) {
+      const first = value[0];
+      if (typeof first === 'string') return first;
+      if (first && typeof first === 'object') return (first as { _id?: string })._id;
+    }
+    if (value && typeof value === 'object') return (value as { _id?: string })._id;
+    return undefined;
+  };
+
+  const filteredMaterialTypes = materialTypes.filter((type) => {
+    const matchesSearch = type.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory =
+      selectedCategoryIds.size === 0 ||
+      selectedCategoryIds.has(extractCategoryId((type as any).categoryId) ?? '');
+    return matchesSearch && matchesCategory;
+  });
 
   const handleDelete = (type: MaterialType) => {
     showToast(
@@ -44,23 +69,59 @@ export const MaterialTypeCatalog: React.FC = () => {
 
   const handleImportMaterialTypes = async (data: any[]) => {
     try {
+      // Build a Set of valid category IDs from the list already loaded by useCategories()
+      const validCategoryIds = new Set(categories.map((c) => c._id));
+
       let successCount = 0;
+      const rejected: { name: string; categoryId: string; reason: string }[] = [];
+
       for (const item of data) {
+        const catId: string | undefined = item.categoryId;
+
+        // ✅ Strict validation: reject if categoryId is empty or not found in DB categories
+        if (!catId || !validCategoryIds.has(catId)) {
+          rejected.push({
+            name: item.name ?? '(sin nombre)',
+            categoryId: catId ?? '(vacío)',
+            reason: 'categoryId no existe en la colección de categorías',
+          });
+          continue;
+        }
+
         try {
           await addMaterialType({
             name: item.name,
             description: item.description,
-            categoryId: item.categoryId,
+            categoryId: catId,
             pricePerDay: parseFloat(item.pricePerDay),
           });
           successCount++;
         } catch (itemError) {
-          console.error('Error importing item:', item, itemError);
+          console.error('[Import] Error al crear registro:', item, itemError);
+          rejected.push({
+            name: item.name ?? '(sin nombre)',
+            categoryId: catId,
+            reason: itemError instanceof Error ? itemError.message : 'Error al crear registro',
+          });
         }
       }
-      showToast('success', `Imported ${successCount}/${data.length} material types`, 'Import Complete');
+
+      const total = data.length;
+      const rejectedCount = rejected.length;
+
+      if (rejectedCount > 0) {
+        // Log full rejection detail to console for debugging
+        console.warn(`[Import] ${rejectedCount} registro(s) rechazado(s):`, rejected);
+        showToast(
+          successCount > 0 ? 'warning' : 'error',
+          `${successCount} importado(s), ${rejectedCount} rechazado(s) por categoryId inválido. Ver consola para detalles.`,
+          `Importación: ${successCount}/${total}`
+        );
+      } else {
+        showToast('success', `${successCount}/${total} tipos de material importados`, 'Importación completa');
+      }
     } catch (error: any) {
-      showToast('error', error.message || 'Error importing material types', 'Import Failed');
+      showToast('error', error.message || 'Error importando tipos de material', 'Import Failed');
     }
   };
 
@@ -90,32 +151,89 @@ export const MaterialTypeCatalog: React.FC = () => {
         </div>
 
         {/* Actions Bar */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="flex-1 relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-            <input
-              type="text"
-              placeholder="Search material types..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#FFD700]"
-            />
+        <div className="flex flex-col gap-4 mb-6">
+          {/* Search + buttons row */}
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+              <input
+                type="text"
+                placeholder="Search material types..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#FFD700]"
+              />
+            </div>
+            <div className="flex gap-2">
+              <ExcelExportImport
+                data={filteredMaterialTypes}
+                filename="material-types"
+                onImport={handleImportMaterialTypes}
+                showLabels={true}
+              />
+              <button
+                onClick={() => navigate('create')}
+                className="flex items-center gap-2 px-6 py-3 bg-[#FFD700] text-black font-semibold rounded-lg hover:bg-[#FFC700] transition-colors whitespace-nowrap"
+              >
+                <Plus size={20} />
+                New Material Type
+              </button>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <ExcelExportImport
-              data={filteredMaterialTypes}
-              filename="material-types"
-              onImport={handleImportMaterialTypes}
-              showLabels={true}
-            />
-            <button
-              onClick={() => navigate('create')}
-              className="flex items-center gap-2 px-6 py-3 bg-[#FFD700] text-black font-semibold rounded-lg hover:bg-[#FFC700] transition-colors whitespace-nowrap"
-            >
-              <Plus size={20} />
-              New Material Type
-            </button>
-          </div>
+
+          {/* Category filter pills */}
+          {categories.length > 0 && (
+            <div className="flex flex-wrap gap-2 items-center">
+              <span className="flex items-center gap-1 text-gray-400 text-sm mr-1">
+                <Tag size={14} /> Filtrar:
+              </span>
+              <button
+                onClick={() => setSelectedCategoryIds(new Set())}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                  selectedCategoryIds.size === 0
+                    ? 'bg-[#FFD700] text-black'
+                    : 'bg-[#1a1a1a] border border-[#333] text-gray-400 hover:border-[#FFD700] hover:text-white'
+                }`}
+              >
+                Todas
+              </button>
+              {categories.map((cat) => {
+                const isActive = selectedCategoryIds.has(cat._id);
+                const count = materialTypes.filter(
+                  (t) => extractCategoryId((t as any).categoryId) === cat._id
+                ).length;
+                return (
+                  <button
+                    key={cat._id}
+                    onClick={() => toggleCategory(cat._id)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'bg-[#FFD700] text-black'
+                        : 'bg-[#1a1a1a] border border-[#333] text-gray-400 hover:border-[#FFD700] hover:text-white'
+                    }`}
+                  >
+                    {cat.name}
+                    <span
+                      className={`text-xs px-1.5 py-0.5 rounded-full ${
+                        isActive ? 'bg-black/20 text-black' : 'bg-[#333] text-gray-300'
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+              {selectedCategoryIds.size > 0 && (
+                <button
+                  onClick={() => setSelectedCategoryIds(new Set())}
+                  className="flex items-center gap-1 px-2 py-1.5 text-gray-500 hover:text-white text-sm transition-colors"
+                  title="Limpiar filtros"
+                >
+                  <X size={14} /> Limpiar ({selectedCategoryIds.size})
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Stats */}

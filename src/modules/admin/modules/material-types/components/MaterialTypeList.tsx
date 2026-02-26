@@ -17,16 +17,21 @@ export const MaterialTypeList: React.FC<MaterialTypeListProps> = ({
   onEdit,
   onDelete,
 }) => {
-  const extractCategoryId = (value: unknown) => {
-    if (typeof value === 'string') {
-      return value;
+  const extractCategoryId = (value: unknown): string | undefined => {
+    // Plain string ID
+    if (typeof value === 'string') return value;
+
+    // Array — backend returns categoryId as string[] or populated object[]
+    if (Array.isArray(value) && value.length > 0) {
+      const first = value[0];
+      if (typeof first === 'string') return first;          // string[]
+      if (first && typeof first === 'object') {
+        const id = (first as { _id?: string })._id;
+        return typeof id === 'string' ? id : undefined;     // populated object[]
+      }
     }
 
-    if (Array.isArray(value)) {
-      const first = value[0] as { _id?: string } | undefined;
-      return typeof first?._id === 'string' ? first?._id : undefined;
-    }
-
+    // Single populated object
     if (value && typeof value === 'object') {
       const maybeId = (value as { _id?: string })._id;
       return typeof maybeId === 'string' ? maybeId : undefined;

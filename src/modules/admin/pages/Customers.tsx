@@ -27,6 +27,7 @@ import {
   validatePostalCode,
   validateState,
 } from "../../../utils/validators";
+import { useAlertModal } from "../../../hooks/useAlertModal";
 
 // --- Colombia API types & fetcher -------------------------------------------
 interface ColombiaDepartment {
@@ -91,6 +92,7 @@ function parseStreet(street: string) {
 }
 
 export default function Customers() {
+  const { showError, AlertModal } = useAlertModal();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [documentTypes, setDocumentTypes] = useState<DocumentTypeInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -534,7 +536,7 @@ export default function Customers() {
       await fetchCustomers();
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "Failed to blacklist customer";
-      alert(message);
+      showError(message);
     }
   };
 
@@ -547,7 +549,7 @@ export default function Customers() {
       await fetchCustomers();
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "Failed to delete customer";
-      alert(message);
+      showError(message);
     }
   };
 
@@ -1617,6 +1619,7 @@ export default function Customers() {
           </div>
         )}
       </div>
+      <AlertModal />
     </div>
   );
 }
