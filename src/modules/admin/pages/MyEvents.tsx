@@ -147,6 +147,26 @@ export default function MyEvents() {
   const getFieldError = (field: MyEventFormField) =>
     formTouched[field] ? formErrors[field] : undefined;
 
+  useEffect(() => {
+    if (!Object.values(formTouched).some(Boolean)) return;
+
+    setFormErrors((prev) => {
+      const next = { ...prev };
+      (Object.keys(formTouched) as MyEventFormField[]).forEach((field) => {
+        if (!formTouched[field]) return;
+        const message = validateField(field);
+        if (message) next[field] = message;
+        else delete next[field];
+      });
+      return next;
+    });
+  }, [formData, formTouched]);
+
+  const handleFieldChange = (field: MyEventFormField, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormTouched((prev) => (prev[field] ? prev : { ...prev, [field]: true }));
+  };
+
   const fetchEvents = async () => {
     try {
       setLoading(true);
@@ -462,7 +482,7 @@ export default function MyEvents() {
                       type="text"
                       value={formData.name}
                       onChange={(e) =>
-                        setFormData({ ...formData, name: e.target.value })
+                        handleFieldChange("name", e.target.value)
                       }
                       onBlur={() => handleFieldBlur("name")}
                       className={inputClass(!!getFieldError("name"))}
@@ -483,7 +503,7 @@ export default function MyEvents() {
                       title="Customer"
                       value={formData.customerId}
                       onChange={(e) =>
-                        setFormData({ ...formData, customerId: e.target.value })
+                        handleFieldChange("customerId", e.target.value)
                       }
                       onBlur={() => handleFieldBlur("customerId")}
                       className={inputClass(!!getFieldError("customerId"))}
@@ -513,7 +533,7 @@ export default function MyEvents() {
                       title="Package"
                       value={formData.packageId}
                       onChange={(e) =>
-                        setFormData({ ...formData, packageId: e.target.value })
+                        handleFieldChange("packageId", e.target.value)
                       }
                       onBlur={() => handleFieldBlur("packageId")}
                       className={inputClass(!!getFieldError("packageId"))}
@@ -540,7 +560,7 @@ export default function MyEvents() {
                       type="date"
                       value={formData.startDate}
                       onChange={(e) =>
-                        setFormData({ ...formData, startDate: e.target.value })
+                        handleFieldChange("startDate", e.target.value)
                       }
                       onBlur={() => handleFieldBlur("startDate")}
                       className={inputClass(!!getFieldError("startDate"))}
@@ -560,7 +580,7 @@ export default function MyEvents() {
                       type="date"
                       value={formData.endDate}
                       onChange={(e) =>
-                        setFormData({ ...formData, endDate: e.target.value })
+                        handleFieldChange("endDate", e.target.value)
                       }
                       onBlur={() => handleFieldBlur("endDate")}
                       className={inputClass(!!getFieldError("endDate"))}
@@ -581,7 +601,7 @@ export default function MyEvents() {
                       value={depositAmountDisplay}
                       onChange={(e) => {
                         const raw = e.target.value.replace(/[^0-9]/g, "");
-                        setFormData({ ...formData, depositAmount: raw });
+                        handleFieldChange("depositAmount", raw);
                         setDepositAmountDisplay(
                           raw ? formatCop(parseInt(raw, 10)) : "",
                         );
@@ -604,7 +624,7 @@ export default function MyEvents() {
                       title="Deposit Method"
                       value={formData.depositMethod}
                       onChange={(e) =>
-                        setFormData({ ...formData, depositMethod: e.target.value })
+                        handleFieldChange("depositMethod", e.target.value)
                       }
                       className={inputClass(false)}
                       disabled={submitting}
@@ -624,7 +644,7 @@ export default function MyEvents() {
                   className="btn-secondary"
                   disabled={submitting}
                 >
-                  Cancelar
+                  Cancel
                 </button>
                 <button
                   type="submit"
@@ -633,11 +653,11 @@ export default function MyEvents() {
                 >
                   {submitting
                     ? editingId
-                      ? "Guardando..."
-                      : "Creando..."
+                      ? "Saving..."
+                      : "Creating..."
                     : editingId
-                      ? "Guardar Cambios"
-                      : "Crear Evento"}
+                      ? "Save Changes"
+                      : "Create Event"}
                 </button>
               </div>
             </form>

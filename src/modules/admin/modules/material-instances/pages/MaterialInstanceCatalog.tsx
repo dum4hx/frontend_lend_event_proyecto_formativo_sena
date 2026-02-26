@@ -23,18 +23,18 @@ export const MaterialInstanceCatalog: React.FC = () => {
   const handleDelete = (instance: MaterialInstance) => {
     showToast(
       'warning',
-      `¿Desea eliminar la instancia "${instance.serialNumber}"? Esta acción no se puede deshacer.`,
-      'Confirmar eliminación',
+      `Do you want to delete instance "${instance.serialNumber}"? This action cannot be undone.`,
+      'Confirm Deletion',
       {
         duration: Infinity,
         action: {
-          label: 'Confirmar',
+          label: 'Confirm',
           onClick: async () => {
             try {
               await removeInstance(instance._id);
-              showToast('success', 'Instancia de material eliminada exitosamente', 'Éxito');
+              showToast('success', 'Material instance deleted successfully', 'Success');
             } catch (error: any) {
-              showToast('error', error.message || 'Error al eliminar instancia de material', 'Error');
+              showToast('error', error.message || 'Failed to delete material instance', 'Error');
             }
           },
         },

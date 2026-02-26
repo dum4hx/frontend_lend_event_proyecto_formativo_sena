@@ -25,18 +25,18 @@ export const CategoryCatalog: React.FC = () => {
   const handleDelete = (category: MaterialCategory) => {
     showToast(
       'warning',
-      `¿Desea eliminar "${category.name}"? Esta acción no se puede deshacer.`,
-      'Confirmar eliminación',
+      `Do you want to delete "${category.name}"? This action cannot be undone.`,
+      'Confirm Deletion',
       {
         duration: Infinity,
         action: {
-          label: 'Confirmar',
+          label: 'Confirm',
           onClick: async () => {
             try {
               await removeCategory(category._id);
-              showToast('success', 'Categoría eliminada exitosamente', 'Éxito');
+              showToast('success', 'Category deleted successfully', 'Success');
             } catch (error: any) {
-              showToast('error', error.message || 'Error al eliminar categoría', 'Error');
+              showToast('error', error.message || 'Failed to delete category', 'Error');
             }
           },
         },

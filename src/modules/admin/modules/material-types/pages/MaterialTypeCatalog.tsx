@@ -48,18 +48,18 @@ export const MaterialTypeCatalog: React.FC = () => {
   const handleDelete = (type: MaterialType) => {
     showToast(
       'warning',
-      `¿Desea eliminar "${type.name}"? Esta acción no se puede deshacer.`,
-      'Confirmar eliminación',
+      `Do you want to delete "${type.name}"? This action cannot be undone.`,
+      'Confirm Deletion',
       {
         duration: Infinity,
         action: {
-          label: 'Confirmar',
+          label: 'Confirm',
           onClick: async () => {
             try {
               await removeMaterialType(type._id);
-              showToast('success', 'Tipo de material eliminado exitosamente', 'Éxito');
+              showToast('success', 'Material type deleted successfully', 'Success');
             } catch (error: any) {
-              showToast('error', error.message || 'Error al eliminar tipo de material', 'Error');
+              showToast('error', error.message || 'Failed to delete material type', 'Error');
             }
           },
         },

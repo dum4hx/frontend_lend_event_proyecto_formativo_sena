@@ -175,8 +175,8 @@ export function MaterialModelsModule() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">Categorías</h1>
-          <p className="text-gray-400 text-sm mt-1">Crear y administrar categorías</p>
+          <h1 className="text-3xl font-bold text-white">Categories</h1>
+          <p className="text-gray-400 text-sm mt-1">Create and manage categories</p>
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -267,14 +267,14 @@ export function MaterialModelsModule() {
                   onClick={closeDepsModal}
                   className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-white"
                 >
-                  Cerrar
+                  Close
                 </button>
                 <button
                   onClick={handleForceDelete}
                   disabled={isForceDeleting}
                   className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded text-white"
                 >
-                  {isForceDeleting ? "Eliminando..." : "Forzar eliminación"}
+                  {isForceDeleting ? "Deleting..." : "Force Delete"}
                 </button>
               </div>
             </div>

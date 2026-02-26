@@ -264,6 +264,10 @@ export default function Customers() {
     setTouched((prev) => (prev[field] ? prev : { ...prev, [field]: true }));
   };
 
+  const handleFieldChange = (field: CustomerFormField) => {
+    markFieldTouched(field);
+  };
+
   const validateAddressSegmentField = (value: string, label: string) => {
     if (!value) return { isValid: false, message: `${label} is required` };
     if (!COLOMBIAN_ADDRESS_SEGMENT_REGEX.test(value))
@@ -652,11 +656,11 @@ export default function Customers() {
   const getStatusBadge = (status: CustomerStatus) => {
     switch (status) {
       case "active":
-        return <span className="badge badge-success">Activo</span>;
+        return <span className="badge badge-success">Active</span>;
       case "inactive":
-        return <span className="badge badge-warning">Inactivo</span>;
+        return <span className="badge badge-warning">Inactive</span>;
       case "blacklisted":
-        return <span className="badge badge-danger">Bloqueado</span>;
+        return <span className="badge badge-danger">Blocked</span>;
     }
   };
 
@@ -689,7 +693,7 @@ export default function Customers() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={20} />
               <input
                 type="text"
-                placeholder="Buscar por nombre, email o documento..."
+                placeholder="Search by name, email, or document..."
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -708,16 +712,16 @@ export default function Customers() {
               }}
               className="input md:w-48"
             >
-              <option value="">Todos los estados</option>
-              <option value="active">Activos</option>
-              <option value="inactive">Inactivos</option>
-              <option value="blacklisted">Bloqueados</option>
+              <option value="">All statuses</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="blacklisted">Blocked</option>
             </select>
 
             {/* Create Button */}
             <button onClick={() => setShowCreateModal(true)} className="btn-primary flex items-center gap-2">
               <Plus size={20} />
-              Nuevo Cliente
+              New Customer
             </button>
           </div>
         </div>
@@ -738,12 +742,12 @@ export default function Customers() {
               <table className="table">
                 <thead>
                   <tr>
-                    <th>Nombre</th>
+                    <th>Name</th>
                     <th>Email</th>
-                    <th>Teléfono</th>
-                    <th>Documento</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
+                    <th>Phone</th>
+                    <th>Document</th>
+                    <th>Status</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -766,7 +770,7 @@ export default function Customers() {
                           <button
                             onClick={() => openEditModal(customer)}
                             className="btn-icon text-blue-400 hover:text-blue-300"
-                            title="Editar"
+                            title="Edit"
                           >
                             <Edit2 size={18} />
                           </button>
@@ -774,7 +778,7 @@ export default function Customers() {
                             <button
                               onClick={() => void handleBlacklist(customer)}
                               className="btn-icon text-yellow-400 hover:text-yellow-300"
-                              title="Bloquear"
+                              title="Block"
                             >
                               <Ban size={18} />
                             </button>
@@ -782,7 +786,7 @@ export default function Customers() {
                           <button
                             onClick={() => void handleDelete(customer)}
                             className="btn-icon text-red-400 hover:text-red-300"
-                            title="Eliminar"
+                            title="Delete"
                           >
                             <Trash2 size={18} />
                           </button>
@@ -806,17 +810,17 @@ export default function Customers() {
                     disabled={currentPage === 1}
                     className="btn-secondary text-sm"
                   >
-                    Anterior
+                    Previous
                   </button>
                   <span className="text-sm text-gray-400">
-                    Página {currentPage} de {totalPages}
+                    Page {currentPage} of {totalPages}
                   </span>
                   <button
                     onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                     disabled={currentPage === totalPages}
                     className="btn-secondary text-sm"
                   >
-                    Siguiente
+                    Next
                   </button>
                 </div>
               </div>
@@ -834,7 +838,7 @@ export default function Customers() {
           >
             <div className="modal-content">
               <div className="modal-header">
-                <h2 className="text-xl font-bold">Crear Nuevo Cliente</h2>
+                <h2 className="text-xl font-bold">Create New Customer</h2>
                 <button onClick={() => setShowCreateModal(false)} className="btn-icon">
                   <X size={20} />
                 </button>
@@ -844,11 +848,12 @@ export default function Customers() {
                   {/* Name */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="form-group">
-                      <label className="form-label">Primer Nombre *</label>
+                      <label className="form-label">First Name *</label>
                       <input
                         type="text"
                         value={formData.name.firstName}
                         onChange={(e) => {
+                          handleFieldChange("firstName");
                           const v = formatNameInput(e.target.value);
                           setFormData({ ...formData, name: { ...formData.name, firstName: v } });
                         }}
@@ -859,7 +864,7 @@ export default function Customers() {
                       {fieldErrors.firstName && <p className="text-red-400 text-xs mt-1">{fieldErrors.firstName}</p>}
                     </div>
                     <div className="form-group">
-                      <label className="form-label">Segundo Nombre</label>
+                      <label className="form-label">Middle Name</label>
                       <input
                         type="text"
                         value={formData.name.secondName || ""}
@@ -875,11 +880,12 @@ export default function Customers() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="form-group">
-                      <label className="form-label">Primer Apellido *</label>
+                      <label className="form-label">Last Name *</label>
                       <input
                         type="text"
                         value={formData.name.firstSurname}
                         onChange={(e) => {
+                          handleFieldChange("firstSurname");
                           const v = formatNameInput(e.target.value);
                           setFormData({ ...formData, name: { ...formData.name, firstSurname: v } });
                         }}
@@ -890,7 +896,7 @@ export default function Customers() {
                       {fieldErrors.firstSurname && <p className="text-red-400 text-xs mt-1">{fieldErrors.firstSurname}</p>}
                     </div>
                     <div className="form-group">
-                      <label className="form-label">Segundo Apellido</label>
+                      <label className="form-label">Second Last Name</label>
                       <input
                         type="text"
                         value={formData.name.secondSurname || ""}
@@ -915,6 +921,7 @@ export default function Customers() {
                         autoCorrect="off"
                         spellCheck={false}
                         onChange={(e) => {
+                          handleFieldChange("email");
                           const v = formatEmailInput(e.target.value);
                           setFormData({ ...formData, email: v });
                         }}
@@ -925,7 +932,7 @@ export default function Customers() {
                       {fieldErrors.email && <p className="text-red-400 text-xs mt-1">{fieldErrors.email}</p>}
                     </div>
                     <div className="form-group">
-                      <label className="form-label">Teléfono *</label>
+                      <label className="form-label">Phone *</label>
                       <div className={phoneInputWrapperClass(!!fieldErrors.phone)}>
                         <div className="flex items-center">
                           <span className="text-white pl-4 pr-2 select-none whitespace-pre">{`${COLOMBIA_PHONE_PREFIX} `}</span>
@@ -937,6 +944,7 @@ export default function Customers() {
                             placeholder="3001234567"
                             value={formData.phone}
                             onChange={(e) => {
+                              handleFieldChange("phone");
                               const v = formatPhoneInput(e.target.value);
                               setFormData({ ...formData, phone: v });
                             }}
@@ -953,7 +961,7 @@ export default function Customers() {
                   {/* Document */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="form-group">
-                      <label className="form-label">Tipo de Documento *</label>
+                      <label className="form-label">Document Type *</label>
                       <select
                         value={formData.documentType}
                         onChange={(e) => setFormData({ ...formData, documentType: e.target.value as DocumentType })}
@@ -968,11 +976,14 @@ export default function Customers() {
                       </select>
                     </div>
                     <div className="form-group">
-                      <label className="form-label">Número de Documento *</label>
+                      <label className="form-label">Document Number *</label>
                       <input
                         type="text"
                         value={formData.documentNumber}
-                        onChange={(e) => setFormData({ ...formData, documentNumber: e.target.value })}
+                        onChange={(e) => {
+                          handleFieldChange("documentNumber");
+                          setFormData({ ...formData, documentNumber: e.target.value });
+                        }}
                         onBlur={() => validateFieldOnBlur("documentNumber")}
                         className={inputClass(!!fieldErrors.documentNumber)}
                         disabled={submitting}
@@ -982,20 +993,23 @@ export default function Customers() {
                   </div>
 
                   {/* Address */}
-                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest pt-2">Dirección</h3>
+                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest pt-2">Address</h3>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="form-group md:col-span-2">
-                      <label className="form-label">Tipo de Vía *</label>
+                      <label className="form-label">Street Type *</label>
                       <select
                         title="Street Type"
                         value={streetType}
-                        onChange={(e) => setStreetType(e.target.value)}
+                        onChange={(e) => {
+                          handleFieldChange("streetType");
+                          setStreetType(e.target.value);
+                        }}
                         onBlur={() => validateFieldOnBlur("streetType")}
                         className={inputClass(!!fieldErrors.streetType)}
                         disabled={submitting}
                       >
-                        <option disabled value="">Seleccione tipo de vía</option>
+                        <option disabled value="">Select street type</option>
                         {COLOMBIA_STREET_TYPES.map((type) => (
                           <option key={type} value={type}>{type}</option>
                         ))}
@@ -1004,14 +1018,17 @@ export default function Customers() {
                     </div>
 
                     <div className="form-group">
-                      <label className="form-label">Número Principal *</label>
+                      <label className="form-label">Primary Number *</label>
                       <input
                         type="text"
                         inputMode="text"
                         maxLength={ADDRESS_SEGMENT_MAX_LENGTH}
                         placeholder="8ª E"
                         value={mainNumber}
-                        onChange={(e) => setMainNumber(formatAddressSegmentInput(e.target.value))}
+                        onChange={(e) => {
+                          handleFieldChange("mainNumber");
+                          setMainNumber(formatAddressSegmentInput(e.target.value));
+                        }}
                         onBlur={() => validateFieldOnBlur("mainNumber")}
                         className={inputClass(!!fieldErrors.mainNumber)}
                         disabled={submitting}
@@ -1020,14 +1037,17 @@ export default function Customers() {
                     </div>
 
                     <div className="form-group">
-                      <label className="form-label">Número Secundario *</label>
+                      <label className="form-label">Secondary Number *</label>
                       <input
                         type="text"
                         inputMode="text"
                         maxLength={ADDRESS_SEGMENT_MAX_LENGTH}
                         placeholder="93B"
                         value={secondaryNumber}
-                        onChange={(e) => setSecondaryNumber(formatAddressSegmentInput(e.target.value))}
+                        onChange={(e) => {
+                          handleFieldChange("secondaryNumber");
+                          setSecondaryNumber(formatAddressSegmentInput(e.target.value));
+                        }}
                         onBlur={() => validateFieldOnBlur("secondaryNumber")}
                         className={inputClass(!!fieldErrors.secondaryNumber)}
                         disabled={submitting}
@@ -1036,14 +1056,17 @@ export default function Customers() {
                     </div>
 
                     <div className="form-group">
-                      <label className="form-label">Número Complementario *</label>
+                      <label className="form-label">Complementary Number *</label>
                       <input
                         type="text"
                         inputMode="text"
                         maxLength={ADDRESS_SEGMENT_MAX_LENGTH}
                         placeholder="47A"
                         value={complementaryNumber}
-                        onChange={(e) => setComplementaryNumber(formatAddressSegmentInput(e.target.value))}
+                        onChange={(e) => {
+                          handleFieldChange("complementaryNumber");
+                          setComplementaryNumber(formatAddressSegmentInput(e.target.value));
+                        }}
                         onBlur={() => validateFieldOnBlur("complementaryNumber")}
                         className={inputClass(!!fieldErrors.complementaryNumber)}
                         disabled={submitting}
@@ -1052,13 +1075,14 @@ export default function Customers() {
                     </div>
 
                     <div className="form-group relative">
-                      <label className="form-label">Departamento *</label>
+                      <label className="form-label">Department *</label>
                       <input
                         type="text"
-                        placeholder="Buscar departamento..."
+                        placeholder="Search department..."
                         value={stateQuery}
                         autoComplete="off"
                         onChange={(e) => {
+                          handleFieldChange("stateQuery");
                           const v = formatStateInput(e.target.value);
                           setStateQuery(v);
                           if (selectedState && v !== selectedState.name) {
@@ -1082,7 +1106,7 @@ export default function Customers() {
                       {showStateSuggestions && stateQuery && !selectedState && (
                         <div className="absolute z-50 w-full mt-1 bg-zinc-900 border border-zinc-700 rounded-xl max-h-48 overflow-y-auto shadow-lg">
                           {deptLoading || stateQuery !== debouncedStateQuery ? (
-                            <div className="p-3 text-gray-400 text-sm">Buscando...</div>
+                            <div className="p-3 text-gray-400 text-sm">Searching...</div>
                           ) : filteredDepartments.length ? (
                             filteredDepartments.map((dept) => (
                               <button
@@ -1103,7 +1127,7 @@ export default function Customers() {
                               </button>
                             ))
                           ) : (
-                            <div className="p-3 text-gray-400 text-sm">No se encontraron departamentos</div>
+                            <div className="p-3 text-gray-400 text-sm">No departments found</div>
                           )}
                         </div>
                       )}
@@ -1111,13 +1135,14 @@ export default function Customers() {
                     </div>
 
                     <div className="form-group relative">
-                      <label className="form-label">Ciudad *</label>
+                      <label className="form-label">City *</label>
                       <input
                         type="text"
-                        placeholder={selectedState ? "Buscar ciudad..." : "Seleccione un departamento primero"}
+                        placeholder={selectedState ? "Search city..." : "Select a department first"}
                         value={cityQuery}
                         autoComplete="off"
                         onChange={(e) => {
+                          handleFieldChange("cityQuery");
                           const v = e.target.value;
                           setCityQuery(v);
                           if (selectedCity && !isNormalizedEqual(v, selectedCity.name)) {
@@ -1139,7 +1164,7 @@ export default function Customers() {
                       {showCitySuggestions && selectedState && !selectedCity && (
                         <div className="absolute z-50 w-full mt-1 bg-zinc-900 border border-zinc-700 rounded-xl max-h-48 overflow-y-auto shadow-lg">
                           {citiesLoading ? (
-                            <div className="p-3 text-gray-400 text-sm">Cargando ciudades...</div>
+                            <div className="p-3 text-gray-400 text-sm">Loading cities...</div>
                           ) : filteredCities.length ? (
                             filteredCities.map((c) => (
                               <button
@@ -1158,7 +1183,7 @@ export default function Customers() {
                               </button>
                             ))
                           ) : (
-                            <div className="p-3 text-gray-400 text-sm">No se encontraron ciudades</div>
+                            <div className="p-3 text-gray-400 text-sm">No cities found</div>
                           )}
                         </div>
                       )}
@@ -1166,12 +1191,15 @@ export default function Customers() {
                     </div>
 
                     <div className="form-group md:col-span-2">
-                      <label className="form-label">Detalles Adicionales <span className="text-gray-600">(Opcional)</span></label>
+                      <label className="form-label">Additional Details <span className="text-gray-600">(Optional)</span></label>
                       <input
                         type="text"
                         placeholder="Centro Empresarial, Oficina 602"
                         value={additionalDetails}
-                        onChange={(e) => setAdditionalDetails(formatAddressDetailsInput(e.target.value))}
+                        onChange={(e) => {
+                          handleFieldChange("additionalDetails");
+                          setAdditionalDetails(formatAddressDetailsInput(e.target.value));
+                        }}
                         onBlur={() => validateFieldOnBlur("additionalDetails")}
                         className={inputClass(!!fieldErrors.additionalDetails)}
                         disabled={submitting}
@@ -1180,21 +1208,22 @@ export default function Customers() {
                     </div>
 
                     <div className="form-group">
-                      <label className="form-label">Código Postal</label>
+                      <label className="form-label">Postal Code</label>
                       <input
                         type="text"
                         placeholder={
                           selectedCity
                             ? canEditPostalCode
-                              ? "Ingrese código postal"
-                              : "Auto-llenado desde ciudad"
-                            : "Seleccione una ciudad primero"
+                              ? "Enter postal code"
+                              : "Auto-filled from city"
+                            : "Select a city first"
                         }
                         value={postalCodeField}
                         readOnly={!canEditPostalCode}
                         disabled={submitting || !selectedCity}
                         onChange={(e) => {
                           if (!canEditPostalCode) return;
+                          handleFieldChange("postalCode");
                           setPostalCodeField(formatPostalCodeInput(e.target.value));
                         }}
                         onBlur={() => {
@@ -1206,7 +1235,7 @@ export default function Customers() {
                     </div>
 
                     <div className="form-group">
-                      <label className="form-label">Vista Previa Dirección</label>
+                      <label className="form-label">Address Preview</label>
                       <input
                         type="text"
                         value={formattedStreet}
@@ -1220,10 +1249,10 @@ export default function Customers() {
                 </div>
                 <div className="modal-footer">
                   <button type="button" onClick={() => setShowCreateModal(false)} className="btn-secondary" disabled={submitting}>
-                    Cancelar
+                    Cancel
                   </button>
                   <button type="submit" className="btn-primary" disabled={submitting}>
-                    {submitting ? "Creando..." : "Crear Cliente"}
+                    {submitting ? "Creating..." : "Create Customer"}
                   </button>
                 </div>
               </form>
@@ -1241,7 +1270,7 @@ export default function Customers() {
           >
             <div className="modal-content">
               <div className="modal-header">
-                <h2 className="text-xl font-bold">Editar Cliente</h2>
+                <h2 className="text-xl font-bold">Edit Customer</h2>
                 <button onClick={() => setShowEditModal(false)} className="btn-icon">
                   <X size={20} />
                 </button>
@@ -1251,11 +1280,12 @@ export default function Customers() {
                   {/* Name */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="form-group">
-                      <label className="form-label">Primer Nombre *</label>
+                      <label className="form-label">First Name *</label>
                       <input
                         type="text"
                         value={formData.name.firstName}
                         onChange={(e) => {
+                          handleFieldChange("firstName");
                           const v = formatNameInput(e.target.value);
                           setFormData({ ...formData, name: { ...formData.name, firstName: v } });
                         }}
@@ -1266,7 +1296,7 @@ export default function Customers() {
                       {fieldErrors.firstName && <p className="text-red-400 text-xs mt-1">{fieldErrors.firstName}</p>}
                     </div>
                     <div className="form-group">
-                      <label className="form-label">Segundo Nombre</label>
+                      <label className="form-label">Middle Name</label>
                       <input
                         type="text"
                         value={formData.name.secondName || ""}
@@ -1282,11 +1312,12 @@ export default function Customers() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="form-group">
-                      <label className="form-label">Primer Apellido *</label>
+                      <label className="form-label">Last Name *</label>
                       <input
                         type="text"
                         value={formData.name.firstSurname}
                         onChange={(e) => {
+                          handleFieldChange("firstSurname");
                           const v = formatNameInput(e.target.value);
                           setFormData({ ...formData, name: { ...formData.name, firstSurname: v } });
                         }}
@@ -1297,7 +1328,7 @@ export default function Customers() {
                       {fieldErrors.firstSurname && <p className="text-red-400 text-xs mt-1">{fieldErrors.firstSurname}</p>}
                     </div>
                     <div className="form-group">
-                      <label className="form-label">Segundo Apellido</label>
+                      <label className="form-label">Second Last Name</label>
                       <input
                         type="text"
                         value={formData.name.secondSurname || ""}
@@ -1322,6 +1353,7 @@ export default function Customers() {
                         autoCorrect="off"
                         spellCheck={false}
                         onChange={(e) => {
+                          handleFieldChange("email");
                           const v = formatEmailInput(e.target.value);
                           setFormData({ ...formData, email: v });
                         }}
@@ -1332,7 +1364,7 @@ export default function Customers() {
                       {fieldErrors.email && <p className="text-red-400 text-xs mt-1">{fieldErrors.email}</p>}
                     </div>
                     <div className="form-group">
-                      <label className="form-label">Teléfono *</label>
+                      <label className="form-label">Phone *</label>
                       <div className={phoneInputWrapperClass(!!fieldErrors.phone)}>
                         <div className="flex items-center">
                           <span className="text-white pl-4 pr-2 select-none whitespace-pre">{`${COLOMBIA_PHONE_PREFIX} `}</span>
@@ -1344,6 +1376,7 @@ export default function Customers() {
                             placeholder="3001234567"
                             value={formData.phone}
                             onChange={(e) => {
+                              handleFieldChange("phone");
                               const v = formatPhoneInput(e.target.value);
                               setFormData({ ...formData, phone: v });
                             }}
@@ -1360,30 +1393,33 @@ export default function Customers() {
                   {/* Document (read-only in edit) */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 opacity-50">
                     <div className="form-group">
-                      <label className="form-label">Tipo de Documento</label>
+                      <label className="form-label">Document Type</label>
                       <input type="text" value={getDocumentTypeLabel(selectedCustomer.documentType)} className={inputClass(false)} disabled />
                     </div>
                     <div className="form-group">
-                      <label className="form-label">Número de Documento</label>
+                      <label className="form-label">Document Number</label>
                       <input type="text" value={selectedCustomer.documentNumber} className={inputClass(false)} disabled />
                     </div>
                   </div>
 
                   {/* Address */}
-                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest pt-2">Dirección</h3>
+                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest pt-2">Address</h3>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="form-group md:col-span-2">
-                      <label className="form-label">Tipo de Vía *</label>
+                      <label className="form-label">Street Type *</label>
                       <select
                         title="Street Type"
                         value={streetType}
-                        onChange={(e) => setStreetType(e.target.value)}
+                        onChange={(e) => {
+                          handleFieldChange("streetType");
+                          setStreetType(e.target.value);
+                        }}
                         onBlur={() => validateFieldOnBlur("streetType")}
                         className={inputClass(!!fieldErrors.streetType)}
                         disabled={submitting}
                       >
-                        <option disabled value="">Seleccione tipo de vía</option>
+                        <option disabled value="">Select street type</option>
                         {COLOMBIA_STREET_TYPES.map((type) => (
                           <option key={type} value={type}>{type}</option>
                         ))}
@@ -1392,14 +1428,17 @@ export default function Customers() {
                     </div>
 
                     <div className="form-group">
-                      <label className="form-label">Número Principal *</label>
+                      <label className="form-label">Primary Number *</label>
                       <input
                         type="text"
                         inputMode="text"
                         maxLength={ADDRESS_SEGMENT_MAX_LENGTH}
                         placeholder="8ª E"
                         value={mainNumber}
-                        onChange={(e) => setMainNumber(formatAddressSegmentInput(e.target.value))}
+                        onChange={(e) => {
+                          handleFieldChange("mainNumber");
+                          setMainNumber(formatAddressSegmentInput(e.target.value));
+                        }}
                         onBlur={() => validateFieldOnBlur("mainNumber")}
                         className={inputClass(!!fieldErrors.mainNumber)}
                         disabled={submitting}
@@ -1408,14 +1447,17 @@ export default function Customers() {
                     </div>
 
                     <div className="form-group">
-                      <label className="form-label">Número Secundario *</label>
+                      <label className="form-label">Secondary Number *</label>
                       <input
                         type="text"
                         inputMode="text"
                         maxLength={ADDRESS_SEGMENT_MAX_LENGTH}
                         placeholder="93B"
                         value={secondaryNumber}
-                        onChange={(e) => setSecondaryNumber(formatAddressSegmentInput(e.target.value))}
+                        onChange={(e) => {
+                          handleFieldChange("secondaryNumber");
+                          setSecondaryNumber(formatAddressSegmentInput(e.target.value));
+                        }}
                         onBlur={() => validateFieldOnBlur("secondaryNumber")}
                         className={inputClass(!!fieldErrors.secondaryNumber)}
                         disabled={submitting}
@@ -1424,14 +1466,17 @@ export default function Customers() {
                     </div>
 
                     <div className="form-group">
-                      <label className="form-label">Número Complementario *</label>
+                      <label className="form-label">Complementary Number *</label>
                       <input
                         type="text"
                         inputMode="text"
                         maxLength={ADDRESS_SEGMENT_MAX_LENGTH}
                         placeholder="47A"
                         value={complementaryNumber}
-                        onChange={(e) => setComplementaryNumber(formatAddressSegmentInput(e.target.value))}
+                        onChange={(e) => {
+                          handleFieldChange("complementaryNumber");
+                          setComplementaryNumber(formatAddressSegmentInput(e.target.value));
+                        }}
                         onBlur={() => validateFieldOnBlur("complementaryNumber")}
                         className={inputClass(!!fieldErrors.complementaryNumber)}
                         disabled={submitting}
@@ -1440,13 +1485,14 @@ export default function Customers() {
                     </div>
 
                     <div className="form-group relative">
-                      <label className="form-label">Departamento *</label>
+                      <label className="form-label">Department *</label>
                       <input
                         type="text"
-                        placeholder="Buscar departamento..."
+                        placeholder="Search department..."
                         value={stateQuery}
                         autoComplete="off"
                         onChange={(e) => {
+                          handleFieldChange("stateQuery");
                           const v = formatStateInput(e.target.value);
                           setStateQuery(v);
                           if (selectedState && v !== selectedState.name) {
@@ -1470,7 +1516,7 @@ export default function Customers() {
                       {showStateSuggestions && stateQuery && !selectedState && (
                         <div className="absolute z-50 w-full mt-1 bg-zinc-900 border border-zinc-700 rounded-xl max-h-48 overflow-y-auto shadow-lg">
                           {deptLoading || stateQuery !== debouncedStateQuery ? (
-                            <div className="p-3 text-gray-400 text-sm">Buscando...</div>
+                            <div className="p-3 text-gray-400 text-sm">Searching...</div>
                           ) : filteredDepartments.length ? (
                             filteredDepartments.map((dept) => (
                               <button
@@ -1491,7 +1537,7 @@ export default function Customers() {
                               </button>
                             ))
                           ) : (
-                            <div className="p-3 text-gray-400 text-sm">No se encontraron departamentos</div>
+                            <div className="p-3 text-gray-400 text-sm">No departments found</div>
                           )}
                         </div>
                       )}
@@ -1499,13 +1545,14 @@ export default function Customers() {
                     </div>
 
                     <div className="form-group relative">
-                      <label className="form-label">Ciudad *</label>
+                      <label className="form-label">City *</label>
                       <input
                         type="text"
-                        placeholder={selectedState ? "Buscar ciudad..." : "Seleccione un departamento primero"}
+                        placeholder={selectedState ? "Search city..." : "Select a department first"}
                         value={cityQuery}
                         autoComplete="off"
                         onChange={(e) => {
+                          handleFieldChange("cityQuery");
                           const v = e.target.value;
                           setCityQuery(v);
                           if (selectedCity && !isNormalizedEqual(v, selectedCity.name)) {
@@ -1527,7 +1574,7 @@ export default function Customers() {
                       {showCitySuggestions && selectedState && !selectedCity && (
                         <div className="absolute z-50 w-full mt-1 bg-zinc-900 border border-zinc-700 rounded-xl max-h-48 overflow-y-auto shadow-lg">
                           {citiesLoading ? (
-                            <div className="p-3 text-gray-400 text-sm">Cargando ciudades...</div>
+                            <div className="p-3 text-gray-400 text-sm">Loading cities...</div>
                           ) : filteredCities.length ? (
                             filteredCities.map((c) => (
                               <button
@@ -1546,7 +1593,7 @@ export default function Customers() {
                               </button>
                             ))
                           ) : (
-                            <div className="p-3 text-gray-400 text-sm">No se encontraron ciudades</div>
+                            <div className="p-3 text-gray-400 text-sm">No cities found</div>
                           )}
                         </div>
                       )}
@@ -1554,12 +1601,15 @@ export default function Customers() {
                     </div>
 
                     <div className="form-group md:col-span-2">
-                      <label className="form-label">Detalles Adicionales <span className="text-gray-600">(Opcional)</span></label>
+                      <label className="form-label">Additional Details <span className="text-gray-600">(Optional)</span></label>
                       <input
                         type="text"
                         placeholder="Centro Empresarial, Oficina 602"
                         value={additionalDetails}
-                        onChange={(e) => setAdditionalDetails(formatAddressDetailsInput(e.target.value))}
+                        onChange={(e) => {
+                          handleFieldChange("additionalDetails");
+                          setAdditionalDetails(formatAddressDetailsInput(e.target.value));
+                        }}
                         onBlur={() => validateFieldOnBlur("additionalDetails")}
                         className={inputClass(!!fieldErrors.additionalDetails)}
                         disabled={submitting}
@@ -1568,21 +1618,22 @@ export default function Customers() {
                     </div>
 
                     <div className="form-group">
-                      <label className="form-label">Código Postal</label>
+                      <label className="form-label">Postal Code</label>
                       <input
                         type="text"
                         placeholder={
                           selectedCity
                             ? canEditPostalCode
-                              ? "Ingrese código postal"
-                              : "Auto-llenado desde ciudad"
-                            : "Seleccione una ciudad primero"
+                              ? "Enter postal code"
+                              : "Auto-filled from city"
+                            : "Select a city first"
                         }
                         value={postalCodeField}
                         readOnly={!canEditPostalCode}
                         disabled={submitting || !selectedCity}
                         onChange={(e) => {
                           if (!canEditPostalCode) return;
+                          handleFieldChange("postalCode");
                           setPostalCodeField(formatPostalCodeInput(e.target.value));
                         }}
                         onBlur={() => {
@@ -1594,7 +1645,7 @@ export default function Customers() {
                     </div>
 
                     <div className="form-group">
-                      <label className="form-label">Vista Previa Dirección</label>
+                      <label className="form-label">Address Preview</label>
                       <input
                         type="text"
                         value={formattedStreet}
@@ -1608,10 +1659,10 @@ export default function Customers() {
                 </div>
                 <div className="modal-footer">
                   <button type="button" onClick={() => setShowEditModal(false)} className="btn-secondary" disabled={submitting}>
-                    Cancelar
+                    Cancel
                   </button>
                   <button type="submit" className="btn-primary" disabled={submitting}>
-                    {submitting ? "Guardando..." : "Guardar Cambios"}
+                    {submitting ? "Saving..." : "Save Changes"}
                   </button>
                 </div>
               </form>

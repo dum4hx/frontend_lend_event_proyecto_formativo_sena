@@ -20,6 +20,11 @@ import { AlertModal, type AlertModalType } from "../../../components/ui/AlertMod
 const COLOMBIA_PHONE_PREFIX = "+57";
 
 type TeamFormField = "firstName" | "firstSurname" | "email" | "phone" | "role";
+type OwnerSecurityField =
+  | "acceptedCritical"
+  | "acceptedIrreversible"
+  | "confirmEmail"
+  | "confirmPhrase";
 
 const formatNameInput = (value: string) => {
   let v = value.replace(/[^A-Za-zÀ-ÿ\s]/g, "");
@@ -68,6 +73,21 @@ export default function Team() {
   const [formErrors, setFormErrors] = useState<Partial<Record<TeamFormField, string>>>({});
   const [formTouched, setFormTouched] = useState<Partial<Record<TeamFormField, boolean>>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [initialRole, setInitialRole] = useState<string>("commercial_advisor");
+  const [ownerSecurity, setOwnerSecurity] = useState<{
+    acceptedCritical: boolean;
+    acceptedIrreversible: boolean;
+    confirmEmail: string;
+    confirmPhrase: string;
+  }>({
+    acceptedCritical: false,
+    acceptedIrreversible: false,
+    confirmEmail: "",
+    confirmPhrase: "",
+  });
+  const [ownerSecurityErrors, setOwnerSecurityErrors] =
+    useState<Partial<Record<OwnerSecurityField, string>>>({});
+  const [ownerSecurityTouched, setOwnerSecurityTouched] = useState(false);
   const [alertModal, setAlertModal] = useState<{
     open: boolean;
     type: AlertModalType;
@@ -78,6 +98,53 @@ export default function Team() {
   const showAlert = (type: AlertModalType, message: string, title?: string) =>
     setAlertModal({ open: true, type, message, title });
   const closeAlert = () => setAlertModal((prev) => ({ ...prev, open: false }));
+
+  const isOwnerPromotion = !!editingId && initialRole !== "owner" && formData.role === "owner";
+
+  const resetOwnerSecurity = () => {
+    setOwnerSecurity({
+      acceptedCritical: false,
+      acceptedIrreversible: false,
+      confirmEmail: "",
+      confirmPhrase: "",
+    });
+    setOwnerSecurityErrors({});
+    setOwnerSecurityTouched(false);
+  };
+
+  const getOwnerSecurityErrors = (): Partial<Record<OwnerSecurityField, string>> => {
+    const nextErrors: Partial<Record<OwnerSecurityField, string>> = {};
+
+    if (!ownerSecurity.acceptedCritical) {
+      nextErrors.acceptedCritical = "You must acknowledge full administrative access.";
+    }
+    if (!ownerSecurity.acceptedIrreversible) {
+      nextErrors.acceptedIrreversible = "You must acknowledge this sensitive ownership change.";
+    }
+
+    const normalizedConfirmationEmail = ownerSecurity.confirmEmail.trim().toLowerCase();
+    const normalizedTargetEmail = formData.email.trim().toLowerCase();
+    if (!normalizedConfirmationEmail) {
+      nextErrors.confirmEmail = "Confirm the member email to continue.";
+    } else if (normalizedConfirmationEmail !== normalizedTargetEmail) {
+      nextErrors.confirmEmail = "The confirmation email does not match this member.";
+    }
+
+    const requiredPhrase = "TRANSFER OWNER";
+    if (!ownerSecurity.confirmPhrase.trim()) {
+      nextErrors.confirmPhrase = `Type \"${requiredPhrase}\" to authorize ownership transfer.`;
+    } else if (ownerSecurity.confirmPhrase.trim().toUpperCase() !== requiredPhrase) {
+      nextErrors.confirmPhrase = `The phrase must be exactly: ${requiredPhrase}`;
+    }
+
+    return nextErrors;
+  };
+
+  const validateOwnerSecurity = () => {
+    const nextErrors = getOwnerSecurityErrors();
+    setOwnerSecurityErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  };
 
   const fetchTeamMembers = async () => {
     try {
@@ -116,6 +183,31 @@ export default function Team() {
   useEffect(() => {
     fetchTeamMembers();
   }, []);
+
+  useEffect(() => {
+    if (!Object.values(formTouched).some(Boolean)) return;
+
+    setFormErrors((prev) => {
+      const next = { ...prev };
+      (Object.keys(formTouched) as TeamFormField[]).forEach((field) => {
+        if (!formTouched[field]) return;
+        const msg = validateField(field);
+        if (msg) next[field] = msg;
+        else delete next[field];
+      });
+      return next;
+    });
+  }, [formData, formTouched, editingId]);
+
+  useEffect(() => {
+    if (!isOwnerPromotion || !ownerSecurityTouched) return;
+    setOwnerSecurityErrors(getOwnerSecurityErrors());
+  }, [ownerSecurity, formData.email, isOwnerPromotion, ownerSecurityTouched]);
+
+  const handleFieldChange = (field: TeamFormField, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormTouched((prev) => (prev[field] ? prev : { ...prev, [field]: true }));
+  };
 
   const validateField = (field: TeamFormField, data = formData): string | undefined => {
     switch (field) {
@@ -160,6 +252,7 @@ export default function Team() {
   const handleOpenModal = (member?: TeamMember) => {
     if (member) {
       setEditingId(member.id);
+      setInitialRole(member.role);
       const [firstName, ...rest] = member.name.trim().split(" ");
       const firstSurname = rest.join(" ").trim();
       setFormData({
@@ -171,6 +264,7 @@ export default function Team() {
       });
     } else {
       setEditingId(null);
+      setInitialRole("commercial_advisor");
       setFormData({
         firstName: "",
         firstSurname: "",
@@ -181,12 +275,14 @@ export default function Team() {
     }
     setFormErrors({});
     setFormTouched({});
+    resetOwnerSecurity();
     setShowModal(true);
   };
 
   const handleCloseModal = () => {
     setShowModal(false);
     setEditingId(null);
+    setInitialRole("commercial_advisor");
     setFormData({
       firstName: "",
       firstSurname: "",
@@ -196,6 +292,7 @@ export default function Team() {
     });
     setFormErrors({});
     setFormTouched({});
+    resetOwnerSecurity();
   };
 
   const handleSaveUser = async (e?: any) => {
@@ -216,6 +313,19 @@ export default function Team() {
       setFormTouched((prev) => ({ ...prev, ...allTouched }));
       setFormErrors(allErrors);
       if (Object.keys(allErrors).length > 0) return;
+
+      if (isOwnerPromotion) {
+        setOwnerSecurityTouched(true);
+        const securityValid = validateOwnerSecurity();
+        if (!securityValid) {
+          showAlert(
+            "warning",
+            "Complete all ownership transfer security checks before saving this role change.",
+            "Security Verification Required",
+          );
+          return;
+        }
+      }
 
       if (editingId) {
         await updateUser(editingId, {
@@ -437,7 +547,7 @@ export default function Team() {
                       type="text"
                       value={formData.firstName}
                       onChange={(e) =>
-                        setFormData({ ...formData, firstName: formatNameInput(e.target.value) })
+                        handleFieldChange("firstName", formatNameInput(e.target.value))
                       }
                       onBlur={() => handleFieldBlur("firstName")}
                       className={inputClass(!!getFieldError("firstName"))}
@@ -456,11 +566,11 @@ export default function Team() {
                       type="text"
                       value={formData.firstSurname}
                       onChange={(e) =>
-                        setFormData({ ...formData, firstSurname: formatNameInput(e.target.value) })
+                        handleFieldChange("firstSurname", formatNameInput(e.target.value))
                       }
                       onBlur={() => handleFieldBlur("firstSurname")}
                       className={inputClass(!!getFieldError("firstSurname"))}
-                      placeholder="Pérez"
+                      placeholder="Smith"
                       maxLength={50}
                       disabled={submitting}
                     />
@@ -477,7 +587,7 @@ export default function Team() {
                       type="email"
                       value={formData.email}
                       onChange={(e) =>
-                        setFormData({ ...formData, email: formatEmailInput(e.target.value) })
+                        handleFieldChange("email", formatEmailInput(e.target.value))
                       }
                       onBlur={() => handleFieldBlur("email")}
                       disabled={!!editingId || submitting}
@@ -505,7 +615,7 @@ export default function Team() {
                             maxLength={10}
                             value={formData.phone}
                             onChange={(e) =>
-                              setFormData({ ...formData, phone: formatPhoneInput(e.target.value) })
+                              handleFieldChange("phone", formatPhoneInput(e.target.value))
                             }
                             onBlur={() => handleFieldBlur("phone")}
                             className="w-full bg-transparent py-3 pr-4 text-white outline-none"
@@ -527,7 +637,11 @@ export default function Team() {
                     title="Role"
                     aria-label="Role"
                     value={formData.role}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                    onChange={(e) => {
+                      const nextRole = e.target.value;
+                      handleFieldChange("role", nextRole);
+                      if (nextRole !== "owner") resetOwnerSecurity();
+                    }}
                     className={inputClass(false)}
                     disabled={submitting}
                   >
@@ -537,14 +651,105 @@ export default function Team() {
                     <option value="commercial_advisor">Commercial Advisor</option>
                   </select>
                 </div>
+
+                {isOwnerPromotion && (
+                  <div className="space-y-4 rounded-xl border border-yellow-500/50 bg-yellow-500/10 p-4">
+                    <h3 className="text-sm font-semibold text-yellow-300">Ownership Transfer Security</h3>
+
+                    <div className="space-y-2">
+                      <label className="flex items-start gap-2 text-sm text-gray-200">
+                        <input
+                          type="checkbox"
+                          checked={ownerSecurity.acceptedCritical}
+                          onChange={(e) => {
+                            setOwnerSecurityTouched(true);
+                            setOwnerSecurity((prev) => ({
+                              ...prev,
+                              acceptedCritical: e.target.checked,
+                            }));
+                          }}
+                          disabled={submitting}
+                        />
+                        I understand this user will get full owner permissions over organization data.
+                      </label>
+                      {ownerSecurityErrors.acceptedCritical && (
+                        <p className="text-red-400 text-xs">{ownerSecurityErrors.acceptedCritical}</p>
+                      )}
+
+                      <label className="flex items-start gap-2 text-sm text-gray-200">
+                        <input
+                          type="checkbox"
+                          checked={ownerSecurity.acceptedIrreversible}
+                          onChange={(e) => {
+                            setOwnerSecurityTouched(true);
+                            setOwnerSecurity((prev) => ({
+                              ...prev,
+                              acceptedIrreversible: e.target.checked,
+                            }));
+                          }}
+                          disabled={submitting}
+                        />
+                        I confirm this is a deliberate and sensitive ownership transfer decision.
+                      </label>
+                      {ownerSecurityErrors.acceptedIrreversible && (
+                        <p className="text-red-400 text-xs">{ownerSecurityErrors.acceptedIrreversible}</p>
+                      )}
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="form-label">Confirm target email</label>
+                      <input
+                        type="email"
+                        value={ownerSecurity.confirmEmail}
+                        onChange={(e) => {
+                          setOwnerSecurityTouched(true);
+                          setOwnerSecurity((prev) => ({
+                            ...prev,
+                            confirmEmail: formatEmailInput(e.target.value),
+                          }));
+                        }}
+                        className={inputClass(!!ownerSecurityErrors.confirmEmail)}
+                        placeholder={formData.email}
+                        disabled={submitting}
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        spellCheck={false}
+                      />
+                      {ownerSecurityErrors.confirmEmail && (
+                        <p className="text-red-400 text-xs">{ownerSecurityErrors.confirmEmail}</p>
+                      )}
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="form-label">Type phrase: TRANSFER OWNER</label>
+                      <input
+                        type="text"
+                        value={ownerSecurity.confirmPhrase}
+                        onChange={(e) => {
+                          setOwnerSecurityTouched(true);
+                          setOwnerSecurity((prev) => ({
+                            ...prev,
+                            confirmPhrase: e.target.value,
+                          }));
+                        }}
+                        className={inputClass(!!ownerSecurityErrors.confirmPhrase)}
+                        placeholder="TRANSFER OWNER"
+                        disabled={submitting}
+                      />
+                      {ownerSecurityErrors.confirmPhrase && (
+                        <p className="text-red-400 text-xs">{ownerSecurityErrors.confirmPhrase}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="modal-footer">
                 <button type="button" onClick={handleCloseModal} className="btn-secondary" disabled={submitting}>
-                  Cancelar
+                  Cancel
                 </button>
                 <button type="submit" className="btn-primary" disabled={submitting}>
-                  {submitting ? (editingId ? "Guardando..." : "Enviando...") : editingId ? "Guardar Cambios" : "Invitar Usuario"}
+                  {submitting ? (editingId ? "Saving..." : "Sending...") : editingId ? "Save Changes" : "Invite User"}
                 </button>
               </div>
             </form>

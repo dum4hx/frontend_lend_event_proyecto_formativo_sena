@@ -180,7 +180,7 @@ export function MaterialFilters({
             }}
             className="px-4 py-2 bg-[#FFD700] text-black font-bold rounded-lg hover:bg-yellow-400 transition"
           >
-            Buscar
+            Search
           </button>
         <button
           onClick={() => setShowAdvanced(!showAdvanced)}
