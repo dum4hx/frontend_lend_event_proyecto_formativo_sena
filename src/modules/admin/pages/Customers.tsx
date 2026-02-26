@@ -1,5 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Search, Plus, Edit2, Trash2, Ban, X } from "lucide-react";
+import useSWR from "swr";
+import { useDebounce } from "use-debounce";
 import {
   getCustomers,
   getDocumentTypes,
@@ -17,14 +19,75 @@ import type {
   DocumentTypeInfo,
 } from "../../../types/api";
 import { ApiError } from "../../../lib/api";
+import {
+  validateEmail,
+  validateFirstName,
+  validateLastName,
+  validateRequiredPhone,
+  validatePostalCode,
+  validateState,
+} from "../../../utils/validators";
 
-interface FormErrors {
-  firstName?: string;
-  firstSurname?: string;
-  email?: string;
-  phone?: string;
-  documentType?: string;
-  documentNumber?: string;
+// --- Colombia API types & fetcher -------------------------------------------
+interface ColombiaDepartment {
+  id: number;
+  name: string;
+}
+
+interface ColombiaCity {
+  id: number;
+  name: string;
+  departmentId: number;
+  postalCode: string | null;
+}
+
+const colombiaFetcher = (url: string) =>
+  fetch(url).then((res) => {
+    if (!res.ok) throw new Error(`Colombia API error: ${res.status}`);
+    return res.json();
+  });
+
+const COLOMBIA_PHONE_PREFIX = "+57";
+const COLOMBIA_STREET_TYPES = [
+  "Calle",
+  "Carrera",
+  "Avenida",
+  "Transversal",
+  "Diagonal",
+  "Circular",
+] as const;
+const ADDRESS_SEGMENT_MAX_LENGTH = 8;
+const ADDRESS_DETAILS_MAX_LENGTH = 80;
+const COLOMBIAN_ADDRESS_SEGMENT_REGEX = /^[0-9]{1,4}(?:[ª°º])?(?:\s?[A-Za-z])?$/;
+
+type CustomerFormField =
+  | "firstName"
+  | "firstSurname"
+  | "email"
+  | "phone"
+  | "documentNumber"
+  | "streetType"
+  | "mainNumber"
+  | "secondaryNumber"
+  | "complementaryNumber"
+  | "additionalDetails"
+  | "stateQuery"
+  | "cityQuery"
+  | "postalCode";
+
+/** Try to decompose a previously-composed street string. */
+function parseStreet(street: string) {
+  const re =
+    /^(Calle|Carrera|Avenida|Transversal|Diagonal|Circular)\s+(.+?)\s*#\s*(.+?)\s*-\s*(.+?)(?:\s*,\s*(.+))?$/i;
+  const m = street.match(re);
+  if (!m) return null;
+  return {
+    streetType: m[1],
+    mainNumber: m[2],
+    secondaryNumber: m[3],
+    complementaryNumber: m[4],
+    additionalDetails: m[5] ?? "",
+  };
 }
 
 export default function Customers() {
@@ -52,9 +115,299 @@ export default function Customers() {
     documentType: "cc",
     documentNumber: "",
   });
-  const [formErrors, setFormErrors] = useState<FormErrors>({});
+
+  // Address sub-fields (split like SignUp)
+  const [streetType, setStreetType] = useState("");
+  const [mainNumber, setMainNumber] = useState("");
+  const [secondaryNumber, setSecondaryNumber] = useState("");
+  const [complementaryNumber, setComplementaryNumber] = useState("");
+  const [additionalDetails, setAdditionalDetails] = useState("");
+  const [stateQuery, setStateQuery] = useState("");
+  const [cityQuery, setCityQuery] = useState("");
+  const [postalCodeField, setPostalCodeField] = useState("");
+
+  // Colombia API autocomplete
+  const [selectedState, setSelectedState] = useState<ColombiaDepartment | null>(null);
+  const [selectedCity, setSelectedCity] = useState<ColombiaCity | null>(null);
+  const [showStateSuggestions, setShowStateSuggestions] = useState(false);
+  const [showCitySuggestions, setShowCitySuggestions] = useState(false);
+  const [debouncedStateQuery] = useDebounce(stateQuery, 200);
+
+  // Real-time validation state (like SignUp)
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [submitted, setSubmitted] = useState(false);
+
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  // --- SWR: Colombia departments & cities ------------------------------------
+  const { data: departments, isLoading: deptLoading } = useSWR<ColombiaDepartment[]>(
+    "https://api-colombia.com/api/v1/Department",
+    colombiaFetcher,
+    { revalidateOnFocus: false, revalidateOnReconnect: false, keepPreviousData: true },
+  );
+
+  const { data: stateCities, isLoading: citiesLoading } = useSWR<ColombiaCity[]>(
+    selectedState ? `https://api-colombia.com/api/v1/Department/${selectedState.id}/cities` : null,
+    colombiaFetcher,
+    { revalidateOnFocus: false, revalidateOnReconnect: false },
+  );
+
+  // --- Normalize helpers ----------------------------------------------------
+  const normalize = useCallback(
+    (s: string) =>
+      s
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase(),
+    [],
+  );
+
+  const isNormalizedEqual = useCallback(
+    (a: string, b: string) => normalize(a.trim()) === normalize(b.trim()),
+    [normalize],
+  );
+
+  // Client-side filter for departments
+  const filteredDepartments = useMemo(() => {
+    if (!departments) return [];
+    if (!debouncedStateQuery.trim()) return departments;
+    const nq = normalize(debouncedStateQuery);
+    const prefixMatches = departments.filter((d) => normalize(d.name).startsWith(nq));
+    if (prefixMatches.length) return prefixMatches;
+    return departments.filter((d) => normalize(d.name).includes(nq));
+  }, [departments, debouncedStateQuery, normalize]);
+
+  // Client-side filter for cities
+  const filteredCities = useMemo(() => {
+    if (!stateCities) return [];
+    if (!cityQuery.trim()) return stateCities;
+    const nq = normalize(cityQuery);
+    const prefixMatches = stateCities.filter((c) => normalize(c.name).startsWith(nq));
+    if (prefixMatches.length) return prefixMatches;
+    return stateCities.filter((c) => normalize(c.name).includes(nq));
+  }, [stateCities, cityQuery, normalize]);
+
+  // --- Input formatting helpers (matching SignUp) ----------------------------
+  const formatNameInput = (value: string) => {
+    let v = value.replace(/[^A-Za-zÀ-ÿ\s]/g, "");
+    v = v.replace(/\s{2,}/g, " ");
+    v = v.slice(0, 50);
+    if (!v) return v;
+    return v.charAt(0).toUpperCase() + v.slice(1);
+  };
+
+  const formatPhoneInput = (value: string) => {
+    return value.replace(/\D/g, "").slice(0, 10);
+  };
+
+  const formatEmailInput = (value: string) => value.trim().toLowerCase();
+
+  const formatPostalCodeInput = (value: string) => value.replace(/\D/g, "").slice(0, 6);
+
+  const formatStateInput = (value: string) =>
+    value.replace(/[^A-Za-zÀ-ÿ\s]/g, "").replace(/\s{2,}/g, " ");
+
+  const formatAddressSegmentInput = (value: string) => {
+    const cleaned = value
+      .toUpperCase()
+      .replace(/[^0-9A-Zª°º\s]/g, "")
+      .replace(/\s+/g, " ")
+      .trimStart();
+    const digitsMatch = cleaned.match(/^\d{0,4}/);
+    const digits = digitsMatch?.[0] ?? "";
+    const remainder = cleaned.slice(digits.length).replace(/\s/g, "");
+    if (!digits) return "";
+    const ordinal = remainder.match(/[ª°º]/)?.[0] ?? "";
+    const suffix = remainder.match(/[A-Z]/)?.[0] ?? "";
+    const withSuffix = suffix ? `${digits}${ordinal} ${suffix}` : `${digits}${ordinal}`;
+    return withSuffix.slice(0, ADDRESS_SEGMENT_MAX_LENGTH);
+  };
+
+  const formatAddressDetailsInput = (value: string) =>
+    value
+      .replace(/[^A-Za-zÀ-ÿ0-9\s#.,\-/]/g, "")
+      .replace(/\s{2,}/g, " ")
+      .slice(0, ADDRESS_DETAILS_MAX_LENGTH);
+
+  const toColombianPhone = useCallback(
+    (digits: string) => (digits ? `${COLOMBIA_PHONE_PREFIX}${digits}` : ""),
+    [],
+  );
+
+  // --- Composed street preview ----------------------------------------------
+  const formattedStreetBase = useMemo(() => {
+    if (!streetType || !mainNumber || !secondaryNumber || !complementaryNumber) return "";
+    return `${streetType} ${mainNumber} # ${secondaryNumber}-${complementaryNumber}`;
+  }, [streetType, mainNumber, secondaryNumber, complementaryNumber]);
+
+  const formattedStreet = useMemo(() => {
+    if (!formattedStreetBase) return "";
+    const d = additionalDetails.trim();
+    return d ? `${formattedStreetBase}, ${d}` : formattedStreetBase;
+  }, [formattedStreetBase, additionalDetails]);
+
+  const canEditPostalCode = !!selectedCity && !selectedCity.postalCode;
+
+  // --- Styling helper (same as SignUp) --------------------------------------
+  const inputClass = (hasError: boolean) =>
+    `w-full bg-zinc-900 rounded-xl py-3 px-4 text-white outline-none transition duration-200 disabled:opacity-50 border ${hasError ? "border-red-500 focus:border-red-500" : "border-zinc-800 focus:border-yellow-400"}`;
+
+  const phoneInputWrapperClass = (hasError: boolean) =>
+    `w-full bg-zinc-900 rounded-xl text-white transition duration-200 disabled:opacity-50 border ${hasError ? "border-red-500 focus-within:border-red-500" : "border-zinc-800 focus-within:border-yellow-400"}`;
+
+  // --- Validation helpers ---------------------------------------------------
+  const markFieldTouched = (field: CustomerFormField) => {
+    setTouched((prev) => (prev[field] ? prev : { ...prev, [field]: true }));
+  };
+
+  const validateAddressSegmentField = (value: string, label: string) => {
+    if (!value) return { isValid: false, message: `${label} is required` };
+    if (!COLOMBIAN_ADDRESS_SEGMENT_REGEX.test(value))
+      return { isValid: false, message: `${label} must follow formats like 8, 8A, 8ª or 8ª E` };
+    return { isValid: true };
+  };
+
+  /** Run validation across all form fields and return the error map. */
+  const runValidation = useCallback(
+    (opts?: { allTouched?: boolean }) => {
+      const nextErrors: Record<string, string> = {};
+      const touchedState = opts?.allTouched
+        ? Object.fromEntries(
+            (
+              [
+                "firstName",
+                "firstSurname",
+                "email",
+                "phone",
+                "documentNumber",
+                "streetType",
+                "mainNumber",
+                "secondaryNumber",
+                "complementaryNumber",
+                "additionalDetails",
+                "stateQuery",
+                "cityQuery",
+                "postalCode",
+              ] as CustomerFormField[]
+            ).map((f) => [f, true]),
+          )
+        : touched;
+
+      // --- Name ---
+      const fnV = validateFirstName(formData.name.firstName);
+      if (!fnV.isValid && fnV.message) nextErrors.firstName = fnV.message;
+
+      const lnV = validateLastName(formData.name.firstSurname);
+      if (!lnV.isValid && lnV.message) nextErrors.firstSurname = lnV.message;
+
+      // --- Contact ---
+      const emailV = validateEmail(formData.email);
+      if (!emailV.isValid && emailV.message) nextErrors.email = emailV.message;
+
+      const phoneV = validateRequiredPhone(toColombianPhone(formData.phone));
+      if (!phoneV.isValid && phoneV.message) nextErrors.phone = phoneV.message;
+
+      // --- Document ---
+      if (!formData.documentNumber.trim()) {
+        nextErrors.documentNumber = "Document number is required";
+      } else if (formData.documentNumber.length > 50) {
+        nextErrors.documentNumber = "Maximum 50 characters";
+      }
+
+      // --- Address (optional but validated if any part filled) ---
+      if (!streetType) nextErrors.streetType = "Street type is required";
+
+      const mainV = validateAddressSegmentField(mainNumber, "Primary number");
+      if (!mainV.isValid && mainV.message) nextErrors.mainNumber = mainV.message;
+
+      const secV = validateAddressSegmentField(secondaryNumber, "Secondary number");
+      if (!secV.isValid && secV.message) nextErrors.secondaryNumber = secV.message;
+
+      const compV = validateAddressSegmentField(complementaryNumber, "Complementary number");
+      if (!compV.isValid && compV.message) nextErrors.complementaryNumber = compV.message;
+
+      if (additionalDetails.length > ADDRESS_DETAILS_MAX_LENGTH)
+        nextErrors.additionalDetails = `Must not exceed ${ADDRESS_DETAILS_MAX_LENGTH} characters`;
+
+      const isStateSelected = !!selectedState && isNormalizedEqual(stateQuery, selectedState.name);
+      const stateV = validateState(stateQuery, isStateSelected);
+      if (!stateV.isValid && stateV.message) nextErrors.stateQuery = stateV.message;
+
+      if (!cityQuery.trim()) {
+        nextErrors.cityQuery = "City is required";
+      } else if (!selectedCity || !isNormalizedEqual(cityQuery, selectedCity.name)) {
+        nextErrors.cityQuery = "Please select a valid city from the list";
+      }
+
+      if (selectedCity && !selectedCity.postalCode && !postalCodeField.trim()) {
+        nextErrors.postalCode = "Postal code is required";
+      } else {
+        const pcV = validatePostalCode(postalCodeField);
+        if (!pcV.isValid && pcV.message) nextErrors.postalCode = pcV.message;
+      }
+
+      // Only expose errors for touched or submitted fields
+      const visible: Record<string, string> = {};
+      for (const [field, msg] of Object.entries(nextErrors)) {
+        if (touchedState[field] || submitted || opts?.allTouched) {
+          visible[field] = msg;
+        }
+      }
+      setFieldErrors(visible);
+      return nextErrors;
+    },
+    [
+      formData,
+      touched,
+      submitted,
+      streetType,
+      mainNumber,
+      secondaryNumber,
+      complementaryNumber,
+      additionalDetails,
+      stateQuery,
+      cityQuery,
+      postalCodeField,
+      selectedState,
+      selectedCity,
+      isNormalizedEqual,
+      toColombianPhone,
+    ],
+  );
+
+  /** Validate a single field on blur. */
+  const validateFieldOnBlur = (field: CustomerFormField) => {
+    markFieldTouched(field);
+    // Rerun full validation so cross-field checks stay in sync
+    const nextTouched = { ...touched, [field]: true };
+    setTouched(nextTouched);
+    // We need to compute visible errors with updated touched
+    runValidation();
+  };
+
+  // Re-run validation whenever relevant state changes (after touched updates)
+  useEffect(() => {
+    if (Object.keys(touched).length > 0 || submitted) {
+      runValidation();
+    }
+  }, [
+    formData,
+    streetType,
+    mainNumber,
+    secondaryNumber,
+    complementaryNumber,
+    additionalDetails,
+    stateQuery,
+    cityQuery,
+    postalCodeField,
+    selectedState,
+    selectedCity,
+    touched,
+    submitted,
+    runValidation,
+  ]);
 
   // Fetch document types
   useEffect(() => {
@@ -64,7 +417,6 @@ export default function Customers() {
         setDocumentTypes(response.data.documentTypes);
       } catch (err) {
         console.error("Failed to fetch document types:", err);
-        // Fallback to default types if API fails
         setDocumentTypes([
           { value: "cc", displayName: "Colombian National ID", description: "Colombian National ID" },
           { value: "ce", displayName: "Colombian Foreign ID", description: "Colombian Foreign ID" },
@@ -105,55 +457,30 @@ export default function Customers() {
     void fetchCustomers();
   }, [fetchCustomers]);
 
-  // Validation
-  const validateForm = (): boolean => {
-    const errors: FormErrors = {};
+  // --- Build address payload from sub-fields --------------------------------
+  const buildAddressPayload = () => ({
+    street: formattedStreet || undefined,
+    city: selectedCity?.name || undefined,
+    state: selectedState?.name || undefined,
+    country: "Colombia",
+    postalCode: postalCodeField || undefined,
+  });
 
-    if (!formData.name.firstName.trim()) {
-      errors.firstName = "El nombre es requerido";
-    } else if (formData.name.firstName.length > 50) {
-      errors.firstName = "Maximum 50 characters";
-    }
-
-    if (!formData.name.firstSurname.trim()) {
-      errors.firstSurname = "El apellido es requerido";
-    } else if (formData.name.firstSurname.length > 50) {
-      errors.firstSurname = "Maximum 50 characters";
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!formData.email.trim()) {
-      errors.email = "El email es requerido";
-    } else if (!emailRegex.test(formData.email)) {
-      errors.email = "Invalid email";
-    }
-
-    // E.164 format: +[country code][number]
-    const phoneRegex = /^\+?[1-9]\d{1,14}$/;
-    if (!formData.phone.trim()) {
-      errors.phone = "Phone number is required";
-    } else if (!phoneRegex.test(formData.phone.replace(/\s/g, ""))) {
-      errors.phone = "Invalid format (e.g: +573001234567)";
-    }
-
-    if (!formData.documentNumber.trim()) {
-      errors.documentNumber = "Document number is required";
-    } else if (formData.documentNumber.length > 50) {
-      errors.documentNumber = "Máximo 50 caracteres";
-    }
-
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  // Create customer
+  // --- Create customer ------------------------------------------------------
   const handleCreate = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!validateForm()) return;
+    setSubmitted(true);
+    const allErrors = runValidation({ allTouched: true });
+    if (Object.keys(allErrors).length > 0) return;
 
     setSubmitting(true);
     try {
-      await createCustomer(formData);
+      const payload: CreateCustomerPayload = {
+        ...formData,
+        phone: toColombianPhone(formData.phone),
+        address: buildAddressPayload(),
+      };
+      await createCustomer(payload);
       setShowCreateModal(false);
       resetForm();
       await fetchCustomers();
@@ -165,10 +492,13 @@ export default function Customers() {
     }
   };
 
-  // Update customer
+  // --- Update customer ------------------------------------------------------
   const handleUpdate = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!selectedCustomer || !validateForm()) return;
+    if (!selectedCustomer) return;
+    setSubmitted(true);
+    const allErrors = runValidation({ allTouched: true });
+    if (Object.keys(allErrors).length > 0) return;
 
     setSubmitting(true);
     try {
@@ -180,8 +510,8 @@ export default function Customers() {
           secondSurname: formData.name.secondSurname,
         },
         email: formData.email,
-        phone: formData.phone,
-        address: formData.address,
+        phone: toColombianPhone(formData.phone),
+        address: buildAddressPayload(),
       };
       await updateCustomer(selectedCustomer._id, payload);
       setShowEditModal(false);
@@ -221,9 +551,68 @@ export default function Customers() {
     }
   };
 
-  // Open edit modal
+  // --- Reset address sub-fields --------------------------------------------
+  const resetAddressFields = () => {
+    setStreetType("");
+    setMainNumber("");
+    setSecondaryNumber("");
+    setComplementaryNumber("");
+    setAdditionalDetails("");
+    setStateQuery("");
+    setCityQuery("");
+    setPostalCodeField("");
+    setSelectedState(null);
+    setSelectedCity(null);
+    setShowStateSuggestions(false);
+    setShowCitySuggestions(false);
+  };
+
+  /** Populate address sub-fields from a customer's saved address. */
+  const loadAddressFields = (customer: Customer) => {
+    const addr = customer.address;
+    if (!addr) {
+      resetAddressFields();
+      return;
+    }
+    // Try to decompose the street
+    if (addr.street) {
+      const parsed = parseStreet(addr.street);
+      if (parsed) {
+        setStreetType(parsed.streetType);
+        setMainNumber(parsed.mainNumber);
+        setSecondaryNumber(parsed.secondaryNumber);
+        setComplementaryNumber(parsed.complementaryNumber);
+        setAdditionalDetails(parsed.additionalDetails);
+      } else {
+        // Fallback: put entire street in additionalDetails
+        setStreetType("");
+        setMainNumber("");
+        setSecondaryNumber("");
+        setComplementaryNumber("");
+        setAdditionalDetails(addr.street);
+      }
+    } else {
+      setStreetType("");
+      setMainNumber("");
+      setSecondaryNumber("");
+      setComplementaryNumber("");
+      setAdditionalDetails("");
+    }
+    setStateQuery(addr.state ?? "");
+    setCityQuery(addr.city ?? "");
+    setPostalCodeField(addr.postalCode ?? "");
+    // State/City objects will need re-selection from autocomplete
+    setSelectedState(null);
+    setSelectedCity(null);
+  };
+
+  // --- Open edit modal ------------------------------------------------------
   const openEditModal = (customer: Customer) => {
     setSelectedCustomer(customer);
+    // Strip +57 prefix from phone for the input
+    const phoneDigits = customer.phone.startsWith(COLOMBIA_PHONE_PREFIX)
+      ? customer.phone.slice(COLOMBIA_PHONE_PREFIX.length)
+      : customer.phone;
     setFormData({
       name: {
         firstName: customer.name.firstName,
@@ -232,26 +621,29 @@ export default function Customers() {
         secondSurname: customer.name.secondSurname,
       },
       email: customer.email,
-      phone: customer.phone,
+      phone: phoneDigits,
       documentType: customer.documentType,
       documentNumber: customer.documentNumber,
-      address: customer.address,
     });
+    loadAddressFields(customer);
+    setTouched({});
+    setFieldErrors({});
+    setSubmitted(false);
     setShowEditModal(true);
   };
 
   const resetForm = () => {
     setFormData({
-      name: {
-        firstName: "",
-        firstSurname: "",
-      },
+      name: { firstName: "", firstSurname: "" },
       email: "",
       phone: "",
       documentType: documentTypes[0]?.value || "cc",
       documentNumber: "",
     });
-    setFormErrors({});
+    resetAddressFields();
+    setTouched({});
+    setFieldErrors({});
+    setSubmitted(false);
     setSelectedCustomer(null);
   };
 
@@ -454,19 +846,26 @@ export default function Customers() {
                       <input
                         type="text"
                         value={formData.name.firstName}
-                        onChange={(e) => setFormData({ ...formData, name: { ...formData.name, firstName: e.target.value } })}
-                        className={`input ${formErrors.firstName ? "input-error" : ""}`}
+                        onChange={(e) => {
+                          const v = formatNameInput(e.target.value);
+                          setFormData({ ...formData, name: { ...formData.name, firstName: v } });
+                        }}
+                        onBlur={() => validateFieldOnBlur("firstName")}
+                        className={inputClass(!!fieldErrors.firstName)}
                         disabled={submitting}
                       />
-                      {formErrors.firstName && <p className="form-error">{formErrors.firstName}</p>}
+                      {fieldErrors.firstName && <p className="text-red-400 text-xs mt-1">{fieldErrors.firstName}</p>}
                     </div>
                     <div className="form-group">
                       <label className="form-label">Segundo Nombre</label>
                       <input
                         type="text"
                         value={formData.name.secondName || ""}
-                        onChange={(e) => setFormData({ ...formData, name: { ...formData.name, secondName: e.target.value } })}
-                        className="input"
+                        onChange={(e) => {
+                          const v = formatNameInput(e.target.value);
+                          setFormData({ ...formData, name: { ...formData.name, secondName: v } });
+                        }}
+                        className={inputClass(false)}
                         disabled={submitting}
                       />
                     </div>
@@ -478,19 +877,26 @@ export default function Customers() {
                       <input
                         type="text"
                         value={formData.name.firstSurname}
-                        onChange={(e) => setFormData({ ...formData, name: { ...formData.name, firstSurname: e.target.value } })}
-                        className={`input ${formErrors.firstSurname ? "input-error" : ""}`}
+                        onChange={(e) => {
+                          const v = formatNameInput(e.target.value);
+                          setFormData({ ...formData, name: { ...formData.name, firstSurname: v } });
+                        }}
+                        onBlur={() => validateFieldOnBlur("firstSurname")}
+                        className={inputClass(!!fieldErrors.firstSurname)}
                         disabled={submitting}
                       />
-                      {formErrors.firstSurname && <p className="form-error">{formErrors.firstSurname}</p>}
+                      {fieldErrors.firstSurname && <p className="text-red-400 text-xs mt-1">{fieldErrors.firstSurname}</p>}
                     </div>
                     <div className="form-group">
                       <label className="form-label">Segundo Apellido</label>
                       <input
                         type="text"
                         value={formData.name.secondSurname || ""}
-                        onChange={(e) => setFormData({ ...formData, name: { ...formData.name, secondSurname: e.target.value } })}
-                        className="input"
+                        onChange={(e) => {
+                          const v = formatNameInput(e.target.value);
+                          setFormData({ ...formData, name: { ...formData.name, secondSurname: v } });
+                        }}
+                        className={inputClass(false)}
                         disabled={submitting}
                       />
                     </div>
@@ -503,23 +909,42 @@ export default function Customers() {
                       <input
                         type="email"
                         value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        className={`input ${formErrors.email ? "input-error" : ""}`}
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        onChange={(e) => {
+                          const v = formatEmailInput(e.target.value);
+                          setFormData({ ...formData, email: v });
+                        }}
+                        onBlur={() => validateFieldOnBlur("email")}
+                        className={inputClass(!!fieldErrors.email)}
                         disabled={submitting}
                       />
-                      {formErrors.email && <p className="form-error">{formErrors.email}</p>}
+                      {fieldErrors.email && <p className="text-red-400 text-xs mt-1">{fieldErrors.email}</p>}
                     </div>
                     <div className="form-group">
-                      <label className="form-label">Teléfono * (formato E.164)</label>
-                      <input
-                        type="tel"
-                        placeholder="+573001234567"
-                        value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        className={`input ${formErrors.phone ? "input-error" : ""}`}
-                        disabled={submitting}
-                      />
-                      {formErrors.phone && <p className="form-error">{formErrors.phone}</p>}
+                      <label className="form-label">Teléfono *</label>
+                      <div className={phoneInputWrapperClass(!!fieldErrors.phone)}>
+                        <div className="flex items-center">
+                          <span className="text-white pl-4 pr-2 select-none whitespace-pre">{`${COLOMBIA_PHONE_PREFIX} `}</span>
+                          <input
+                            type="tel"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            maxLength={10}
+                            placeholder="3001234567"
+                            value={formData.phone}
+                            onChange={(e) => {
+                              const v = formatPhoneInput(e.target.value);
+                              setFormData({ ...formData, phone: v });
+                            }}
+                            onBlur={() => validateFieldOnBlur("phone")}
+                            className="w-full bg-transparent py-3 pr-4 text-white outline-none"
+                            disabled={submitting}
+                          />
+                        </div>
+                      </div>
+                      {fieldErrors.phone && <p className="text-red-400 text-xs mt-1">{fieldErrors.phone}</p>}
                     </div>
                   </div>
 
@@ -530,7 +955,7 @@ export default function Customers() {
                       <select
                         value={formData.documentType}
                         onChange={(e) => setFormData({ ...formData, documentType: e.target.value as DocumentType })}
-                        className="input"
+                        className={inputClass(false)}
                         disabled={submitting}
                       >
                         {documentTypes.map((docType) => (
@@ -546,37 +971,257 @@ export default function Customers() {
                         type="text"
                         value={formData.documentNumber}
                         onChange={(e) => setFormData({ ...formData, documentNumber: e.target.value })}
-                        className={`input ${formErrors.documentNumber ? "input-error" : ""}`}
+                        onBlur={() => validateFieldOnBlur("documentNumber")}
+                        className={inputClass(!!fieldErrors.documentNumber)}
                         disabled={submitting}
                       />
-                      {formErrors.documentNumber && <p className="form-error">{formErrors.documentNumber}</p>}
+                      {fieldErrors.documentNumber && <p className="text-red-400 text-xs mt-1">{fieldErrors.documentNumber}</p>}
                     </div>
                   </div>
 
-                  {/* Address (optional) */}
-                  <div className="form-group">
-                    <label className="form-label">Address (optional)</label>
-                    <input
-                      type="text"
-                      placeholder="Street, city, country..."
-                      value={formData.address?.street || ""}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          address: { ...formData.address, street: e.target.value },
-                        })
-                      }
-                      className="input"
-                      disabled={submitting}
-                    />
+                  {/* Address */}
+                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest pt-2">Dirección</h3>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="form-group md:col-span-2">
+                      <label className="form-label">Tipo de Vía *</label>
+                      <select
+                        title="Street Type"
+                        value={streetType}
+                        onChange={(e) => setStreetType(e.target.value)}
+                        onBlur={() => validateFieldOnBlur("streetType")}
+                        className={inputClass(!!fieldErrors.streetType)}
+                        disabled={submitting}
+                      >
+                        <option disabled value="">Seleccione tipo de vía</option>
+                        {COLOMBIA_STREET_TYPES.map((type) => (
+                          <option key={type} value={type}>{type}</option>
+                        ))}
+                      </select>
+                      {fieldErrors.streetType && <p className="text-red-400 text-xs mt-1">{fieldErrors.streetType}</p>}
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Número Principal *</label>
+                      <input
+                        type="text"
+                        inputMode="text"
+                        maxLength={ADDRESS_SEGMENT_MAX_LENGTH}
+                        placeholder="8ª E"
+                        value={mainNumber}
+                        onChange={(e) => setMainNumber(formatAddressSegmentInput(e.target.value))}
+                        onBlur={() => validateFieldOnBlur("mainNumber")}
+                        className={inputClass(!!fieldErrors.mainNumber)}
+                        disabled={submitting}
+                      />
+                      {fieldErrors.mainNumber && <p className="text-red-400 text-xs mt-1">{fieldErrors.mainNumber}</p>}
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Número Secundario *</label>
+                      <input
+                        type="text"
+                        inputMode="text"
+                        maxLength={ADDRESS_SEGMENT_MAX_LENGTH}
+                        placeholder="93B"
+                        value={secondaryNumber}
+                        onChange={(e) => setSecondaryNumber(formatAddressSegmentInput(e.target.value))}
+                        onBlur={() => validateFieldOnBlur("secondaryNumber")}
+                        className={inputClass(!!fieldErrors.secondaryNumber)}
+                        disabled={submitting}
+                      />
+                      {fieldErrors.secondaryNumber && <p className="text-red-400 text-xs mt-1">{fieldErrors.secondaryNumber}</p>}
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Número Complementario *</label>
+                      <input
+                        type="text"
+                        inputMode="text"
+                        maxLength={ADDRESS_SEGMENT_MAX_LENGTH}
+                        placeholder="47A"
+                        value={complementaryNumber}
+                        onChange={(e) => setComplementaryNumber(formatAddressSegmentInput(e.target.value))}
+                        onBlur={() => validateFieldOnBlur("complementaryNumber")}
+                        className={inputClass(!!fieldErrors.complementaryNumber)}
+                        disabled={submitting}
+                      />
+                      {fieldErrors.complementaryNumber && <p className="text-red-400 text-xs mt-1">{fieldErrors.complementaryNumber}</p>}
+                    </div>
+
+                    <div className="form-group relative">
+                      <label className="form-label">Departamento *</label>
+                      <input
+                        type="text"
+                        placeholder="Buscar departamento..."
+                        value={stateQuery}
+                        autoComplete="off"
+                        onChange={(e) => {
+                          const v = formatStateInput(e.target.value);
+                          setStateQuery(v);
+                          if (selectedState && v !== selectedState.name) {
+                            setSelectedState(null);
+                            setSelectedCity(null);
+                            setCityQuery("");
+                            setPostalCodeField("");
+                          }
+                          setShowStateSuggestions(true);
+                        }}
+                        onBlur={() => {
+                          setTimeout(() => setShowStateSuggestions(false), 200);
+                          validateFieldOnBlur("stateQuery");
+                        }}
+                        onFocus={() => {
+                          if (filteredDepartments.length && !selectedState) setShowStateSuggestions(true);
+                        }}
+                        className={inputClass(!!fieldErrors.stateQuery)}
+                        disabled={submitting}
+                      />
+                      {showStateSuggestions && stateQuery && !selectedState && (
+                        <div className="absolute z-50 w-full mt-1 bg-zinc-900 border border-zinc-700 rounded-xl max-h-48 overflow-y-auto shadow-lg">
+                          {deptLoading || stateQuery !== debouncedStateQuery ? (
+                            <div className="p-3 text-gray-400 text-sm">Buscando...</div>
+                          ) : filteredDepartments.length ? (
+                            filteredDepartments.map((dept) => (
+                              <button
+                                key={dept.id}
+                                type="button"
+                                className="w-full text-left px-4 py-3 text-white hover:bg-zinc-800 transition"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => {
+                                  setSelectedState(dept);
+                                  setStateQuery(dept.name);
+                                  setShowStateSuggestions(false);
+                                  setCityQuery("");
+                                  setSelectedCity(null);
+                                  setPostalCodeField("");
+                                }}
+                              >
+                                {dept.name}
+                              </button>
+                            ))
+                          ) : (
+                            <div className="p-3 text-gray-400 text-sm">No se encontraron departamentos</div>
+                          )}
+                        </div>
+                      )}
+                      {fieldErrors.stateQuery && <p className="text-red-400 text-xs mt-1">{fieldErrors.stateQuery}</p>}
+                    </div>
+
+                    <div className="form-group relative">
+                      <label className="form-label">Ciudad *</label>
+                      <input
+                        type="text"
+                        placeholder={selectedState ? "Buscar ciudad..." : "Seleccione un departamento primero"}
+                        value={cityQuery}
+                        autoComplete="off"
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setCityQuery(v);
+                          if (selectedCity && !isNormalizedEqual(v, selectedCity.name)) {
+                            setSelectedCity(null);
+                            setPostalCodeField("");
+                          }
+                          setShowCitySuggestions(true);
+                        }}
+                        onBlur={() => {
+                          setTimeout(() => setShowCitySuggestions(false), 200);
+                          validateFieldOnBlur("cityQuery");
+                        }}
+                        onFocus={() => {
+                          if (filteredCities.length && !selectedCity) setShowCitySuggestions(true);
+                        }}
+                        className={inputClass(!!fieldErrors.cityQuery)}
+                        disabled={submitting || !selectedState}
+                      />
+                      {showCitySuggestions && selectedState && !selectedCity && (
+                        <div className="absolute z-50 w-full mt-1 bg-zinc-900 border border-zinc-700 rounded-xl max-h-48 overflow-y-auto shadow-lg">
+                          {citiesLoading ? (
+                            <div className="p-3 text-gray-400 text-sm">Cargando ciudades...</div>
+                          ) : filteredCities.length ? (
+                            filteredCities.map((c) => (
+                              <button
+                                key={c.id}
+                                type="button"
+                                className="w-full text-left px-4 py-3 text-white hover:bg-zinc-800 transition"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => {
+                                  setSelectedCity(c);
+                                  setCityQuery(c.name);
+                                  setPostalCodeField(c.postalCode ?? "");
+                                  setShowCitySuggestions(false);
+                                }}
+                              >
+                                {c.name}
+                              </button>
+                            ))
+                          ) : (
+                            <div className="p-3 text-gray-400 text-sm">No se encontraron ciudades</div>
+                          )}
+                        </div>
+                      )}
+                      {fieldErrors.cityQuery && <p className="text-red-400 text-xs mt-1">{fieldErrors.cityQuery}</p>}
+                    </div>
+
+                    <div className="form-group md:col-span-2">
+                      <label className="form-label">Detalles Adicionales <span className="text-gray-600">(Opcional)</span></label>
+                      <input
+                        type="text"
+                        placeholder="Centro Empresarial, Oficina 602"
+                        value={additionalDetails}
+                        onChange={(e) => setAdditionalDetails(formatAddressDetailsInput(e.target.value))}
+                        onBlur={() => validateFieldOnBlur("additionalDetails")}
+                        className={inputClass(!!fieldErrors.additionalDetails)}
+                        disabled={submitting}
+                      />
+                      {fieldErrors.additionalDetails && <p className="text-red-400 text-xs mt-1">{fieldErrors.additionalDetails}</p>}
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Código Postal</label>
+                      <input
+                        type="text"
+                        placeholder={
+                          selectedCity
+                            ? canEditPostalCode
+                              ? "Ingrese código postal"
+                              : "Auto-llenado desde ciudad"
+                            : "Seleccione una ciudad primero"
+                        }
+                        value={postalCodeField}
+                        readOnly={!canEditPostalCode}
+                        disabled={submitting || !selectedCity}
+                        onChange={(e) => {
+                          if (!canEditPostalCode) return;
+                          setPostalCodeField(formatPostalCodeInput(e.target.value));
+                        }}
+                        onBlur={() => {
+                          if (canEditPostalCode) validateFieldOnBlur("postalCode");
+                        }}
+                        className={inputClass(!!fieldErrors.postalCode)}
+                      />
+                      {fieldErrors.postalCode && <p className="text-red-400 text-xs mt-1">{fieldErrors.postalCode}</p>}
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Vista Previa Dirección</label>
+                      <input
+                        type="text"
+                        value={formattedStreet}
+                        readOnly
+                        placeholder="Carrera 15 # 93-47"
+                        className={inputClass(false)}
+                        disabled
+                      />
+                    </div>
                   </div>
                 </div>
                 <div className="modal-footer">
                   <button type="button" onClick={() => setShowCreateModal(false)} className="btn-secondary" disabled={submitting}>
-                    Cancel
+                    Cancelar
                   </button>
                   <button type="submit" className="btn-primary" disabled={submitting}>
-                    {submitting ? "Creating..." : "Create Customer"}
+                    {submitting ? "Creando..." : "Crear Cliente"}
                   </button>
                 </div>
               </form>
@@ -608,19 +1253,26 @@ export default function Customers() {
                       <input
                         type="text"
                         value={formData.name.firstName}
-                        onChange={(e) => setFormData({ ...formData, name: { ...formData.name, firstName: e.target.value } })}
-                        className={`input ${formErrors.firstName ? "input-error" : ""}`}
+                        onChange={(e) => {
+                          const v = formatNameInput(e.target.value);
+                          setFormData({ ...formData, name: { ...formData.name, firstName: v } });
+                        }}
+                        onBlur={() => validateFieldOnBlur("firstName")}
+                        className={inputClass(!!fieldErrors.firstName)}
                         disabled={submitting}
                       />
-                      {formErrors.firstName && <p className="form-error">{formErrors.firstName}</p>}
+                      {fieldErrors.firstName && <p className="text-red-400 text-xs mt-1">{fieldErrors.firstName}</p>}
                     </div>
                     <div className="form-group">
                       <label className="form-label">Segundo Nombre</label>
                       <input
                         type="text"
                         value={formData.name.secondName || ""}
-                        onChange={(e) => setFormData({ ...formData, name: { ...formData.name, secondName: e.target.value } })}
-                        className="input"
+                        onChange={(e) => {
+                          const v = formatNameInput(e.target.value);
+                          setFormData({ ...formData, name: { ...formData.name, secondName: v } });
+                        }}
+                        className={inputClass(false)}
                         disabled={submitting}
                       />
                     </div>
@@ -632,19 +1284,26 @@ export default function Customers() {
                       <input
                         type="text"
                         value={formData.name.firstSurname}
-                        onChange={(e) => setFormData({ ...formData, name: { ...formData.name, firstSurname: e.target.value } })}
-                        className={`input ${formErrors.firstSurname ? "input-error" : ""}`}
+                        onChange={(e) => {
+                          const v = formatNameInput(e.target.value);
+                          setFormData({ ...formData, name: { ...formData.name, firstSurname: v } });
+                        }}
+                        onBlur={() => validateFieldOnBlur("firstSurname")}
+                        className={inputClass(!!fieldErrors.firstSurname)}
                         disabled={submitting}
                       />
-                      {formErrors.firstSurname && <p className="form-error">{formErrors.firstSurname}</p>}
+                      {fieldErrors.firstSurname && <p className="text-red-400 text-xs mt-1">{fieldErrors.firstSurname}</p>}
                     </div>
                     <div className="form-group">
                       <label className="form-label">Segundo Apellido</label>
                       <input
                         type="text"
                         value={formData.name.secondSurname || ""}
-                        onChange={(e) => setFormData({ ...formData, name: { ...formData.name, secondSurname: e.target.value } })}
-                        className="input"
+                        onChange={(e) => {
+                          const v = formatNameInput(e.target.value);
+                          setFormData({ ...formData, name: { ...formData.name, secondSurname: v } });
+                        }}
+                        className={inputClass(false)}
                         disabled={submitting}
                       />
                     </div>
@@ -657,23 +1316,42 @@ export default function Customers() {
                       <input
                         type="email"
                         value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        className={`input ${formErrors.email ? "input-error" : ""}`}
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        onChange={(e) => {
+                          const v = formatEmailInput(e.target.value);
+                          setFormData({ ...formData, email: v });
+                        }}
+                        onBlur={() => validateFieldOnBlur("email")}
+                        className={inputClass(!!fieldErrors.email)}
                         disabled={submitting}
                       />
-                      {formErrors.email && <p className="form-error">{formErrors.email}</p>}
+                      {fieldErrors.email && <p className="text-red-400 text-xs mt-1">{fieldErrors.email}</p>}
                     </div>
                     <div className="form-group">
-                      <label className="form-label">Teléfono * (formato E.164)</label>
-                      <input
-                        type="tel"
-                        placeholder="+573001234567"
-                        value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        className={`input ${formErrors.phone ? "input-error" : ""}`}
-                        disabled={submitting}
-                      />
-                      {formErrors.phone && <p className="form-error">{formErrors.phone}</p>}
+                      <label className="form-label">Teléfono *</label>
+                      <div className={phoneInputWrapperClass(!!fieldErrors.phone)}>
+                        <div className="flex items-center">
+                          <span className="text-white pl-4 pr-2 select-none whitespace-pre">{`${COLOMBIA_PHONE_PREFIX} `}</span>
+                          <input
+                            type="tel"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            maxLength={10}
+                            placeholder="3001234567"
+                            value={formData.phone}
+                            onChange={(e) => {
+                              const v = formatPhoneInput(e.target.value);
+                              setFormData({ ...formData, phone: v });
+                            }}
+                            onBlur={() => validateFieldOnBlur("phone")}
+                            className="w-full bg-transparent py-3 pr-4 text-white outline-none"
+                            disabled={submitting}
+                          />
+                        </div>
+                      </div>
+                      {fieldErrors.phone && <p className="text-red-400 text-xs mt-1">{fieldErrors.phone}</p>}
                     </div>
                   </div>
 
@@ -681,30 +1359,249 @@ export default function Customers() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 opacity-50">
                     <div className="form-group">
                       <label className="form-label">Tipo de Documento</label>
-                      <input type="text" value={getDocumentTypeLabel(selectedCustomer.documentType)} className="input" disabled />
+                      <input type="text" value={getDocumentTypeLabel(selectedCustomer.documentType)} className={inputClass(false)} disabled />
                     </div>
                     <div className="form-group">
                       <label className="form-label">Número de Documento</label>
-                      <input type="text" value={selectedCustomer.documentNumber} className="input" disabled />
+                      <input type="text" value={selectedCustomer.documentNumber} className={inputClass(false)} disabled />
                     </div>
                   </div>
 
-                  {/* Address (optional) */}
-                  <div className="form-group">
-                    <label className="form-label">Dirección (opcional)</label>
-                    <input
-                      type="text"
-                      placeholder="Calle, ciudad, país..."
-                      value={formData.address?.street || ""}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          address: { ...formData.address, street: e.target.value },
-                        })
-                      }
-                      className="input"
-                      disabled={submitting}
-                    />
+                  {/* Address */}
+                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest pt-2">Dirección</h3>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="form-group md:col-span-2">
+                      <label className="form-label">Tipo de Vía *</label>
+                      <select
+                        title="Street Type"
+                        value={streetType}
+                        onChange={(e) => setStreetType(e.target.value)}
+                        onBlur={() => validateFieldOnBlur("streetType")}
+                        className={inputClass(!!fieldErrors.streetType)}
+                        disabled={submitting}
+                      >
+                        <option disabled value="">Seleccione tipo de vía</option>
+                        {COLOMBIA_STREET_TYPES.map((type) => (
+                          <option key={type} value={type}>{type}</option>
+                        ))}
+                      </select>
+                      {fieldErrors.streetType && <p className="text-red-400 text-xs mt-1">{fieldErrors.streetType}</p>}
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Número Principal *</label>
+                      <input
+                        type="text"
+                        inputMode="text"
+                        maxLength={ADDRESS_SEGMENT_MAX_LENGTH}
+                        placeholder="8ª E"
+                        value={mainNumber}
+                        onChange={(e) => setMainNumber(formatAddressSegmentInput(e.target.value))}
+                        onBlur={() => validateFieldOnBlur("mainNumber")}
+                        className={inputClass(!!fieldErrors.mainNumber)}
+                        disabled={submitting}
+                      />
+                      {fieldErrors.mainNumber && <p className="text-red-400 text-xs mt-1">{fieldErrors.mainNumber}</p>}
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Número Secundario *</label>
+                      <input
+                        type="text"
+                        inputMode="text"
+                        maxLength={ADDRESS_SEGMENT_MAX_LENGTH}
+                        placeholder="93B"
+                        value={secondaryNumber}
+                        onChange={(e) => setSecondaryNumber(formatAddressSegmentInput(e.target.value))}
+                        onBlur={() => validateFieldOnBlur("secondaryNumber")}
+                        className={inputClass(!!fieldErrors.secondaryNumber)}
+                        disabled={submitting}
+                      />
+                      {fieldErrors.secondaryNumber && <p className="text-red-400 text-xs mt-1">{fieldErrors.secondaryNumber}</p>}
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Número Complementario *</label>
+                      <input
+                        type="text"
+                        inputMode="text"
+                        maxLength={ADDRESS_SEGMENT_MAX_LENGTH}
+                        placeholder="47A"
+                        value={complementaryNumber}
+                        onChange={(e) => setComplementaryNumber(formatAddressSegmentInput(e.target.value))}
+                        onBlur={() => validateFieldOnBlur("complementaryNumber")}
+                        className={inputClass(!!fieldErrors.complementaryNumber)}
+                        disabled={submitting}
+                      />
+                      {fieldErrors.complementaryNumber && <p className="text-red-400 text-xs mt-1">{fieldErrors.complementaryNumber}</p>}
+                    </div>
+
+                    <div className="form-group relative">
+                      <label className="form-label">Departamento *</label>
+                      <input
+                        type="text"
+                        placeholder="Buscar departamento..."
+                        value={stateQuery}
+                        autoComplete="off"
+                        onChange={(e) => {
+                          const v = formatStateInput(e.target.value);
+                          setStateQuery(v);
+                          if (selectedState && v !== selectedState.name) {
+                            setSelectedState(null);
+                            setSelectedCity(null);
+                            setCityQuery("");
+                            setPostalCodeField("");
+                          }
+                          setShowStateSuggestions(true);
+                        }}
+                        onBlur={() => {
+                          setTimeout(() => setShowStateSuggestions(false), 200);
+                          validateFieldOnBlur("stateQuery");
+                        }}
+                        onFocus={() => {
+                          if (filteredDepartments.length && !selectedState) setShowStateSuggestions(true);
+                        }}
+                        className={inputClass(!!fieldErrors.stateQuery)}
+                        disabled={submitting}
+                      />
+                      {showStateSuggestions && stateQuery && !selectedState && (
+                        <div className="absolute z-50 w-full mt-1 bg-zinc-900 border border-zinc-700 rounded-xl max-h-48 overflow-y-auto shadow-lg">
+                          {deptLoading || stateQuery !== debouncedStateQuery ? (
+                            <div className="p-3 text-gray-400 text-sm">Buscando...</div>
+                          ) : filteredDepartments.length ? (
+                            filteredDepartments.map((dept) => (
+                              <button
+                                key={dept.id}
+                                type="button"
+                                className="w-full text-left px-4 py-3 text-white hover:bg-zinc-800 transition"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => {
+                                  setSelectedState(dept);
+                                  setStateQuery(dept.name);
+                                  setShowStateSuggestions(false);
+                                  setCityQuery("");
+                                  setSelectedCity(null);
+                                  setPostalCodeField("");
+                                }}
+                              >
+                                {dept.name}
+                              </button>
+                            ))
+                          ) : (
+                            <div className="p-3 text-gray-400 text-sm">No se encontraron departamentos</div>
+                          )}
+                        </div>
+                      )}
+                      {fieldErrors.stateQuery && <p className="text-red-400 text-xs mt-1">{fieldErrors.stateQuery}</p>}
+                    </div>
+
+                    <div className="form-group relative">
+                      <label className="form-label">Ciudad *</label>
+                      <input
+                        type="text"
+                        placeholder={selectedState ? "Buscar ciudad..." : "Seleccione un departamento primero"}
+                        value={cityQuery}
+                        autoComplete="off"
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setCityQuery(v);
+                          if (selectedCity && !isNormalizedEqual(v, selectedCity.name)) {
+                            setSelectedCity(null);
+                            setPostalCodeField("");
+                          }
+                          setShowCitySuggestions(true);
+                        }}
+                        onBlur={() => {
+                          setTimeout(() => setShowCitySuggestions(false), 200);
+                          validateFieldOnBlur("cityQuery");
+                        }}
+                        onFocus={() => {
+                          if (filteredCities.length && !selectedCity) setShowCitySuggestions(true);
+                        }}
+                        className={inputClass(!!fieldErrors.cityQuery)}
+                        disabled={submitting || !selectedState}
+                      />
+                      {showCitySuggestions && selectedState && !selectedCity && (
+                        <div className="absolute z-50 w-full mt-1 bg-zinc-900 border border-zinc-700 rounded-xl max-h-48 overflow-y-auto shadow-lg">
+                          {citiesLoading ? (
+                            <div className="p-3 text-gray-400 text-sm">Cargando ciudades...</div>
+                          ) : filteredCities.length ? (
+                            filteredCities.map((c) => (
+                              <button
+                                key={c.id}
+                                type="button"
+                                className="w-full text-left px-4 py-3 text-white hover:bg-zinc-800 transition"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => {
+                                  setSelectedCity(c);
+                                  setCityQuery(c.name);
+                                  setPostalCodeField(c.postalCode ?? "");
+                                  setShowCitySuggestions(false);
+                                }}
+                              >
+                                {c.name}
+                              </button>
+                            ))
+                          ) : (
+                            <div className="p-3 text-gray-400 text-sm">No se encontraron ciudades</div>
+                          )}
+                        </div>
+                      )}
+                      {fieldErrors.cityQuery && <p className="text-red-400 text-xs mt-1">{fieldErrors.cityQuery}</p>}
+                    </div>
+
+                    <div className="form-group md:col-span-2">
+                      <label className="form-label">Detalles Adicionales <span className="text-gray-600">(Opcional)</span></label>
+                      <input
+                        type="text"
+                        placeholder="Centro Empresarial, Oficina 602"
+                        value={additionalDetails}
+                        onChange={(e) => setAdditionalDetails(formatAddressDetailsInput(e.target.value))}
+                        onBlur={() => validateFieldOnBlur("additionalDetails")}
+                        className={inputClass(!!fieldErrors.additionalDetails)}
+                        disabled={submitting}
+                      />
+                      {fieldErrors.additionalDetails && <p className="text-red-400 text-xs mt-1">{fieldErrors.additionalDetails}</p>}
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Código Postal</label>
+                      <input
+                        type="text"
+                        placeholder={
+                          selectedCity
+                            ? canEditPostalCode
+                              ? "Ingrese código postal"
+                              : "Auto-llenado desde ciudad"
+                            : "Seleccione una ciudad primero"
+                        }
+                        value={postalCodeField}
+                        readOnly={!canEditPostalCode}
+                        disabled={submitting || !selectedCity}
+                        onChange={(e) => {
+                          if (!canEditPostalCode) return;
+                          setPostalCodeField(formatPostalCodeInput(e.target.value));
+                        }}
+                        onBlur={() => {
+                          if (canEditPostalCode) validateFieldOnBlur("postalCode");
+                        }}
+                        className={inputClass(!!fieldErrors.postalCode)}
+                      />
+                      {fieldErrors.postalCode && <p className="text-red-400 text-xs mt-1">{fieldErrors.postalCode}</p>}
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Vista Previa Dirección</label>
+                      <input
+                        type="text"
+                        value={formattedStreet}
+                        readOnly
+                        placeholder="Carrera 15 # 93-47"
+                        className={inputClass(false)}
+                        disabled
+                      />
+                    </div>
                   </div>
                 </div>
                 <div className="modal-footer">

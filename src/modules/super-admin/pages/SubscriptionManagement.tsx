@@ -1,5 +1,16 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { Pencil, Check, X, Plus, Trash2, Package, Download, Calculator, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  Pencil,
+  Check,
+  X,
+  Plus,
+  Trash2,
+  Package,
+  Download,
+  Calculator,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 import {
   getSubscriptionTypes,
   createSubscriptionType,
@@ -7,7 +18,13 @@ import {
   deleteSubscriptionType,
   calculatePlanCost,
 } from "../../../services/subscriptionTypeService";
-import { LoadingSpinner, ErrorDisplay, ConfirmDialog, EmptyState, AlertContainer } from "../../../components/ui";
+import {
+  LoadingSpinner,
+  ErrorDisplay,
+  ConfirmDialog,
+  EmptyState,
+  AlertContainer,
+} from "../../../components/ui";
 import { normalizeError, logError } from "../../../utils/errorHandling";
 import { useAuth } from "../../../contexts/useAuth";
 import { useAlerts } from "../../../hooks/useAlerts";
@@ -89,12 +106,7 @@ interface TextareaInputProps extends React.TextareaHTMLAttributes<HTMLTextAreaEl
 }
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function TextareaInput({ error: _err, className = "", ...props }: TextareaInputProps) {
-  return (
-    <textarea
-      className={`${inputCls} resize-none ${className}`}
-      {...props}
-    />
-  );
+  return <textarea className={`${inputCls} resize-none ${className}`} {...props} />;
 }
 
 // ─── Features list editor ──────────────────────────────────────────────────
@@ -136,7 +148,10 @@ function FeaturesEditor({ features, onChange }: FeaturesEditorProps) {
       {features.length > 0 && (
         <ul className="space-y-1.5">
           {features.map((feat, i) => (
-            <li key={i} className="flex items-center gap-2 text-sm bg-[#1a1a1a] px-3 py-1.5 rounded-lg">
+            <li
+              key={i}
+              className="flex items-center gap-2 text-sm bg-[#1a1a1a] px-3 py-1.5 rounded-lg"
+            >
               <span className="text-green-400">✓</span>
               <span className="text-gray-300 flex-1">{feat}</span>
               <button
@@ -214,9 +229,16 @@ function CostCalculator({ planId }: CostCalculatorProps) {
           {error && <p className="text-red-400 text-xs">{error}</p>}
           {result && (
             <div className="text-xs space-y-0.5 text-gray-400">
-              <p>Base: <span className="text-white">${(result.baseCost / 100).toFixed(2)}</span></p>
-              <p>Seats ({result.seatCount}): <span className="text-white">${(result.seatCost / 100).toFixed(2)}</span></p>
-              <p className="font-semibold text-[#FFD700]">Total: ${(result.totalCost / 100).toFixed(2)} {result.currency.toUpperCase()}/mo</p>
+              <p>
+                Base: <span className="text-white">${(result.baseCost / 100).toFixed(2)}</span>
+              </p>
+              <p>
+                Seats ({result.seatCount}):{" "}
+                <span className="text-white">${(result.seatCost / 100).toFixed(2)}</span>
+              </p>
+              <p className="font-semibold text-[#FFD700]">
+                Total: ${(result.totalCost / 100).toFixed(2)} {result.currency.toUpperCase()}/mo
+              </p>
             </div>
           )}
         </div>
@@ -243,7 +265,7 @@ interface PlanValidationErrors {
 
 function validatePlanFields(
   fields: Partial<CreateSubscriptionTypePayload>,
-  isCreate = false
+  isCreate = false,
 ): PlanValidationErrors {
   const errors: PlanValidationErrors = {};
 
@@ -341,20 +363,20 @@ const CARD_BORDER: Record<string, string> = {
 };
 
 const DEFAULT_CREATE_STATE: Partial<CreateSubscriptionTypePayload> = {
-  billingModel: 'dynamic',
+  billingModel: "dynamic",
   baseCost: 0,
   pricePerSeat: 0,
   maxSeats: -1,
   maxCatalogItems: -1,
   sortOrder: 0,
-  status: 'active',
+  status: "active",
   features: [],
-  stripePriceIdBase: '',
-  stripePriceIdSeat: '',
+  stripePriceIdBase: "",
+  stripePriceIdSeat: "",
 };
 
 // ─── Edit-fields type (all patchable fields) ────────────────────────────────
-type EditFields = Partial<Omit<SubscriptionType, '_id' | 'plan'>>;
+type EditFields = Partial<Omit<SubscriptionType, "_id" | "plan">>;
 
 // ---------------------------------------------------------------------------
 
@@ -371,12 +393,15 @@ export default function PlanConfiguration() {
 
   // Create mode
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [createFields, setCreateFields] = useState<Partial<CreateSubscriptionTypePayload>>(DEFAULT_CREATE_STATE);
+  const [createFields, setCreateFields] =
+    useState<Partial<CreateSubscriptionTypePayload>>(DEFAULT_CREATE_STATE);
   const [createErrors, setCreateErrors] = useState<PlanValidationErrors>({});
   const [creating, setCreating] = useState(false);
 
   // Delete confirmation
-  const [deleteConfirm, setDeleteConfirm] = useState<{ plan: string; displayName: string } | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ plan: string; displayName: string } | null>(
+    null,
+  );
 
   // Export state
   const [exportOpen, setExportOpen] = useState(false);
@@ -399,7 +424,7 @@ export default function PlanConfiguration() {
     } catch (err: unknown) {
       const normalized = normalizeError(err);
       setError(normalized.message);
-      logError(err, 'PlanConfiguration.fetchPlans');
+      logError(err, "PlanConfiguration.fetchPlans");
     } finally {
       setLoading(false);
     }
@@ -427,44 +452,50 @@ export default function PlanConfiguration() {
     }));
   }, [plans]);
 
-  const handleExport = useCallback(async (config: ExportConfig) => {
-    const rawData = buildExportRows();
-    if (rawData.length === 0) {
-      showAlert('warning', 'No plans available to export.');
-      return;
-    }
-    const abort = new AbortController();
-    exportAbort.current = abort;
-    setExporting(true);
-    setExportProgress(undefined);
+  const handleExport = useCallback(
+    async (config: ExportConfig) => {
+      const rawData = buildExportRows();
+      if (rawData.length === 0) {
+        showAlert("warning", "No plans available to export.");
+        return;
+      }
+      const abort = new AbortController();
+      exportAbort.current = abort;
+      setExporting(true);
+      setExportProgress(undefined);
 
-    const result = await exportService.export(
-      rawData,
-      config,
-      user?.id ?? 'anonymous',
-      (p) => setExportProgress(p),
-      abort.signal,
-    );
+      const result = await exportService.export(
+        rawData,
+        config,
+        user?.id ?? "anonymous",
+        (p) => setExportProgress(p),
+        abort.signal,
+      );
 
-    setExporting(false);
-    setExportProgress(undefined);
-    exportAbort.current = null;
+      setExporting(false);
+      setExportProgress(undefined);
+      exportAbort.current = null;
 
-    if (result.status === 'success') {
-      showAlert('success', `Exported ${result.metadata.recordCount} plans as ${result.filename}`);
-      setExportOpen(false);
-    } else if (result.status === 'cancelled') {
-      showAlert('info', result.reason);
-    } else {
-      showAlert('error', result.error);
-    }
-  }, [buildExportRows, user?.id, showAlert]);
+      if (result.status === "success") {
+        showAlert("success", `Exported ${result.metadata.recordCount} plans as ${result.filename}`);
+        setExportOpen(false);
+      } else if (result.status === "cancelled") {
+        showAlert("info", result.reason);
+      } else {
+        showAlert("error", result.error);
+      }
+    },
+    [buildExportRows, user?.id, showAlert],
+  );
 
-  const handleExportPreview = useCallback(async (config: ExportConfig) => {
-    const rawData = buildExportRows();
-    if (rawData.length === 0) return undefined;
-    return exportService.preview(rawData, config, user?.id ?? 'anonymous');
-  }, [buildExportRows, user?.id]);
+  const handleExportPreview = useCallback(
+    async (config: ExportConfig) => {
+      const rawData = buildExportRows();
+      if (rawData.length === 0) return undefined;
+      return exportService.preview(rawData, config, user?.id ?? "anonymous");
+    },
+    [buildExportRows, user?.id],
+  );
 
   const handleCancelExport = useCallback(() => {
     exportAbort.current?.abort();
@@ -475,7 +506,7 @@ export default function PlanConfiguration() {
     setEditingPlan(plan.plan);
     setEditFields({
       displayName: plan.displayName,
-      description: plan.description ?? '',
+      description: plan.description ?? "",
       billingModel: plan.billingModel,
       baseCost: plan.baseCost,
       pricePerSeat: plan.pricePerSeat,
@@ -483,8 +514,8 @@ export default function PlanConfiguration() {
       maxCatalogItems: plan.maxCatalogItems,
       features: [...plan.features],
       sortOrder: plan.sortOrder,
-      stripePriceIdBase: plan.stripePriceIdBase ?? '',
-      stripePriceIdSeat: plan.stripePriceIdSeat ?? '',
+      stripePriceIdBase: plan.stripePriceIdBase ?? "",
+      stripePriceIdSeat: plan.stripePriceIdSeat ?? "",
       status: plan.status,
     });
     setValidationErrors({});
@@ -523,12 +554,12 @@ export default function PlanConfiguration() {
       });
       setEditingPlan(null);
       setEditFields({});
-      showAlert('success', 'Plan updated successfully.');
+      showAlert("success", "Plan updated successfully.");
       await fetchPlans();
     } catch (err: unknown) {
       const normalized = normalizeError(err);
       showError(normalized.message);
-      logError(err, 'PlanConfiguration.saveEdit');
+      logError(err, "PlanConfiguration.saveEdit");
     } finally {
       setSaving(false);
     }
@@ -541,7 +572,7 @@ export default function PlanConfiguration() {
     if (hasErrors(errors)) return;
 
     if (!createFields.plan || !createFields.displayName || !createFields.billingModel) {
-      showWarning('Please fill in all required fields.');
+      showWarning("Please fill in all required fields.");
       return;
     }
 
@@ -566,12 +597,12 @@ export default function PlanConfiguration() {
       setShowCreateForm(false);
       setCreateFields(DEFAULT_CREATE_STATE);
       setCreateErrors({});
-      showAlert('success', `Plan "${createFields.displayName}" created.`);
+      showAlert("success", `Plan "${createFields.displayName}" created.`);
       await fetchPlans();
     } catch (err: unknown) {
       const normalized = normalizeError(err);
       showError(normalized.message);
-      logError(err, 'PlanConfiguration.handleCreate');
+      logError(err, "PlanConfiguration.handleCreate");
     } finally {
       setCreating(false);
     }
@@ -591,12 +622,12 @@ export default function PlanConfiguration() {
     try {
       await deleteSubscriptionType(deleteConfirm.plan);
       setDeleteConfirm(null);
-      showAlert('success', `Plan "${deleteConfirm.displayName}" deactivated.`);
+      showAlert("success", `Plan "${deleteConfirm.displayName}" deactivated.`);
       await fetchPlans();
     } catch (err: unknown) {
       const normalized = normalizeError(err);
       showError(normalized.message);
-      logError(err, 'PlanConfiguration.handleDelete');
+      logError(err, "PlanConfiguration.handleDelete");
     }
   };
 
@@ -622,7 +653,7 @@ export default function PlanConfiguration() {
           icon={Package}
           title="No subscription plans"
           description="Get started by creating your first subscription plan for organizations."
-          action={{ label: 'Create Plan', onClick: () => setShowCreateForm(true) }}
+          action={{ label: "Create Plan", onClick: () => setShowCreateForm(true) }}
         />
       </div>
     );
@@ -630,13 +661,13 @@ export default function PlanConfiguration() {
 
   // ─── Shared options ──────────────────────────────────────────────────────
   const billingModelOptions = [
-    { value: 'dynamic', label: 'Dynamic (per-seat pricing)' },
-    { value: 'fixed',   label: 'Fixed (flat rate)' },
+    { value: "dynamic", label: "Dynamic (per-seat pricing)" },
+    { value: "fixed", label: "Fixed (flat rate)" },
   ];
   const statusOptions: { value: SubscriptionStatus; label: string }[] = [
-    { value: 'active',     label: 'Active' },
-    { value: 'inactive',   label: 'Inactive' },
-    { value: 'deprecated', label: 'Deprecated' },
+    { value: "active", label: "Active" },
+    { value: "inactive", label: "Inactive" },
+    { value: "deprecated", label: "Deprecated" },
   ];
 
   return (
@@ -652,7 +683,7 @@ export default function PlanConfiguration() {
         onPreview={handleExportPreview}
         module="plan-configuration"
         policy={PLAN_CONFIGURATION_POLICY}
-        allowedFormats={['xlsx']}
+        allowedFormats={["xlsx"]}
         exporting={exporting}
         progress={exportProgress}
         onCancel={handleCancelExport}
@@ -691,18 +722,25 @@ export default function PlanConfiguration() {
 
           {/* Row 1 – identifiers */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <Field label="Plan ID" required hint="lowercase, alphanumeric, underscores" error={createErrors.plan}>
+            <Field
+              label="Subscription Name"
+              required
+              hint="lowercase, alphanumeric, underscores"
+              error={createErrors.plan}
+            >
               <TextInput
-                value={createFields.plan ?? ''}
-                onChange={(e) => setCreateFields(f => ({ ...f, plan: e.target.value.toLowerCase() }))}
+                value={createFields.plan ?? ""}
+                onChange={(e) =>
+                  setCreateFields((f) => ({ ...f, plan: e.target.value.toLowerCase() }))
+                }
                 placeholder="e.g., premium_pro"
               />
             </Field>
 
             <Field label="Display Name" required error={createErrors.displayName}>
               <TextInput
-                value={createFields.displayName ?? ''}
-                onChange={(e) => setCreateFields(f => ({ ...f, displayName: e.target.value }))}
+                value={createFields.displayName ?? ""}
+                onChange={(e) => setCreateFields((f) => ({ ...f, displayName: e.target.value }))}
                 placeholder="e.g., Premium Pro"
               />
             </Field>
@@ -710,8 +748,10 @@ export default function PlanConfiguration() {
             <Field label="Billing Model" required error={createErrors.billingModel}>
               <SelectInput
                 options={billingModelOptions}
-                value={createFields.billingModel ?? 'dynamic'}
-                onChange={(e) => setCreateFields(f => ({ ...f, billingModel: e.target.value as BillingModel }))}
+                value={createFields.billingModel ?? "dynamic"}
+                onChange={(e) =>
+                  setCreateFields((f) => ({ ...f, billingModel: e.target.value as BillingModel }))
+                }
               />
             </Field>
           </div>
@@ -722,7 +762,9 @@ export default function PlanConfiguration() {
               <NumberInput
                 min={0}
                 value={createFields.baseCost ?? 0}
-                onChange={(e) => setCreateFields(f => ({ ...f, baseCost: Number(e.target.value) }))}
+                onChange={(e) =>
+                  setCreateFields((f) => ({ ...f, baseCost: Number(e.target.value) }))
+                }
               />
             </Field>
 
@@ -730,21 +772,31 @@ export default function PlanConfiguration() {
               <NumberInput
                 min={0}
                 value={createFields.pricePerSeat ?? 0}
-                onChange={(e) => setCreateFields(f => ({ ...f, pricePerSeat: Number(e.target.value) }))}
+                onChange={(e) =>
+                  setCreateFields((f) => ({ ...f, pricePerSeat: Number(e.target.value) }))
+                }
               />
             </Field>
 
             <Field label="Max Seats" hint="-1 = unlimited" error={createErrors.maxSeats}>
               <NumberInput
                 value={createFields.maxSeats ?? -1}
-                onChange={(e) => setCreateFields(f => ({ ...f, maxSeats: Number(e.target.value) }))}
+                onChange={(e) =>
+                  setCreateFields((f) => ({ ...f, maxSeats: Number(e.target.value) }))
+                }
               />
             </Field>
 
-            <Field label="Max Catalog Items" hint="-1 = unlimited" error={createErrors.maxCatalogItems}>
+            <Field
+              label="Max Catalog Items"
+              hint="-1 = unlimited"
+              error={createErrors.maxCatalogItems}
+            >
               <NumberInput
                 value={createFields.maxCatalogItems ?? -1}
-                onChange={(e) => setCreateFields(f => ({ ...f, maxCatalogItems: Number(e.target.value) }))}
+                onChange={(e) =>
+                  setCreateFields((f) => ({ ...f, maxCatalogItems: Number(e.target.value) }))
+                }
               />
             </Field>
           </div>
@@ -754,30 +806,38 @@ export default function PlanConfiguration() {
             <Field label="Sort Order" error={createErrors.sortOrder}>
               <NumberInput
                 value={createFields.sortOrder ?? 0}
-                onChange={(e) => setCreateFields(f => ({ ...f, sortOrder: Number(e.target.value) }))}
+                onChange={(e) =>
+                  setCreateFields((f) => ({ ...f, sortOrder: Number(e.target.value) }))
+                }
               />
             </Field>
 
             <Field label="Status">
               <SelectInput
                 options={statusOptions}
-                value={createFields.status ?? 'active'}
-                onChange={(e) => setCreateFields(f => ({ ...f, status: e.target.value as SubscriptionStatus }))}
+                value={createFields.status ?? "active"}
+                onChange={(e) =>
+                  setCreateFields((f) => ({ ...f, status: e.target.value as SubscriptionStatus }))
+                }
               />
             </Field>
 
             <Field label="Stripe Base Price ID">
               <TextInput
-                value={createFields.stripePriceIdBase ?? ''}
-                onChange={(e) => setCreateFields(f => ({ ...f, stripePriceIdBase: e.target.value }))}
+                value={createFields.stripePriceIdBase ?? ""}
+                onChange={(e) =>
+                  setCreateFields((f) => ({ ...f, stripePriceIdBase: e.target.value }))
+                }
                 placeholder="price_…"
               />
             </Field>
 
             <Field label="Stripe Seat Price ID">
               <TextInput
-                value={createFields.stripePriceIdSeat ?? ''}
-                onChange={(e) => setCreateFields(f => ({ ...f, stripePriceIdSeat: e.target.value }))}
+                value={createFields.stripePriceIdSeat ?? ""}
+                onChange={(e) =>
+                  setCreateFields((f) => ({ ...f, stripePriceIdSeat: e.target.value }))
+                }
                 placeholder="price_…"
               />
             </Field>
@@ -787,8 +847,8 @@ export default function PlanConfiguration() {
           <div className="mb-4">
             <Field label="Description" hint="max 500 chars" error={createErrors.description}>
               <TextareaInput
-                value={createFields.description ?? ''}
-                onChange={(e) => setCreateFields(f => ({ ...f, description: e.target.value }))}
+                value={createFields.description ?? ""}
+                onChange={(e) => setCreateFields((f) => ({ ...f, description: e.target.value }))}
                 rows={2}
                 maxLength={500}
                 placeholder="Brief description of this plan…"
@@ -801,7 +861,7 @@ export default function PlanConfiguration() {
             <label className="block text-sm font-semibold text-gray-400 mb-1.5">Features</label>
             <FeaturesEditor
               features={createFields.features ?? []}
-              onChange={(features) => setCreateFields(f => ({ ...f, features }))}
+              onChange={(features) => setCreateFields((f) => ({ ...f, features }))}
             />
           </div>
 
@@ -819,7 +879,13 @@ export default function PlanConfiguration() {
               disabled={creating}
               className="flex items-center gap-2 px-5 py-2.5 bg-[#FFD700] text-black font-semibold rounded-lg hover:bg-yellow-300 transition disabled:opacity-50"
             >
-              {creating ? 'Creating…' : <><Plus size={16} /> Create Plan</>}
+              {creating ? (
+                "Creating…"
+              ) : (
+                <>
+                  <Plus size={16} /> Create Plan
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -842,8 +908,10 @@ export default function PlanConfiguration() {
                   {isEditing ? (
                     <Field label="Display Name" required error={validationErrors.displayName}>
                       <TextInput
-                        value={editFields.displayName ?? ''}
-                        onChange={(e) => setEditFields(f => ({ ...f, displayName: e.target.value }))}
+                        value={editFields.displayName ?? ""}
+                        onChange={(e) =>
+                          setEditFields((f) => ({ ...f, displayName: e.target.value }))
+                        }
                         maxLength={100}
                       />
                     </Field>
@@ -884,7 +952,9 @@ export default function PlanConfiguration() {
                       <Pencil size={15} />
                     </button>
                     <button
-                      onClick={() => setDeleteConfirm({ plan: plan.plan, displayName: plan.displayName })}
+                      onClick={() =>
+                        setDeleteConfirm({ plan: plan.plan, displayName: plan.displayName })
+                      }
                       className="w-8 h-8 rounded-lg bg-red-900/20 hover:bg-red-900/40 flex items-center justify-center text-red-400 transition"
                       title="Deactivate plan"
                     >
@@ -901,14 +971,18 @@ export default function PlanConfiguration() {
                     <NumberInput
                       min={0}
                       value={editFields.baseCost ?? 0}
-                      onChange={(e) => setEditFields(f => ({ ...f, baseCost: Number(e.target.value) }))}
+                      onChange={(e) =>
+                        setEditFields((f) => ({ ...f, baseCost: Number(e.target.value) }))
+                      }
                     />
                   </Field>
                   <Field label="Price / Seat" hint="¢" error={validationErrors.pricePerSeat}>
                     <NumberInput
                       min={0}
                       value={editFields.pricePerSeat ?? 0}
-                      onChange={(e) => setEditFields(f => ({ ...f, pricePerSeat: Number(e.target.value) }))}
+                      onChange={(e) =>
+                        setEditFields((f) => ({ ...f, pricePerSeat: Number(e.target.value) }))
+                      }
                     />
                   </Field>
                 </div>
@@ -934,8 +1008,13 @@ export default function PlanConfiguration() {
                       <Field label="Status">
                         <SelectInput
                           options={statusOptions}
-                          value={editFields.status ?? 'active'}
-                          onChange={(e) => setEditFields(f => ({ ...f, status: e.target.value as SubscriptionStatus }))}
+                          value={editFields.status ?? "active"}
+                          onChange={(e) =>
+                            setEditFields((f) => ({
+                              ...f,
+                              status: e.target.value as SubscriptionStatus,
+                            }))
+                          }
                         />
                       </Field>
                     </div>
@@ -943,8 +1022,13 @@ export default function PlanConfiguration() {
                       <Field label="Billing Model" error={validationErrors.billingModel}>
                         <SelectInput
                           options={billingModelOptions}
-                          value={editFields.billingModel ?? 'dynamic'}
-                          onChange={(e) => setEditFields(f => ({ ...f, billingModel: e.target.value as BillingModel }))}
+                          value={editFields.billingModel ?? "dynamic"}
+                          onChange={(e) =>
+                            setEditFields((f) => ({
+                              ...f,
+                              billingModel: e.target.value as BillingModel,
+                            }))
+                          }
                         />
                       </Field>
                     </div>
@@ -952,13 +1036,15 @@ export default function PlanConfiguration() {
                 </div>
               ) : (
                 <div className="flex items-center gap-2 mb-3">
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                    plan.status === 'active'
-                      ? 'bg-green-500/20 text-green-400'
-                      : plan.status === 'deprecated'
-                        ? 'bg-red-500/20 text-red-400'
-                        : 'bg-gray-600/20 text-gray-400'
-                  }`}>
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                      plan.status === "active"
+                        ? "bg-green-500/20 text-green-400"
+                        : plan.status === "deprecated"
+                          ? "bg-red-500/20 text-red-400"
+                          : "bg-gray-600/20 text-gray-400"
+                    }`}
+                  >
                     {plan.status}
                   </span>
                   <span className="text-xs text-gray-500 capitalize">{plan.billingModel}</span>
@@ -973,37 +1059,63 @@ export default function PlanConfiguration() {
                   <Field label="Max Seats" hint="-1 = ∞" error={validationErrors.maxSeats}>
                     <NumberInput
                       value={editFields.maxSeats ?? -1}
-                      onChange={(e) => setEditFields(f => ({ ...f, maxSeats: Number(e.target.value) }))}
+                      onChange={(e) =>
+                        setEditFields((f) => ({ ...f, maxSeats: Number(e.target.value) }))
+                      }
                     />
                   </Field>
-                  <Field label="Max Catalog Items" hint="-1 = ∞" error={validationErrors.maxCatalogItems}>
+                  <Field
+                    label="Max Catalog Items"
+                    hint="-1 = ∞"
+                    error={validationErrors.maxCatalogItems}
+                  >
                     <NumberInput
                       value={editFields.maxCatalogItems ?? -1}
-                      onChange={(e) => setEditFields(f => ({ ...f, maxCatalogItems: Number(e.target.value) }))}
+                      onChange={(e) =>
+                        setEditFields((f) => ({ ...f, maxCatalogItems: Number(e.target.value) }))
+                      }
                     />
                   </Field>
                   <Field label="Sort Order" error={validationErrors.sortOrder}>
                     <NumberInput
                       value={editFields.sortOrder ?? 0}
-                      onChange={(e) => setEditFields(f => ({ ...f, sortOrder: Number(e.target.value) }))}
+                      onChange={(e) =>
+                        setEditFields((f) => ({ ...f, sortOrder: Number(e.target.value) }))
+                      }
                     />
                   </Field>
                 </div>
               ) : (
                 <div className="text-xs text-gray-500 grid grid-cols-2 gap-1 mb-3">
-                  <p>Seats: <span className="text-white">{plan.maxSeats === -1 ? '∞' : plan.maxSeats}</span></p>
-                  <p>Items: <span className="text-white">{plan.maxCatalogItems === -1 ? '∞' : plan.maxCatalogItems}</span></p>
-                  <p>Sort: <span className="text-white">{plan.sortOrder}</span></p>
+                  <p>
+                    Seats:{" "}
+                    <span className="text-white">{plan.maxSeats === -1 ? "∞" : plan.maxSeats}</span>
+                  </p>
+                  <p>
+                    Items:{" "}
+                    <span className="text-white">
+                      {plan.maxCatalogItems === -1 ? "∞" : plan.maxCatalogItems}
+                    </span>
+                  </p>
+                  <p>
+                    Sort: <span className="text-white">{plan.sortOrder}</span>
+                  </p>
                 </div>
               )}
 
               {/* ── Description ─────────────────────────────────── */}
               {isEditing ? (
                 <div className="mb-3">
-                  <Field label="Description" hint="max 500 chars" error={validationErrors.description}>
+                  <Field
+                    label="Description"
+                    hint="max 500 chars"
+                    error={validationErrors.description}
+                  >
                     <TextareaInput
-                      value={editFields.description ?? ''}
-                      onChange={(e) => setEditFields(f => ({ ...f, description: e.target.value }))}
+                      value={editFields.description ?? ""}
+                      onChange={(e) =>
+                        setEditFields((f) => ({ ...f, description: e.target.value }))
+                      }
                       rows={2}
                       maxLength={500}
                     />
@@ -1019,10 +1131,12 @@ export default function PlanConfiguration() {
               <div className="flex-1 mb-3">
                 {isEditing ? (
                   <div>
-                    <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Features</label>
+                    <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                      Features
+                    </label>
                     <FeaturesEditor
                       features={editFields.features ?? []}
-                      onChange={(features) => setEditFields(f => ({ ...f, features }))}
+                      onChange={(features) => setEditFields((f) => ({ ...f, features }))}
                     />
                   </div>
                 ) : (
@@ -1049,15 +1163,19 @@ export default function PlanConfiguration() {
                 <div className="grid grid-cols-1 gap-3 mb-3">
                   <Field label="Stripe Base Price ID">
                     <TextInput
-                      value={editFields.stripePriceIdBase ?? ''}
-                      onChange={(e) => setEditFields(f => ({ ...f, stripePriceIdBase: e.target.value }))}
+                      value={editFields.stripePriceIdBase ?? ""}
+                      onChange={(e) =>
+                        setEditFields((f) => ({ ...f, stripePriceIdBase: e.target.value }))
+                      }
                       placeholder="price_…"
                     />
                   </Field>
                   <Field label="Stripe Seat Price ID">
                     <TextInput
-                      value={editFields.stripePriceIdSeat ?? ''}
-                      onChange={(e) => setEditFields(f => ({ ...f, stripePriceIdSeat: e.target.value }))}
+                      value={editFields.stripePriceIdSeat ?? ""}
+                      onChange={(e) =>
+                        setEditFields((f) => ({ ...f, stripePriceIdSeat: e.target.value }))
+                      }
                       placeholder="price_…"
                     />
                   </Field>
@@ -1067,8 +1185,16 @@ export default function PlanConfiguration() {
               {/* ── Read-only Stripe IDs ─────────────────────────── */}
               {!isEditing && (plan.stripePriceIdBase || plan.stripePriceIdSeat) && (
                 <div className="text-xs text-gray-600 space-y-0.5 mb-3">
-                  {plan.stripePriceIdBase && <p>Base ID: <span className="font-mono">{plan.stripePriceIdBase}</span></p>}
-                  {plan.stripePriceIdSeat && <p>Seat ID: <span className="font-mono">{plan.stripePriceIdSeat}</span></p>}
+                  {plan.stripePriceIdBase && (
+                    <p>
+                      Base ID: <span className="font-mono">{plan.stripePriceIdBase}</span>
+                    </p>
+                  )}
+                  {plan.stripePriceIdSeat && (
+                    <p>
+                      Seat ID: <span className="font-mono">{plan.stripePriceIdSeat}</span>
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -1083,7 +1209,9 @@ export default function PlanConfiguration() {
       <ConfirmDialog
         isOpen={!!deleteConfirm}
         onClose={() => setDeleteConfirm(null)}
-        onConfirm={() => { void handleDelete(); }}
+        onConfirm={() => {
+          void handleDelete();
+        }}
         title="Deactivate Plan"
         message={`Are you sure you want to deactivate the "${deleteConfirm?.displayName}" plan? It will no longer be visible to new customers, but existing subscriptions will not be affected.`}
         confirmText="Deactivate"

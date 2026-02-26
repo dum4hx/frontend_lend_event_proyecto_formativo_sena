@@ -220,8 +220,9 @@ export default function SignUp() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [backendErrors, setBackendErrors] = useState<Partial<Record<FormField, string>>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
-  const [fieldValidationStatus, setFieldValidationStatus] =
-    useState<Record<FormField, FieldValidationStatus>>(INITIAL_FIELD_VALIDATION_STATUS);
+  const [fieldValidationStatus, setFieldValidationStatus] = useState<
+    Record<FormField, FieldValidationStatus>
+  >(INITIAL_FIELD_VALIDATION_STATUS);
   const [submitted, setSubmitted] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [, setSubmitAttempt] = useState(0);
@@ -352,7 +353,9 @@ export default function SignUp() {
     if (!cityQuery.trim()) return stateCities;
     const normalizedCityQuery = normalize(cityQuery);
     // Prefer prefix matches for progressive suggestions
-    const prefixCityMatches = stateCities.filter((c) => normalize(c.name).startsWith(normalizedCityQuery));
+    const prefixCityMatches = stateCities.filter((c) =>
+      normalize(c.name).startsWith(normalizedCityQuery),
+    );
     if (prefixCityMatches.length) return prefixCityMatches;
     return stateCities.filter((c) => normalize(c.name).includes(normalizedCityQuery));
   }, [stateCities, cityQuery, normalize]);
@@ -378,14 +381,10 @@ export default function SignUp() {
   const formatPostalCodeInput = (value: string) => value.replace(/\D/g, "").slice(0, 6);
 
   const formatStateInput = (value: string) =>
-    value
-      .replace(/[^A-Za-zÀ-ÿ\s]/g, "")
-      .replace(/\s{2,}/g, " ");
+    value.replace(/[^A-Za-zÀ-ÿ\s]/g, "").replace(/\s{2,}/g, " ");
 
   const formatOrganizationNameInput = (value: string) =>
-    value
-      .replace(/[^A-Za-zÀ-ÿ0-9\s]/g, "")
-      .replace(/\s{2,}/g, " ");
+    value.replace(/[^A-Za-zÀ-ÿ0-9\s]/g, "").replace(/\s{2,}/g, " ");
 
   const formatAddressSegmentInput = (value: string) => {
     const cleaned = value
@@ -413,11 +412,10 @@ export default function SignUp() {
       .replace(/\s{2,}/g, " ")
       .slice(0, ADDRESS_DETAILS_MAX_LENGTH);
 
-  const toColombianPhone = (digits: string) =>
-    digits ? `${COLOMBIA_PHONE_PREFIX}${digits}` : "";
+  const toColombianPhone = (digits: string) => (digits ? `${COLOMBIA_PHONE_PREFIX}${digits}` : "");
 
   const formatTaxIdInput = (value: string) => {
-    const digits = value.replace(/\D/g, "").slice(0, 9);
+    const digits = value.replace(/\D/g, "").slice(0, 11);
     const groups = digits.match(/.{1,3}/g) || [];
     return groups.join("-");
   };
@@ -429,7 +427,9 @@ export default function SignUp() {
   };
 
   const setFieldValidation = (field: FormField, status: FieldValidationStatus) => {
-    setFieldValidationStatus((prev) => (prev[field] === status ? prev : { ...prev, [field]: status }));
+    setFieldValidationStatus((prev) =>
+      prev[field] === status ? prev : { ...prev, [field]: status },
+    );
   };
 
   const setErrorFor = (field: string, message?: string) => {
@@ -621,7 +621,10 @@ export default function SignUp() {
         validationErrors.mainNumber = mainValidation.message;
       }
 
-      const secondaryValidation = validateAddressSegmentField(data.secondaryNumber, "Secondary number");
+      const secondaryValidation = validateAddressSegmentField(
+        data.secondaryNumber,
+        "Secondary number",
+      );
       if (!secondaryValidation.isValid && secondaryValidation.message) {
         validationErrors.secondaryNumber = secondaryValidation.message;
       }
@@ -635,14 +638,16 @@ export default function SignUp() {
       }
 
       const hasStreetBase =
-        !!data.streetType && !!data.mainNumber && !!data.secondaryNumber && !!data.complementaryNumber;
+        !!data.streetType &&
+        !!data.mainNumber &&
+        !!data.secondaryNumber &&
+        !!data.complementaryNumber;
       if (!hasStreetBase) {
         validationErrors.street = "Address is required";
       }
 
       if (data.additionalDetails.length > ADDRESS_DETAILS_MAX_LENGTH) {
-        validationErrors.additionalDetails =
-          `Additional business location details must not exceed ${ADDRESS_DETAILS_MAX_LENGTH} characters`;
+        validationErrors.additionalDetails = `Additional business location details must not exceed ${ADDRESS_DETAILS_MAX_LENGTH} characters`;
       }
 
       const isStateSelected =
@@ -675,7 +680,10 @@ export default function SignUp() {
       const shouldValidateConfirmPassword =
         submittedState || (!!data.password && !!touchedState.confirmPassword);
       if (shouldValidateConfirmPassword) {
-        const confirmPasswordValidation = validateConfirmPassword(data.password, data.confirmPassword);
+        const confirmPasswordValidation = validateConfirmPassword(
+          data.password,
+          data.confirmPassword,
+        );
         if (!confirmPasswordValidation.isValid && confirmPasswordValidation.message) {
           validationErrors.confirmPassword = confirmPasswordValidation.message;
         }
@@ -776,7 +784,13 @@ export default function SignUp() {
   const canEditPostalCode = !!selectedCity && !selectedCity.postalCode;
 
   const progressWidthClass =
-    currentStep === 1 ? "w-1/4" : currentStep === 2 ? "w-2/4" : currentStep === 3 ? "w-3/4" : "w-full";
+    currentStep === 1
+      ? "w-1/4"
+      : currentStep === 2
+        ? "w-2/4"
+        : currentStep === 3
+          ? "w-3/4"
+          : "w-full";
 
   const validateCurrentStep = () => {
     const currentStepFields = STEP_FIELDS[currentStep] ?? [];
@@ -1022,7 +1036,9 @@ export default function SignUp() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
                 <div className="flex items-center justify-between text-sm mb-3">
-                  <span className="text-gray-300 font-semibold">Step {currentStep} of {TOTAL_STEPS}</span>
+                  <span className="text-gray-300 font-semibold">
+                    Step {currentStep} of {TOTAL_STEPS}
+                  </span>
                   <span className="text-gray-400">
                     {currentStep === 1 && "Personal Information"}
                     {currentStep === 2 && "Organization Information"}
@@ -1031,7 +1047,9 @@ export default function SignUp() {
                   </span>
                 </div>
                 <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
-                  <div className={`h-full bg-yellow-400 transition-all duration-300 ${progressWidthClass}`} />
+                  <div
+                    className={`h-full bg-yellow-400 transition-all duration-300 ${progressWidthClass}`}
+                  />
                 </div>
               </div>
 
@@ -1234,7 +1252,8 @@ export default function SignUp() {
                       ref={taxIdRef}
                       inputMode="numeric"
                       pattern="[0-9]*"
-                      maxLength={11}
+                      minLength={11}
+                      maxLength={14}
                       onChange={(e) => {
                         const v = formatTaxIdInput(e.target.value);
                         setTaxId(v);
@@ -1248,7 +1267,9 @@ export default function SignUp() {
                       disabled={loading}
                       className={inputClass(!!fieldErrors.taxId)}
                     />
-                    {fieldErrors.taxId && <p className="text-red-400 text-xs mt-1">{fieldErrors.taxId}</p>}
+                    {fieldErrors.taxId && (
+                      <p className="text-red-400 text-xs mt-1">{fieldErrors.taxId}</p>
+                    )}
                   </div>
 
                   <div>
@@ -1344,7 +1365,9 @@ export default function SignUp() {
                         disabled={loading}
                         className={inputClass(!!fieldErrors.streetType)}
                       >
-                        <option disabled value="">Select street type</option>
+                        <option disabled value="">
+                          Select street type
+                        </option>
                         {COLOMBIA_STREET_TYPES.map((type) => (
                           <option key={type} value={type}>
                             {type}
@@ -1442,7 +1465,9 @@ export default function SignUp() {
                         className={inputClass(!!fieldErrors.complementaryNumber)}
                       />
                       {fieldErrors.complementaryNumber && (
-                        <p className="text-red-400 text-xs mt-1">{fieldErrors.complementaryNumber}</p>
+                        <p className="text-red-400 text-xs mt-1">
+                          {fieldErrors.complementaryNumber}
+                        </p>
                       )}
                     </div>
 
@@ -1589,7 +1614,8 @@ export default function SignUp() {
 
                     <div className="md:col-span-2">
                       <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                        Additional Business Location Details <span className="text-gray-600">(Optional)</span>
+                        Additional Business Location Details{" "}
+                        <span className="text-gray-600">(Optional)</span>
                       </label>
                       <input
                         type="text"
@@ -1662,7 +1688,9 @@ export default function SignUp() {
                         disabled={loading}
                         className={inputClass(!!fieldErrors.street)}
                       />
-                      {fieldErrors.street && <p className="text-red-400 text-xs mt-1">{fieldErrors.street}</p>}
+                      {fieldErrors.street && (
+                        <p className="text-red-400 text-xs mt-1">{fieldErrors.street}</p>
+                      )}
                     </div>
                   </div>
                 </div>
