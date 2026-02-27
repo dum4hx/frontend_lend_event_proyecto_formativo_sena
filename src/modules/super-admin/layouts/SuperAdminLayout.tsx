@@ -1,9 +1,11 @@
 import { Outlet, Navigate } from "react-router-dom";
+import { useState } from "react";
 import { SuperAdminSidebar } from "../components";
 import { useAuth } from "../../../contexts/useAuth";
 
 export default function SuperAdminLayout() {
   const { user, isLoading } = useAuth();
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   if (isLoading) {
     return (
@@ -26,8 +28,15 @@ export default function SuperAdminLayout() {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      <SuperAdminSidebar />
-      <main className="ml-64 p-8 min-h-screen">
+      <SuperAdminSidebar
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
+      />
+      <main
+        className={`p-8 min-h-screen transition-all duration-300 ${
+          isSidebarCollapsed ? "ml-20" : "ml-64"
+        }`}
+      >
         <Outlet />
       </main>
     </div>
