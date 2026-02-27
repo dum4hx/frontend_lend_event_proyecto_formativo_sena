@@ -375,6 +375,29 @@ const DEFAULT_CREATE_STATE: Partial<CreateSubscriptionTypePayload> = {
   stripePriceIdSeat: "",
 };
 
+type CreateBillingModelOption = BillingModel | "free";
+
+const FREE_PLAN_PRESET: Partial<CreateSubscriptionTypePayload> = {
+  billingModel: "fixed",
+  displayName: "Free",
+  description:
+    "Great to get started: essential features with controlled limits for small teams.",
+  baseCost: 0,
+  pricePerSeat: 0,
+  maxSeats: 3,
+  maxCatalogItems: 50,
+  sortOrder: 0,
+  status: "active",
+  features: [
+    "Up to 3 users",
+    "Up to 50 catalog items",
+    "Basic inventory management",
+    "Email support",
+  ],
+  stripePriceIdBase: "",
+  stripePriceIdSeat: "",
+};
+
 // ─── Edit-fields type (all patchable fields) ────────────────────────────────
 type EditFields = Partial<Omit<SubscriptionType, "_id" | "plan">>;
 
@@ -393,6 +416,7 @@ export default function PlanConfiguration() {
 
   // Create mode
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [createBillingModel, setCreateBillingModel] = useState<CreateBillingModelOption>("dynamic");
   const [createFields, setCreateFields] =
     useState<Partial<CreateSubscriptionTypePayload>>(DEFAULT_CREATE_STATE);
   const [createErrors, setCreateErrors] = useState<PlanValidationErrors>({});
@@ -582,19 +606,40 @@ export default function PlanConfiguration() {
         plan: createFields.plan,
         displayName: createFields.displayName,
         description: createFields.description,
-        billingModel: createFields.billingModel as BillingModel,
-        baseCost: createFields.baseCost ?? 0,
-        pricePerSeat: createFields.pricePerSeat ?? 0,
-        maxSeats: createFields.maxSeats ?? -1,
-        maxCatalogItems: createFields.maxCatalogItems ?? -1,
-        features: createFields.features ?? [],
+        billingModel:
+          createBillingModel === "free"
+            ? "fixed"
+            : (createFields.billingModel as BillingModel),
+        baseCost:
+          createBillingModel === "free"
+            ? (FREE_PLAN_PRESET.baseCost ?? 0)
+            : (createFields.baseCost ?? 0),
+        pricePerSeat:
+          createBillingModel === "free"
+            ? (FREE_PLAN_PRESET.pricePerSeat ?? 0)
+            : (createFields.pricePerSeat ?? 0),
+        maxSeats:
+          createBillingModel === "free"
+            ? (FREE_PLAN_PRESET.maxSeats ?? 3)
+            : (createFields.maxSeats ?? -1),
+        maxCatalogItems:
+          createBillingModel === "free"
+            ? (FREE_PLAN_PRESET.maxCatalogItems ?? 50)
+            : (createFields.maxCatalogItems ?? -1),
+        features:
+          createBillingModel === "free"
+            ? (createFields.features ?? FREE_PLAN_PRESET.features ?? [])
+            : (createFields.features ?? []),
         sortOrder: createFields.sortOrder ?? 0,
-        stripePriceIdBase: createFields.stripePriceIdBase || undefined,
-        stripePriceIdSeat: createFields.stripePriceIdSeat || undefined,
+        stripePriceIdBase:
+          createBillingModel === "free" ? undefined : (createFields.stripePriceIdBase || undefined),
+        stripePriceIdSeat:
+          createBillingModel === "free" ? undefined : (createFields.stripePriceIdSeat || undefined),
         status: createFields.status,
       });
 
       setShowCreateForm(false);
+      setCreateBillingModel("dynamic");
       setCreateFields(DEFAULT_CREATE_STATE);
       setCreateErrors({});
       showAlert("success", `Plan "${createFields.displayName}" created.`);
@@ -611,6 +656,7 @@ export default function PlanConfiguration() {
   // Cancel create
   const cancelCreate = () => {
     setShowCreateForm(false);
+    setCreateBillingModel("dynamic");
     setCreateFields(DEFAULT_CREATE_STATE);
     setCreateErrors({});
   };
@@ -663,6 +709,7 @@ export default function PlanConfiguration() {
   const billingModelOptions = [
     { value: "dynamic", label: "Dynamic (per-seat pricing)" },
     { value: "fixed", label: "Fixed (flat rate)" },
+    { value: "free", label: "Free (no cost fields)" },
   ];
   const statusOptions: { value: SubscriptionStatus; label: string }[] = [
     { value: "active", label: "Active" },
@@ -748,58 +795,130 @@ export default function PlanConfiguration() {
             <Field label="Billing Model" required error={createErrors.billingModel}>
               <SelectInput
                 options={billingModelOptions}
-                value={createFields.billingModel ?? "dynamic"}
-                onChange={(e) =>
-                  setCreateFields((f) => ({ ...f, billingModel: e.target.value as BillingModel }))
-                }
+                value={createBillingModel}
+                onChange={(e) => {
+                  const selected = e.target.value as CreateBillingModelOption;
+                  setCreateBillingModel(selected);
+                  setCreateFields((f) => {
+                    if (selected === "free") {
+                      return {
+                        ...f,
+                        plan: f.plan?.trim() ? f.plan : "free",
+                        displayName: f.displayName?.trim()
+                          ? f.displayName
+                          : (FREE_PLAN_PRESET.displayName ?? "Free"),
+                        description:
+                          f.description?.trim() ||
+                          (FREE_PLAN_PRESET.description ?? ""),
+                        billingModel: "fixed",
+                        baseCost: FREE_PLAN_PRESET.baseCost ?? 0,
+                        pricePerSeat: FREE_PLAN_PRESET.pricePerSeat ?? 0,
+                        maxSeats: FREE_PLAN_PRESET.maxSeats ?? 3,
+                        maxCatalogItems: FREE_PLAN_PRESET.maxCatalogItems ?? 50,
+                        features:
+                          f.features && f.features.length > 0
+                            ? f.features
+                            : (FREE_PLAN_PRESET.features ?? []),
+                        status: f.status ?? FREE_PLAN_PRESET.status,
+                        sortOrder: f.sortOrder ?? FREE_PLAN_PRESET.sortOrder,
+                        stripePriceIdBase: "",
+                        stripePriceIdSeat: "",
+                      };
+                    }
+
+                    if (createBillingModel === "free") {
+                      return {
+                        ...f,
+                        plan: "",
+                        displayName: "",
+                        billingModel: selected as BillingModel,
+                        baseCost: 0,
+                        pricePerSeat: 0,
+                        maxSeats: -1,
+                        maxCatalogItems: -1,
+                        description: "",
+                        features: [],
+                        stripePriceIdBase: "",
+                        stripePriceIdSeat: "",
+                      };
+                    }
+
+                    return { ...f, billingModel: selected as BillingModel };
+                  });
+                }}
               />
             </Field>
           </div>
+
+          {createBillingModel === "free" && (
+            <div className="mb-4 rounded-lg border border-green-600/40 bg-green-900/10 p-4">
+              <p className="text-sm font-semibold text-green-400 mb-2">Predefined Free Plan</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs text-gray-300">
+                <p>
+                  Base cost: <span className="text-white">Free</span>
+                </p>
+                <p>
+                  Price per seat: <span className="text-white">Free</span>
+                </p>
+                <p>
+                  Users: <span className="text-white">{createFields.maxSeats ?? 3}</span>
+                </p>
+                <p>
+                  Catalog: <span className="text-white">{createFields.maxCatalogItems ?? 50}</span>
+                </p>
+                <p>
+                  Status: <span className="text-white capitalize">{createFields.status ?? "active"}</span>
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Row 2 – pricing */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-            <Field label="Base Cost" hint="cents" required error={createErrors.baseCost}>
-              <NumberInput
-                min={0}
-                value={createFields.baseCost ?? 0}
-                onChange={(e) =>
-                  setCreateFields((f) => ({ ...f, baseCost: Number(e.target.value) }))
-                }
-              />
-            </Field>
+          {createBillingModel !== "free" && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+              <Field label="Base Cost" hint="cents" required error={createErrors.baseCost}>
+                <NumberInput
+                  min={0}
+                  value={createFields.baseCost ?? 0}
+                  onChange={(e) =>
+                    setCreateFields((f) => ({ ...f, baseCost: Number(e.target.value) }))
+                  }
+                />
+              </Field>
 
-            <Field label="Price Per Seat" hint="cents" error={createErrors.pricePerSeat}>
-              <NumberInput
-                min={0}
-                value={createFields.pricePerSeat ?? 0}
-                onChange={(e) =>
-                  setCreateFields((f) => ({ ...f, pricePerSeat: Number(e.target.value) }))
-                }
-              />
-            </Field>
+              <Field label="Price Per Seat" hint="cents" error={createErrors.pricePerSeat}>
+                <NumberInput
+                  min={0}
+                  value={createFields.pricePerSeat ?? 0}
+                  onChange={(e) =>
+                    setCreateFields((f) => ({ ...f, pricePerSeat: Number(e.target.value) }))
+                  }
+                />
+              </Field>
 
-            <Field label="Max Seats" hint="-1 = unlimited" error={createErrors.maxSeats}>
-              <NumberInput
-                value={createFields.maxSeats ?? -1}
-                onChange={(e) =>
-                  setCreateFields((f) => ({ ...f, maxSeats: Number(e.target.value) }))
-                }
-              />
-            </Field>
+              <Field label="Max Seats" hint="-1 = unlimited" error={createErrors.maxSeats}>
+                <NumberInput
+                  value={createFields.maxSeats ?? -1}
+                  onChange={(e) =>
+                    setCreateFields((f) => ({ ...f, maxSeats: Number(e.target.value) }))
+                  }
+                />
+              </Field>
 
-            <Field
-              label="Max Catalog Items"
-              hint="-1 = unlimited"
-              error={createErrors.maxCatalogItems}
-            >
-              <NumberInput
-                value={createFields.maxCatalogItems ?? -1}
-                onChange={(e) =>
-                  setCreateFields((f) => ({ ...f, maxCatalogItems: Number(e.target.value) }))
-                }
-              />
-            </Field>
-          </div>
+              <Field
+                label="Max Catalog Items"
+                hint="-1 = unlimited"
+                error={createErrors.maxCatalogItems}
+              >
+                <NumberInput
+                  value={createFields.maxCatalogItems ?? -1}
+                  onChange={(e) =>
+                    setCreateFields((f) => ({ ...f, maxCatalogItems: Number(e.target.value) }))
+                  }
+                />
+              </Field>
+            </div>
+          )}
 
           {/* Row 3 – meta */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
@@ -822,25 +941,29 @@ export default function PlanConfiguration() {
               />
             </Field>
 
-            <Field label="Stripe Base Price ID">
-              <TextInput
-                value={createFields.stripePriceIdBase ?? ""}
-                onChange={(e) =>
-                  setCreateFields((f) => ({ ...f, stripePriceIdBase: e.target.value }))
-                }
-                placeholder="price_…"
-              />
-            </Field>
+            {createBillingModel !== "free" && (
+              <>
+                <Field label="Stripe Base Price ID">
+                  <TextInput
+                    value={createFields.stripePriceIdBase ?? ""}
+                    onChange={(e) =>
+                      setCreateFields((f) => ({ ...f, stripePriceIdBase: e.target.value }))
+                    }
+                    placeholder="price_…"
+                  />
+                </Field>
 
-            <Field label="Stripe Seat Price ID">
-              <TextInput
-                value={createFields.stripePriceIdSeat ?? ""}
-                onChange={(e) =>
-                  setCreateFields((f) => ({ ...f, stripePriceIdSeat: e.target.value }))
-                }
-                placeholder="price_…"
-              />
-            </Field>
+                <Field label="Stripe Seat Price ID">
+                  <TextInput
+                    value={createFields.stripePriceIdSeat ?? ""}
+                    onChange={(e) =>
+                      setCreateFields((f) => ({ ...f, stripePriceIdSeat: e.target.value }))
+                    }
+                    placeholder="price_…"
+                  />
+                </Field>
+              </>
+            )}
           </div>
 
           {/* Description */}
@@ -988,14 +1111,20 @@ export default function PlanConfiguration() {
                 </div>
               ) : (
                 <div className="flex items-baseline gap-1 mb-1">
-                  <span className="text-2xl font-extrabold text-white">
-                    ${formatDollars(plan.baseCost)}
-                  </span>
-                  <span className="text-gray-500 text-xs">/month</span>
-                  {plan.pricePerSeat > 0 && (
-                    <span className="text-gray-500 text-xs ml-1">
-                      +${formatDollars(plan.pricePerSeat)}/seat
-                    </span>
+                  {plan.baseCost === 0 && plan.pricePerSeat === 0 ? (
+                    <span className="text-2xl font-extrabold text-green-400">Free</span>
+                  ) : (
+                    <>
+                      <span className="text-2xl font-extrabold text-white">
+                        ${formatDollars(plan.baseCost)}
+                      </span>
+                      <span className="text-gray-500 text-xs">/month</span>
+                      {plan.pricePerSeat > 0 && (
+                        <span className="text-gray-500 text-xs ml-1">
+                          +${formatDollars(plan.pricePerSeat)}/seat
+                        </span>
+                      )}
+                    </>
                   )}
                 </div>
               )}
