@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Calendar, Users, Clock, Plus, Trash2, Edit, X } from "lucide-react";
 import { EventCard, StatCard } from "../components";
 import {
@@ -10,6 +10,7 @@ import { getCustomers } from "../../../services/customerService";
 import { getPackages } from "../../../services/materialService";
 import { ApiError } from "../../../lib/api";
 import { useAlertModal } from "../../../hooks/useAlertModal";
+import { validateAddressField } from "../../../utils/validators";
 
 type Event = {
   id: string;
@@ -61,6 +62,15 @@ type PackageOption = {
   name?: string;
 };
 
+type MyEventFormField =
+  | "name"
+  | "customerId"
+  | "packageId"
+  | "startDate"
+  | "endDate"
+  | "depositAmount"
+  | "depositMethod";
+
 export default function MyEvents() {
   const { showError, AlertModal } = useAlertModal();
   const [events, setEvents] = useState<Event[]>([]);
@@ -96,42 +106,45 @@ export default function MyEvents() {
   const inputClass = (hasError: boolean) =>
     `w-full bg-zinc-900 rounded-xl py-3 px-4 text-white outline-none transition duration-200 disabled:opacity-50 border ${hasError ? "border-red-500 focus:border-red-500" : "border-zinc-800 focus:border-yellow-400"}`;
 
-  const validateField = (
-    field: MyEventFormField,
-    data = formData,
-  ): string | undefined => {
-    switch (field) {
-      case "name": {
-        const trimmed = data.name.trim();
-        if (!trimmed) return "Event name is required";
-        const result = validateAddressField(trimmed, "Event name");
-        return result.isValid ? undefined : result.message;
-      }
-      case "customerId":
-        return data.customerId ? undefined : "Customer is required";
-      case "packageId":
-        return data.packageId ? undefined : "Package is required";
-      case "startDate":
-        return data.startDate ? undefined : "Start date is required";
-      case "endDate": {
-        if (!data.endDate) return "End date is required";
-        if (data.startDate && data.endDate < data.startDate) {
-          return "End date must be on or after start date";
+  const validateField = useCallback(
+    (
+      field: MyEventFormField,
+      data = formData,
+    ): string | undefined => {
+      switch (field) {
+        case "name": {
+          const trimmed = data.name.trim();
+          if (!trimmed) return "Event name is required";
+          const result = validateAddressField(trimmed, "Event name");
+          return result.isValid ? undefined : result.message;
         }
-        return undefined;
-      }
-      case "depositAmount": {
-        if (!data.depositAmount) return undefined;
-        const amount = Number(data.depositAmount);
-        if (Number.isNaN(amount) || amount < 0) {
-          return "Deposit amount must be a valid positive number";
+        case "customerId":
+          return data.customerId ? undefined : "Customer is required";
+        case "packageId":
+          return data.packageId ? undefined : "Package is required";
+        case "startDate":
+          return data.startDate ? undefined : "Start date is required";
+        case "endDate": {
+          if (!data.endDate) return "End date is required";
+          if (data.startDate && data.endDate < data.startDate) {
+            return "End date must be on or after start date";
+          }
+          return undefined;
         }
-        return undefined;
+        case "depositAmount": {
+          if (!data.depositAmount) return undefined;
+          const amount = Number(data.depositAmount);
+          if (Number.isNaN(amount) || amount < 0) {
+            return "Deposit amount must be a valid positive number";
+          }
+          return undefined;
+        }
+        default:
+          return undefined;
       }
-      default:
-        return undefined;
-    }
-  };
+    },
+    [formData],
+  );
 
   const handleFieldBlur = (field: MyEventFormField) => {
     setFormTouched((prev) => ({ ...prev, [field]: true }));
@@ -160,7 +173,7 @@ export default function MyEvents() {
       });
       return next;
     });
-  }, [formData, formTouched]);
+  }, [formData, formTouched, validateField]);
 
   const handleFieldChange = (field: MyEventFormField, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));

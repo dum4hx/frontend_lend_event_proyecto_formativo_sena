@@ -1,5 +1,6 @@
 import type { MaterialCategory } from "../../../../../types/api";
 import { Edit, Trash2 } from "lucide-react";
+import { AdminTable } from "../../../components";
 
 interface MaterialModelListProps {
   models: MaterialCategory[];
@@ -23,10 +24,8 @@ export function MaterialModelList({
   // parent removed: no mapping needed
 
   return (
-    <div className="bg-[#121212] border border-[#333] rounded-lg overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-[#0f0f0f] border-b border-[#333]">
+    <AdminTable>
+      <thead className="bg-[#0f0f0f] border-b border-[#333]">
             <tr>
               <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">
                 Name
@@ -39,8 +38,8 @@ export function MaterialModelList({
                 Actions
               </th>
             </tr>
-          </thead>
-          <tbody>
+      </thead>
+      <tbody>
             {models.map((model) => (
               <tr
                 key={model._id}
@@ -73,9 +72,7 @@ export function MaterialModelList({
                 </td>
               </tr>
             ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+      </tbody>
+    </AdminTable>
   );
 }

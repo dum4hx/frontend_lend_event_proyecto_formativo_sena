@@ -1,6 +1,7 @@
 import React from 'react';
 import { Eye, Edit, Trash2 } from 'lucide-react';
 import type { MaterialInstance } from '../../../../../types/api';
+import { AdminTable } from '../../../components';
 
 interface MaterialInstanceListProps {
   instances: MaterialInstance[];
@@ -45,17 +46,16 @@ export const MaterialInstanceList: React.FC<MaterialInstanceListProps> = ({
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full">
-        <thead>
-          <tr className="border-b border-[#333]">
+    <AdminTable>
+      <thead className="bg-[#0f0f0f] border-b border-[#333]">
+        <tr>
             <th className="text-left py-4 px-4 text-gray-400 font-semibold">Serial Number</th>
             <th className="text-left py-4 px-4 text-gray-400 font-semibold">Material Type</th>
             <th className="text-left py-4 px-4 text-gray-400 font-semibold">Status</th>
             <th className="text-right py-4 px-4 text-gray-400 font-semibold">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
+        </tr>
+      </thead>
+      <tbody>
           {instances.map((instance) => (
             <tr
               key={instance._id}
@@ -99,8 +99,7 @@ export const MaterialInstanceList: React.FC<MaterialInstanceListProps> = ({
               </td>
             </tr>
           ))}
-        </tbody>
-      </table>
-    </div>
+      </tbody>
+    </AdminTable>
   );
 };

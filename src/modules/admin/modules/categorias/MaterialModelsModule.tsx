@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import type {
   CreateMaterialCategoryPayload,
   MaterialCategory,
@@ -8,6 +8,7 @@ import type {
 import { MaterialModelForm } from "./components/MaterialModelForm";
 import { MaterialModelList } from "./components/MaterialModelList";
 import { Download, Upload } from "lucide-react";
+import { AdminPagination } from "../../components";
 import { useMaterialModels } from "./hooks/useMaterialModels";
 import {
   getMaterialTypes,
@@ -28,8 +29,10 @@ export function MaterialModelsModule() {
   } = useMaterialModels();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [editingModel, setEditingModel] = useState<MaterialCategory | null>(null);
+  const [page, setPage] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const pageSize = 10;
 
   const handleSubmit = async (
     payload: CreateMaterialCategoryPayload | UpdateMaterialCategoryPayload,
@@ -171,6 +174,13 @@ export function MaterialModelsModule() {
     }
   };
 
+  const totalPages = Math.max(1, Math.ceil(models.length / pageSize));
+  const pagedModels = models.slice((page - 1) * pageSize, page * pageSize);
+
+  useEffect(() => {
+    setPage((prev) => Math.min(prev, totalPages));
+  }, [totalPages]);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -230,9 +240,17 @@ export function MaterialModelsModule() {
             </div>
           ) : (
             <MaterialModelList
-              models={models}
+              models={pagedModels}
               onEdit={setEditingModel}
               onDelete={handleDelete}
+            />
+            <AdminPagination
+              currentPage={page}
+              totalPages={totalPages}
+              totalItems={models.length}
+              pageSize={pageSize}
+              itemLabel="categories"
+              onPageChange={setPage}
             />
           )}
           {error && (

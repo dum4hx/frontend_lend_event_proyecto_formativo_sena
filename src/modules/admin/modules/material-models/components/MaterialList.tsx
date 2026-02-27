@@ -1,6 +1,7 @@
 import { Trash2, Edit, Eye } from "lucide-react";
 import type { MaterialType } from "../../../../../types/api";
 import { useState } from "react";
+import { AdminTable } from "../../../components";
 
 interface MaterialListProps {
   materials: MaterialType[];
@@ -49,10 +50,8 @@ export function MaterialList({
   }
 
   return (
-    <div className="bg-[#121212] border border-[#333] rounded-lg overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-[#0f0f0f] border-b border-[#333]">
+    <AdminTable>
+      <thead className="bg-[#0f0f0f] border-b border-[#333]">
             <tr>
               <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">
                 Name
@@ -67,8 +66,8 @@ export function MaterialList({
                 Actions
               </th>
             </tr>
-          </thead>
-          <tbody>
+      </thead>
+      <tbody>
             {materials.map((material) => (
               <tr
                 key={material._id}
@@ -136,9 +135,7 @@ export function MaterialList({
                 </td>
               </tr>
             ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+      </tbody>
+    </AdminTable>
   );
 }

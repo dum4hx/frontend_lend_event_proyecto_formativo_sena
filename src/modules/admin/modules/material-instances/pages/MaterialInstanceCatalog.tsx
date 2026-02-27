@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search } from 'lucide-react';
 import { useMaterialInstances } from '../hooks';
 import { useMaterialTypes } from '../../material-types/hooks';
 import { MaterialInstanceList, MaterialInstanceDetailModal } from '../components';
+import { AdminPagination } from '../../../components';
 import { ExcelExportImport } from '../../../../../components/export/ExcelExportImport';
 import { useToast } from '../../../../../contexts/ToastContext';
 import type { MaterialInstance } from '../../../../../types/api';
@@ -14,11 +15,24 @@ export const MaterialInstanceCatalog: React.FC = () => {
   const { materialTypes } = useMaterialTypes();
   const { showToast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(1);
   const [selectedInstance, setSelectedInstance] = useState<MaterialInstance | null>(null);
+  const pageSize = 10;
 
   const filteredInstances = instances.filter((inst) =>
     inst.serialNumber.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const totalPages = Math.max(1, Math.ceil(filteredInstances.length / pageSize));
+  const pagedInstances = filteredInstances.slice((page - 1) * pageSize, page * pageSize);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    setPage((prev) => Math.min(prev, totalPages));
+  }, [totalPages]);
 
   const handleDelete = (instance: MaterialInstance) => {
     showToast(
@@ -152,13 +166,21 @@ export const MaterialInstanceCatalog: React.FC = () => {
         {/* Instance List */}
         <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-6">
           <MaterialInstanceList
-            instances={filteredInstances}
+            instances={pagedInstances}
             materialTypes={materialTypes}
             onView={setSelectedInstance}
             onEdit={(instance) =>
               navigate('create', { state: { instance } })
             }
             onDelete={handleDelete}
+          />
+          <AdminPagination
+            currentPage={page}
+            totalPages={totalPages}
+            totalItems={filteredInstances.length}
+            pageSize={pageSize}
+            itemLabel="instances"
+            onPageChange={setPage}
           />
         </div>
 

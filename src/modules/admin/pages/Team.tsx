@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Users, Shield, Plus, Trash2, Edit, X } from "lucide-react";
 import { StatCard } from "../components";
+import { AdminPagination, AdminTable } from "../components";
 import {
   getUsers,
   inviteUser,
@@ -59,6 +60,7 @@ type TeamMember = {
 
 export default function Team() {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
@@ -183,6 +185,15 @@ export default function Team() {
   useEffect(() => {
     fetchTeamMembers();
   }, []);
+
+  const pageSize = 10;
+  const totalPages = Math.max(1, Math.ceil(teamMembers.length / pageSize));
+
+  useEffect(() => {
+    setCurrentPage((prev) => Math.min(prev, totalPages));
+  }, [totalPages]);
+
+  const pagedTeamMembers = teamMembers.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   useEffect(() => {
     if (!Object.values(formTouched).some(Boolean)) return;
@@ -450,7 +461,7 @@ export default function Team() {
 
       <div>
         <h2 className="text-xl font-semibold text-white mb-4">Team List</h2>
-        <div className="bg-[#121212] border border-[#333] rounded-[12px] overflow-hidden">
+        <div>
           {loading ? (
             <div className="p-6 text-center text-gray-400">Loading team members...</div>
           ) : error ? (
@@ -458,8 +469,8 @@ export default function Team() {
           ) : teamMembers.length === 0 ? (
             <div className="p-6 text-center text-gray-400">No team members found</div>
           ) : (
-            <table className="w-full">
-              <thead className="bg-[#1a1a1a] border-b border-[#333]">
+            <AdminTable>
+              <thead className="bg-[#0f0f0f] border-b border-[#333]">
                 <tr>
                   <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">Name</th>
                   <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">Email</th>
@@ -469,7 +480,7 @@ export default function Team() {
                 </tr>
               </thead>
               <tbody>
-                {teamMembers.map((member) => (
+                {pagedTeamMembers.map((member) => (
                   <tr
                     key={member.id}
                     className="border-b border-[#333] hover:bg-[#1a1a1a] transition-all"
@@ -509,9 +520,17 @@ export default function Team() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </AdminTable>
           )}
         </div>
+        <AdminPagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={teamMembers.length}
+          pageSize={pageSize}
+          itemLabel="members"
+          onPageChange={setCurrentPage}
+        />
       </div>
 
       <AlertModal

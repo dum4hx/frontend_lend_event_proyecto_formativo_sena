@@ -28,6 +28,7 @@ import {
   validateState,
 } from "../../../utils/validators";
 import { useAlertModal } from "../../../hooks/useAlertModal";
+import { AdminPagination, AdminTable } from "../components";
 
 // --- Colombia API types & fetcher -------------------------------------------
 interface ColombiaDepartment {
@@ -316,10 +317,13 @@ export default function Customers() {
       if (!phoneV.isValid && phoneV.message) nextErrors.phone = phoneV.message;
 
       // --- Document ---
-      if (!formData.documentNumber.trim()) {
+      const documentNumber = formData.documentNumber.trim();
+      if (!documentNumber) {
         nextErrors.documentNumber = "Document number is required";
-      } else if (formData.documentNumber.length > 50) {
-        nextErrors.documentNumber = "Maximum 50 characters";
+      } else if (documentNumber.length < 8) {
+        nextErrors.documentNumber = "Document number must be at least 8 characters";
+      } else if (documentNumber.length > 11) {
+        nextErrors.documentNumber = "Document number must not exceed 11 characters";
       }
 
       // --- Address (optional but validated if any part filled) ---
@@ -705,6 +709,8 @@ export default function Customers() {
 
             {/* Status Filter */}
             <select
+              title="Filter by status"
+              aria-label="Filter by status"
               value={statusFilter}
               onChange={(e) => {
                 setStatusFilter(e.target.value as CustomerStatus | "");
@@ -738,34 +744,33 @@ export default function Customers() {
           </div>
         ) : (
           <>
-            <div className="table-container">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Phone</th>
-                    <th>Document</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
+            <AdminTable>
+              <thead className="bg-[#0f0f0f] border-b border-[#333]">
+                <tr>
+                  <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">Name</th>
+                  <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">Email</th>
+                  <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">Phone</th>
+                  <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">Document</th>
+                  <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">Status</th>
+                  <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
                   {customers.map((customer) => (
-                    <tr key={customer._id}>
-                      <td className="font-medium text-white">
+                    <tr key={customer._id} className="border-b border-[#333] hover:bg-[#1a1a1a] transition-all">
+                      <td className="px-6 py-4 font-medium text-white">
                         {customer.name.firstName} {customer.name.firstSurname}
                       </td>
-                      <td>{customer.email}</td>
-                      <td>{customer.phone}</td>
-                      <td>
+                      <td className="px-6 py-4 text-gray-400">{customer.email}</td>
+                      <td className="px-6 py-4 text-gray-400">{customer.phone}</td>
+                      <td className="px-6 py-4">
                         <div className="text-xs">
                           <div className="text-gray-500">{getDocumentTypeLabel(customer.documentType)}</div>
                           <div>{customer.documentNumber}</div>
                         </div>
                       </td>
-                      <td>{getStatusBadge(customer.status)}</td>
-                      <td>
+                      <td className="px-6 py-4">{getStatusBadge(customer.status)}</td>
+                      <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => openEditModal(customer)}
@@ -794,37 +799,18 @@ export default function Customers() {
                       </td>
                     </tr>
                   ))}
-                </tbody>
-              </table>
-            </div>
+              </tbody>
+            </AdminTable>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="card mt-6 flex items-center justify-between">
-                <p className="text-sm text-gray-400">
-                  Showing {(currentPage - 1) * 10 + 1} - {Math.min(currentPage * 10, total)} of {total} customers
-                </p>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                    className="btn-secondary text-sm"
-                  >
-                    Previous
-                  </button>
-                  <span className="text-sm text-gray-400">
-                    Page {currentPage} of {totalPages}
-                  </span>
-                  <button
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
-                    className="btn-secondary text-sm"
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
-            )}
+            <AdminPagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={total}
+              pageSize={10}
+              itemLabel="customers"
+              onPageChange={setCurrentPage}
+              className="card mt-6"
+            />
           </>
         )}
 
@@ -839,7 +825,7 @@ export default function Customers() {
             <div className="modal-content">
               <div className="modal-header">
                 <h2 className="text-xl font-bold">Create New Customer</h2>
-                <button onClick={() => setShowCreateModal(false)} className="btn-icon">
+                <button onClick={() => setShowCreateModal(false)} className="btn-icon" title="Close create customer modal" aria-label="Close create customer modal">
                   <X size={20} />
                 </button>
               </div>
@@ -851,6 +837,8 @@ export default function Customers() {
                       <label className="form-label">First Name *</label>
                       <input
                         type="text"
+                        title="First Name"
+                        aria-label="First Name"
                         value={formData.name.firstName}
                         onChange={(e) => {
                           handleFieldChange("firstName");
@@ -867,6 +855,8 @@ export default function Customers() {
                       <label className="form-label">Middle Name</label>
                       <input
                         type="text"
+                        title="Middle Name"
+                        aria-label="Middle Name"
                         value={formData.name.secondName || ""}
                         onChange={(e) => {
                           const v = formatNameInput(e.target.value);
@@ -883,6 +873,8 @@ export default function Customers() {
                       <label className="form-label">Last Name *</label>
                       <input
                         type="text"
+                        title="Last Name"
+                        aria-label="Last Name"
                         value={formData.name.firstSurname}
                         onChange={(e) => {
                           handleFieldChange("firstSurname");
@@ -899,6 +891,8 @@ export default function Customers() {
                       <label className="form-label">Second Last Name</label>
                       <input
                         type="text"
+                        title="Second Last Name"
+                        aria-label="Second Last Name"
                         value={formData.name.secondSurname || ""}
                         onChange={(e) => {
                           const v = formatNameInput(e.target.value);
@@ -916,6 +910,8 @@ export default function Customers() {
                       <label className="form-label">Email *</label>
                       <input
                         type="email"
+                        title="Email"
+                        aria-label="Email"
                         value={formData.email}
                         autoCapitalize="none"
                         autoCorrect="off"
@@ -963,6 +959,8 @@ export default function Customers() {
                     <div className="form-group">
                       <label className="form-label">Document Type *</label>
                       <select
+                        title="Document Type"
+                        aria-label="Document Type"
                         value={formData.documentType}
                         onChange={(e) => setFormData({ ...formData, documentType: e.target.value as DocumentType })}
                         className={inputClass(false)}
@@ -979,6 +977,10 @@ export default function Customers() {
                       <label className="form-label">Document Number *</label>
                       <input
                         type="text"
+                        title="Document Number"
+                        aria-label="Document Number"
+                        minLength={8}
+                        maxLength={11}
                         value={formData.documentNumber}
                         onChange={(e) => {
                           handleFieldChange("documentNumber");
@@ -1271,7 +1273,7 @@ export default function Customers() {
             <div className="modal-content">
               <div className="modal-header">
                 <h2 className="text-xl font-bold">Edit Customer</h2>
-                <button onClick={() => setShowEditModal(false)} className="btn-icon">
+                <button onClick={() => setShowEditModal(false)} className="btn-icon" title="Close edit customer modal" aria-label="Close edit customer modal">
                   <X size={20} />
                 </button>
               </div>
@@ -1283,6 +1285,8 @@ export default function Customers() {
                       <label className="form-label">First Name *</label>
                       <input
                         type="text"
+                        title="First Name"
+                        aria-label="First Name"
                         value={formData.name.firstName}
                         onChange={(e) => {
                           handleFieldChange("firstName");
@@ -1299,6 +1303,8 @@ export default function Customers() {
                       <label className="form-label">Middle Name</label>
                       <input
                         type="text"
+                        title="Middle Name"
+                        aria-label="Middle Name"
                         value={formData.name.secondName || ""}
                         onChange={(e) => {
                           const v = formatNameInput(e.target.value);
@@ -1315,6 +1321,8 @@ export default function Customers() {
                       <label className="form-label">Last Name *</label>
                       <input
                         type="text"
+                        title="Last Name"
+                        aria-label="Last Name"
                         value={formData.name.firstSurname}
                         onChange={(e) => {
                           handleFieldChange("firstSurname");
@@ -1331,6 +1339,8 @@ export default function Customers() {
                       <label className="form-label">Second Last Name</label>
                       <input
                         type="text"
+                        title="Second Last Name"
+                        aria-label="Second Last Name"
                         value={formData.name.secondSurname || ""}
                         onChange={(e) => {
                           const v = formatNameInput(e.target.value);
@@ -1348,6 +1358,8 @@ export default function Customers() {
                       <label className="form-label">Email *</label>
                       <input
                         type="email"
+                        title="Email"
+                        aria-label="Email"
                         value={formData.email}
                         autoCapitalize="none"
                         autoCorrect="off"
@@ -1394,11 +1406,11 @@ export default function Customers() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 opacity-50">
                     <div className="form-group">
                       <label className="form-label">Document Type</label>
-                      <input type="text" value={getDocumentTypeLabel(selectedCustomer.documentType)} className={inputClass(false)} disabled />
+                      <input type="text" value={getDocumentTypeLabel(selectedCustomer.documentType)} className={inputClass(false)} title="Document Type" aria-label="Document Type" disabled />
                     </div>
                     <div className="form-group">
                       <label className="form-label">Document Number</label>
-                      <input type="text" value={selectedCustomer.documentNumber} className={inputClass(false)} disabled />
+                      <input type="text" value={selectedCustomer.documentNumber} className={inputClass(false)} title="Document Number" aria-label="Document Number" disabled />
                     </div>
                   </div>
 

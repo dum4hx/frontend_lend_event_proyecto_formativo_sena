@@ -1,6 +1,7 @@
 import React from 'react';
 import { Eye, Edit, Trash2 } from 'lucide-react';
 import type { MaterialCategory, MaterialType } from '../../../../../types/api';
+import { AdminTable } from '../../../components';
 
 interface MaterialTypeListProps {
   materialTypes: MaterialType[];
@@ -74,18 +75,17 @@ export const MaterialTypeList: React.FC<MaterialTypeListProps> = ({
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full">
-        <thead>
-          <tr className="border-b border-[#333]">
+    <AdminTable>
+      <thead className="bg-[#0f0f0f] border-b border-[#333]">
+        <tr>
             <th className="text-left py-4 px-4 text-gray-400 font-semibold">Name</th>
             <th className="text-left py-4 px-4 text-gray-400 font-semibold">Description</th>
             <th className="text-left py-4 px-4 text-gray-400 font-semibold">Category</th>
             <th className="text-left py-4 px-4 text-gray-400 font-semibold">Price/Day</th>
             <th className="text-right py-4 px-4 text-gray-400 font-semibold">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
+        </tr>
+      </thead>
+      <tbody>
           {materialTypes.map((type) => (
             <tr
               key={type._id}
@@ -128,8 +128,7 @@ export const MaterialTypeList: React.FC<MaterialTypeListProps> = ({
               </td>
             </tr>
           ))}
-        </tbody>
-      </table>
-    </div>
+      </tbody>
+    </AdminTable>
   );
 };

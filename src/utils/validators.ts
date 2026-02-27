@@ -173,14 +173,9 @@ export const validateTaxId = (taxId: string): ValidationResult => {
     return { isValid: false, message: "Tax ID must contain only numbers" };
   }
 
-  // Must be grouped by 3 (e.g., 123-123-123)
-  if (digits.length % 3 !== 0) {
-    return { isValid: false, message: "Tax ID must be groups of 3 digits (e.g., 123-123-123)" };
-  }
-
-  // Reasonable length check (9 to 11 digits, multiples of 3)
+  // Length check (9 to 11 digits)
   if (digits.length < 9 || digits.length > 11) {
-    return { isValid: false, message: "Tax ID length must be 9 to 11 digits (in groups of 3)" };
+    return { isValid: false, message: "Tax ID length must be 9 to 11 digits" };
   }
 
   return { isValid: true };

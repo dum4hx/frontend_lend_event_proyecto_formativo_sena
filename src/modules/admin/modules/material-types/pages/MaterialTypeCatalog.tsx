@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Tag, X } from 'lucide-react';
 import { useMaterialTypes } from '../hooks';
 import { useCategories } from '../../material-categories/hooks';
 import { MaterialTypeList, MaterialTypeDetailModal } from '../components';
+import { AdminPagination } from '../../../components';
 import { ExcelExportImport } from '../../../../../components/export/ExcelExportImport';
 import { useToast } from '../../../../../contexts/ToastContext';
 import type { MaterialType } from '../../../../../types/api';
@@ -14,8 +15,10 @@ export const MaterialTypeCatalog: React.FC = () => {
   const { categories } = useCategories();
   const { showToast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(1);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<Set<string>>(new Set());
   const [selectedMaterialType, setSelectedMaterialType] = useState<MaterialType | null>(null);
+  const pageSize = 10;
 
   const toggleCategory = (id: string) => {
     setSelectedCategoryIds((prev) => {
@@ -44,6 +47,17 @@ export const MaterialTypeCatalog: React.FC = () => {
       selectedCategoryIds.has(extractCategoryId((type as any).categoryId) ?? '');
     return matchesSearch && matchesCategory;
   });
+
+  const totalPages = Math.max(1, Math.ceil(filteredMaterialTypes.length / pageSize));
+  const pagedMaterialTypes = filteredMaterialTypes.slice((page - 1) * pageSize, page * pageSize);
+
+  useEffect(() => {
+    setPage((prev) => Math.min(prev, totalPages));
+  }, [totalPages]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, selectedCategoryIds]);
 
   const handleDelete = (type: MaterialType) => {
     showToast(
@@ -251,13 +265,21 @@ export const MaterialTypeCatalog: React.FC = () => {
         {/* Material Type List */}
         <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-6">
           <MaterialTypeList
-            materialTypes={filteredMaterialTypes}
+            materialTypes={pagedMaterialTypes}
             categories={categories}
             onView={setSelectedMaterialType}
             onEdit={(type) =>
               navigate('create', { state: { materialType: type } })
             }
             onDelete={handleDelete}
+          />
+          <AdminPagination
+            currentPage={page}
+            totalPages={totalPages}
+            totalItems={filteredMaterialTypes.length}
+            pageSize={pageSize}
+            itemLabel="types"
+            onPageChange={setPage}
           />
         </div>
 

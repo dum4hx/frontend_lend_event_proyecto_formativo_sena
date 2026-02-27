@@ -1,6 +1,7 @@
 import React from 'react';
 import { Eye, Edit, Trash2 } from 'lucide-react';
 import type { MaterialCategory } from '../../../../../types/api';
+import { AdminTable } from '../../../components';
 
 interface CategoryListProps {
   categories: MaterialCategory[];
@@ -24,16 +25,15 @@ export const CategoryList: React.FC<CategoryListProps> = ({
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full">
-        <thead>
-          <tr className="border-b border-[#333]">
+    <AdminTable>
+      <thead className="bg-[#0f0f0f] border-b border-[#333]">
+        <tr>
             <th className="text-left py-4 px-4 text-gray-400 font-semibold">Name</th>
             <th className="text-left py-4 px-4 text-gray-400 font-semibold">Description</th>
             <th className="text-right py-4 px-4 text-gray-400 font-semibold">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
+        </tr>
+      </thead>
+      <tbody>
           {categories.map((category) => (
             <tr
               key={category._id}
@@ -70,8 +70,7 @@ export const CategoryList: React.FC<CategoryListProps> = ({
               </td>
             </tr>
           ))}
-        </tbody>
-      </table>
-    </div>
+      </tbody>
+    </AdminTable>
   );
 };

@@ -1,7 +1,8 @@
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Download, Upload } from "lucide-react";
 import { MaterialList, MaterialFilters } from "../components";
+import { AdminPagination } from "../../../components";
 import type { MaterialFilterState } from "../components/MaterialFilters";
 import { MaterialDetailModal } from "../components/MaterialDetailModal";
 import { useMaterials, useCategories } from "../hooks";
@@ -79,6 +80,14 @@ export function MaterialCatalogPage({ onCreateMaterial }: MaterialCatalogPagePro
   const totalPages = Math.max(1, Math.ceil((visibleMaterials?.length ?? 0) / pageSize));
 
   const pagedMaterials = visibleMaterials.slice((page - 1) * pageSize, page * pageSize);
+
+  useEffect(() => {
+    setPage(1);
+  }, [filters]);
+
+  useEffect(() => {
+    setPage((prev) => Math.min(prev, totalPages));
+  }, [totalPages]);
 
   const exportToExcel = async (items: MaterialType[]) => {
     try {
@@ -236,24 +245,14 @@ export function MaterialCatalogPage({ onCreateMaterial }: MaterialCatalogPagePro
             onDelete={handleDelete}
             onView={(material) => setSelectedMaterial(material)}
           />
-          {/* Pagination controls */}
-          {visibleMaterials.length > pageSize && (
-            <div className="flex items-center justify-between mt-4">
-              <div className="text-sm text-gray-400">Page {page} of {totalPages}</div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                  className="px-3 py-1 bg-[#1a1a1a] border border-[#333] rounded text-gray-200 disabled:opacity-50"
-                >Prev</button>
-                <button
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
-                  className="px-3 py-1 bg-[#1a1a1a] border border-[#333] rounded text-gray-200 disabled:opacity-50"
-                >Next</button>
-              </div>
-            </div>
-          )}
+          <AdminPagination
+            currentPage={page}
+            totalPages={totalPages}
+            totalItems={visibleMaterials.length}
+            pageSize={pageSize}
+            itemLabel="materials"
+            onPageChange={setPage}
+          />
         </>
       )}
 

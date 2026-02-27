@@ -9,6 +9,7 @@ import { LoadingSpinner, ErrorDisplay, AlertContainer } from "../../../component
 import { normalizeError, logError } from "../../../utils/errorHandling";
 import { useAuth } from "../../../contexts/useAuth";
 import { useAlerts } from "../../../hooks/useAlerts";
+import { AdminPagination, AdminTable } from "../../admin/components";
 import { ExportSettingsModal } from "../../../components/export/ExportSettingsModal";
 import { exportService, ORGANIZATION_MANAGEMENT_POLICY } from "../../../services/export";
 import type { ExportConfig, ExportProgress } from "../../../types/export";
@@ -408,92 +409,73 @@ export default function OrganizationManagement() {
       </div>
 
       {/* Table */}
-      <div className="bg-[#121212] border border-[#333] rounded-xl overflow-hidden mb-6">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead>
-              <tr className="border-b border-[#333]">
-                <th className="px-4 py-3 text-gray-400 font-medium">Name</th>
-                <th className="px-4 py-3 text-gray-400 font-medium">Legal Name</th>
-                <th className="px-4 py-3 text-gray-400 font-medium">Email</th>
-                <th className="px-4 py-3 text-gray-400 font-medium">Plan</th>
-                <th className="px-4 py-3 text-gray-400 font-medium text-center">Seats</th>
-                <th className="px-4 py-3 text-gray-400 font-medium">Status</th>
-                <th className="px-4 py-3 text-gray-400 font-medium">Location</th>
-                <th className="px-4 py-3 text-gray-400 font-medium">Created</th>
+      <div className="mb-6">
+        <AdminTable>
+          <thead className="bg-[#0f0f0f] border-b border-[#333]">
+            <tr>
+              <th className="px-4 py-3 text-gray-400 font-medium">Name</th>
+              <th className="px-4 py-3 text-gray-400 font-medium">Legal Name</th>
+              <th className="px-4 py-3 text-gray-400 font-medium">Email</th>
+              <th className="px-4 py-3 text-gray-400 font-medium">Plan</th>
+              <th className="px-4 py-3 text-gray-400 font-medium text-center">Seats</th>
+              <th className="px-4 py-3 text-gray-400 font-medium">Status</th>
+              <th className="px-4 py-3 text-gray-400 font-medium">Location</th>
+              <th className="px-4 py-3 text-gray-400 font-medium">Created</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.length === 0 ? (
+              <tr>
+                <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                  No organizations match the current filters.
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
-                    No organizations match the current filters.
+            ) : (
+              filtered.map((org) => (
+                <tr
+                  key={org._id}
+                  className="border-b border-[#222] hover:bg-[#1a1a1a] transition-colors"
+                >
+                  <td className="px-4 py-3 text-white font-medium">{org.name}</td>
+                  <td className="px-4 py-3 text-gray-300">{org.legalName}</td>
+                  <td className="px-4 py-3 text-gray-300">
+                    {org.email.replace(/(?<=.).(?=[^@]*@)/g, "*")}
+                  </td>
+                  <td className="px-4 py-3 text-gray-300 capitalize">
+                    {org.subscription.plan}
+                  </td>
+                  <td className="px-4 py-3 text-gray-300 text-center">
+                    {org.subscription.seatCount}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${STATUS_BADGE[org.status] ?? "bg-gray-800 text-gray-400"}`}
+                    >
+                      {org.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-gray-300">
+                    {[org.address?.city, org.address?.country]
+                      .filter(Boolean)
+                      .join(", ") || "—"}
+                  </td>
+                  <td className="px-4 py-3 text-gray-400 whitespace-nowrap">
+                    {new Date(org.createdAt).toLocaleDateString()}
                   </td>
                 </tr>
-              ) : (
-                filtered.map((org) => (
-                  <tr
-                    key={org._id}
-                    className="border-b border-[#222] hover:bg-[#1a1a1a] transition-colors"
-                  >
-                    <td className="px-4 py-3 text-white font-medium">{org.name}</td>
-                    <td className="px-4 py-3 text-gray-300">{org.legalName}</td>
-                    <td className="px-4 py-3 text-gray-300">
-                      {/* Mask email for on-screen display */}
-                      {org.email.replace(/(?<=.).(?=[^@]*@)/g, "*")}
-                    </td>
-                    <td className="px-4 py-3 text-gray-300 capitalize">
-                      {org.subscription.plan}
-                    </td>
-                    <td className="px-4 py-3 text-gray-300 text-center">
-                      {org.subscription.seatCount}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${STATUS_BADGE[org.status] ?? "bg-gray-800 text-gray-400"}`}
-                      >
-                        {org.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-gray-300">
-                      {[org.address?.city, org.address?.country]
-                        .filter(Boolean)
-                        .join(", ") || "—"}
-                    </td>
-                    <td className="px-4 py-3 text-gray-400 whitespace-nowrap">
-                      {new Date(org.createdAt).toLocaleDateString()}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+              ))
+            )}
+          </tbody>
+        </AdminTable>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-[#333]">
-            <span className="text-xs text-gray-500">
-              Page {page} of {totalPages} &mdash; {total} total organizations
-            </span>
-            <div className="flex gap-2">
-              <button
-                disabled={page <= 1}
-                onClick={() => handlePageChange(page - 1)}
-                className="px-3 py-1.5 text-xs bg-[#1a1a1a] border border-[#444] text-gray-300 rounded-lg disabled:opacity-40 hover:border-[#FFD700] transition-colors"
-              >
-                Previous
-              </button>
-              <button
-                disabled={page >= totalPages}
-                onClick={() => handlePageChange(page + 1)}
-                className="px-3 py-1.5 text-xs bg-[#1a1a1a] border border-[#444] text-gray-300 rounded-lg disabled:opacity-40 hover:border-[#FFD700] transition-colors"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
+        <AdminPagination
+          currentPage={page}
+          totalPages={totalPages}
+          totalItems={total}
+          pageSize={limit}
+          itemLabel="organizations"
+          onPageChange={handlePageChange}
+        />
       </div>
     </div>
   );

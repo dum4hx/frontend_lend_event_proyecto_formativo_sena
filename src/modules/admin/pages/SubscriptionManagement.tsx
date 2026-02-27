@@ -9,6 +9,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { StatCard } from "../components";
+import { AdminPagination, AdminTable } from "../components";
 import {
   getBillingHistory,
   createPortalSession,
@@ -79,6 +80,8 @@ export default function SubscriptionManagement() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [sessionExpired, setSessionExpired] = useState(false);
+  const [historyPage, setHistoryPage] = useState(1);
+  const historyPageSize = 10;
 
   // Seat update
   const [seatCount, setSeatCount] = useState(1);
@@ -355,6 +358,12 @@ export default function SubscriptionManagement() {
   const currency = history[0]?.currency ?? "usd";
 
   const currentPlan = organization?.subscription?.plan ?? history.find((e) => e.newPlan)?.newPlan;
+  const historyTotalPages = Math.max(1, Math.ceil(history.length / historyPageSize));
+  const pagedHistory = history.slice((historyPage - 1) * historyPageSize, historyPage * historyPageSize);
+
+  useEffect(() => {
+    setHistoryPage((prev) => Math.min(prev, historyTotalPages));
+  }, [historyTotalPages]);
 
   // ─── Render ────────────────────────────────────────────────────────────────
 
@@ -574,23 +583,22 @@ export default function SubscriptionManagement() {
       )}
 
       {/* Billing History */}
-      <div className="bg-[#121212] border border-[#333] rounded-xl overflow-hidden">
+      <div>
         <div className="px-6 py-4 border-b border-[#333] flex items-center justify-between">
           <h2 className="text-lg font-bold text-white">Billing History</h2>
           <span className="text-xs text-gray-500">{history.length} records</span>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead>
-              <tr className="border-b border-[#333]">
-                <th className="px-6 py-3 text-gray-400 font-medium">Date</th>
-                <th className="px-6 py-3 text-gray-400 font-medium">Event</th>
-                <th className="px-6 py-3 text-gray-400 font-medium">Plan / Seats</th>
-                <th className="px-6 py-3 text-gray-400 font-medium text-right">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
+        <AdminTable>
+          <thead className="bg-[#0f0f0f] border-b border-[#333]">
+            <tr>
+              <th className="px-6 py-3 text-gray-400 font-medium">Date</th>
+              <th className="px-6 py-3 text-gray-400 font-medium">Event</th>
+              <th className="px-6 py-3 text-gray-400 font-medium">Plan / Seats</th>
+              <th className="px-6 py-3 text-gray-400 font-medium text-right">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
               {history.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-6 py-10 text-center text-gray-500">
@@ -598,7 +606,7 @@ export default function SubscriptionManagement() {
                   </td>
                 </tr>
               ) : (
-                history.map((entry) => (
+                pagedHistory.map((entry) => (
                   <tr
                     key={entry._id}
                     className="border-b border-[#222] hover:bg-[#1a1a1a] transition-colors"
@@ -636,9 +644,16 @@ export default function SubscriptionManagement() {
                   </tr>
                 ))
               )}
-            </tbody>
-          </table>
-        </div>
+          </tbody>
+        </AdminTable>
+        <AdminPagination
+          currentPage={historyPage}
+          totalPages={historyTotalPages}
+          totalItems={history.length}
+          pageSize={historyPageSize}
+          itemLabel="records"
+          onPageChange={setHistoryPage}
+        />
       </div>
     </div>
   );

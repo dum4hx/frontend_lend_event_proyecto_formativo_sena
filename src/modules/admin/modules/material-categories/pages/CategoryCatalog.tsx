@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search } from 'lucide-react';
 import { useCategories } from '../hooks';
 import { CategoryList, CategoryDetailModal } from '../components';
+import { AdminPagination } from '../../../components';
 import { ExcelExportImport } from '../../../../../components/export/ExcelExportImport';
 import { useToast } from '../../../../../contexts/ToastContext';
 import type { MaterialCategory } from '../../../../../types/api';
@@ -12,11 +13,24 @@ export const CategoryCatalog: React.FC = () => {
   const { categories, loading, error, removeCategory, addCategory } = useCategories();
   const { showToast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState<MaterialCategory | null>(null);
+  const pageSize = 10;
 
   const filteredCategories = categories.filter((cat) =>
     cat.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const totalPages = Math.max(1, Math.ceil(filteredCategories.length / pageSize));
+  const pagedCategories = filteredCategories.slice((page - 1) * pageSize, page * pageSize);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    setPage((prev) => Math.min(prev, totalPages));
+  }, [totalPages]);
 
   const handleEdit = (category: MaterialCategory) => {
     navigate('create', { state: { category } });
@@ -133,10 +147,18 @@ export const CategoryCatalog: React.FC = () => {
         {/* Category List */}
         <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-6">
           <CategoryList
-            categories={filteredCategories}
+            categories={pagedCategories}
             onView={setSelectedCategory}
             onEdit={handleEdit}
             onDelete={handleDelete}
+          />
+          <AdminPagination
+            currentPage={page}
+            totalPages={totalPages}
+            totalItems={filteredCategories.length}
+            pageSize={pageSize}
+            itemLabel="categories"
+            onPageChange={setPage}
           />
         </div>
 
