@@ -1,11 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Calendar, Users, Clock, Plus, Trash2, Edit, X } from "lucide-react";
 import { EventCard, StatCard } from "../components";
-import {
-  getRequests,
-  createRequest,
-  updateRequest,
-} from "../../../services/adminService";
+import { getRequests, createRequest, updateRequest } from "../../../services/adminService";
 import { getCustomers } from "../../../services/customerService";
 import { getPackages } from "../../../services/materialService";
 import { ApiError } from "../../../lib/api";
@@ -80,7 +76,7 @@ export default function MyEvents() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [customers, setCustomers] = useState<CustomerOption[]>([]);
   const [packages, setPackages] = useState<PackageOption[]>([]);
-  const [depositAmountDisplay, setDepositAmountDisplay] = useState('');
+  const [depositAmountDisplay, setDepositAmountDisplay] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState<Partial<Record<MyEventFormField, string>>>({});
   const [formTouched, setFormTouched] = useState<Partial<Record<MyEventFormField, boolean>>>({});
@@ -107,10 +103,7 @@ export default function MyEvents() {
     `w-full bg-zinc-900 rounded-xl py-3 px-4 text-white outline-none transition duration-200 disabled:opacity-50 border ${hasError ? "border-red-500 focus:border-red-500" : "border-zinc-800 focus:border-yellow-400"}`;
 
   const validateField = useCallback(
-    (
-      field: MyEventFormField,
-      data = formData,
-    ): string | undefined => {
+    (field: MyEventFormField, data = formData): string | undefined => {
       switch (field) {
         case "name": {
           const trimmed = data.name.trim();
@@ -185,64 +178,58 @@ export default function MyEvents() {
       setLoading(true);
       const response = await getRequests();
 
-      const mappedEvents: Event[] = (response.data.requests ?? []).map(
-        (request: RequestApi) => {
-          const startRaw =
-            (request.requestedStartDate as string) ||
-            (request.requested_start_date as string) ||
-            (request.start_date as string) ||
-            (request.startDate as string);
-          const endRaw =
-            (request.requestedEndDate as string) ||
-            (request.requested_end_date as string) ||
-            (request.end_date as string) ||
-            (request.endDate as string) ||
-            startRaw;
+      const mappedEvents: Event[] = (response.data.requests ?? []).map((request: RequestApi) => {
+        const startRaw =
+          (request.requestedStartDate as string) ||
+          (request.requested_start_date as string) ||
+          (request.start_date as string) ||
+          (request.startDate as string);
+        const endRaw =
+          (request.requestedEndDate as string) ||
+          (request.requested_end_date as string) ||
+          (request.end_date as string) ||
+          (request.endDate as string) ||
+          startRaw;
 
-          const startDate = startRaw ? new Date(startRaw) : new Date();
-          const endDate = endRaw ? new Date(endRaw) : new Date();
-          const now = new Date();
+        const startDate = startRaw ? new Date(startRaw) : new Date();
+        const endDate = endRaw ? new Date(endRaw) : new Date();
+        const now = new Date();
 
-          let status: "Upcoming" | "Live" | "Completed" = "Upcoming";
-          if (endDate < now) {
-            status = "Completed";
-          } else if (startDate <= now && now <= endDate) {
-            status = "Live";
-          }
+        let status: "Upcoming" | "Live" | "Completed" = "Upcoming";
+        if (endDate < now) {
+          status = "Completed";
+        } else if (startDate <= now && now <= endDate) {
+          status = "Live";
+        }
 
-          const customerId =
-            ((request.customerId as Record<string, unknown>)?._id as string) ||
-            (request.customerId as string) ||
-            (request.customer_id as string);
-          const packageId =
-            ((request.packageId as Record<string, unknown>)?._id as string) ||
-            (request.packageId as string) ||
-            (request.package_id as string);
+        const customerId =
+          ((request.customerId as Record<string, unknown>)?._id as string) ||
+          (request.customerId as string) ||
+          (request.customer_id as string);
+        const packageId =
+          ((request.packageId as Record<string, unknown>)?._id as string) ||
+          (request.packageId as string) ||
+          (request.package_id as string);
 
-          return {
-            id: (request._id as string) || (request.id as string),
-            name:
-              (request.notes as string) || (request.name as string) || "Event",
-            date: startRaw || "",
-            status,
-            capacity:
-              ((request.deposit as Record<string, unknown>)
-                ?.amount as number) || 0,
-            attendees: 0,
-            customerId,
-            packageId,
-            startDate: startRaw || "",
-            endDate: endRaw || "",
-            notes: (request.notes as string) || "",
-          };
-        },
-      );
+        return {
+          id: (request._id as string) || (request.id as string),
+          name: (request.notes as string) || (request.name as string) || "Event",
+          date: startRaw || "",
+          status,
+          capacity: ((request.deposit as Record<string, unknown>)?.amount as number) || 0,
+          attendees: 0,
+          customerId,
+          packageId,
+          startDate: startRaw || "",
+          endDate: endRaw || "",
+          notes: (request.notes as string) || "",
+        };
+      });
 
       setEvents(mappedEvents);
       setError(null);
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to load events";
+      const message = err instanceof Error ? err.message : "Failed to load events";
       setError(message);
     } finally {
       setLoading(false);
@@ -251,14 +238,11 @@ export default function MyEvents() {
 
   const fetchOptions = async () => {
     try {
-      const [customersRes, packagesRes] = await Promise.all([
-        getCustomers(),
-        getPackages(),
-      ]);
+      const [customersRes, packagesRes] = await Promise.all([getCustomers(), getPackages()]);
 
       setCustomers(customersRes.data.customers || []);
       setPackages(packagesRes.data.packages || []);
-    } catch  {
+    } catch {
       // Non-critical: ignore
     }
   };
@@ -280,9 +264,7 @@ export default function MyEvents() {
         depositAmount: event.capacity ? String(event.capacity) : "",
         depositMethod: "cash",
       });
-      setDepositAmountDisplay(
-        event.capacity ? formatCop(event.capacity) : "",
-      );
+      setDepositAmountDisplay(event.capacity ? formatCop(event.capacity) : "");
     } else {
       setEditingId(null);
       setFormData({
@@ -320,12 +302,7 @@ export default function MyEvents() {
 
   const handleSaveEvent = async () => {
     try {
-      if (
-        !formData.customerId ||
-        !formData.packageId ||
-        !formData.startDate ||
-        !formData.endDate
-      ) {
+      if (!formData.customerId || !formData.packageId || !formData.startDate || !formData.endDate) {
         showError("Por favor completa todos los campos requeridos");
         return;
       }
@@ -366,10 +343,7 @@ export default function MyEvents() {
     if (!confirm("Are you sure you want to delete this event?")) return;
 
     try {
-      const reason = prompt(
-        "Reason for cancellation",
-        "Cancelled by administrator",
-      );
+      const reason = prompt("Reason for cancellation", "Cancelled by administrator");
       if (reason === null) return;
       // Use rejectRequest as a cancellation mechanism
       const { rejectRequest } = await import("../../../services/loanService");
@@ -401,30 +375,16 @@ export default function MyEvents() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard
-          label="My Events"
-          value={events.length}
-          icon={<Calendar size={28} />}
-        />
-        <StatCard
-          label="Total Deposits"
-          value={totalCapacity}
-          icon={<Users size={28} />}
-        />
-        <StatCard
-          label="Currently Live"
-          value={liveCount}
-          icon={<Clock size={28} />}
-        />
+        <StatCard label="My Events" value={events.length} icon={<Calendar size={28} />} />
+        <StatCard label="Total Deposits" value={totalCapacity} icon={<Users size={28} />} />
+        <StatCard label="Currently Live" value={liveCount} icon={<Clock size={28} />} />
       </div>
 
       <div>
         <h2 className="text-xl font-semibold text-white mb-4">Event List</h2>
 
         {loading ? (
-          <div className="text-center text-gray-400 py-8">
-            Loading events...
-          </div>
+          <div className="text-center text-gray-400 py-8">Loading events...</div>
         ) : error ? (
           <div className="text-center text-red-400 py-8">{error}</div>
         ) : events.length === 0 ? (
@@ -472,9 +432,7 @@ export default function MyEvents() {
         >
           <div className="modal-content">
             <div className="modal-header">
-              <h2 className="text-xl font-bold">
-                {editingId ? "Edit Event" : "Create New Event"}
-              </h2>
+              <h2 className="text-xl font-bold">{editingId ? "Edit Event" : "Create New Event"}</h2>
               <button
                 onClick={handleCloseModal}
                 className="btn-icon"
@@ -494,9 +452,7 @@ export default function MyEvents() {
                     <input
                       type="text"
                       value={formData.name}
-                      onChange={(e) =>
-                        handleFieldChange("name", e.target.value)
-                      }
+                      onChange={(e) => handleFieldChange("name", e.target.value)}
                       onBlur={() => handleFieldBlur("name")}
                       className={inputClass(!!getFieldError("name"))}
                       placeholder="Event name"
@@ -504,9 +460,7 @@ export default function MyEvents() {
                       disabled={submitting}
                     />
                     {getFieldError("name") && (
-                      <p className="text-red-400 text-xs mt-1">
-                        {getFieldError("name")}
-                      </p>
+                      <p className="text-red-400 text-xs mt-1">{getFieldError("name")}</p>
                     )}
                   </div>
 
@@ -515,9 +469,7 @@ export default function MyEvents() {
                     <select
                       title="Customer"
                       value={formData.customerId}
-                      onChange={(e) =>
-                        handleFieldChange("customerId", e.target.value)
-                      }
+                      onChange={(e) => handleFieldChange("customerId", e.target.value)}
                       onBlur={() => handleFieldBlur("customerId")}
                       className={inputClass(!!getFieldError("customerId"))}
                       disabled={submitting}
@@ -528,15 +480,13 @@ export default function MyEvents() {
                           key={customer._id || customer.id}
                           value={customer._id || customer.id}
                         >
-                          {customer.name?.firstName || ""}{" "}
-                          {customer.name?.firstSurname || ""} ({customer.email || "No email"})
+                          {customer.name?.firstName || ""} {customer.name?.firstSurname || ""} (
+                          {customer.email || "No email"})
                         </option>
                       ))}
                     </select>
                     {getFieldError("customerId") && (
-                      <p className="text-red-400 text-xs mt-1">
-                        {getFieldError("customerId")}
-                      </p>
+                      <p className="text-red-400 text-xs mt-1">{getFieldError("customerId")}</p>
                     )}
                   </div>
 
@@ -545,9 +495,7 @@ export default function MyEvents() {
                     <select
                       title="Package"
                       value={formData.packageId}
-                      onChange={(e) =>
-                        handleFieldChange("packageId", e.target.value)
-                      }
+                      onChange={(e) => handleFieldChange("packageId", e.target.value)}
                       onBlur={() => handleFieldBlur("packageId")}
                       className={inputClass(!!getFieldError("packageId"))}
                       disabled={submitting}
@@ -560,9 +508,7 @@ export default function MyEvents() {
                       ))}
                     </select>
                     {getFieldError("packageId") && (
-                      <p className="text-red-400 text-xs mt-1">
-                        {getFieldError("packageId")}
-                      </p>
+                      <p className="text-red-400 text-xs mt-1">{getFieldError("packageId")}</p>
                     )}
                   </div>
 
@@ -572,17 +518,13 @@ export default function MyEvents() {
                       title="Start Date"
                       type="date"
                       value={formData.startDate}
-                      onChange={(e) =>
-                        handleFieldChange("startDate", e.target.value)
-                      }
+                      onChange={(e) => handleFieldChange("startDate", e.target.value)}
                       onBlur={() => handleFieldBlur("startDate")}
                       className={inputClass(!!getFieldError("startDate"))}
                       disabled={submitting}
                     />
                     {getFieldError("startDate") && (
-                      <p className="text-red-400 text-xs mt-1">
-                        {getFieldError("startDate")}
-                      </p>
+                      <p className="text-red-400 text-xs mt-1">{getFieldError("startDate")}</p>
                     )}
                   </div>
 
@@ -592,17 +534,13 @@ export default function MyEvents() {
                       title="End Date"
                       type="date"
                       value={formData.endDate}
-                      onChange={(e) =>
-                        handleFieldChange("endDate", e.target.value)
-                      }
+                      onChange={(e) => handleFieldChange("endDate", e.target.value)}
                       onBlur={() => handleFieldBlur("endDate")}
                       className={inputClass(!!getFieldError("endDate"))}
                       disabled={submitting}
                     />
                     {getFieldError("endDate") && (
-                      <p className="text-red-400 text-xs mt-1">
-                        {getFieldError("endDate")}
-                      </p>
+                      <p className="text-red-400 text-xs mt-1">{getFieldError("endDate")}</p>
                     )}
                   </div>
 
@@ -615,9 +553,7 @@ export default function MyEvents() {
                       onChange={(e) => {
                         const raw = e.target.value.replace(/[^0-9]/g, "");
                         handleFieldChange("depositAmount", raw);
-                        setDepositAmountDisplay(
-                          raw ? formatCop(parseInt(raw, 10)) : "",
-                        );
+                        setDepositAmountDisplay(raw ? formatCop(parseInt(raw, 10)) : "");
                       }}
                       onBlur={() => handleFieldBlur("depositAmount")}
                       className={inputClass(!!getFieldError("depositAmount"))}
@@ -625,9 +561,7 @@ export default function MyEvents() {
                       disabled={submitting}
                     />
                     {getFieldError("depositAmount") && (
-                      <p className="text-red-400 text-xs mt-1">
-                        {getFieldError("depositAmount")}
-                      </p>
+                      <p className="text-red-400 text-xs mt-1">{getFieldError("depositAmount")}</p>
                     )}
                   </div>
 
@@ -636,9 +570,7 @@ export default function MyEvents() {
                     <select
                       title="Deposit Method"
                       value={formData.depositMethod}
-                      onChange={(e) =>
-                        handleFieldChange("depositMethod", e.target.value)
-                      }
+                      onChange={(e) => handleFieldChange("depositMethod", e.target.value)}
                       className={inputClass(false)}
                       disabled={submitting}
                     >
@@ -659,11 +591,7 @@ export default function MyEvents() {
                 >
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className="btn-primary"
-                  disabled={submitting}
-                >
+                <button type="submit" className="btn-primary" disabled={submitting}>
                   {submitting
                     ? editingId
                       ? "Saving..."

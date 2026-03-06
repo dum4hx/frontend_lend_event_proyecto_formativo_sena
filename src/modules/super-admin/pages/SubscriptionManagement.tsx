@@ -257,6 +257,7 @@ interface PlanValidationErrors {
   pricePerSeat?: string;
   maxSeats?: string;
   maxCatalogItems?: string;
+  durationDays?: string;
   billingModel?: string;
   sortOrder?: string;
   stripePriceIdBase?: string;
@@ -314,6 +315,16 @@ function validatePlanFields(
     }
   }
 
+  if (fields.durationDays !== undefined) {
+    if (!Number.isInteger(fields.durationDays) || fields.durationDays < 1 || fields.durationDays > 365) {
+      errors.durationDays = "Must be an integer between 1 and 365.";
+    }
+  }
+
+  if (isCreate && (fields.durationDays === undefined || fields.durationDays === null)) {
+    errors.durationDays = "Duration is required.";
+  }
+
   if (fields.sortOrder !== undefined && !Number.isInteger(fields.sortOrder)) {
     errors.sortOrder = "Must be an integer.";
   }
@@ -368,6 +379,7 @@ const DEFAULT_CREATE_STATE: Partial<CreateSubscriptionTypePayload> = {
   pricePerSeat: 0,
   maxSeats: -1,
   maxCatalogItems: -1,
+  durationDays: 30,
   sortOrder: 0,
   status: "active",
   features: [],
@@ -446,6 +458,7 @@ export default function PlanConfiguration() {
       pricePerSeat: p.pricePerSeat,
       maxSeats: p.maxSeats,
       maxCatalogItems: p.maxCatalogItems,
+      durationDays: p.durationDays,
       features: p.features,
       sortOrder: p.sortOrder,
       status: p.status,
@@ -512,6 +525,7 @@ export default function PlanConfiguration() {
       pricePerSeat: plan.pricePerSeat,
       maxSeats: plan.maxSeats,
       maxCatalogItems: plan.maxCatalogItems,
+      durationDays: plan.durationDays,
       features: [...plan.features],
       sortOrder: plan.sortOrder,
       stripePriceIdBase: plan.stripePriceIdBase ?? "",
@@ -546,6 +560,7 @@ export default function PlanConfiguration() {
         pricePerSeat: editFields.pricePerSeat,
         maxSeats: editFields.maxSeats,
         maxCatalogItems: editFields.maxCatalogItems,
+        durationDays: editFields.durationDays,
         features: editFields.features,
         sortOrder: editFields.sortOrder,
         stripePriceIdBase: editFields.stripePriceIdBase || undefined,
@@ -587,6 +602,7 @@ export default function PlanConfiguration() {
         pricePerSeat: createFields.pricePerSeat ?? 0,
         maxSeats: createFields.maxSeats ?? -1,
         maxCatalogItems: createFields.maxCatalogItems ?? -1,
+        durationDays: createFields.durationDays ?? 30,
         features: createFields.features ?? [],
         sortOrder: createFields.sortOrder ?? 0,
         stripePriceIdBase: createFields.stripePriceIdBase || undefined,
@@ -803,6 +819,22 @@ export default function PlanConfiguration() {
 
           {/* Row 3 – meta */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <Field
+              label="Duration (days)"
+              required
+              hint="1–365"
+              error={createErrors.durationDays}
+            >
+              <NumberInput
+                min={1}
+                max={365}
+                value={createFields.durationDays ?? 30}
+                onChange={(e) =>
+                  setCreateFields((f) => ({ ...f, durationDays: Number(e.target.value) }))
+                }
+              />
+            </Field>
+
             <Field label="Sort Order" error={createErrors.sortOrder}>
               <NumberInput
                 value={createFields.sortOrder ?? 0}
@@ -1076,6 +1108,20 @@ export default function PlanConfiguration() {
                       }
                     />
                   </Field>
+                  <Field
+                    label="Duration (days)"
+                    hint="1–365"
+                    error={validationErrors.durationDays}
+                  >
+                    <NumberInput
+                      min={1}
+                      max={365}
+                      value={editFields.durationDays ?? 30}
+                      onChange={(e) =>
+                        setEditFields((f) => ({ ...f, durationDays: Number(e.target.value) }))
+                      }
+                    />
+                  </Field>
                   <Field label="Sort Order" error={validationErrors.sortOrder}>
                     <NumberInput
                       value={editFields.sortOrder ?? 0}
@@ -1096,6 +1142,10 @@ export default function PlanConfiguration() {
                     <span className="text-white">
                       {plan.maxCatalogItems === -1 ? "∞" : plan.maxCatalogItems}
                     </span>
+                  </p>
+                  <p>
+                    Duration:{" "}
+                    <span className="text-white">{plan.durationDays} days</span>
                   </p>
                   <p>
                     Sort: <span className="text-white">{plan.sortOrder}</span>

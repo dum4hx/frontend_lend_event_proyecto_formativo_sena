@@ -3,15 +3,15 @@
  * Wraps components to ensure only users with required roles can access them.
  */
 
-import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/useAuth';
-import { LoadingSpinner } from '../components/ui';
-import type { UserRole } from '../types/api';
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/useAuth";
+import { LoadingSpinner } from "../components/ui";
+import { useHasRole } from "./roleGuardHooks";
 
 export interface RequireRoleProps {
   children: React.ReactNode;
-  allowedRoles: UserRole[];
+  allowedRoles: string[];
   redirectTo?: string;
 }
 
@@ -19,7 +19,11 @@ export interface RequireRoleProps {
  * Component that restricts access based on user role.
  * Redirects unauthorized users to a specified path.
  */
-export function RequireRole({ children, allowedRoles, redirectTo = '/unauthorized' }: RequireRoleProps) {
+export function RequireRole({
+  children,
+  allowedRoles,
+  redirectTo = "/unauthorized",
+}: RequireRoleProps) {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
 
@@ -27,8 +31,8 @@ export function RequireRole({ children, allowedRoles, redirectTo = '/unauthorize
     if (!isLoading) {
       if (!user) {
         // User is not authenticated
-        navigate('/login', { replace: true });
-      } else if (!allowedRoles.includes(user.role)) {
+        navigate("/login", { replace: true });
+      } else if (!user.roleName || !allowedRoles.includes(user.roleName.toLowerCase())) {
         // User doesn't have required role
         navigate(redirectTo, { replace: true });
       }
@@ -45,8 +49,8 @@ export function RequireRole({ children, allowedRoles, redirectTo = '/unauthorize
     return <LoadingSpinner fullScreen message="Verifying access…" />;
   }
 
-  // User doesn't have required role (will redirect in useEffect)
-  if (!allowedRoles.includes(user.role)) {
+  // User doesn't have required roleName (logic will redirect in useEffect)
+  if (!user.roleName || !allowedRoles.includes(user.roleName.toLowerCase())) {
     return <LoadingSpinner fullScreen message="Verifying access…" />;
   }
 
@@ -55,54 +59,8 @@ export function RequireRole({ children, allowedRoles, redirectTo = '/unauthorize
 }
 
 /**
- * Higher-order component to wrap a component with role-based access control.
- * 
- * @example
- * ```tsx
- * const SuperAdminPage = withRoleGuard(MyComponent, ['super_admin']);
- * ```
- */
-export function withRoleGuard<P extends object>(
-  Component: React.ComponentType<P>,
-  allowedRoles: UserRole[],
-  redirectTo?: string
-): React.FC<P> {
-  return function GuardedComponent(props: P) {
-    return (
-      <RequireRole allowedRoles={allowedRoles} redirectTo={redirectTo}>
-        <Component {...props} />
-      </RequireRole>
-    );
-  };
-}
-
-/**
- * Hook to check if the current user has a specific role.
- * Useful for conditional rendering within components.
- * 
- * @example
- * ```tsx
- * const isSuperAdmin = useHasRole('super_admin');
- * if (isSuperAdmin) {
- *   return <AdminPanel />;
- * }
- * ```
- */
-export function useHasRole(role: UserRole | UserRole[]): boolean {
-  const { user } = useAuth();
-  
-  if (!user) return false;
-  
-  if (Array.isArray(role)) {
-    return role.includes(user.role);
-  }
-  
-  return user.role === role;
-}
-
-/**
  * Component for inline conditional rendering based on role.
- * 
+ *
  * @example
  * ```tsx
  * <RoleGuard allowedRoles={['super_admin', 'owner']}>
@@ -110,20 +68,20 @@ export function useHasRole(role: UserRole | UserRole[]): boolean {
  * </RoleGuard>
  * ```
  */
-export function RoleGuard({ 
-  children, 
-  allowedRoles, 
-  fallback = null 
-}: { 
-  children: React.ReactNode; 
-  allowedRoles: UserRole[]; 
+export function RoleGuard({
+  children,
+  allowedRoles,
+  fallback = null,
+}: {
+  children: React.ReactNode;
+  allowedRoles: string[];
   fallback?: React.ReactNode;
 }) {
   const hasRole = useHasRole(allowedRoles);
-  
+
   if (!hasRole) {
     return <>{fallback}</>;
   }
-  
+
   return <>{children}</>;
 }

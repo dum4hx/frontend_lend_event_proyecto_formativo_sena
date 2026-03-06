@@ -14,10 +14,7 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { useAuth } from "../contexts/useAuth";
 import LoginModal from "../components/LoginModal";
-import {
-  getSubscriptionType,
-  calculatePlanCost,
-} from "../services/subscriptionTypeService";
+import { getSubscriptionType, calculatePlanCost } from "../services/subscriptionTypeService";
 import { createCheckoutSession } from "../services/billingService";
 import { ApiError } from "../lib/api";
 import type { SubscriptionType, PlanCostResult } from "../types/api";
@@ -64,11 +61,7 @@ export default function Checkout() {
         if (!cancelled) setPlan(res.data.subscriptionType);
       } catch (err) {
         if (!cancelled) {
-          setError(
-            err instanceof ApiError
-              ? err.message
-              : "Failed to load plan details.",
-          );
+          setError(err instanceof ApiError ? err.message : "Failed to load plan details.");
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -133,7 +126,7 @@ export default function Checkout() {
     }
 
     // Only organization owners can purchase subscriptions
-    if (user?.role !== "owner") {
+    if (user?.roleName !== "owner") {
       setError(
         "Only organization owners can purchase subscriptions. " +
           "Please contact your organization owner.",
@@ -159,9 +152,7 @@ export default function Checkout() {
       window.location.href = res.data.checkoutUrl;
     } catch (err) {
       setError(
-        err instanceof ApiError
-          ? err.message
-          : "Unable to initiate checkout. Please try again.",
+        err instanceof ApiError ? err.message : "Unable to initiate checkout. Please try again.",
       );
       setSubmitting(false);
     }
@@ -195,10 +186,7 @@ export default function Checkout() {
         <main className="flex-grow flex flex-col items-center justify-center px-4">
           <AlertCircle className="w-12 h-12 text-red-400 mb-4" />
           <p className="text-red-400 mb-6 text-center max-w-md">{error}</p>
-          <Link
-            to="/packages"
-            className="text-yellow-400 underline hover:text-yellow-300"
-          >
+          <Link to="/packages" className="text-yellow-400 underline hover:text-yellow-300">
             ← Back to Plans
           </Link>
         </main>
@@ -238,24 +226,17 @@ export default function Checkout() {
           {/* ── Plan summary card ─────────────────────────────────────── */}
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 mb-6">
             <h1 className="text-3xl font-extrabold mb-2">
-              Subscribe to{" "}
-              <span className="text-yellow-400">{plan?.displayName}</span>
+              Subscribe to <span className="text-yellow-400">{plan?.displayName}</span>
             </h1>
-            {plan?.description && (
-              <p className="text-gray-500 mb-6">{plan.description}</p>
-            )}
+            {plan?.description && <p className="text-gray-500 mb-6">{plan.description}</p>}
 
             {/* Seat selector — dynamic billing only */}
             {isDynamic && (
               <div className="bg-black/50 border border-zinc-800 rounded-xl p-5 mb-6">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-semibold text-gray-300">
-                    Team Seats
-                  </span>
+                  <span className="text-sm font-semibold text-gray-300">Team Seats</span>
                   <span className="text-sm text-gray-500">
-                    {plan?.maxSeats === -1
-                      ? "Unlimited available"
-                      : `Max ${plan?.maxSeats} seats`}
+                    {plan?.maxSeats === -1 ? "Unlimited available" : `Max ${plan?.maxSeats} seats`}
                   </span>
                 </div>
 
@@ -299,8 +280,8 @@ export default function Checkout() {
                   {isDynamic && costResult.seatCost > 0 && (
                     <div className="flex justify-between text-sm text-gray-400">
                       <span>
-                        Seats ({seatCount} &times;{" "}
-                        ${formatDollars(costResult.seatCost / seatCount)})
+                        Seats ({seatCount} &times; ${formatDollars(costResult.seatCost / seatCount)}
+                        )
                       </span>
                       <span>${formatDollars(costResult.seatCost)}/mo</span>
                     </div>
@@ -315,9 +296,7 @@ export default function Checkout() {
               ) : calculating ? (
                 <div className="flex items-center justify-center py-3">
                   <Loader2 className="w-5 h-5 text-yellow-400 animate-spin" />
-                  <span className="ml-2 text-sm text-gray-500">
-                    Calculating…
-                  </span>
+                  <span className="ml-2 text-sm text-gray-500">Calculating…</span>
                 </div>
               ) : null}
             </div>

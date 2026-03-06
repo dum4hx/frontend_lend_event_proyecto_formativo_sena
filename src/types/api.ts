@@ -10,16 +10,16 @@
 
 /** Known API error codes returned by the backend. */
 export type ApiErrorCode =
-  | 'BAD_REQUEST'
-  | 'PLAN_LIMIT_REACHED'
-  | 'UNAUTHORIZED'
-  | 'ORGANIZATION_SUSPENDED'
-  | 'FORBIDDEN'
-  | 'NOT_FOUND'
-  | 'CONFLICT'
-  | 'RATE_LIMIT_EXCEEDED'
-  | 'VALIDATION_ERROR'
-  | 'INTERNAL_ERROR';
+  | "BAD_REQUEST"
+  | "PLAN_LIMIT_REACHED"
+  | "UNAUTHORIZED"
+  | "ORGANIZATION_SUSPENDED"
+  | "FORBIDDEN"
+  | "NOT_FOUND"
+  | "CONFLICT"
+  | "RATE_LIMIT_EXCEEDED"
+  | "VALIDATION_ERROR"
+  | "INTERNAL_ERROR";
 
 /** Rate-limit information extracted from response headers. */
 export interface RateLimitInfo {
@@ -56,22 +56,17 @@ export interface Address {
 
 // ─── User ──────────────────────────────────────────────────────────────────
 
-export type UserRole =
-  | "super_admin"
-  | "owner"
-  | "manager"
-  | "warehouse_operator"
-  | "commercial_advisor";
-
 export type UserStatus = "active" | "inactive" | "invited" | "suspended";
 
 export interface User {
   id: string;
   email: string;
   name: PersonName;
-  role: UserRole;
+  roleName: string;
+  roleId: string;
   status: UserStatus;
   phone?: string;
+  organizationId?: string;
 }
 
 // ─── Organization ──────────────────────────────────────────────────────────
@@ -121,6 +116,7 @@ export interface SubscriptionType {
   pricePerSeat: number;
   maxSeats: number;
   maxCatalogItems: number;
+  durationDays: number;
   features: string[];
   sortOrder: number;
   stripePriceIdBase?: string;
@@ -128,7 +124,11 @@ export interface SubscriptionType {
   status: SubscriptionStatus;
 }
 
-export type PublicPlan = AvailablePlan & { description?: string, basePriceMonthly: number, plan: string };
+export type PublicPlan = AvailablePlan & {
+  description?: string;
+  basePriceMonthly: number;
+  plan: string;
+};
 
 /** Payload when creating a new subscription type (super-admin). */
 export interface CreateSubscriptionTypePayload {
@@ -140,6 +140,7 @@ export interface CreateSubscriptionTypePayload {
   pricePerSeat: number;
   maxSeats?: number;
   maxCatalogItems?: number;
+  durationDays: number;
   features?: string[];
   sortOrder?: number;
   stripePriceIdBase?: string;
@@ -592,7 +593,7 @@ export interface PaginatedRequest<TFilter = Record<string, unknown>> {
   page?: number;
   limit?: number;
   sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: "asc" | "desc";
   filters?: TFilter;
 }
 
@@ -608,7 +609,7 @@ export interface PaginatedResponse<T> {
 }
 
 /** Operation status for async/batch operations. */
-export type OperationStatus = 'pending' | 'in-progress' | 'completed' | 'failed' | 'partial';
+export type OperationStatus = "pending" | "in-progress" | "completed" | "failed" | "partial";
 
 export interface OperationResult {
   status: OperationStatus;
@@ -675,7 +676,7 @@ export interface AcceptInvitePayload {
 
 export interface RegisterResponseData {
   organization: { id: string; name: string; email: string };
-  user: { id: string; email: string; name: PersonName; role: UserRole };
+  user: User;
 }
 
 export interface LoginResponseData {
@@ -702,7 +703,7 @@ export interface InviteUserPayload {
   name: PersonName;
   email: string;
   phone: string;
-  role: UserRole;
+  roleId: string;
 }
 
 export interface UpdateUserPayload {
@@ -712,7 +713,54 @@ export interface UpdateUserPayload {
 }
 
 export interface UpdateUserRolePayload {
-  role: UserRole;
+  roleId: string;
+}
+
+// ─── Roles & Permissions ───────────────────────────────────────────────────
+
+/** Organization-scoped role definition */
+export interface Role {
+  _id: string;
+  name: string;
+  permissions: string[];
+  description?: string;
+  isReadOnly: boolean;
+  type: "SYSTEM" | "CUSTOM";
+}
+
+/** Payload used to create a new role */
+export interface CreateRolePayload {
+  name: string;
+  permissions: string[];
+  description?: string;
+}
+
+/** Payload used to update an existing custom role (all fields optional) */
+export interface UpdateRolePayload {
+  name?: string;
+  permissions?: string[];
+  description?: string;
+}
+
+/** Paginated roles list response */
+export interface RolesListResponse {
+  items: Role[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+/** Permission */
+export interface Permission {
+  _id: string;
+  displayName: string;
+  description: string;
+  category: string;
+}
+
+/** Permissions list response */
+export interface PermissionsResponse {
+  permissions: Permission[];
 }
 
 // ─── Query Params ──────────────────────────────────────────────────────────
@@ -724,7 +772,7 @@ export interface PaginationParams {
 
 export interface UsersQueryParams extends PaginationParams {
   status?: UserStatus;
-  role?: UserRole;
+  roleId?: string;
   search?: string;
 }
 

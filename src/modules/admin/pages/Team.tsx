@@ -9,6 +9,7 @@ import {
   updateUserRole,
   deactivateUser,
 } from "../../../services/adminService";
+import { getRoles } from "../../../services/roleService";
 import { ApiError } from "../../../lib/api";
 import {
   validateFirstName,
@@ -17,6 +18,7 @@ import {
   validateRequiredPhone,
 } from "../../../utils/validators";
 import { AlertModal, type AlertModalType } from "../../../components/ui/AlertModal";
+import type { Role } from "../../../types/api";
 
 const COLOMBIA_PHONE_PREFIX = "+57";
 
@@ -70,12 +72,13 @@ export default function Team() {
     firstSurname: "",
     email: "",
     phone: "",
-    role: "commercial_advisor",
+    role: "", // populated once availableRoles load
   });
   const [formErrors, setFormErrors] = useState<Partial<Record<TeamFormField, string>>>({});
   const [formTouched, setFormTouched] = useState<Partial<Record<TeamFormField, boolean>>>({});
   const [submitting, setSubmitting] = useState(false);
-  const [initialRole, setInitialRole] = useState<string>("commercial_advisor");
+  const [availableRoles, setAvailableRoles] = useState<Role[]>([]);
+  const [initialRole, setInitialRole] = useState<string>("");
   const [ownerSecurity, setOwnerSecurity] = useState<{
     acceptedCritical: boolean;
     acceptedIrreversible: boolean;
@@ -87,8 +90,9 @@ export default function Team() {
     confirmEmail: "",
     confirmPhrase: "",
   });
-  const [ownerSecurityErrors, setOwnerSecurityErrors] =
-    useState<Partial<Record<OwnerSecurityField, string>>>({});
+  const [ownerSecurityErrors, setOwnerSecurityErrors] = useState<
+    Partial<Record<OwnerSecurityField, string>>
+  >({});
   const [ownerSecurityTouched, setOwnerSecurityTouched] = useState(false);
   const [alertModal, setAlertModal] = useState<{
     open: boolean;
@@ -101,7 +105,8 @@ export default function Team() {
     setAlertModal({ open: true, type, message, title });
   const closeAlert = () => setAlertModal((prev) => ({ ...prev, open: false }));
 
-  const isOwnerPromotion = !!editingId && initialRole !== "owner" && formData.role === "owner";
+  const selectedRoleName = availableRoles.find((r) => r._id === formData.role)?.name ?? "";
+  const isOwnerPromotion = !!editingId && initialRole !== "owner" && selectedRoleName === "owner";
 
   const resetOwnerSecurity = () => {
     setOwnerSecurity({
@@ -134,7 +139,7 @@ export default function Team() {
 
     const requiredPhrase = "TRANSFER OWNER";
     if (!ownerSecurity.confirmPhrase.trim()) {
-      nextErrors.confirmPhrase = `Type \"${requiredPhrase}\" to authorize ownership transfer.`;
+      nextErrors.confirmPhrase = `Type "${requiredPhrase}" to authorize ownership transfer.`;
     } else if (ownerSecurity.confirmPhrase.trim().toUpperCase() !== requiredPhrase) {
       nextErrors.confirmPhrase = `The phrase must be exactly: ${requiredPhrase}`;
     }
@@ -167,7 +172,7 @@ export default function Team() {
           id: (user._id as string) || (user.id as string),
           name: `${firstName} ${lastName}`.trim() || (user.email as string),
           email: user.email as string,
-          role: (user.role as string) || "undefined",
+          role: (user.roleName as string) || "undefined",
           status: status,
         };
       });
@@ -184,6 +189,18 @@ export default function Team() {
 
   useEffect(() => {
     fetchTeamMembers();
+  }, []);
+
+  useEffect(() => {
+    const loadRoles = async () => {
+      try {
+        const res = await getRoles();
+        setAvailableRoles(res.data.items);
+      } catch (err) {
+        console.error("[Team] Failed to load roles:", err);
+      }
+    };
+    void loadRoles();
   }, []);
 
   const pageSize = 10;
@@ -263,25 +280,28 @@ export default function Team() {
   const handleOpenModal = (member?: TeamMember) => {
     if (member) {
       setEditingId(member.id);
-      setInitialRole(member.role);
+      setInitialRole(member.role); // keeps role name for owner-promo check
       const [firstName, ...rest] = member.name.trim().split(" ");
       const firstSurname = rest.join(" ").trim();
+      // Resolve the role _id by matching the stored role name
+      const matchedRole = availableRoles.find((r) => r.name === member.role);
       setFormData({
         firstName: firstName || "",
         firstSurname: firstSurname || "",
         email: member.email,
         phone: "",
-        role: member.role,
+        role: matchedRole?._id ?? "",
       });
     } else {
       setEditingId(null);
-      setInitialRole("commercial_advisor");
+      setInitialRole("");
+      const defaultRole = availableRoles.find((r) => !r.isReadOnly)?._id ?? "";
       setFormData({
         firstName: "",
         firstSurname: "",
         email: "",
         phone: "",
-        role: "commercial_advisor",
+        role: defaultRole,
       });
     }
     setFormErrors({});
@@ -293,13 +313,14 @@ export default function Team() {
   const handleCloseModal = () => {
     setShowModal(false);
     setEditingId(null);
-    setInitialRole("commercial_advisor");
+    setInitialRole("");
+    const defaultRole = availableRoles.find((r) => !r.isReadOnly)?._id ?? "";
     setFormData({
       firstName: "",
       firstSurname: "",
       email: "",
       phone: "",
-      role: "commercial_advisor",
+      role: defaultRole,
     });
     setFormErrors({});
     setFormTouched({});
@@ -349,7 +370,7 @@ export default function Team() {
         console.log("[Team] Updating user role to:", formData.role, "| User ID:", editingId);
 
         await updateUserRole(editingId, {
-          role: formData.role as import("../../../types/api").UserRole,
+          roleId: formData.role,
         });
       } else {
         console.log(
@@ -376,7 +397,7 @@ export default function Team() {
             firstName: formData.firstName,
             firstSurname: formData.firstSurname,
           },
-          role: formData.role as import("../../../types/api").UserRole,
+          roleId: formData.role,
         };
 
         const response = await inviteUser(invitePayload);
@@ -416,8 +437,7 @@ export default function Team() {
       } else {
         showAlert("error", "An unexpected error occurred. Please try again.");
       }
-    }
-    finally {
+    } finally {
       setSubmitting(false);
     }
   };
@@ -551,8 +571,15 @@ export default function Team() {
         >
           <div className="modal-content">
             <div className="modal-header">
-              <h2 className="text-xl font-bold">{editingId ? "Edit Member" : "Invite New Member"}</h2>
-              <button onClick={() => handleCloseModal()} className="btn-icon" title="Close modal" aria-label="Close modal">
+              <h2 className="text-xl font-bold">
+                {editingId ? "Edit Member" : "Invite New Member"}
+              </h2>
+              <button
+                onClick={() => handleCloseModal()}
+                className="btn-icon"
+                title="Close modal"
+                aria-label="Close modal"
+              >
                 <X size={20} />
               </button>
             </div>
@@ -605,9 +632,7 @@ export default function Team() {
                     <input
                       type="email"
                       value={formData.email}
-                      onChange={(e) =>
-                        handleFieldChange("email", formatEmailInput(e.target.value))
-                      }
+                      onChange={(e) => handleFieldChange("email", formatEmailInput(e.target.value))}
                       onBlur={() => handleFieldBlur("email")}
                       disabled={!!editingId || submitting}
                       autoCapitalize="none"
@@ -657,23 +682,27 @@ export default function Team() {
                     aria-label="Role"
                     value={formData.role}
                     onChange={(e) => {
-                      const nextRole = e.target.value;
-                      handleFieldChange("role", nextRole);
-                      if (nextRole !== "owner") resetOwnerSecurity();
+                      const nextRoleId = e.target.value;
+                      handleFieldChange("role", nextRoleId);
+                      const nextRoleName = availableRoles.find((r) => r._id === nextRoleId)?.name ?? "";
+                      if (nextRoleName !== "owner") resetOwnerSecurity();
                     }}
                     className={inputClass(false)}
                     disabled={submitting}
                   >
-                    <option value="owner">Owner</option>
-                    <option value="manager">Manager</option>
-                    <option value="warehouse_operator">Warehouse Operator</option>
-                    <option value="commercial_advisor">Commercial Advisor</option>
+                    {availableRoles.map((r) => (
+                      <option key={r._id} value={r._id}>
+                        {r.name.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
                 {isOwnerPromotion && (
                   <div className="space-y-4 rounded-xl border border-yellow-500/50 bg-yellow-500/10 p-4">
-                    <h3 className="text-sm font-semibold text-yellow-300">Ownership Transfer Security</h3>
+                    <h3 className="text-sm font-semibold text-yellow-300">
+                      Ownership Transfer Security
+                    </h3>
 
                     <div className="space-y-2">
                       <label className="flex items-start gap-2 text-sm text-gray-200">
@@ -689,10 +718,13 @@ export default function Team() {
                           }}
                           disabled={submitting}
                         />
-                        I understand this user will get full owner permissions over organization data.
+                        I understand this user will get full owner permissions over organization
+                        data.
                       </label>
                       {ownerSecurityErrors.acceptedCritical && (
-                        <p className="text-red-400 text-xs">{ownerSecurityErrors.acceptedCritical}</p>
+                        <p className="text-red-400 text-xs">
+                          {ownerSecurityErrors.acceptedCritical}
+                        </p>
                       )}
 
                       <label className="flex items-start gap-2 text-sm text-gray-200">
@@ -711,7 +743,9 @@ export default function Team() {
                         I confirm this is a deliberate and sensitive ownership transfer decision.
                       </label>
                       {ownerSecurityErrors.acceptedIrreversible && (
-                        <p className="text-red-400 text-xs">{ownerSecurityErrors.acceptedIrreversible}</p>
+                        <p className="text-red-400 text-xs">
+                          {ownerSecurityErrors.acceptedIrreversible}
+                        </p>
                       )}
                     </div>
 
@@ -764,11 +798,22 @@ export default function Team() {
               </div>
 
               <div className="modal-footer">
-                <button type="button" onClick={handleCloseModal} className="btn-secondary" disabled={submitting}>
+                <button
+                  type="button"
+                  onClick={handleCloseModal}
+                  className="btn-secondary"
+                  disabled={submitting}
+                >
                   Cancel
                 </button>
                 <button type="submit" className="btn-primary" disabled={submitting}>
-                  {submitting ? (editingId ? "Saving..." : "Sending...") : editingId ? "Save Changes" : "Invite User"}
+                  {submitting
+                    ? editingId
+                      ? "Saving..."
+                      : "Sending..."
+                    : editingId
+                      ? "Save Changes"
+                      : "Invite User"}
                 </button>
               </div>
             </form>

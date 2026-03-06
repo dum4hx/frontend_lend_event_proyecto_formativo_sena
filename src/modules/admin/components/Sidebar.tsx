@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   Calendar,
   Users,
+  ShieldCheck,
   Settings,
   Bot,
   LogOut,
@@ -52,6 +53,12 @@ const navItems: NavItem[] = [
     path: "/admin/customers",
   },
   { id: "team", label: "Team", icon: <Users size={20} />, path: "/admin/team" },
+  {
+    id: "roles",
+    label: "Role Management",
+    icon: <ShieldCheck size={20} />,
+    path: "/admin/roles",
+  },
   {
     id: "material-categories",
     label: "Material Categories",
@@ -109,9 +116,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
     }
   };
 
-  const displayName = user
-    ? `${user.name.firstName} ${user.name.firstSurname}`
-    : "Admin User";
+  const displayName = user ? `${user.name.firstName} ${user.name.firstSurname}` : "Admin User";
 
   const sidebarWidthClass = isCollapsed ? "w-20" : "w-64";
   const itemPaddingClass = isCollapsed ? "px-2 py-3 justify-center" : "px-4 py-3";
@@ -122,7 +127,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
     >
       {/* Logo */}
       <div className="mb-6">
-        <div className={`flex items-center gap-2 ${isCollapsed ? "justify-end" : "justify-between"}`}>
+        <div
+          className={`flex items-center gap-2 ${isCollapsed ? "justify-end" : "justify-between"}`}
+        >
           {!isCollapsed && (
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-8 h-8 rounded-lg bg-[#FFD700] flex items-center justify-center">

@@ -66,11 +66,11 @@ export default function Login() {
         "| Email:",
         loggedUser?.email,
         "| Role:",
-        loggedUser?.role,
+        loggedUser?.roleName,
         "| Status:",
         loggedUser?.status,
         "| Full user:",
-        loggedUser
+        loggedUser,
       );
 
       if (!loggedUser) {
@@ -78,15 +78,15 @@ export default function Login() {
         setError("Authentication failed. Please try again.");
         return;
       }
-      
-      if (!loggedUser.role) {
+
+      if (!loggedUser.roleName) {
         console.error("❌ [Login] User has no role assigned:", loggedUser);
         setError("No role assigned. Please contact your administrator.");
         return;
       }
 
       // For roles that require subscription, check subscription status
-      if (requiresActiveSubscription(loggedUser.role)) {
+      if (requiresActiveSubscription(loggedUser.roleName)) {
         try {
           const status = await getPaymentStatus();
           console.log("📊 Subscription status:", status.data.isActive);
@@ -101,15 +101,15 @@ export default function Login() {
       }
 
       // Navigate based on the user's role
-      const dashboardUrl = getDashboardUrlByRole(loggedUser.role);
+      const dashboardUrl = getDashboardUrlByRole(loggedUser.roleName);
       console.log(
         "🚀 [Login] Redirecting to dashboard",
         "| User:",
         loggedUser.email,
         "| Role:",
-        loggedUser.role,
+        loggedUser.roleName,
         "| Dashboard URL:",
-        dashboardUrl
+        dashboardUrl,
       );
       navigate(dashboardUrl);
     } catch (err: unknown) {
@@ -123,23 +123,23 @@ export default function Login() {
             "| Email:",
             refreshedUser?.email,
             "| Role:",
-            refreshedUser?.role,
+            refreshedUser?.roleName,
             "| Status:",
-            refreshedUser?.status
+            refreshedUser?.status,
           );
 
           if (!refreshedUser) {
             setError("Authentication failed after token refresh. Please try again.");
             return;
           }
-          
-          if (!refreshedUser.role) {
+
+          if (!refreshedUser.roleName) {
             console.error("❌ [Login] Refreshed user has no role:", refreshedUser);
             setError("No role assigned. Please contact your administrator.");
             return;
           }
 
-          if (requiresActiveSubscription(refreshedUser.role)) {
+          if (requiresActiveSubscription(refreshedUser.roleName)) {
             try {
               const status = await getPaymentStatus();
               if (!status.data.isActive) {
@@ -150,15 +150,15 @@ export default function Login() {
               // proceed normally on failure
             }
           }
-          const dashboardUrl = getDashboardUrlByRole(refreshedUser.role);
+          const dashboardUrl = getDashboardUrlByRole(refreshedUser.roleName);
           console.log(
             "🚀 [Login] Redirecting after token refresh",
             "| User:",
             refreshedUser.email,
             "| Role:",
-            refreshedUser.role,
+            refreshedUser.roleName,
             "| Dashboard URL:",
-            dashboardUrl
+            dashboardUrl,
           );
           navigate(dashboardUrl);
           navigate(dashboardUrl);

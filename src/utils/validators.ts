@@ -160,6 +160,26 @@ export const validateOrganizationName = (name: string): ValidationResult => {
 };
 
 /**
+ * Role name validation
+ * - Required, 2..100 characters
+ */
+export const validateRoleName = (name: string): ValidationResult => {
+  if (!name || !name.trim()) {
+    return { isValid: false, message: "Role name is required" };
+  }
+
+  if (name.length < 2) {
+    return { isValid: false, message: "Role name must be at least 2 characters" };
+  }
+
+  if (name.length > 100) {
+    return { isValid: false, message: "Role name must not exceed 100 characters" };
+  }
+
+  return { isValid: true };
+};
+
+/**
  * Tax ID validation (required by API)
  */
 export const validateTaxId = (taxId: string): ValidationResult => {
@@ -175,6 +195,7 @@ export const validateTaxId = (taxId: string): ValidationResult => {
 
   // Length check (9 to 11 digits)
   if (digits.length < 9 || digits.length > 11) {
+    return { isValid: false, message: "Tax ID length must be 9 to 11 digits" };
     return { isValid: false, message: "Tax ID length must be 9 to 11 digits" };
   }
 

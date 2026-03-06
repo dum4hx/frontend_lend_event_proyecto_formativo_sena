@@ -32,6 +32,7 @@ import Team from "./modules/admin/pages/Team";
 import IASettings from "./modules/admin/pages/IA_Settings";
 import Settings from "./modules/admin/pages/Settings";
 import AdminSubscriptionManagement from "./modules/admin/pages/SubscriptionManagement";
+import RoleManagement from "./modules/admin/pages/RoleManagement";
 
 // Admin - Material Categories
 import { CategoryCatalog, CreateCategory } from "./modules/admin/modules/material-categories";
@@ -111,6 +112,7 @@ function App() {
             <Route path="events" element={<MyEvents />} />
             <Route path="customers" element={<Customers />} />
             <Route path="team" element={<Team />} />
+            <Route path="roles" element={<RoleManagement />} />
             <Route path="material-categories" element={<CategoryCatalog />} />
             <Route path="material-categories/create" element={<CreateCategory />} />
             <Route path="material-types" element={<MaterialTypeCatalog />} />

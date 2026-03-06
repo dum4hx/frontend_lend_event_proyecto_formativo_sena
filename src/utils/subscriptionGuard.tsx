@@ -19,7 +19,10 @@ interface RequireActiveSubscriptionProps {
  * - Only owners can query `/auth/payment-status`. For non-owners, we allow
  *   rendering and rely on backend authorization for specific actions.
  */
-export function RequireActiveSubscription({ children, redirectTo = "/packages" }: RequireActiveSubscriptionProps) {
+export function RequireActiveSubscription({
+  children,
+  redirectTo = "/packages",
+}: RequireActiveSubscriptionProps) {
   const { user, isLoggedIn, isLoading } = useAuth();
   const navigate = useNavigate();
   const [checking, setChecking] = useState(true);
@@ -38,7 +41,7 @@ export function RequireActiveSubscription({ children, redirectTo = "/packages" }
       }
 
       // Owners: enforce active subscription via API
-      if (user?.role === "owner") {
+      if (user?.roleName === "owner") {
         try {
           const res = await getPaymentStatus();
           if (!res.data.isActive) {
