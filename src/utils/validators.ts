@@ -196,7 +196,6 @@ export const validateTaxId = (taxId: string): ValidationResult => {
   // Length check (9 to 11 digits)
   if (digits.length < 9 || digits.length > 11) {
     return { isValid: false, message: "Tax ID length must be 9 to 11 digits" };
-    return { isValid: false, message: "Tax ID length must be 9 to 11 digits" };
   }
 
   return { isValid: true };
@@ -444,6 +443,101 @@ export const validateLoginForm = (formData: {
 /**
  * Validate password change form
  */
+// ─── Subscription plan field validators ────────────────────────────────────
+
+/**
+ * Plan identifier validation
+ * - Lowercase alphanumeric with underscores, starts with letter, max 50 chars
+ */
+export const validatePlanIdentifier = (plan: string): ValidationResult => {
+  const trimmed = plan.trim();
+  if (!trimmed) {
+    return { isValid: false, message: "Plan identifier is required." };
+  }
+  if (!/^[a-z][a-z0-9_]*$/.test(trimmed)) {
+    return { isValid: false, message: "Must be lowercase alphanumeric with underscores." };
+  }
+  if (trimmed.length > 50) {
+    return { isValid: false, message: "Max 50 characters." };
+  }
+  return { isValid: true };
+};
+
+/**
+ * Display name validation for subscription plans
+ */
+export const validatePlanDisplayName = (name: string): ValidationResult => {
+  const trimmed = name.trim();
+  if (!trimmed) {
+    return { isValid: false, message: "Display name is required." };
+  }
+  if (trimmed.length > 100) {
+    return { isValid: false, message: "Max 100 characters." };
+  }
+  return { isValid: true };
+};
+
+/**
+ * Cost in cents validation (baseCost, pricePerSeat)
+ */
+export const validateCostCents = (value: number, label = "Value"): ValidationResult => {
+  if (!Number.isFinite(value) || value < 0) {
+    return { isValid: false, message: `${label} must be a non-negative number (in cents).` };
+  }
+  return { isValid: true };
+};
+
+/**
+ * Limit field validation (maxSeats, maxCatalogItems) — must be -1 or a positive integer
+ */
+export const validateLimitField = (value: number, label = "Value"): ValidationResult => {
+  if (!Number.isInteger(value) || value < -1 || value === 0) {
+    return { isValid: false, message: `${label} must be -1 (unlimited) or a positive integer.` };
+  }
+  return { isValid: true };
+};
+
+/**
+ * Duration days validation — integer between 1 and 365
+ */
+export const validateDurationDays = (days: number): ValidationResult => {
+  if (!Number.isInteger(days) || days < 1 || days > 365) {
+    return { isValid: false, message: "Must be an integer between 1 and 365." };
+  }
+  return { isValid: true };
+};
+
+/**
+ * Sort order validation — must be an integer
+ */
+export const validateSortOrder = (order: number): ValidationResult => {
+  if (!Number.isInteger(order)) {
+    return { isValid: false, message: "Must be an integer." };
+  }
+  return { isValid: true };
+};
+
+/**
+ * Plan description validation — optional, max 500 chars
+ */
+export const validatePlanDescription = (desc: string): ValidationResult => {
+  if (desc.length > 500) {
+    return { isValid: false, message: "Max 500 characters." };
+  }
+  return { isValid: true };
+};
+
+/**
+ * Stripe price ID validation — optional; if provided must start with "price_"
+ */
+export const validateStripePriceId = (id: string): ValidationResult => {
+  if (!id) return { isValid: true };
+  if (!id.startsWith("price_")) {
+    return { isValid: false, message: 'Stripe price IDs must start with "price_".' };
+  }
+  return { isValid: true };
+};
+
 export const validateChangePasswordForm = (formData: {
   currentPassword: string;
   newPassword: string;

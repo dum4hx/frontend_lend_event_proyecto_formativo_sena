@@ -1,14 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import {
-  Check,
-  Loader2,
-  AlertCircle,
-  Package,
-  Users,
-  LayoutGrid,
-  ShieldCheck,
-} from "lucide-react";
+import { Check, Loader2, AlertCircle, Package, Users, LayoutGrid, ShieldCheck } from "lucide-react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { getAvailablePlans } from "../services/organizationService";
@@ -44,7 +36,9 @@ function ActiveSubscriptionModal({ plan, onManage, onClose }: ActiveSubscription
   return (
     <div
       className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
     >
       <div className="bg-zinc-900 border border-zinc-700 rounded-2xl max-w-md w-full shadow-2xl p-8 flex flex-col items-center text-center">
         <div className="mb-4 rounded-full bg-yellow-400/10 p-4">
@@ -52,10 +46,12 @@ function ActiveSubscriptionModal({ plan, onManage, onClose }: ActiveSubscription
         </div>
         <h2 className="text-xl font-bold text-white mb-2">Active Subscription</h2>
         <p className="text-gray-400 text-sm mb-2">
-          You already have an active <span className="text-yellow-400 font-semibold capitalize">{plan}</span> subscription.
+          You already have an active{" "}
+          <span className="text-yellow-400 font-semibold capitalize">{plan}</span> subscription.
         </p>
         <p className="text-gray-500 text-sm mb-8">
-          You cannot purchase a new plan while your current subscription is active. To upgrade, downgrade, or manage billing, visit the Subscription Management page.
+          You cannot purchase a new plan while your current subscription is active. To upgrade,
+          downgrade, or manage billing, visit the Subscription Management page.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 w-full">
           <button
@@ -78,7 +74,11 @@ function ActiveSubscriptionModal({ plan, onManage, onClose }: ActiveSubscription
 
 // ─── Plan Card ─────────────────────────────────────────────────────────────
 
-type PublicPlan = AvailablePlan & { description?: string, basePriceMonthly: number };
+type PublicPlan = AvailablePlan & {
+  description?: string;
+  basePriceMonthly: number;
+  durationDays?: number;
+};
 
 interface PlanCardProps {
   plan: PublicPlan;
@@ -106,23 +106,26 @@ function PlanCard({ plan, featured, onSelect }: PlanCardProps) {
       {/* Header */}
       <div className="text-left mb-6">
         <h3 className="text-xl font-bold">{plan.displayName}</h3>
-        {plan.description && (
-          <p className="text-gray-500 text-sm mt-1">{plan.description}</p>
-        )}
+        {plan.description && <p className="text-gray-500 text-sm mt-1">{plan.description}</p>}
       </div>
 
       {/* Price */}
       <div className="text-left mb-6">
-        <span
-          className={`font-extrabold ${featured ? "text-5xl" : "text-4xl"}`}
-        >
+        <span className={`font-extrabold ${featured ? "text-5xl" : "text-4xl"}`}>
           ${formatPrice(plan.basePriceMonthly)}
         </span>
-        <span className="text-gray-500 ml-1">/mo</span>
+        {plan.durationDays != null && (
+          <span className="text-gray-500 ml-2 text-base font-normal">
+            /{" "}
+            {plan.durationDays === 30
+              ? "month"
+              : plan.durationDays === 365
+                ? "year"
+                : `${plan.durationDays} days`}
+          </span>
+        )}
         {plan.billingModel === "dynamic" && plan.pricePerSeat > 0 && (
-          <p className="text-gray-500 text-sm mt-1">
-            + ${formatPrice(plan.pricePerSeat)}/seat/mo
-          </p>
+          <p className="text-gray-500 text-sm mt-1">+ ${formatPrice(plan.pricePerSeat)} / seat</p>
         )}
       </div>
 
@@ -130,17 +133,11 @@ function PlanCard({ plan, featured, onSelect }: PlanCardProps) {
       <div className="flex gap-4 mb-6 text-left">
         <div className="flex items-center text-gray-400 text-xs">
           <Users className="w-4 h-4 mr-1.5 text-yellow-400/70" />
-          {isUnlimited(plan.maxSeats)
-            ? "Unlimited"
-            : `Up to ${plan.maxSeats}`}{" "}
-          seats
+          {isUnlimited(plan.maxSeats) ? "Unlimited" : `Up to ${plan.maxSeats}`} seats
         </div>
         <div className="flex items-center text-gray-400 text-xs">
           <LayoutGrid className="w-4 h-4 mr-1.5 text-yellow-400/70" />
-          {isUnlimited(plan.maxCatalogItems)
-            ? "Unlimited"
-            : plan.maxCatalogItems}{" "}
-          items
+          {isUnlimited(plan.maxCatalogItems) ? "Unlimited" : plan.maxCatalogItems} items
         </div>
       </div>
 
@@ -212,25 +209,26 @@ export default function Packages() {
         console.log("API RESPONSE:", res.data);
         if (cancelled) return;
         setPlans(res.data.plans);
-      } catch  {
+      } catch {
         if (cancelled) return;
         // Fallback: fetch subscription types publicly and map to AvailablePlan
         try {
           const alt = await getSubscriptionTypesPublic();
           if (cancelled) return;
           const mapped = alt.data.subscriptionTypes.map((t) => {
-              return {
-                name: t.plan,
-                displayName: t.displayName,
-                billingModel: t.billingModel,
-                maxCatalogItems: t.maxCatalogItems,
-                maxSeats: t.maxSeats,
-                features: t.features,
-                basePriceMonthly: t.basePriceMonthly,
-                pricePerSeat: t.pricePerSeat,
-                description: t.description,
-              } as PublicPlan;
-            });
+            return {
+              name: t.plan,
+              displayName: t.displayName,
+              billingModel: t.billingModel,
+              maxCatalogItems: t.maxCatalogItems,
+              maxSeats: t.maxSeats,
+              features: t.features,
+              basePriceMonthly: t.basePriceMonthly,
+              pricePerSeat: t.pricePerSeat,
+              description: t.description,
+              durationDays: t.durationDays,
+            } as PublicPlan;
+          });
           setPlans(mapped);
           setError("");
         } catch (err2) {
@@ -314,10 +312,11 @@ export default function Packages() {
               setShowLoginModal(false);
               const planName = pendingPlan ?? localStorage.getItem("pendingCheckoutPlan");
               if (planName) {
-                try { localStorage.removeItem("pendingCheckoutPlan"); } 
-                catch {
+                try {
+                  localStorage.removeItem("pendingCheckoutPlan");
+                } catch {
                   /* Empty fallback */
-                  } 
+                }
                 navigate(`/checkout?plan=${encodeURIComponent(planName)}`);
               }
             }}
@@ -325,9 +324,7 @@ export default function Packages() {
           <h2 className="text-4xl md:text-5xl font-extrabold mb-4">
             Simple <span className="text-yellow-400">Pricing</span>
           </h2>
-          <p className="text-gray-400 mb-12 text-lg">
-            Choose the perfect plan for your business
-          </p>
+          <p className="text-gray-400 mb-12 text-lg">Choose the perfect plan for your business</p>
 
           {/* Loading */}
           {loading && (
@@ -361,9 +358,7 @@ export default function Packages() {
 
           {/* Plan cards */}
           {!loading && !error && plans.length > 0 && (
-            <div
-              className={`grid gap-8 items-stretch mx-auto ${gridCols}`}
-            >
+            <div className={`grid gap-8 items-stretch mx-auto ${gridCols}`}>
               {plans.map((plan, idx) => (
                 <PlanCard
                   key={plan.name}

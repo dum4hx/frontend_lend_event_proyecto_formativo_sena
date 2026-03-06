@@ -128,6 +128,7 @@ export type PublicPlan = AvailablePlan & {
   description?: string;
   basePriceMonthly: number;
   plan: string;
+  durationDays?: number;
 };
 
 /** Payload when creating a new subscription type (super-admin). */

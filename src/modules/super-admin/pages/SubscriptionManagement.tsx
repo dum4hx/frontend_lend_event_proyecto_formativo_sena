@@ -26,6 +26,16 @@ import {
   AlertContainer,
 } from "../../../components/ui";
 import { normalizeError, logError } from "../../../utils/errorHandling";
+import {
+  validatePlanIdentifier,
+  validatePlanDisplayName,
+  validateCostCents,
+  validateLimitField,
+  validateDurationDays,
+  validateSortOrder,
+  validatePlanDescription,
+  validateStripePriceId,
+} from "../../../utils/validators";
 import { useAuth } from "../../../contexts/useAuth";
 import { useAlerts } from "../../../hooks/useAlerts";
 import { useAlertModal } from "../../../hooks/useAlertModal";
@@ -271,66 +281,62 @@ function validatePlanFields(
   const errors: PlanValidationErrors = {};
 
   if (isCreate && fields.plan !== undefined) {
-    const plan = fields.plan.trim();
-    if (!plan) {
-      errors.plan = "Plan identifier is required.";
-    } else if (!/^[a-z][a-z0-9_]*$/.test(plan)) {
-      errors.plan = "Must be lowercase alphanumeric with underscores.";
-    } else if (plan.length > 50) {
-      errors.plan = "Max 50 characters.";
-    }
+    const r = validatePlanIdentifier(fields.plan);
+    if (!r.isValid) errors.plan = r.message;
   }
 
   if (fields.displayName !== undefined) {
-    const name = fields.displayName.trim();
-    if (!name) errors.displayName = "Display name is required.";
-    else if (name.length > 100) errors.displayName = "Max 100 characters.";
+    const r = validatePlanDisplayName(fields.displayName);
+    if (!r.isValid) errors.displayName = r.message;
   }
 
-  if (fields.description !== undefined && fields.description.length > 500) {
-    errors.description = "Max 500 characters.";
+  if (fields.description !== undefined) {
+    const r = validatePlanDescription(fields.description);
+    if (!r.isValid) errors.description = r.message;
   }
 
   if (fields.baseCost !== undefined) {
-    if (!Number.isFinite(fields.baseCost) || fields.baseCost < 0) {
-      errors.baseCost = "Must be a non-negative number (in cents).";
-    }
+    const r = validateCostCents(fields.baseCost, "Base cost");
+    if (!r.isValid) errors.baseCost = r.message;
   }
 
   if (fields.pricePerSeat !== undefined) {
-    if (!Number.isFinite(fields.pricePerSeat) || fields.pricePerSeat < 0) {
-      errors.pricePerSeat = "Must be a non-negative number (in cents).";
-    }
+    const r = validateCostCents(fields.pricePerSeat, "Price per seat");
+    if (!r.isValid) errors.pricePerSeat = r.message;
   }
 
   if (fields.maxSeats !== undefined) {
-    if (!Number.isInteger(fields.maxSeats) || fields.maxSeats < -1) {
-      errors.maxSeats = "Must be -1 (unlimited) or a positive integer.";
-    }
+    const r = validateLimitField(fields.maxSeats, "Max seats");
+    if (!r.isValid) errors.maxSeats = r.message;
   }
 
   if (fields.maxCatalogItems !== undefined) {
-    if (!Number.isInteger(fields.maxCatalogItems) || fields.maxCatalogItems < -1) {
-      errors.maxCatalogItems = "Must be -1 (unlimited) or a positive integer.";
-    }
+    const r = validateLimitField(fields.maxCatalogItems, "Max catalog items");
+    if (!r.isValid) errors.maxCatalogItems = r.message;
   }
 
   if (fields.durationDays !== undefined) {
-    if (
-      !Number.isInteger(fields.durationDays) ||
-      fields.durationDays < 1 ||
-      fields.durationDays > 365
-    ) {
-      errors.durationDays = "Must be an integer between 1 and 365.";
-    }
+    const r = validateDurationDays(fields.durationDays);
+    if (!r.isValid) errors.durationDays = r.message;
   }
 
   if (isCreate && (fields.durationDays === undefined || fields.durationDays === null)) {
     errors.durationDays = "Duration is required.";
   }
 
-  if (fields.sortOrder !== undefined && !Number.isInteger(fields.sortOrder)) {
-    errors.sortOrder = "Must be an integer.";
+  if (fields.sortOrder !== undefined) {
+    const r = validateSortOrder(fields.sortOrder);
+    if (!r.isValid) errors.sortOrder = r.message;
+  }
+
+  if (fields.stripePriceIdBase !== undefined) {
+    const r = validateStripePriceId(fields.stripePriceIdBase);
+    if (!r.isValid) errors.stripePriceIdBase = r.message;
+  }
+
+  if (fields.stripePriceIdSeat !== undefined) {
+    const r = validateStripePriceId(fields.stripePriceIdSeat);
+    if (!r.isValid) errors.stripePriceIdSeat = r.message;
   }
 
   if (isCreate && !fields.billingModel) {
@@ -540,6 +546,31 @@ export default function PlanConfiguration() {
   const handleCancelExport = useCallback(() => {
     exportAbort.current?.abort();
   }, []);
+
+  /**
+   * Validate a single create-form field live and patch createErrors.
+   * Pass `nextFields` containing the just-updated value so state timing
+   * is never an issue.
+   */
+  const liveCreateField = useCallback(
+    (key: keyof PlanValidationErrors, nextFields: Partial<CreateSubscriptionTypePayload>) => {
+      const isCreateField = key === "plan" || key === "durationDays" || key === "billingModel";
+      const errs = validatePlanFields(nextFields, isCreateField);
+      setCreateErrors((prev) => ({ ...prev, [key]: errs[key] }));
+    },
+    [],
+  );
+
+  /**
+   * Validate a single edit-card field live and patch validationErrors.
+   */
+  const liveEditField = useCallback(
+    (key: keyof PlanValidationErrors, nextFields: Partial<CreateSubscriptionTypePayload>) => {
+      const errs = validatePlanFields(nextFields, false);
+      setValidationErrors((prev) => ({ ...prev, [key]: errs[key] }));
+    },
+    [],
+  );
 
   // Start editing a plan — populate ALL patchable fields
   const startEdit = (plan: SubscriptionType) => {
@@ -794,9 +825,12 @@ export default function PlanConfiguration() {
             >
               <TextInput
                 value={createFields.plan ?? ""}
-                onChange={(e) =>
-                  setCreateFields((f) => ({ ...f, plan: e.target.value.toLowerCase() }))
-                }
+                onChange={(e) => {
+                  const updated = { ...createFields, plan: e.target.value.toLowerCase() };
+                  setCreateFields(updated);
+                  if (createErrors.plan !== undefined) liveCreateField("plan", updated);
+                }}
+                onBlur={() => liveCreateField("plan", { plan: createFields.plan ?? "" })}
                 placeholder="e.g., premium_pro"
               />
             </Field>
@@ -804,7 +838,14 @@ export default function PlanConfiguration() {
             <Field label="Display Name" required error={createErrors.displayName}>
               <TextInput
                 value={createFields.displayName ?? ""}
-                onChange={(e) => setCreateFields((f) => ({ ...f, displayName: e.target.value }))}
+                onChange={(e) => {
+                  const updated = { ...createFields, displayName: e.target.value };
+                  setCreateFields(updated);
+                  if (createErrors.displayName !== undefined) liveCreateField("displayName", updated);
+                }}
+                onBlur={() =>
+                  liveCreateField("displayName", { displayName: createFields.displayName ?? "" })
+                }
                 placeholder="e.g., Premium Pro"
               />
             </Field>
@@ -896,8 +937,13 @@ export default function PlanConfiguration() {
                 <NumberInput
                   min={0}
                   value={createFields.baseCost ?? 0}
-                  onChange={(e) =>
-                    setCreateFields((f) => ({ ...f, baseCost: Number(e.target.value) }))
+                  onChange={(e) => {
+                    const updated = { ...createFields, baseCost: Number(e.target.value) };
+                    setCreateFields(updated);
+                    if (createErrors.baseCost !== undefined) liveCreateField("baseCost", updated);
+                  }}
+                  onBlur={() =>
+                    liveCreateField("baseCost", { baseCost: createFields.baseCost ?? 0 })
                   }
                 />
               </Field>
@@ -906,8 +952,16 @@ export default function PlanConfiguration() {
                 <NumberInput
                   min={0}
                   value={createFields.pricePerSeat ?? 0}
-                  onChange={(e) =>
-                    setCreateFields((f) => ({ ...f, pricePerSeat: Number(e.target.value) }))
+                  onChange={(e) => {
+                    const updated = { ...createFields, pricePerSeat: Number(e.target.value) };
+                    setCreateFields(updated);
+                    if (createErrors.pricePerSeat !== undefined)
+                      liveCreateField("pricePerSeat", updated);
+                  }}
+                  onBlur={() =>
+                    liveCreateField("pricePerSeat", {
+                      pricePerSeat: createFields.pricePerSeat ?? 0,
+                    })
                   }
                 />
               </Field>
@@ -915,8 +969,13 @@ export default function PlanConfiguration() {
               <Field label="Max Seats" hint="-1 = unlimited" error={createErrors.maxSeats}>
                 <NumberInput
                   value={createFields.maxSeats ?? -1}
-                  onChange={(e) =>
-                    setCreateFields((f) => ({ ...f, maxSeats: Number(e.target.value) }))
+                  onChange={(e) => {
+                    const updated = { ...createFields, maxSeats: Number(e.target.value) };
+                    setCreateFields(updated);
+                    if (createErrors.maxSeats !== undefined) liveCreateField("maxSeats", updated);
+                  }}
+                  onBlur={() =>
+                    liveCreateField("maxSeats", { maxSeats: createFields.maxSeats ?? -1 })
                   }
                 />
               </Field>
@@ -928,8 +987,16 @@ export default function PlanConfiguration() {
               >
                 <NumberInput
                   value={createFields.maxCatalogItems ?? -1}
-                  onChange={(e) =>
-                    setCreateFields((f) => ({ ...f, maxCatalogItems: Number(e.target.value) }))
+                  onChange={(e) => {
+                    const updated = { ...createFields, maxCatalogItems: Number(e.target.value) };
+                    setCreateFields(updated);
+                    if (createErrors.maxCatalogItems !== undefined)
+                      liveCreateField("maxCatalogItems", updated);
+                  }}
+                  onBlur={() =>
+                    liveCreateField("maxCatalogItems", {
+                      maxCatalogItems: createFields.maxCatalogItems ?? -1,
+                    })
                   }
                 />
               </Field>
@@ -943,8 +1010,16 @@ export default function PlanConfiguration() {
                 min={1}
                 max={365}
                 value={createFields.durationDays ?? 30}
-                onChange={(e) =>
-                  setCreateFields((f) => ({ ...f, durationDays: Number(e.target.value) }))
+                onChange={(e) => {
+                  const updated = { ...createFields, durationDays: Number(e.target.value) };
+                  setCreateFields(updated);
+                  if (createErrors.durationDays !== undefined)
+                    liveCreateField("durationDays", updated);
+                }}
+                onBlur={() =>
+                  liveCreateField("durationDays", {
+                    durationDays: createFields.durationDays ?? 30,
+                  })
                 }
               />
             </Field>
@@ -952,8 +1027,13 @@ export default function PlanConfiguration() {
             <Field label="Sort Order" error={createErrors.sortOrder}>
               <NumberInput
                 value={createFields.sortOrder ?? 0}
-                onChange={(e) =>
-                  setCreateFields((f) => ({ ...f, sortOrder: Number(e.target.value) }))
+                onChange={(e) => {
+                  const updated = { ...createFields, sortOrder: Number(e.target.value) };
+                  setCreateFields(updated);
+                  if (createErrors.sortOrder !== undefined) liveCreateField("sortOrder", updated);
+                }}
+                onBlur={() =>
+                  liveCreateField("sortOrder", { sortOrder: createFields.sortOrder ?? 0 })
                 }
               />
             </Field>
@@ -970,21 +1050,37 @@ export default function PlanConfiguration() {
 
             {createBillingModel !== "free" && (
               <>
-                <Field label="Stripe Base Price ID">
+                <Field label="Stripe Base Price ID" error={createErrors.stripePriceIdBase}>
                   <TextInput
                     value={createFields.stripePriceIdBase ?? ""}
-                    onChange={(e) =>
-                      setCreateFields((f) => ({ ...f, stripePriceIdBase: e.target.value }))
+                    onChange={(e) => {
+                      const updated = { ...createFields, stripePriceIdBase: e.target.value };
+                      setCreateFields(updated);
+                      if (createErrors.stripePriceIdBase !== undefined)
+                        liveCreateField("stripePriceIdBase", updated);
+                    }}
+                    onBlur={() =>
+                      liveCreateField("stripePriceIdBase", {
+                        stripePriceIdBase: createFields.stripePriceIdBase ?? "",
+                      })
                     }
                     placeholder="price_…"
                   />
                 </Field>
 
-                <Field label="Stripe Seat Price ID">
+                <Field label="Stripe Seat Price ID" error={createErrors.stripePriceIdSeat}>
                   <TextInput
                     value={createFields.stripePriceIdSeat ?? ""}
-                    onChange={(e) =>
-                      setCreateFields((f) => ({ ...f, stripePriceIdSeat: e.target.value }))
+                    onChange={(e) => {
+                      const updated = { ...createFields, stripePriceIdSeat: e.target.value };
+                      setCreateFields(updated);
+                      if (createErrors.stripePriceIdSeat !== undefined)
+                        liveCreateField("stripePriceIdSeat", updated);
+                    }}
+                    onBlur={() =>
+                      liveCreateField("stripePriceIdSeat", {
+                        stripePriceIdSeat: createFields.stripePriceIdSeat ?? "",
+                      })
                     }
                     placeholder="price_…"
                   />
@@ -998,7 +1094,17 @@ export default function PlanConfiguration() {
             <Field label="Description" hint="max 500 chars" error={createErrors.description}>
               <TextareaInput
                 value={createFields.description ?? ""}
-                onChange={(e) => setCreateFields((f) => ({ ...f, description: e.target.value }))}
+                onChange={(e) => {
+                  const updated = { ...createFields, description: e.target.value };
+                  setCreateFields(updated);
+                  if (createErrors.description !== undefined)
+                    liveCreateField("description", updated);
+                }}
+                onBlur={() =>
+                  liveCreateField("description", {
+                    description: createFields.description ?? "",
+                  })
+                }
                 rows={2}
                 maxLength={500}
                 placeholder="Brief description of this plan…"
@@ -1059,8 +1165,16 @@ export default function PlanConfiguration() {
                     <Field label="Display Name" required error={validationErrors.displayName}>
                       <TextInput
                         value={editFields.displayName ?? ""}
-                        onChange={(e) =>
-                          setEditFields((f) => ({ ...f, displayName: e.target.value }))
+                        onChange={(e) => {
+                          const updated = { ...editFields, displayName: e.target.value } as Partial<CreateSubscriptionTypePayload>;
+                          setEditFields((f) => ({ ...f, displayName: e.target.value }));
+                          if (validationErrors.displayName !== undefined)
+                            liveEditField("displayName", updated);
+                        }}
+                        onBlur={() =>
+                          liveEditField("displayName", {
+                            displayName: editFields.displayName ?? "",
+                          })
                         }
                         maxLength={100}
                       />
@@ -1121,17 +1235,26 @@ export default function PlanConfiguration() {
                     <NumberInput
                       min={0}
                       value={editFields.baseCost ?? 0}
-                      onChange={(e) =>
-                        setEditFields((f) => ({ ...f, baseCost: Number(e.target.value) }))
-                      }
+                      onChange={(e) => {
+                        const updated = { baseCost: Number(e.target.value) };
+                        setEditFields((f) => ({ ...f, ...updated }));
+                        if (validationErrors.baseCost !== undefined) liveEditField("baseCost", updated);
+                      }}
+                      onBlur={() => liveEditField("baseCost", { baseCost: editFields.baseCost ?? 0 })}
                     />
                   </Field>
                   <Field label="Price / Seat" hint="¢" error={validationErrors.pricePerSeat}>
                     <NumberInput
                       min={0}
                       value={editFields.pricePerSeat ?? 0}
-                      onChange={(e) =>
-                        setEditFields((f) => ({ ...f, pricePerSeat: Number(e.target.value) }))
+                      onChange={(e) => {
+                        const updated = { pricePerSeat: Number(e.target.value) };
+                        setEditFields((f) => ({ ...f, ...updated }));
+                        if (validationErrors.pricePerSeat !== undefined)
+                          liveEditField("pricePerSeat", updated);
+                      }}
+                      onBlur={() =>
+                        liveEditField("pricePerSeat", { pricePerSeat: editFields.pricePerSeat ?? 0 })
                       }
                     />
                   </Field>
@@ -1215,9 +1338,12 @@ export default function PlanConfiguration() {
                   <Field label="Max Seats" hint="-1 = ∞" error={validationErrors.maxSeats}>
                     <NumberInput
                       value={editFields.maxSeats ?? -1}
-                      onChange={(e) =>
-                        setEditFields((f) => ({ ...f, maxSeats: Number(e.target.value) }))
-                      }
+                      onChange={(e) => {
+                        const updated = { maxSeats: Number(e.target.value) };
+                        setEditFields((f) => ({ ...f, ...updated }));
+                        if (validationErrors.maxSeats !== undefined) liveEditField("maxSeats", updated);
+                      }}
+                      onBlur={() => liveEditField("maxSeats", { maxSeats: editFields.maxSeats ?? -1 })}
                     />
                   </Field>
                   <Field
@@ -1227,8 +1353,16 @@ export default function PlanConfiguration() {
                   >
                     <NumberInput
                       value={editFields.maxCatalogItems ?? -1}
-                      onChange={(e) =>
-                        setEditFields((f) => ({ ...f, maxCatalogItems: Number(e.target.value) }))
+                      onChange={(e) => {
+                        const updated = { maxCatalogItems: Number(e.target.value) };
+                        setEditFields((f) => ({ ...f, ...updated }));
+                        if (validationErrors.maxCatalogItems !== undefined)
+                          liveEditField("maxCatalogItems", updated);
+                      }}
+                      onBlur={() =>
+                        liveEditField("maxCatalogItems", {
+                          maxCatalogItems: editFields.maxCatalogItems ?? -1,
+                        })
                       }
                     />
                   </Field>
@@ -1237,16 +1371,30 @@ export default function PlanConfiguration() {
                       min={1}
                       max={365}
                       value={editFields.durationDays ?? 30}
-                      onChange={(e) =>
-                        setEditFields((f) => ({ ...f, durationDays: Number(e.target.value) }))
+                      onChange={(e) => {
+                        const updated = { durationDays: Number(e.target.value) };
+                        setEditFields((f) => ({ ...f, ...updated }));
+                        if (validationErrors.durationDays !== undefined)
+                          liveEditField("durationDays", updated);
+                      }}
+                      onBlur={() =>
+                        liveEditField("durationDays", {
+                          durationDays: editFields.durationDays ?? 30,
+                        })
                       }
                     />
                   </Field>
                   <Field label="Sort Order" error={validationErrors.sortOrder}>
                     <NumberInput
                       value={editFields.sortOrder ?? 0}
-                      onChange={(e) =>
-                        setEditFields((f) => ({ ...f, sortOrder: Number(e.target.value) }))
+                      onChange={(e) => {
+                        const updated = { sortOrder: Number(e.target.value) };
+                        setEditFields((f) => ({ ...f, ...updated }));
+                        if (validationErrors.sortOrder !== undefined)
+                          liveEditField("sortOrder", updated);
+                      }}
+                      onBlur={() =>
+                        liveEditField("sortOrder", { sortOrder: editFields.sortOrder ?? 0 })
                       }
                     />
                   </Field>
@@ -1282,8 +1430,16 @@ export default function PlanConfiguration() {
                   >
                     <TextareaInput
                       value={editFields.description ?? ""}
-                      onChange={(e) =>
-                        setEditFields((f) => ({ ...f, description: e.target.value }))
+                      onChange={(e) => {
+                        const updated = { description: e.target.value };
+                        setEditFields((f) => ({ ...f, ...updated }));
+                        if (validationErrors.description !== undefined)
+                          liveEditField("description", updated);
+                      }}
+                      onBlur={() =>
+                        liveEditField("description", {
+                          description: editFields.description ?? "",
+                        })
                       }
                       rows={2}
                       maxLength={500}
@@ -1330,20 +1486,36 @@ export default function PlanConfiguration() {
               {/* ── Stripe IDs (edit only) ───────────────────────── */}
               {isEditing && (
                 <div className="grid grid-cols-1 gap-3 mb-3">
-                  <Field label="Stripe Base Price ID">
+                  <Field label="Stripe Base Price ID" error={validationErrors.stripePriceIdBase}>
                     <TextInput
                       value={editFields.stripePriceIdBase ?? ""}
-                      onChange={(e) =>
-                        setEditFields((f) => ({ ...f, stripePriceIdBase: e.target.value }))
+                      onChange={(e) => {
+                        const updated = { stripePriceIdBase: e.target.value };
+                        setEditFields((f) => ({ ...f, ...updated }));
+                        if (validationErrors.stripePriceIdBase !== undefined)
+                          liveEditField("stripePriceIdBase", updated);
+                      }}
+                      onBlur={() =>
+                        liveEditField("stripePriceIdBase", {
+                          stripePriceIdBase: editFields.stripePriceIdBase ?? "",
+                        })
                       }
                       placeholder="price_…"
                     />
                   </Field>
-                  <Field label="Stripe Seat Price ID">
+                  <Field label="Stripe Seat Price ID" error={validationErrors.stripePriceIdSeat}>
                     <TextInput
                       value={editFields.stripePriceIdSeat ?? ""}
-                      onChange={(e) =>
-                        setEditFields((f) => ({ ...f, stripePriceIdSeat: e.target.value }))
+                      onChange={(e) => {
+                        const updated = { stripePriceIdSeat: e.target.value };
+                        setEditFields((f) => ({ ...f, ...updated }));
+                        if (validationErrors.stripePriceIdSeat !== undefined)
+                          liveEditField("stripePriceIdSeat", updated);
+                      }}
+                      onBlur={() =>
+                        liveEditField("stripePriceIdSeat", {
+                          stripePriceIdSeat: editFields.stripePriceIdSeat ?? "",
+                        })
                       }
                       placeholder="price_…"
                     />
