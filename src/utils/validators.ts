@@ -49,6 +49,11 @@ export const validatePassword = (password: string): ValidationResult => {
     return { isValid: false, message: "Password must contain at least one uppercase letter" };
   }
 
+  // Check for lowercase letter
+  if (!/[a-z]/.test(password)) {
+    return { isValid: false, message: "Password must contain at least one lowercase letter" };
+  }
+
   // Check for number
   if (!/[0-9]/.test(password)) {
     return { isValid: false, message: "Password must contain at least one number" };
