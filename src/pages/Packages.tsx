@@ -88,6 +88,7 @@ interface PlanCardProps {
 
 function PlanCard({ plan, featured, onSelect }: PlanCardProps) {
   const isUnlimited = (n: number) => n === -1;
+  const isFreePlan = plan.basePriceMonthly === 0 && (plan.pricePerSeat ?? 0) <= 0;
 
   return (
     <div
@@ -112,7 +113,7 @@ function PlanCard({ plan, featured, onSelect }: PlanCardProps) {
       {/* Price */}
       <div className="text-left mb-6">
         <span className={`font-extrabold ${featured ? "text-5xl" : "text-4xl"}`}>
-          ${formatPrice(plan.basePriceMonthly)}
+          {isFreePlan ? "Free" : `$${formatPrice(plan.basePriceMonthly)}`}
         </span>
         {plan.durationDays != null && (
           <span className="text-gray-500 ml-2 text-base font-normal">
