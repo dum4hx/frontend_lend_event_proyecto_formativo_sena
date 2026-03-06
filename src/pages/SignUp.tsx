@@ -472,7 +472,10 @@ export default function SignUp() {
   };
 
   const setBackendFieldError = (field: FormField, message: string) => {
-    clearFieldValue(field);
+    // Don't clear sensitive password fields so the user can correct without retyping
+    if (field !== "password" && field !== "confirmPassword") {
+      clearFieldValue(field);
+    }
     setBackendErrors((prev) => ({ ...prev, [field]: message }));
     setErrorFor(field, message);
     markFieldTouched(field);
@@ -945,6 +948,48 @@ export default function SignUp() {
           setBackendFieldError(field as FormField, message);
           setError(message);
           setSubmitAttempt((prev) => prev + 1);
+        } else if (
+          err.details &&
+          typeof err.details === "object" &&
+          Array.isArray((err.details as any).errors)
+        ) {
+          // API returned structured validation errors array
+          const apiErrors: Array<{ field?: string; message?: string }> = (err.details as any).errors;
+          const otherMessages: string[] = [];
+          for (const e of apiErrors) {
+            const fieldPath = e.field ?? "";
+            const msg = e.message ?? "Validation error";
+            // Map API field paths to local FormField keys
+            let mappedField: FormField | null = null;
+
+            if (fieldPath === "owner.password" || fieldPath.endsWith(".password")) {
+              mappedField = "password";
+            } else if (fieldPath === "owner.email") {
+              mappedField = "ownerEmail";
+            } else if (fieldPath === "owner.phone") {
+              mappedField = "ownerPhone";
+            } else if (fieldPath === "organization.email") {
+              mappedField = "organizationEmail";
+            } else if (fieldPath === "organization.phone") {
+              mappedField = "organizationPhone";
+            } else if (fieldPath === "organization.taxId" || fieldPath === "taxId") {
+              mappedField = "taxId";
+            } else if (fieldPath === "organization.name") {
+              mappedField = "organizationName";
+            }
+
+            if (mappedField) {
+              setBackendFieldError(mappedField, msg);
+            } else {
+              otherMessages.push(msg);
+            }
+          }
+
+          const combined = otherMessages.length
+            ? otherMessages.join(". ")
+            : apiErrors.map((x) => x.message).filter(Boolean).join(". ");
+          setError(combined || err.message);
+          setSubmitAttempt((prev) => prev + 1);
         } else {
           // Fallback: surface any other detail values or the generic message
           const detailsMsg =
@@ -1131,6 +1176,7 @@ export default function SignUp() {
                       onChange={(e) => {
                         const v = formatEmailInput(e.target.value);
                         setOwnerEmail(v);
+                        clearBackendError("ownerEmail");
                         if (touched.ownerEmail || backendErrors.ownerEmail) {
                           setFieldValidation("ownerEmail", "pending");
                         }
@@ -1166,6 +1212,7 @@ export default function SignUp() {
                           onChange={(e) => {
                             const v = formatPhoneInput(e.target.value);
                             setOwnerPhone(v);
+                            clearBackendError("ownerPhone");
                             if (touched.ownerPhone || backendErrors.ownerPhone) {
                               setFieldValidation("ownerPhone", "pending");
                             }
@@ -1257,6 +1304,7 @@ export default function SignUp() {
                       onChange={(e) => {
                         const v = formatTaxIdInput(e.target.value);
                         setTaxId(v);
+                        clearBackendError("taxId");
                         if (touched.taxId || backendErrors.taxId) {
                           setFieldValidation("taxId", "pending");
                         }
@@ -1287,6 +1335,7 @@ export default function SignUp() {
                       onChange={(e) => {
                         const v = formatEmailInput(e.target.value);
                         setOrganizationEmail(v);
+                        clearBackendError("organizationEmail");
                         if (touched.organizationEmail || backendErrors.organizationEmail) {
                           setFieldValidation("organizationEmail", "pending");
                         }
@@ -1322,6 +1371,7 @@ export default function SignUp() {
                           onChange={(e) => {
                             const v = formatPhoneInput(e.target.value);
                             setOrganizationPhone(v);
+                            clearBackendError("organizationPhone");
                             if (touched.organizationPhone || backendErrors.organizationPhone) {
                               setFieldValidation("organizationPhone", "pending");
                             }
@@ -1714,6 +1764,8 @@ export default function SignUp() {
                       onChange={(e) => {
                         const v = e.target.value;
                         setPassword(v);
+                        // clear backend error as user edits the password so it can re-validate
+                        clearBackendError("password");
                         if (touched.password || backendErrors.password) {
                           setFieldValidation("password", "pending");
                         }
@@ -1747,6 +1799,8 @@ export default function SignUp() {
                       onChange={(e) => {
                         const v = e.target.value;
                         setConfirmPassword(v);
+                        // clear backend error as user edits the confirmation
+                        clearBackendError("confirmPassword");
                         if (touched.confirmPassword || backendErrors.confirmPassword) {
                           setFieldValidation("confirmPassword", "pending");
                         }
