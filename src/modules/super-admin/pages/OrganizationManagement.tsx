@@ -1,15 +1,12 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Building2, CheckCircle, XCircle, TrendingUp, Download } from "lucide-react";
 import { SuperAdminStatCard } from "../components";
-import {
-  fetchOrganizationsPii,
-  fetchOrganizationStats,
-} from "../../../services/superAdminService";
+import { fetchOrganizationsPii, fetchOrganizationStats } from "../../../services/superAdminService";
 import { LoadingSpinner, ErrorDisplay, AlertContainer } from "../../../components/ui";
 import { normalizeError, logError } from "../../../utils/errorHandling";
 import { useAuth } from "../../../contexts/useAuth";
 import { useAlerts } from "../../../hooks/useAlerts";
-import { AdminPagination, AdminTable } from "../../admin/components";
+import { AdminPagination, AdminTable } from "../../app/components";
 import { ExportSettingsModal } from "../../../components/export/ExportSettingsModal";
 import { exportService, ORGANIZATION_MANAGEMENT_POLICY } from "../../../services/export";
 import type { ExportConfig, ExportProgress } from "../../../types/export";
@@ -51,30 +48,27 @@ export default function OrganizationManagement() {
   const { user } = useAuth();
   const { alerts, showAlert, dismissAlert } = useAlerts();
 
-  const fetchData = useCallback(
-    async (p = 1) => {
-      try {
-        setLoading(true);
-        setError("");
-        const [piiResult, statsResult] = await Promise.all([
-          fetchOrganizationsPii(p, limit),
-          fetchOrganizationStats({ periodMonths: 1 }),
-        ]);
-        setOrganizations(piiResult.data.organizations);
-        setTotal(piiResult.data.total);
-        setTotalPages(piiResult.data.totalPages);
-        setPage(piiResult.data.page);
-        setOrgStats(statsResult.data.stats);
-      } catch (err: unknown) {
-        const normalized = normalizeError(err);
-        setError(normalized.message);
-        logError(err, "OrganizationManagement.fetchData");
-      } finally {
-        setLoading(false);
-      }
-    },
-    [],
-  );
+  const fetchData = useCallback(async (p = 1) => {
+    try {
+      setLoading(true);
+      setError("");
+      const [piiResult, statsResult] = await Promise.all([
+        fetchOrganizationsPii(p, limit),
+        fetchOrganizationStats({ periodMonths: 1 }),
+      ]);
+      setOrganizations(piiResult.data.organizations);
+      setTotal(piiResult.data.total);
+      setTotalPages(piiResult.data.totalPages);
+      setPage(piiResult.data.page);
+      setOrgStats(statsResult.data.stats);
+    } catch (err: unknown) {
+      const normalized = normalizeError(err);
+      setError(normalized.message);
+      logError(err, "OrganizationManagement.fetchData");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     void fetchData(page);
@@ -89,9 +83,7 @@ export default function OrganizationManagement() {
   );
 
   // Derived plans list for filter dropdown
-  const availablePlans = Array.from(
-    new Set(organizations.map((o) => o.subscription.plan)),
-  ).sort();
+  const availablePlans = Array.from(new Set(organizations.map((o) => o.subscription.plan))).sort();
 
   // Client-side filtering on the current page slice
   const filtered = organizations.filter((org) => {
@@ -288,10 +280,7 @@ export default function OrganizationManagement() {
                 );
                 const heightPct = Math.round((newOrgs / maxNew) * 100);
                 return (
-                  <div
-                    key={point.period}
-                    className="flex-1 flex flex-col items-center gap-1"
-                  >
+                  <div key={point.period} className="flex-1 flex flex-col items-center gap-1">
                     <span className="text-xs text-gray-400">{newOrgs}</span>
                     <div
                       className="w-full bg-[#FFD700] rounded-t"
@@ -316,8 +305,7 @@ export default function OrganizationManagement() {
             <h2 className="text-lg font-bold text-white mb-4">Organizations by Status</h2>
             <div className="space-y-3">
               {orgStats.byStatus.map((entry) => {
-                const pct =
-                  total > 0 ? Math.round((entry.count / total) * 100) : 0;
+                const pct = total > 0 ? Math.round((entry.count / total) * 100) : 0;
                 return (
                   <div key={entry.status}>
                     <div className="flex items-center justify-between text-sm mb-1">
@@ -441,9 +429,7 @@ export default function OrganizationManagement() {
                   <td className="px-4 py-3 text-gray-300">
                     {org.email.replace(/(?<=.).(?=[^@]*@)/g, "*")}
                   </td>
-                  <td className="px-4 py-3 text-gray-300 capitalize">
-                    {org.subscription.plan}
-                  </td>
+                  <td className="px-4 py-3 text-gray-300 capitalize">{org.subscription.plan}</td>
                   <td className="px-4 py-3 text-gray-300 text-center">
                     {org.subscription.seatCount}
                   </td>
@@ -455,9 +441,7 @@ export default function OrganizationManagement() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-gray-300">
-                    {[org.address?.city, org.address?.country]
-                      .filter(Boolean)
-                      .join(", ") || "—"}
+                    {[org.address?.city, org.address?.country].filter(Boolean).join(", ") || "—"}
                   </td>
                   <td className="px-4 py-3 text-gray-400 whitespace-nowrap">
                     {new Date(org.createdAt).toLocaleDateString()}

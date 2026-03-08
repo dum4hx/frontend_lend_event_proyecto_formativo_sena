@@ -299,7 +299,7 @@ export default function Packages() {
           {showActiveSubModal && activePlan && (
             <ActiveSubscriptionModal
               plan={activePlan}
-              onManage={() => navigate("/admin/subscription")}
+              onManage={() => navigate("/app/subscription")}
               onClose={() => setShowActiveSubModal(false)}
             />
           )}

@@ -5,42 +5,40 @@
  * user permissions (primary) or role name (legacy fallback).
  */
 
-import { allNavItems } from "../config/modulePermissions";
-
 // ---------------------------------------------------------------------------
 // Permission-based routing (preferred)
 // ---------------------------------------------------------------------------
 
-/** Module prefixes ordered by priority for the post-login redirect. */
-const MODULE_PREFIXES = [
-  "/admin",
-  "/super-admin",
-  "/warehouse-operator",
-  "/location-manager",
-  "/commercial-advisor",
-] as const;
-
 /**
  * Determine the best dashboard URL for a user based on their permissions.
  *
- * Iterates through module prefixes in priority order and returns the first
- * module root whose index page permissions the user satisfies (OR logic).
- * Falls back to "/" if no module matches.
+ * - `platform:manage` → `/super-admin`
+ * - Any organization-scoped permission → `/app`
+ * - Otherwise → `/`
  */
 export function getDashboardUrlByPermissions(permissions: string[]): string {
   const permSet = new Set(permissions);
 
-  for (const prefix of MODULE_PREFIXES) {
-    // The index item for a module has its path equal to the prefix
-    const indexItem = allNavItems.find((item) => item.path === prefix);
-    if (!indexItem) continue;
+  if (permSet.has("platform:manage")) return "/super-admin";
 
-    const hasAccess =
-      indexItem.requiredPermissions.length === 0 ||
-      indexItem.requiredPermissions.some((p) => permSet.has(p));
+  const orgPermissions = [
+    "analytics:read",
+    "organization:read",
+    "organization:update",
+    "materials:read",
+    "materials:create",
+    "materials:update",
+    "materials:delete",
+    "loans:read",
+    "customers:read",
+    "requests:read",
+    "invoices:read",
+    "users:read",
+    "roles:read",
+    "reports:read",
+  ];
 
-    if (hasAccess) return prefix;
-  }
+  if (orgPermissions.some((p) => permSet.has(p))) return "/app";
 
   return "/";
 }
@@ -67,10 +65,10 @@ export function requiresActiveSubscriptionByPermissions(permissions: string[]): 
 
 const ROLE_DASHBOARDS: Record<string, string> = {
   super_admin: "/super-admin",
-  warehouse_operator: "/warehouse-operator",
-  manager: "/location-manager",
-  commercial_advisor: "/commercial-advisor",
-  owner: "/admin",
+  warehouse_operator: "/app",
+  manager: "/app",
+  commercial_advisor: "/app",
+  owner: "/app",
 };
 
 /**

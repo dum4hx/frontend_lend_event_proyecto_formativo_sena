@@ -31,18 +31,17 @@ export default function CheckoutSuccess() {
           <CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-6" />
 
           <h1 className="text-3xl md:text-4xl font-extrabold mb-4">
-            Subscription{" "}
-            <span className="text-yellow-400">Activated!</span>
+            Subscription <span className="text-yellow-400">Activated!</span>
           </h1>
 
           <p className="text-gray-400 mb-8 text-lg">
-            Your payment was processed successfully. Your subscription is now
-            active and your team is ready to go.
+            Your payment was processed successfully. Your subscription is now active and your team
+            is ready to go.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
-              to="/admin"
+              to="/app"
               className="inline-flex items-center gap-2 bg-yellow-400 text-black font-bold px-8 py-3 rounded-xl hover:bg-yellow-300 transition-colors"
             >
               Go to Dashboard
@@ -56,11 +55,7 @@ export default function CheckoutSuccess() {
             </Link>
           </div>
 
-          {!synced && (
-            <p className="text-gray-600 text-xs mt-8">
-              Syncing your account…
-            </p>
-          )}
+          {!synced && <p className="text-gray-600 text-xs mt-8">Syncing your account…</p>}
         </div>
       </main>
 

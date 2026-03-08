@@ -22,10 +22,6 @@ export default function SuperAdminLayout() {
     return <Navigate to="/login" replace />;
   }
 
-  if (user.roleName !== "super_admin") {
-    return <Navigate to="/unauthorized" replace />;
-  }
-
   return (
     <div className="min-h-screen bg-black text-white">
       <SuperAdminSidebar

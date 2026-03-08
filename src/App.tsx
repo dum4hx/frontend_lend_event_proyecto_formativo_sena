@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { RequirePermission } from "./utils/permissionGuard";
 import { RequireActiveSubscription } from "./utils/subscriptionGuard";
@@ -23,28 +23,35 @@ import Unauthorized from "./pages/Unauthorized";
 // Demo / QA pages
 import ExportDemo from "./pages/ExportDemo";
 
-// Admin (organization owner)
-import AdminLayout from "./modules/admin/layouts/AdminLayout";
-import AdminDashboard from "./modules/admin/pages/AdminDashboard";
-import MyEvents from "./modules/admin/pages/MyEvents";
-import Customers from "./modules/admin/pages/Customers";
-import Team from "./modules/admin/pages/Team";
-import IASettings from "./modules/admin/pages/IA_Settings";
-import Settings from "./modules/admin/pages/Settings";
-import AdminSubscriptionManagement from "./modules/admin/pages/SubscriptionManagement";
-import RoleManagement from "./modules/admin/pages/RoleManagement";
+// Unified App module
+import AppLayout from "./modules/app/layouts/AppLayout";
+import AdminDashboard from "./modules/app/pages/AdminDashboard";
+import MyEvents from "./modules/app/pages/MyEvents";
+import Customers from "./modules/app/pages/Customers";
+import Team from "./modules/app/pages/Team";
+import IASettings from "./modules/app/pages/IA_Settings";
+import Settings from "./modules/app/pages/Settings";
+import SubscriptionManagement from "./modules/app/pages/SubscriptionManagement";
+import RoleManagement from "./modules/app/pages/RoleManagement";
+import Alerts from "./modules/app/pages/Alerts";
+import Inventory from "./modules/app/pages/Inventory";
+import Locations from "./modules/app/pages/Locations";
+import StockMovements from "./modules/app/pages/StockMovements";
+import Attributes from "./modules/app/pages/Attributes";
+import Plans from "./modules/app/pages/Plans";
+import Contracts from "./modules/app/pages/Contracts";
+import Orders from "./modules/app/pages/Orders";
+import Rentals from "./modules/app/pages/Rentals";
+import Invoices from "./modules/app/pages/Invoices";
+import Reports from "./modules/app/pages/Reports";
 
-// Admin - Material Categories
-import { CategoryCatalog, CreateCategory } from "./modules/admin/modules/material-categories";
-
-// Admin - Material Types
-import { MaterialTypeCatalog, CreateMaterialType } from "./modules/admin/modules/material-types";
-
-// Admin - Material Instances
+// App - Material sub-modules
+import { CategoryCatalog, CreateCategory } from "./modules/app/modules/material-categories";
+import { MaterialTypeCatalog, CreateMaterialType } from "./modules/app/modules/material-types";
 import {
   MaterialInstanceCatalog,
   CreateMaterialInstance,
-} from "./modules/admin/modules/material-instances";
+} from "./modules/app/modules/material-instances";
 
 // Super Admin — lazy-loaded for code-splitting
 const SuperAdminLayout = lazy(() => import("./modules/super-admin/layouts/SuperAdminLayout"));
@@ -58,46 +65,6 @@ const SystemSettings = lazy(() => import("./modules/super-admin/pages/SystemSett
 const OrganizationManagement = lazy(
   () => import("./modules/super-admin/pages/OrganizationManagement"),
 );
-
-// Warehouse Operator — lazy-loaded for code-splitting
-const WarehouseOperatorLayout = lazy(
-  () => import("./modules/warehouse-operator/layouts/WarehouseOperatorLayout"),
-);
-const WarehouseOperatorDashboard = lazy(
-  () => import("./modules/warehouse-operator/pages/Dashboard"),
-);
-const InventoryPage = lazy(() => import("./modules/warehouse-operator/pages/Inventory"));
-const LocationsPage = lazy(() => import("./modules/warehouse-operator/pages/Locations"));
-const StockMovementsPage = lazy(() => import("./modules/warehouse-operator/pages/StockMovements"));
-const AlertsPage = lazy(() => import("./modules/warehouse-operator/pages/Alerts"));
-const WarehouseOperatorSettings = lazy(() => import("./modules/warehouse-operator/pages/Settings"));
-
-// Location Manager — lazy-loaded for code-splitting
-const LocationManagerLayout = lazy(
-  () => import("./modules/location-manager/layouts/LocationManagerLayout"),
-);
-const LocationManagerDashboard = lazy(() => import("./modules/location-manager/pages/Dashboard"));
-const MaterialsPage = lazy(() => import("./modules/location-manager/pages/Materials"));
-const CategoriesPage = lazy(() => import("./modules/location-manager/pages/Categories"));
-const ModelsPage = lazy(() => import("./modules/location-manager/pages/Models"));
-const AttributesPage = lazy(() => import("./modules/location-manager/pages/Attributes"));
-const PlansPage = lazy(() => import("./modules/location-manager/pages/Plans"));
-const LocationManagerSettings = lazy(() => import("./modules/location-manager/pages/Settings"));
-
-// Commercial Advisor — lazy-loaded for code-splitting
-const CommercialAdvisorLayout = lazy(
-  () => import("./modules/commercial-advisor/layouts/CommercialAdvisorLayout"),
-);
-const CommercialAdvisorDashboard = lazy(
-  () => import("./modules/commercial-advisor/pages/Dashboard"),
-);
-const CustomersPage = lazy(() => import("./modules/commercial-advisor/pages/Customers"));
-const OrdersPage = lazy(() => import("./modules/commercial-advisor/pages/Orders"));
-const ContractsPage = lazy(() => import("./modules/commercial-advisor/pages/Contracts"));
-const RentalsPage = lazy(() => import("./modules/commercial-advisor/pages/Rentals"));
-const InvoicesPage = lazy(() => import("./modules/commercial-advisor/pages/Invoices"));
-const ReportsPage = lazy(() => import("./modules/commercial-advisor/pages/Reports"));
-const CommercialAdvisorSettings = lazy(() => import("./modules/commercial-advisor/pages/Settings"));
 
 function App() {
   return (
@@ -116,13 +83,21 @@ function App() {
           <Route path="/checkout/success" element={<CheckoutSuccess />} />
           <Route path="/export-demo" element={<ExportDemo />} />
 
-          {/* Rutas admin (organization owner) */}
+          {/* Unified /app routes — visibility controlled by permissions */}
           <Route
-            path="/admin"
+            path="/app"
             element={
-              <RequirePermission requiredPermissions={["analytics:read", "organization:read"]}>
+              <RequirePermission
+                requiredPermissions={[
+                  "analytics:read",
+                  "organization:read",
+                  "materials:read",
+                  "customers:read",
+                  "loans:read",
+                ]}
+              >
                 <RequireActiveSubscription>
-                  <AdminLayout />
+                  <AppLayout />
                 </RequireActiveSubscription>
               </RequirePermission>
             }
@@ -138,12 +113,23 @@ function App() {
             <Route path="material-types/create" element={<CreateMaterialType />} />
             <Route path="material-instances" element={<MaterialInstanceCatalog />} />
             <Route path="material-instances/create" element={<CreateMaterialInstance />} />
+            <Route path="attributes" element={<Attributes />} />
+            <Route path="plans" element={<Plans />} />
+            <Route path="inventory" element={<Inventory />} />
+            <Route path="locations" element={<Locations />} />
+            <Route path="stock-movements" element={<StockMovements />} />
+            <Route path="alerts" element={<Alerts />} />
+            <Route path="orders" element={<Orders />} />
+            <Route path="contracts" element={<Contracts />} />
+            <Route path="rentals" element={<Rentals />} />
+            <Route path="invoices" element={<Invoices />} />
+            <Route path="reports" element={<Reports />} />
             <Route path="ia-settings" element={<IASettings />} />
             <Route path="settings" element={<Settings />} />
-            <Route path="subscription" element={<AdminSubscriptionManagement />} />
+            <Route path="subscription" element={<SubscriptionManagement />} />
           </Route>
 
-          {/* Rutas super-admin - require platform:manage permission */}
+          {/* Super Admin routes — require platform:manage permission */}
           <Route
             path="/super-admin"
             element={
@@ -162,65 +148,11 @@ function App() {
             <Route path="settings" element={<SystemSettings />} />
           </Route>
 
-          {/* Rutas warehouse-operator - require materials permission */}
-          <Route
-            path="/warehouse-operator"
-            element={
-              <RequirePermission requiredPermissions={["materials:read"]}>
-                <Suspense fallback={<LoadingSpinner />}>
-                  <WarehouseOperatorLayout />
-                </Suspense>
-              </RequirePermission>
-            }
-          >
-            <Route index element={<WarehouseOperatorDashboard />} />
-            <Route path="inventory" element={<InventoryPage />} />
-            <Route path="locations" element={<LocationsPage />} />
-            <Route path="stock-movements" element={<StockMovementsPage />} />
-            <Route path="alerts" element={<AlertsPage />} />
-            <Route path="settings" element={<WarehouseOperatorSettings />} />
-          </Route>
-
-          {/* Rutas location-manager - require materials permission */}
-          <Route
-            path="/location-manager"
-            element={
-              <RequirePermission requiredPermissions={["materials:read"]}>
-                <Suspense fallback={<LoadingSpinner />}>
-                  <LocationManagerLayout />
-                </Suspense>
-              </RequirePermission>
-            }
-          >
-            <Route index element={<LocationManagerDashboard />} />
-            <Route path="materials" element={<MaterialsPage />} />
-            <Route path="categories" element={<CategoriesPage />} />
-            <Route path="models" element={<ModelsPage />} />
-            <Route path="attributes" element={<AttributesPage />} />
-            <Route path="plans" element={<PlansPage />} />
-            <Route path="settings" element={<LocationManagerSettings />} />
-          </Route>
-
-          {/* Rutas commercial-advisor - require relevant permission */}
-          <Route
-            path="/commercial-advisor"
-            element={
-              <RequirePermission requiredPermissions={["loans:read", "customers:read"]}>
-                <Suspense fallback={<LoadingSpinner />}>
-                  <CommercialAdvisorLayout />
-                </Suspense>
-              </RequirePermission>
-            }
-          >
-            <Route index element={<CommercialAdvisorDashboard />} />
-            <Route path="customers" element={<CustomersPage />} />
-            <Route path="orders" element={<OrdersPage />} />
-            <Route path="contracts" element={<ContractsPage />} />
-            <Route path="rentals" element={<RentalsPage />} />
-            <Route path="invoices" element={<InvoicesPage />} />
-            <Route path="reports" element={<ReportsPage />} />
-            <Route path="settings" element={<CommercialAdvisorSettings />} />
-          </Route>
+          {/* Legacy redirects — old role-based URLs → unified /app */}
+          <Route path="/admin/*" element={<Navigate to="/app" replace />} />
+          <Route path="/warehouse-operator/*" element={<Navigate to="/app" replace />} />
+          <Route path="/location-manager/*" element={<Navigate to="/app" replace />} />
+          <Route path="/commercial-advisor/*" element={<Navigate to="/app" replace />} />
 
           {/* Fallback routes */}
           <Route path="/unauthorized" element={<Unauthorized />} />

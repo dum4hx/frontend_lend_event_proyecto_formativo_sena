@@ -2,7 +2,7 @@
  * Central permission mapping for all application paths.
  *
  * A single flat registry of navigation items and route-level permissions.
- * Sidebar components filter by URL prefix + the user's permissions.
+ * The unified sidebar filters items by the user's permissions.
  * Route guards look up required permissions by path.
  *
  * Permission keys come from PERMISSIONS_REFERENCE.md and are returned by
@@ -32,71 +32,64 @@ export interface NavItem {
    * If empty the item is always shown for authenticated users.
    */
   requiredPermissions: string[];
+  /** Visual grouping label rendered as a section header in the sidebar. */
+  section?: string;
 }
 
 // ---------------------------------------------------------------------------
 // Single flat registry of ALL sidebar navigation items.
-// Grouped by URL prefix for readability only -- not by role.
 // ---------------------------------------------------------------------------
 
 export const allNavItems: NavItem[] = [
-  // -- /admin --
-  { id: "dashboard",            label: "Dashboard",            path: "/admin",                      requiredPermissions: ["analytics:read"] },
-  { id: "events",               label: "My Events",            path: "/admin/events",               requiredPermissions: ["loans:read"] },
-  { id: "customers",            label: "Customers",            path: "/admin/customers",            requiredPermissions: ["customers:read"] },
-  { id: "team",                 label: "Team",                 path: "/admin/team",                 requiredPermissions: ["users:read"] },
-  { id: "roles",                label: "Role Management",      path: "/admin/roles",                requiredPermissions: ["roles:read"] },
-  { id: "material-categories",  label: "Material Categories",  path: "/admin/material-categories",  requiredPermissions: ["materials:read"] },
-  { id: "material-types",       label: "Material Types",       path: "/admin/material-types",       requiredPermissions: ["materials:read"] },
-  { id: "material-instances",   label: "Material Instances",   path: "/admin/material-instances",   requiredPermissions: ["materials:read"] },
-  { id: "ia-settings",          label: "IA Settings",          path: "/admin/ia-settings",          requiredPermissions: ["organization:update"] },
-  { id: "subscription",         label: "Subscription",         path: "/admin/subscription",         requiredPermissions: ["subscription:manage", "billing:manage"] },
-  { id: "settings",             label: "Settings",             path: "/admin/settings",             requiredPermissions: ["organization:read"] },
+  // -- Overview --
+  { id: "dashboard",           label: "Dashboard",            path: "/app",                         requiredPermissions: ["analytics:read"],                      section: "Overview" },
 
-  // -- /super-admin --
-  { id: "overview",       label: "Sales Overview",           path: "/super-admin",                requiredPermissions: ["platform:manage"] },
-  { id: "clients",        label: "User Management",          path: "/super-admin/clients",        requiredPermissions: ["platform:manage"] },
-  { id: "organizations",  label: "Organization Management",  path: "/super-admin/organizations",  requiredPermissions: ["platform:manage"] },
-  { id: "plans",          label: "Plan Configuration",       path: "/super-admin/subscriptions",  requiredPermissions: ["subscription_types:read"] },
-  { id: "ai-monitor",     label: "AI Chatbot Monitor",       path: "/super-admin/ai-monitor",     requiredPermissions: ["platform:manage"] },
-  { id: "sa-settings",    label: "System Settings",          path: "/super-admin/settings",       requiredPermissions: ["platform:manage"] },
+  // -- Organization --
+  { id: "events",              label: "My Events",            path: "/app/events",                  requiredPermissions: ["loans:read"],                          section: "Organization" },
+  { id: "customers",           label: "Customers",            path: "/app/customers",               requiredPermissions: ["customers:read"],                      section: "Organization" },
+  { id: "team",                label: "Team",                 path: "/app/team",                    requiredPermissions: ["users:read"],                          section: "Organization" },
+  { id: "roles",               label: "Role Management",      path: "/app/roles",                   requiredPermissions: ["roles:read"],                          section: "Organization" },
+  { id: "subscription",        label: "Subscription",         path: "/app/subscription",            requiredPermissions: ["subscription:manage", "billing:manage"], section: "Organization" },
+  { id: "ia-settings",         label: "IA Settings",          path: "/app/ia-settings",             requiredPermissions: ["organization:update"],                 section: "Organization" },
+  { id: "settings",            label: "Settings",             path: "/app/settings",                requiredPermissions: ["organization:read"],                   section: "Organization" },
 
-  // -- /warehouse-operator --
-  { id: "wo-dashboard",     label: "Dashboard",        path: "/warehouse-operator",                  requiredPermissions: ["materials:read"] },
-  { id: "inventory",        label: "Inventory",        path: "/warehouse-operator/inventory",        requiredPermissions: ["materials:read"] },
-  { id: "locations",        label: "Locations",        path: "/warehouse-operator/locations",        requiredPermissions: ["materials:read"] },
-  { id: "stock-movements",  label: "Stock Movements",  path: "/warehouse-operator/stock-movements",  requiredPermissions: ["materials:update"] },
-  { id: "alerts",           label: "Alerts",           path: "/warehouse-operator/alerts",           requiredPermissions: ["materials:read"] },
-  { id: "wo-settings",      label: "Settings",         path: "/warehouse-operator/settings",         requiredPermissions: ["organization:read"] },
+  // -- Materials --
+  { id: "material-categories", label: "Categories",           path: "/app/material-categories",     requiredPermissions: ["materials:read"],                      section: "Materials" },
+  { id: "material-types",      label: "Material Types",       path: "/app/material-types",          requiredPermissions: ["materials:read"],                      section: "Materials" },
+  { id: "material-instances",  label: "Inventory Items",      path: "/app/material-instances",      requiredPermissions: ["materials:read"],                      section: "Materials" },
+  { id: "attributes",          label: "Attributes",           path: "/app/attributes",              requiredPermissions: ["materials:read"],                      section: "Materials" },
+  { id: "plans",               label: "Material Plans",       path: "/app/plans",                   requiredPermissions: ["materials:read"],                      section: "Materials" },
 
-  // -- /location-manager --
-  { id: "lm-dashboard",  label: "Dashboard",        path: "/location-manager",             requiredPermissions: ["materials:read"] },
-  { id: "materials",      label: "Materials",        path: "/location-manager/materials",   requiredPermissions: ["materials:read"] },
-  { id: "categories",     label: "Categories",       path: "/location-manager/categories",  requiredPermissions: ["materials:read"] },
-  { id: "models",         label: "Material Models",  path: "/location-manager/models",      requiredPermissions: ["materials:read"] },
-  { id: "attributes",     label: "Attributes",       path: "/location-manager/attributes",  requiredPermissions: ["materials:read"] },
-  { id: "lm-plans",       label: "Material Plans",   path: "/location-manager/plans",       requiredPermissions: ["materials:read"] },
-  { id: "lm-settings",    label: "Settings",         path: "/location-manager/settings",    requiredPermissions: ["organization:read"] },
+  // -- Warehouse --
+  { id: "inventory",           label: "Inventory",            path: "/app/inventory",               requiredPermissions: ["materials:read"],                      section: "Warehouse" },
+  { id: "locations",           label: "Locations",            path: "/app/locations",               requiredPermissions: ["materials:read"],                      section: "Warehouse" },
+  { id: "stock-movements",     label: "Stock Movements",      path: "/app/stock-movements",         requiredPermissions: ["materials:update"],                    section: "Warehouse" },
+  { id: "alerts",              label: "Alerts",               path: "/app/alerts",                  requiredPermissions: ["materials:read"],                      section: "Warehouse" },
 
-  // -- /commercial-advisor --
-  { id: "ca-dashboard",  label: "Dashboard",   path: "/commercial-advisor",            requiredPermissions: ["loans:read", "customers:read"] },
-  { id: "ca-customers",  label: "Customers",   path: "/commercial-advisor/customers",  requiredPermissions: ["customers:read"] },
-  { id: "orders",        label: "Orders",      path: "/commercial-advisor/orders",     requiredPermissions: ["requests:read"] },
-  { id: "contracts",     label: "Contracts",   path: "/commercial-advisor/contracts",  requiredPermissions: ["loans:read"] },
-  { id: "rentals",       label: "Rentals",     path: "/commercial-advisor/rentals",    requiredPermissions: ["loans:read"] },
-  { id: "invoices",      label: "Invoices",    path: "/commercial-advisor/invoices",   requiredPermissions: ["invoices:read"] },
-  { id: "reports",       label: "Reports",     path: "/commercial-advisor/reports",    requiredPermissions: ["reports:read"] },
-  { id: "ca-settings",   label: "Settings",    path: "/commercial-advisor/settings",   requiredPermissions: ["organization:read"] },
+  // -- Commerce --
+  { id: "orders",              label: "Orders",               path: "/app/orders",                  requiredPermissions: ["requests:read"],                       section: "Commerce" },
+  { id: "contracts",           label: "Contracts",            path: "/app/contracts",               requiredPermissions: ["loans:read"],                          section: "Commerce" },
+  { id: "rentals",             label: "Rentals",              path: "/app/rentals",                 requiredPermissions: ["loans:read"],                          section: "Commerce" },
+  { id: "invoices",            label: "Invoices",             path: "/app/invoices",                requiredPermissions: ["invoices:read"],                       section: "Commerce" },
+  { id: "reports",             label: "Reports",              path: "/app/reports",                 requiredPermissions: ["reports:read"],                        section: "Commerce" },
+
+  // -- /super-admin (separate module, kept here for getNavItemsByPrefix) --
+  { id: "overview",            label: "Sales Overview",           path: "/super-admin",                requiredPermissions: ["platform:manage"] },
+  { id: "clients",             label: "User Management",          path: "/super-admin/clients",        requiredPermissions: ["platform:manage"] },
+  { id: "organizations",       label: "Organization Management",  path: "/super-admin/organizations",  requiredPermissions: ["platform:manage"] },
+  { id: "sa-plans",            label: "Plan Configuration",       path: "/super-admin/subscriptions",  requiredPermissions: ["subscription_types:read"] },
+  { id: "ai-monitor",          label: "AI Chatbot Monitor",       path: "/super-admin/ai-monitor",     requiredPermissions: ["platform:manage"] },
+  { id: "sa-settings",         label: "System Settings",          path: "/super-admin/settings",       requiredPermissions: ["platform:manage"] },
 ];
 
 // ---------------------------------------------------------------------------
-// Helper -- sidebar components call this with their URL prefix
+// Helpers
 // ---------------------------------------------------------------------------
 
 /**
  * Returns the nav items whose path matches the given prefix.
  *
- * @example getNavItemsByPrefix("/admin")
+ * @example getNavItemsByPrefix("/app")
  */
 export function getNavItemsByPrefix(prefix: string): NavItem[] {
   return allNavItems.filter(
@@ -104,13 +97,25 @@ export function getNavItemsByPrefix(prefix: string): NavItem[] {
   );
 }
 
+/**
+ * Groups nav items by their `section` field.
+ * Items without a section are placed under "".
+ */
+export function groupNavItemsBySection(
+  items: NavItem[],
+): { section: string; items: NavItem[] }[] {
+  const map = new Map<string, NavItem[]>();
+  for (const item of items) {
+    const key = item.section ?? "";
+    const group = map.get(key);
+    if (group) group.push(item);
+    else map.set(key, [item]);
+  }
+  return Array.from(map, ([section, items]) => ({ section, items }));
+}
+
 // ---------------------------------------------------------------------------
 // Route-level permission requirements
-//
-// Derived from allNavItems plus sub-routes (create / edit pages) that are
-// not shown in sidebars but still need access control.
-//
-// Used by <RequirePermission> guards.  OR logic: user needs at least one.
 // ---------------------------------------------------------------------------
 
 export interface RoutePermission {
@@ -120,9 +125,9 @@ export interface RoutePermission {
 
 /** Additional sub-routes not present in sidebar navigation. */
 const additionalRoutePermissions: RoutePermission[] = [
-  { path: "/admin/material-categories/create",  requiredPermissions: ["materials:create"] },
-  { path: "/admin/material-types/create",       requiredPermissions: ["materials:create"] },
-  { path: "/admin/material-instances/create",   requiredPermissions: ["materials:create"] },
+  { path: "/app/material-categories/create",  requiredPermissions: ["materials:create"] },
+  { path: "/app/material-types/create",       requiredPermissions: ["materials:create"] },
+  { path: "/app/material-instances/create",   requiredPermissions: ["materials:create"] },
 ];
 
 export const routePermissions: RoutePermission[] = [
