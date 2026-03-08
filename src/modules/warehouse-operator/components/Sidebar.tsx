@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -11,56 +11,31 @@ import {
 } from "lucide-react";
 import { ApiError } from "../../../lib/api";
 import { useLogout } from "../../../hooks/useLogout";
+import { usePermissions } from "../../../contexts/usePermissions";
+import { getNavItemsByPrefix } from "../../../config/modulePermissions";
 
-interface NavItem {
-  id: string;
-  label: string;
-  icon: React.ReactNode;
-  path: string;
-}
-
-const navItems: NavItem[] = [
-  {
-    id: "dashboard",
-    label: "Dashboard",
-    icon: <LayoutDashboard size={20} />,
-    path: "/warehouse-operator",
-  },
-  {
-    id: "inventory",
-    label: "Inventory",
-    icon: <Package size={20} />,
-    path: "/warehouse-operator/inventory",
-  },
-  {
-    id: "locations",
-    label: "Locations",
-    icon: <MapPin size={20} />,
-    path: "/warehouse-operator/locations",
-  },
-  {
-    id: "stock-movements",
-    label: "Stock Movements",
-    icon: <TrendingDown size={20} />,
-    path: "/warehouse-operator/stock-movements",
-  },
-  {
-    id: "alerts",
-    label: "Alerts",
-    icon: <AlertCircle size={20} />,
-    path: "/warehouse-operator/alerts",
-  },
-  {
-    id: "settings",
-    label: "Settings",
-    icon: <Settings size={20} />,
-    path: "/warehouse-operator/settings",
-  },
-];
+const iconMap: Record<string, React.ReactNode> = {
+  "wo-dashboard": <LayoutDashboard size={20} />,
+  inventory: <Package size={20} />,
+  locations: <MapPin size={20} />,
+  "stock-movements": <TrendingDown size={20} />,
+  alerts: <AlertCircle size={20} />,
+  "wo-settings": <Settings size={20} />,
+};
 
 export const Sidebar: React.FC = () => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { logout } = useLogout();
+  const { hasAnyPermission } = usePermissions();
+
+  const visibleItems = useMemo(
+    () =>
+      getNavItemsByPrefix("/warehouse-operator").filter(
+        (item) =>
+          item.requiredPermissions.length === 0 || hasAnyPermission(item.requiredPermissions),
+      ),
+    [hasAnyPermission],
+  );
 
   const handleLogout = async () => {
     try {
@@ -85,7 +60,7 @@ export const Sidebar: React.FC = () => {
 
       {/* Navigation */}
       <nav className="flex-1 space-y-2">
-        {navItems.map((item) => (
+        {visibleItems.map((item) => (
           <NavLink
             key={item.id}
             to={item.path}
@@ -98,7 +73,7 @@ export const Sidebar: React.FC = () => {
               }`
             }
           >
-            {item.icon}
+            {iconMap[item.id]}
             <span>{item.label}</span>
           </NavLink>
         ))}

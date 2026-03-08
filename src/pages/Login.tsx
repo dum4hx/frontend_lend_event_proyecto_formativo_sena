@@ -5,7 +5,10 @@ import Footer from "../components/Footer";
 import { loginUser, refreshToken, getPaymentStatus } from "../services/authService";
 import { ApiError } from "../lib/api";
 import { validateLoginForm, validateEmail } from "../utils/validators";
-import { getDashboardUrlByRole, requiresActiveSubscription } from "../utils/roleRouting";
+import {
+  getDashboardUrlByPermissions,
+  requiresActiveSubscriptionByPermissions,
+} from "../utils/roleRouting";
 import { useAuth } from "../contexts/useAuth";
 import styles from "./Login.module.css";
 
@@ -60,17 +63,17 @@ export default function Login() {
       await loginUser({ email: normalisedEmail, password: normalisedPassword });
 
       // Verify authentication after login
-      const loggedUser = await checkAuth();
+      const { user: loggedUser, permissions } = await checkAuth();
       console.log(
         "✅ [Login] Login successful",
         "| Email:",
         loggedUser?.email,
         "| Role:",
         loggedUser?.roleName,
+        "| Permissions:",
+        permissions,
         "| Status:",
         loggedUser?.status,
-        "| Full user:",
-        loggedUser,
       );
 
       if (!loggedUser) {
@@ -79,14 +82,14 @@ export default function Login() {
         return;
       }
 
-      if (!loggedUser.roleName) {
-        console.error("❌ [Login] User has no role assigned:", loggedUser);
-        setError("No role assigned. Please contact your administrator.");
+      if (permissions.length === 0) {
+        console.error("❌ [Login] User has no permissions assigned:", loggedUser);
+        setError("No permissions assigned. Please contact your administrator.");
         return;
       }
 
       // For roles that require subscription, check subscription status
-      if (requiresActiveSubscription(loggedUser.roleName)) {
+      if (requiresActiveSubscriptionByPermissions(permissions)) {
         try {
           const status = await getPaymentStatus();
           console.log("📊 Subscription status:", status.data.isActive);
@@ -100,14 +103,14 @@ export default function Login() {
         }
       }
 
-      // Navigate based on the user's role
-      const dashboardUrl = getDashboardUrlByRole(loggedUser.roleName);
+      // Navigate based on the user's permissions
+      const dashboardUrl = getDashboardUrlByPermissions(permissions);
       console.log(
         "🚀 [Login] Redirecting to dashboard",
         "| User:",
         loggedUser.email,
-        "| Role:",
-        loggedUser.roleName,
+        "| Permissions:",
+        permissions,
         "| Dashboard URL:",
         dashboardUrl,
       );
@@ -117,13 +120,13 @@ export default function Login() {
       if (err instanceof ApiError && err.statusCode === 401) {
         try {
           await refreshToken();
-          const refreshedUser = await checkAuth();
+          const { user: refreshedUser, permissions: refreshedPermissions } = await checkAuth();
           console.log(
             "🔄 [Login] Token refreshed - User logged in",
             "| Email:",
             refreshedUser?.email,
-            "| Role:",
-            refreshedUser?.roleName,
+            "| Permissions:",
+            refreshedPermissions,
             "| Status:",
             refreshedUser?.status,
           );
@@ -133,13 +136,13 @@ export default function Login() {
             return;
           }
 
-          if (!refreshedUser.roleName) {
-            console.error("❌ [Login] Refreshed user has no role:", refreshedUser);
-            setError("No role assigned. Please contact your administrator.");
+          if (refreshedPermissions.length === 0) {
+            console.error("❌ [Login] Refreshed user has no permissions:", refreshedUser);
+            setError("No permissions assigned. Please contact your administrator.");
             return;
           }
 
-          if (requiresActiveSubscription(refreshedUser.roleName)) {
+          if (requiresActiveSubscriptionByPermissions(refreshedPermissions)) {
             try {
               const status = await getPaymentStatus();
               if (!status.data.isActive) {
@@ -150,17 +153,16 @@ export default function Login() {
               // proceed normally on failure
             }
           }
-          const dashboardUrl = getDashboardUrlByRole(refreshedUser.roleName);
+          const dashboardUrl = getDashboardUrlByPermissions(refreshedPermissions);
           console.log(
             "🚀 [Login] Redirecting after token refresh",
             "| User:",
             refreshedUser.email,
-            "| Role:",
-            refreshedUser.roleName,
+            "| Permissions:",
+            refreshedPermissions,
             "| Dashboard URL:",
             dashboardUrl,
           );
-          navigate(dashboardUrl);
           navigate(dashboardUrl);
           return;
         } catch {

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -12,62 +12,32 @@ import {
 } from "lucide-react";
 import { ApiError } from "../../../lib/api";
 import { useLogout } from "../../../hooks/useLogout";
+import { usePermissions } from "../../../contexts/usePermissions";
+import { getNavItemsByPrefix } from "../../../config/modulePermissions";
 
-interface NavItem {
-  id: string;
-  label: string;
-  icon: React.ReactNode;
-  path: string;
-}
-
-const navItems: NavItem[] = [
-  {
-    id: "dashboard",
-    label: "Dashboard",
-    icon: <LayoutDashboard size={20} />,
-    path: "/location-manager",
-  },
-  {
-    id: "materials",
-    label: "Materials",
-    icon: <Package size={20} />,
-    path: "/location-manager/materials",
-  },
-  {
-    id: "categories",
-    label: "Categories",
-    icon: <Grid size={20} />,
-    path: "/location-manager/categories",
-  },
-  {
-    id: "models",
-    label: "Material Models",
-    icon: <Layers size={20} />,
-    path: "/location-manager/models",
-  },
-  {
-    id: "attributes",
-    label: "Attributes",
-    icon: <Tag size={20} />,
-    path: "/location-manager/attributes",
-  },
-  {
-    id: "plans",
-    label: "Material Plans",
-    icon: <BookOpen size={20} />,
-    path: "/location-manager/plans",
-  },
-  {
-    id: "settings",
-    label: "Settings",
-    icon: <Settings size={20} />,
-    path: "/location-manager/settings",
-  },
-];
+const iconMap: Record<string, React.ReactNode> = {
+  "lm-dashboard": <LayoutDashboard size={20} />,
+  materials: <Package size={20} />,
+  categories: <Grid size={20} />,
+  models: <Layers size={20} />,
+  attributes: <Tag size={20} />,
+  "lm-plans": <BookOpen size={20} />,
+  "lm-settings": <Settings size={20} />,
+};
 
 export const Sidebar: React.FC = () => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { logout } = useLogout();
+  const { hasAnyPermission } = usePermissions();
+
+  const visibleItems = useMemo(
+    () =>
+      getNavItemsByPrefix("/location-manager").filter(
+        (item) =>
+          item.requiredPermissions.length === 0 || hasAnyPermission(item.requiredPermissions),
+      ),
+    [hasAnyPermission],
+  );
 
   const handleLogout = async () => {
     try {
@@ -92,7 +62,7 @@ export const Sidebar: React.FC = () => {
 
       {/* Navigation */}
       <nav className="flex-1 space-y-2">
-        {navItems.map((item) => (
+        {visibleItems.map((item) => (
           <NavLink
             key={item.id}
             to={item.path}
@@ -105,7 +75,7 @@ export const Sidebar: React.FC = () => {
               }`
             }
           >
-            {item.icon}
+            {iconMap[item.id]}
             <span>{item.label}</span>
           </NavLink>
         ))}

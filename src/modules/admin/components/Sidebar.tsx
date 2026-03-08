@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -19,89 +19,44 @@ import {
 import { ApiError } from "../../../lib/api";
 import { useLogout } from "../../../hooks/useLogout";
 import { useAuth } from "../../../contexts/useAuth";
+import { usePermissions } from "../../../contexts/usePermissions";
 import { useAlertModal } from "../../../hooks/useAlertModal";
+import { getNavItemsByPrefix } from "../../../config/modulePermissions";
 
-interface NavItem {
-  id: string;
-  label: string;
-  icon: React.ReactNode;
-  path: string;
-}
+const iconMap: Record<string, React.ReactNode> = {
+  dashboard: <LayoutDashboard size={20} />,
+  events: <Calendar size={20} />,
+  customers: <UserCircle size={20} />,
+  team: <Users size={20} />,
+  roles: <ShieldCheck size={20} />,
+  "material-categories": <FolderTree size={20} />,
+  "material-types": <Package size={20} />,
+  "material-instances": <Layers size={20} />,
+  "ia-settings": <Bot size={20} />,
+  subscription: <CreditCard size={20} />,
+  settings: <Settings size={20} />,
+};
 
 interface SidebarProps {
   isCollapsed: boolean;
   onToggleCollapse: () => void;
 }
 
-const navItems: NavItem[] = [
-  {
-    id: "dashboard",
-    label: "Dashboard",
-    icon: <LayoutDashboard size={20} />,
-    path: "/admin",
-  },
-  {
-    id: "events",
-    label: "My Events",
-    icon: <Calendar size={20} />,
-    path: "/admin/events",
-  },
-  {
-    id: "customers",
-    label: "Customers",
-    icon: <UserCircle size={20} />,
-    path: "/admin/customers",
-  },
-  { id: "team", label: "Team", icon: <Users size={20} />, path: "/admin/team" },
-  {
-    id: "roles",
-    label: "Role Management",
-    icon: <ShieldCheck size={20} />,
-    path: "/admin/roles",
-  },
-  {
-    id: "material-categories",
-    label: "Material Categories",
-    icon: <FolderTree size={20} />,
-    path: "/admin/material-categories",
-  },
-  {
-    id: "material-types",
-    label: "Material Types",
-    icon: <Package size={20} />,
-    path: "/admin/material-types",
-  },
-  {
-    id: "material-instances",
-    label: "Material Instances",
-    icon: <Layers size={20} />,
-    path: "/admin/material-instances",
-  },
-  {
-    id: "ia-settings",
-    label: "IA Settings",
-    icon: <Bot size={20} />,
-    path: "/admin/ia-settings",
-  },
-  {
-    id: "subscription",
-    label: "Subscription",
-    icon: <CreditCard size={20} />,
-    path: "/admin/subscription",
-  },
-  {
-    id: "settings",
-    label: "Settings",
-    icon: <Settings size={20} />,
-    path: "/admin/settings",
-  },
-];
-
 export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse }) => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { logout } = useLogout();
   const { user } = useAuth();
+  const { hasAnyPermission } = usePermissions();
   const { showError, AlertModal } = useAlertModal();
+
+  const visibleItems = useMemo(
+    () =>
+      getNavItemsByPrefix("/admin").filter(
+        (item) =>
+          item.requiredPermissions.length === 0 || hasAnyPermission(item.requiredPermissions),
+      ),
+    [hasAnyPermission],
+  );
 
   const handleLogout = async () => {
     try {
@@ -154,7 +109,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
 
       {/* Navigation */}
       <nav className="flex-1 space-y-1">
-        {navItems.map((item) => (
+        {visibleItems.map((item) => (
           <NavLink
             key={item.id}
             to={item.path}
@@ -168,7 +123,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
               }`
             }
           >
-            {item.icon}
+            {iconMap[item.id]}
             {!isCollapsed && <span>{item.label}</span>}
           </NavLink>
         ))}

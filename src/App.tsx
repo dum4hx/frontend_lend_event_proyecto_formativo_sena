@@ -1,7 +1,7 @@
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
-import { RequireRole } from "./utils/roleGuard";
+import { RequirePermission } from "./utils/permissionGuard";
 import { RequireActiveSubscription } from "./utils/subscriptionGuard";
 import { LoadingSpinner } from "./components/ui";
 
@@ -41,20 +41,31 @@ import { CategoryCatalog, CreateCategory } from "./modules/admin/modules/materia
 import { MaterialTypeCatalog, CreateMaterialType } from "./modules/admin/modules/material-types";
 
 // Admin - Material Instances
-import { MaterialInstanceCatalog, CreateMaterialInstance } from "./modules/admin/modules/material-instances";
+import {
+  MaterialInstanceCatalog,
+  CreateMaterialInstance,
+} from "./modules/admin/modules/material-instances";
 
 // Super Admin — lazy-loaded for code-splitting
 const SuperAdminLayout = lazy(() => import("./modules/super-admin/layouts/SuperAdminLayout"));
 const SalesOverview = lazy(() => import("./modules/super-admin/pages/SalesOverview"));
 const UserManagement = lazy(() => import("./modules/super-admin/pages/UserManagement"));
-const SuperAdminSubscriptionManagement = lazy(() => import("./modules/super-admin/pages/SubscriptionManagement"));
+const SuperAdminSubscriptionManagement = lazy(
+  () => import("./modules/super-admin/pages/SubscriptionManagement"),
+);
 const AIChatbotMonitor = lazy(() => import("./modules/super-admin/pages/AIChatbotMonitor"));
 const SystemSettings = lazy(() => import("./modules/super-admin/pages/SystemSettings"));
-const OrganizationManagement = lazy(() => import("./modules/super-admin/pages/OrganizationManagement"));
+const OrganizationManagement = lazy(
+  () => import("./modules/super-admin/pages/OrganizationManagement"),
+);
 
 // Warehouse Operator — lazy-loaded for code-splitting
-const WarehouseOperatorLayout = lazy(() => import("./modules/warehouse-operator/layouts/WarehouseOperatorLayout"));
-const WarehouseOperatorDashboard = lazy(() => import("./modules/warehouse-operator/pages/Dashboard"));
+const WarehouseOperatorLayout = lazy(
+  () => import("./modules/warehouse-operator/layouts/WarehouseOperatorLayout"),
+);
+const WarehouseOperatorDashboard = lazy(
+  () => import("./modules/warehouse-operator/pages/Dashboard"),
+);
 const InventoryPage = lazy(() => import("./modules/warehouse-operator/pages/Inventory"));
 const LocationsPage = lazy(() => import("./modules/warehouse-operator/pages/Locations"));
 const StockMovementsPage = lazy(() => import("./modules/warehouse-operator/pages/StockMovements"));
@@ -62,7 +73,9 @@ const AlertsPage = lazy(() => import("./modules/warehouse-operator/pages/Alerts"
 const WarehouseOperatorSettings = lazy(() => import("./modules/warehouse-operator/pages/Settings"));
 
 // Location Manager — lazy-loaded for code-splitting
-const LocationManagerLayout = lazy(() => import("./modules/location-manager/layouts/LocationManagerLayout"));
+const LocationManagerLayout = lazy(
+  () => import("./modules/location-manager/layouts/LocationManagerLayout"),
+);
 const LocationManagerDashboard = lazy(() => import("./modules/location-manager/pages/Dashboard"));
 const MaterialsPage = lazy(() => import("./modules/location-manager/pages/Materials"));
 const CategoriesPage = lazy(() => import("./modules/location-manager/pages/Categories"));
@@ -72,8 +85,12 @@ const PlansPage = lazy(() => import("./modules/location-manager/pages/Plans"));
 const LocationManagerSettings = lazy(() => import("./modules/location-manager/pages/Settings"));
 
 // Commercial Advisor — lazy-loaded for code-splitting
-const CommercialAdvisorLayout = lazy(() => import("./modules/commercial-advisor/layouts/CommercialAdvisorLayout"));
-const CommercialAdvisorDashboard = lazy(() => import("./modules/commercial-advisor/pages/Dashboard"));
+const CommercialAdvisorLayout = lazy(
+  () => import("./modules/commercial-advisor/layouts/CommercialAdvisorLayout"),
+);
+const CommercialAdvisorDashboard = lazy(
+  () => import("./modules/commercial-advisor/pages/Dashboard"),
+);
 const CustomersPage = lazy(() => import("./modules/commercial-advisor/pages/Customers"));
 const OrdersPage = lazy(() => import("./modules/commercial-advisor/pages/Orders"));
 const ContractsPage = lazy(() => import("./modules/commercial-advisor/pages/Contracts"));
@@ -103,9 +120,11 @@ function App() {
           <Route
             path="/admin"
             element={
-              <RequireActiveSubscription>
-                <AdminLayout />
-              </RequireActiveSubscription>
+              <RequirePermission requiredPermissions={["analytics:read", "organization:read"]}>
+                <RequireActiveSubscription>
+                  <AdminLayout />
+                </RequireActiveSubscription>
+              </RequirePermission>
             }
           >
             <Route index element={<AdminDashboard />} />
@@ -124,15 +143,15 @@ function App() {
             <Route path="subscription" element={<AdminSubscriptionManagement />} />
           </Route>
 
-          {/* Rutas super-admin - require super_admin role */}
-          <Route 
-            path="/super-admin" 
+          {/* Rutas super-admin - require platform:manage permission */}
+          <Route
+            path="/super-admin"
             element={
-              <RequireRole allowedRoles={['super_admin']}>
+              <RequirePermission requiredPermissions={["platform:manage"]}>
                 <Suspense fallback={<LoadingSpinner />}>
                   <SuperAdminLayout />
                 </Suspense>
-              </RequireRole>
+              </RequirePermission>
             }
           >
             <Route index element={<SalesOverview />} />
@@ -143,15 +162,15 @@ function App() {
             <Route path="settings" element={<SystemSettings />} />
           </Route>
 
-          {/* Rutas warehouse-operator - require warehouse_operator role */}
-          <Route 
-            path="/warehouse-operator" 
+          {/* Rutas warehouse-operator - require materials permission */}
+          <Route
+            path="/warehouse-operator"
             element={
-              <RequireRole allowedRoles={['warehouse_operator']}>
+              <RequirePermission requiredPermissions={["materials:read"]}>
                 <Suspense fallback={<LoadingSpinner />}>
                   <WarehouseOperatorLayout />
                 </Suspense>
-              </RequireRole>
+              </RequirePermission>
             }
           >
             <Route index element={<WarehouseOperatorDashboard />} />
@@ -162,15 +181,15 @@ function App() {
             <Route path="settings" element={<WarehouseOperatorSettings />} />
           </Route>
 
-          {/* Rutas location-manager - require manager role */}
-          <Route 
-            path="/location-manager" 
+          {/* Rutas location-manager - require materials permission */}
+          <Route
+            path="/location-manager"
             element={
-              <RequireRole allowedRoles={['manager']}>
+              <RequirePermission requiredPermissions={["materials:read"]}>
                 <Suspense fallback={<LoadingSpinner />}>
                   <LocationManagerLayout />
                 </Suspense>
-              </RequireRole>
+              </RequirePermission>
             }
           >
             <Route index element={<LocationManagerDashboard />} />
@@ -182,15 +201,15 @@ function App() {
             <Route path="settings" element={<LocationManagerSettings />} />
           </Route>
 
-          {/* Rutas commercial-advisor - require commercial_advisor role */}
-          <Route 
-            path="/commercial-advisor" 
+          {/* Rutas commercial-advisor - require relevant permission */}
+          <Route
+            path="/commercial-advisor"
             element={
-              <RequireRole allowedRoles={['commercial_advisor']}>
+              <RequirePermission requiredPermissions={["loans:read", "customers:read"]}>
                 <Suspense fallback={<LoadingSpinner />}>
                   <CommercialAdvisorLayout />
                 </Suspense>
-              </RequireRole>
+              </RequirePermission>
             }
           >
             <Route index element={<CommercialAdvisorDashboard />} />

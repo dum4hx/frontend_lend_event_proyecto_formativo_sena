@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -13,68 +13,33 @@ import {
 } from "lucide-react";
 import { ApiError } from "../../../lib/api";
 import { useLogout } from "../../../hooks/useLogout";
+import { usePermissions } from "../../../contexts/usePermissions";
+import { getNavItemsByPrefix } from "../../../config/modulePermissions";
 
-interface NavItem {
-  id: string;
-  label: string;
-  icon: React.ReactNode;
-  path: string;
-}
-
-const navItems: NavItem[] = [
-  {
-    id: "dashboard",
-    label: "Dashboard",
-    icon: <LayoutDashboard size={20} />,
-    path: "/commercial-advisor",
-  },
-  {
-    id: "customers",
-    label: "Customers",
-    icon: <Users size={20} />,
-    path: "/commercial-advisor/customers",
-  },
-  {
-    id: "orders",
-    label: "Orders",
-    icon: <ShoppingCart size={20} />,
-    path: "/commercial-advisor/orders",
-  },
-  {
-    id: "contracts",
-    label: "Contracts",
-    icon: <FileText size={20} />,
-    path: "/commercial-advisor/contracts",
-  },
-  {
-    id: "rentals",
-    label: "Rentals",
-    icon: <Package size={20} />,
-    path: "/commercial-advisor/rentals",
-  },
-  {
-    id: "invoices",
-    label: "Invoices",
-    icon: <TrendingUp size={20} />,
-    path: "/commercial-advisor/invoices",
-  },
-  {
-    id: "reports",
-    label: "Reports",
-    icon: <BarChart3 size={20} />,
-    path: "/commercial-advisor/reports",
-  },
-  {
-    id: "settings",
-    label: "Settings",
-    icon: <Settings size={20} />,
-    path: "/commercial-advisor/settings",
-  },
-];
+const iconMap: Record<string, React.ReactNode> = {
+  "ca-dashboard": <LayoutDashboard size={20} />,
+  "ca-customers": <Users size={20} />,
+  orders: <ShoppingCart size={20} />,
+  contracts: <FileText size={20} />,
+  rentals: <Package size={20} />,
+  invoices: <TrendingUp size={20} />,
+  reports: <BarChart3 size={20} />,
+  "ca-settings": <Settings size={20} />,
+};
 
 export const Sidebar: React.FC = () => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { logout } = useLogout();
+  const { hasAnyPermission } = usePermissions();
+
+  const visibleItems = useMemo(
+    () =>
+      getNavItemsByPrefix("/commercial-advisor").filter(
+        (item) =>
+          item.requiredPermissions.length === 0 || hasAnyPermission(item.requiredPermissions),
+      ),
+    [hasAnyPermission],
+  );
 
   const handleLogout = async () => {
     try {
@@ -99,7 +64,7 @@ export const Sidebar: React.FC = () => {
 
       {/* Navigation */}
       <nav className="flex-1 space-y-2">
-        {navItems.map((item) => (
+        {visibleItems.map((item) => (
           <NavLink
             key={item.id}
             to={item.path}
@@ -112,7 +77,7 @@ export const Sidebar: React.FC = () => {
               }`
             }
           >
-            {item.icon}
+            {iconMap[item.id]}
             <span>{item.label}</span>
           </NavLink>
         ))}

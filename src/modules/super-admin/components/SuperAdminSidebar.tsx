@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { NavLink } from "react-router-dom";
 import {
   BarChart3,
@@ -12,69 +12,43 @@ import {
   PanelLeftOpen,
 } from "lucide-react";
 import { useAuth } from "../../../contexts/useAuth";
+import { usePermissions } from "../../../contexts/usePermissions";
+import { getNavItemsByPrefix } from "../../../config/modulePermissions";
 import { ApiError } from "../../../lib/api";
 import { useAlertModal } from "../../../hooks/useAlertModal";
 import { useLogout } from "../../../hooks/useLogout";
-
-interface NavItem {
-  id: string;
-  label: string;
-  icon: React.ReactNode;
-  path: string;
-}
 
 interface SuperAdminSidebarProps {
   isCollapsed: boolean;
   onToggleCollapse: () => void;
 }
 
-const navItems: NavItem[] = [
-  {
-    id: "overview",
-    label: "Sales Overview",
-    icon: <BarChart3 size={20} />,
-    path: "/super-admin",
-  },
-  {
-    id: "clients",
-    label: "User Management",
-    icon: <Users size={20} />,
-    path: "/super-admin/clients",
-  },
-  {
-    id: "organizations",
-    label: "Organization Management",
-    icon: <Building2 size={20} />,
-    path: "/super-admin/organizations",
-  },
-  {
-    id: "plans",
-    label: "Plan Configuration",
-    icon: <CreditCard size={20} />,
-    path: "/super-admin/subscriptions",
-  },
-  {
-    id: "ai-monitor",
-    label: "AI Chatbot Monitor",
-    icon: <Bot size={20} />,
-    path: "/super-admin/ai-monitor",
-  },
-  {
-    id: "settings",
-    label: "System Settings",
-    icon: <Settings size={20} />,
-    path: "/super-admin/settings",
-  },
-];
+const iconMap: Record<string, React.ReactNode> = {
+  overview: <BarChart3 size={20} />,
+  clients: <Users size={20} />,
+  organizations: <Building2 size={20} />,
+  plans: <CreditCard size={20} />,
+  "ai-monitor": <Bot size={20} />,
+  "sa-settings": <Settings size={20} />,
+};
 
 export const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
   isCollapsed,
   onToggleCollapse,
 }) => {
   const { user } = useAuth();
+  const { hasAnyPermission } = usePermissions();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { showError, AlertModal } = useAlertModal();
   const { logout } = useLogout();
+
+  const visibleItems = useMemo(
+    () =>
+      getNavItemsByPrefix("/super-admin").filter((item) =>
+        hasAnyPermission(item.requiredPermissions),
+      ),
+    [hasAnyPermission],
+  );
 
   const handleLogout = async () => {
     try {
@@ -99,7 +73,9 @@ export const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
     >
       {/* Logo */}
       <div className="mb-6">
-        <div className={`flex items-center gap-2 ${isCollapsed ? "justify-end" : "justify-between"}`}>
+        <div
+          className={`flex items-center gap-2 ${isCollapsed ? "justify-end" : "justify-between"}`}
+        >
           {!isCollapsed && (
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-8 h-8 rounded-lg bg-[#FFD700] flex items-center justify-center">
@@ -119,12 +95,12 @@ export const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
           >
             {isCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
           </button>
-          </div>
+        </div>
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 space-y-1">
-        {navItems.map((item) => (
+        {visibleItems.map((item) => (
           <NavLink
             key={item.id}
             to={item.path}
@@ -138,7 +114,7 @@ export const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
               }`
             }
           >
-            {item.icon}
+            {iconMap[item.id]}
             {!isCollapsed && <span>{item.label}</span>}
           </NavLink>
         ))}

@@ -67,6 +67,7 @@ export interface User {
   status: UserStatus;
   phone?: string;
   organizationId?: string;
+  permissions?: string[];
 }
 
 // ─── Organization ──────────────────────────────────────────────────────────
@@ -678,14 +679,17 @@ export interface AcceptInvitePayload {
 export interface RegisterResponseData {
   organization: { id: string; name: string; email: string };
   user: User;
+  permissions: string[];
 }
 
 export interface LoginResponseData {
   user: User;
+  permissions: string[];
 }
 
 export interface MeResponseData {
   user: User;
+  permissions: string[];
 }
 
 export interface PaymentStatusData {
