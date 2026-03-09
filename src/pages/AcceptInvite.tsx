@@ -134,7 +134,7 @@ export default function AcceptInvite() {
               {email && (
                 <div className="bg-[#222] border border-[#333] rounded-lg p-4 mb-6">
                   <p className="text-gray-400 text-sm">
-                    <span className="text-gray-500">Cuenta:</span>{" "}
+                    <span className="text-gray-500">Account:</span>{" "}
                     <span className="text-white font-medium">{email}</span>
                   </p>
                 </div>

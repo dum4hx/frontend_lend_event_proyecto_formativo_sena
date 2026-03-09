@@ -303,7 +303,7 @@ export default function MyEvents() {
   const handleSaveEvent = async () => {
     try {
       if (!formData.customerId || !formData.packageId || !formData.startDate || !formData.endDate) {
-        showError("Por favor completa todos los campos requeridos");
+        showError("Please complete all required fields");
         return;
       }
 

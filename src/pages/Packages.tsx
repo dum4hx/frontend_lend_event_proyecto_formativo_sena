@@ -64,30 +64,30 @@ function ActivationInfoModal({ onViewPlans, onClose }: ActivationInfoModalProps)
 
           <div className="text-center mb-6">
             <span className="inline-flex items-center rounded-full border border-yellow-400/20 bg-yellow-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-yellow-300 mb-3">
-              Paso final de activacion
+              Final activation step
             </span>
             <h2 className="text-2xl md:text-3xl font-extrabold text-white leading-tight mb-3">
-              Activacion de tu cuenta
+              Activate your account
             </h2>
             <p className="text-gray-300 text-sm md:text-base leading-relaxed">
-              Para acceder a tu cuenta y usar todas las funcionalidades de la plataforma, necesitas
-              adquirir uno de nuestros planes disponibles.
+              To access your account and use all platform features, you need to purchase one of
+              our available plans.
             </p>
           </div>
 
           <div className="rounded-2xl border border-zinc-700 bg-zinc-950/60 p-4 mb-7">
             <p className="text-gray-200 text-sm md:text-[15px] leading-relaxed text-center">
-              Selecciona un paquete y activa tu acceso inmediato al sistema.
+              Choose a package and activate your system access immediately.
             </p>
             <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
               <span className="rounded-full bg-zinc-800 px-3 py-1 text-xs text-gray-300">
-                Acceso completo
+                Full access
               </span>
               <span className="rounded-full bg-zinc-800 px-3 py-1 text-xs text-gray-300">
-                Funcionalidades habilitadas
+                All features enabled
               </span>
               <span className="rounded-full bg-zinc-800 px-3 py-1 text-xs text-gray-300">
-                Activacion inmediata
+                Instant activation
               </span>
             </div>
           </div>
@@ -97,13 +97,13 @@ function ActivationInfoModal({ onViewPlans, onClose }: ActivationInfoModalProps)
               onClick={onViewPlans}
               className="flex-1 bg-yellow-400 hover:bg-yellow-300 text-black font-extrabold py-3 rounded-xl transition-colors text-sm"
             >
-              Ver planes y activar cuenta
+              View plans and activate account
             </button>
             <button
               onClick={onClose}
               className="flex-1 border border-zinc-600 hover:border-zinc-400 text-gray-300 hover:text-white font-medium py-3 rounded-xl transition-colors text-sm"
             >
-              Ahora no
+              Not now
             </button>
           </div>
         </div>

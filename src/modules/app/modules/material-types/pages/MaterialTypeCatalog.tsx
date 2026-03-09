@@ -95,9 +95,9 @@ export const MaterialTypeCatalog: React.FC = () => {
         // ✅ Strict validation: reject if categoryId is empty or not found in DB categories
         if (!catId || !validCategoryIds.has(catId)) {
           rejected.push({
-            name: item.name ?? '(sin nombre)',
-            categoryId: catId ?? '(vacío)',
-            reason: 'categoryId no existe en la colección de categorías',
+            name: item.name ?? '(unnamed)',
+            categoryId: catId ?? '(empty)',
+            reason: 'categoryId does not exist in the categories collection',
           });
           continue;
         }
@@ -111,11 +111,11 @@ export const MaterialTypeCatalog: React.FC = () => {
           });
           successCount++;
         } catch (itemError) {
-          console.error('[Import] Error al crear registro:', item, itemError);
+          console.error('[Import] Error creating record:', item, itemError);
           rejected.push({
-            name: item.name ?? '(sin nombre)',
+            name: item.name ?? '(unnamed)',
             categoryId: catId,
-            reason: itemError instanceof Error ? itemError.message : 'Error al crear registro',
+            reason: itemError instanceof Error ? itemError.message : 'Error creating record',
           });
         }
       }
@@ -125,17 +125,17 @@ export const MaterialTypeCatalog: React.FC = () => {
 
       if (rejectedCount > 0) {
         // Log full rejection detail to console for debugging
-        console.warn(`[Import] ${rejectedCount} registro(s) rechazado(s):`, rejected);
+        console.warn(`[Import] ${rejectedCount} rejected record(s):`, rejected);
         showToast(
           successCount > 0 ? 'warning' : 'error',
-          `${successCount} importado(s), ${rejectedCount} rechazado(s) por categoryId inválido. Ver consola para detalles.`,
-          `Importación: ${successCount}/${total}`
+          `${successCount} imported, ${rejectedCount} rejected due to invalid categoryId. Check console for details.`,
+          `Import: ${successCount}/${total}`
         );
       } else {
-        showToast('success', `${successCount}/${total} tipos de material importados`, 'Importación completa');
+        showToast('success', `${successCount}/${total} material types imported`, 'Import complete');
       }
     } catch (error: any) {
-      showToast('error', error.message || 'Error importando tipos de material', 'Import Failed');
+      showToast('error', error.message || 'Error importing material types', 'Import Failed');
     }
   };
 
