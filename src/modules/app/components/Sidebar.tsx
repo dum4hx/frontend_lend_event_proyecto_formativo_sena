@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -15,6 +15,8 @@ import {
   FolderTree,
   PanelLeftClose,
   PanelLeftOpen,
+  ChevronDown,
+  ChevronRight,
   MapPin,
   TrendingDown,
   AlertCircle,
@@ -70,6 +72,7 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse }) => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
   const { logout } = useLogout();
   const { user } = useAuth();
   const { hasAnyPermission } = usePermissions();
@@ -81,6 +84,32 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
     );
     return groupNavItemsBySection(visible);
   }, [hasAnyPermission]);
+
+  useEffect(() => {
+    setCollapsedSections((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      const sectionNames = sections
+        .map((entry) => entry.section)
+        .filter((name): name is string => Boolean(name));
+
+      for (const name of sectionNames) {
+        if (!(name in next)) {
+          next[name] = false;
+          changed = true;
+        }
+      }
+
+      for (const key of Object.keys(next)) {
+        if (!sectionNames.includes(key)) {
+          delete next[key];
+          changed = true;
+        }
+      }
+
+      return changed ? next : prev;
+    });
+  }, [sections]);
 
   const handleLogout = async () => {
     try {
@@ -133,33 +162,52 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
 
       {/* Navigation */}
       <nav className="flex-1 space-y-1">
-        {sections.map(({ section, items }) => (
-          <div key={section}>
-            {section && !isCollapsed && (
-              <p className="text-[10px] uppercase tracking-wider text-gray-500 mt-4 mb-1 px-4">
-                {section}
-              </p>
-            )}
-            {items.map((item) => (
-              <NavLink
-                key={item.id}
-                to={item.path}
-                end={item.path === "/app"}
-                title={isCollapsed ? item.label : undefined}
-                className={({ isActive }) =>
-                  `w-full flex items-center gap-3 rounded-lg transition-all text-sm ${itemPaddingClass} ${
-                    isActive
-                      ? "bg-[#FFD700] text-black font-semibold"
-                      : "text-gray-400 hover:bg-[#1a1a1a] hover:text-[#FFD700]"
-                  }`
-                }
-              >
-                {iconMap[item.id] ?? <LayoutDashboard size={20} />}
-                {!isCollapsed && <span>{item.label}</span>}
-              </NavLink>
-            ))}
-          </div>
-        ))}
+        {sections.map(({ section, items }) => {
+          const sectionKey = section ?? "";
+          const isSectionCollapsed = !isCollapsed && sectionKey ? collapsedSections[sectionKey] : false;
+
+          return (
+            <div key={sectionKey}>
+              {section && !isCollapsed && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCollapsedSections((prev) => ({
+                      ...prev,
+                      [sectionKey]: !prev[sectionKey],
+                    }))
+                  }
+                  className="w-full flex items-center justify-between mt-4 mb-1 px-4 py-1 text-[10px] uppercase tracking-wider text-gray-500 hover:text-gray-300 transition-colors"
+                  aria-expanded={!isSectionCollapsed}
+                  aria-label={`${isSectionCollapsed ? "Expand" : "Collapse"} ${section} section`}
+                >
+                  <span>{section}</span>
+                  {isSectionCollapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
+                </button>
+              )}
+
+              {(!isSectionCollapsed || isCollapsed) &&
+                items.map((item) => (
+                  <NavLink
+                    key={item.id}
+                    to={item.path}
+                    end={item.path === "/app"}
+                    title={isCollapsed ? item.label : undefined}
+                    className={({ isActive }) =>
+                      `w-full flex items-center gap-3 rounded-lg transition-all text-sm ${itemPaddingClass} ${
+                        isActive
+                          ? "bg-[#FFD700] text-black font-semibold"
+                          : "text-gray-400 hover:bg-[#1a1a1a] hover:text-[#FFD700]"
+                      }`
+                    }
+                  >
+                    {iconMap[item.id] ?? <LayoutDashboard size={20} />}
+                    {!isCollapsed && <span>{item.label}</span>}
+                  </NavLink>
+                ))}
+            </div>
+          );
+        })}
       </nav>
 
       {/* User Info & Logout */}

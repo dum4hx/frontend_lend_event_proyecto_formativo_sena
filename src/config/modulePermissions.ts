@@ -74,12 +74,12 @@ export const allNavItems: NavItem[] = [
   { id: "reports",             label: "Reports",              path: "/app/reports",                 requiredPermissions: ["reports:read"],                        section: "Commerce" },
 
   // -- /super-admin (separate module, kept here for getNavItemsByPrefix) --
-  { id: "overview",            label: "Sales Overview",           path: "/super-admin",                requiredPermissions: ["platform:manage"] },
-  { id: "clients",             label: "User Management",          path: "/super-admin/clients",        requiredPermissions: ["platform:manage"] },
-  { id: "organizations",       label: "Organization Management",  path: "/super-admin/organizations",  requiredPermissions: ["platform:manage"] },
-  { id: "sa-plans",            label: "Plan Configuration",       path: "/super-admin/subscriptions",  requiredPermissions: ["subscription_types:read"] },
-  { id: "ai-monitor",          label: "AI Chatbot Monitor",       path: "/super-admin/ai-monitor",     requiredPermissions: ["platform:manage"] },
-  { id: "sa-settings",         label: "System Settings",          path: "/super-admin/settings",       requiredPermissions: ["platform:manage"] },
+  { id: "overview",            label: "Sales Overview",           path: "/super-admin",                requiredPermissions: ["platform:manage"],        section: "Overview" },
+  { id: "clients",             label: "User Management",          path: "/super-admin/clients",        requiredPermissions: ["platform:manage"],        section: "Management" },
+  { id: "organizations",       label: "Organization Management",  path: "/super-admin/organizations",  requiredPermissions: ["platform:manage"],        section: "Management" },
+  { id: "sa-plans",            label: "Plan Configuration",       path: "/super-admin/subscriptions",  requiredPermissions: ["subscription_types:read"], section: "Management" },
+  { id: "ai-monitor",          label: "AI Chatbot Monitor",       path: "/super-admin/ai-monitor",     requiredPermissions: ["platform:manage"],        section: "Monitoring" },
+  { id: "sa-settings",         label: "System Settings",          path: "/super-admin/settings",       requiredPermissions: ["platform:manage"],        section: "Configuration" },
 ];
 
 // ---------------------------------------------------------------------------
