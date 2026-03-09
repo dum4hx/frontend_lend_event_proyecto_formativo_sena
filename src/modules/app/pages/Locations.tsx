@@ -1,72 +1,59 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Search, Plus, Edit2, Trash2 } from "lucide-react";
-
-interface Location {
-  id: string;
-  code: string;
-  section: string;
-  shelf: string;
-  capacity: number;
-  occupied: number;
-  status: "available" | "full" | "maintenance";
-}
-
-const SAMPLE_LOCATIONS: Location[] = [
-  {
-    id: "1",
-    code: "A1",
-    section: "A",
-    shelf: "1",
-    capacity: 500,
-    occupied: 350,
-    status: "available",
-  },
-  {
-    id: "2",
-    code: "A2",
-    section: "A",
-    shelf: "2",
-    capacity: 500,
-    occupied: 480,
-    status: "full",
-  },
-  {
-    id: "3",
-    code: "B1",
-    section: "B",
-    shelf: "1",
-    capacity: 500,
-    occupied: 200,
-    status: "available",
-  },
-  {
-    id: "4",
-    code: "B2",
-    section: "B",
-    shelf: "2",
-    capacity: 500,
-    occupied: 150,
-    status: "available",
-  },
-  {
-    id: "5",
-    code: "C1",
-    section: "C",
-    shelf: "1",
-    capacity: 500,
-    occupied: 0,
-    status: "maintenance",
-  },
-];
+import {
+  getLocations as getApiLocations,
+  deleteLocation as apiDeleteLocation,
+  LocationModel,
+} from "../../../services/locationService";
 
 export default function LocationsPage() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [locations] = useState<Location[]>(SAMPLE_LOCATIONS);
+  const [locations, setLocations] = useState<WarehouseLocation[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchLocations = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await getApiLocations({ page: 1, limit: 100 });
+      // Map backend LocationModel to the view's expected shape minimally
+      const mapped = res.data.items.map((it: LocationModel) => ({
+        id: it._id,
+        code: it.name,
+        section: it.address?.city ?? "",
+        shelf: it.address?.street ?? "",
+        capacity: 0,
+        occupied: 0,
+        status: "available",
+      }));
+      setLocations(mapped);
+    } catch (err: any) {
+      setError(err?.message ?? "Error fetching locations");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void fetchLocations();
+  }, []);
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("¿Eliminar esta ubicación?")) return;
+    try {
+      await apiDeleteLocation(id);
+      // Refresh list
+      await fetchLocations();
+    } catch (err: any) {
+      alert(err?.message ?? "Error al eliminar");
+    }
+  };
 
   const filteredLocations = locations.filter(
-    (loc) =>
-      loc.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      loc.section.toLowerCase().includes(searchTerm.toLowerCase())
+    (loc: any) =>
+      (loc.code ?? "").toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (loc.section ?? "").toString().toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   const getStatusColor = (status: string) => {
@@ -114,7 +101,9 @@ export default function LocationsPage() {
 
       {/* Locations Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {filteredLocations.map((location) => {
+        {loading && <div className="text-gray-400">Cargando ubicaciones...</div>}
+        {error && <div className="text-red-400">{error}</div>}
+        {!loading && !error && filteredLocations.map((location) => {
           const capacityPercent = getCapacityPercentage(location.occupied, location.capacity);
           return (
             <div
@@ -170,7 +159,7 @@ export default function LocationsPage() {
                   <Edit2 size={18} />
                   Edit
                 </button>
-                <button className="flex-1 flex items-center justify-center gap-2 text-red-400 hover:text-red-300 bg-[#1a1a1a] hover:bg-[#252525] rounded-lg py-2 transition-all">
+                <button onClick={() => void handleDelete(location.id)} className="flex-1 flex items-center justify-center gap-2 text-red-400 hover:text-red-300 bg-[#1a1a1a] hover:bg-[#252525] rounded-lg py-2 transition-all">
                   <Trash2 size={18} />
                   Delete
                 </button>
