@@ -567,3 +567,39 @@ export const validateChangePasswordForm = (formData: {
 
   return { isValid: true };
 };
+
+/**
+ * Validate a simple warehouse location form used across the app
+ */
+export const validateLocationForm = (form: {
+  code?: string;
+  name?: string;
+  section?: string;
+  shelf?: string;
+  capacity?: number;
+  occupied?: number;
+  status?: string;
+  address?: {
+    country?: string;
+    city?: string;
+    street?: string;
+    propertyNumber?: string;
+  };
+}): ValidationResult => {
+  if (!form.code || !form.code.trim()) return { isValid: false, message: 'Code is required' };
+  if (!form.name || !form.name.trim()) return { isValid: false, message: 'Name is required' };
+  if (!form.section || !form.section.trim()) return { isValid: false, message: 'Section is required' };
+  if (!form.shelf || !form.shelf.trim()) return { isValid: false, message: 'Shelf is required' };
+  if (typeof form.capacity !== 'number' || Number.isNaN(form.capacity) || form.capacity < 0) return { isValid: false, message: 'Capacity must be a non-negative number' };
+  if (typeof form.occupied !== 'number' || Number.isNaN(form.occupied) || form.occupied < 0) return { isValid: false, message: 'Occupied must be a non-negative number' };
+  if ((form.capacity ?? 0) > 0 && (form.occupied ?? 0) > (form.capacity ?? 0)) return { isValid: false, message: 'Occupied cannot be greater than capacity' };
+  const allowed = ['available', 'full', 'maintenance'];
+  if (!allowed.includes(form.status ?? 'available')) return { isValid: false, message: 'Invalid status' };
+  // Address validation (required by backend)
+  if (!form.address) return { isValid: false, message: 'Address is required' };
+  if (!form.address.country || !form.address.country.trim()) return { isValid: false, message: 'Country is required' };
+  if (!form.address.city || !form.address.city.trim()) return { isValid: false, message: 'City is required' };
+  if (!form.address.street || !form.address.street.trim()) return { isValid: false, message: 'Street is required' };
+  if (!form.address.propertyNumber || !form.address.propertyNumber.trim()) return { isValid: false, message: 'Property number is required' };
+  return { isValid: true };
+};
