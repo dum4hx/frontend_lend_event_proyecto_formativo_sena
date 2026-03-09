@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import useSWR from "swr";
 import { useDebounce } from "use-debounce";
 import Header from "../components/Header";
@@ -190,9 +190,6 @@ const INITIAL_FIELD_VALIDATION_STATUS: Record<FormField, FieldValidationStatus> 
 
 export default function SignUp() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const returnTo = new URLSearchParams(location.search).get("returnTo");
-  const [showRegSuccessModal, setShowRegSuccessModal] = useState(false);
   const [formData, setFormData] = useState<SignUpFormData>({
     firstName: "",
     lastName: "",
@@ -905,7 +902,7 @@ export default function SignUp() {
       const response = await registerUser(payload);
 
       if (response.status === "success") {
-        setShowRegSuccessModal(true);
+        navigate("/verify-email", { state: { email: ownerEmail }, replace: true });
       }
     } catch (err: unknown) {
       if (err instanceof ApiError) {
@@ -917,6 +914,11 @@ export default function SignUp() {
         // Map well-known registration conflict codes to user-friendly messages
         // and highlight the corresponding field.
         const REGISTER_CODE_MAP: Record<string, { field: string; message: string }> = {
+          PENDING_EMAIL_VERIFICATION: {
+            field: "ownerEmail",
+            message:
+              "A registration with this email is already pending verification. Please check your email or try again in 5 minutes.",
+          },
           USER_EMAIL_ALREADY_EXISTS: {
             field: "ownerEmail",
             message:
@@ -954,7 +956,8 @@ export default function SignUp() {
           Array.isArray((err.details as any).errors)
         ) {
           // API returned structured validation errors array
-          const apiErrors: Array<{ field?: string; message?: string }> = (err.details as any).errors;
+          const apiErrors: Array<{ field?: string; message?: string }> = (err.details as any)
+            .errors;
           const otherMessages: string[] = [];
           for (const e of apiErrors) {
             const fieldPath = e.field ?? "";
@@ -987,7 +990,10 @@ export default function SignUp() {
 
           const combined = otherMessages.length
             ? otherMessages.join(". ")
-            : apiErrors.map((x) => x.message).filter(Boolean).join(". ");
+            : apiErrors
+                .map((x) => x.message)
+                .filter(Boolean)
+                .join(". ");
           setError(combined || err.message);
           setSubmitAttempt((prev) => prev + 1);
         } else {
@@ -1862,51 +1868,6 @@ export default function SignUp() {
       </main>
 
       <Footer />
-
-      {/* Registration Success Modal */}
-      {showRegSuccessModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
-          <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-8 max-w-md w-full shadow-2xl">
-            <div className="flex items-center justify-center w-14 h-14 bg-green-400/10 border border-green-400/30 rounded-full mx-auto mb-5">
-              <svg
-                className="w-7 h-7 text-green-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-            </div>
-            <h2 className="text-2xl font-extrabold text-white text-center mb-3">
-              Account Created!
-            </h2>
-            <p className="text-gray-400 text-center text-sm mb-8 leading-relaxed">
-              Your account has been created successfully. Before you can sign in and access your
-              dashboard, you need to purchase a subscription plan. Choose a plan that fits your
-              needs to get started.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <button
-                onClick={() => navigate("/login")}
-                className="flex-1 py-3 rounded-xl border border-zinc-700 text-gray-300 font-semibold hover:bg-zinc-800 hover:text-white transition"
-              >
-                Go to Sign In
-              </button>
-              <button
-                onClick={() => navigate(returnTo ?? "/packages")}
-                className="flex-1 py-3 rounded-xl bg-yellow-400 text-black font-extrabold hover:bg-yellow-300 transition"
-              >
-                Buy Subscription
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

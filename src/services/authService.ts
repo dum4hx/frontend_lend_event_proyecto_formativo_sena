@@ -19,6 +19,8 @@ import type {
   ResetPasswordPayload,
   AcceptInvitePayload,
   AcceptInviteResponseData,
+  VerifyEmailPayload,
+  VerifyEmailResponseData,
   MeResponseData,
   PaymentStatusData,
 } from "../types/api";
@@ -45,6 +47,21 @@ export async function registerUser(
   };
 
   return post<RegisterResponseData, RegisterPayload>("/auth/register", normalised);
+}
+
+// --- Verify Email (Post-Registration OTP) -----------------------------------
+
+/**
+ * Verify the 6-digit OTP sent after registration.
+ * On success the account is activated and auth cookies are set.
+ */
+export async function verifyEmail(
+  payload: VerifyEmailPayload,
+): Promise<ApiSuccessResponse<VerifyEmailResponseData>> {
+  return post<VerifyEmailResponseData, VerifyEmailPayload>("/auth/verify-email", {
+    email: payload.email.toLowerCase(),
+    code: payload.code,
+  });
 }
 
 // --- Login ------------------------------------------------------------------

@@ -13,6 +13,7 @@ import SignUp from "./pages/SignUp";
 import AboutUs from "./pages/AboutUs";
 import PasswordRecovery from "./pages/PasswordRecovery";
 import AcceptInvite from "./pages/AcceptInvite";
+import EmailVerification from "./pages/EmailVerification";
 import Checkout from "./pages/Checkout";
 import CheckoutSuccess from "./pages/CheckoutSuccess";
 
@@ -79,6 +80,7 @@ function App() {
           <Route path="/sign-up" element={<SignUp />} />
           <Route path="/password-recovery" element={<PasswordRecovery />} />
           <Route path="/accept-invite" element={<AcceptInvite />} />
+          <Route path="/verify-email" element={<EmailVerification />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/checkout/success" element={<CheckoutSuccess />} />
           <Route path="/export-demo" element={<ExportDemo />} />

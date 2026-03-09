@@ -674,6 +674,17 @@ export interface AcceptInvitePayload {
   password: string;
 }
 
+export interface VerifyEmailPayload {
+  email: string;
+  code: string;
+}
+
+export interface VerifyEmailResponseData {
+  organization: { id: string; name: string; email: string };
+  user: User;
+  permissions: string[];
+}
+
 // ─── Auth Responses ────────────────────────────────────────────────────────
 
 export interface RegisterResponseData {
