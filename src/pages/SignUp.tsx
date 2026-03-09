@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import useSWR from "swr";
 import { useDebounce } from "use-debounce";
 import Header from "../components/Header";
@@ -190,6 +190,12 @@ const INITIAL_FIELD_VALIDATION_STATUS: Record<FormField, FieldValidationStatus> 
 
 export default function SignUp() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const requestedReturnTo = new URLSearchParams(location.search).get("returnTo");
+  const safeReturnTo =
+    requestedReturnTo && requestedReturnTo.startsWith("/") && !requestedReturnTo.startsWith("//")
+      ? requestedReturnTo
+      : "/packages";
   const [formData, setFormData] = useState<SignUpFormData>({
     firstName: "",
     lastName: "",
@@ -902,7 +908,10 @@ export default function SignUp() {
       const response = await registerUser(payload);
 
       if (response.status === "success") {
-        navigate("/verify-email", { state: { email: ownerEmail }, replace: true });
+        navigate(
+          "/verify-email",
+          { state: { email: ownerEmail, returnTo: safeReturnTo }, replace: true },
+        );
       }
     } catch (err: unknown) {
       if (err instanceof ApiError) {

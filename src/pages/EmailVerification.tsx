@@ -18,7 +18,8 @@ export default function EmailVerification() {
   const { checkAuth } = useAuth();
 
   // Email passed via navigation state from SignUp
-  const email = (location.state as { email?: string })?.email ?? "";
+  const email = (location.state as { email?: string; returnTo?: string })?.email ?? "";
+  const returnTo = (location.state as { email?: string; returnTo?: string })?.returnTo;
 
   const [digits, setDigits] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [error, setError] = useState("");
@@ -108,7 +109,19 @@ export default function EmailVerification() {
       // Cookies are now set — sync auth state
       const { permissions } = await checkAuth();
       const dashboardUrl = getDashboardUrlByPermissions(permissions);
-      navigate(dashboardUrl, { replace: true });
+      if (returnTo) {
+        const joiner = returnTo.includes("?") ? "&" : "?";
+        const destinationWithFlag = `${returnTo}${joiner}activationModal=1`;
+        navigate(destinationWithFlag, {
+          replace: true,
+          state: {
+            showActivationModal: true,
+            fromRegistration: true,
+          },
+        });
+      } else {
+        navigate(dashboardUrl, { replace: true });
+      }
     } catch (err: unknown) {
       if (err instanceof ApiError) {
         setError(err.message);
