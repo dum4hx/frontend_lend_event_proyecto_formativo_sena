@@ -397,7 +397,7 @@ export default function SubscriptionManagement() {
     return <ErrorDisplay error={error} onRetry={fetchData} fullScreen />;
   }
 
-  const isOwner = user?.role === "owner";
+  const isOwner = user?.roleName === "owner";
 
   return (
     <div>

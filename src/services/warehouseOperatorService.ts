@@ -53,29 +53,50 @@ export interface WarehouseLocation {
   status: "available" | "full" | "maintenance";
 }
 
+export interface LocationAddress {
+  country?: string;
+  state?: string;
+  city?: string;
+  street?: string;
+  propertyNumber?: string;
+  additionalInfo?: string;
+}
+
+export interface LocationCreatePayload {
+  code: string;
+  name: string;
+  organizationId: string;
+  section: string;
+  shelf: string;
+  capacity: number;
+  occupied: number;
+  status: "available" | "full" | "maintenance";
+  address: LocationAddress;
+}
+
 export interface LocationsListResponse {
   locations: WarehouseLocation[];
   pagination: PaginationMeta;
 }
 
 export async function getLocations(params?: { page?: number; limit?: number }): Promise<ApiSuccessResponse<LocationsListResponse>> {
-  return get<LocationsListResponse>("/warehouse/locations", params as Record<string, string | number | boolean | undefined>);
+  return get<LocationsListResponse>("/locations", params as Record<string, string | number | boolean | undefined>);
 }
 
 export async function getLocation(id: string): Promise<ApiSuccessResponse<WarehouseLocation>> {
-  return get<WarehouseLocation>(`/warehouse/locations/${id}`);
+  return get<WarehouseLocation>(`/locations/${id}`);
 }
 
-export async function createLocation(data: Omit<WarehouseLocation, "id">): Promise<ApiSuccessResponse<WarehouseLocation>> {
-  return post<WarehouseLocation, Omit<WarehouseLocation, "id">>("/warehouse/locations", data);
+export async function createLocation(data: LocationCreatePayload): Promise<ApiSuccessResponse<WarehouseLocation>> {
+  return post<WarehouseLocation, LocationCreatePayload>("/locations", data);
 }
 
-export async function updateLocation(id: string, data: Partial<WarehouseLocation>): Promise<ApiSuccessResponse<WarehouseLocation>> {
-  return patch<WarehouseLocation, Partial<WarehouseLocation>>(`/warehouse/locations/${id}`, data);
+export async function updateLocation(id: string, data: Partial<LocationCreatePayload | WarehouseLocation>): Promise<ApiSuccessResponse<WarehouseLocation>> {
+  return patch<WarehouseLocation, Partial<LocationCreatePayload | WarehouseLocation>>(`/locations/${id}`, data as any);
 }
 
 export async function deleteLocation(id: string): Promise<ApiSuccessResponse<null>> {
-  return del<null>(`/warehouse/locations/${id}`);
+  return del<null>(`/locations/${id}`);
 }
 
 // Stock Movements
