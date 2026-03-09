@@ -1,10 +1,12 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import {
   Pencil,
   Check,
   X,
   Plus,
   Trash2,
+  RotateCcw,
+  Eye,
   Package,
   Download,
   Calculator,
@@ -12,7 +14,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import {
-  getSubscriptionTypes,
+  getSubscriptionTypesAdminAll,
   createSubscriptionType,
   updateSubscriptionType,
   deleteSubscriptionType,
@@ -25,6 +27,7 @@ import {
   EmptyState,
   AlertContainer,
 } from "../../../components/ui";
+import { AdminPagination, AdminTable } from "../../app/components";
 import { normalizeError, logError } from "../../../utils/errorHandling";
 import {
   validatePlanIdentifier,
@@ -362,6 +365,9 @@ function formatDollars(cents: number | null | undefined): string {
 }
 
 type SubscriptionTypeApi = SubscriptionType & { basePriceMonthly?: number };
+type SubscriptionTypeWithDates = SubscriptionType & { createdAt?: string };
+
+const INACTIVE_PAGE_SIZE = 10;
 
 function normalizePlan(plan: SubscriptionTypeApi): SubscriptionType {
   if (plan.baseCost !== null && plan.baseCost !== undefined) return plan;
@@ -447,6 +453,15 @@ export default function PlanConfiguration() {
   const [deleteConfirm, setDeleteConfirm] = useState<{ plan: string; displayName: string } | null>(
     null,
   );
+  const [rowActionLoading, setRowActionLoading] = useState<Record<string, boolean>>({});
+  const [selectedInactivePlanId, setSelectedInactivePlanId] = useState<string | null>(null);
+
+  // Inactive plans filters and pagination
+  const [inactiveSearch, setInactiveSearch] = useState("");
+  const [inactiveMinPrice, setInactiveMinPrice] = useState("");
+  const [inactiveMaxPrice, setInactiveMaxPrice] = useState("");
+  const [inactiveDurationFilter, setInactiveDurationFilter] = useState("all");
+  const [inactivePage, setInactivePage] = useState(1);
 
   // Export state
   const [exportOpen, setExportOpen] = useState(false);
@@ -461,7 +476,7 @@ export default function PlanConfiguration() {
     try {
       setLoading(true);
       setError("");
-      const res = await getSubscriptionTypes();
+      const res = await getSubscriptionTypesAdminAll();
       const normalized = res.data.subscriptionTypes.map((plan) =>
         normalizePlan(plan as SubscriptionTypeApi),
       );
@@ -724,6 +739,86 @@ export default function PlanConfiguration() {
       logError(err, "PlanConfiguration.handleDelete");
     }
   };
+
+  const setActionBusy = (key: string, busy: boolean) => {
+    setRowActionLoading((prev) => ({ ...prev, [key]: busy }));
+  };
+
+  const handleActivatePlan = async (plan: SubscriptionType) => {
+    const key = `activate:${plan.plan}`;
+    try {
+      setActionBusy(key, true);
+      await updateSubscriptionType(plan.plan, { status: "active" });
+      showAlert("success", `Plan "${plan.displayName}" activated.`);
+      await fetchPlans();
+    } catch (err: unknown) {
+      const normalized = normalizeError(err);
+      showError(normalized.message);
+      logError(err, "PlanConfiguration.handleActivatePlan");
+    } finally {
+      setActionBusy(key, false);
+    }
+  };
+
+  const activeAndDeprecatedPlans = useMemo(
+    () => plans.filter((plan) => plan.status !== "inactive"),
+    [plans],
+  );
+
+  const filteredInactivePlans = useMemo(() => {
+    const term = inactiveSearch.trim().toLowerCase();
+    const minPriceCents = inactiveMinPrice === "" ? null : Math.round(Number(inactiveMinPrice) * 100);
+    const maxPriceCents = inactiveMaxPrice === "" ? null : Math.round(Number(inactiveMaxPrice) * 100);
+
+    return plans
+      .filter((plan) => plan.status === "inactive")
+      .filter((plan) => {
+        if (term) {
+          const label = `${plan.displayName} ${plan.plan}`.toLowerCase();
+          if (!label.includes(term)) return false;
+        }
+
+        const monthlyCost = (plan.baseCost ?? 0) + (plan.pricePerSeat ?? 0);
+        if (minPriceCents !== null && !Number.isNaN(minPriceCents) && monthlyCost < minPriceCents) {
+          return false;
+        }
+        if (maxPriceCents !== null && !Number.isNaN(maxPriceCents) && monthlyCost > maxPriceCents) {
+          return false;
+        }
+
+        if (inactiveDurationFilter !== "all" && plan.durationDays !== Number(inactiveDurationFilter)) {
+          return false;
+        }
+
+        return true;
+      });
+  }, [plans, inactiveSearch, inactiveMinPrice, inactiveMaxPrice, inactiveDurationFilter]);
+
+  const inactiveTotalPages = Math.max(1, Math.ceil(filteredInactivePlans.length / INACTIVE_PAGE_SIZE));
+  const paginatedInactivePlans = useMemo(() => {
+    const start = (inactivePage - 1) * INACTIVE_PAGE_SIZE;
+    return filteredInactivePlans.slice(start, start + INACTIVE_PAGE_SIZE);
+  }, [filteredInactivePlans, inactivePage]);
+  const selectedInactivePlan = useMemo(
+    () => filteredInactivePlans.find((plan) => plan._id === selectedInactivePlanId) ?? null,
+    [filteredInactivePlans, selectedInactivePlanId],
+  );
+
+  useEffect(() => {
+    setInactivePage(1);
+  }, [inactiveSearch, inactiveMinPrice, inactiveMaxPrice, inactiveDurationFilter]);
+
+  useEffect(() => {
+    if (inactivePage > inactiveTotalPages) {
+      setInactivePage(inactiveTotalPages);
+    }
+  }, [inactivePage, inactiveTotalPages]);
+
+  useEffect(() => {
+    if (selectedInactivePlanId && !filteredInactivePlans.some((plan) => plan._id === selectedInactivePlanId)) {
+      setSelectedInactivePlanId(null);
+    }
+  }, [selectedInactivePlanId, filteredInactivePlans]);
 
   // Render loading state
   if (loading) {
@@ -1148,8 +1243,16 @@ export default function PlanConfiguration() {
       )}
 
       {/* ── Plan Cards ───────────────────────────────────────────────────── */}
+      {activeAndDeprecatedPlans.length === 0 && (
+        <div className="bg-[#121212] border border-[#333] rounded-xl p-6 mb-6">
+          <p className="text-sm text-gray-400">
+            There are no active or deprecated plans to show as cards. Use the inactive plans table
+            below to reactivate plans.
+          </p>
+        </div>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {plans.map((plan) => {
+        {activeAndDeprecatedPlans.map((plan) => {
           const isEditing = editingPlan === plan.plan;
           const border = CARD_BORDER[plan.plan] ?? "border-[#333]";
 
@@ -1546,6 +1649,158 @@ export default function PlanConfiguration() {
         })}
       </div>
 
+      {/* ── Inactive Plans Table ─────────────────────────────────────────── */}
+      <div className="mt-10">
+        <div className="mb-4">
+          <h2 className="text-2xl font-bold text-white">Inactive Plans</h2>
+          <p className="text-gray-400 mt-1">
+            Manage inactive plans: reactivate them or review complete details in a child view.
+          </p>
+        </div>
+
+        <div className="bg-[#121212] border border-[#333] rounded-xl p-4 mb-4 flex flex-wrap gap-3 items-center">
+          <input
+            type="text"
+            value={inactiveSearch}
+            onChange={(e) => setInactiveSearch(e.target.value)}
+            placeholder="Search by display name or plan id…"
+            className="bg-[#1a1a1a] border border-[#444] text-white text-sm rounded-lg px-3 py-2 w-64 focus:outline-none focus:border-[#FFD700]"
+          />
+
+          <input
+            type="number"
+            min={0}
+            step="0.01"
+            value={inactiveMinPrice}
+            onChange={(e) => setInactiveMinPrice(e.target.value)}
+            placeholder="Min price (USD)"
+            className="bg-[#1a1a1a] border border-[#444] text-white text-sm rounded-lg px-3 py-2 w-40 focus:outline-none focus:border-[#FFD700]"
+          />
+
+          <input
+            type="number"
+            min={0}
+            step="0.01"
+            value={inactiveMaxPrice}
+            onChange={(e) => setInactiveMaxPrice(e.target.value)}
+            placeholder="Max price (USD)"
+            className="bg-[#1a1a1a] border border-[#444] text-white text-sm rounded-lg px-3 py-2 w-40 focus:outline-none focus:border-[#FFD700]"
+          />
+
+          <select
+            value={inactiveDurationFilter}
+            onChange={(e) => setInactiveDurationFilter(e.target.value)}
+            className="bg-[#1a1a1a] border border-[#444] text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-[#FFD700]"
+          >
+            <option value="all">All durations</option>
+            <option value="30">30 days</option>
+            <option value="90">90 days</option>
+            <option value="180">180 days</option>
+            <option value="365">365 days</option>
+          </select>
+
+          {(inactiveSearch.trim() || inactiveMinPrice || inactiveMaxPrice || inactiveDurationFilter !== "all") && (
+            <button
+              type="button"
+              onClick={() => {
+                setInactiveSearch("");
+                setInactiveMinPrice("");
+                setInactiveMaxPrice("");
+                setInactiveDurationFilter("all");
+              }}
+              className="text-sm text-gray-400 hover:text-white transition-colors"
+            >
+              Clear filters
+            </button>
+          )}
+
+          <span className="ml-auto text-xs text-gray-500">{filteredInactivePlans.length} inactive plans</span>
+        </div>
+
+        <AdminTable>
+          <thead className="bg-[#0f0f0f] border-b border-[#333]">
+            <tr>
+              <th className="px-4 py-3 text-gray-400 font-medium">Plan</th>
+              <th className="px-4 py-3 text-gray-400 font-medium">Price</th>
+              <th className="px-4 py-3 text-gray-400 font-medium">Duration</th>
+              <th className="px-4 py-3 text-gray-400 font-medium">Status</th>
+              <th className="px-4 py-3 text-gray-400 font-medium">Created</th>
+              <th className="px-4 py-3 text-gray-400 font-medium text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {paginatedInactivePlans.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                  No inactive plans match the current filters.
+                </td>
+              </tr>
+            ) : (
+              paginatedInactivePlans.map((plan) => {
+                const createdAt = (plan as SubscriptionTypeWithDates).createdAt;
+                const activateKey = `activate:${plan.plan}`;
+
+                return (
+                  <tr
+                    key={plan._id}
+                    className="border-b border-[#222] hover:bg-[#1a1a1a] transition-colors"
+                  >
+                    <td className="px-4 py-3">
+                      <p className="text-white font-medium">{plan.displayName}</p>
+                      <code className="text-xs text-gray-500">{plan.plan}</code>
+                    </td>
+                    <td className="px-4 py-3 text-gray-300">
+                      {plan.baseCost === 0 && plan.pricePerSeat === 0
+                        ? "Free"
+                        : `$${formatDollars(plan.baseCost)}${plan.pricePerSeat > 0 ? ` + $${formatDollars(plan.pricePerSeat)}/seat` : ""}`}
+                    </td>
+                    <td className="px-4 py-3 text-gray-300">{plan.durationDays} days</td>
+                    <td className="px-4 py-3">
+                      <span className="px-2 py-0.5 rounded-full text-xs font-medium capitalize bg-gray-600/20 text-gray-400">
+                        {plan.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-gray-400 whitespace-nowrap">
+                      {createdAt ? new Date(createdAt).toLocaleDateString() : "—"}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => void handleActivatePlan(plan)}
+                          disabled={!!rowActionLoading[activateKey]}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-900/30 hover:bg-green-900/50 text-green-300 text-xs font-semibold transition disabled:opacity-50"
+                        >
+                          <RotateCcw size={13} />
+                          {rowActionLoading[activateKey] ? "Activating…" : "Activate"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedInactivePlanId(plan._id)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1a1a1a] hover:bg-[#2a2a2a] text-gray-200 text-xs font-semibold transition"
+                        >
+                          <Eye size={13} />
+                          View details
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </AdminTable>
+
+        <AdminPagination
+          currentPage={inactivePage}
+          totalPages={inactiveTotalPages}
+          totalItems={filteredInactivePlans.length}
+          pageSize={INACTIVE_PAGE_SIZE}
+          itemLabel="inactive plans"
+          onPageChange={setInactivePage}
+        />
+      </div>
+
       {/* ── Delete Confirmation ──────────────────────────────────────────── */}
       <ConfirmDialog
         isOpen={!!deleteConfirm}
@@ -1558,6 +1813,104 @@ export default function PlanConfiguration() {
         confirmText="Deactivate"
         variant="danger"
       />
+
+      {selectedInactivePlan && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setSelectedInactivePlanId(null);
+          }}
+        >
+          <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-[#121212] border border-[#333] rounded-xl p-5">
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-white">Plan Details</h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Detailed information for <span className="text-gray-300">{selectedInactivePlan.displayName}</span>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedInactivePlanId(null)}
+                aria-label="Close details"
+                title="Close"
+                className="w-9 h-9 rounded-lg border border-[#333] text-gray-300 hover:bg-[#1a1a1a] hover:text-white transition flex items-center justify-center"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
+              <div className="bg-[#1a1a1a] rounded-lg p-3">
+                <p className="text-gray-500 text-xs">Plan ID</p>
+                <p className="text-white font-medium">{selectedInactivePlan.plan}</p>
+              </div>
+              <div className="bg-[#1a1a1a] rounded-lg p-3">
+                <p className="text-gray-500 text-xs">Display Name</p>
+                <p className="text-white font-medium">{selectedInactivePlan.displayName}</p>
+              </div>
+              <div className="bg-[#1a1a1a] rounded-lg p-3">
+                <p className="text-gray-500 text-xs">Status</p>
+                <p className="text-gray-300 capitalize">{selectedInactivePlan.status}</p>
+              </div>
+              <div className="bg-[#1a1a1a] rounded-lg p-3">
+                <p className="text-gray-500 text-xs">Base Cost</p>
+                <p className="text-gray-300">${formatDollars(selectedInactivePlan.baseCost)}</p>
+              </div>
+              <div className="bg-[#1a1a1a] rounded-lg p-3">
+                <p className="text-gray-500 text-xs">Seat Cost</p>
+                <p className="text-gray-300">
+                  {selectedInactivePlan.pricePerSeat > 0
+                    ? `$${formatDollars(selectedInactivePlan.pricePerSeat)}`
+                    : "No per-seat charge"}
+                </p>
+              </div>
+              <div className="bg-[#1a1a1a] rounded-lg p-3">
+                <p className="text-gray-500 text-xs">Duration</p>
+                <p className="text-gray-300">{selectedInactivePlan.durationDays} days</p>
+              </div>
+              <div className="bg-[#1a1a1a] rounded-lg p-3">
+                <p className="text-gray-500 text-xs">Max Seats</p>
+                <p className="text-gray-300">{selectedInactivePlan.maxSeats === -1 ? "Unlimited" : selectedInactivePlan.maxSeats}</p>
+              </div>
+              <div className="bg-[#1a1a1a] rounded-lg p-3">
+                <p className="text-gray-500 text-xs">Max Catalog Items</p>
+                <p className="text-gray-300">
+                  {selectedInactivePlan.maxCatalogItems === -1
+                    ? "Unlimited"
+                    : selectedInactivePlan.maxCatalogItems}
+                </p>
+              </div>
+              <div className="bg-[#1a1a1a] rounded-lg p-3">
+                <p className="text-gray-500 text-xs">Billing Model</p>
+                <p className="text-gray-300 capitalize">{selectedInactivePlan.billingModel}</p>
+              </div>
+            </div>
+
+            {selectedInactivePlan.description && (
+              <div className="mt-3 bg-[#1a1a1a] rounded-lg p-3">
+                <p className="text-gray-500 text-xs mb-1">Description</p>
+                <p className="text-gray-300 text-sm">{selectedInactivePlan.description}</p>
+              </div>
+            )}
+
+            <div className="mt-3 bg-[#1a1a1a] rounded-lg p-3">
+              <p className="text-gray-500 text-xs mb-1">Features</p>
+              {selectedInactivePlan.features.length === 0 ? (
+                <p className="text-gray-500 text-sm italic">No features listed</p>
+              ) : (
+                <ul className="space-y-1">
+                  {selectedInactivePlan.features.map((feature, idx) => (
+                    <li key={idx} className="text-gray-300 text-sm">
+                      • {feature}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Alert Modal */}
       <AlertModal />

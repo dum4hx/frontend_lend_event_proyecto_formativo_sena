@@ -59,6 +59,8 @@ const iconMap: Record<string, React.ReactNode> = {
   rentals: <Package size={20} />,
   invoices: <FileText size={20} />,
   reports: <BarChart3 size={20} />,
+  // Super admin
+  "sa-plans": <BookOpen size={20} />,
 };
 
 interface SidebarProps {

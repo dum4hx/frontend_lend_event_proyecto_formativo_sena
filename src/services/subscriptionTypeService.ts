@@ -21,6 +21,13 @@ export async function getSubscriptionTypes(): Promise<
   return get<{ subscriptionTypes: SubscriptionType[] }>("/subscription-types");
 }
 
+/** List all subscription types (including inactive/deprecated) for super-admin management. */
+export async function getSubscriptionTypesAdminAll(): Promise<
+  ApiSuccessResponse<{ subscriptionTypes: SubscriptionType[] }>
+> {
+  return get<{ subscriptionTypes: SubscriptionType[] }>("/subscription-types/admin/all");
+}
+
 /** Public variant intended for read-only display (e.g., Packages page). */
 export async function getSubscriptionTypesPublic(): Promise<
   ApiSuccessResponse<{ subscriptionTypes: PublicPlan[] }>

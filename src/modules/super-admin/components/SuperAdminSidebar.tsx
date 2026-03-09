@@ -28,6 +28,7 @@ const iconMap: Record<string, React.ReactNode> = {
   clients: <Users size={20} />,
   organizations: <Building2 size={20} />,
   plans: <CreditCard size={20} />,
+  "sa-plans": <CreditCard size={20} />,
   "ai-monitor": <Bot size={20} />,
   "sa-settings": <Settings size={20} />,
 };
@@ -114,7 +115,7 @@ export const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
               }`
             }
           >
-            {iconMap[item.id]}
+            {iconMap[item.id] ?? <BarChart3 size={20} />}
             {!isCollapsed && <span>{item.label}</span>}
           </NavLink>
         ))}
