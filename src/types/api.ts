@@ -297,14 +297,14 @@ export interface Package {
   _id: string;
   name: string;
   description?: string;
-  materialTypes: PackageMaterialEntry[];
+  items: PackageMaterialEntry[];
   pricePerDay?: number;
 }
 
 export interface CreatePackagePayload {
   name: string;
   description?: string;
-  materialTypes: PackageMaterialEntry[];
+  items: PackageMaterialEntry[];
   pricePerDay?: number;
 }
 

@@ -19,6 +19,7 @@ import type {
   MaterialInstancesQueryParams,
   Package,
   CreatePackagePayload,
+  PackageMaterialEntry,
   PaginationMeta,
 } from "../types/api";
 
@@ -79,8 +80,8 @@ export async function getMaterialTypes(
 export async function createMaterialType(
   payload: CreateMaterialTypePayload,
 ): Promise<ApiSuccessResponse<{ materialType: MaterialType }>> {
-  console.log('materialService.createMaterialType called with:', payload);
-  console.log('Endpoint:', '/materials/types');
+  console.log("materialService.createMaterialType called with:", payload);
+  console.log("Endpoint:", "/materials/types");
   return post<{ materialType: MaterialType }, CreateMaterialTypePayload>(
     "/materials/types",
     payload,
@@ -141,10 +142,10 @@ export async function updateMaterialInstanceStatus(
   instanceId: string,
   payload: UpdateMaterialInstanceStatusPayload,
 ): Promise<ApiSuccessResponse<{ instance: MaterialInstance }>> {
-  return patch<
-    { instance: MaterialInstance },
-    UpdateMaterialInstanceStatusPayload
-  >(`/materials/instances/${instanceId}/status`, payload);
+  return patch<{ instance: MaterialInstance }, UpdateMaterialInstanceStatusPayload>(
+    `/materials/instances/${instanceId}/status`,
+    payload,
+  );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -170,7 +171,23 @@ export async function getPackage(
 
 /** Create a new package (bundle of materials). */
 export async function createPackage(
-  payload: CreatePackagePayload,
+  payload: CreatePackagePayload & Partial<{ items: PackageMaterialEntry[] }>,
 ): Promise<ApiSuccessResponse<{ package: Package }>> {
-  return post<{ package: Package }, CreatePackagePayload>("/packages", payload);
+  // Backend expects `items` in the request body (docs show `items: [{ materialTypeId, quantity }]`).
+  // Accept callers using `materialTypes` (existing shape) or `items`, and normalize here.
+  const items: PackageMaterialEntry[] = payload.items ?? payload.materialTypes ?? [];
+
+  const body: {
+    name: string;
+    description?: string;
+    items: PackageMaterialEntry[];
+    pricePerDay?: number;
+  } = {
+    name: payload.name,
+    description: payload.description,
+    items,
+    pricePerDay: payload.pricePerDay,
+  };
+
+  return post<{ package: Package }, typeof body>("/packages", body);
 }

@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Eye, Search, X, Loader2, AlertCircle } from "lucide-react";
 import { useApiQuery } from "../../../hooks/useApiQuery";
-import { getPackages, createPackage } from "../../../services/materialService";
+import { getPackages, createPackage, getMaterialTypes } from "../../../services/materialService";
 import { normalizeError, logError } from "../../../utils/errorHandling";
-import type { Package, CreatePackagePayload, PackageMaterialEntry } from "../../../types/api";
+import type { Package, PackageMaterialEntry, MaterialType } from "../../../types/api";
 
 // ─── Create Modal ───────────────────────────────────────────────────────────
 
@@ -41,6 +41,41 @@ function CreatePackageModal({ onClose, onSaved }: CreatePackageModalProps) {
       return { ...prev, entries };
     });
 
+  const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
+  const [typesLoading, setTypesLoading] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      setTypesLoading(true);
+      try {
+        const res = await getMaterialTypes();
+        if (!mounted) return;
+        const types = res.data?.materialTypes ?? [];
+        setMaterialTypes(types);
+        // If first entry has empty materialTypeId, prefill with first available type
+        if (types.length > 0) {
+          setForm((prev) => ({
+            ...prev,
+            entries: prev.entries.map((e) => ({
+              ...e,
+              materialTypeId: e.materialTypeId || types[0]._id,
+            })),
+          }));
+        }
+      } catch {
+        // ignore — leave fields empty and allow manual input fallback
+      } finally {
+        if (mounted) setTypesLoading(false);
+      }
+    };
+
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const addEntry = () =>
     setForm((prev) => ({
       ...prev,
@@ -60,10 +95,10 @@ function CreatePackageModal({ onClose, onSaved }: CreatePackageModalProps) {
       return;
     }
 
-    const payload: CreatePackagePayload = {
+    const payload = {
       name: form.name.trim(),
       description: form.description.trim() || undefined,
-      materialTypes: validEntries.map((e) => ({
+      items: validEntries.map((e) => ({
         materialTypeId: e.materialTypeId.trim(),
         quantity: Math.max(1, Number(e.quantity)),
       })),
@@ -158,13 +193,29 @@ function CreatePackageModal({ onClose, onSaved }: CreatePackageModalProps) {
             <div className="space-y-2">
               {form.entries.map((entry, idx) => (
                 <div key={idx} className="flex gap-2 items-center">
-                  <input
-                    value={entry.materialTypeId}
-                    onChange={(e) => updateEntry(idx, "materialTypeId", e.target.value)}
-                    placeholder="Material Type ID"
-                    disabled={submitting}
-                    className={`${inputCls} flex-1`}
-                  />
+                  {materialTypes.length > 0 ? (
+                    <select
+                      value={entry.materialTypeId}
+                      onChange={(e) => updateEntry(idx, "materialTypeId", e.target.value)}
+                      disabled={submitting || typesLoading}
+                      className={`${inputCls} flex-1`}
+                    >
+                      <option value="">Select material type</option>
+                      {materialTypes.map((t) => (
+                        <option key={t._id} value={t._id}>
+                          {t.name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      value={entry.materialTypeId}
+                      onChange={(e) => updateEntry(idx, "materialTypeId", e.target.value)}
+                      placeholder={typesLoading ? "Loading material types..." : "Material Type ID"}
+                      disabled={submitting || typesLoading}
+                      className={`${inputCls} flex-1`}
+                    />
+                  )}
                   <input
                     type="number"
                     min={1}
