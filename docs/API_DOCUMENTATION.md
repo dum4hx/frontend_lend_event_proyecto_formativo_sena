@@ -391,7 +391,12 @@ The `organization.address` object has the following structure:
   "message": "Registration successful. Please check your email for a 6-digit verification code to activate your account.",
   "data": {
     "organization": { "id": "...", "name": "...", "email": "..." },
-    "user": { "id": "...", "email": "...", "name": { "..." } }
+    "user": {
+      "id": "...",
+      "email": "...",
+      "name": { "..." },
+      "locations": ["..."]
+    }
   }
 }
 ```
@@ -432,6 +437,7 @@ Verifies the 6-digit OTP sent to the owner's email during registration. On succe
       "name": { "..." },
       "roleId": "...",
       "roleName": "owner",
+      "locations": ["..."],
       "permissions": ["organization:read", "users:create", "users:read"]
     },
     "permissions": ["organization:read", "users:create", "users:read"]
@@ -471,6 +477,7 @@ Authenticates user and sets JWT cookies.
       "name": { ... },
       "roleId": "...",
       "roleName": "...",
+      "locations": ["..."],
       "permissions": ["organization:read", "users:create", "users:read"]
     },
     "permissions": ["organization:read", "users:create", "users:read"]
@@ -703,6 +710,7 @@ Returns current authenticated user's information.
       "roleId": "65f0a1b2c3d4e5f607182930",
       "roleName": "owner",
       "status": "active",
+      "locations": ["507f1f77bcf86cd799439019"],
       "permissions": ["organization:read", "users:create", "users:read"]
     },
     "permissions": ["organization:read", "users:create", "users:read"]
@@ -830,13 +838,16 @@ Gets a specific user by ID.
 
 Invites a new user to the organization. Sends an invitation email with a time-limited link to accept the invite and set a password.
 
-| Parameter         | Location | Type   | Required | Description                          |
-| ----------------- | -------- | ------ | -------- | ------------------------------------ |
-| name.firstName    | body     | string | Yes      | First name (max 50 chars)            |
-| name.firstSurname | body     | string | Yes      | Surname (max 50 chars)               |
-| email             | body     | string | Yes      | Email address                        |
-| phone             | body     | string | Yes      | Phone in E.164 format                |
-| role              | body     | string | No       | Role (default: `commercial_advisor`) |
+| Parameter          | Location | Type     | Required | Description                                                 |
+| ------------------ | -------- | -------- | -------- | ----------------------------------------------------------- |
+| name.firstName     | body     | string   | Yes      | First name (max 50 chars)                                   |
+| name.secondName    | body     | string   | No       | Middle name / second given name (max 50 chars)              |
+| name.firstSurname  | body     | string   | Yes      | First surname (max 50 chars)                                |
+| name.secondSurname | body     | string   | No       | Second surname (max 50 chars)                               |
+| email              | body     | string   | Yes      | Email address                                               |
+| phone              | body     | string   | Yes      | Phone in E.164 format                                       |
+| locations          | body     | string[] | Yes      | Array of Organization Location IDs (Mongo ObjectId strings) |
+| roleId             | body     | string   | Yes      | Role ID to assign (use `GET /roles` to lookup role IDs)     |
 
 **Permission Required:** `users:create`
 
@@ -860,9 +871,11 @@ Invites a new user to the organization. Sends an invitation email with a time-li
 
 **Notes:**
 
-- An invitation email is sent to the provided email address with a unique link
-- The invite link expires after 48 hours by default (configurable via `INVITE_EXPIRY_HOURS` env var)
-- The invited user must click the link and set a password to activate their account via `POST /auth/accept-invite`
+- An invitation email is sent to the provided email address with a unique link.
+- The invite link expires after 48 hours by default (configurable via `INVITE_EXPIRY_HOURS` env var).
+- The invited user must click the link and set a password to activate their account via `POST /auth/accept-invite`.
+- `locations` must contain valid Location MongoDB ObjectId strings representing organization locations the user will be associated with.
+- `roleId` is required and must be a valid role identifier for the organization; the API response returns the resolved role name in the `role` field.
 
 ---
 
@@ -1986,12 +1999,13 @@ Retrieves a paginated list of all locations in the organization.
 
 #### Query Parameters
 
-| Parameter | Type    | Required | Default | Description                                  |
-| --------- | ------- | -------- | ------- | -------------------------------------------- |
-| page      | integer | No       | 1       | Page number for pagination                   |
-| limit     | integer | No       | 20      | Number of items per page (max: 100)          |
-| search    | string  | No       | -       | Search by location name, street, or city     |
-| city      | string  | No       | -       | Filter by exact city name (case-insensitive) |
+| Parameter       | Type    | Required | Default | Description                                          |
+| --------------- | ------- | -------- | ------- | ---------------------------------------------------- |
+| page            | integer | No       | 1       | Page number for pagination                           |
+| limit           | integer | No       | 20      | Number of items per page (max: 100)                  |
+| search          | string  | No       | -       | Search by location name, street, or city             |
+| city            | string  | No       | -       | Filter by exact city name (case-insensitive)         |
+| includeInactive | boolean | No       | false   | Whether to include soft-deleted (inactive) locations |
 
 #### Success Response (200 OK)
 
@@ -2013,6 +2027,7 @@ Retrieves a paginated list of all locations in the organization.
           "propertyNumber": "45-20",
           "additionalInfo": "Piso 2"
         },
+        "isActive": true,
         "createdAt": "2026-02-20T10:30:00.000Z",
         "updatedAt": "2026-02-20T10:30:00.000Z"
       }
@@ -2200,7 +2215,7 @@ Same fields as POST, but all are optional. Only provided fields will be updated.
 
 ### DELETE /locations/:id
 
-Deletes a location from the organization.
+Deactivates a location (soft delete) from the organization.
 
 **Authentication Required:** Yes  
 **Permission Required:** `locations:delete`
@@ -2216,7 +2231,7 @@ Deletes a location from the organization.
 ```json
 {
   "status": "success",
-  "message": "Location deleted successfully",
+  "message": "Location deactivated successfully",
   "data": null
 }
 ```
@@ -2225,7 +2240,36 @@ Deletes a location from the organization.
 
 - **400 Bad Request** – Invalid location ID format
 - **404 Not Found** – Location does not exist
-- **409 Conflict** – Location is assigned to material instances and cannot be deleted
+- **409 Conflict** – Location is currently assigned to material instances and cannot be deactivated
+
+---
+
+### POST /locations/:id/restore
+
+Reactivates a soft-deleted location.
+
+**Authentication Required:** Yes  
+**Permission Required:** `locations:delete`
+
+#### Path Parameters
+
+| Parameter | Type   | Required | Description               |
+| --------- | ------ | -------- | ------------------------- |
+| id        | string | Yes      | Location MongoDB ObjectId |
+
+#### Success Response (200 OK)
+
+```json
+{
+  "status": "success",
+  "message": "Location restored successfully",
+  "data": {
+    "status": "success",
+    "message": "Location restored successfully",
+    "data": { ... }
+  }
+}
+```
 
 ---
 

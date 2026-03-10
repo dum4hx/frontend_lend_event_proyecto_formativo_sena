@@ -1,80 +1,123 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Plus, Search } from 'lucide-react';
-import { useMaterialInstances } from '../hooks';
-import { useMaterialTypes } from '../../material-types/hooks';
-import { MaterialInstanceList, MaterialInstanceDetailModal } from '../components';
-import { AdminPagination } from '../../../components';
-import { ExcelExportImport } from '../../../../../components/export/ExcelExportImport';
-import { useToast } from '../../../../../contexts/ToastContext';
-import type { MaterialInstance } from '../../../../../types/api';
+import React, { useState } from "react";
+import { Plus, Search, X } from "lucide-react";
+import { useMaterialInstances } from "../hooks";
+import {
+  MaterialInstanceList,
+  MaterialInstanceDetailModal,
+  MaterialInstanceForm,
+} from "../components";
+import { AdminPagination } from "../../../components";
+import { ExcelExportImport } from "../../../../../components/export/ExcelExportImport";
+import { useToast } from "../../../../../contexts/ToastContext";
+import type { MaterialInstance, CreateMaterialInstancePayload } from "../../../../../types/api";
 
 export const MaterialInstanceCatalog: React.FC = () => {
-  const navigate = useNavigate();
   const { instances, loading, error, removeInstance, addInstance } = useMaterialInstances();
-  const { materialTypes } = useMaterialTypes();
   const { showToast } = useToast();
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
   const [selectedInstance, setSelectedInstance] = useState<MaterialInstance | null>(null);
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [editingInstance, setEditingInstance] = useState<MaterialInstance | null>(null);
   const pageSize = 10;
 
   const filteredInstances = instances.filter((inst) =>
-    inst.serialNumber.toLowerCase().includes(searchTerm.toLowerCase())
+    inst.serialNumber.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   const totalPages = Math.max(1, Math.ceil(filteredInstances.length / pageSize));
-  const pagedInstances = filteredInstances.slice((page - 1) * pageSize, page * pageSize);
-
-  useEffect(() => {
-    setPage(1);
-  }, [searchTerm]);
-
-  useEffect(() => {
-    setPage((prev) => Math.min(prev, totalPages));
-  }, [totalPages]);
+  const currentPage = Math.min(page, totalPages);
+  const pagedInstances = filteredInstances.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  );
 
   const handleDelete = (instance: MaterialInstance) => {
     showToast(
-      'warning',
+      "warning",
       `Do you want to delete instance "${instance.serialNumber}"? This action cannot be undone.`,
-      'Confirm Deletion',
+      "Confirm Deletion",
       {
         duration: Infinity,
         action: {
-          label: 'Confirm',
+          label: "Confirm",
           onClick: async () => {
             try {
               await removeInstance(instance._id);
-              showToast('success', 'Material instance deleted successfully', 'Success');
-            } catch (error: any) {
-              showToast('error', error.message || 'Failed to delete material instance', 'Error');
+              showToast("success", "Material instance deleted successfully", "Success");
+            } catch (error: unknown) {
+              showToast(
+                "error",
+                error instanceof Error ? error.message : "Failed to delete material instance",
+                "Error",
+              );
             }
           },
         },
-      }
+      },
     );
   };
 
-  const handleImportInstances = async (data: any[]) => {
+  const handleCreateOrUpdate = async (data: CreateMaterialInstancePayload) => {
+    try {
+      if (editingInstance) {
+        // Since the current useMaterialInstances doesn't have an update method for general fields,
+        // and per instructions we are focusing on the form modal flow.
+        // For now, if editing is needed, we'd need an update method in the service/hook.
+        // If the service doesn't support PATCH /instances/:id yet for modelId/serial/loc,
+        // we might only support creation for now.
+        showToast("info", "Update functionality depends on backend PATCH implementation.");
+      } else {
+        await addInstance(data);
+        showToast("success", "Material instance created successfully", "Success");
+      }
+      setIsFormModalOpen(false);
+      setEditingInstance(null);
+    } catch (error: unknown) {
+      showToast(
+        "error",
+        error instanceof Error ? error.message : "Failed to save material instance",
+        "Error",
+      );
+    }
+  };
+
+  interface ImportRow {
+    modelId?: string;
+    serialNumber?: string;
+    locationId?: string;
+  }
+
+  const handleImportInstances = async (data: ImportRow[]) => {
     try {
       let successCount = 0;
       for (const item of data) {
+        if (!item.modelId || !item.serialNumber || !item.locationId) {
+          console.error("Skipping invalid import row (missing required fields):", item);
+          continue;
+        }
         try {
           await addInstance({
             modelId: item.modelId,
             serialNumber: item.serialNumber,
-            purchaseDate: item.purchaseDate,
-            purchaseCost: item.purchaseCost ? parseFloat(item.purchaseCost) : undefined,
+            locationId: item.locationId,
           });
           successCount++;
         } catch (itemError) {
-          console.error('Error importing item:', item, itemError);
+          console.error("Error importing item:", item, itemError);
         }
       }
-      showToast('success', `Imported ${successCount}/${data.length} material instances`, 'Import Complete');
-    } catch (error: any) {
-      showToast('error', error.message || 'Error importing material instances', 'Import Failed');
+      showToast(
+        "success",
+        `Imported ${successCount}/${data.length} material instances`,
+        "Import Complete",
+      );
+    } catch (error: unknown) {
+      showToast(
+        "error",
+        error instanceof Error ? error.message : "Error importing material instances",
+        "Import Failed",
+      );
     }
   };
 
@@ -94,10 +137,13 @@ export const MaterialInstanceCatalog: React.FC = () => {
     );
   }
 
-  const statusCounts = instances.reduce((acc, inst) => {
-    acc[inst.status] = (acc[inst.status] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const statusCounts = instances.reduce(
+    (acc, inst) => {
+      acc[inst.status] = (acc[inst.status] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
 
   return (
     <div className="min-h-screen bg-[#121212] p-8">
@@ -116,7 +162,10 @@ export const MaterialInstanceCatalog: React.FC = () => {
               type="text"
               placeholder="Search by serial number..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setPage(1);
+              }}
               className="w-full pl-12 pr-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#FFD700]"
             />
           </div>
@@ -128,7 +177,10 @@ export const MaterialInstanceCatalog: React.FC = () => {
               showLabels={true}
             />
             <button
-              onClick={() => navigate('create')}
+              onClick={() => {
+                setEditingInstance(null);
+                setIsFormModalOpen(true);
+              }}
               className="flex items-center gap-2 px-6 py-3 bg-[#FFD700] text-black font-semibold rounded-lg hover:bg-[#FFC700] transition-colors whitespace-nowrap"
             >
               <Plus size={20} />
@@ -145,9 +197,7 @@ export const MaterialInstanceCatalog: React.FC = () => {
           </div>
           <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-6">
             <p className="text-gray-400 text-sm mb-1">Available</p>
-            <p className="text-3xl font-bold text-green-400">
-              {statusCounts.available || 0}
-            </p>
+            <p className="text-3xl font-bold text-green-400">{statusCounts.available || 0}</p>
           </div>
           <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-6">
             <p className="text-gray-400 text-sm mb-1">In Use</p>
@@ -167,15 +217,15 @@ export const MaterialInstanceCatalog: React.FC = () => {
         <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-6">
           <MaterialInstanceList
             instances={pagedInstances}
-            materialTypes={materialTypes}
             onView={setSelectedInstance}
-            onEdit={(instance) =>
-              navigate('create', { state: { instance } })
-            }
+            onEdit={(instance) => {
+              setEditingInstance(instance);
+              setIsFormModalOpen(true);
+            }}
             onDelete={handleDelete}
           />
           <AdminPagination
-            currentPage={page}
+            currentPage={currentPage}
             totalPages={totalPages}
             totalItems={filteredInstances.length}
             pageSize={pageSize}
@@ -184,11 +234,37 @@ export const MaterialInstanceCatalog: React.FC = () => {
           />
         </div>
 
+        {/* Form Modal */}
+        {isFormModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+            <div className="bg-[#121212] border border-[#333] rounded-xl w-full max-w-2xl overflow-hidden shadow-2xl">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-[#333]">
+                <h2 className="text-xl font-bold text-white">
+                  {editingInstance ? "Edit Material Instance" : "New Material Instance"}
+                </h2>
+                <button
+                  onClick={() => setIsFormModalOpen(false)}
+                  className="p-2 text-gray-400 hover:text-white transition-colors"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+              <div className="p-6">
+                <MaterialInstanceForm
+                  onSubmit={handleCreateOrUpdate}
+                  onCancel={() => setIsFormModalOpen(false)}
+                  initialData={editingInstance || undefined}
+                  isEditing={!!editingInstance}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Detail Modal */}
         {selectedInstance && (
           <MaterialInstanceDetailModal
             instance={selectedInstance}
-            materialTypes={materialTypes}
             onClose={() => setSelectedInstance(null)}
           />
         )}

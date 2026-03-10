@@ -234,7 +234,7 @@ export interface UpdateMaterialCategoryPayload {
 export interface MaterialType {
   _id: string;
   name: string;
-  description?: string;
+  description: string;
   categoryId: string;
   pricePerDay: number;
 }
@@ -265,18 +265,20 @@ export type MaterialInstanceStatus =
 
 export interface MaterialInstance {
   _id: string;
-  modelId: string;
+  model: {
+    _id: string;
+    name: string;
+    pricePerDay: number;
+  };
   serialNumber: string;
+  locationId: string;
   status: MaterialInstanceStatus;
-  purchaseDate?: string;
-  purchaseCost?: number;
 }
 
 export interface CreateMaterialInstancePayload {
   modelId: string;
   serialNumber: string;
-  purchaseDate?: string;
-  purchaseCost?: number;
+  locationId: string;
 }
 
 export interface UpdateMaterialInstanceStatusPayload {

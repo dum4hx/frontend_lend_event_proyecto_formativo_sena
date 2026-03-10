@@ -6,9 +6,7 @@
  */
 
 import { get, post, patch, del, type ApiSuccessResponse } from "../lib/api";
-import type {
-  PaginationMeta,
-} from "../types/api";
+import type { PaginationMeta } from "../types/api";
 
 // Inventory Items
 export interface InventoryItem {
@@ -26,15 +24,24 @@ export interface InventoryListResponse {
   pagination: PaginationMeta;
 }
 
-export async function getInventoryItems(params?: { page?: number; limit?: number }): Promise<ApiSuccessResponse<InventoryListResponse>> {
-  return get<InventoryListResponse>("/warehouse/inventory", params as Record<string, string | number | boolean | undefined>);
+export async function getInventoryItems(params?: {
+  page?: number;
+  limit?: number;
+}): Promise<ApiSuccessResponse<InventoryListResponse>> {
+  return get<InventoryListResponse>(
+    "/warehouse/inventory",
+    params as Record<string, string | number | boolean | undefined>,
+  );
 }
 
 export async function getInventoryItem(id: string): Promise<ApiSuccessResponse<InventoryItem>> {
   return get<InventoryItem>(`/warehouse/inventory/${id}`);
 }
 
-export async function updateInventoryItem(id: string, data: Partial<InventoryItem>): Promise<ApiSuccessResponse<InventoryItem>> {
+export async function updateInventoryItem(
+  id: string,
+  data: Partial<InventoryItem>,
+): Promise<ApiSuccessResponse<InventoryItem>> {
   return patch<InventoryItem, Partial<InventoryItem>>(`/warehouse/inventory/${id}`, data);
 }
 
@@ -44,13 +51,13 @@ export async function deleteInventoryItem(id: string): Promise<ApiSuccessRespons
 
 // Warehouse Locations
 export interface WarehouseLocation {
-  id: string;
-  code: string;
-  section: string;
-  shelf: string;
-  capacity: number;
-  occupied: number;
-  status: "available" | "full" | "maintenance";
+  _id: string;
+  name: string;
+  organizationId: string;
+  address: LocationAddress;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface LocationAddress {
@@ -75,24 +82,38 @@ export interface LocationCreatePayload {
 }
 
 export interface LocationsListResponse {
-  locations: WarehouseLocation[];
+  items: WarehouseLocation[];
   pagination: PaginationMeta;
 }
 
-export async function getLocations(params?: { page?: number; limit?: number }): Promise<ApiSuccessResponse<LocationsListResponse>> {
-  return get<LocationsListResponse>("/locations", params as Record<string, string | number | boolean | undefined>);
+export async function getLocations(params?: {
+  page?: number;
+  limit?: number;
+}): Promise<ApiSuccessResponse<LocationsListResponse>> {
+  return get<LocationsListResponse>(
+    "/locations",
+    params as Record<string, string | number | boolean | undefined>,
+  );
 }
 
 export async function getLocation(id: string): Promise<ApiSuccessResponse<WarehouseLocation>> {
   return get<WarehouseLocation>(`/locations/${id}`);
 }
 
-export async function createLocation(data: LocationCreatePayload): Promise<ApiSuccessResponse<WarehouseLocation>> {
+export async function createLocation(
+  data: LocationCreatePayload,
+): Promise<ApiSuccessResponse<WarehouseLocation>> {
   return post<WarehouseLocation, LocationCreatePayload>("/locations", data);
 }
 
-export async function updateLocation(id: string, data: Partial<LocationCreatePayload | WarehouseLocation>): Promise<ApiSuccessResponse<WarehouseLocation>> {
-  return patch<WarehouseLocation, Partial<LocationCreatePayload | WarehouseLocation>>(`/locations/${id}`, data as any);
+export async function updateLocation(
+  id: string,
+  data: Partial<LocationCreatePayload | WarehouseLocation>,
+): Promise<ApiSuccessResponse<WarehouseLocation>> {
+  return patch<WarehouseLocation, Partial<LocationCreatePayload | WarehouseLocation>>(
+    `/locations/${id}`,
+    data as any,
+  );
 }
 
 export async function deleteLocation(id: string): Promise<ApiSuccessResponse<null>> {
@@ -118,12 +139,24 @@ export interface StockMovementListResponse {
   pagination: PaginationMeta;
 }
 
-export async function getStockMovements(params?: { page?: number; limit?: number; type?: string }): Promise<ApiSuccessResponse<StockMovementListResponse>> {
-  return get<StockMovementListResponse>("/warehouse/stock-movements", params as Record<string, string | number | boolean | undefined>);
+export async function getStockMovements(params?: {
+  page?: number;
+  limit?: number;
+  type?: string;
+}): Promise<ApiSuccessResponse<StockMovementListResponse>> {
+  return get<StockMovementListResponse>(
+    "/warehouse/stock-movements",
+    params as Record<string, string | number | boolean | undefined>,
+  );
 }
 
-export async function recordStockMovement(data: Omit<StockMovement, "id" | "timestamp" | "operator">): Promise<ApiSuccessResponse<StockMovement>> {
-  return post<StockMovement, Omit<StockMovement, "id" | "timestamp" | "operator">>("/warehouse/stock-movements", data);
+export async function recordStockMovement(
+  data: Omit<StockMovement, "id" | "timestamp" | "operator">,
+): Promise<ApiSuccessResponse<StockMovement>> {
+  return post<StockMovement, Omit<StockMovement, "id" | "timestamp" | "operator">>(
+    "/warehouse/stock-movements",
+    data,
+  );
 }
 
 // Warehouse Alerts
@@ -143,8 +176,15 @@ export interface AlertsListResponse {
   pagination: PaginationMeta;
 }
 
-export async function getAlerts(params?: { page?: number; limit?: number; status?: string }): Promise<ApiSuccessResponse<AlertsListResponse>> {
-  return get<AlertsListResponse>("/warehouse/alerts", params as Record<string, string | number | boolean | undefined>);
+export async function getAlerts(params?: {
+  page?: number;
+  limit?: number;
+  status?: string;
+}): Promise<ApiSuccessResponse<AlertsListResponse>> {
+  return get<AlertsListResponse>(
+    "/warehouse/alerts",
+    params as Record<string, string | number | boolean | undefined>,
+  );
 }
 
 export async function acknowledgeAlert(id: string): Promise<ApiSuccessResponse<WarehouseAlert>> {
@@ -163,6 +203,8 @@ export interface WarehouseDashboardStats {
   stockMovementsToday: number;
 }
 
-export async function getWarehouseDashboardStats(): Promise<ApiSuccessResponse<WarehouseDashboardStats>> {
+export async function getWarehouseDashboardStats(): Promise<
+  ApiSuccessResponse<WarehouseDashboardStats>
+> {
   return get<WarehouseDashboardStats>("/warehouse/dashboard/stats");
 }

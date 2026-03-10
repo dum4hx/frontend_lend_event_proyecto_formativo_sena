@@ -1,73 +1,103 @@
-import React, { useState, useEffect } from 'react';
-import { useToast } from '../../../../../contexts/ToastContext';
-import type { CreateMaterialInstancePayload, MaterialType } from '../../../../../types/api';
+import React, { useState, useEffect, useCallback } from "react";
+import { useToast } from "../../../../../contexts/ToastContext";
+import { useMaterialTypes } from "../../material-types/hooks";
+import {
+  getLocations,
+  type WarehouseLocation,
+} from "../../../../../services/warehouseOperatorService";
+import type { CreateMaterialInstancePayload } from "../../../../../types/api";
 
 interface MaterialInstanceFormProps {
-  materialTypes: MaterialType[];
   onSubmit: (data: CreateMaterialInstancePayload) => Promise<void>;
   onCancel: () => void;
-  initialData?: Partial<CreateMaterialInstancePayload> & { serialNumber?: string };
+  initialData?: Partial<CreateMaterialInstancePayload>;
   isEditing?: boolean;
 }
 
 export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
-  materialTypes,
   onSubmit,
   onCancel,
   initialData,
   isEditing = false,
 }) => {
+  const { materialTypes } = useMaterialTypes();
   const [formData, setFormData] = useState<CreateMaterialInstancePayload>({
-    modelId: '',
-    serialNumber: '',
-    purchaseDate: '',
-    purchaseCost: undefined,
+    modelId: "",
+    serialNumber: "",
+    locationId: "",
   });
-  const [purchaseCostDisplay, setPurchaseCostDisplay] = useState('');
+  const [locations, setLocations] = useState<WarehouseLocation[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
   const { showToast } = useToast();
 
-  const formatCop = (value: number) => {
-    return new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
+  const fetchLocations = useCallback(async () => {
+    try {
+      const response = await getLocations();
+      setLocations(response.data.items || []);
+    } catch (error) {
+      console.error("Error fetching locations:", error);
+      showToast("error", "Failed to load locations");
+    }
+  }, [showToast]);
+
+  useEffect(() => {
+    fetchLocations();
+  }, [fetchLocations]);
 
   useEffect(() => {
     if (initialData) {
       setFormData({
-        modelId: initialData.modelId || '',
-        serialNumber: initialData.serialNumber || '',
-        purchaseDate: initialData.purchaseDate || '',
-        purchaseCost: initialData.purchaseCost,
+        modelId: initialData.modelId || "",
+        serialNumber: initialData.serialNumber || "",
+        locationId: initialData.locationId || "",
       });
-      if (initialData.purchaseCost) {
-        setPurchaseCostDisplay(formatCop(initialData.purchaseCost));
-      } else {
-        setPurchaseCostDisplay('');
-      }
     }
   }, [initialData]);
 
+  const validate = useCallback((data: CreateMaterialInstancePayload) => {
+    const newErrors: Record<string, string> = {};
+    if (!data.modelId) newErrors.modelId = "Material type is required";
+    if (!data.serialNumber.trim()) {
+      newErrors.serialNumber = "Serial number is required";
+    } else if (data.serialNumber.length > 100) {
+      newErrors.serialNumber = "Serial number must be under 100 characters";
+    }
+    if (!data.locationId) newErrors.locationId = "Location is required";
+    return newErrors;
+  }, []);
+
+  useEffect(() => {
+    const validationErrors = validate(formData);
+    setErrors(validationErrors);
+  }, [formData, validate]);
+
+  const handleChange = (field: keyof CreateMaterialInstancePayload, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    setTouched((prev) => ({ ...prev, [field]: true }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.modelId) {
-      showToast('error', 'Material type is required');
-      return;
-    }
-    if (!formData.serialNumber.trim()) {
-      showToast('error', 'Serial number is required');
+    const validationErrors = validate(formData);
+    setErrors(validationErrors);
+    setTouched({
+      modelId: true,
+      serialNumber: true,
+      locationId: true,
+    });
+
+    if (Object.keys(validationErrors).length > 0) {
+      showToast("error", "Please fix the errors before submitting");
       return;
     }
 
     try {
       setIsSubmitting(true);
       await onSubmit(formData);
-    } catch (error: any) {
-      showToast('error', error.message || 'Error saving material instance');
+    } catch (error: unknown) {
+      showToast("error", error instanceof Error ? error.message : "Error saving material instance");
     } finally {
       setIsSubmitting(false);
     }
@@ -76,13 +106,14 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">
-          Material Type *
-        </label>
+        <label className="block text-sm font-medium text-gray-300 mb-2">Material Type *</label>
         <select
           value={formData.modelId}
-          onChange={(e) => setFormData({ ...formData, modelId: e.target.value })}
-          className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-lg text-white focus:outline-none focus:border-[#FFD700]"
+          onChange={(e) => handleChange("modelId", e.target.value)}
+          onBlur={() => setTouched((prev) => ({ ...prev, modelId: true }))}
+          className={`w-full px-4 py-3 bg-[#1a1a1a] border ${
+            touched.modelId && errors.modelId ? "border-red-500" : "border-[#333]"
+          } rounded-lg text-white focus:outline-none focus:border-[#FFD700]`}
           required
           disabled={isEditing}
         >
@@ -93,6 +124,9 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
             </option>
           ))}
         </select>
+        {touched.modelId && errors.modelId && (
+          <p className="text-xs text-red-500 mt-1">{errors.modelId}</p>
+        )}
         {isEditing && (
           <p className="text-xs text-gray-500 mt-1">
             Material type cannot be changed after creation
@@ -107,48 +141,44 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
         <input
           type="text"
           value={formData.serialNumber}
-          onChange={(e) => setFormData({ ...formData, serialNumber: e.target.value })}
-          className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-lg text-white focus:outline-none focus:border-[#FFD700]"
+          onChange={(e) => handleChange("serialNumber", e.target.value)}
+          onBlur={() => setTouched((prev) => ({ ...prev, serialNumber: true }))}
+          className={`w-full px-4 py-3 bg-[#1a1a1a] border ${
+            touched.serialNumber && errors.serialNumber ? "border-red-500" : "border-[#333]"
+          } rounded-lg text-white focus:outline-none focus:border-[#FFD700]`}
           placeholder="e.g., SN-001, CHAIR-A-01..."
           required
           maxLength={100}
         />
+        {touched.serialNumber && errors.serialNumber && (
+          <p className="text-xs text-red-500 mt-1">{errors.serialNumber}</p>
+        )}
         <p className="text-xs text-gray-500 mt-1">
           Unique identifier for this specific item (max 100 characters)
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Purchase Date
-          </label>
-          <input
-            type="date"
-            value={formData.purchaseDate}
-            onChange={(e) => setFormData({ ...formData, purchaseDate: e.target.value })}
-            className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-lg text-white focus:outline-none focus:border-[#FFD700]"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Purchase Cost (COP)
-          </label>
-          <input
-            type="text"
-            inputMode="numeric"
-            value={purchaseCostDisplay}
-            onChange={(e) => {
-              const raw = e.target.value.replace(/[^0-9]/g, '');
-              const numericValue = raw ? parseInt(raw, 10) : undefined;
-              setFormData({ ...formData, purchaseCost: numericValue });
-              setPurchaseCostDisplay(raw ? formatCop(parseInt(raw, 10)) : '');
-            }}
-            className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-lg text-white focus:outline-none focus:border-[#FFD700]"
-            placeholder="Ej: $ 150.000"
-          />
-        </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-300 mb-2">Location *</label>
+        <select
+          value={formData.locationId}
+          onChange={(e) => handleChange("locationId", e.target.value)}
+          onBlur={() => setTouched((prev) => ({ ...prev, locationId: true }))}
+          className={`w-full px-4 py-3 bg-[#1a1a1a] border ${
+            touched.locationId && errors.locationId ? "border-red-500" : "border-[#333]"
+          } rounded-lg text-white focus:outline-none focus:border-[#FFD700]`}
+          required
+        >
+          <option value="">Select a location</option>
+          {locations.map((loc) => (
+            <option key={loc._id} value={loc._id}>
+              {loc.name} — {loc.address.city}, {loc.address.street} {loc.address.propertyNumber}
+            </option>
+          ))}
+        </select>
+        {touched.locationId && errors.locationId && (
+          <p className="text-xs text-red-500 mt-1">{errors.locationId}</p>
+        )}
       </div>
 
       <div className="flex gap-4 pt-4">
@@ -159,11 +189,11 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
         >
           {isSubmitting
             ? isEditing
-              ? 'Updating...'
-              : 'Creating...'
+              ? "Updating..."
+              : "Creating..."
             : isEditing
-            ? 'Update Instance'
-            : 'Create Instance'}
+              ? "Update Instance"
+              : "Create Instance"}
         </button>
         <button
           type="button"

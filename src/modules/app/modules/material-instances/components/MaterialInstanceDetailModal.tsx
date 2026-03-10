@@ -1,44 +1,37 @@
-import React from 'react';
-import { X } from 'lucide-react';
-import type { MaterialInstance } from '../../../../../types/api';
+import React from "react";
+import { X } from "lucide-react";
+import type { MaterialInstance } from "../../../../../types/api";
 
 interface MaterialInstanceDetailModalProps {
   instance: MaterialInstance;
-  materialTypes: any[];
   onClose: () => void;
 }
 
 export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalProps> = ({
   instance,
-  materialTypes,
   onClose,
 }) => {
-  const getMaterialTypeName = (modelId: string) => {
-    const type = materialTypes.find((t) => t._id === modelId);
-    return type?.name || 'Unknown';
-  };
-
   const formatCost = (cost?: number) => {
-    if (!cost) return 'N/A';
-    return new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP',
+    if (!cost) return "N/A";
+    return new Intl.NumberFormat("es-CO", {
+      style: "currency",
+      currency: "COP",
       minimumFractionDigits: 0,
     }).format(cost);
   };
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
-      available: 'text-green-400',
-      reserved: 'text-blue-400',
-      loaned: 'text-yellow-400',
-      returned: 'text-purple-400',
-      maintenance: 'text-orange-400',
-      damaged: 'text-red-400',
-      lost: 'text-red-600',
-      retired: 'text-gray-500',
+      available: "text-green-400",
+      reserved: "text-blue-400",
+      loaned: "text-yellow-400",
+      returned: "text-purple-400",
+      maintenance: "text-orange-400",
+      damaged: "text-red-400",
+      lost: "text-red-600",
+      retired: "text-gray-500",
     };
-    return colors[status] || 'text-gray-400';
+    return colors[status] || "text-gray-400";
   };
 
   return (
@@ -59,18 +52,12 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
         <div className="p-6 space-y-6">
           <div className="grid grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">
-                Serial Number
-              </label>
-              <p className="text-white font-mono font-semibold text-lg">
-                {instance.serialNumber}
-              </p>
+              <label className="block text-sm font-medium text-gray-400 mb-2">Serial Number</label>
+              <p className="text-white font-mono font-semibold text-lg">{instance.serialNumber}</p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">
-                Status
-              </label>
+              <label className="block text-sm font-medium text-gray-400 mb-2">Status</label>
               <p className={`font-bold text-lg ${getStatusColor(instance.status)}`}>
                 {instance.status.toUpperCase()}
               </p>
@@ -79,39 +66,29 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
 
           <div className="grid grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">
-                Material Type
-              </label>
-              <p className="text-white">{getMaterialTypeName(instance.modelId)}</p>
+              <label className="block text-sm font-medium text-gray-400 mb-2">Material Type</label>
+              <p className="text-white">{instance.model?.name || "Unknown"}</p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">
-                Instance ID
-              </label>
+              <label className="block text-sm font-medium text-gray-400 mb-2">Instance ID</label>
               <p className="text-gray-400 text-sm font-mono">{instance._id}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">
-                Purchase Date
-              </label>
+              <label className="block text-sm font-medium text-gray-400 mb-2">Purchase Date</label>
               <p className="text-white">
                 {instance.purchaseDate
                   ? new Date(instance.purchaseDate).toLocaleDateString()
-                  : 'N/A'}
+                  : "N/A"}
               </p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">
-                Purchase Cost
-              </label>
-              <p className="text-[#FFD700] font-semibold">
-                {formatCost(instance.purchaseCost)}
-              </p>
+              <label className="block text-sm font-medium text-gray-400 mb-2">Purchase Cost</label>
+              <p className="text-[#FFD700] font-semibold">{formatCost(instance.purchaseCost)}</p>
             </div>
           </div>
         </div>

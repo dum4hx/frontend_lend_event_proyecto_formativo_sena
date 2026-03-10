@@ -49,10 +49,7 @@ import Reports from "./modules/app/pages/Reports";
 // App - Material sub-modules
 import { CategoryCatalog, CreateCategory } from "./modules/app/modules/material-categories";
 import { MaterialTypeCatalog, CreateMaterialType } from "./modules/app/modules/material-types";
-import {
-  MaterialInstanceCatalog,
-  CreateMaterialInstance,
-} from "./modules/app/modules/material-instances";
+import { MaterialInstanceCatalog } from "./modules/app/modules/material-instances";
 
 // Super Admin — lazy-loaded for code-splitting
 const SuperAdminLayout = lazy(() => import("./modules/super-admin/layouts/SuperAdminLayout"));
@@ -114,7 +111,6 @@ function App() {
             <Route path="material-types" element={<MaterialTypeCatalog />} />
             <Route path="material-types/create" element={<CreateMaterialType />} />
             <Route path="material-instances" element={<MaterialInstanceCatalog />} />
-            <Route path="material-instances/create" element={<CreateMaterialInstance />} />
             <Route path="attributes" element={<Attributes />} />
             <Route path="plans" element={<Plans />} />
             <Route path="inventory" element={<Inventory />} />
