@@ -183,6 +183,38 @@ export interface DocumentTypeInfo {
 
 export type CustomerStatus = "active" | "inactive" | "blacklisted";
 
+// ─── Material Attributes ───────────────────────────────────────────────────
+
+export interface MaterialAttribute {
+  _id: string;
+  organizationId: string;
+  categoryId?: string;
+  name: string;
+  unit: string;
+  allowedValues: string[];
+  isRequired: boolean;
+  createdAt: string;
+  updatedAt: string;
+  /** Frontend-only usage stat (if backend provides it, otherwise manually calculated) */
+  usageCount?: number;
+}
+
+export interface CreateMaterialAttributePayload {
+  name: string;
+  unit: string;
+  categoryId?: string;
+  allowedValues?: string[];
+  isRequired?: boolean;
+}
+
+export interface UpdateMaterialAttributePayload {
+  name?: string;
+  unit?: string;
+  categoryId?: string;
+  allowedValues?: string[];
+  isRequired?: boolean;
+}
+
 export interface Customer {
   _id: string;
   name: PersonName;
@@ -237,6 +269,10 @@ export interface MaterialType {
   description: string;
   categoryId: string;
   pricePerDay: number;
+  attributes?: Array<{
+    attributeId: string;
+    value: string | number | boolean;
+  }>;
 }
 
 export interface CreateMaterialTypePayload {
@@ -298,6 +334,8 @@ export interface Package {
   name: string;
   description?: string;
   items: PackageMaterialEntry[];
+  // Backwards-compatible alias used by older frontend code
+  materialTypes?: PackageMaterialEntry[];
   pricePerDay?: number;
 }
 
