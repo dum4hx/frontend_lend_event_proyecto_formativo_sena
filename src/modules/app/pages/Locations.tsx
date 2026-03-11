@@ -256,7 +256,7 @@ export default function LocationsPage() {
           <p className="text-gray-400">Manage warehouse zones and storage locations</p>
         </div>
         <div>
-          <button onClick={openCreate} className="flex items-center gap-2 bg-[#FFD700] text-black font-semibold px-4 py-2 rounded-lg hover:bg-[#FFC107] transition-all">
+          <button onClick={openCreate} className="flex items-center gap-2 font-semibold px-4 py-2 rounded-lg transition-all gold-action-btn">
             <Plus size={20} />
             Add Location
           </button>
@@ -351,7 +351,7 @@ export default function LocationsPage() {
                   <Edit2 size={18} />
                   Edit
                 </button>
-                <button onClick={() => void handleDelete(location.id)} className="flex-1 flex items-center justify-center gap-2 text-red-400 hover:text-red-300 bg-[#1a1a1a] hover:bg-[#252525] rounded-lg py-2 transition-all">
+                <button onClick={() => void handleDelete(location.id)} className="flex-1 flex items-center justify-center gap-2 rounded-lg py-2 transition-all danger-action-btn">
                   <Trash2 size={18} />
                   Delete
                 </button>
@@ -488,7 +488,7 @@ export default function LocationsPage() {
               {/* Address removed: not required by DB */}
 
               <div className="flex items-center gap-4 pt-4">
-                <button type="submit" className="flex-1 py-3 bg-[#FFD700] text-black font-semibold rounded-md hover:bg-[#FFC700] transition-colors">Create Location</button>
+                <button type="submit" className="flex-1 py-3 font-semibold rounded-md transition-colors gold-action-btn">Create Location</button>
                 <button type="button" onClick={() => setShowCreateModal(false)} className="px-4 py-2 bg-[#141414] text-gray-300 font-medium rounded-md hover:bg-[#1b1b1b] transition-colors border border-[#333]">Cancel</button>
               </div>
             </form>

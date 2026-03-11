@@ -124,7 +124,7 @@ export const CategoryCatalog: React.FC = () => {
             />
             <button
               onClick={() => navigate('create')}
-              className="flex items-center gap-2 px-6 py-3 bg-[#FFD700] text-black font-semibold rounded-lg hover:bg-[#FFC700] transition-colors whitespace-nowrap"
+              className="flex items-center gap-2 px-6 py-3 font-semibold rounded-lg transition-colors whitespace-nowrap gold-action-btn"
             >
               <Plus size={20} />
               New Category

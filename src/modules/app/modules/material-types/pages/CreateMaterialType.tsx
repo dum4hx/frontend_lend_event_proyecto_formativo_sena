@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, AlertTriangle } from "lucide-react";
 import { useMaterialTypes } from "../hooks";
 import { useCategories } from "../../material-categories/hooks";
 import { MaterialTypeForm } from "../components";
@@ -16,6 +16,7 @@ export const CreateMaterialType: React.FC = () => {
 
   const editingMaterialType = location.state?.materialType;
   const isEditing = !!editingMaterialType;
+  const hasCategories = categories.length > 0;
 
   const handleSubmit = async (data: CreateMaterialTypePayload) => {
     try {
@@ -37,6 +38,52 @@ export const CreateMaterialType: React.FC = () => {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-gray-400">Loading categories...</div>
+      </div>
+    );
+  }
+
+  if (!isEditing && !hasCategories) {
+    return (
+      <div className="min-h-screen bg-[#121212] p-8">
+        <div className="max-w-3xl mx-auto">
+          <button
+            onClick={() => navigate("/app/material-types")}
+            className="flex items-center gap-2 text-gray-400 hover:text-white mb-6 transition-colors"
+          >
+            <ArrowLeft size={20} />
+            Back to Material Types
+          </button>
+
+          <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-6">
+            <div className="flex items-start gap-3 mb-4">
+              <AlertTriangle className="text-[#FFD700] mt-0.5" size={22} />
+              <div>
+                <h1 className="text-2xl font-bold text-white mb-2">
+                  You need at least one category first
+                </h1>
+                <p className="text-gray-300">
+                  Before creating a material type, you must create a material category. This helps keep
+                  your catalog organized and prevents mistakes in the process.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={() => navigate("/app/material-categories")}
+                className="px-5 py-2.5 font-semibold rounded-lg transition-colors gold-action-btn"
+              >
+                Go to Category Catalog
+              </button>
+              <button
+                onClick={() => navigate("/app/material-types")}
+                className="px-5 py-2.5 bg-transparent text-gray-300 border border-[#333] rounded-lg hover:bg-[#222] transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
