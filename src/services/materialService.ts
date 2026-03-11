@@ -12,6 +12,9 @@ import type {
   MaterialType,
   CreateMaterialTypePayload,
   UpdateMaterialTypePayload,
+  MaterialAttribute,
+  CreateMaterialAttributePayload,
+  UpdateMaterialAttributePayload,
   MaterialInstance,
   CreateMaterialInstancePayload,
   UpdateMaterialInstanceStatusPayload,
@@ -175,7 +178,7 @@ export async function createPackage(
 ): Promise<ApiSuccessResponse<{ package: Package }>> {
   // Backend expects `items` in the request body (docs show `items: [{ materialTypeId, quantity }]`).
   // Accept callers using `materialTypes` (existing shape) or `items`, and normalize here.
-  const items: PackageMaterialEntry[] = payload.items ?? payload.materialTypes ?? [];
+  const items: PackageMaterialEntry[] = payload.items ?? payload.items ?? [];
 
   const body: {
     name: string;
@@ -190,4 +193,53 @@ export async function createPackage(
   };
 
   return post<{ package: Package }, typeof body>("/packages", body);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Material Attributes
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** List all attribute definitions for the organization. */
+export async function getMaterialAttributes(params?: {
+  categoryId?: string;
+}): Promise<ApiSuccessResponse<{ attributes: MaterialAttribute[] }>> {
+  return get<{ attributes: MaterialAttribute[] }>(
+    "/materials/attributes",
+    params as Record<string, string | number | boolean | undefined>,
+  );
+}
+
+/** Get a specific attribute definition. */
+export async function getMaterialAttribute(
+  attributeId: string,
+): Promise<ApiSuccessResponse<{ attribute: MaterialAttribute }>> {
+  return get<{ attribute: MaterialAttribute }>(`/materials/attributes/${attributeId}`);
+}
+
+/** Create a new attribute definition. */
+export async function createMaterialAttribute(
+  payload: CreateMaterialAttributePayload,
+): Promise<ApiSuccessResponse<{ attribute: MaterialAttribute }>> {
+  return post<{ attribute: MaterialAttribute }, CreateMaterialAttributePayload>(
+    "/materials/attributes",
+    payload,
+  );
+}
+
+/** Update an attribute definition. */
+export async function updateMaterialAttribute(
+  attributeId: string,
+  payload: UpdateMaterialAttributePayload,
+): Promise<ApiSuccessResponse<{ attribute: MaterialAttribute }>> {
+  return patch<{ attribute: MaterialAttribute }, UpdateMaterialAttributePayload>(
+    `/materials/attributes/${attributeId}`,
+    payload,
+  );
+}
+
+/** Delete an attribute definition. */
+export async function deleteMaterialAttribute(
+  attributeId: string,
+): Promise<ApiSuccessResponse<{ message: string }>> {
+  return del<{ message: string }>(`/materials/attributes/${attributeId}`);
 }
