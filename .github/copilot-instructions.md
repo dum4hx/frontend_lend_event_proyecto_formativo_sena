@@ -124,24 +124,4 @@ npm run build && npm run lint && npm run format:check
 
 ---
 
-## Agent Commit Guidance
-
-- **When to commit:** When the agent performs a significant change to the repository (adds/edits/removes files, refactors public APIs, or fixes a class of bugs), it MUST create a git commit capturing that change.
-- **Commit message requirements:** Commit messages produced by the agent should:
-	- Reference affected paths: list the files or modules changed (for example, src/components/export/ExcelExportImport.tsx).
-	- State the intent: include a one-line technical summary followed by a brief third-person description of the change's purpose and impact.
-	- Be technical but readable: written in third person, clear, and accessible to developers and reviewers.
-	- Include context when helpful: link to related docs or issue IDs if available.
-
-Example commit message:
-
-components/export: replace untyped arrays with typed records
-
-Replaced any[] usage in Excel export/import utilities with Record<string, unknown>[] to improve type safety
-and align the component's prop types with the project's TypeScript conventions. Affected files: src/components/export/ExcelExportImport.tsx
-
-This guidance helps maintain clear change history and makes automated or human reviews easier.
-
----
-
 **Last Updated:** March 6, 2026

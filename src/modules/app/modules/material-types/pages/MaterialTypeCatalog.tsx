@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Search, Tag, X } from "lucide-react";
 import { useMaterialTypes } from "../hooks";
@@ -8,6 +8,10 @@ import { AdminPagination } from "../../../components";
 import { ExcelExportImport } from "../../../../../components/export/ExcelExportImport";
 import { useToast } from "../../../../../contexts/ToastContext";
 import type { MaterialType } from "../../../../../types/api";
+
+type MaterialWithCategory = MaterialType & {
+  categoryId?: string | string[] | { _id?: string } | { _id?: string }[];
+};
 
 export const MaterialTypeCatalog: React.FC = () => {
   const navigate = useNavigate();
@@ -23,9 +27,14 @@ export const MaterialTypeCatalog: React.FC = () => {
   const toggleCategory = (id: string) => {
     setSelectedCategoryIds((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
       return next;
     });
+    setPage(1);
   };
 
   // Extracts the first categoryId string regardless of backend format (string | string[] | object[])
@@ -41,23 +50,22 @@ export const MaterialTypeCatalog: React.FC = () => {
   };
 
   const filteredMaterialTypes = materialTypes.filter((type) => {
-    const matchesSearch = type.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const material = type as MaterialWithCategory;
+    const matchesSearch = material.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory =
       selectedCategoryIds.size === 0 ||
-      selectedCategoryIds.has(extractCategoryId((type as any).categoryId) ?? "");
+      selectedCategoryIds.has(extractCategoryId(material.categoryId) ?? "");
     return matchesSearch && matchesCategory;
   });
 
   const totalPages = Math.max(1, Math.ceil(filteredMaterialTypes.length / pageSize));
-  const pagedMaterialTypes = filteredMaterialTypes.slice((page - 1) * pageSize, page * pageSize);
 
-  useEffect(() => {
-    setPage((prev) => Math.min(prev, totalPages));
-  }, [totalPages]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [searchTerm, selectedCategoryIds]);
+  // Ensure current page is within total pages range
+  const currentPage = Math.min(page, totalPages);
+  const pagedMaterialTypes = filteredMaterialTypes.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  );
 
   const handleDelete = (type: MaterialType) => {
     showToast(
@@ -179,20 +187,23 @@ export const MaterialTypeCatalog: React.FC = () => {
                 type="text"
                 placeholder="Search material types..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setPage(1);
+                }}
                 className="w-full pl-12 pr-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#FFD700]"
               />
             </div>
             <div className="flex gap-2">
               <ExcelExportImport
-                data={filteredMaterialTypes}
+                data={filteredMaterialTypes as unknown as Record<string, unknown>[]}
                 filename="material-types"
                 onImport={handleImportMaterialTypes}
                 showLabels={true}
               />
               <button
                 onClick={() => navigate("create")}
-                className="flex items-center gap-2 px-6 py-3 font-semibold rounded-lg transition-colors whitespace-nowrap gold-action-btn"
+                className="flex items-center gap-2 px-6 py-3 bg-[#FFD700] text-black font-semibold rounded-lg hover:bg-[#FFC700] transition-colors whitespace-nowrap"
               >
                 <Plus size={20} />
                 New Material Type
@@ -207,7 +218,10 @@ export const MaterialTypeCatalog: React.FC = () => {
                 <Tag size={14} /> Filtrar:
               </span>
               <button
-                onClick={() => setSelectedCategoryIds(new Set())}
+                onClick={() => {
+                  setSelectedCategoryIds(new Set());
+                  setPage(1);
+                }}
                 className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                   selectedCategoryIds.size === 0
                     ? "bg-[#FFD700] text-black"
@@ -219,7 +233,7 @@ export const MaterialTypeCatalog: React.FC = () => {
               {categories.map((cat) => {
                 const isActive = selectedCategoryIds.has(cat._id);
                 const count = materialTypes.filter(
-                  (t) => extractCategoryId((t as any).categoryId) === cat._id,
+                  (t) => extractCategoryId((t as MaterialWithCategory).categoryId) === cat._id,
                 ).length;
                 return (
                   <button
@@ -244,7 +258,10 @@ export const MaterialTypeCatalog: React.FC = () => {
               })}
               {selectedCategoryIds.size > 0 && (
                 <button
-                  onClick={() => setSelectedCategoryIds(new Set())}
+                  onClick={() => {
+                    setSelectedCategoryIds(new Set());
+                    setPage(1);
+                  }}
                   className="flex items-center gap-1 px-2 py-1.5 text-gray-500 hover:text-white text-sm transition-colors"
                   title="Limpiar filtros"
                 >
@@ -277,7 +294,7 @@ export const MaterialTypeCatalog: React.FC = () => {
             onDelete={handleDelete}
           />
           <AdminPagination
-            currentPage={page}
+            currentPage={currentPage}
             totalPages={totalPages}
             totalItems={filteredMaterialTypes.length}
             pageSize={pageSize}
