@@ -27,9 +27,10 @@ export const CreateMaterialType: React.FC = () => {
         showToast("success", "Material type created successfully!");
       }
       navigate("/app/material-types");
-    } catch (error: any) {
-      showToast("error", error.message || "Error saving material type");
-      throw error;
+    } catch (error) {
+      const err = error as Error;
+      showToast("error", err.message || "Error saving material type");
+      throw err;
     }
   };
 

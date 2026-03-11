@@ -1,15 +1,15 @@
-import {useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import {
   getMaterialInstances,
   createMaterialInstance,
   updateMaterialInstanceStatus,
   deleteMaterialInstance,
-} from '../../../../../services/materialService';
+} from "../../../../../services/materialService";
 import type {
   MaterialInstance,
   CreateMaterialInstancePayload,
   UpdateMaterialInstanceStatusPayload,
-} from '../../../../../types/api';
+} from "../../../../../types/api";
 
 export function useMaterialInstances() {
   const [instances, setInstances] = useState<MaterialInstance[]>([]);
@@ -22,9 +22,10 @@ export function useMaterialInstances() {
       setError(null);
       const response = await getMaterialInstances();
       setInstances(response.data.instances || []);
-    } catch (err: any) {
-      setError(err.message || 'Error fetching material instances');
-      console.error('Error fetching instances:', err);
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message || "Error fetching material instances");
+      console.error("Error fetching instances:", err);
     } finally {
       setLoading(false);
     }
@@ -42,13 +43,11 @@ export function useMaterialInstances() {
 
   const updateInstanceStatus = async (
     instanceId: string,
-    payload: UpdateMaterialInstanceStatusPayload
+    payload: UpdateMaterialInstanceStatusPayload,
   ) => {
     const response = await updateMaterialInstanceStatus(instanceId, payload);
     setInstances((prev) =>
-      prev.map((inst) =>
-        inst._id === instanceId ? response.data.instance : inst
-      )
+      prev.map((inst) => (inst._id === instanceId ? response.data.instance : inst)),
     );
     return response.data.instance;
   };

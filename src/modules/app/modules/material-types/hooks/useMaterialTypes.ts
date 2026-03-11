@@ -1,15 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import {
   getMaterialTypes,
   createMaterialType,
   updateMaterialType,
   deleteMaterialType,
-} from '../../../../../services/materialService';
+} from "../../../../../services/materialService";
 import type {
   MaterialType,
   CreateMaterialTypePayload,
   UpdateMaterialTypePayload,
-} from '../../../../../types/api';
+} from "../../../../../types/api";
 
 export function useMaterialTypes() {
   const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
@@ -22,9 +22,10 @@ export function useMaterialTypes() {
       setError(null);
       const response = await getMaterialTypes();
       setMaterialTypes(response.data.materialTypes || []);
-    } catch (err: any) {
-      setError(err.message || 'Error fetching material types');
-      console.error('Error fetching material types:', err);
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message || "Error fetching material types");
+      console.error("Error fetching material types:", err);
     } finally {
       setLoading(false);
     }
@@ -35,22 +36,17 @@ export function useMaterialTypes() {
   }, []);
 
   const addMaterialType = async (payload: CreateMaterialTypePayload) => {
-    console.log('Creating material type with payload:', payload);
+    console.log("Creating material type with payload:", payload);
     const response = await createMaterialType(payload);
-    console.log('Material type created successfully:', response.data.materialType);
+    console.log("Material type created successfully:", response.data.materialType);
     setMaterialTypes((prev) => [...prev, response.data.materialType]);
     return response.data.materialType;
   };
 
-  const updateMaterialTypeData = async (
-    typeId: string,
-    payload: UpdateMaterialTypePayload
-  ) => {
+  const updateMaterialTypeData = async (typeId: string, payload: UpdateMaterialTypePayload) => {
     const response = await updateMaterialType(typeId, payload);
     setMaterialTypes((prev) =>
-      prev.map((type) =>
-        type._id === typeId ? response.data.materialType : type
-      )
+      prev.map((type) => (type._id === typeId ? response.data.materialType : type)),
     );
     return response.data.materialType;
   };

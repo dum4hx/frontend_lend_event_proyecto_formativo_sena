@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { useToast } from '../../../../../contexts/ToastContext';
-import type { CreateMaterialCategoryPayload } from '../../../../../types/api';
+import React, { useState, useEffect } from "react";
+import { useToast } from "../../../../../contexts/ToastContext";
+import type { CreateMaterialCategoryPayload } from "../../../../../types/api";
 
 interface CategoryFormProps {
   onSubmit: (data: CreateMaterialCategoryPayload) => Promise<void>;
@@ -16,8 +16,8 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
   isEditing = false,
 }) => {
   const [formData, setFormData] = useState<CreateMaterialCategoryPayload>({
-    name: '',
-    description: '',
+    name: "",
+    description: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { showToast } = useToast();
@@ -25,8 +25,8 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
   useEffect(() => {
     if (initialData) {
       setFormData({
-        name: initialData.name || '',
-        description: initialData.description || '',
+        name: initialData.name || "",
+        description: initialData.description || "",
       });
     }
   }, [initialData]);
@@ -34,15 +34,16 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim()) {
-      showToast('error', 'Category name is required');
+      showToast("error", "Category name is required");
       return;
     }
 
     try {
       setIsSubmitting(true);
       await onSubmit(formData);
-    } catch (error: any) {
-      showToast('error', error.message || 'Error saving category');
+    } catch (error) {
+      const err = error as Error;
+      showToast("error", err.message || "Error saving category");
     } finally {
       setIsSubmitting(false);
     }
@@ -51,9 +52,7 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">
-          Category Name *
-        </label>
+        <label className="block text-sm font-medium text-gray-300 mb-2">Category Name *</label>
         <input
           type="text"
           value={formData.name}
@@ -65,14 +64,10 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">
-          Description
-        </label>
+        <label className="block text-sm font-medium text-gray-300 mb-2">Description</label>
         <textarea
           value={formData.description}
-          onChange={(e) =>
-            setFormData({ ...formData, description: e.target.value })
-          }
+          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
           rows={4}
           className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-lg text-white focus:outline-none focus:border-[#FFD700]"
           placeholder="Brief description of this category..."
@@ -87,11 +82,11 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
         >
           {isSubmitting
             ? isEditing
-              ? 'Updating...'
-              : 'Creating...'
+              ? "Updating..."
+              : "Creating..."
             : isEditing
-            ? 'Update Category'
-            : 'Create Category'}
+              ? "Update Category"
+              : "Create Category"}
         </button>
         <button
           type="button"

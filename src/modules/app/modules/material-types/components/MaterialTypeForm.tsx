@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { useToast } from '../../../../../contexts/ToastContext';
-import type { CreateMaterialTypePayload, MaterialCategory } from '../../../../../types/api';
+import React, { useState, useEffect } from "react";
+import { useToast } from "../../../../../contexts/ToastContext";
+import type { CreateMaterialTypePayload, MaterialCategory } from "../../../../../types/api";
 
 interface MaterialTypeFormProps {
   categories: MaterialCategory[];
@@ -18,19 +18,19 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
   isEditing = false,
 }) => {
   const [formData, setFormData] = useState<CreateMaterialTypePayload>({
-    name: '',
-    description: '',
-    categoryId: '',
+    name: "",
+    description: "",
+    categoryId: "",
     pricePerDay: 0,
   });
-  const [priceDisplay, setPriceDisplay] = useState('');
+  const [priceDisplay, setPriceDisplay] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { showToast } = useToast();
 
   const formatCop = (value: number) => {
-    return new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP',
+    return new Intl.NumberFormat("es-CO", {
+      style: "currency",
+      currency: "COP",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(value);
@@ -42,23 +42,23 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
         ? (initialData.categoryId[0] as { _id?: string } | undefined)?._id
         : undefined;
       const categoryIdValue =
-        typeof initialData.categoryId === 'string'
+        typeof initialData.categoryId === "string"
           ? initialData.categoryId
           : categoryIdFromArray ||
             (initialData as { categoryId?: { _id?: string } }).categoryId?._id ||
             (initialData as { category?: { _id?: string } }).category?._id ||
-            '';
+            "";
 
       setFormData({
-        name: initialData.name || '',
-        description: initialData.description || '',
+        name: initialData.name || "",
+        description: initialData.description || "",
         categoryId: categoryIdValue,
         pricePerDay: initialData.pricePerDay || 0,
       });
       if (initialData.pricePerDay) {
         setPriceDisplay(formatCop(initialData.pricePerDay));
       } else {
-        setPriceDisplay('');
+        setPriceDisplay("");
       }
     }
   }, [initialData]);
@@ -66,26 +66,28 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim()) {
-      showToast('error', 'Material name is required');
+      showToast("error", "Material name is required");
       return;
     }
     if (!formData.categoryId) {
-      showToast('error', 'Category is required');
+      showToast("error", "Category is required");
       return;
     }
     if (formData.pricePerDay <= 0) {
-      showToast('error', 'Price per day must be greater than 0');
+      showToast("error", "Price per day must be greater than 0");
       return;
     }
 
     try {
       setIsSubmitting(true);
-      console.log('Submitting material type:', formData);
+      console.log("Submitting material type:", formData);
       await onSubmit(formData);
-    } catch (error: any) {
-      console.error('Error saving material type:', error);
-      const errorMessage = error.details?.errors?.[0]?.message || error.message || 'Error saving material type';
-      showToast('error', errorMessage);
+    } catch (error) {
+      const err = error as Error & { details?: { errors?: Array<{ message: string }> } };
+      console.error("Error saving material type:", err);
+      const errorMessage =
+        err.details?.errors?.[0]?.message || err.message || "Error saving material type";
+      showToast("error", errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -94,8 +96,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">
-          Category * </label>
+        <label className="block text-sm font-medium text-gray-300 mb-2">Category * </label>
         <select
           value={formData.categoryId}
           onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
@@ -112,9 +113,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">
-          Material Name *
-        </label>
+        <label className="block text-sm font-medium text-gray-300 mb-2">Material Name *</label>
         <input
           type="text"
           value={formData.name}
@@ -134,10 +133,10 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
           inputMode="numeric"
           value={priceDisplay}
           onChange={(e) => {
-            const raw = e.target.value.replace(/[^0-9]/g, '');
+            const raw = e.target.value.replace(/[^0-9]/g, "");
             const numericValue = raw ? parseInt(raw, 10) : 0;
             setFormData({ ...formData, pricePerDay: numericValue });
-            setPriceDisplay(raw ? formatCop(numericValue) : '');
+            setPriceDisplay(raw ? formatCop(numericValue) : "");
           }}
           className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-lg text-white focus:outline-none focus:border-[#FFD700]"
           placeholder="Ej: $ 15.000"
@@ -146,14 +145,10 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">
-          Description
-        </label>
+        <label className="block text-sm font-medium text-gray-300 mb-2">Description</label>
         <textarea
           value={formData.description}
-          onChange={(e) =>
-            setFormData({ ...formData, description: e.target.value })
-          }
+          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
           rows={4}
           className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-lg text-white focus:outline-none focus:border-[#FFD700]"
           placeholder="Detailed description of this material type..."
@@ -168,11 +163,11 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
         >
           {isSubmitting
             ? isEditing
-              ? 'Updating...'
-              : 'Creating...'
+              ? "Updating..."
+              : "Creating..."
             : isEditing
-            ? 'Update Material Type'
-            : 'Create Material Type'}
+              ? "Update Material Type"
+              : "Create Material Type"}
         </button>
         <button
           type="button"
