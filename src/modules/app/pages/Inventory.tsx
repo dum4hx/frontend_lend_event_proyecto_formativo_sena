@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Search, Plus, Edit2, Trash2, Package, X } from "lucide-react";
+import { Search, Plus, Edit2, Trash2, Package, X, AlertTriangle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import {
   getMaterialInstances,
   getMaterialTypes,
@@ -254,7 +255,7 @@ function InstanceModal({ instance, materialTypes, onClose, onSave }: InstanceMod
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 px-6 py-3 bg-[#FFD700] text-black font-semibold rounded-lg hover:bg-[#FFC700] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-6 py-3 font-semibold rounded-lg transition-colors gold-action-btn disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting
                 ? isEditing
@@ -282,6 +283,7 @@ function InstanceModal({ instance, materialTypes, onClose, onSave }: InstanceMod
 // ─── Main Page ─────────────────────────────────────────────────────────────
 
 export default function InventoryPage() {
+  const navigate = useNavigate();
   const [instances, setInstances] = useState<MaterialInstance[]>([]);
   const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -291,6 +293,7 @@ export default function InventoryPage() {
   const [statusFilter, setStatusFilter] = useState<MaterialInstanceStatus | "all">("all");
 
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showDependencyModal, setShowDependencyModal] = useState(false);
   const [editingInstance, setEditingInstance] = useState<MaterialInstance | null>(null);
   const [deletingInstance, setDeletingInstance] = useState<MaterialInstance | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -366,6 +369,14 @@ export default function InventoryPage() {
     }
   };
 
+  const handleOpenAddModal = () => {
+    if (materialTypes.length === 0) {
+      setShowDependencyModal(true);
+      return;
+    }
+    setShowAddModal(true);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -382,7 +393,7 @@ export default function InventoryPage() {
           <p className="text-gray-500 text-sm">{error}</p>
           <button
             onClick={fetchData}
-            className="px-6 py-2.5 bg-[#FFD700] text-black font-semibold rounded-lg hover:bg-[#FFC700] transition-colors"
+            className="px-6 py-2.5 font-semibold rounded-lg transition-colors gold-action-btn"
           >
             Retry
           </button>
@@ -400,8 +411,8 @@ export default function InventoryPage() {
           <p className="text-gray-400">Monitor and manage all warehouse items</p>
         </div>
         <button
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 bg-[#FFD700] text-black font-semibold px-4 py-2 rounded-lg hover:bg-[#FFC107] transition-all"
+          onClick={handleOpenAddModal}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all font-semibold gold-action-btn"
         >
           <Plus size={20} />
           Add Instance
@@ -472,7 +483,7 @@ export default function InventoryPage() {
           }
           action={
             !searchTerm && statusFilter === "all"
-              ? { label: "Add First Instance", onClick: () => setShowAddModal(true) }
+              ? { label: "Add First Instance", onClick: handleOpenAddModal }
               : undefined
           }
         />
@@ -531,7 +542,7 @@ export default function InventoryPage() {
                       </button>
                       <button
                         onClick={() => setDeletingInstance(inst)}
-                        className="text-red-400 hover:text-red-300 transition-colors"
+                        className="p-1 danger-icon-btn"
                         aria-label={`Delete ${inst.serialNumber}`}
                       >
                         <Trash2 size={18} />
@@ -556,6 +567,61 @@ export default function InventoryPage() {
           }}
           onSave={handleSave}
         />
+      )}
+
+      {/* Dependency Modal */}
+      {showDependencyModal && (
+        <div
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowDependencyModal(false);
+          }}
+        >
+          <div className="bg-[#121212] border border-[#333] rounded-xl w-full max-w-lg">
+            <div className="px-6 py-4 border-b border-[#333] flex items-center justify-between">
+              <h2 className="text-xl font-bold text-white">Material Type Required</h2>
+              <button
+                onClick={() => setShowDependencyModal(false)}
+                className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-[#1a1a1a] rounded-lg"
+                aria-label="Close modal"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6">
+              <div className="flex items-start gap-3 mb-5">
+                <AlertTriangle className="text-[#FFD700] mt-0.5" size={22} />
+                <div>
+                  <p className="text-white font-semibold mb-2">
+                    You need at least one material type before creating an instance.
+                  </p>
+                  <p className="text-gray-300 text-sm">
+                    Create a material type first, then come back and click Add Instance.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={() => {
+                    setShowDependencyModal(false);
+                    navigate("/app/material-types");
+                  }}
+                  className="px-5 py-2.5 font-semibold rounded-lg transition-colors gold-action-btn"
+                >
+                  Go to Material Types
+                </button>
+                <button
+                  onClick={() => setShowDependencyModal(false)}
+                  className="px-5 py-2.5 bg-[#1a1a1a] text-gray-300 font-semibold rounded-lg hover:bg-[#222] border border-[#333] transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Delete Confirmation */}

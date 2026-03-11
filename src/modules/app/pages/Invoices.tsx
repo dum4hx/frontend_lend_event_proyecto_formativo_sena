@@ -118,7 +118,7 @@ export default function Invoices() {
           <h1 className="text-3xl font-bold text-white">Invoices</h1>
           <p className="text-gray-400 mt-1">Create and track invoice payments</p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-[#FFD700] text-black rounded-[8px] font-semibold hover:bg-[#FFC700] transition-all">
+        <button className="flex items-center gap-2 px-4 py-2 rounded-[8px] font-semibold transition-all gold-action-btn">
           <Plus size={20} />
           New Invoice
         </button>
@@ -158,7 +158,7 @@ export default function Invoices() {
                 <button className="p-2 hover:bg-[#121212] rounded-[6px] text-gray-400 hover:text-[#FFD700] transition-all">
                   <Eye size={18} />
                 </button>
-                <button className="p-2 hover:bg-[#121212] rounded-[6px] text-gray-400 hover:text-red-400 transition-all">
+                <button className="p-2 hover:bg-[#121212] rounded-[6px] text-gray-400 transition-all danger-icon-btn">
                   <Trash2 size={18} />
                 </button>
               </div>

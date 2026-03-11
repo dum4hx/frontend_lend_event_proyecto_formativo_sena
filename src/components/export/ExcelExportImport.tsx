@@ -137,7 +137,7 @@ export const ExcelExportImport: React.FC<ExcelExportImportProps> = ({
       {/* Export Button - Yellow accent */}
       <button
         onClick={handleExport}
-        className="flex items-center gap-2 px-4 py-2 bg-[#FFD700] hover:bg-[#FFC700] text-black font-semibold rounded-lg transition-colors shadow-lg hover:shadow-xl"
+        className="flex items-center gap-2 px-4 py-2 font-semibold rounded-lg transition-colors shadow-lg hover:shadow-xl gold-action-btn"
         title="Export data as Excel"
       >
         <Download size={18} />
@@ -149,7 +149,7 @@ export const ExcelExportImport: React.FC<ExcelExportImportProps> = ({
         <>
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-2 px-4 py-2 bg-[#FFD700] hover:bg-[#FFC700] text-black font-semibold rounded-lg transition-colors shadow-lg hover:shadow-xl"
+            className="flex items-center gap-2 px-4 py-2 font-semibold rounded-lg transition-colors shadow-lg hover:shadow-xl gold-action-btn"
             title="Import data from Excel"
           >
             <Upload size={18} />

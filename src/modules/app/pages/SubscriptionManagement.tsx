@@ -493,7 +493,7 @@ export default function SubscriptionManagement() {
             </p>
             <button
               onClick={() => void handleOpenPortal()}
-              className="flex items-center gap-2 bg-[#FFD700] hover:bg-yellow-400 text-black font-semibold px-4 py-2 rounded-lg transition-colors text-sm"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-semibold gold-action-btn"
             >
               <ExternalLink size={16} />
               Open Billing Portal
@@ -518,7 +518,7 @@ export default function SubscriptionManagement() {
               <button
                 onClick={() => void handleUpdateSeats()}
                 disabled={updatingSeats || seatCount === (usage?.currentSeats ?? 0)}
-                className="bg-[#FFD700] hover:bg-yellow-400 disabled:opacity-40 text-black font-semibold px-4 py-2 rounded-lg transition-colors text-sm"
+                className="px-4 py-2 rounded-lg transition-colors text-sm font-semibold gold-action-btn disabled:opacity-40"
               >
                 {updatingSeats ? "Updating…" : "Update Seats"}
               </button>
@@ -588,7 +588,7 @@ export default function SubscriptionManagement() {
                       className={`mt-auto px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
                         isActive
                           ? "border border-[#333] text-gray-500 cursor-not-allowed"
-                          : "bg-[#FFD700] hover:bg-yellow-400 text-black"
+                          : "gold-action-btn"
                       }`}
                     >
                       {isActive
@@ -623,7 +623,7 @@ export default function SubscriptionManagement() {
             </div>
             <button
               onClick={() => setCancelDialogOpen(true)}
-              className="flex items-center gap-2 border border-red-600 text-red-400 hover:bg-red-900/30 px-4 py-2 rounded-lg transition-colors text-sm font-medium shrink-0"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-medium shrink-0 danger-action-btn"
             >
               <XCircle size={16} />
               Cancel Subscription

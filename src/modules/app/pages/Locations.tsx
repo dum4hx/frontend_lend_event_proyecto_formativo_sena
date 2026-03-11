@@ -306,7 +306,7 @@ export default function LocationsPage() {
         <div>
           <button
             onClick={openCreate}
-            className="flex items-center gap-2 bg-[#FFD700] text-black font-semibold px-4 py-2 rounded-lg hover:bg-[#FFC107] transition-all"
+            className="flex items-center gap-2 font-semibold px-4 py-2 rounded-lg transition-all gold-action-btn"
           >
             <Plus size={20} />
             Add Location
@@ -407,15 +407,15 @@ export default function LocationsPage() {
                 {/* Actions */}
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => openEdit(location)}
+                    onClick={() => openEdit(location as WarehouseLocation)}
                     className="flex-1 flex items-center justify-center gap-2 text-blue-400 hover:text-blue-300 bg-[#1a1a1a] hover:bg-[#252525] rounded-lg py-2 transition-all"
                   >
                     <Edit2 size={18} />
                     Edit
                   </button>
                   <button
-                    onClick={() => void handleDelete(location._id)}
-                    className="flex-1 flex items-center justify-center gap-2 text-red-400 hover:text-red-300 bg-[#1a1a1a] hover:bg-[#252525] rounded-lg py-2 transition-all"
+                    onClick={() => void handleDelete(location.id)}
+                    className="flex-1 flex items-center justify-center gap-2 rounded-lg py-2 transition-all danger-action-btn"
                   >
                     <Trash2 size={18} />
                     Delete
@@ -642,7 +642,7 @@ export default function LocationsPage() {
               <div className="flex items-center gap-4 pt-4">
                 <button
                   type="submit"
-                  className="flex-1 py-3 bg-[#FFD700] text-black font-semibold rounded-md hover:bg-[#FFC700] transition-colors"
+                  className="flex-1 py-3 font-semibold rounded-md transition-colors gold-action-btn"
                 >
                   Create Location
                 </button>

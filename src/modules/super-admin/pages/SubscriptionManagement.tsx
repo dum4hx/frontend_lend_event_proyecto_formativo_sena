@@ -153,7 +153,7 @@ function FeaturesEditor({ features, onChange }: FeaturesEditorProps) {
         <button
           type="button"
           onClick={add}
-          className="px-3 py-2 bg-[#FFD700] text-black text-sm font-semibold rounded-lg hover:bg-yellow-300 transition whitespace-nowrap"
+          className="px-3 py-2 text-sm font-semibold rounded-lg transition whitespace-nowrap gold-action-btn"
         >
           + Add
         </button>
@@ -170,7 +170,7 @@ function FeaturesEditor({ features, onChange }: FeaturesEditorProps) {
               <button
                 type="button"
                 onClick={() => remove(i)}
-                className="text-red-400 hover:text-red-300 transition"
+                className="p-1 danger-icon-btn"
               >
                 <X size={14} />
               </button>
@@ -234,7 +234,7 @@ function CostCalculator({ planId }: CostCalculatorProps) {
               type="button"
               onClick={calculate}
               disabled={loading}
-              className="px-3 py-1.5 bg-[#FFD700] text-black text-xs font-semibold rounded-lg hover:bg-yellow-300 transition disabled:opacity-50"
+              className="px-3 py-1.5 text-xs font-semibold rounded-lg transition disabled:opacity-50 gold-action-btn"
             >
               {loading ? "…" : "Calculate"}
             </button>
@@ -896,7 +896,7 @@ export default function PlanConfiguration() {
           {!showCreateForm && (
             <button
               onClick={() => setShowCreateForm(true)}
-              className="flex items-center gap-2 bg-[#FFD700] text-black font-semibold px-5 py-2.5 rounded-lg hover:bg-yellow-300 transition"
+              className="flex items-center gap-2 font-semibold px-5 py-2.5 rounded-lg transition gold-action-btn"
             >
               <Plus size={18} />
               Create Plan
@@ -1228,7 +1228,7 @@ export default function PlanConfiguration() {
             <button
               onClick={() => void handleCreate()}
               disabled={creating}
-              className="flex items-center gap-2 px-5 py-2.5 bg-[#FFD700] text-black font-semibold rounded-lg hover:bg-yellow-300 transition disabled:opacity-50"
+              className="flex items-center gap-2 px-5 py-2.5 font-semibold rounded-lg transition disabled:opacity-50 gold-action-btn"
             >
               {creating ? (
                 "Creating…"

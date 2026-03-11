@@ -116,7 +116,7 @@ export default function Orders() {
           <h1 className="text-3xl font-bold text-white">Orders</h1>
           <p className="text-gray-400 mt-1">Manage rental orders and track status</p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-[#FFD700] text-black rounded-[8px] font-semibold hover:bg-[#FFC700] transition-all">
+        <button className="flex items-center gap-2 px-4 py-2 rounded-[8px] font-semibold transition-all gold-action-btn">
           <Plus size={20} />
           New Order
         </button>
@@ -192,7 +192,7 @@ export default function Orders() {
                       <button className="p-2 hover:bg-[#1a1a1a] rounded-[6px] text-gray-400 hover:text-[#FFD700] transition-all">
                         <Eye size={18} />
                       </button>
-                      <button className="p-2 hover:bg-[#1a1a1a] rounded-[6px] text-gray-400 hover:text-red-400 transition-all">
+                      <button className="p-2 hover:bg-[#1a1a1a] rounded-[6px] text-gray-400 transition-all danger-icon-btn">
                         <Trash2 size={18} />
                       </button>
                     </div>

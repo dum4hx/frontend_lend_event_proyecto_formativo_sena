@@ -236,7 +236,7 @@ function CreatePackageModal({ onClose, onSaved }: CreatePackageModalProps) {
                       type="button"
                       onClick={() => removeEntry(idx)}
                       disabled={submitting}
-                      className="text-red-400 hover:text-red-300 transition disabled:opacity-50 px-1"
+                      className="px-1 danger-icon-btn disabled:opacity-50"
                     >
                       <X size={15} />
                     </button>
@@ -265,7 +265,7 @@ function CreatePackageModal({ onClose, onSaved }: CreatePackageModalProps) {
             <button
               type="submit"
               disabled={submitting}
-              className="flex items-center gap-2 px-4 py-2 bg-[#FFD700] text-black font-semibold rounded-lg hover:bg-yellow-300 transition text-sm disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2 font-semibold rounded-lg transition text-sm gold-action-btn disabled:opacity-50"
             >
               {submitting ? (
                 <>
@@ -413,7 +413,7 @@ export default function MaterialPlans() {
         </div>
         <button
           onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-[#FFD700] text-black rounded-[8px] font-semibold hover:bg-[#FFC700] transition-all"
+          className="flex items-center gap-2 px-4 py-2 rounded-[8px] font-semibold transition-all gold-action-btn"
         >
           <Plus size={20} />
           Add Plan

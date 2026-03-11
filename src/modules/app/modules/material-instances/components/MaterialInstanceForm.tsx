@@ -185,7 +185,7 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
         <button
           type="submit"
           disabled={isSubmitting}
-          className="flex-1 px-6 py-3 bg-[#FFD700] text-black font-semibold rounded-lg hover:bg-[#FFC700] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 px-6 py-3 font-semibold rounded-lg transition-colors gold-action-btn disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSubmitting
             ? isEditing
