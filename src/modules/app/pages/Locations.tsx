@@ -41,7 +41,6 @@ const colombiaFetcher = (url: string) =>
 export default function LocationsPage() {
   const { hasPermission } = usePermissions();
   const { user } = useAuth();
-  if (!hasPermission("materials:read")) return <Unauthorized />;
   const [searchTerm, setSearchTerm] = useState("");
   const [locations, setLocations] = useState<WarehouseLocation[]>([]);
   const [loading, setLoading] = useState(false);
@@ -73,8 +72,10 @@ export default function LocationsPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  const updateForm = (k: keyof typeof initialForm, v: string | number | any) => setForm((s) => ({ ...s, [k]: v }));
-  const updateAddressField = (k: keyof typeof initialForm.address, v: string) => setForm((s) => ({ ...s, address: { ...(s as any).address, [k]: v } }));
+  const updateForm = (k: keyof typeof initialForm, v: string | number) =>
+    setForm((s) => ({ ...s, [k]: v }));
+  const updateAddressField = (k: keyof typeof initialForm.address, v: string) =>
+    setForm((s) => ({ ...s, address: { ...s.address, [k]: v } }));
   const [fieldErrors, setFieldErrors] = useState<Record<string, string | undefined>>({});
 
   // --- Colombia API: Department & City autocomplete ----------------------------
@@ -151,74 +152,27 @@ export default function LocationsPage() {
     setError(null);
     try {
       const res = await getApiLocations({ page: 1, limit: 100 });
-      console.log('=== RAW BACKEND RESPONSE ===');
-      console.log('Full response:', JSON.stringify(res.data, null, 2));
-      
-      // Helper function to parse street address into components
-      const parseStreetAddress = (street: string) => {
-        // Examples: "Diagonal 15 # 93-47", "Calle 30 #45-90", "Carrera 8 #18-22"
-        const match = street.match(/^(Calle|Carrera|Avenida|Diagonal|Transversal)\s+(\d+)\s*#\s*(\d+)-?(\d*)$/i);
-        if (match) {
-          return {
-            streetType: match[1],
-            primaryNumber: match[2],
-            secondaryNumber: match[3],
-            complementaryNumber: match[4] || "",
-          };
-        }
-        return { streetType: "", primaryNumber: "", secondaryNumber: "", complementaryNumber: "" };
-      };
-      
-      // Map backend LocationModel to the view's expected shape
+      // Map backend LocationModel to the view's expected shape minimally
+      // If backend returns { locations: WarehouseLocation[] } use it directly,
+      // otherwise if it returns items array map to WarehouseLocation shape.
       if ((res.data as any).locations) {
-        console.log('Using res.data.locations directly');
-        const locations = (res.data as any).locations;
-        console.log('First location:', JSON.stringify(locations[0], null, 2));
-        setLocations(locations as WarehouseLocation[]);
+        setLocations((res.data as any).locations as WarehouseLocation[]);
       } else if ((res.data as any).items) {
-        console.log('Mapping from res.data.items');
-        const firstItem = (res.data as any).items[0];
-        console.log('First item before mapping:', JSON.stringify(firstItem, null, 2));
-        
-        const mapped = (res.data as any).items.map((it: any) => {
-          const addressData = it.address || {};
-          const streetComponents = addressData.street ? parseStreetAddress(addressData.street) : { streetType: "", primaryNumber: "", secondaryNumber: "", complementaryNumber: "" };
-          
-          const mappedItem = {
-            _id: it._id || it.id,
-            id: it._id || it.id,
-            name: it.name || "",
-            organizationId: it.organizationId || "",
-            status: it.status || "available",
-            isActive: it.isActive !== undefined ? it.isActive : true,
-            createdAt: it.createdAt || "",
-            updatedAt: it.updatedAt || "",
-            // Combine backend data with parsed street components
-            address: {
-              country: addressData.country || "Colombia",
-              street: addressData.street || "",
-              propertyNumber: addressData.propertyNumber || "",
-              streetType: addressData.streetType || streetComponents.streetType,
-              primaryNumber: addressData.primaryNumber || streetComponents.primaryNumber,
-              secondaryNumber: addressData.secondaryNumber || streetComponents.secondaryNumber,
-              complementaryNumber: addressData.complementaryNumber || streetComponents.complementaryNumber,
-              state: addressData.state || "",
-              city: addressData.city || "",
-              additionalDetails: addressData.additionalInfo || addressData.additionalDetails || "",
-              additionalInfo: addressData.additionalInfo || "",
-              formatted: addressData.formatted || addressData.street || "",
-            },
-          };
-          return mappedItem;
-        });
-        console.log('First mapped item:', JSON.stringify(mapped[0], null, 2));
-        setLocations(mapped as WarehouseLocation[]);
+        const mapped = (res.data as any).items.map((it: any) => ({
+          id: it._id || it.id,
+          code: it.name || it.code,
+          section: it.address?.city ?? it.section ?? "",
+          shelf: it.address?.street ?? it.shelf ?? "",
+          capacity: it.capacity ?? 0,
+          occupied: it.occupied ?? 0,
+          status: it.status ?? "available",
+        } as WarehouseLocation));
+        setLocations(mapped);
       } else {
         console.log('No locations or items found in response');
         setLocations([]);
       }
     } catch (err: any) {
-      console.error('Error fetching locations:', err);
       setError(err?.message ?? "Error fetching locations");
     } finally {
       setLoading(false);
@@ -226,8 +180,12 @@ export default function LocationsPage() {
   };
 
   useEffect(() => {
-    void fetchLocations();
-  }, []);
+    if (hasPermission("materials:read")) {
+      void fetchLocations();
+    }
+  }, [hasPermission]);
+
+  if (!hasPermission("materials:read")) return <Unauthorized />;
 
   const handleDelete = async (id: string) => {
     // open confirm dialog
@@ -243,10 +201,11 @@ export default function LocationsPage() {
       await apiDeleteLocation(deleteTargetId);
       setShowDeleteConfirm(false);
       setDeleteTargetId(null);
-      showToast('success', `Location "${(locationName as any)?.name || 'Location'}" deleted successfully`);
+      showToast('success', 'Location deleted');
       await fetchLocations();
-    } catch (err: any) {
-      showToast('error', err?.message ?? 'Error deleting location');
+    } catch (err) {
+      const error = err as Error;
+      showToast("error", error.message ?? "Error deleting location");
     } finally {
       setDeleteLoading(false);
     }
@@ -297,15 +256,20 @@ export default function LocationsPage() {
   const handleCreate = async () => {
     // client-side validation
     const errs: Record<string, string> = {};
+    if (!form.code.trim()) errs.code = 'Code is required';
     if (!form.name.trim()) errs.name = 'Name is required';
-    if (!form.address?.streetType || !form.address.streetType.trim()) errs['address.streetType'] = 'Street type is required';
-    if (!form.address?.primaryNumber || !form.address.primaryNumber.trim()) errs['address.primaryNumber'] = 'Primary number is required';
-    if (!form.address?.secondaryNumber || !form.address.secondaryNumber.trim()) errs['address.secondaryNumber'] = 'Secondary number is required';
-    if (!form.address?.state || !form.address.state.trim()) errs['address.state'] = 'State is required';
+    if (!form.section.trim()) errs.section = 'Section is required';
+    if (!form.shelf.trim()) errs.shelf = 'Shelf is required';
+    if (!Number.isFinite(form.capacity) || form.capacity < 0) errs.capacity = 'Capacity must be >= 0';
+    if (!Number.isFinite(form.occupied) || form.occupied < 0) errs.occupied = 'Occupied must be >= 0';
+    if (!form.address?.country || !form.address.country.trim()) errs['address.country'] = 'Country is required';
     if (!form.address?.city || !form.address.city.trim()) errs['address.city'] = 'City is required';
+    if (!form.address?.street || !form.address.street.trim()) errs['address.street'] = 'Street is required';
+    if (!form.address?.propertyNumber || !form.address.propertyNumber.trim()) errs['address.propertyNumber'] = 'Property number is required';
+    if (form.occupied > form.capacity) errs.occupied = 'Occupied cannot be greater than capacity';
     setFieldErrors(errs);
     if (Object.keys(errs).length > 0) {
-      showToast('warning', 'Please fix the form fields');
+      showToast("warning", "Please fix the form fields");
       return;
     }
     
@@ -328,11 +292,12 @@ export default function LocationsPage() {
           additionalInfo: form.address.additionalDetails || "",
         },
       });
-      closeCreateModal();
-      showToast('success', `Location "${form.name}" created successfully`);
+      setShowCreateModal(false);
+      showToast('success', 'Location created');
       await fetchLocations();
-    } catch (err: any) {
-      showToast('error', err?.message ?? 'Error creating location');
+    } catch (err) {
+      const error = err as Error;
+      showToast("error", error.message ?? "Error creating location");
     }
   };
 
@@ -386,17 +351,18 @@ export default function LocationsPage() {
     
     // Set the complete form with all values
     setForm({
-      name: (loc as any).name || "",
-      status: (loc as any).status || "available",
+      code: (loc as any).code ?? "",
+      name: (loc as any).name ?? "",
+      section: (loc as any).section ?? "",
+      shelf: (loc as any).shelf ?? "",
+      capacity: (loc as any).capacity ?? 0,
+      occupied: (loc as any).occupied ?? 0,
+      status: (loc as any).status ?? "available",
       address: {
-        streetType: existingStreetType,
-        primaryNumber: existingPrimaryNumber,
-        secondaryNumber: existingSecondaryNumber,
-        complementaryNumber: existingComplementaryNumber,
-        state: existingState,
-        city: existingCity,
-        additionalDetails: existingAdditionalDetails,
-        formatted: locationAddress.formatted || "",
+        country: (loc as any).address?.country ?? "",
+        city: (loc as any).address?.city ?? "",
+        street: (loc as any).address?.street ?? "",
+        propertyNumber: (loc as any).address?.propertyNumber ?? "",
       },
     });
     
@@ -416,15 +382,20 @@ export default function LocationsPage() {
   const handleUpdate = async () => {
     if (!editing) return;
     const errs: Record<string, string> = {};
+    if (!form.code.trim()) errs.code = 'Code is required';
     if (!form.name.trim()) errs.name = 'Name is required';
-    if (!form.address?.streetType || !form.address.streetType.trim()) errs['address.streetType'] = 'Street type is required';
-    if (!form.address?.primaryNumber || !form.address.primaryNumber.trim()) errs['address.primaryNumber'] = 'Primary number is required';
-    if (!form.address?.secondaryNumber || !form.address.secondaryNumber.trim()) errs['address.secondaryNumber'] = 'Secondary number is required';
-    if (!form.address?.state || !form.address.state.trim()) errs['address.state'] = 'State is required';
+    if (!form.section.trim()) errs.section = 'Section is required';
+    if (!form.shelf.trim()) errs.shelf = 'Shelf is required';
+    if (!Number.isFinite(form.capacity) || form.capacity < 0) errs.capacity = 'Capacity must be >= 0';
+    if (!Number.isFinite(form.occupied) || form.occupied < 0) errs.occupied = 'Occupied must be >= 0';
+    if (!form.address?.country || !form.address.country.trim()) errs['address.country'] = 'Country is required';
     if (!form.address?.city || !form.address.city.trim()) errs['address.city'] = 'City is required';
+    if (!form.address?.street || !form.address.street.trim()) errs['address.street'] = 'Street is required';
+    if (!form.address?.propertyNumber || !form.address.propertyNumber.trim()) errs['address.propertyNumber'] = 'Property number is required';
+    if (form.occupied > form.capacity) errs.occupied = 'Occupied cannot be greater than capacity';
     setFieldErrors(errs);
     if (Object.keys(errs).length > 0) {
-      showToast('warning', 'Please fix the form fields');
+      showToast("warning", "Please fix the form fields");
       return;
     }
     
@@ -433,8 +404,8 @@ export default function LocationsPage() {
     const propertyNumber = `${form.address.secondaryNumber}-${form.address.primaryNumber}${form.address.complementaryNumber ? `-${form.address.complementaryNumber}` : ''}`;
     
     try {
-      // Send only fields that backend accepts
-      await apiUpdateLocation(editing.id ?? editing._id, {
+      await apiUpdateLocation(editing.id, {
+        code: form.code,
         name: form.name,
         status: form.status,
         organizationId: user?.organizationId ?? "",
@@ -447,21 +418,20 @@ export default function LocationsPage() {
           additionalInfo: form.address.additionalDetails || "",
         },
       } as any);
-      closeEditModal();
+      setShowEditModal(false);
       setEditing(null);
-      showToast('success', `Location "${form.name}" updated successfully`);
+      showToast('success', 'Location updated');
       await fetchLocations();
-    } catch (err: any) {
-      showToast('error', err?.message ?? 'Error updating location');
+    } catch (err) {
+      const error = err as Error;
+      showToast("error", error.message ?? "Error updating location");
     }
   };
 
   const filteredLocations = locations.filter(
     (loc: any) =>
-      (loc.name ?? "").toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (loc.address?.city ?? "").toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (loc.address?.state ?? "").toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (loc.address?.street ?? "").toString().toLowerCase().includes(searchTerm.toLowerCase()),
+      (loc.code ?? "").toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (loc.section ?? "").toString().toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   // ─── Export ────────────────────────────────────────────────────────────────
@@ -703,26 +673,8 @@ export default function LocationsPage() {
           <h1 className="text-3xl font-bold text-white">Warehouse Locations</h1>
           <p className="text-gray-400">Manage warehouse zones and storage locations</p>
         </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setExportOpen(true)}
-            className="export-btn flex items-center gap-2"
-            disabled={locations.length === 0}
-          >
-            <Download size={18} />
-            Export
-          </button>
-          <button
-            onClick={() => setShowImportModal(true)}
-            className="export-btn flex items-center gap-2"
-          >
-            <Upload size={18} />
-            Import
-          </button>
-          <button 
-            onClick={openCreate} 
-            className="flex items-center gap-2 bg-[#FFD700] text-black font-semibold px-4 py-2 rounded-lg hover:bg-[#FFC107] transition-all"
-          >
+        <div>
+          <button onClick={openCreate} className="flex items-center gap-2 bg-[#FFD700] text-black font-semibold px-4 py-2 rounded-lg hover:bg-[#FFC107] transition-all">
             <Plus size={20} />
             Add Location
           </button>
@@ -734,6 +686,14 @@ export default function LocationsPage() {
         <div className="bg-[#121212] border border-[#333] rounded-lg p-4">
           <p className="text-gray-400 text-sm">Total locations</p>
           <p className="text-white text-2xl font-bold">{locations.length}</p>
+        </div>
+        <div className="bg-[#121212] border border-[#333] rounded-lg p-4">
+          <p className="text-gray-400 text-sm">Total capacity</p>
+          <p className="text-white text-2xl font-bold">{locations.reduce((s, l) => s + (l.capacity ?? 0), 0)}</p>
+        </div>
+        <div className="bg-[#121212] border border-[#333] rounded-lg p-4">
+          <p className="text-gray-400 text-sm">Occupied</p>
+          <p className="text-white text-2xl font-bold">{locations.reduce((s, l) => s + (l.occupied ?? 0), 0)}</p>
         </div>
       </div>
 
@@ -754,75 +714,64 @@ export default function LocationsPage() {
         {loading && <div className="text-gray-400">Cargando ubicaciones...</div>}
         {error && <div className="text-red-400">{error}</div>}
         {!loading && !error && filteredLocations.map((location) => {
+          const capacityPercent = getCapacityPercentage(location.occupied, location.capacity);
           return (
             <div
-              key={location.id ?? location._id}
+              key={location.id}
               className="bg-[#121212] border border-[#333] rounded-[12px] p-6 hover:border-[#FFD700] transition-all"
             >
               {/* Location Header */}
-              <div className="flex flex-col mb-4">
-                <div className="flex items-start justify-between mb-2">
-                  <h3 className="text-2xl font-bold text-white">{(location as any).name}</h3>
-                  {/* Status Badge */}
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide ${
-                    (location as any).status === 'available' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
-                    (location as any).status === 'full_capacity' ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
-                    (location as any).status === 'maintenance' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' :
-                    (location as any).status === 'inactive' ? 'bg-gray-500/20 text-gray-400 border border-gray-500/30' :
-                    'bg-gray-500/20 text-gray-400 border border-gray-500/30'
-                  }`}>
-                    {(location as any).status === 'available' ? 'Available' :
-                     (location as any).status === 'full_capacity' ? 'Full Capacity' :
-                     (location as any).status === 'maintenance' ? 'Maintenance' :
-                     (location as any).status === 'inactive' ? 'Inactive' : 'Unknown'}
-                  </span>
-                </div>
-                {(location as any).address?.formatted && (
-                  <div className="space-y-2">
-                    <p className="text-gray-400 text-sm flex items-start gap-2">
-                      <MapPin size={16} className="text-gray-500 mt-0.5 flex-shrink-0" />
-                      <span className="flex-1">
-                        {(location as any).address.formatted}
-                        {(location as any).address.city && (location as any).address.state && (
-                          <span className="block mt-1 text-gray-500">
-                            {(location as any).address.city}, {(location as any).address.state}
-                          </span>
-                        )}
-                      </span>
-                    </p>
-                  </div>
-                )}
-                {/* Additional Details - outside address block so it always shows if exists */}
-                {((location as any).address?.additionalDetails || (location as any).address?.additionalInfo) && (
-                  <p className="text-gray-500 text-xs flex items-start gap-2 mt-2">
-                    <Info size={14} className="text-gray-600 mt-0.5 flex-shrink-0" />
-                    <span>{(location as any).address.additionalDetails || (location as any).address.additionalInfo}</span>
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h3 className="text-2xl font-bold text-white">{location.code}</h3>
+                  <p className="text-gray-400 text-sm mt-1">
+                    Section {location.section} - Shelf {location.shelf}
                   </p>
-                )}
+                </div>
+                <span className={`px-3 py-1 rounded text-xs font-semibold ${getStatusColor(location.status)}`}>
+                  {location.status.charAt(0).toUpperCase() + location.status.slice(1)}
+                </span>
+              </div>
+
+              {/* Capacity Bar */}
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-gray-400 text-sm">Capacity</p>
+                  <p className="text-white font-semibold text-sm">
+                    {location.occupied}/{location.capacity} units ({capacityPercent}%)
+                  </p>
+                </div>
+                <div className="w-full bg-[#333] rounded-full h-2 overflow-hidden">
+                  <div
+                    className={`h-full transition-all ${
+                      capacityPercent > 90
+                        ? "bg-red-500"
+                        : capacityPercent > 70
+                        ? "bg-yellow-500"
+                        : "bg-green-500"
+                    }`}
+                    style={{ width: `${capacityPercent}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Available Space */}
+              <div className="bg-[#1a1a1a] rounded-lg p-3 mb-4">
+                <p className="text-gray-400 text-xs mb-1">Available Space</p>
+                <p className="text-white font-semibold text-lg">
+                  {location.capacity - location.occupied} units
+                </p>
               </div>
 
               {/* Actions */}
-              <div className="flex items-center justify-end gap-2 mt-4">
-                <button 
-                  onClick={() => openPreview(location as WarehouseLocation)} 
-                  className="p-2 text-blue-400 hover:text-blue-300 bg-[#1a1a1a] hover:bg-[#252525] rounded-lg transition-all"
-                  title="Preview location details"
-                >
-                  <Eye size={18} />
-                </button>
-                <button 
-                  onClick={() => openEdit(location as WarehouseLocation)} 
-                  className="p-2 text-[#FFD700] hover:text-[#FFC700] bg-[#1a1a1a] hover:bg-[#252525] rounded-lg transition-all"
-                  title="Edit location"
-                >
+              <div className="flex items-center gap-2">
+                <button onClick={() => openEdit(location as WarehouseLocation)} className="flex-1 flex items-center justify-center gap-2 text-blue-400 hover:text-blue-300 bg-[#1a1a1a] hover:bg-[#252525] rounded-lg py-2 transition-all">
                   <Edit2 size={18} />
+                  Edit
                 </button>
-                <button 
-                  onClick={() => void handleDelete(location.id ?? location._id)} 
-                  className="p-2 text-red-400 hover:text-red-300 bg-[#1a1a1a] hover:bg-[#252525] rounded-lg transition-all"
-                  title="Delete location"
-                >
+                <button onClick={() => void handleDelete(location.id)} className="flex-1 flex items-center justify-center gap-2 text-red-400 hover:text-red-300 bg-[#1a1a1a] hover:bg-[#252525] rounded-lg py-2 transition-all">
                   <Trash2 size={18} />
+                  Delete
                 </button>
               </div>
             </div>
@@ -838,230 +787,119 @@ export default function LocationsPage() {
 
       {/* Create Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget) closeCreateModal(); }}>
-            <div className="bg-[#0f0f10] border border-[#2a2a2a] rounded-xl max-w-6xl w-full p-8 shadow-lg max-h-[90vh] overflow-y-auto">
-              {/* Header with close button */}
-              <div className="flex items-start justify-between mb-6">
-                <div>
-                  <h2 className="text-3xl font-bold mb-2">Create Location</h2>
-                  <p className="text-gray-400 text-sm">Add a new warehouse location. Fields marked with * are required.</p>
-                </div>
-                <button type="button" onClick={() => closeCreateModal()} className="p-2 hover:bg-[#1a1a1a] rounded-lg transition-colors">
-                  <X size={24} className="text-gray-400 hover:text-white" />
-                </button>
-              </div>
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget) setShowCreateModal(false); }}>
+            <div className="bg-[#0f0f10] border border-[#2a2a2a] rounded-xl max-w-lg w-full p-6 shadow-lg">
+              <h2 className="text-3xl font-bold mb-3">Create Location</h2>
+              <p className="text-gray-400 text-sm mb-5">Add a new warehouse location. Fields marked with * are required.</p>
               <form onSubmit={(e) => { e.preventDefault(); void handleCreate(); }} className="space-y-5">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">Name *</label>
-                    <input
-                      value={form.name}
-                      onChange={(e) => { updateForm('name', e.target.value); setFieldErrors((s) => ({ ...s, name: undefined })); }}
-                      placeholder="e.g. Main Warehouse - Site A"
-                      className="w-full h-12 px-4 bg-[#111111] border border-[#262626] rounded-md text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FFD700]"
-                    />
-                    {fieldErrors.name && <p className="text-xs text-yellow-400 mt-1">{fieldErrors.name}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">Status *</label>
-                    <select
-                      value={form.status}
-                      onChange={(e) => updateForm('status', e.target.value as any)}
-                      className="w-full h-12 px-4 bg-[#111111] border border-[#262626] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#FFD700]"
-                    >
-                      <option value="available">Available</option>
-                      <option value="full_capacity">Full Capacity</option>
-                      <option value="maintenance">Maintenance</option>
-                      <option value="inactive">Inactive</option>
-                    </select>
-                  </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Name *</label>
+                  <input
+                    value={form.name}
+                    onChange={(e) => { updateForm('name', e.target.value); setFieldErrors((s) => ({ ...s, name: undefined })); }}
+                    placeholder="e.g. Main Warehouse - Site A"
+                    className="w-full h-12 px-4 bg-[#111111] border border-[#262626] rounded-md text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FFD700]"
+                  />
+                  {fieldErrors.name && <p className="text-xs text-yellow-400 mt-1">{fieldErrors.name}</p>}
                 </div>
 
-              {/* Address inputs - enhanced horizontal layout */}
-              <div className="space-y-3">
-                <div className="flex gap-2">
-                  <div className="w-32">
-                    <label className="block text-xs font-medium text-gray-300 mb-1">Tipo Vía *</label>
-                    <select value={form.address.streetType} onChange={(e) => { updateAddressField('streetType', e.target.value); setFieldErrors((s) => ({ ...s, 'address.streetType': undefined })); }} className="w-full px-2 py-2 text-sm bg-[#1a1a1a] border border-[#333] rounded-md text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700]">
-                      <option value="">Seleccionar</option>
-                      <option value="Calle">Calle</option>
-                      <option value="Carrera">Carrera</option>
-                      <option value="Avenida">Avenida</option>
-                      <option value="Diagonal">Diagonal</option>
-                      <option value="Transversal">Transversal</option>
-                    </select>
-                    {fieldErrors['address.streetType'] && <p className="text-xs text-yellow-400 mt-1">{fieldErrors['address.streetType']}</p>}
-                  </div>
-                  <div className="w-24">
-                    <label className="block text-xs font-medium text-gray-300 mb-1">Número *</label>
-                    <input 
-                      type="text"
-                      value={form.address.primaryNumber} 
-                      onChange={(e) => { 
-                        const value = e.target.value.replace(/\D/g, '');
-                        updateAddressField('primaryNumber', value); 
-                        setFieldErrors((s) => ({ ...s, 'address.primaryNumber': undefined })); 
-                      }} 
-                      placeholder="15" 
-                      className="w-full px-2 py-2 text-sm bg-[#1a1a1a] border border-[#333] rounded-md text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700]" 
-                    />
-                    {fieldErrors['address.primaryNumber'] && <p className="text-xs text-yellow-400 mt-1">{fieldErrors['address.primaryNumber']}</p>}
-                  </div>
-                  <div className="w-24">
-                    <label className="block text-xs font-medium text-gray-300 mb-1">Número 2 *</label>
-                    <input 
-                      type="text"
-                      value={form.address.secondaryNumber} 
-                      onChange={(e) => { 
-                        const value = e.target.value.replace(/\D/g, '');
-                        updateAddressField('secondaryNumber', value); 
-                        setFieldErrors((s) => ({ ...s, 'address.secondaryNumber': undefined })); 
-                      }} 
-                      placeholder="93" 
-                      className="w-full px-2 py-2 text-sm bg-[#1a1a1a] border border-[#333] rounded-md text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700]" 
-                    />
-                    {fieldErrors['address.secondaryNumber'] && <p className="text-xs text-yellow-400 mt-1">{fieldErrors['address.secondaryNumber']}</p>}
-                  </div>
-                  <div className="w-24">
-                    <label className="block text-xs font-medium text-gray-300 mb-1">Número 3</label>
-                    <input 
-                      type="text"
-                      value={form.address.complementaryNumber} 
-                      onChange={(e) => {
-                        const value = e.target.value.replace(/\D/g, '');
-                        updateAddressField('complementaryNumber', value);
-                      }} 
-                      placeholder="47" 
-                      className="w-full px-2 py-2 text-sm bg-[#1a1a1a] border border-[#333] rounded-md text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700]" 
-                    />
-                  </div>
-                  <div className="flex-1 relative">
-                    <label className="block text-xs font-medium text-gray-300 mb-1">Departamento *</label>
-                    <div className="relative">
-                      <input 
-                        value={stateQuery} 
-                        onChange={(e) => {
-                          setStateQuery(e.target.value);
-                          setShowStateSuggestions(true);
-                          if (!e.target.value.trim()) {
-                            setSelectedState('');
-                            updateAddressField('state', '');
-                          }
-                          setFieldErrors((s) => ({ ...s, 'address.state': undefined }));
-                        }}
-                        onFocus={() => setShowStateSuggestions(true)}
-                        onBlur={() => setTimeout(() => setShowStateSuggestions(false), 200)}
-                        placeholder="Buscar departamento..." 
-                        className="w-full px-2 py-2 text-sm bg-[#1a1a1a] border border-[#333] rounded-md text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700]" 
-                      />
-                      <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
-                    </div>
-                    {fieldErrors['address.state'] && <p className="text-xs text-yellow-400 mt-1">{fieldErrors['address.state']}</p>}
-                    {showStateSuggestions && (
-                      <div className="absolute z-50 w-full mt-1 bg-[#111] border border-[#333] rounded-md shadow-lg max-h-60 overflow-y-auto">
-                        {deptLoading ? (
-                          <div className="p-3 text-gray-400 text-sm">Cargando...</div>
-                        ) : filteredDepartments.length ? (
-                          filteredDepartments.map((dept) => (
-                            <button
-                              key={dept.id}
-                              type="button"
-                              className="w-full text-left px-3 py-2 text-sm text-white hover:bg-[#1a1a1a] transition"
-                              onMouseDown={(e) => e.preventDefault()}
-                              onClick={() => {
-                                setSelectedState(dept.id.toString());
-                                setStateQuery(dept.name);
-                                updateAddressField('state', dept.name);
-                                setShowStateSuggestions(false);
-                                setFieldErrors((s) => ({ ...s, 'address.state': undefined }));
-                                // Reset city
-                                setCityQuery('');
-                                setSelectedCity('');
-                                updateAddressField('city', '');
-                              }}
-                            >
-                              {dept.name}
-                            </button>
-                          ))
-                        ) : (
-                          <div className="p-3 text-gray-400 text-sm">No se encontraron departamentos</div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 relative">
-                    <label className="block text-xs font-medium text-gray-300 mb-1">Ciudad *</label>
-                    <div className="relative">
-                      <input 
-                        value={cityQuery} 
-                        onChange={(e) => {
-                          setCityQuery(e.target.value);
-                          setShowCitySuggestions(true);
-                          if (!e.target.value.trim()) {
-                            setSelectedCity('');
-                            updateAddressField('city', '');
-                          }
-                          setFieldErrors((s) => ({ ...s, 'address.city': undefined }));
-                        }}
-                        onFocus={() => setShowCitySuggestions(true)}
-                        onBlur={() => setTimeout(() => setShowCitySuggestions(false), 200)}
-                        placeholder={selectedState ? "Buscar ciudad..." : "Seleccione departamento primero"} 
-                        disabled={!selectedState}
-                        className="w-full px-2 py-2 text-sm bg-[#1a1a1a] border border-[#333] rounded-md text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] disabled:opacity-50 disabled:cursor-not-allowed" 
-                      />
-                      <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
-                    </div>
-                    {fieldErrors['address.city'] && <p className="text-xs text-yellow-400 mt-1">{fieldErrors['address.city']}</p>}
-                    {showCitySuggestions && selectedState && (
-                      <div className="absolute z-50 w-full mt-1 bg-[#111] border border-[#333] rounded-md shadow-lg max-h-60 overflow-y-auto">
-                        {citiesLoading ? (
-                          <div className="p-3 text-gray-400 text-sm">Cargando ciudades...</div>
-                        ) : filteredCities.length ? (
-                          filteredCities.map((city) => (
-                            <button
-                              key={city.id}
-                              type="button"
-                              className="w-full text-left px-3 py-2 text-sm text-white hover:bg-[#1a1a1a] transition"
-                              onMouseDown={(e) => e.preventDefault()}
-                              onClick={() => {
-                                setSelectedCity(city.id.toString());
-                                setCityQuery(city.name);
-                                updateAddressField('city', city.name);
-                                setShowCitySuggestions(false);
-                                setFieldErrors((s) => ({ ...s, 'address.city': undefined }));
-                              }}
-                            >
-                              {city.name}
-                            </button>
-                          ))
-                        ) : (
-                          <div className="p-3 text-gray-400 text-sm">No se encontraron ciudades</div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
+                {/* Organization ID is inferred from authenticated user; not editable here */}
+
                 <div>
-                  <label className="block text-xs font-medium text-gray-300 mb-1">Detalles Adicionales</label>
-                  <input value={form.address.additionalDetails} onChange={(e) => updateAddressField('additionalDetails', e.target.value)} placeholder="Ej. Edificio Torre Norte, Local 205" className="w-full px-2 py-2 text-sm bg-[#1a1a1a] border border-[#333] rounded-md text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700]" />
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Code *</label>
+                  <input
+                    value={form.code}
+                    onChange={(e) => { updateForm('code', e.target.value); setFieldErrors((s) => ({ ...s, code: undefined })); }}
+                    placeholder="e.g. A-12"
+                    className="w-full h-12 px-4 bg-[#111111] border border-[#262626] rounded-md text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FFD700]"
+                  />
+                  {fieldErrors.code && <p className="text-xs text-yellow-400 mt-1">{fieldErrors.code}</p>}
                 </div>
-                {/* Address Preview - Always visible */}
-                <div className="p-4 bg-gradient-to-br from-[#1a1a1a] to-[#111111] border border-[#FFD700]/20 rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-2 h-2 bg-[#FFD700] rounded-full"></div>
-                    <label className="text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Vista Previa de Dirección</label>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-base text-white font-medium">
-                      {form.address.streetType || '[Tipo Vía]'} {form.address.primaryNumber || '[#]'} # {form.address.secondaryNumber || '[#]'}{form.address.complementaryNumber ? `-${form.address.complementaryNumber}` : ''}
-                    </p>
-                    <p className="text-sm text-gray-400">
-                      {form.address.city && form.address.state ? `${form.address.city}, ${form.address.state}` : form.address.city || form.address.state || '[Ciudad, Departamento]'}
-                    </p>
-                    {form.address.additionalDetails && (
-                      <p className="text-xs text-gray-500 italic">{form.address.additionalDetails}</p>
-                    )}
-                  </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Section *</label>
+                  <input
+                    value={form.section}
+                    onChange={(e) => { updateForm('section', e.target.value); setFieldErrors((s) => ({ ...s, section: undefined })); }}
+                    placeholder="e.g. Zone 1"
+                    className="w-full h-12 px-4 bg-[#111111] border border-[#262626] rounded-md text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FFD700]"
+                  />
+                  {fieldErrors.section && <p className="text-xs text-yellow-400 mt-1">{fieldErrors.section}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Shelf *</label>
+                  <input
+                    value={form.shelf}
+                    onChange={(e) => { updateForm('shelf', e.target.value); setFieldErrors((s) => ({ ...s, shelf: undefined })); }}
+                    placeholder="e.g. Shelf A"
+                    className="w-full h-12 px-4 bg-[#111111] border border-[#262626] rounded-md text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FFD700]"
+                  />
+                  {fieldErrors.shelf && <p className="text-xs text-yellow-400 mt-1">{fieldErrors.shelf}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Status *</label>
+                  <select
+                    value={form.status}
+                    onChange={(e) => updateForm('status', e.target.value)}
+                    className="w-full h-12 px-4 bg-[#111111] border border-[#262626] rounded-md text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FFD700]"
+                  >
+                    <option value="available">Available</option>
+                    <option value="full">Full</option>
+                    <option value="maintenance">Maintenance</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Capacity *</label>
+                  <input
+                    type="number"
+                    value={form.capacity}
+                    onChange={(e) => { updateForm('capacity', Number(e.target.value)); setFieldErrors((s) => ({ ...s, capacity: undefined })); }}
+                    placeholder="0"
+                    className="w-full h-12 px-3 bg-[#111111] border border-[#262626] rounded-md text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FFD700]"
+                  />
+                  {fieldErrors.capacity && <p className="text-xs text-yellow-400 mt-1">{fieldErrors.capacity}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Occupied *</label>
+                  <input
+                    type="number"
+                    value={form.occupied}
+                    onChange={(e) => { updateForm('occupied', Number(e.target.value)); setFieldErrors((s) => ({ ...s, occupied: undefined })); }}
+                    placeholder="0"
+                    className="w-full h-12 px-4 bg-[#111111] border border-[#262626] rounded-md text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FFD700]"
+                  />
+                  {fieldErrors.occupied && <p className="text-xs text-yellow-400 mt-1">{fieldErrors.occupied}</p>}
+                </div>
+              </div>
+
+              {/* Address inputs - compact horizontal, responsive */}
+              <div className="flex flex-col md:flex-row gap-3">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Country *</label>
+                  <input value={form.address.country} onChange={(e) => { updateAddressField('country', e.target.value); setFieldErrors((s) => ({ ...s, 'address.country': undefined })); }} placeholder="Country" className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded-md text-white" />
+                  {fieldErrors['address.country'] && <p className="text-xs text-yellow-400 mt-1">{fieldErrors['address.country']}</p>}
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-300 mb-1">City *</label>
+                  <input value={form.address.city} onChange={(e) => { updateAddressField('city', e.target.value); setFieldErrors((s) => ({ ...s, 'address.city': undefined })); }} placeholder="City" className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded-md text-white" />
+                  {fieldErrors['address.city'] && <p className="text-xs text-yellow-400 mt-1">{fieldErrors['address.city']}</p>}
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Street *</label>
+                  <input value={form.address.street} onChange={(e) => { updateAddressField('street', e.target.value); setFieldErrors((s) => ({ ...s, 'address.street': undefined })); }} placeholder="Street" className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded-md text-white" />
+                  {fieldErrors['address.street'] && <p className="text-xs text-yellow-400 mt-1">{fieldErrors['address.street']}</p>}
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Property # *</label>
+                  <input value={form.address.propertyNumber} onChange={(e) => { updateAddressField('propertyNumber', e.target.value); setFieldErrors((s) => ({ ...s, 'address.propertyNumber': undefined })); }} placeholder="Property number" className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded-md text-white" />
+                  {fieldErrors['address.propertyNumber'] && <p className="text-xs text-yellow-400 mt-1">{fieldErrors['address.propertyNumber']}</p>}
                 </div>
               </div>
 
@@ -1069,7 +907,7 @@ export default function LocationsPage() {
 
               <div className="flex items-center gap-4 pt-4">
                 <button type="submit" className="flex-1 py-3 bg-[#FFD700] text-black font-semibold rounded-md hover:bg-[#FFC700] transition-colors">Create Location</button>
-                <button type="button" onClick={() => closeCreateModal()} className="px-4 py-2 bg-[#141414] text-gray-300 font-medium rounded-md hover:bg-[#1b1b1b] transition-colors border border-[#333]">Cancel</button>
+                <button type="button" onClick={() => setShowCreateModal(false)} className="px-4 py-2 bg-[#141414] text-gray-300 font-medium rounded-md hover:bg-[#1b1b1b] transition-colors border border-[#333]">Cancel</button>
               </div>
             </form>
           </div>
@@ -1078,181 +916,25 @@ export default function LocationsPage() {
 
       {/* Edit Modal */}
       {showEditModal && editing && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget) closeEditModal(); }}>
-          <div className="bg-[#0f0f10] border border-[#2a2a2a] rounded-xl max-w-6xl w-full p-8 shadow-lg max-h-[90vh] overflow-y-auto">
-            {/* Header with close button */}
-            <div className="flex items-start justify-between mb-6">
-              <div>
-                <h2 className="text-3xl font-bold mb-2">Edit Location</h2>
-                <p className="text-gray-400 text-sm">Update the location details below.</p>
-              </div>
-              <button type="button" onClick={() => closeEditModal()} className="p-2 hover:bg-[#1a1a1a] rounded-lg transition-colors">
-                <X size={24} className="text-gray-400 hover:text-white" />
-              </button>
-            </div>
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget) setShowEditModal(false); }}>
+          <div className="bg-[#0f0f10] border border-[#2a2a2a] rounded-xl max-w-lg w-full p-6 shadow-lg">
+            <h2 className="text-3xl font-bold mb-3">Edit Location</h2>
+            <p className="text-gray-400 text-sm mb-5">Update the location details below.</p>
             <form onSubmit={(e) => { e.preventDefault(); void handleUpdate(); }} className="space-y-5">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">Name *</label>
-                    <input value={form.name} onChange={(e) => { updateForm('name', e.target.value); setFieldErrors((s) => ({ ...s, name: undefined })); }} placeholder="e.g. Main Warehouse - Site A" className="w-full h-12 px-4 bg-[#111111] border border-[#262626] rounded-md text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FFD700]" />
-                    {fieldErrors.name && <p className="text-xs text-yellow-400 mt-1">{fieldErrors.name}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">Status *</label>
-                    <select
-                      value={form.status}
-                      onChange={(e) => updateForm('status', e.target.value as any)}
-                      className="w-full h-12 px-4 bg-[#111111] border border-[#262626] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#FFD700]"
-                    >
-                      <option value="available">Available</option>
-                      <option value="full_capacity">Full Capacity</option>
-                      <option value="maintenance">Maintenance</option>
-                      <option value="inactive">Inactive</option>
-                    </select>
-                  </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Name *</label>
+                  <input value={form.name} onChange={(e) => { updateForm('name', e.target.value); setFieldErrors((s) => ({ ...s, name: undefined })); }} placeholder="e.g. Main Warehouse - Site A" className="w-full h-12 px-4 bg-[#111111] border border-[#262626] rounded-md text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FFD700]" />
+                  {fieldErrors.name && <p className="text-xs text-yellow-400 mt-1">{fieldErrors.name}</p>}
                 </div>
-              
-              {/* Current Address Display */}
-              {editing && (editing as any).address && (
-                <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <MapPin size={16} className="text-[#FFD700]" />
-                    <h3 className="text-gray-300 font-semibold text-sm">Dirección Actual Registrada</h3>
-                  </div>
-                  <div className="text-gray-400 text-sm space-y-2">
-                    {(editing as any).address.formatted && (
-                      <p><span className="text-gray-500">Dirección:</span> <span className="text-white">{(editing as any).address.formatted}</span></p>
-                    )}
-                    {(editing as any).address.city && (editing as any).address.state && (
-                      <p><span className="text-gray-500">Ubicación:</span> <span className="text-white">{(editing as any).address.city}, {(editing as any).address.state}</span></p>
-                    )}
-                    {((editing as any).address.additionalDetails || (editing as any).address.additionalInfo) && (
-                      <p><span className="text-gray-500">Detalles:</span> <span className="text-white">{(editing as any).address.additionalDetails || (editing as any).address.additionalInfo}</span></p>
-                    )}
-                    {!(editing as any).address.formatted && !(editing as any).address.city && (
-                      <div className="flex items-center gap-2 text-yellow-400 text-xs">
-                        <Info size={14} />
-                        <span>No hay dirección registrada para esta ubicación</span>
-                      </div>
-                    )}
-                  </div>
+
+                {/* Organization ID is inferred from authenticated user; not editable here */}
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Code *</label>
+                  <input value={form.code} onChange={(e) => { updateForm('code', e.target.value); setFieldErrors((s) => ({ ...s, code: undefined })); }} placeholder="e.g. A-12" className="w-full h-12 px-4 bg-[#111111] border border-[#262626] rounded-md text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FFD700]" />
+                  {fieldErrors.code && <p className="text-xs text-yellow-400 mt-1">{fieldErrors.code}</p>}
                 </div>
-              )}
-              
-              {/* Address inputs - enhanced horizontal layout */}
-              <div className="space-y-3">
-                <h3 className="text-white font-semibold text-base">Actualizar Dirección</h3>
-                <div className="flex gap-2">
-                  <div className="w-32">
-                    <label className="block text-xs font-medium text-gray-300 mb-1">Tipo Vía *</label>
-                    <select value={form.address.streetType} onChange={(e) => { updateAddressField('streetType', e.target.value); setFieldErrors((s) => ({ ...s, 'address.streetType': undefined })); }} className="w-full px-2 py-2 text-sm bg-[#1a1a1a] border border-[#333] rounded-md text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700]">
-                      <option value="">Seleccionar</option>
-                      <option value="Calle">Calle</option>
-                      <option value="Carrera">Carrera</option>
-                      <option value="Avenida">Avenida</option>
-                      <option value="Diagonal">Diagonal</option>
-                      <option value="Transversal">Transversal</option>
-                    </select>
-                    {fieldErrors['address.streetType'] && <p className="text-xs text-yellow-400 mt-1">{fieldErrors['address.streetType']}</p>}
-                  </div>
-                  <div className="w-24">
-                    <label className="block text-xs font-medium text-gray-300 mb-1">Número *</label>
-                    <input 
-                      type="text"
-                      value={form.address.primaryNumber} 
-                      onChange={(e) => { 
-                        const value = e.target.value.replace(/\D/g, '');
-                        updateAddressField('primaryNumber', value); 
-                        setFieldErrors((s) => ({ ...s, 'address.primaryNumber': undefined })); 
-                      }} 
-                      placeholder="15" 
-                      className="w-full px-2 py-2 text-sm bg-[#1a1a1a] border border-[#333] rounded-md text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700]" 
-                    />
-                    {fieldErrors['address.primaryNumber'] && <p className="text-xs text-yellow-400 mt-1">{fieldErrors['address.primaryNumber']}</p>}
-                  </div>
-                  <div className="w-24">
-                    <label className="block text-xs font-medium text-gray-300 mb-1">Número 2 *</label>
-                    <input 
-                      type="text"
-                      value={form.address.secondaryNumber} 
-                      onChange={(e) => { 
-                        const value = e.target.value.replace(/\D/g, '');
-                        updateAddressField('secondaryNumber', value); 
-                        setFieldErrors((s) => ({ ...s, 'address.secondaryNumber': undefined })); 
-                      }} 
-                      placeholder="93" 
-                      className="w-full px-2 py-2 text-sm bg-[#1a1a1a] border border-[#333] rounded-md text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700]" 
-                    />
-                    {fieldErrors['address.secondaryNumber'] && <p className="text-xs text-yellow-400 mt-1">{fieldErrors['address.secondaryNumber']}</p>}
-                  </div>
-                  <div className="w-24">
-                    <label className="block text-xs font-medium text-gray-300 mb-1">Número 3</label>
-                    <input 
-                      type="text"
-                      value={form.address.complementaryNumber} 
-                      onChange={(e) => {
-                        const value = e.target.value.replace(/\D/g, '');
-                        updateAddressField('complementaryNumber', value);
-                      }} 
-                      placeholder="47" 
-                      className="w-full px-2 py-2 text-sm bg-[#1a1a1a] border border-[#333] rounded-md text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700]" 
-                    />
-                  </div>
-                  {/* Departamento Autocomplete */}
-                  <div className="flex-1 relative">
-                    <label className="block text-xs font-medium text-gray-300 mb-1">Departamento *</label>
-                    <div className="relative">
-                      <input
-                        value={stateQuery}
-                        onChange={(e) => {
-                          setStateQuery(e.target.value);
-                          setShowStateSuggestions(true);
-                          setFieldErrors((s) => ({ ...s, 'address.state': undefined }));
-                        }}
-                        onFocus={() => {
-                          setTimeout(() => setShowStateSuggestions(true), 100);
-                        }}
-                        onBlur={() => {
-                          setTimeout(() => setShowStateSuggestions(false), 200);
-                        }}
-                        placeholder="Buscar departamento..."
-                        className="w-full px-2 py-2 pr-8 text-sm bg-[#1a1a1a] border border-[#333] rounded-md text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700]"
-                      />
-                      <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
-                    </div>
-                    {fieldErrors['address.state'] && <p className="text-xs text-yellow-400 mt-1">{fieldErrors['address.state']}</p>}
-                    {showStateSuggestions && (
-                      <div className="absolute z-50 w-full mt-1 bg-[#1a1a1a] border border-[#333] rounded-md shadow-xl max-h-48 overflow-y-auto">
-                        {deptLoading ? (
-                          <div className="px-3 py-2 text-sm text-gray-400">Cargando...</div>
-                        ) : deptError ? (
-                          <div className="px-3 py-2 text-sm text-red-400">Error al cargar departamentos</div>
-                        ) : filteredDepartments.length === 0 ? (
-                          <div className="px-3 py-2 text-sm text-gray-400">No se encontraron departamentos</div>
-                        ) : (
-                          filteredDepartments.map((dept) => (
-                            <button
-                              key={dept.id}
-                              type="button"
-                              onClick={() => {
-                                setStateQuery(dept.name);
-                                setSelectedState(dept.id.toString());
-                                updateAddressField('state', dept.name);
-                                setShowStateSuggestions(false);
-                                // Reset city when department changes
-                                setCityQuery('');
-                                setSelectedCity('');
-                                updateAddressField('city', '');
-                              }}
-                              className="w-full px-3 py-2 text-left text-sm text-white hover:bg-[#2a2a2a] transition-colors"
-                            >
-                              {dept.name}
-                            </button>
-                          ))
-                        )}
-                      </div>
-                    )}
-                  </div>
 
                   {/* Ciudad Autocomplete */}
                   <div className="flex-1 relative">
@@ -1308,330 +990,69 @@ export default function LocationsPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-300 mb-1">Detalles Adicionales</label>
-                  <input value={form.address.additionalDetails} onChange={(e) => updateAddressField('additionalDetails', e.target.value)} placeholder="Ej. Edificio Torre Norte, Local 205" className="w-full px-2 py-2 text-sm bg-[#1a1a1a] border border-[#333] rounded-md text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700]" />
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Section *</label>
+                  <input value={form.section} onChange={(e) => { updateForm('section', e.target.value); setFieldErrors((s) => ({ ...s, section: undefined })); }} placeholder="e.g. Zone 1" className="w-full h-12 px-4 bg-[#111111] border border-[#262626] rounded-md text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FFD700]" />
+                  {fieldErrors.section && <p className="text-xs text-yellow-400 mt-1">{fieldErrors.section}</p>}
                 </div>
-                {/* Address Preview - Always visible */}
-                <div className="p-4 bg-gradient-to-br from-[#1a1a1a] to-[#111111] border border-[#FFD700]/20 rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-2 h-2 bg-[#FFD700] rounded-full"></div>
-                    <label className="text-xs font-semibold text-[#FFD700] uppercase tracking-wider">Vista Previa de Dirección</label>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-base text-white font-medium">
-                      {form.address.streetType || '[Tipo Vía]'} {form.address.primaryNumber || '[#]'} # {form.address.secondaryNumber || '[#]'}{form.address.complementaryNumber ? `-${form.address.complementaryNumber}` : ''}
-                    </p>
-                    <p className="text-sm text-gray-400">
-                      {form.address.city && form.address.state ? `${form.address.city}, ${form.address.state}` : form.address.city || form.address.state || '[Ciudad, Departamento]'}
-                    </p>
-                    {form.address.additionalDetails && (
-                      <p className="text-xs text-gray-500 italic">{form.address.additionalDetails}</p>
-                    )}
-                  </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Shelf *</label>
+                  <input value={form.shelf} onChange={(e) => { updateForm('shelf', e.target.value); setFieldErrors((s) => ({ ...s, shelf: undefined })); }} placeholder="e.g. Shelf A" className="w-full h-12 px-4 bg-[#111111] border border-[#262626] rounded-md text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FFD700]" />
+                  {fieldErrors.shelf && <p className="text-xs text-yellow-400 mt-1">{fieldErrors.shelf}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Status *</label>
+                  <select value={form.status} onChange={(e) => updateForm('status', e.target.value)} className="w-full h-12 px-4 bg-[#111111] border border-[#262626] rounded-md text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FFD700]">
+                    <option value="available">Available</option>
+                    <option value="full">Full</option>
+                    <option value="maintenance">Maintenance</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Capacity *</label>
+                  <input type="number" value={form.capacity} onChange={(e) => { updateForm('capacity', Number(e.target.value)); setFieldErrors((s) => ({ ...s, capacity: undefined })); }} placeholder="0" className="w-full h-12 px-4 bg-[#111111] border border-[#262626] rounded-md text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FFD700]" />
+                  {fieldErrors.capacity && <p className="text-xs text-yellow-400 mt-1">{fieldErrors.capacity}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Occupied *</label>
+                  <input type="number" value={form.occupied} onChange={(e) => { updateForm('occupied', Number(e.target.value)); setFieldErrors((s) => ({ ...s, occupied: undefined })); }} placeholder="0" className="w-full h-12 px-4 bg-[#111111] border border-[#262626] rounded-md text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FFD700]" />
+                  {fieldErrors.occupied && <p className="text-xs text-yellow-400 mt-1">{fieldErrors.occupied}</p>}
+                </div>
+              </div>
+              {/* Address inputs - compact horizontal, responsive */}
+              <div className="flex flex-col md:flex-row gap-3">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Country *</label>
+                  <input value={form.address.country} onChange={(e) => { updateAddressField('country', e.target.value); setFieldErrors((s) => ({ ...s, 'address.country': undefined })); }} placeholder="Country" className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded-md text-white" />
+                  {fieldErrors['address.country'] && <p className="text-xs text-yellow-400 mt-1">{fieldErrors['address.country']}</p>}
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-300 mb-1">City *</label>
+                  <input value={form.address.city} onChange={(e) => { updateAddressField('city', e.target.value); setFieldErrors((s) => ({ ...s, 'address.city': undefined })); }} placeholder="City" className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded-md text-white" />
+                  {fieldErrors['address.city'] && <p className="text-xs text-yellow-400 mt-1">{fieldErrors['address.city']}</p>}
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Street *</label>
+                  <input value={form.address.street} onChange={(e) => { updateAddressField('street', e.target.value); setFieldErrors((s) => ({ ...s, 'address.street': undefined })); }} placeholder="Street" className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded-md text-white" />
+                  {fieldErrors['address.street'] && <p className="text-xs text-yellow-400 mt-1">{fieldErrors['address.street']}</p>}
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Property # *</label>
+                  <input value={form.address.propertyNumber} onChange={(e) => { updateAddressField('propertyNumber', e.target.value); setFieldErrors((s) => ({ ...s, 'address.propertyNumber': undefined })); }} placeholder="Property number" className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded-md text-white" />
+                  {fieldErrors['address.propertyNumber'] && <p className="text-xs text-yellow-400 mt-1">{fieldErrors['address.propertyNumber']}</p>}
                 </div>
               </div>
 
               <div className="flex gap-4 pt-4">
-                <button type="submit" className="flex-1 px-6 py-3 bg-[#FFD700] text-black font-semibold rounded-lg hover:bg-[#FFC700] transition-colors">Save changes</button>
-                <button type="button" onClick={() => closeEditModal()} className="px-6 py-3 bg-[#1a1a1a] text-gray-300 font-semibold rounded-lg hover:bg-[#222] transition-colors border border-[#333]">Cancel</button>
+                <button type="submit" className="flex-1 px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors">Save changes</button>
+                <button type="button" onClick={() => setShowEditModal(false)} className="px-6 py-3 bg-[#1a1a1a] text-gray-300 font-semibold rounded-lg hover:bg-[#222] transition-colors border border-[#333]">Cancel</button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* Export Modal */}
-      <ExportSettingsModal
-        isOpen={exportOpen}
-        onClose={() => setExportOpen(false)}
-        onExport={handleExport}
-        module="locations"
-        policy={LOCATIONS_POLICY}
-        exporting={exporting}
-        progress={exportProgress}
-        onCancel={handleCancelExport}
-        allowedFormats={['xlsx']}
-      />
-
-      {/* Import Modal */}
-      {showImportModal && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-          <div className="bg-[#0f0f10] border border-[#2a2a2a] rounded-xl max-w-2xl w-full p-8 shadow-lg">
-            <div className="flex items-start justify-between mb-6">
-              <div>
-                <h2 className="text-2xl font-bold text-white mb-2">Import Locations</h2>
-                <p className="text-gray-400 text-sm">Upload a CSV file to import multiple locations at once</p>
-              </div>
-              <button 
-                type="button" 
-                onClick={() => {
-                  setShowImportModal(false);
-                  setImportFile(null);
-                  if (fileInputRef.current) fileInputRef.current.value = "";
-                }} 
-                className="p-2 hover:bg-[#1a1a1a] rounded-lg transition-colors"
-              >
-                <X size={24} className="text-gray-400 hover:text-white" />
-              </button>
-            </div>
-
-            <div className="space-y-6">
-              {/* File Upload Section */}
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Select CSV File *
-                </label>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".csv"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      if (file.type !== "text/csv" && !file.name.endsWith(".csv")) {
-                        showToast("error", "Please select a CSV file");
-                        e.target.value = "";
-                        return;
-                      }
-                      setImportFile(file);
-                    }
-                  }}
-                  className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded-md text-white text-sm focus:outline-none focus:ring-1 focus:ring-[#FFD700] file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-[#FFD700] file:text-black hover:file:bg-[#FFC107] file:cursor-pointer"
-                />
-                {importFile && (
-                  <p className="text-sm text-green-400 mt-2 flex items-center gap-2">
-                    <span className="w-2 h-2 bg-green-400 rounded-full"></span>
-                    {importFile.name} ({(importFile.size / 1024).toFixed(2)} KB)
-                  </p>
-                )}
-              </div>
-
-              {/* Instructions */}
-              <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Info size={16} className="text-[#FFD700]" />
-                  <h4 className="text-gray-300 font-semibold text-sm">Import Instructions</h4>
-                </div>
-                <ul className="text-gray-400 text-xs space-y-1">
-                  <li>• Use the "Export" button to download existing locations as Excel, then save as CSV for import</li>
-                  <li>• CSV file must include headers in the first row</li>
-                  <li>• Supported formats: Legacy format (name, country, state, city, street, propertyNumber) or full template format</li>
-                  <li>• Status values: <strong>available</strong>, <strong>full</strong>, or <strong>maintenance</strong></li>
-                  <li>• Empty rows will be skipped automatically</li>
-                </ul>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-3 pt-2">
-                <button
-                  onClick={handleImport}
-                  disabled={!importFile || importing}
-                  className="flex-1 px-6 py-3 bg-[#FFD700] text-black font-semibold rounded-lg hover:bg-[#FFC107] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {importing ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
-                      Importing...
-                    </>
-                  ) : (
-                    <>
-                      <Upload size={18} />
-                      Import Locations
-                    </>
-                  )}
-                </button>
-                <button
-                  onClick={() => {
-                    setShowImportModal(false);
-                    setImportFile(null);
-                    if (fileInputRef.current) fileInputRef.current.value = "";
-                  }}
-                  disabled={importing}
-                  className="px-6 py-3 bg-[#1a1a1a] text-gray-300 font-semibold rounded-lg hover:bg-[#222] transition-colors border border-[#333] disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Preview Modal */}
-      {showPreviewModal && previewing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-[#0a0a0a] border border-[#333] rounded-[16px] w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl">
-            {/* Header */}
-            <div className="sticky top-0 bg-[#0a0a0a] border-b border-[#333] px-6 py-4 flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-white">Location Details</h2>
-              <button 
-                onClick={closePreviewModal} 
-                className="p-2 text-gray-400 hover:text-white hover:bg-[#1a1a1a] rounded-lg transition-all"
-                title="Close"
-              >
-                <X size={24} />
-              </button>
-            </div>
-
-            {/* Content */}
-            <div className="p-6 space-y-6">
-              {/* Basic Information */}
-              <div className="bg-[#111111] border border-[#262626] rounded-lg p-5">
-                <h3 className="text-lg font-semibold text-[#FFD700] mb-4 flex items-center gap-2">
-                  <Info size={20} />
-                  Basic Information
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">Name</label>
-                    <p className="text-white text-base">{(previewing as any).name || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">Status</label>
-                    <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide ${
-                      (previewing as any).status === 'available' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
-                      (previewing as any).status === 'full_capacity' ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
-                      (previewing as any).status === 'maintenance' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' :
-                      (previewing as any).status === 'inactive' ? 'bg-gray-500/20 text-gray-400 border border-gray-500/30' :
-                      'bg-gray-500/20 text-gray-400 border border-gray-500/30'
-                    }`}>
-                      {(previewing as any).status === 'available' ? 'Available' :
-                       (previewing as any).status === 'full_capacity' ? 'Full Capacity' :
-                       (previewing as any).status === 'maintenance' ? 'Maintenance' :
-                       (previewing as any).status === 'inactive' ? 'Inactive' : 'Unknown'}
-                    </span>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">Active</label>
-                    <p className="text-white text-base">
-                      {(previewing as any).isActive !== undefined 
-                        ? ((previewing as any).isActive ? 'Yes' : 'No')
-                        : 'N/A'
-                      }
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">Organization ID</label>
-                    <p className="text-white text-base font-mono text-sm">{(previewing as any).organizationId || 'N/A'}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Address Information */}
-              <div className="bg-[#111111] border border-[#262626] rounded-lg p-5">
-                <h3 className="text-lg font-semibold text-[#FFD700] mb-4 flex items-center gap-2">
-                  <MapPin size={20} />
-                  Address Information
-                </h3>
-                <div className="space-y-4">
-                  {(previewing as any).address?.formatted && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-400 mb-1">Formatted Address</label>
-                      <p className="text-white text-base">{(previewing as any).address.formatted}</p>
-                    </div>
-                  )}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-400 mb-1">Country</label>
-                      <p className="text-white text-base">{(previewing as any).address?.country || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-400 mb-1">State / Department</label>
-                      <p className="text-white text-base">{(previewing as any).address?.state || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-400 mb-1">City</label>
-                      <p className="text-white text-base">{(previewing as any).address?.city || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-400 mb-1">Street</label>
-                      <p className="text-white text-base">{(previewing as any).address?.street || 'N/A'}</p>
-                    </div>
-                    {(previewing as any).address?.streetType && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-400 mb-1">Street Type</label>
-                        <p className="text-white text-base">{(previewing as any).address.streetType}</p>
-                      </div>
-                    )}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-400 mb-1">Property Number</label>
-                      <p className="text-white text-base">{(previewing as any).address?.propertyNumber || 'N/A'}</p>
-                    </div>
-                    {(previewing as any).address?.primaryNumber && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-400 mb-1">Primary Number</label>
-                        <p className="text-white text-base">{(previewing as any).address.primaryNumber}</p>
-                      </div>
-                    )}
-                    {(previewing as any).address?.secondaryNumber && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-400 mb-1">Secondary Number</label>
-                        <p className="text-white text-base">{(previewing as any).address.secondaryNumber}</p>
-                      </div>
-                    )}
-                    {(previewing as any).address?.complementaryNumber && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-400 mb-1">Complementary Number</label>
-                        <p className="text-white text-base">{(previewing as any).address.complementaryNumber}</p>
-                      </div>
-                    )}
-                  </div>
-                  {((previewing as any).address?.additionalDetails || (previewing as any).address?.additionalInfo) && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-400 mb-1">Additional Details</label>
-                      <p className="text-white text-base">{(previewing as any).address.additionalDetails || (previewing as any).address.additionalInfo}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Timestamps */}
-              <div className="bg-[#111111] border border-[#262626] rounded-lg p-5">
-                <h3 className="text-lg font-semibold text-[#FFD700] mb-4">Timestamps</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">Created At</label>
-                    <p className="text-white text-base">
-                      {(previewing as any).createdAt 
-                        ? new Date((previewing as any).createdAt).toLocaleString('en-US', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })
-                        : 'N/A'
-                      }
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">Updated At</label>
-                    <p className="text-white text-base">
-                      {(previewing as any).updatedAt 
-                        ? new Date((previewing as any).updatedAt).toLocaleString('en-US', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })
-                        : 'N/A'
-                      }
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="sticky bottom-0 bg-[#0a0a0a] border-t border-[#333] px-6 py-4 flex justify-end">
-              <button 
-                onClick={closePreviewModal} 
-                className="px-6 py-2.5 bg-[#1a1a1a] text-white rounded-lg hover:bg-[#252525] transition-all font-medium"
-              >
-                Close
-              </button>
-            </div>
           </div>
         </div>
       )}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Users, Shield, Plus, Trash2, Edit, X } from "lucide-react";
 import { StatCard } from "../components";
 import { AdminPagination, AdminTable } from "../components";
@@ -119,7 +119,36 @@ export default function Team() {
     setOwnerSecurityTouched(false);
   };
 
-  const getOwnerSecurityErrors = (): Partial<Record<OwnerSecurityField, string>> => {
+  const validateField = useCallback(
+    (field: TeamFormField, data = formData): string | undefined => {
+      switch (field) {
+        case "firstName": {
+          const r = validateFirstName(data.firstName);
+          return r.isValid ? undefined : r.message;
+        }
+        case "firstSurname": {
+          const r = validateLastName(data.firstSurname);
+          return r.isValid ? undefined : r.message;
+        }
+        case "email": {
+          const r = validateEmail(data.email);
+          return r.isValid ? undefined : r.message;
+        }
+        case "phone": {
+          if (!editingId) {
+            const r = validateRequiredPhone(toColombianPhone(data.phone));
+            return r.isValid ? undefined : r.message;
+          }
+          return undefined;
+        }
+        default:
+          return undefined;
+      }
+    },
+    [editingId, formData],
+  );
+
+  const getOwnerSecurityErrors = useCallback((): Partial<Record<OwnerSecurityField, string>> => {
     const nextErrors: Partial<Record<OwnerSecurityField, string>> = {};
 
     if (!ownerSecurity.acceptedCritical) {
@@ -145,7 +174,7 @@ export default function Team() {
     }
 
     return nextErrors;
-  };
+  }, [ownerSecurity, formData.email]);
 
   const validateOwnerSecurity = () => {
     const nextErrors = getOwnerSecurityErrors();
@@ -158,10 +187,25 @@ export default function Team() {
       setLoading(true);
       const response = await getUsers();
 
-      const members: TeamMember[] = (response.data.users ?? []).map((user: any) => {
-        const profile = (user.profile || user.name || {}) as Record<string, string>;
-        const firstName = profile.firstName || "";
-        const lastName = profile.lastName || profile.firstSurname || "";
+      interface UserData {
+        _id?: string;
+        id?: string;
+        email?: string;
+        name?: { firstName: string; firstSurname: string };
+        roleName?: string;
+        status?: string;
+        profile?: {
+          firstName?: string;
+          lastName?: string;
+          firstSurname?: string;
+        };
+      }
+
+      const users = (response.data.users ?? []) as unknown as UserData[];
+      const members: TeamMember[] = users.map((user) => {
+        const profile = user.profile || {};
+        const firstName = profile.firstName || user.name?.firstName || "";
+        const lastName = profile.lastName || profile.firstSurname || user.name?.firstSurname || "";
         const status =
           user.status === "inactive"
             ? "inactive"
@@ -169,10 +213,10 @@ export default function Team() {
               ? "invited"
               : "active";
         return {
-          id: (user._id as string) || (user.id as string),
-          name: `${firstName} ${lastName}`.trim() || (user.email as string),
-          email: user.email as string,
-          role: (user.roleName as string) || "undefined",
+          id: user._id || user.id || "",
+          name: `${firstName} ${lastName}`.trim() || user.email || "",
+          email: user.email || "",
+          role: user.roleName || "undefined",
           status: status,
         };
       });
@@ -225,42 +269,22 @@ export default function Team() {
       });
       return next;
     });
-  }, [formData, formTouched, editingId]);
+  }, [formData, formTouched, editingId, validateField]);
 
   useEffect(() => {
     if (!isOwnerPromotion || !ownerSecurityTouched) return;
     setOwnerSecurityErrors(getOwnerSecurityErrors());
-  }, [ownerSecurity, formData.email, isOwnerPromotion, ownerSecurityTouched]);
+  }, [
+    ownerSecurity,
+    formData.email,
+    isOwnerPromotion,
+    ownerSecurityTouched,
+    getOwnerSecurityErrors,
+  ]);
 
   const handleFieldChange = (field: TeamFormField, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     setFormTouched((prev) => (prev[field] ? prev : { ...prev, [field]: true }));
-  };
-
-  const validateField = (field: TeamFormField, data = formData): string | undefined => {
-    switch (field) {
-      case "firstName": {
-        const r = validateFirstName(data.firstName);
-        return r.isValid ? undefined : r.message;
-      }
-      case "firstSurname": {
-        const r = validateLastName(data.firstSurname);
-        return r.isValid ? undefined : r.message;
-      }
-      case "email": {
-        const r = validateEmail(data.email);
-        return r.isValid ? undefined : r.message;
-      }
-      case "phone": {
-        if (!editingId) {
-          const r = validateRequiredPhone(toColombianPhone(data.phone));
-          return r.isValid ? undefined : r.message;
-        }
-        return undefined;
-      }
-      default:
-        return undefined;
-    }
   };
 
   const handleFieldBlur = (field: TeamFormField) => {
@@ -327,7 +351,7 @@ export default function Team() {
     resetOwnerSecurity();
   };
 
-  const handleSaveUser = async (e?: any) => {
+  const handleSaveUser = async (e?: { preventDefault?: () => void }) => {
     e?.preventDefault?.();
     setSubmitting(true);
     try {
@@ -466,7 +490,7 @@ export default function Team() {
         </div>
         <button
           onClick={() => handleOpenModal()}
-          className="flex items-center gap-2 px-4 py-2 bg-[#FFD700] text-black font-bold rounded-lg hover:bg-yellow-400 transition"
+          className="flex items-center gap-2 px-4 py-2 font-bold rounded-lg transition gold-action-btn"
         >
           <Plus size={20} />
           Invite Member
@@ -530,7 +554,7 @@ export default function Team() {
                         </button>
                         <button
                           onClick={() => handleDeleteUser(member.id)}
-                          className="p-2 text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
+                          className="p-2 danger-icon-btn"
                           title="Deactivate"
                         >
                           <Trash2 size={18} />
@@ -684,7 +708,8 @@ export default function Team() {
                     onChange={(e) => {
                       const nextRoleId = e.target.value;
                       handleFieldChange("role", nextRoleId);
-                      const nextRoleName = availableRoles.find((r) => r._id === nextRoleId)?.name ?? "";
+                      const nextRoleName =
+                        availableRoles.find((r) => r._id === nextRoleId)?.name ?? "";
                       if (nextRoleName !== "owner") resetOwnerSecurity();
                     }}
                     className={inputClass(false)}

@@ -50,7 +50,7 @@
 
   /* Button Styles */
   .btn-primary {
-    @apply bg-[#FFD700] text-black font-semibold px-4 py-2 rounded-lg hover:bg-[#FFD700]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply bg-[rgba(255,215,0,0.1)] text-[#FFD700] font-semibold px-4 py-2 rounded-lg border border-[rgba(255,215,0,0.35)] hover:bg-[rgba(255,215,0,0.18)] hover:border-[rgba(255,215,0,0.55)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .btn-secondary {
@@ -503,6 +503,60 @@
 .export-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.gold-action-btn {
+  background: var(--export-btn-bg);
+  border: 1px solid var(--export-btn-border);
+  color: var(--export-btn-text);
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
+}
+
+.gold-action-btn:hover {
+  background: rgba(255, 215, 0, 0.18);
+  border-color: rgba(255, 215, 0, 0.5);
+}
+
+.gold-action-btn:focus-visible {
+  outline: 2px solid rgba(255, 215, 0, 0.5);
+  outline-offset: 2px;
+}
+
+.gold-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.danger-action-btn {
+  background: rgba(255, 59, 59, 0.1);
+  border: 1px solid rgba(255, 59, 59, 0.45);
+  color: #ff6b6b;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
+}
+
+.danger-action-btn:hover {
+  background: rgba(255, 59, 59, 0.2);
+  border-color: rgba(255, 59, 59, 0.65);
+  color: #ff8d8d;
+}
+
+.danger-icon-btn {
+  color: #ff6b6b;
+  transition:
+    color 150ms ease,
+    background-color 150ms ease;
+}
+
+.danger-icon-btn:hover {
+  color: #ff8d8d;
+  background: rgba(255, 59, 59, 0.1);
+  border-radius: 8px;
 }
 
 /* ─── Responsive Adjustments ───────────────────────────────────────────── */

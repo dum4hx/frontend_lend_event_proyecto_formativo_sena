@@ -160,28 +160,12 @@ export default function Attributes() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                {canUpdate && (
-                  <button
-                    onClick={() => {
-                      setSelectedAttribute(attribute);
-                      setIsModalOpen(true);
-                    }}
-                    className="p-2 hover:bg-[#121212] rounded-[6px] text-gray-400 hover:text-[#FFD700] transition-all"
-                  >
-                    <Edit2 size={18} />
-                  </button>
-                )}
-                {canDelete && (
-                  <button
-                    onClick={() => {
-                      setAttributeToDelete(attribute);
-                      setIsDeleteDialogOpen(true);
-                    }}
-                    className="p-2 hover:bg-[#121212] rounded-[6px] text-gray-400 hover:text-red-400 transition-all"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                )}
+                <button className="p-2 hover:bg-[#121212] rounded-[6px] text-gray-400 hover:text-[#FFD700] transition-all">
+                  <Edit2 size={18} />
+                </button>
+                <button className="p-2 hover:bg-[#121212] rounded-[6px] text-gray-400 hover:text-red-400 transition-all">
+                  <Trash2 size={18} />
+                </button>
               </div>
             </div>
 

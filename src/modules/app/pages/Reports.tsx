@@ -181,7 +181,7 @@ export default function Reports() {
           </div>
         </div>
 
-        <button className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-[#FFD700] text-black font-semibold rounded-[8px] hover:bg-[#FFC700] transition-all">
+        <button className="w-full flex items-center justify-center gap-2 px-6 py-3 font-semibold rounded-[8px] transition-all gold-action-btn">
           <Calendar size={20} />
           Generate Report
         </button>

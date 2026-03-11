@@ -7,24 +7,24 @@
  * - Yellow (#FFD700) styling for export/import buttons
  */
 
-import React, { useRef } from 'react';
-import { Download, Upload } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import React, { useRef } from "react";
+import { Download, Upload } from "lucide-react";
+import * as XLSX from "xlsx";
 
 interface ExcelExportImportProps {
-  data: any[];
+  data: Record<string, unknown>[];
   filename: string;
-  onImport?: (data: any[]) => void;
+  onImport?: (data: Record<string, unknown>[]) => void;
   showLabels?: boolean;
 }
 
 /**
  * Calculates column width based on content
  */
-const calculateColumnWidth = (data: any[], columnName: string): number => {
+const calculateColumnWidth = (data: Record<string, unknown>[], columnName: string): number => {
   const maxLength = Math.max(
     columnName.length,
-    ...data.map((row) => String(row[columnName] || '').length)
+    ...data.map((row) => String(row[columnName] || "").length),
   );
   return Math.min(maxLength + 2, 50);
 };
@@ -32,13 +32,13 @@ const calculateColumnWidth = (data: any[], columnName: string): number => {
 /**
  * Format data for Excel export
  */
-const formatDataForExcel = (data: any[]): any[] => {
+const formatDataForExcel = (data: Record<string, unknown>[]): Record<string, unknown>[] => {
   return data.map((item) => {
-    const formatted: any = {};
+    const formatted: Record<string, unknown> = {};
     Object.keys(item).forEach((key) => {
       // Skip private/internal fields
-      if (key.startsWith('_') || key === 'id') {
-        formatted['_id'] = item._id || item.id;
+      if (key.startsWith("_") || key === "id") {
+        formatted["_id"] = item._id || item.id;
       } else {
         formatted[key] = item[key];
       }
@@ -68,40 +68,38 @@ export const ExcelExportImport: React.FC<ExcelExportImportProps> = ({
       // Set column widths
       if (formattedData.length > 0) {
         const columns = Object.keys(formattedData[0]);
-        ws['!cols'] = columns.map((col) =>
-          ({
-            wch: calculateColumnWidth(formattedData, col),
-          })
-        );
+        ws["!cols"] = columns.map((col) => ({
+          wch: calculateColumnWidth(formattedData, col),
+        }));
       }
 
       // Style header row (yellow background)
-      const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+      const range = XLSX.utils.decode_range(ws["!ref"] || "A1");
       for (let C = range.s.c; C <= range.e.c; ++C) {
-        const address = XLSX.utils.encode_col(C) + '1';
+        const address = XLSX.utils.encode_col(C) + "1";
         const cell = ws[address];
         if (cell) {
           cell.s = {
-            fill: { fgColor: { rgb: 'FFFFD700' } }, // Yellow background
-            font: { bold: true, color: { rgb: 'FF000000' } },
-            alignment: { horizontal: 'center', vertical: 'center' },
+            fill: { fgColor: { rgb: "FFFFD700" } }, // Yellow background
+            font: { bold: true, color: { rgb: "FF000000" } },
+            alignment: { horizontal: "center", vertical: "center" },
           };
         }
       }
 
       // Create workbook
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Data');
+      XLSX.utils.book_append_sheet(wb, ws, "Data");
 
       // Add timestamp
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const exportFilename = `${filename}-${timestamp.split('T')[0]}.xlsx`;
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+      const exportFilename = `${filename}-${timestamp.split("T")[0]}.xlsx`;
 
       // Write file
       XLSX.writeFile(wb, exportFilename);
     } catch (error) {
-      console.error('Export error:', error);
-      throw new Error('Failed to export Excel file');
+      console.error("Export error:", error);
+      throw new Error("Failed to export Excel file");
     }
   };
 
@@ -117,20 +115,20 @@ export const ExcelExportImport: React.FC<ExcelExportImportProps> = ({
       reader.onload = (event) => {
         try {
           const bstr = event.target?.result;
-          const wb = XLSX.read(bstr, { type: 'binary' });
+          const wb = XLSX.read(bstr, { type: "binary" });
           const ws = wb.Sheets[wb.SheetNames[0]];
-          const data = XLSX.utils.sheet_to_json(ws);
+          const data = XLSX.utils.sheet_to_json(ws) as Record<string, unknown>[];
 
           onImport?.(data);
         } catch (error) {
-          console.error('Import error:', error);
-          throw new Error('Failed to import Excel file');
+          console.error("Import error:", error);
+          throw new Error("Failed to import Excel file");
         }
       };
       reader.readAsBinaryString(file);
     } catch (error) {
-      console.error('Import error:', error);
-      throw new Error('Failed to process import file');
+      console.error("Import error:", error);
+      throw new Error("Failed to process import file");
     }
   };
 
@@ -139,11 +137,11 @@ export const ExcelExportImport: React.FC<ExcelExportImportProps> = ({
       {/* Export Button - Yellow accent */}
       <button
         onClick={handleExport}
-        className="flex items-center gap-2 px-4 py-2 bg-[#FFD700] hover:bg-[#FFC700] text-black font-semibold rounded-lg transition-colors shadow-lg hover:shadow-xl"
+        className="flex items-center gap-2 px-4 py-2 font-semibold rounded-lg transition-colors shadow-lg hover:shadow-xl gold-action-btn"
         title="Export data as Excel"
       >
         <Download size={18} />
-        {showLabels && 'Export'}
+        {showLabels && "Export"}
       </button>
 
       {/* Import Button - Yellow accent */}
@@ -151,11 +149,11 @@ export const ExcelExportImport: React.FC<ExcelExportImportProps> = ({
         <>
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-2 px-4 py-2 bg-[#FFD700] hover:bg-[#FFC700] text-black font-semibold rounded-lg transition-colors shadow-lg hover:shadow-xl"
+            className="flex items-center gap-2 px-4 py-2 font-semibold rounded-lg transition-colors shadow-lg hover:shadow-xl gold-action-btn"
             title="Import data from Excel"
           >
             <Upload size={18} />
-            {showLabels && 'Import'}
+            {showLabels && "Import"}
           </button>
           <input
             ref={fileInputRef}

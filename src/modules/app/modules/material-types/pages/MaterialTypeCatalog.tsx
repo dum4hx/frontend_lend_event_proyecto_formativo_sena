@@ -1,20 +1,24 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Tag, X } from 'lucide-react';
-import { useMaterialTypes } from '../hooks';
-import { useCategories } from '../../material-categories/hooks';
-import { MaterialTypeList, MaterialTypeDetailModal } from '../components';
-import { AdminPagination } from '../../../components';
-import { ExcelExportImport } from '../../../../../components/export/ExcelExportImport';
-import { useToast } from '../../../../../contexts/ToastContext';
-import type { MaterialType } from '../../../../../types/api';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Plus, Search, Tag, X } from "lucide-react";
+import { useMaterialTypes } from "../hooks";
+import { useCategories } from "../../material-categories/hooks";
+import { MaterialTypeList, MaterialTypeDetailModal } from "../components";
+import { AdminPagination } from "../../../components";
+import { ExcelExportImport } from "../../../../../components/export/ExcelExportImport";
+import { useToast } from "../../../../../contexts/ToastContext";
+import type { MaterialType } from "../../../../../types/api";
+
+type MaterialWithCategory = MaterialType & {
+  categoryId?: string | string[] | { _id?: string } | { _id?: string }[];
+};
 
 export const MaterialTypeCatalog: React.FC = () => {
   const navigate = useNavigate();
   const { materialTypes, loading, error, removeMaterialType, addMaterialType } = useMaterialTypes();
   const { categories } = useCategories();
   const { showToast } = useToast();
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<Set<string>>(new Set());
   const [selectedMaterialType, setSelectedMaterialType] = useState<MaterialType | null>(null);
@@ -23,65 +27,70 @@ export const MaterialTypeCatalog: React.FC = () => {
   const toggleCategory = (id: string) => {
     setSelectedCategoryIds((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
       return next;
     });
+    setPage(1);
   };
 
   // Extracts the first categoryId string regardless of backend format (string | string[] | object[])
   const extractCategoryId = (value: unknown): string | undefined => {
-    if (typeof value === 'string') return value;
+    if (typeof value === "string") return value;
     if (Array.isArray(value) && value.length > 0) {
       const first = value[0];
-      if (typeof first === 'string') return first;
-      if (first && typeof first === 'object') return (first as { _id?: string })._id;
+      if (typeof first === "string") return first;
+      if (first && typeof first === "object") return (first as { _id?: string })._id;
     }
-    if (value && typeof value === 'object') return (value as { _id?: string })._id;
+    if (value && typeof value === "object") return (value as { _id?: string })._id;
     return undefined;
   };
 
   const filteredMaterialTypes = materialTypes.filter((type) => {
-    const matchesSearch = type.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const material = type as MaterialWithCategory;
+    const matchesSearch = material.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory =
       selectedCategoryIds.size === 0 ||
-      selectedCategoryIds.has(extractCategoryId((type as any).categoryId) ?? '');
+      selectedCategoryIds.has(extractCategoryId(material.categoryId) ?? "");
     return matchesSearch && matchesCategory;
   });
 
   const totalPages = Math.max(1, Math.ceil(filteredMaterialTypes.length / pageSize));
-  const pagedMaterialTypes = filteredMaterialTypes.slice((page - 1) * pageSize, page * pageSize);
 
-  useEffect(() => {
-    setPage((prev) => Math.min(prev, totalPages));
-  }, [totalPages]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [searchTerm, selectedCategoryIds]);
+  // Ensure current page is within total pages range
+  const currentPage = Math.min(page, totalPages);
+  const pagedMaterialTypes = filteredMaterialTypes.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  );
 
   const handleDelete = (type: MaterialType) => {
     showToast(
-      'warning',
+      "warning",
       `Do you want to delete "${type.name}"? This action cannot be undone.`,
-      'Confirm Deletion',
+      "Confirm Deletion",
       {
         duration: Infinity,
         action: {
-          label: 'Confirm',
+          label: "Confirm",
           onClick: async () => {
             try {
               await removeMaterialType(type._id);
-              showToast('success', 'Material type deleted successfully', 'Success');
-            } catch (error: any) {
-              showToast('error', error.message || 'Failed to delete material type', 'Error');
+              showToast("success", "Material type deleted successfully", "Success");
+            } catch (error) {
+              const err = error as Error;
+              showToast("error", err.message || "Failed to delete material type", "Error");
             }
           },
         },
-      }
+      },
     );
   };
 
-  const handleImportMaterialTypes = async (data: any[]) => {
+  const handleImportMaterialTypes = async (data: Record<string, unknown>[]) => {
     try {
       // Build a Set of valid category IDs from the list already loaded by useCategories()
       const validCategoryIds = new Set(categories.map((c) => c._id));
@@ -90,32 +99,32 @@ export const MaterialTypeCatalog: React.FC = () => {
       const rejected: { name: string; categoryId: string; reason: string }[] = [];
 
       for (const item of data) {
-        const catId: string | undefined = item.categoryId;
+        const catId = item.categoryId as string | undefined;
 
         // ✅ Strict validation: reject if categoryId is empty or not found in DB categories
         if (!catId || !validCategoryIds.has(catId)) {
           rejected.push({
-            name: item.name ?? '(unnamed)',
-            categoryId: catId ?? '(empty)',
-            reason: 'categoryId does not exist in the categories collection',
+            name: (item.name as string) ?? "(unnamed)",
+            categoryId: catId ?? "(empty)",
+            reason: "categoryId does not exist in the categories collection",
           });
           continue;
         }
 
         try {
           await addMaterialType({
-            name: item.name,
-            description: item.description,
+            name: item.name as string,
+            description: item.description as string,
             categoryId: catId,
-            pricePerDay: parseFloat(item.pricePerDay),
+            pricePerDay: parseFloat(item.pricePerDay as string),
           });
           successCount++;
         } catch (itemError) {
-          console.error('[Import] Error creating record:', item, itemError);
+          console.error("[Import] Error creating record:", item, itemError);
           rejected.push({
-            name: item.name ?? '(unnamed)',
+            name: (item.name as string) ?? "(unnamed)",
             categoryId: catId,
-            reason: itemError instanceof Error ? itemError.message : 'Error creating record',
+            reason: itemError instanceof Error ? itemError.message : "Error creating record",
           });
         }
       }
@@ -127,15 +136,16 @@ export const MaterialTypeCatalog: React.FC = () => {
         // Log full rejection detail to console for debugging
         console.warn(`[Import] ${rejectedCount} rejected record(s):`, rejected);
         showToast(
-          successCount > 0 ? 'warning' : 'error',
+          successCount > 0 ? "warning" : "error",
           `${successCount} imported, ${rejectedCount} rejected due to invalid categoryId. Check console for details.`,
-          `Import: ${successCount}/${total}`
+          `Import: ${successCount}/${total}`,
         );
       } else {
-        showToast('success', `${successCount}/${total} material types imported`, 'Import complete');
+        showToast("success", `${successCount}/${total} material types imported`, "Import complete");
       }
-    } catch (error: any) {
-      showToast('error', error.message || 'Error importing material types', 'Import Failed');
+    } catch (error) {
+      const err = error as Error;
+      showToast("error", err.message || "Error importing material types", "Import Failed");
     }
   };
 
@@ -169,24 +179,30 @@ export const MaterialTypeCatalog: React.FC = () => {
           {/* Search + buttons row */}
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1 relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+              <Search
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                size={20}
+              />
               <input
                 type="text"
                 placeholder="Search material types..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setPage(1);
+                }}
                 className="w-full pl-12 pr-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#FFD700]"
               />
             </div>
             <div className="flex gap-2">
               <ExcelExportImport
-                data={filteredMaterialTypes}
+                data={filteredMaterialTypes as unknown as Record<string, unknown>[]}
                 filename="material-types"
                 onImport={handleImportMaterialTypes}
                 showLabels={true}
               />
               <button
-                onClick={() => navigate('create')}
+                onClick={() => navigate("create")}
                 className="flex items-center gap-2 px-6 py-3 bg-[#FFD700] text-black font-semibold rounded-lg hover:bg-[#FFC700] transition-colors whitespace-nowrap"
               >
                 <Plus size={20} />
@@ -202,11 +218,14 @@ export const MaterialTypeCatalog: React.FC = () => {
                 <Tag size={14} /> Filtrar:
               </span>
               <button
-                onClick={() => setSelectedCategoryIds(new Set())}
+                onClick={() => {
+                  setSelectedCategoryIds(new Set());
+                  setPage(1);
+                }}
                 className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                   selectedCategoryIds.size === 0
-                    ? 'bg-[#FFD700] text-black'
-                    : 'bg-[#1a1a1a] border border-[#333] text-gray-400 hover:border-[#FFD700] hover:text-white'
+                    ? "bg-[#FFD700] text-black"
+                    : "bg-[#1a1a1a] border border-[#333] text-gray-400 hover:border-[#FFD700] hover:text-white"
                 }`}
               >
                 Todas
@@ -214,7 +233,7 @@ export const MaterialTypeCatalog: React.FC = () => {
               {categories.map((cat) => {
                 const isActive = selectedCategoryIds.has(cat._id);
                 const count = materialTypes.filter(
-                  (t) => extractCategoryId((t as any).categoryId) === cat._id
+                  (t) => extractCategoryId((t as MaterialWithCategory).categoryId) === cat._id,
                 ).length;
                 return (
                   <button
@@ -222,14 +241,14 @@ export const MaterialTypeCatalog: React.FC = () => {
                     onClick={() => toggleCategory(cat._id)}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                       isActive
-                        ? 'bg-[#FFD700] text-black'
-                        : 'bg-[#1a1a1a] border border-[#333] text-gray-400 hover:border-[#FFD700] hover:text-white'
+                        ? "bg-[#FFD700] text-black"
+                        : "bg-[#1a1a1a] border border-[#333] text-gray-400 hover:border-[#FFD700] hover:text-white"
                     }`}
                   >
                     {cat.name}
                     <span
                       className={`text-xs px-1.5 py-0.5 rounded-full ${
-                        isActive ? 'bg-black/20 text-black' : 'bg-[#333] text-gray-300'
+                        isActive ? "bg-black/20 text-black" : "bg-[#333] text-gray-300"
                       }`}
                     >
                       {count}
@@ -239,7 +258,10 @@ export const MaterialTypeCatalog: React.FC = () => {
               })}
               {selectedCategoryIds.size > 0 && (
                 <button
-                  onClick={() => setSelectedCategoryIds(new Set())}
+                  onClick={() => {
+                    setSelectedCategoryIds(new Set());
+                    setPage(1);
+                  }}
                   className="flex items-center gap-1 px-2 py-1.5 text-gray-500 hover:text-white text-sm transition-colors"
                   title="Limpiar filtros"
                 >
@@ -268,13 +290,11 @@ export const MaterialTypeCatalog: React.FC = () => {
             materialTypes={pagedMaterialTypes}
             categories={categories}
             onView={setSelectedMaterialType}
-            onEdit={(type) =>
-              navigate('create', { state: { materialType: type } })
-            }
+            onEdit={(type) => navigate("create", { state: { materialType: type } })}
             onDelete={handleDelete}
           />
           <AdminPagination
-            currentPage={page}
+            currentPage={currentPage}
             totalPages={totalPages}
             totalItems={filteredMaterialTypes.length}
             pageSize={pageSize}

@@ -258,7 +258,7 @@ function RoleFormModal({ mode, role, permissions, onClose, onSaved }: RoleFormMo
             <button
               type="submit"
               disabled={submitting}
-              className="px-5 py-2 bg-[#FFD700] text-black font-semibold rounded-lg hover:bg-yellow-300 transition flex items-center gap-2 text-sm disabled:opacity-50"
+              className="px-5 py-2 font-semibold rounded-lg transition flex items-center gap-2 text-sm gold-action-btn disabled:opacity-50"
             >
               <Plus size={14} />
               {submitting
@@ -362,7 +362,7 @@ export default function RoleManagement() {
           </div>
           <button
             onClick={() => setModal({ type: "create" })}
-            className="shrink-0 flex items-center gap-2 px-4 py-2.5 bg-[#FFD700] text-black font-semibold rounded-lg hover:bg-yellow-300 transition"
+            className="shrink-0 flex items-center gap-2 px-4 py-2.5 font-semibold rounded-lg transition gold-action-btn"
           >
             <Plus size={18} />
             New Role
@@ -438,7 +438,7 @@ export default function RoleManagement() {
                       <button
                         onClick={() => handleDelete(role)}
                         disabled={deletingId === role._id}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-red-400 border border-red-400/20 rounded-lg hover:bg-red-400/10 transition disabled:opacity-50"
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg transition disabled:opacity-50 danger-action-btn"
                       >
                         <Trash2 size={14} />
                         {deletingId === role._id ? "Deleting..." : "Delete"}

@@ -25,9 +25,10 @@ export const CreateCategory: React.FC = () => {
         showToast("success", "Category created successfully!");
       }
       navigate("/app/material-categories");
-    } catch (error: any) {
-      showToast("error", error.message || "Error saving category");
-      throw error;
+    } catch (error) {
+      const err = error as Error;
+      showToast("error", err.message || "Error saving category");
+      throw err;
     }
   };
 

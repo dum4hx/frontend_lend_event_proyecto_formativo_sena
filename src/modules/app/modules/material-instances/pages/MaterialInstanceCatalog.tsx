@@ -1,6 +1,8 @@
-import React, { useState } from "react";
-import { Plus, Search, X } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { AlertTriangle, Plus, Search, X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useMaterialInstances } from "../hooks";
+import { useMaterialTypes } from "../../material-types/hooks";
 import {
   MaterialInstanceList,
   MaterialInstanceDetailModal,
@@ -9,17 +11,39 @@ import {
 import { AdminPagination } from "../../../components";
 import { ExcelExportImport } from "../../../../../components/export/ExcelExportImport";
 import { useToast } from "../../../../../contexts/ToastContext";
+import { getLocations, type WarehouseLocation } from "../../../../../services/warehouseOperatorService";
 import type { MaterialInstance, CreateMaterialInstancePayload } from "../../../../../types/api";
 
 export const MaterialInstanceCatalog: React.FC = () => {
+  const navigate = useNavigate();
   const { instances, loading, error, removeInstance, addInstance } = useMaterialInstances();
+  const { materialTypes } = useMaterialTypes();
   const { showToast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
   const [selectedInstance, setSelectedInstance] = useState<MaterialInstance | null>(null);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [isDependencyModalOpen, setIsDependencyModalOpen] = useState(false);
   const [editingInstance, setEditingInstance] = useState<MaterialInstance | null>(null);
+  const [locations, setLocations] = useState<WarehouseLocation[]>([]);
   const pageSize = 10;
+
+  useEffect(() => {
+    const fetchLocations = async () => {
+      try {
+        const response = await getLocations();
+        setLocations(response.data.items || []);
+      } catch (fetchError) {
+        console.error("Error fetching locations:", fetchError);
+      }
+    };
+
+    fetchLocations();
+  }, []);
+
+  const hasMaterialTypes = materialTypes.length > 0;
+  const hasLocations = locations.length > 0;
+  const canCreateInstance = hasMaterialTypes && hasLocations;
 
   const filteredInstances = instances.filter((inst) =>
     inst.serialNumber.toLowerCase().includes(searchTerm.toLowerCase()),
@@ -80,6 +104,15 @@ export const MaterialInstanceCatalog: React.FC = () => {
         "Error",
       );
     }
+  };
+
+  const handleOpenCreateModal = () => {
+    setEditingInstance(null);
+    if (!canCreateInstance) {
+      setIsDependencyModalOpen(true);
+      return;
+    }
+    setIsFormModalOpen(true);
   };
 
   interface ImportRow {
@@ -177,11 +210,8 @@ export const MaterialInstanceCatalog: React.FC = () => {
               showLabels={true}
             />
             <button
-              onClick={() => {
-                setEditingInstance(null);
-                setIsFormModalOpen(true);
-              }}
-              className="flex items-center gap-2 px-6 py-3 bg-[#FFD700] text-black font-semibold rounded-lg hover:bg-[#FFC700] transition-colors whitespace-nowrap"
+              onClick={handleOpenCreateModal}
+              className="flex items-center gap-2 px-6 py-3 font-semibold rounded-lg transition-colors whitespace-nowrap gold-action-btn"
             >
               <Plus size={20} />
               New Instance
@@ -256,6 +286,81 @@ export const MaterialInstanceCatalog: React.FC = () => {
                   initialData={editingInstance || undefined}
                   isEditing={!!editingInstance}
                 />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Dependency Modal */}
+        {isDependencyModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+            <div className="bg-[#121212] border border-[#333] rounded-xl w-full max-w-xl overflow-hidden shadow-2xl">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-[#333]">
+                <h2 className="text-xl font-bold text-white">Requirements Missing</h2>
+                <button
+                  onClick={() => setIsDependencyModalOpen(false)}
+                  className="p-2 text-gray-400 hover:text-white transition-colors"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="p-6">
+                <div className="flex items-start gap-3 mb-5">
+                  <AlertTriangle className="text-[#FFD700] mt-0.5" size={22} />
+                  <div>
+                    <p className="text-white font-semibold mb-2">
+                      You need setup data before creating a material instance.
+                    </p>
+                    <p className="text-gray-300 text-sm">
+                      Create the following first, then return and click New Instance again.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-2 mb-6">
+                  {!hasMaterialTypes && (
+                    <div className="text-sm text-red-300 bg-[#2a1f1f] border border-[#4a2a2a] rounded-lg px-3 py-2">
+                      Missing: at least one Material Type
+                    </div>
+                  )}
+                  {!hasLocations && (
+                    <div className="text-sm text-red-300 bg-[#2a1f1f] border border-[#4a2a2a] rounded-lg px-3 py-2">
+                      Missing: at least one Location
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3">
+                  {!hasMaterialTypes && (
+                    <button
+                      onClick={() => {
+                        setIsDependencyModalOpen(false);
+                        navigate("/app/material-types");
+                      }}
+                      className="px-5 py-2.5 font-semibold rounded-lg transition-colors gold-action-btn"
+                    >
+                      Go to Material Types
+                    </button>
+                  )}
+                  {!hasLocations && (
+                    <button
+                      onClick={() => {
+                        setIsDependencyModalOpen(false);
+                        navigate("/app/locations");
+                      }}
+                      className="px-5 py-2.5 font-semibold rounded-lg transition-colors gold-action-btn"
+                    >
+                      Go to Locations
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setIsDependencyModalOpen(false)}
+                    className="px-5 py-2.5 bg-transparent text-gray-300 border border-[#333] rounded-lg hover:bg-[#222] transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
             </div>
           </div>

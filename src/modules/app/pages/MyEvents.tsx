@@ -367,7 +367,7 @@ export default function MyEvents() {
         </div>
         <button
           onClick={() => handleOpenModal()}
-          className="flex items-center gap-2 px-4 py-2 bg-[#FFD700] text-black font-bold rounded-lg hover:bg-yellow-400 transition"
+          className="flex items-center gap-2 px-4 py-2 font-bold rounded-lg transition gold-action-btn"
         >
           <Plus size={20} />
           New Event
@@ -410,7 +410,7 @@ export default function MyEvents() {
                   </button>
                   <button
                     onClick={() => handleDeleteEvent(ev.id)}
-                    className="p-2 text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
+                    className="p-2 danger-icon-btn"
                     title="Delete"
                   >
                     <Trash2 size={18} />
