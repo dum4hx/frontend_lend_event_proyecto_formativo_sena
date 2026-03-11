@@ -27,8 +27,9 @@ function buildFilename(payload: ExportPayload): string {
   return `${payload.config.module}-export-${yyyy}${mm}${dd}-${payload.metadata.exportId}.xlsx`;
 }
 
-function escXml(text: string): string {
-  return text
+function escXml(text: string | undefined | null): string {
+  if (text === undefined || text === null) return '';
+  return String(text)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')

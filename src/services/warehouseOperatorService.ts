@@ -52,9 +52,11 @@ export async function deleteInventoryItem(id: string): Promise<ApiSuccessRespons
 // Warehouse Locations
 export interface WarehouseLocation {
   _id: string;
+  id?: string; // Some APIs transform _id to id
   name: string;
   organizationId: string;
   address: LocationAddress;
+  status: "available" | "full_capacity" | "maintenance" | "inactive";
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -62,23 +64,31 @@ export interface WarehouseLocation {
 
 export interface LocationAddress {
   country?: string;
-  state?: string;
-  city?: string;
   street?: string;
   propertyNumber?: string;
+  streetType?: string;
+  primaryNumber?: string;
+  secondaryNumber?: string;
+  complementaryNumber?: string;
+  state?: string;
+  city?: string;
+  additionalDetails?: string;
   additionalInfo?: string;
+  formatted?: string;
 }
 
 export interface LocationCreatePayload {
-  code: string;
   name: string;
   organizationId: string;
-  section: string;
-  shelf: string;
-  capacity: number;
-  occupied: number;
-  status: "available" | "full" | "maintenance";
-  address: LocationAddress;
+  status?: "available" | "full_capacity" | "maintenance" | "inactive";
+  address: {
+    country: string;
+    state: string;
+    city: string;
+    street: string;
+    propertyNumber: string;
+    additionalInfo?: string;
+  };
 }
 
 export interface LocationsListResponse {

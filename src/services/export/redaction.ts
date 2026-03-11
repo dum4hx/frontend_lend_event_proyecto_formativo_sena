@@ -122,6 +122,23 @@ export const BILLING_HISTORY_POLICY: RedactionPolicy = {
   ],
 };
 
+export const LOCATIONS_POLICY: RedactionPolicy = {
+  module: 'locations',
+  requiresFullExportConfirmation: false,
+  fields: [
+    { key: 'Name', label: 'Name', redaction: 'include', overridable: false, defaultSelected: true, category: 'identifier' },
+    { key: 'Status', label: 'Status', redaction: 'include', overridable: false, defaultSelected: true, category: 'attribute' },
+    { key: 'Street Type', label: 'Street Type', redaction: 'include', overridable: true, defaultSelected: true, category: 'attribute' },
+    { key: 'Primary Number', label: 'Primary Number', redaction: 'include', overridable: true, defaultSelected: true, category: 'attribute' },
+    { key: 'Secondary Number', label: 'Secondary Number', redaction: 'include', overridable: true, defaultSelected: true, category: 'attribute' },
+    { key: 'Complementary Number', label: 'Complementary Number', redaction: 'include', overridable: true, defaultSelected: false, category: 'attribute' },
+    { key: 'State', label: 'State/Department', redaction: 'include', overridable: false, defaultSelected: true, category: 'attribute' },
+    { key: 'City', label: 'City', redaction: 'include', overridable: false, defaultSelected: true, category: 'attribute' },
+    { key: 'Additional Details', label: 'Additional Details', redaction: 'include', overridable: true, defaultSelected: false, category: 'metadata' },
+    { key: 'Formatted Address', label: 'Formatted Address', redaction: 'include', overridable: false, defaultSelected: true, category: 'metadata' },
+  ],
+};
+
 /** Retrieve the default policy for a given module. */
 export function getDefaultPolicy(module: ExportModule): RedactionPolicy {
   switch (module) {
@@ -135,6 +152,8 @@ export function getDefaultPolicy(module: ExportModule): RedactionPolicy {
       return ORGANIZATION_MANAGEMENT_POLICY;
     case 'billing-history':
       return BILLING_HISTORY_POLICY;
+    case 'locations':
+      return LOCATIONS_POLICY;
   }
 }
 
