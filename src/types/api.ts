@@ -356,6 +356,8 @@ export interface CreatePackagePayload {
 export type LoanRequestStatus = "pending" | "approved" | "rejected" | "ready" | "cancelled";
 
 export interface LoanRequestItem {
+  type?: "material" | "package";
+  referenceId?: string;
   materialTypeId?: string;
   packageId?: string;
   quantity?: number;
