@@ -53,6 +53,20 @@ type FormDraftItem = {
   quantity: string;
 };
 
+type DraftItemValidationErrors = {
+  categoryId?: string;
+  materialTypeId?: string;
+  quantity?: string;
+};
+
+type CreateOrderValidationErrors = {
+  customerId?: string;
+  startDate?: string;
+  endDate?: string;
+  items?: string;
+  rows: Record<string, DraftItemValidationErrors>;
+};
+
 type OrderView = {
   request: LoanRequest;
   loan?: Loan;
@@ -205,6 +219,17 @@ function findRelatedLoan(requestId: string, loans: Loan[]): Loan | undefined {
   return loans.find((loan) => loan.requestId === requestId);
 }
 
+function extractCustomerIdFromRequest(request: LoanRequest): string | undefined {
+  if (typeof request.customerId === "string") return request.customerId;
+
+  const candidate = request.customerId as unknown;
+  if (candidate && typeof candidate === "object") {
+    return (candidate as { _id?: string })._id;
+  }
+
+  return undefined;
+}
+
 function mapRequestItemsToDisplay(
   items: LoanRequestItem[],
   packages: Package[],
@@ -240,7 +265,10 @@ function buildOrderViewModel(
   return requests.map((request) => {
     const relatedLoan = findRelatedLoan(request._id, loans);
     const workflow = getWorkflowFromRequestAndLoan(request, relatedLoan);
-    const customer = customers.find((entry) => entry._id === request.customerId);
+    const customerId = extractCustomerIdFromRequest(request);
+    const customer = customerId
+      ? customers.find((entry) => entry._id === customerId)
+      : undefined;
 
     return {
       request,
@@ -275,6 +303,8 @@ export default function Orders() {
   const [rejectTarget, setRejectTarget] = useState<OrderView | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [formData, setFormData] = useState(EMPTY_FORM);
+  const [showValidationErrors, setShowValidationErrors] = useState(false);
+  const [createErrors, setCreateErrors] = useState<CreateOrderValidationErrors>({ rows: {} });
   const [formItems, setFormItems] = useState<FormDraftItem[]>([
     { localId: crypto.randomUUID(), categoryId: "", materialTypeId: "", quantity: "1" },
   ]);
@@ -451,6 +481,8 @@ export default function Orders() {
   const resetCreateForm = () => {
     setFormData(EMPTY_FORM);
     setFormItems([{ localId: crypto.randomUUID(), categoryId: "", materialTypeId: "", quantity: "1" }]);
+    setCreateErrors({ rows: {} });
+    setShowValidationErrors(false);
   };
 
   const closeCreateModal = () => {
@@ -489,14 +521,71 @@ export default function Orders() {
     });
   };
 
-  const handleCreateOrder = async () => {
-    if (!formData.customerId || !formData.startDate || !formData.endDate) {
-      showError("Customer and date range are required.", "Validation Error");
-      return;
+  const validateCreateOrderForm = useCallback((): CreateOrderValidationErrors => {
+    const nextErrors: CreateOrderValidationErrors = { rows: {} };
+
+    if (!formData.customerId) {
+      nextErrors.customerId = "Select the customer for this order.";
     }
 
-    if (formData.startDate < todayDate) {
-      showError("Start date cannot be in the past.", "Validation Error");
+    if (!formData.startDate) {
+      nextErrors.startDate = "Select a start date.";
+    } else if (formData.startDate < todayDate) {
+      nextErrors.startDate = "Start date cannot be in the past.";
+    }
+
+    if (!formData.endDate) {
+      nextErrors.endDate = "Select an end date.";
+    } else if (formData.startDate && formData.endDate < formData.startDate) {
+      nextErrors.endDate = "End date must be on or after start date.";
+    }
+
+    formItems.forEach((item) => {
+      const rowErrors: DraftItemValidationErrors = {};
+      if (!item.categoryId) {
+        rowErrors.categoryId = "Select a category.";
+      }
+      if (!item.materialTypeId) {
+        rowErrors.materialTypeId = "Select a material type.";
+      }
+
+      const quantityValue = Number(item.quantity);
+      if (!Number.isFinite(quantityValue) || quantityValue <= 0) {
+        rowErrors.quantity = "Quantity must be greater than 0.";
+      }
+
+      if (Object.keys(rowErrors).length > 0) {
+        nextErrors.rows[item.localId] = rowErrors;
+      }
+    });
+
+    const parsedItems = formItems.filter((item) => item.materialTypeId);
+    if (parsedItems.length === 0) {
+      nextErrors.items = "Add at least one product or service item.";
+    }
+
+    return nextErrors;
+  }, [formData, formItems, todayDate]);
+
+  useEffect(() => {
+    if (!showValidationErrors) return;
+    setCreateErrors(validateCreateOrderForm());
+  }, [showValidationErrors, validateCreateOrderForm]);
+
+  const handleCreateOrder = async () => {
+    setShowValidationErrors(true);
+    const validationErrors = validateCreateOrderForm();
+    setCreateErrors(validationErrors);
+
+    const hasValidationErrors =
+      Boolean(validationErrors.customerId) ||
+      Boolean(validationErrors.startDate) ||
+      Boolean(validationErrors.endDate) ||
+      Boolean(validationErrors.items) ||
+      Object.keys(validationErrors.rows).length > 0;
+
+    if (hasValidationErrors) {
+      showError("Please fix the highlighted fields in the form.", "Validation Error");
       return;
     }
 
@@ -511,16 +600,6 @@ export default function Orders() {
           quantity: normalizedQuantity,
         };
       });
-
-    if (parsedItems.length === 0) {
-      showError("Add at least one product or service.", "Validation Error");
-      return;
-    }
-
-    if (formData.endDate < formData.startDate) {
-      showError("End date must be on or after start date.", "Validation Error");
-      return;
-    }
 
     const payload: CreateLoanRequestPayload = {
       customerId: formData.customerId,
@@ -821,13 +900,19 @@ export default function Orders() {
             <div className="modal-body p-0">
               <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px]">
                 <div className="p-6 md:p-7 space-y-6">
+                  {showValidationErrors && (
+                    <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
+                      Review the highlighted fields below to continue.
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="form-group md:col-span-2">
                       <label className="form-label">Customer *</label>
                       <select
                         value={formData.customerId}
                         onChange={(e) => setFormData((prev) => ({ ...prev, customerId: e.target.value }))}
-                        className="input"
+                        className={`input ${createErrors.customerId ? "input-error" : ""}`}
                       >
                         <option value="">Select customer</option>
                         {customers.map((customer) => (
@@ -836,6 +921,7 @@ export default function Orders() {
                           </option>
                         ))}
                       </select>
+                      {createErrors.customerId && <p className="form-error">{createErrors.customerId}</p>}
                     </div>
 
                     <div className="form-group">
@@ -857,8 +943,9 @@ export default function Orders() {
                             };
                           })
                         }
-                        className="input"
+                        className={`input ${createErrors.startDate ? "input-error" : ""}`}
                       />
+                      {createErrors.startDate && <p className="form-error">{createErrors.startDate}</p>}
                     </div>
 
                     <div className="form-group">
@@ -868,8 +955,9 @@ export default function Orders() {
                         value={formData.endDate}
                         min={formData.startDate || todayDate}
                         onChange={(e) => setFormData((prev) => ({ ...prev, endDate: e.target.value }))}
-                        className="input"
+                        className={`input ${createErrors.endDate ? "input-error" : ""}`}
                       />
+                      {createErrors.endDate && <p className="form-error">{createErrors.endDate}</p>}
                     </div>
 
                     <div className="form-group md:col-span-2">
@@ -896,6 +984,8 @@ export default function Orders() {
                     </div>
 
                     <div className="space-y-3">
+                      {createErrors.items && <p className="form-error">{createErrors.items}</p>}
+
                       {formItems.map((item) => (
                         <div
                           key={item.localId}
@@ -906,7 +996,7 @@ export default function Orders() {
                             <select
                               value={item.categoryId}
                               onChange={(e) => handleDraftItemChange(item.localId, { categoryId: e.target.value })}
-                              className="input"
+                              className={`input ${createErrors.rows[item.localId]?.categoryId ? "input-error" : ""}`}
                             >
                               <option value="">Select category</option>
                               {materialCategories.map((category) => (
@@ -915,6 +1005,9 @@ export default function Orders() {
                                 </option>
                               ))}
                             </select>
+                            {createErrors.rows[item.localId]?.categoryId && (
+                              <p className="form-error">{createErrors.rows[item.localId]?.categoryId}</p>
+                            )}
                           </div>
 
                           <div className="form-group">
@@ -922,7 +1015,7 @@ export default function Orders() {
                             <select
                               value={item.materialTypeId}
                               onChange={(e) => handleDraftItemChange(item.localId, { materialTypeId: e.target.value })}
-                              className="input"
+                              className={`input ${createErrors.rows[item.localId]?.materialTypeId ? "input-error" : ""}`}
                               disabled={!item.categoryId}
                             >
                               <option value="">{item.categoryId ? "Select material type" : "Select category first"}</option>
@@ -941,6 +1034,9 @@ export default function Orders() {
                                   </option>
                                 ))}
                             </select>
+                            {createErrors.rows[item.localId]?.materialTypeId && (
+                              <p className="form-error">{createErrors.rows[item.localId]?.materialTypeId}</p>
+                            )}
                           </div>
 
                           <div className="form-group">
@@ -950,8 +1046,11 @@ export default function Orders() {
                               min={1}
                               value={item.quantity}
                               onChange={(e) => handleDraftItemChange(item.localId, { quantity: e.target.value })}
-                              className="input"
+                              className={`input ${createErrors.rows[item.localId]?.quantity ? "input-error" : ""}`}
                             />
+                            {createErrors.rows[item.localId]?.quantity && (
+                              <p className="form-error">{createErrors.rows[item.localId]?.quantity}</p>
+                            )}
                           </div>
 
                           <button
