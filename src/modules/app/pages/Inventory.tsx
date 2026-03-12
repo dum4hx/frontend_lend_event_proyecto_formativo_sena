@@ -66,8 +66,9 @@ interface InstanceModalProps {
 
 function InstanceModal({ instance, materialTypes, onClose, onSave }: InstanceModalProps) {
   const isEditing = Boolean(instance);
-  const [modelId, setModelId] = useState(instance?.modelId ?? "");
+  const [modelId, setModelId] = useState(instance?.model._id ?? "");
   const [serialNumber, setSerialNumber] = useState(instance?.serialNumber ?? "");
+  const [locationId, _setLocationId] = useState(instance?.locationId ?? "");
   const [purchaseDate, setPurchaseDate] = useState(instance?.purchaseDate ?? "");
   const [purchaseCostRaw, setPurchaseCostRaw] = useState(
     instance?.purchaseCost != null ? String(instance.purchaseCost) : "",
@@ -105,6 +106,7 @@ function InstanceModal({ instance, materialTypes, onClose, onSave }: InstanceMod
         const payload: CreateMaterialInstancePayload = {
           modelId,
           serialNumber: serialNumber.trim(),
+          locationId: locationId || "default-location",
           purchaseDate: purchaseDate || undefined,
           purchaseCost: purchaseCostRaw ? parseInt(purchaseCostRaw, 10) : undefined,
         };
@@ -325,7 +327,7 @@ export default function InventoryPage() {
   const filteredInstances = instances.filter((inst) => {
     const matchesSearch =
       inst.serialNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      getTypeName(inst.modelId).toLowerCase().includes(searchTerm.toLowerCase());
+      getTypeName(inst.model._id).toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || inst.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -517,7 +519,7 @@ export default function InventoryPage() {
                   <td className="px-6 py-4 text-white font-mono font-semibold">
                     {inst.serialNumber}
                   </td>
-                  <td className="px-6 py-4 text-white">{getTypeName(inst.modelId)}</td>
+                  <td className="px-6 py-4 text-white">{getTypeName(inst.model._id)}</td>
                   <td className="px-6 py-4">
                     <span
                       className={`px-3 py-1 rounded text-xs font-semibold ${STATUS_STYLES[inst.status]}`}

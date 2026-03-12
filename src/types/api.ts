@@ -309,12 +309,17 @@ export interface MaterialInstance {
   serialNumber: string;
   locationId: string;
   status: MaterialInstanceStatus;
+  purchaseDate?: string;
+  purchaseCost?: number;
+  [key: string]: unknown;
 }
 
 export interface CreateMaterialInstancePayload {
   modelId: string;
   serialNumber: string;
   locationId: string;
+  purchaseDate?: string;
+  purchaseCost?: number;
 }
 
 export interface UpdateMaterialInstanceStatusPayload {
@@ -893,4 +898,211 @@ export interface BillingHistoryEntry {
   processed: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+// ─── Teams ─────────────────────────────────────────────────────────────────
+
+export type TeamMemberStatus = "active" | "inactive";
+
+/** Team entity */
+export interface Team {
+  _id: string;
+  name: string;
+  description?: string;
+  organizationId: string;
+  leaderId?: string;
+  memberCount: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Team member */
+export interface TeamMember {
+  userId: string;
+  email: string;
+  name: PersonName;
+  roleName: string;
+  joinedAt: string;
+  status: TeamMemberStatus;
+}
+
+/** Payload to create a new team */
+export interface CreateTeamPayload {
+  name: string;
+  description?: string;
+  leaderId?: string;
+}
+
+/** Payload to update an existing team */
+export interface UpdateTeamPayload {
+  name?: string;
+  description?: string;
+  leaderId?: string;
+  isActive?: boolean;
+}
+
+/** Payload to add a member to a team */
+export interface AddTeamMemberPayload {
+  userId: string;
+}
+
+/** Teams list response */
+export interface TeamsListResponse {
+  items: Team[];
+  pagination: PaginationMeta;
+}
+
+/** Team members list response */
+export interface TeamMembersListResponse {
+  items: TeamMember[];
+  pagination: PaginationMeta;
+}
+
+/** Query params for teams list */
+export interface TeamsQueryParams extends PaginationParams {
+  search?: string;
+  isActive?: boolean;
+  leaderId?: string;
+}
+
+// ─── Events & Rentals ──────────────────────────────────────────────────────
+
+export type EventStatus = "draft" | "confirmed" | "in_progress" | "completed" | "cancelled";
+export type RentalStatus = "pending" | "active" | "returned" | "overdue" | "cancelled";
+
+/** Event entity */
+export interface Event {
+  _id: string;
+  name: string;
+  description?: string;
+  organizationId: string;
+  customerId?: string;
+  customerName?: string;
+  startDate: string;
+  endDate: string;
+  location?: string;
+  status: EventStatus;
+  totalCost: number;
+  materialsCount: number;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Event material assignment */
+export interface EventMaterial {
+  materialTypeId: string;
+  materialTypeName: string;
+  quantity: number;
+  pricePerDay: number;
+  totalCost: number;
+  assignedInstances?: string[];
+}
+
+/** Rental entity */
+export interface Rental {
+  _id: string;
+  eventId: string;
+  eventName: string;
+  customerId: string;
+  customerName: string;
+  organizationId: string;
+  materialTypeId: string;
+  materialTypeName: string;
+  instanceId?: string;
+  quantity: number;
+  startDate: string;
+  endDate: string;
+  returnDate?: string;
+  pricePerDay: number;
+  totalCost: number;
+  status: RentalStatus;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Payload to create a new event */
+export interface CreateEventPayload {
+  name: string;
+  description?: string;
+  customerId?: string;
+  startDate: string;
+  endDate: string;
+  location?: string;
+}
+
+/** Payload to update an existing event */
+export interface UpdateEventPayload {
+  name?: string;
+  description?: string;
+  customerId?: string;
+  startDate?: string;
+  endDate?: string;
+  location?: string;
+  status?: EventStatus;
+}
+
+/** Payload to assign materials to an event */
+export interface AssignMaterialToEventPayload {
+  materialTypeId: string;
+  quantity: number;
+  pricePerDay: number;
+}
+
+/** Payload to create a rental */
+export interface CreateRentalPayload {
+  eventId: string;
+  customerId: string;
+  materialTypeId: string;
+  instanceId?: string;
+  quantity: number;
+  startDate: string;
+  endDate: string;
+  pricePerDay: number;
+  notes?: string;
+}
+
+/** Payload to update rental status */
+export interface UpdateRentalStatusPayload {
+  status: RentalStatus;
+  returnDate?: string;
+  notes?: string;
+}
+
+/** Events list response */
+export interface EventsListResponse {
+  items: Event[];
+  pagination: PaginationMeta;
+}
+
+/** Event materials list response */
+export interface EventMaterialsListResponse {
+  items: EventMaterial[];
+  pagination?: PaginationMeta;
+}
+
+/** Rentals list response */
+export interface RentalsListResponse {
+  items: Rental[];
+  pagination: PaginationMeta;
+}
+
+/** Query params for events list */
+export interface EventsQueryParams extends PaginationParams {
+  status?: EventStatus;
+  customerId?: string;
+  startDate?: string;
+  endDate?: string;
+  search?: string;
+}
+
+/** Query params for rentals list */
+export interface RentalsQueryParams extends PaginationParams {
+  status?: RentalStatus;
+  eventId?: string;
+  customerId?: string;
+  materialTypeId?: string;
+  overdue?: boolean;
 }

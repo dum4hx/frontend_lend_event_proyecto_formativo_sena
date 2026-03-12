@@ -54,11 +54,8 @@ export interface WarehouseLocation {
   _id: string;
   id: string;
   name: string;
-  code: string;
   organizationId: string;
   address: LocationAddress;
-  section: string;
-  shelf: string;
   capacity: number;
   occupied: number;
   status: "available" | "full" | "maintenance";

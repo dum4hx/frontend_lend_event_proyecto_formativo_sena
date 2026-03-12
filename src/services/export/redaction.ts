@@ -154,6 +154,15 @@ export function getDefaultPolicy(module: ExportModule): RedactionPolicy {
       return BILLING_HISTORY_POLICY;
     case 'locations':
       return LOCATIONS_POLICY;
+    case 'teams':
+    case 'events':
+    default:
+      // For modules without specific policies, include all fields without redaction
+      return {
+        module,
+        fields: [],
+        requiresFullExportConfirmation: false,
+      };
   }
 }
 

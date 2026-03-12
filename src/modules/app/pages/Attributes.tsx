@@ -41,8 +41,6 @@ export default function Attributes() {
   const categories = useMemo(() => categoriesData?.data?.categories || [], [categoriesData]);
 
   const canCreate = hasPermission("material_attributes:create");
-  const canUpdate = hasPermission("material_attributes:update");
-  const canDelete = hasPermission("material_attributes:delete");
 
   const filtered = useMemo(() => {
     return attributes.filter(

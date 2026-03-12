@@ -29,6 +29,7 @@ import { assertValidPayload, validateExportPayload } from './validation';
 import { computeDataChecksum, generateExportId, sha256 } from './checksum';
 import { pdfAdapter } from './adapters/pdfAdapter';
 import { excelAdapter } from './adapters/excelAdapter';
+import { csvAdapter } from './adapters/csvAdapter';
 
 // ─── Module Display Names ──────────────────────────────────────────────────
 
@@ -38,6 +39,9 @@ const MODULE_DISPLAY_NAMES: Record<ExportModule, string> = {
   'plan-configuration': 'Plan Configuration',
   'organization-management': 'Organization Management',
   "billing-history": 'Billing History',
+  'locations': 'Locations',
+  'teams': 'Teams',
+  'events': 'Events',
 };
 
 // ─── Adapter Registry ──────────────────────────────────────────────────────
@@ -45,6 +49,7 @@ const MODULE_DISPLAY_NAMES: Record<ExportModule, string> = {
 const adapters = new Map<ExportFormat, ExportAdapter>();
 adapters.set('pdf', pdfAdapter);
 adapters.set('xlsx', excelAdapter);
+adapters.set('csv', csvAdapter);
 
 // ─── Export Service ────────────────────────────────────────────────────────
 

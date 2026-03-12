@@ -9,7 +9,7 @@
 // ─── Export Format ─────────────────────────────────────────────────────────
 
 /** Supported export output formats. */
-export type ExportFormat = 'pdf' | 'xlsx';
+export type ExportFormat = 'pdf' | 'xlsx' | 'csv';
 
 /** Identifies which module is triggering the export. */
 export type ExportModule =
@@ -18,7 +18,9 @@ export type ExportModule =
   | 'plan-configuration'
   | 'organization-management'
   | 'billing-history'
-  | 'locations';
+  | 'locations'
+  | 'teams'
+  | 'events';
 
 // ─── Redaction Policy ──────────────────────────────────────────────────────
 

@@ -31,7 +31,7 @@ function buildFilename(payload: ExportPayload): string {
 }
 
 /** Escape XML/HTML special chars for the SVG/text representation. */
-function escapeHtml(text: string | undefined | null): string {
+function esc(text: string | undefined | null): string {
   if (text === undefined || text === null) return '';
   return String(text)
     .replace(/&/g, '&amp;')

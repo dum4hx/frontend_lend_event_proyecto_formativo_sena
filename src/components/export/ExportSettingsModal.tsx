@@ -64,8 +64,9 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 const FORMAT_OPTIONS: Array<{ value: ExportFormat; label: string; Icon: typeof FileText }> = [
-  { value: 'pdf', label: EXPORT_I18N['export.format.pdf'], Icon: FileText },
+  { value: 'csv', label: 'CSV', Icon: FileText },
   { value: 'xlsx', label: EXPORT_I18N['export.format.xlsx'], Icon: Table2 },
+  { value: 'pdf', label: EXPORT_I18N['export.format.pdf'], Icon: FileText },
 ];
 
 // ─── Component ─────────────────────────────────────────────────────────────
@@ -89,7 +90,7 @@ export function ExportSettingsModal({
 
   const options = useMemo(() => FORMAT_OPTIONS.filter((o) => allowed.includes(o.value)), [allowed]);
 
-  const [format, setFormat] = useState<ExportFormat>(() => (allowed.includes('xlsx') ? 'xlsx' : allowed[0] ?? 'xlsx'));
+  const [format, setFormat] = useState<ExportFormat>(() => (allowed.includes('csv') ? 'csv' : allowed.includes('xlsx') ? 'xlsx' : allowed[0] ?? 'csv'));
   const [selectedFields, setSelectedFields] = useState<Set<string>>(() => {
     return new Set(
       policy.fields.filter((f) => f.defaultSelected).map((f) => f.key),
