@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Plus,
@@ -19,8 +19,10 @@ import type {
   LoanRequest,
   LoanRequestItem,
   MaterialCategory,
+  MaterialInstance,
   MaterialType,
   Package,
+  PackageMaterialEntry,
 } from "../../../types/api";
 import {
   createRequest,
@@ -32,7 +34,12 @@ import {
   returnLoan,
 } from "../../../services/loanService";
 import { getCustomers } from "../../../services/customerService";
-import { getMaterialCategories, getMaterialTypes, getPackages } from "../../../services/materialService";
+import {
+  getMaterialCategories,
+  getMaterialInstances,
+  getMaterialTypes,
+  getPackages,
+} from "../../../services/materialService";
 import { useAlertModal } from "../../../hooks/useAlertModal";
 
 type WorkflowStatus =
@@ -50,6 +57,7 @@ type FormDraftItem = {
   localId: string;
   categoryId: string;
   materialTypeId: string;
+  materialSearchTerm: string;
   quantity: string;
 };
 
@@ -101,6 +109,20 @@ const EMPTY_FORM = {
   startDate: "",
   endDate: "",
   notes: "",
+};
+
+const RECENT_ORDER_MATERIALS_KEY = "orders.recentMaterialIds";
+const ORDER_MATERIAL_USAGE_KEY = "orders.materialUsageCounts";
+const LOW_STOCK_THRESHOLD = 2;
+
+type MaterialAvailability = {
+  total: number;
+  available: number;
+};
+
+type DraftMaterialSelection = {
+  material: MaterialType;
+  quantity: number;
 };
 
 function formatDate(dateValue: string): string {
@@ -156,6 +178,31 @@ function extractCategoryId(value: unknown): string | undefined {
     if (first && typeof first === "object") return (first as { _id?: string })._id;
   }
   if (value && typeof value === "object") return (value as { _id?: string })._id;
+  return undefined;
+}
+
+function extractMaterialTypeIdFromInstance(instance: MaterialInstance): string | undefined {
+  const withModel = instance as MaterialInstance & {
+    model?: { _id?: string } | string;
+    modelId?: string;
+    materialTypeId?: string;
+  };
+
+  if (typeof withModel.model === "string") return withModel.model;
+  if (withModel.model && typeof withModel.model === "object" && withModel.model._id) {
+    return withModel.model._id;
+  }
+  if (withModel.modelId) return withModel.modelId;
+  if (withModel.materialTypeId) return withModel.materialTypeId;
+  return undefined;
+}
+
+function extractMaterialTypeIdFromPackageEntry(entry: PackageMaterialEntry): string | undefined {
+  const candidate = (entry as PackageMaterialEntry & { materialTypeId: unknown }).materialTypeId;
+  if (typeof candidate === "string") return candidate;
+  if (candidate && typeof candidate === "object") {
+    return (candidate as { _id?: string })._id;
+  }
   return undefined;
 }
 
@@ -289,6 +336,8 @@ export default function Orders() {
   const [loans, setLoans] = useState<Loan[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [materialCategories, setMaterialCategories] = useState<MaterialCategory[]>([]);
+  const [materialInstances, setMaterialInstances] = useState<MaterialInstance[]>([]);
+  const [inventoryDataAvailable, setInventoryDataAvailable] = useState(false);
   const [packages, setPackages] = useState<Package[]>([]);
   const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -306,18 +355,131 @@ export default function Orders() {
   const [showValidationErrors, setShowValidationErrors] = useState(false);
   const [createErrors, setCreateErrors] = useState<CreateOrderValidationErrors>({ rows: {} });
   const [formItems, setFormItems] = useState<FormDraftItem[]>([
-    { localId: crypto.randomUUID(), categoryId: "", materialTypeId: "", quantity: "1" },
+    {
+      localId: crypto.randomUUID(),
+      categoryId: "",
+      materialTypeId: "",
+      materialSearchTerm: "",
+      quantity: "1",
+    },
   ]);
+  const [quickSearchTerm, setQuickSearchTerm] = useState("");
+  const [quickCategoryId, setQuickCategoryId] = useState("");
+  const [selectedPlanId, setSelectedPlanId] = useState("");
+  const [quickSelectedMaterialIds, setQuickSelectedMaterialIds] = useState<string[]>([]);
+  const [recentMaterialIds, setRecentMaterialIds] = useState<string[]>([]);
+  const [materialUsageCounts, setMaterialUsageCounts] = useState<Record<string, number>>({});
+  const [activeMaterialRowId, setActiveMaterialRowId] = useState<string | null>(null);
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0);
+  const quickSearchInputRef = useRef<HTMLInputElement | null>(null);
+
+  const selectedPlan = useMemo(
+    () => packages.find((pkg) => pkg._id === selectedPlanId),
+    [packages, selectedPlanId],
+  );
+
+  const selectedPlanEntries = useMemo(
+    () => (selectedPlan?.items?.length ? selectedPlan.items : selectedPlan?.materialTypes) ?? [],
+    [selectedPlan],
+  );
+
+  const selectedPlanMaterialDetails = useMemo(
+    () =>
+      selectedPlanEntries.map((entry, index) => {
+        const materialTypeId = extractMaterialTypeIdFromPackageEntry(entry);
+        const material = materialTypeId
+          ? materialTypes.find((item) => item._id === materialTypeId)
+          : undefined;
+
+        return {
+          key: `${materialTypeId ?? "unknown"}-${index}`,
+          quantity: Math.max(1, Number(entry.quantity) || 1),
+          label: material?.name ?? materialTypeId ?? "Unknown material",
+        };
+      }),
+    [selectedPlanEntries, materialTypes],
+  );
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(RECENT_ORDER_MATERIALS_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as unknown;
+      if (Array.isArray(parsed)) {
+        setRecentMaterialIds(parsed.filter((entry): entry is string => typeof entry === "string"));
+      }
+    } catch {
+      // Ignore parse/storage errors.
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(ORDER_MATERIAL_USAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as unknown;
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        const next: Record<string, number> = {};
+        for (const [key, value] of Object.entries(parsed)) {
+          if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+            next[key] = value;
+          }
+        }
+        setMaterialUsageCounts(next);
+      }
+    } catch {
+      // Ignore parse/storage errors.
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(RECENT_ORDER_MATERIALS_KEY, JSON.stringify(recentMaterialIds));
+    } catch {
+      // Ignore storage errors.
+    }
+  }, [recentMaterialIds]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(ORDER_MATERIAL_USAGE_KEY, JSON.stringify(materialUsageCounts));
+    } catch {
+      // Ignore storage errors.
+    }
+  }, [materialUsageCounts]);
+
+  useEffect(() => {
+    if (!showCreateModal) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        quickSearchInputRef.current?.focus();
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [showCreateModal]);
 
   const refreshData = useCallback(async () => {
     setLoading(true);
     try {
-      const [requestsRes, loansRes, customersRes, categoriesRes, packagesRes, materialTypesRes] =
+      const [
+        requestsRes,
+        loansRes,
+        customersRes,
+        categoriesRes,
+        instancesRes,
+        packagesRes,
+        materialTypesRes,
+      ] =
         await Promise.allSettled([
         getRequests(),
         getLoans(),
         getCustomers({ page: 1, limit: 50 }),
         getMaterialCategories(),
+        getMaterialInstances(),
         getPackages({ page: 1, limit: 100 }),
         getMaterialTypes(),
       ]);
@@ -326,6 +488,7 @@ export default function Orders() {
       let loansFailed = loansRes.status === "rejected";
       let customersFailed = customersRes.status === "rejected";
       const categoriesFailed = categoriesRes.status === "rejected";
+      const instancesFailed = instancesRes.status === "rejected";
       const packagesFailed = packagesRes.status === "rejected";
       const materialTypesFailed = materialTypesRes.status === "rejected";
 
@@ -368,6 +531,12 @@ export default function Orders() {
       if (categoriesRes.status === "fulfilled") {
         setMaterialCategories(categoriesRes.value.data.categories ?? []);
       }
+      if (instancesRes.status === "fulfilled") {
+        setMaterialInstances(instancesRes.value.data.instances ?? []);
+        setInventoryDataAvailable(true);
+      } else {
+        setInventoryDataAvailable(false);
+      }
       if (packagesRes.status === "fulfilled") {
         setPackages(packagesRes.value.data.packages ?? []);
       }
@@ -380,6 +549,7 @@ export default function Orders() {
       if (loansFailed) failures.push({ source: "loans", reason: loansRes.status === "rejected" ? loansRes.reason : null });
       if (customersFailed) failures.push({ source: "customers", reason: customersRes.status === "rejected" ? customersRes.reason : null });
       if (categoriesFailed) failures.push({ source: "categories", reason: categoriesRes.status === "rejected" ? categoriesRes.reason : null });
+      if (instancesFailed) failures.push({ source: "inventory", reason: instancesRes.status === "rejected" ? instancesRes.reason : null });
       if (packagesFailed) failures.push({ source: "packages", reason: packagesRes.status === "rejected" ? packagesRes.reason : null });
       if (materialTypesFailed) failures.push({ source: "material types", reason: materialTypesRes.status === "rejected" ? materialTypesRes.reason : null });
 
@@ -478,11 +648,208 @@ export default function Orders() {
     [selectedDraftRows],
   );
 
+  const materialAvailabilityByType = useMemo(() => {
+    const availability = new Map<string, MaterialAvailability>();
+
+    for (const instance of materialInstances) {
+      const materialTypeId = extractMaterialTypeIdFromInstance(instance);
+      if (!materialTypeId) continue;
+
+      const current = availability.get(materialTypeId) ?? { total: 0, available: 0 };
+      current.total += 1;
+      if (instance.status === "available") {
+        current.available += 1;
+      }
+      availability.set(materialTypeId, current);
+    }
+
+    return availability;
+  }, [materialInstances]);
+
+  const quickFilteredMaterials = useMemo(() => {
+    const query = quickSearchTerm.trim().toLowerCase();
+    return materialTypes
+      .filter((material) => {
+        const categoryId = extractCategoryId(material.categoryId);
+        const categoryMatch = !quickCategoryId || categoryId === quickCategoryId;
+        if (!categoryMatch) return false;
+
+        if (!query) return true;
+        const inName = material.name.toLowerCase().includes(query);
+        const inDescription = material.description.toLowerCase().includes(query);
+        return inName || inDescription;
+      })
+      .sort((a, b) => {
+        const aAvailability = materialAvailabilityByType.get(a._id);
+        const bAvailability = materialAvailabilityByType.get(b._id);
+        const aAvailableCount = inventoryDataAvailable ? (aAvailability?.available ?? 0) : 1;
+        const bAvailableCount = inventoryDataAvailable ? (bAvailability?.available ?? 0) : 1;
+        if (aAvailableCount !== bAvailableCount) return bAvailableCount - aAvailableCount;
+
+        const usageDelta = (materialUsageCounts[b._id] ?? 0) - (materialUsageCounts[a._id] ?? 0);
+        if (usageDelta !== 0) return usageDelta;
+        return a.name.localeCompare(b.name);
+      })
+      .slice(0, 20);
+  }, [
+    materialTypes,
+    quickCategoryId,
+    quickSearchTerm,
+    materialUsageCounts,
+    materialAvailabilityByType,
+    inventoryDataAvailable,
+  ]);
+
+  const recentMaterials = useMemo(
+    () =>
+      recentMaterialIds
+        .map((id) => materialTypes.find((material) => material._id === id))
+        .filter((entry): entry is MaterialType => Boolean(entry)),
+    [materialTypes, recentMaterialIds],
+  );
+
+  const pushRecentMaterial = useCallback((materialId: string) => {
+    setRecentMaterialIds((prev) => {
+      const next = [materialId, ...prev.filter((id) => id !== materialId)];
+      return next.slice(0, 8);
+    });
+
+    setMaterialUsageCounts((prev) => ({
+      ...prev,
+      [materialId]: (prev[materialId] ?? 0) + 1,
+    }));
+  }, []);
+
+  const isDraftRowEmpty = useCallback((item: FormDraftItem): boolean => {
+    return !item.categoryId && !item.materialTypeId && !item.materialSearchTerm.trim();
+  }, []);
+
+  const insertMaterialsIntoDraft = useCallback(
+    (selections: DraftMaterialSelection[]) => {
+      if (selections.length === 0) return;
+
+      setFormItems((prev) => {
+        const next = [...prev];
+        let selectionIndex = 0;
+
+        for (
+          let rowIndex = 0;
+          rowIndex < next.length && selectionIndex < selections.length;
+          rowIndex += 1
+        ) {
+          if (!isDraftRowEmpty(next[rowIndex])) continue;
+
+          const { material, quantity } = selections[selectionIndex];
+          next[rowIndex] = {
+            ...next[rowIndex],
+            categoryId: extractCategoryId(material.categoryId) ?? "",
+            materialTypeId: material._id,
+            materialSearchTerm: material.name,
+            quantity: String(Math.max(1, Math.floor(quantity || 1))),
+          };
+          selectionIndex += 1;
+        }
+
+        while (selectionIndex < selections.length) {
+          const { material, quantity } = selections[selectionIndex];
+          next.push({
+            localId: crypto.randomUUID(),
+            categoryId: extractCategoryId(material.categoryId) ?? "",
+            materialTypeId: material._id,
+            materialSearchTerm: material.name,
+            quantity: String(Math.max(1, Math.floor(quantity || 1))),
+          });
+          selectionIndex += 1;
+        }
+
+        return next;
+      });
+
+      selections.forEach(({ material }) => pushRecentMaterial(material._id));
+    },
+    [isDraftRowEmpty, pushRecentMaterial],
+  );
+
+  const getRowMaterialSuggestions = useCallback(
+    (item: FormDraftItem): MaterialType[] => {
+      if (!item.categoryId) return [];
+      const query = item.materialSearchTerm.trim().toLowerCase();
+
+      return materialTypes
+        .filter((material) => {
+          const sameCategory = extractCategoryId(material.categoryId) === item.categoryId;
+          if (!sameCategory) return false;
+
+          if (!query) return true;
+
+          return (
+            material.name.toLowerCase().includes(query) ||
+            material.description.toLowerCase().includes(query)
+          );
+        })
+        .sort((a, b) => {
+          const aAvailability = materialAvailabilityByType.get(a._id);
+          const bAvailability = materialAvailabilityByType.get(b._id);
+          const aAvailableCount = inventoryDataAvailable ? (aAvailability?.available ?? 0) : 1;
+          const bAvailableCount = inventoryDataAvailable ? (bAvailability?.available ?? 0) : 1;
+          if (aAvailableCount !== bAvailableCount) return bAvailableCount - aAvailableCount;
+
+          const usageDelta = (materialUsageCounts[b._id] ?? 0) - (materialUsageCounts[a._id] ?? 0);
+          if (usageDelta !== 0) return usageDelta;
+          return a.name.localeCompare(b.name);
+        })
+        .slice(0, 8);
+    },
+    [materialTypes, materialUsageCounts, materialAvailabilityByType, inventoryDataAvailable],
+  );
+
+  const getMaterialAvailabilityLabel = useCallback(
+    (materialId: string): { text: string; tone: "neutral" | "success" | "warning" | "danger" } => {
+      if (!inventoryDataAvailable) {
+        return { text: "Stock unknown", tone: "neutral" };
+      }
+
+      const availability = materialAvailabilityByType.get(materialId);
+      const available = availability?.available ?? 0;
+      const total = availability?.total ?? 0;
+
+      if (available <= 0) return { text: "Out of stock", tone: "danger" };
+      if (available <= LOW_STOCK_THRESHOLD) return { text: `Low stock (${available}/${total})`, tone: "warning" };
+      return { text: `Available (${available}/${total})`, tone: "success" };
+    },
+    [inventoryDataAvailable, materialAvailabilityByType],
+  );
+
+  const getAvailabilityBadgeClass = useCallback((tone: "neutral" | "success" | "warning" | "danger") => {
+    if (tone === "success") return "bg-green-500/15 text-green-300 border border-green-500/30";
+    if (tone === "warning") return "bg-yellow-500/15 text-yellow-300 border border-yellow-500/30";
+    if (tone === "danger") return "bg-red-500/15 text-red-300 border border-red-500/30";
+    return "bg-zinc-500/15 text-zinc-300 border border-zinc-500/30";
+  }, []);
+
+  const isMaterialSelectable = useCallback(
+    (materialId: string): boolean => {
+      if (!inventoryDataAvailable) return true;
+      return (materialAvailabilityByType.get(materialId)?.available ?? 0) > 0;
+    },
+    [inventoryDataAvailable, materialAvailabilityByType],
+  );
+
   const resetCreateForm = () => {
     setFormData(EMPTY_FORM);
-    setFormItems([{ localId: crypto.randomUUID(), categoryId: "", materialTypeId: "", quantity: "1" }]);
+    setFormItems([
+      {
+        localId: crypto.randomUUID(),
+        categoryId: "",
+        materialTypeId: "",
+        materialSearchTerm: "",
+        quantity: "1",
+      },
+    ]);
     setCreateErrors({ rows: {} });
     setShowValidationErrors(false);
+    setSelectedPlanId("");
+    setQuickSelectedMaterialIds([]);
   };
 
   const closeCreateModal = () => {
@@ -493,19 +860,48 @@ export default function Orders() {
   const handleAddDraftItem = () => {
     setFormItems((prev) => [
       ...prev,
-      { localId: crypto.randomUUID(), categoryId: "", materialTypeId: "", quantity: "1" },
+      {
+        localId: crypto.randomUUID(),
+        categoryId: "",
+        materialTypeId: "",
+        materialSearchTerm: "",
+        quantity: "1",
+      },
     ]);
   };
 
   const handleDraftItemChange = (
     localId: string,
-    updates: Partial<Pick<FormDraftItem, "categoryId" | "materialTypeId" | "quantity">>,
+    updates: Partial<Pick<FormDraftItem, "categoryId" | "materialTypeId" | "materialSearchTerm" | "quantity">>,
   ) => {
     setFormItems((prev) =>
       prev.map((item) => {
         if (item.localId !== localId) return item;
         if (typeof updates.categoryId === "string" && updates.categoryId !== item.categoryId) {
-          return { ...item, categoryId: updates.categoryId, materialTypeId: "" };
+          return {
+            ...item,
+            categoryId: updates.categoryId,
+            materialTypeId: "",
+            materialSearchTerm: "",
+          };
+        }
+        if (typeof updates.materialTypeId === "string") {
+          const selectedMaterial = materialTypes.find((material) => material._id === updates.materialTypeId);
+          if (selectedMaterial) {
+            if (!isMaterialSelectable(selectedMaterial._id)) {
+              showError(
+                `${selectedMaterial.name} is currently out of stock.`,
+                "Material Unavailable",
+              );
+              return item;
+            }
+            pushRecentMaterial(selectedMaterial._id);
+            return {
+              ...item,
+              materialTypeId: updates.materialTypeId,
+              materialSearchTerm: selectedMaterial.name,
+            };
+          }
         }
         return { ...item, ...updates };
       }),
@@ -517,8 +913,124 @@ export default function Orders() {
       const next = prev.filter((item) => item.localId !== localId);
       return next.length
         ? next
-        : [{ localId: crypto.randomUUID(), categoryId: "", materialTypeId: "", quantity: "1" }];
+        : [
+            {
+              localId: crypto.randomUUID(),
+              categoryId: "",
+              materialTypeId: "",
+              materialSearchTerm: "",
+              quantity: "1",
+            },
+          ];
     });
+  };
+
+  const handleQuickToggleMaterial = (materialId: string) => {
+    setQuickSelectedMaterialIds((prev) =>
+      prev.includes(materialId)
+        ? prev.filter((id) => id !== materialId)
+        : [...prev, materialId],
+    );
+  };
+
+  const addMaterialAsRow = (material: MaterialType) => {
+    if (!isMaterialSelectable(material._id)) {
+      showError(`${material.name} is currently out of stock.`, "Material Unavailable");
+      return;
+    }
+    insertMaterialsIntoDraft([{ material, quantity: 1 }]);
+  };
+
+  const handleBulkAddSelectedMaterials = () => {
+    if (quickSelectedMaterialIds.length === 0) return;
+
+    const selectedMaterials = quickSelectedMaterialIds
+      .map((id) => materialTypes.find((material) => material._id === id))
+      .filter((entry): entry is MaterialType => Boolean(entry));
+
+    if (selectedMaterials.length === 0) return;
+
+    const availableMaterials = selectedMaterials.filter((material) => isMaterialSelectable(material._id));
+    const skippedCount = selectedMaterials.length - availableMaterials.length;
+
+    if (availableMaterials.length > 0) {
+      insertMaterialsIntoDraft(
+        availableMaterials.map((material) => ({ material, quantity: 1 })),
+      );
+    }
+
+    if (skippedCount > 0) {
+      showError(
+        `${skippedCount} selected item${skippedCount === 1 ? "" : "s"} could not be added because stock is not available.`,
+        "Some Materials Unavailable",
+      );
+    }
+
+    setQuickSelectedMaterialIds([]);
+  };
+
+  const handleAddPlanToDraft = () => {
+    if (!selectedPlan) {
+      showError("Select a material plan first.", "Material Plan");
+      return;
+    }
+
+    const planEntries = (selectedPlan.items?.length ? selectedPlan.items : selectedPlan.materialTypes) ?? [];
+    if (planEntries.length === 0) {
+      showError("The selected plan does not contain material types.", "Material Plan");
+      return;
+    }
+
+    const selections: DraftMaterialSelection[] = [];
+    let missingCatalogCount = 0;
+    let outOfStockCount = 0;
+
+    planEntries.forEach((entry) => {
+      const materialTypeId = extractMaterialTypeIdFromPackageEntry(entry);
+      if (!materialTypeId) {
+        missingCatalogCount += 1;
+        return;
+      }
+
+      const material = materialTypes.find((item) => item._id === materialTypeId);
+      if (!material) {
+        missingCatalogCount += 1;
+        return;
+      }
+
+      if (!isMaterialSelectable(material._id)) {
+        outOfStockCount += 1;
+        return;
+      }
+
+      selections.push({
+        material,
+        quantity: Math.max(1, Number(entry.quantity) || 1),
+      });
+    });
+
+    if (selections.length === 0) {
+      showError(
+        "No materials from this plan can be added right now. Check stock and plan configuration.",
+        "Material Plan",
+      );
+      return;
+    }
+
+    insertMaterialsIntoDraft(selections);
+    showSuccess(
+      `Added ${selections.length} material row${selections.length === 1 ? "" : "s"} from ${selectedPlan.name}.`,
+      "Material Plan Added",
+    );
+
+    if (missingCatalogCount > 0 || outOfStockCount > 0) {
+      showError(
+        `${missingCatalogCount > 0 ? `${missingCatalogCount} not found in catalog` : ""}${
+          missingCatalogCount > 0 && outOfStockCount > 0 ? " and " : ""
+        }${outOfStockCount > 0 ? `${outOfStockCount} out of stock` : ""}.`,
+        "Plan Added with Warnings",
+      );
+    }
   };
 
   const validateCreateOrderForm = useCallback((): CreateOrderValidationErrors => {
@@ -540,13 +1052,17 @@ export default function Orders() {
       nextErrors.endDate = "End date must be on or after start date.";
     }
 
-    formItems.forEach((item) => {
+    const draftRowsToValidate = formItems.filter((item) => !isDraftRowEmpty(item));
+
+    draftRowsToValidate.forEach((item) => {
       const rowErrors: DraftItemValidationErrors = {};
       if (!item.categoryId) {
         rowErrors.categoryId = "Select a category.";
       }
       if (!item.materialTypeId) {
         rowErrors.materialTypeId = "Select a material type.";
+      } else if (!isMaterialSelectable(item.materialTypeId)) {
+        rowErrors.materialTypeId = "This material is currently out of stock.";
       }
 
       const quantityValue = Number(item.quantity);
@@ -559,13 +1075,15 @@ export default function Orders() {
       }
     });
 
-    const parsedItems = formItems.filter((item) => item.materialTypeId);
-    if (parsedItems.length === 0) {
+    const hasMaterialItems = draftRowsToValidate.some((item) => Boolean(item.materialTypeId));
+    const hasPackageItem = Boolean(selectedPlanId);
+
+    if (!hasMaterialItems && !hasPackageItem) {
       nextErrors.items = "Add at least one product or service item.";
     }
 
     return nextErrors;
-  }, [formData, formItems, todayDate]);
+  }, [formData, formItems, todayDate, isMaterialSelectable, isDraftRowEmpty, selectedPlanId]);
 
   useEffect(() => {
     if (!showValidationErrors) return;
@@ -590,6 +1108,7 @@ export default function Orders() {
     }
 
     const parsedItems: LoanRequestItem[] = formItems
+      .filter((item) => !isDraftRowEmpty(item))
       .filter((item) => item.materialTypeId)
       .map((item) => {
         const quantity = Number(item.quantity);
@@ -600,6 +1119,15 @@ export default function Orders() {
           quantity: normalizedQuantity,
         };
       });
+
+    if (selectedPlanId) {
+      parsedItems.unshift({
+        type: "package",
+        referenceId: selectedPlanId,
+        packageId: selectedPlanId,
+        quantity: 1,
+      });
+    }
 
     const payload: CreateLoanRequestPayload = {
       customerId: formData.customerId,
@@ -983,6 +1511,63 @@ export default function Orders() {
                       </button>
                     </div>
 
+                    <div className="rounded-lg border border-[#333] bg-[#131313] p-3">
+                      <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Add from Material Plan</p>
+                      <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3">
+                        <select
+                          value={selectedPlanId}
+                          onChange={(e) => setSelectedPlanId(e.target.value)}
+                          className="input"
+                          disabled={packages.length === 0}
+                        >
+                          <option value="">
+                            {packages.length > 0 ? "Select an existing plan" : "No material plans available"}
+                          </option>
+                          {packages.map((pkg) => {
+                            const planItemCount = (pkg.items?.length ?? 0) || (pkg.materialTypes?.length ?? 0);
+                            return (
+                              <option key={`plan-${pkg._id}`} value={pkg._id}>
+                                {pkg.name} ({planItemCount} items)
+                              </option>
+                            );
+                          })}
+                        </select>
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          onClick={handleAddPlanToDraft}
+                          disabled={!selectedPlanId || packages.length === 0}
+                        >
+                          Import Plan Materials
+                        </button>
+                      </div>
+                      {selectedPlan && (
+                        <div className="mt-2 space-y-2">
+                          <p className="text-xs text-gray-400">
+                            {selectedPlan.description?.trim()
+                              ? selectedPlan.description
+                              : "This plan is already included in the order as a package item. You can optionally import its materials as editable rows."}
+                          </p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {selectedPlanMaterialDetails.length === 0 ? (
+                              <span className="text-[11px] px-2 py-1 rounded bg-[#1f1f1f] text-gray-300 border border-[#333]">
+                                No configured materials
+                              </span>
+                            ) : (
+                              selectedPlanMaterialDetails.map((entry) => (
+                                <span
+                                  key={`plan-entry-${entry.key}`}
+                                  className="text-[11px] px-2 py-1 rounded bg-[#1f1f1f] text-gray-300 border border-[#333]"
+                                >
+                                  {entry.quantity}x {entry.label}
+                                </span>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
                     <div className="space-y-3">
                       {createErrors.items && <p className="form-error">{createErrors.items}</p>}
 
@@ -1012,6 +1597,109 @@ export default function Orders() {
 
                           <div className="form-group">
                             <label className="form-label">Material Type</label>
+                            {(() => {
+                              const rowSuggestions = getRowMaterialSuggestions(item);
+                              const isOpen = activeMaterialRowId === item.localId && rowSuggestions.length > 0;
+
+                              return (
+                                <div className="relative">
+                                  <input
+                                    type="text"
+                                    value={item.materialSearchTerm}
+                                    onChange={(e) => {
+                                      handleDraftItemChange(item.localId, {
+                                        materialSearchTerm: e.target.value,
+                                        materialTypeId: "",
+                                      });
+                                      setActiveMaterialRowId(item.localId);
+                                      setActiveSuggestionIndex(0);
+                                    }}
+                                    onFocus={() => {
+                                      setActiveMaterialRowId(item.localId);
+                                      setActiveSuggestionIndex(0);
+                                    }}
+                                    onBlur={() => {
+                                      // Delay close so suggestion click can run first.
+                                      setTimeout(() => {
+                                        setActiveMaterialRowId((prev) =>
+                                          prev === item.localId ? null : prev,
+                                        );
+                                      }, 120);
+                                    }}
+                                    onKeyDown={(e) => {
+                                      if (!item.categoryId || rowSuggestions.length === 0) return;
+
+                                      if (e.key === "ArrowDown") {
+                                        e.preventDefault();
+                                        setActiveMaterialRowId(item.localId);
+                                        setActiveSuggestionIndex((prev) =>
+                                          Math.min(prev + 1, rowSuggestions.length - 1),
+                                        );
+                                      } else if (e.key === "ArrowUp") {
+                                        e.preventDefault();
+                                        setActiveSuggestionIndex((prev) => Math.max(prev - 1, 0));
+                                      } else if (e.key === "Enter") {
+                                        if (activeMaterialRowId !== item.localId) return;
+                                        e.preventDefault();
+                                        const selected = rowSuggestions[activeSuggestionIndex] ?? rowSuggestions[0];
+                                        if (selected) {
+                                          handleDraftItemChange(item.localId, { materialTypeId: selected._id });
+                                          setActiveMaterialRowId(null);
+                                        }
+                                      } else if (e.key === "Escape") {
+                                        setActiveMaterialRowId(null);
+                                      }
+                                    }}
+                                    placeholder={item.categoryId ? "Search material..." : "Select category first"}
+                                    disabled={!item.categoryId}
+                                    className="input mb-2"
+                                  />
+
+                                  {isOpen && (
+                                    <div className="absolute z-20 left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg border border-[#333] bg-[#111] shadow-2xl">
+                                      {rowSuggestions.map((material, suggestionIndex) => {
+                                        const active = suggestionIndex === activeSuggestionIndex;
+                                        return (
+                                          <button
+                                            key={`suggestion-${item.localId}-${material._id}`}
+                                            type="button"
+                                            onMouseDown={(mouseEvent) => {
+                                              mouseEvent.preventDefault();
+                                              handleDraftItemChange(item.localId, { materialTypeId: material._id });
+                                              setActiveMaterialRowId(null);
+                                            }}
+                                            className={`w-full text-left px-3 py-2 border-b border-[#222] last:border-b-0 transition-colors ${
+                                              active
+                                                ? "bg-[#FFD700]/15 text-[#FFD700]"
+                                                : "text-gray-200 hover:bg-[#1b1b1b]"
+                                            }`}
+                                              disabled={!isMaterialSelectable(material._id)}
+                                          >
+                                            <span className="block text-sm font-medium truncate">{material.name}</span>
+                                              <span className="block text-xs text-gray-400 truncate">
+                                                {formatMoney(material.pricePerDay)} / day
+                                              </span>
+                                              {(() => {
+                                                const availability = getMaterialAvailabilityLabel(material._id);
+                                                return (
+                                                  <span
+                                                    className={`mt-1 inline-flex text-[11px] px-1.5 py-0.5 rounded ${getAvailabilityBadgeClass(
+                                                      availability.tone,
+                                                    )}`}
+                                                  >
+                                                    {availability.text}
+                                                  </span>
+                                                );
+                                              })()}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })()}
+
                             <select
                               value={item.materialTypeId}
                               onChange={(e) => handleDraftItemChange(item.localId, { materialTypeId: e.target.value })}
@@ -1021,15 +1709,30 @@ export default function Orders() {
                               <option value="">{item.categoryId ? "Select material type" : "Select category first"}</option>
                               {materialTypes
                                 .filter(
-                                  (material) =>
-                                    extractCategoryId(
-                                      (material as MaterialType & {
-                                        categoryId?: string | string[] | { _id?: string } | { _id?: string }[];
-                                      }).categoryId,
-                                    ) === item.categoryId,
+                                  (material) => {
+                                    const sameCategory =
+                                      extractCategoryId(
+                                        (material as MaterialType & {
+                                          categoryId?: string | string[] | { _id?: string } | { _id?: string }[];
+                                        }).categoryId,
+                                      ) === item.categoryId;
+                                    if (!sameCategory) return false;
+
+                                    const query = item.materialSearchTerm.trim().toLowerCase();
+                                    if (!query) return true;
+
+                                    return (
+                                      material.name.toLowerCase().includes(query) ||
+                                      material.description.toLowerCase().includes(query)
+                                    );
+                                  },
                                 )
                                 .map((material) => (
-                                  <option key={material._id} value={material._id}>
+                                  <option
+                                    key={material._id}
+                                    value={material._id}
+                                    disabled={!isMaterialSelectable(material._id)}
+                                  >
                                     {material.name} - {formatMoney(material.pricePerDay)}/day
                                   </option>
                                 ))}
@@ -1117,6 +1820,128 @@ export default function Orders() {
                       <p className="text-gray-300">Materials: <span className="text-white font-semibold">{materialTypes.length}</span></p>
                       <p className="text-gray-300">Customers: <span className="text-white font-semibold">{customers.length}</span></p>
                     </div>
+                  </div>
+
+                  <div className="rounded-lg border border-[#333] bg-[#1a1a1a] p-4 space-y-3">
+                    <p className="text-sm font-semibold text-white">Recent Materials</p>
+                    {recentMaterials.length === 0 ? (
+                      <p className="text-xs text-gray-500">Your most recent selections will appear here.</p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {recentMaterials.map((material) => (
+                          <button
+                            key={`recent-${material._id}`}
+                            type="button"
+                            onClick={() => addMaterialAsRow(material)}
+                            className={`text-xs px-2.5 py-1.5 rounded-md border transition-colors ${
+                              isMaterialSelectable(material._id)
+                                ? "bg-[#151515] border-[#333] text-gray-200 hover:border-[#FFD700] hover:text-white"
+                                : "bg-[#101010] border-red-500/30 text-red-300 cursor-not-allowed"
+                            }`}
+                            title={`Add ${material.name}`}
+                            disabled={!isMaterialSelectable(material._id)}
+                          >
+                            {material.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="rounded-lg border border-[#333] bg-[#1a1a1a] p-4 space-y-3">
+                    <p className="text-sm font-semibold text-white">Quick Material Picker</p>
+
+                    <select
+                      value={quickCategoryId}
+                      onChange={(e) => setQuickCategoryId(e.target.value)}
+                      className="input"
+                    >
+                      <option value="">All categories</option>
+                      {materialCategories.map((category) => (
+                        <option key={`quick-category-${category._id}`} value={category._id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+
+                    <input
+                      ref={quickSearchInputRef}
+                      type="text"
+                      value={quickSearchTerm}
+                      onChange={(e) => setQuickSearchTerm(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key !== "Enter") return;
+                        const firstResult = quickFilteredMaterials.find((material) =>
+                          isMaterialSelectable(material._id),
+                        );
+                        if (!firstResult) return;
+                        e.preventDefault();
+                        addMaterialAsRow(firstResult);
+                      }}
+                      placeholder="Search material by name or description..."
+                      className="input"
+                    />
+                    <p className="text-[11px] text-gray-500">Tip: Press Ctrl/Cmd + K to focus this search, then Enter to add the first result.</p>
+
+                    <div className="max-h-44 overflow-y-auto space-y-2 pr-1">
+                      {quickFilteredMaterials.length === 0 ? (
+                        <p className="text-xs text-gray-500">No materials found for current filters.</p>
+                      ) : (
+                        quickFilteredMaterials.map((material) => {
+                          const selected = quickSelectedMaterialIds.includes(material._id);
+                          return (
+                            <label
+                              key={`quick-material-${material._id}`}
+                              className={`flex items-start gap-2 text-xs p-2 rounded-md border ${
+                                isMaterialSelectable(material._id)
+                                  ? "border-[#333] bg-[#151515]"
+                                  : "border-red-500/30 bg-red-500/5"
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selected}
+                                onChange={() => handleQuickToggleMaterial(material._id)}
+                                className="mt-0.5"
+                                disabled={!isMaterialSelectable(material._id)}
+                              />
+                              <span className="flex-1 min-w-0">
+                                <span className="block text-gray-100 truncate">{material.name}</span>
+                                <span className="block text-gray-400 truncate">
+                                  {formatMoney(material.pricePerDay)} / day
+                                </span>
+                                {(() => {
+                                  const availability = getMaterialAvailabilityLabel(material._id);
+                                  return (
+                                    <span
+                                      className={`mt-1 inline-flex text-[11px] px-1.5 py-0.5 rounded ${getAvailabilityBadgeClass(
+                                        availability.tone,
+                                      )}`}
+                                    >
+                                      {availability.text}
+                                    </span>
+                                  );
+                                })()}
+                                {(materialUsageCounts[material._id] ?? 0) > 0 && (
+                                  <span className="block text-[11px] text-[#FFD700] truncate">
+                                    Used {materialUsageCounts[material._id]} times
+                                  </span>
+                                )}
+                              </span>
+                            </label>
+                          );
+                        })
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleBulkAddSelectedMaterials}
+                      className="btn-secondary text-sm w-full"
+                      disabled={quickSelectedMaterialIds.length === 0}
+                    >
+                      Add selected items ({quickSelectedMaterialIds.length})
+                    </button>
                   </div>
 
                   <div className="rounded-lg border border-[#333] bg-[#1a1a1a] p-4 space-y-3">
