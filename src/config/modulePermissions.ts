@@ -42,44 +42,205 @@ export interface NavItem {
 
 export const allNavItems: NavItem[] = [
   // -- Overview --
-  { id: "dashboard",           label: "Dashboard",            path: "/app",                         requiredPermissions: ["analytics:read"],                      section: "Overview" },
+  {
+    id: "dashboard",
+    label: "Dashboard",
+    path: "/app",
+    requiredPermissions: ["analytics:read"],
+    section: "Overview",
+  },
 
   // -- Organization --
-  { id: "events",              label: "My Events",            path: "/app/events",                  requiredPermissions: ["loans:read"],                          section: "Organization" },
-  { id: "customers",           label: "Customers",            path: "/app/customers",               requiredPermissions: ["customers:read"],                      section: "Organization" },
-  { id: "team",                label: "Team",                 path: "/app/team",                    requiredPermissions: ["users:read"],                          section: "Organization" },
-  { id: "roles",               label: "Role Management",      path: "/app/roles",                   requiredPermissions: ["roles:read"],                          section: "Organization" },
-  { id: "subscription",        label: "Subscription",         path: "/app/subscription",            requiredPermissions: ["subscription:manage", "billing:manage"], section: "Organization" },
-  { id: "ia-settings",         label: "IA Settings",          path: "/app/ia-settings",             requiredPermissions: ["organization:update"],                 section: "Organization" },
-  { id: "settings",            label: "Settings",             path: "/app/settings",                requiredPermissions: ["organization:read"],                   section: "Organization" },
+  {
+    id: "customers",
+    label: "Customers",
+    path: "/app/customers",
+    requiredPermissions: ["customers:read"],
+    section: "Organization",
+  },
+  {
+    id: "team",
+    label: "Team",
+    path: "/app/team",
+    requiredPermissions: ["users:read"],
+    section: "Organization",
+  },
+  {
+    id: "roles",
+    label: "Role Management",
+    path: "/app/roles",
+    requiredPermissions: ["roles:read"],
+    section: "Organization",
+  },
+  {
+    id: "subscription",
+    label: "Subscription",
+    path: "/app/subscription",
+    requiredPermissions: ["subscription:manage", "billing:manage"],
+    section: "Organization",
+  },
+  {
+    id: "ia-settings",
+    label: "IA Settings",
+    path: "/app/ia-settings",
+    requiredPermissions: ["organization:update"],
+    section: "Organization",
+  },
+  {
+    id: "settings",
+    label: "Settings",
+    path: "/app/settings",
+    requiredPermissions: ["organization:read"],
+    section: "Organization",
+  },
 
   // -- Materials --
-  { id: "material-categories", label: "Categories",           path: "/app/material-categories",     requiredPermissions: ["materials:read"],                      section: "Materials" },
-  { id: "material-types",      label: "Material Types",       path: "/app/material-types",          requiredPermissions: ["materials:read"],                      section: "Materials" },
-  { id: "material-instances",  label: "Inventory Items",      path: "/app/material-instances",      requiredPermissions: ["materials:read"],                      section: "Materials" },
-  { id: "attributes",          label: "Attributes",           path: "/app/attributes",              requiredPermissions: ["materials:read"],                      section: "Materials" },
-  { id: "plans",               label: "Material Plans",       path: "/app/plans",                   requiredPermissions: ["materials:read"],                      section: "Materials" },
+  {
+    id: "material-categories",
+    label: "Categories",
+    path: "/app/material-categories",
+    requiredPermissions: ["materials:read"],
+    section: "Materials",
+  },
+  {
+    id: "material-types",
+    label: "Material Types",
+    path: "/app/material-types",
+    requiredPermissions: ["materials:read"],
+    section: "Materials",
+  },
+  {
+    id: "material-instances",
+    label: "Inventory Items",
+    path: "/app/material-instances",
+    requiredPermissions: ["materials:read"],
+    section: "Materials",
+  },
+  {
+    id: "attributes",
+    label: "Attributes",
+    path: "/app/attributes",
+    requiredPermissions: ["materials:read"],
+    section: "Materials",
+  },
+  {
+    id: "plans",
+    label: "Material Plans",
+    path: "/app/plans",
+    requiredPermissions: ["materials:read"],
+    section: "Materials",
+  },
 
   // -- Warehouse --
-  { id: "inventory",           label: "Inventory",            path: "/app/inventory",               requiredPermissions: ["materials:read"],                      section: "Warehouse" },
-  { id: "locations",           label: "Locations",            path: "/app/locations",               requiredPermissions: ["materials:read"],                      section: "Warehouse" },
-  { id: "stock-movements",     label: "Stock Movements",      path: "/app/stock-movements",         requiredPermissions: ["materials:update"],                    section: "Warehouse" },
-  { id: "alerts",              label: "Alerts",               path: "/app/alerts",                  requiredPermissions: ["materials:read"],                      section: "Warehouse" },
+  {
+    id: "inventory",
+    label: "Inventory",
+    path: "/app/inventory",
+    requiredPermissions: ["materials:read"],
+    section: "Warehouse",
+  },
+  {
+    id: "locations",
+    label: "Locations",
+    path: "/app/locations",
+    requiredPermissions: ["materials:read"],
+    section: "Warehouse",
+  },
+  {
+    id: "stock-movements",
+    label: "Stock Movements",
+    path: "/app/stock-movements",
+    requiredPermissions: ["materials:update"],
+    section: "Warehouse",
+  },
+  {
+    id: "alerts",
+    label: "Alerts",
+    path: "/app/alerts",
+    requiredPermissions: ["materials:read"],
+    section: "Warehouse",
+  },
 
   // -- Commerce --
-  { id: "orders",              label: "Orders",               path: "/app/orders",                  requiredPermissions: ["requests:read"],                       section: "Commerce" },
-  { id: "contracts",           label: "Contracts",            path: "/app/contracts",               requiredPermissions: ["loans:read"],                          section: "Commerce" },
-  { id: "rentals",             label: "Rentals",              path: "/app/rentals",                 requiredPermissions: ["loans:read"],                          section: "Commerce" },
-  { id: "invoices",            label: "Invoices",             path: "/app/invoices",                requiredPermissions: ["invoices:read"],                       section: "Commerce" },
-  { id: "reports",             label: "Reports",              path: "/app/reports",                 requiredPermissions: ["reports:read"],                        section: "Commerce" },
+  {
+    id: "orders",
+    label: "Orders",
+    path: "/app/orders",
+    requiredPermissions: ["requests:read"],
+    section: "Commerce",
+  },
+  {
+    id: "contracts",
+    label: "Contracts",
+    path: "/app/contracts",
+    requiredPermissions: ["loans:read"],
+    section: "Commerce",
+  },
+  {
+    id: "rentals",
+    label: "Rentals",
+    path: "/app/rentals",
+    requiredPermissions: ["loans:read"],
+    section: "Commerce",
+  },
+  {
+    id: "invoices",
+    label: "Invoices",
+    path: "/app/invoices",
+    requiredPermissions: ["invoices:read"],
+    section: "Commerce",
+  },
+  {
+    id: "reports",
+    label: "Reports",
+    path: "/app/reports",
+    requiredPermissions: ["reports:read"],
+    section: "Commerce",
+  },
 
   // -- /super-admin (separate module, kept here for getNavItemsByPrefix) --
-  { id: "overview",            label: "Sales Overview",           path: "/super-admin",                requiredPermissions: ["platform:manage"],        section: "Overview" },
-  { id: "clients",             label: "User Management",          path: "/super-admin/clients",        requiredPermissions: ["platform:manage"],        section: "Management" },
-  { id: "organizations",       label: "Organization Management",  path: "/super-admin/organizations",  requiredPermissions: ["platform:manage"],        section: "Management" },
-  { id: "sa-plans",            label: "Plan Configuration",       path: "/super-admin/subscriptions",  requiredPermissions: ["subscription_types:read"], section: "Management" },
-  { id: "ai-monitor",          label: "AI Chatbot Monitor",       path: "/super-admin/ai-monitor",     requiredPermissions: ["platform:manage"],        section: "Monitoring" },
-  { id: "sa-settings",         label: "System Settings",          path: "/super-admin/settings",       requiredPermissions: ["platform:manage"],        section: "Configuration" },
+  {
+    id: "overview",
+    label: "Sales Overview",
+    path: "/super-admin",
+    requiredPermissions: ["platform:manage"],
+    section: "Overview",
+  },
+  {
+    id: "clients",
+    label: "User Management",
+    path: "/super-admin/clients",
+    requiredPermissions: ["platform:manage"],
+    section: "Management",
+  },
+  {
+    id: "organizations",
+    label: "Organization Management",
+    path: "/super-admin/organizations",
+    requiredPermissions: ["platform:manage"],
+    section: "Management",
+  },
+  {
+    id: "sa-plans",
+    label: "Plan Configuration",
+    path: "/super-admin/subscriptions",
+    requiredPermissions: ["subscription_types:read"],
+    section: "Management",
+  },
+  {
+    id: "ai-monitor",
+    label: "AI Chatbot Monitor",
+    path: "/super-admin/ai-monitor",
+    requiredPermissions: ["platform:manage"],
+    section: "Monitoring",
+  },
+  {
+    id: "sa-settings",
+    label: "System Settings",
+    path: "/super-admin/settings",
+    requiredPermissions: ["platform:manage"],
+    section: "Configuration",
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -92,18 +253,14 @@ export const allNavItems: NavItem[] = [
  * @example getNavItemsByPrefix("/app")
  */
 export function getNavItemsByPrefix(prefix: string): NavItem[] {
-  return allNavItems.filter(
-    (item) => item.path === prefix || item.path.startsWith(prefix + "/"),
-  );
+  return allNavItems.filter((item) => item.path === prefix || item.path.startsWith(prefix + "/"));
 }
 
 /**
  * Groups nav items by their `section` field.
  * Items without a section are placed under "".
  */
-export function groupNavItemsBySection(
-  items: NavItem[],
-): { section: string; items: NavItem[] }[] {
+export function groupNavItemsBySection(items: NavItem[]): { section: string; items: NavItem[] }[] {
   const map = new Map<string, NavItem[]>();
   for (const item of items) {
     const key = item.section ?? "";
@@ -125,9 +282,9 @@ export interface RoutePermission {
 
 /** Additional sub-routes not present in sidebar navigation. */
 const additionalRoutePermissions: RoutePermission[] = [
-  { path: "/app/material-categories/create",  requiredPermissions: ["materials:create"] },
-  { path: "/app/material-types/create",       requiredPermissions: ["materials:create"] },
-  { path: "/app/material-instances/create",   requiredPermissions: ["materials:create"] },
+  { path: "/app/material-categories/create", requiredPermissions: ["materials:create"] },
+  { path: "/app/material-types/create", requiredPermissions: ["materials:create"] },
+  { path: "/app/material-instances/create", requiredPermissions: ["materials:create"] },
 ];
 
 export const routePermissions: RoutePermission[] = [

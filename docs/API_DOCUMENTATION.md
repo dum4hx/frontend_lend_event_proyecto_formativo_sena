@@ -2097,15 +2097,18 @@ Creates a new location in the organization.
 
 #### Request Body
 
-| Field                  | Type   | Required | Constraints        | Description                      |
-| ---------------------- | ------ | -------- | ------------------ | -------------------------------- |
-| name                   | string | Yes      | 1-100 characters   | Location name                    |
-| address.country        | string | Yes      | 1-50 characters    | Country code or name             |
-| address.state          | string | No       | Max 100 characters | State or region                  |
-| address.city           | string | Yes      | 1-100 characters   | City name                        |
-| address.street         | string | Yes      | 1-100 characters   | Street name                      |
-| address.propertyNumber | string | Yes      | 1-50 characters    | Building/property number         |
-| address.additionalInfo | string | No       | Max 200 characters | Floor, suite, additional details |
+| Field                               | Type     | Required | Constraints        | Description                                                 |
+| ----------------------------------- | -------- | -------- | ------------------ | ----------------------------------------------------------- |
+| name                                | string   | Yes      | 1-100 characters   | Location name                                               |
+| address.country                     | string   | Yes      | 1-50 characters    | Country code or name                                        |
+| address.state                       | string   | No       | Max 100 characters | State or region                                             |
+| address.city                        | string   | Yes      | 1-100 characters   | City name                                                   |
+| address.street                      | string   | Yes      | 1-100 characters   | Street name                                                 |
+| address.propertyNumber              | string   | Yes      | 1-50 characters    | Building/property number                                    |
+| address.additionalInfo              | string   | No       | Max 200 characters | Floor, suite, additional details                            |
+| materialCapacities                  | object[] | No       | Array of mappings  | Defines max quantity of specific material types in location |
+| materialCapacities[].materialTypeId | string   | Yes      | Valid ObjectId     | ID of the material type to set capacity for                 |
+| materialCapacities[].maxQuantity    | number   | Yes      | Min 0              | Maximum number of items of this type allowed here           |
 
 #### Example Request
 
@@ -2119,7 +2122,13 @@ Creates a new location in the organization.
     "street": "Carrera 50",
     "propertyNumber": "32-10",
     "additionalInfo": "Bodega 3, entrada por el costado"
-  }
+  },
+  "materialCapacities": [
+    {
+      "materialTypeId": "507f1f77bcf86cd799439014",
+      "maxQuantity": 100
+    }
+  ]
 }
 ```
 
@@ -2407,12 +2416,16 @@ Creates a new material instance.
 
 **Permission Required:** `materials:create`
 
-| Parameter    | Location | Type   | Required | Description                                                                       |
-| ------------ | -------- | ------ | -------- | --------------------------------------------------------------------------------- |
-| modelId      | body     | string | Yes      | Material type ID                                                                  |
-| serialNumber | body     | string | Yes      | Unique serial number (max 100 chars)                                              |
-| locationId   | body     | string | Yes      | Location ID                                                                       |
-| status       | body     | string | No       | `available`, `in_use`, `maintenance`, `damaged`, `retired` (default: `available`) |
+| Parameter    | Location | Type    | Required | Description                                                                       |
+| ------------ | -------- | ------- | -------- | --------------------------------------------------------------------------------- |
+| modelId      | body     | string  | Yes      | Material type ID                                                                  |
+| serialNumber | body     | string  | Yes      | Unique serial number (max 100 chars)                                              |
+| locationId   | body     | string  | Yes      | Location ID                                                                       |
+| status       | body     | string  | No       | `available`, `in_use`, `maintenance`, `damaged`, `retired` (default: `available`) |
+| force        | body     | boolean | No       | If true, bypasses capacity warnings at the location.                              |
+
+**Capacity Management Behavior:**
+If the target `locationId` has a defined capacity for the `modelId` and it is already at full capacity, the API will return a **409 Conflict** error with a warning message. To proceed, the client must resubmit the request including `"force": true` in the body.
 
 ---
 
@@ -2530,7 +2543,7 @@ Creates a new attribute definition for the organization.
 | Parameter     | Location | Type     | Required | Description                                                                     |
 | ------------- | -------- | -------- | -------- | ------------------------------------------------------------------------------- |
 | name          | body     | string   | Yes      | Attribute name (max 100 chars, unique per organization)                         |
-| unit          | body     | string   | Yes      | Unit of measurement (e.g., `kg`, `GB`, `cm`)                                    |
+| unit          | body     | string   | No       | Unit of measurement (e.g., `kg`, `GB`, `cm`)                                    |
 | categoryId    | body     | string   | No       | If set, restricts this attribute to material types of this category             |
 | allowedValues | body     | string[] | No       | Enumerated acceptable values. Empty array means any value is accepted.          |
 | isRequired    | body     | boolean  | No       | Whether material types must provide a value for this attribute (default: false) |
@@ -2656,10 +2669,33 @@ Creates a new loan request (commercial advisor action).
 | Parameter  | Location | Type   | Required | Description                |
 | ---------- | -------- | ------ | -------- | -------------------------- |
 | customerId | body     | string | Yes      | Customer ID                |
-| items      | body     | array  | Yes      | Array of items/packages    |
+| items      | body     | array  | Yes      | Array of request items     |
 | startDate  | body     | string | Yes      | Loan start date (ISO 8601) |
 | endDate    | body     | string | Yes      | Loan end date (ISO 8601)   |
 | notes      | body     | string | No       | Additional notes           |
+
+`items[]` contract (recommended):
+
+| Field       | Type                    | Required | Description                                                           |
+| ----------- | ----------------------- | -------- | --------------------------------------------------------------------- |
+| type        | `material` \| `package` | Yes      | Defines which entity is resolved by `referenceId`                     |
+| referenceId | string                  | Yes      | Material Type ID when type=`material`, Package ID when type=`package` |
+| quantity    | number                  | No       | Defaults to `1`                                                       |
+
+Legacy compatibility still supported per item:
+
+| Field          | Type   | Description                                      |
+| -------------- | ------ | ------------------------------------------------ |
+| materialTypeId | string | Legacy alias for `type=material` + `referenceId` |
+| packageId      | string | Legacy alias for `type=package` + `referenceId`  |
+
+Validation and resolution behavior:
+
+- `type=material` resolves an active material type in the organization.
+- `type=package` resolves an active package in the organization.
+- Invalid type returns `400 BAD_REQUEST`.
+- Missing/inactive material reference returns `404 NOT_FOUND`.
+- Missing/inactive package reference returns `404 NOT_FOUND`.
 
 ---
 

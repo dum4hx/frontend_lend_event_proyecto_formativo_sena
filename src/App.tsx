@@ -27,7 +27,6 @@ import ExportDemo from "./pages/ExportDemo";
 // Unified App module
 import AppLayout from "./modules/app/layouts/AppLayout";
 import AdminDashboard from "./modules/app/pages/AdminDashboard";
-import MyEvents from "./modules/app/pages/MyEvents";
 import Customers from "./modules/app/pages/Customers";
 import Team from "./modules/app/pages/Team";
 import IASettings from "./modules/app/pages/IA_Settings";
@@ -102,7 +101,6 @@ function App() {
             }
           >
             <Route index element={<AdminDashboard />} />
-            <Route path="events" element={<MyEvents />} />
             <Route path="customers" element={<Customers />} />
             <Route path="team" element={<Team />} />
             <Route path="roles" element={<RoleManagement />} />
