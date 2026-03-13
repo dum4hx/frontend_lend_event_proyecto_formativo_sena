@@ -78,6 +78,7 @@ interface LocationFormAddress {
 
 interface LocationFormState {
   name: string;
+  status: "available" | "full" | "maintenance" | "inactive";
   address: LocationFormAddress;
   materialCapacities: MaterialCapacityForm[];
 }
@@ -136,6 +137,7 @@ export default function LocationsPage() {
 
   const initialForm: LocationFormState = {
     name: "",
+    status: "available",
     address: {
       country: "Colombia",
       state: "",
@@ -515,6 +517,7 @@ export default function LocationsPage() {
       await apiCreateLocation({
         name: form.name,
         organizationId: user?.organizationId ?? "",
+        status: form.status as "available" | "full_capacity" | "maintenance" | "inactive",
         address: {
           country: form.address.country,
           state: form.address.state,
@@ -566,6 +569,23 @@ export default function LocationsPage() {
       if (dept) setSelectedState(dept.id.toString());
     }
 
+    // Parse street if it comes in compact format (e.g., "Calle 10 #45" or "Calle 10 #45-30")
+    let parsedStreetType = address.streetType || "";
+    let parsedPrimaryNumber = address.primaryNumber || "";
+    let parsedSecondaryNumber = address.secondaryNumber || "";
+    let parsedComplementaryNumber = address.complementaryNumber || "";
+
+    if (!parsedStreetType && address.street) {
+      // Try to parse: "Calle 10 #45" or "Calle 10 #45-30"
+      const streetMatch = address.street.match(/^(.+?)\s+(\d+)\s*#\s*(\d+)(?:-(\d+))?/);
+      if (streetMatch) {
+        parsedStreetType = streetMatch[1].trim(); // "Calle"
+        parsedPrimaryNumber = streetMatch[2]; // "10"
+        parsedSecondaryNumber = streetMatch[3]; // "45"
+        parsedComplementaryNumber = streetMatch[4] || ""; // "30" or ""
+      }
+    }
+
     // Material capacities mapping
     const caps: MaterialCapacityForm[] = materialTypes.map((t) => {
       const existing = (
@@ -579,16 +599,17 @@ export default function LocationsPage() {
 
     setForm({
       name: loc.name || "",
+      status: loc.status || "available",
       address: {
         country: address.country || "Colombia",
         state: address.state || "",
         city: address.city || "",
         street: address.street || "",
         propertyNumber: address.propertyNumber || "",
-        streetType: address.streetType || "",
-        primaryNumber: address.primaryNumber || "",
-        secondaryNumber: address.secondaryNumber || "",
-        complementaryNumber: address.complementaryNumber || "",
+        streetType: parsedStreetType,
+        primaryNumber: parsedPrimaryNumber,
+        secondaryNumber: parsedSecondaryNumber,
+        complementaryNumber: parsedComplementaryNumber,
         additionalInfo: address.additionalInfo || address.additionalDetails || "",
       },
       materialCapacities: caps,
@@ -653,6 +674,7 @@ export default function LocationsPage() {
     try {
       await apiUpdateLocation(editing._id, {
         name: form.name,
+        status: form.status as "available" | "full_capacity" | "maintenance" | "inactive",
         address: {
           country: form.address.country,
           state: form.address.state,
@@ -1133,6 +1155,24 @@ export default function LocationsPage() {
                     {fieldErrors.name && (
                       <p className="text-xs text-red-400 mt-1">{fieldErrors.name}</p>
                     )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Status <span className="text-red-400">*</span>
+                    </label>
+                    <select
+                      value={form.status}
+                      onChange={(e) => {
+                        updateForm("status", e.target.value as "available" | "full" | "maintenance" | "inactive");
+                      }}
+                      className="w-full h-11 px-3 bg-[#111111] border border-[#262626] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#FFD700]"
+                    >
+                      <option value="available">Available</option>
+                      <option value="full">Full Capacity</option>
+                      <option value="maintenance">Maintenance</option>
+                      <option value="inactive">Inactive</option>
+                    </select>
                   </div>
 
                   <div>
@@ -1625,6 +1665,25 @@ export default function LocationsPage() {
                     {fieldErrors.name && (
                       <p className="text-xs text-red-400 mt-1">{fieldErrors.name}</p>
                     )}
+                  </div>
+
+                  {/* Status */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Status <span className="text-red-400">*</span>
+                    </label>
+                    <select
+                      value={form.status}
+                      onChange={(e) => {
+                        updateForm("status", e.target.value as "available" | "full" | "maintenance" | "inactive");
+                      }}
+                      className="w-full h-11 px-3 bg-[#111111] border border-[#262626] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#FFD700]"
+                    >
+                      <option value="available">Available</option>
+                      <option value="full">Full Capacity</option>
+                      <option value="maintenance">Maintenance</option>
+                      <option value="inactive">Inactive</option>
+                    </select>
                   </div>
 
                   {/* Country */}
