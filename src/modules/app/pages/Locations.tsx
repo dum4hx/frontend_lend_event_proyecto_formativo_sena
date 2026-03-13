@@ -1432,20 +1432,20 @@ export default function LocationsPage() {
                   )}
 
                   {/* Bulk Configuration Tool */}
-                  <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-4 space-y-4">
-                    <div className="flex items-center gap-2 text-[#FFD700] mb-2">
-                      <Zap size={16} />
+                  <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-5 shadow-sm">
+                    <div className="flex items-center gap-2 text-[#FFD700] mb-4 pb-3 border-b border-[#2a2a2a]">
+                      <Zap size={18} className="animate-pulse" />
                       <span className="text-sm font-bold uppercase tracking-wider">
                         Bulk Capacity Setting
                       </span>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-medium text-gray-400 mb-1">
+                    <div className="flex flex-col md:flex-row gap-4 items-end">
+                      <div className="flex-1">
+                        <label className="block text-xs font-medium text-gray-400 mb-1.5">
                           Filter by Category (optional)
                         </label>
                         <select
-                          className="w-full h-9 px-2 bg-[#0a0a0a] border border-[#222] rounded text-sm text-white focus:outline-none focus:border-[#FFD700]"
+                          className="w-full h-10 px-3 bg-[#0a0a0a] border border-[#222] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all"
                           onChange={(e) => {
                             const catId = e.target.value || undefined;
                             const qty = Number(bulkQtyInput);
@@ -1460,31 +1460,29 @@ export default function LocationsPage() {
                           ))}
                         </select>
                       </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-400 mb-1">
+                      <div className="flex-1">
+                        <label className="block text-xs font-medium text-gray-400 mb-1.5">
                           Quantity to Set *
                         </label>
-                        <div className="flex gap-2">
-                          <input
-                            type="number"
-                            min={0}
-                            value={bulkQtyInput}
-                            onChange={(e) => setBulkQtyInput(e.target.value)}
-                            placeholder="Enter qty"
-                            className="flex-1 h-9 px-2 bg-[#0a0a0a] border border-[#222] rounded text-sm text-white focus:outline-none focus:border-[#FFD700]"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const qty = Number(bulkQtyInput);
-                              if (bulkQtyInput.trim() && !isNaN(qty)) applyBulkCapacity(qty);
-                            }}
-                            className="bg-[#333] hover:bg-[#444] text-white px-3 rounded text-xs transition-colors"
-                          >
-                            Apply All
-                          </button>
-                        </div>
+                        <input
+                          type="number"
+                          min={0}
+                          value={bulkQtyInput}
+                          onChange={(e) => setBulkQtyInput(e.target.value)}
+                          placeholder="Enter quantity"
+                          className="w-full h-10 px-3 bg-[#0a0a0a] border border-[#222] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all"
+                        />
                       </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const qty = Number(bulkQtyInput);
+                          if (bulkQtyInput.trim() && !isNaN(qty)) applyBulkCapacity(qty);
+                        }}
+                        className="h-10 px-6 bg-[#FFD700] hover:bg-[#FFD700]/90 text-black font-semibold rounded text-sm transition-all shadow-md hover:shadow-lg active:scale-95"
+                      >
+                        Apply All
+                      </button>
                     </div>
                   </div>
 
@@ -1897,20 +1895,20 @@ export default function LocationsPage() {
                   )}
 
                   {/* Bulk Configuration Tool */}
-                  <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-4 space-y-4">
-                    <div className="flex items-center gap-2 text-[#FFD700] mb-2">
-                      <Zap size={16} />
+                  <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-5 shadow-sm">
+                    <div className="flex items-center gap-2 text-[#FFD700] mb-4 pb-3 border-b border-[#2a2a2a]">
+                      <Zap size={18} className="animate-pulse" />
                       <span className="text-sm font-bold uppercase tracking-wider">
                         Bulk Capacity Setting
                       </span>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-medium text-gray-400 mb-1">
+                    <div className="flex flex-col md:flex-row gap-4 items-end">
+                      <div className="flex-1">
+                        <label className="block text-xs font-medium text-gray-400 mb-1.5">
                           Filter by Category (optional)
                         </label>
                         <select
-                          className="w-full h-9 px-2 bg-[#0a0a0a] border border-[#222] rounded text-sm text-white focus:outline-none focus:border-[#FFD700]"
+                          className="w-full h-10 px-3 bg-[#0a0a0a] border border-[#222] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all"
                           onChange={(e) => {
                             const catId = e.target.value || undefined;
                             const qty = Number(bulkQtyInput);
@@ -1925,31 +1923,29 @@ export default function LocationsPage() {
                           ))}
                         </select>
                       </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-400 mb-1">
+                      <div className="flex-1">
+                        <label className="block text-xs font-medium text-gray-400 mb-1.5">
                           Quantity to Set *
                         </label>
-                        <div className="flex gap-2">
-                          <input
-                            type="number"
-                            min={0}
-                            value={bulkQtyInput}
-                            onChange={(e) => setBulkQtyInput(e.target.value)}
-                            placeholder="Enter qty"
-                            className="flex-1 h-9 px-2 bg-[#0a0a0a] border border-[#222] rounded text-sm text-white focus:outline-none focus:border-[#FFD700]"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const qty = Number(bulkQtyInput);
-                              if (bulkQtyInput.trim() && !isNaN(qty)) applyBulkCapacity(qty);
-                            }}
-                            className="bg-[#333] hover:bg-[#444] text-white px-3 rounded text-xs transition-colors"
-                          >
-                            Apply All
-                          </button>
-                        </div>
+                        <input
+                          type="number"
+                          min={0}
+                          value={bulkQtyInput}
+                          onChange={(e) => setBulkQtyInput(e.target.value)}
+                          placeholder="Enter quantity"
+                          className="w-full h-10 px-3 bg-[#0a0a0a] border border-[#222] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all"
+                        />
                       </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const qty = Number(bulkQtyInput);
+                          if (bulkQtyInput.trim() && !isNaN(qty)) applyBulkCapacity(qty);
+                        }}
+                        className="h-10 px-6 bg-[#FFD700] hover:bg-[#FFD700]/90 text-black font-semibold rounded text-sm transition-all shadow-md hover:shadow-lg active:scale-95"
+                      >
+                        Apply All
+                      </button>
                     </div>
                   </div>
 
