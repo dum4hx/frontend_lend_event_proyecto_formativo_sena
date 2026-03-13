@@ -130,6 +130,7 @@ export default function LocationsPage() {
 
   // Preview modal state
   const [previewSearchTerm, setPreviewSearchTerm] = useState("");
+  const [previewSelectedCategory, setPreviewSelectedCategory] = useState<string>("");
   const [previewPage, setPreviewPage] = useState(1);
   const PREVIEW_ITEMS_PER_PAGE = 8;
 
@@ -600,6 +601,7 @@ export default function LocationsPage() {
     setPreviewing(loc);
     setShowPreviewModal(true);
     setPreviewSearchTerm("");
+    setPreviewSelectedCategory("");
     setPreviewPage(1);
   };
 
@@ -607,6 +609,7 @@ export default function LocationsPage() {
     setShowPreviewModal(false);
     setPreviewing(null);
     setPreviewSearchTerm("");
+    setPreviewSelectedCategory("");
     setPreviewPage(1);
   };
 
@@ -2130,36 +2133,73 @@ export default function LocationsPage() {
                       <div className="bg-yellow-500/10 text-yellow-500 text-[10px] px-2 py-0.5 rounded border border-yellow-500/20 font-bold">
                         {(() => {
                           const filtered = materialTypes.filter((mt) => {
-                            const matchesSearch = mt.name.toLowerCase().includes(previewSearchTerm.toLowerCase());
-                            if (!matchesSearch) return false;
-                            if (!previewSearchTerm) return true;
+                            // Get category ID from potentially populated field
                             const catId = mt.categoryId as any;
-                            let categoryName = "General";
+                            let actualCategoryId = "";
                             if (typeof catId === "string") {
-                              const category = categories.find((c) => c._id === catId);
-                              categoryName = category?.name || "General";
+                              actualCategoryId = catId;
                             } else if (Array.isArray(catId) && catId.length > 0) {
-                              categoryName = catId[0]?.name || "General";
+                              actualCategoryId = catId[0]?._id || "";
                             } else if (catId && typeof catId === "object") {
-                              categoryName = catId?.name || "General";
+                              actualCategoryId = catId?._id || "";
                             }
-                            return categoryName.toLowerCase().includes(previewSearchTerm.toLowerCase());
+
+                            // Filter by selected category
+                            if (previewSelectedCategory && actualCategoryId !== previewSelectedCategory) {
+                              return false;
+                            }
+
+                            // Filter by search term
+                            if (previewSearchTerm) {
+                              const matchesName = mt.name.toLowerCase().includes(previewSearchTerm.toLowerCase());
+                              if (!matchesName) {
+                                let categoryName = "General";
+                                if (typeof catId === "string") {
+                                  const category = categories.find((c) => c._id === catId);
+                                  categoryName = category?.name || "General";
+                                } else if (Array.isArray(catId) && catId.length > 0) {
+                                  categoryName = catId[0]?.name || "General";
+                                } else if (catId && typeof catId === "object") {
+                                  categoryName = catId?.name || "General";
+                                }
+                                return categoryName.toLowerCase().includes(previewSearchTerm.toLowerCase());
+                              }
+                            }
+
+                            return true;
                           });
                           return filtered.length;
                         })()}{" "}
                         / {materialTypes.length} TYPES
                       </div>
                     </div>
-                    <input
-                      type="text"
-                      value={previewSearchTerm}
-                      onChange={(e) => {
-                        setPreviewSearchTerm(e.target.value);
-                        setPreviewPage(1);
-                      }}
-                      placeholder="Search by material or category..."
-                      className="w-full h-9 px-3 bg-[#111] border border-[#2a2a2a] rounded-lg text-white text-sm focus:outline-none focus:border-yellow-500/50"
-                    />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      <select
+                        value={previewSelectedCategory}
+                        onChange={(e) => {
+                          setPreviewSelectedCategory(e.target.value);
+                          setPreviewPage(1);
+                        }}
+                        className="h-9 px-3 bg-[#111] border border-[#2a2a2a] rounded-lg text-white text-sm focus:outline-none focus:border-yellow-500/50"
+                      >
+                        <option value="">All Categories</option>
+                        {categories.map((cat) => (
+                          <option key={cat._id} value={cat._id}>
+                            {cat.name}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="text"
+                        value={previewSearchTerm}
+                        onChange={(e) => {
+                          setPreviewSearchTerm(e.target.value);
+                          setPreviewPage(1);
+                        }}
+                        placeholder="Search by material name..."
+                        className="h-9 px-3 bg-[#111] border border-[#2a2a2a] rounded-lg text-white text-sm focus:outline-none focus:border-yellow-500/50"
+                      />
+                    </div>
                   </div>
                   <div className="flex-1 overflow-y-auto max-h-[400px] p-2 custom-scrollbar">
                     <table className="w-full text-left">
@@ -2176,20 +2216,40 @@ export default function LocationsPage() {
                       <tbody className="divide-y divide-[#2a2a2a]">
                         {(() => {
                           const filteredMaterials = materialTypes.filter((mt) => {
-                            const matchesSearch = mt.name.toLowerCase().includes(previewSearchTerm.toLowerCase());
-                            if (!matchesSearch) return false;
-                            if (!previewSearchTerm) return true;
+                            // Get category ID from potentially populated field
                             const catId = mt.categoryId as any;
-                            let categoryName = "General";
+                            let actualCategoryId = "";
                             if (typeof catId === "string") {
-                              const category = categories.find((c) => c._id === catId);
-                              categoryName = category?.name || "General";
+                              actualCategoryId = catId;
                             } else if (Array.isArray(catId) && catId.length > 0) {
-                              categoryName = catId[0]?.name || "General";
+                              actualCategoryId = catId[0]?._id || "";
                             } else if (catId && typeof catId === "object") {
-                              categoryName = catId?.name || "General";
+                              actualCategoryId = catId?._id || "";
                             }
-                            return categoryName.toLowerCase().includes(previewSearchTerm.toLowerCase());
+
+                            // Filter by selected category
+                            if (previewSelectedCategory && actualCategoryId !== previewSelectedCategory) {
+                              return false;
+                            }
+
+                            // Filter by search term
+                            if (previewSearchTerm) {
+                              const matchesName = mt.name.toLowerCase().includes(previewSearchTerm.toLowerCase());
+                              if (!matchesName) {
+                                let categoryName = "General";
+                                if (typeof catId === "string") {
+                                  const category = categories.find((c) => c._id === catId);
+                                  categoryName = category?.name || "General";
+                                } else if (Array.isArray(catId) && catId.length > 0) {
+                                  categoryName = catId[0]?.name || "General";
+                                } else if (catId && typeof catId === "object") {
+                                  categoryName = catId?.name || "General";
+                                }
+                                return categoryName.toLowerCase().includes(previewSearchTerm.toLowerCase());
+                              }
+                            }
+
+                            return true;
                           });
 
                           const startIndex = (previewPage - 1) * PREVIEW_ITEMS_PER_PAGE;
@@ -2243,20 +2303,40 @@ export default function LocationsPage() {
                   {/* Pagination Controls */}
                   {(() => {
                     const filteredMaterials = materialTypes.filter((mt) => {
-                      const matchesSearch = mt.name.toLowerCase().includes(previewSearchTerm.toLowerCase());
-                      if (!matchesSearch) return false;
-                      if (!previewSearchTerm) return true;
+                      // Get category ID from potentially populated field
                       const catId = mt.categoryId as any;
-                      let categoryName = "General";
+                      let actualCategoryId = "";
                       if (typeof catId === "string") {
-                        const category = categories.find((c) => c._id === catId);
-                        categoryName = category?.name || "General";
+                        actualCategoryId = catId;
                       } else if (Array.isArray(catId) && catId.length > 0) {
-                        categoryName = catId[0]?.name || "General";
+                        actualCategoryId = catId[0]?._id || "";
                       } else if (catId && typeof catId === "object") {
-                        categoryName = catId?.name || "General";
+                        actualCategoryId = catId?._id || "";
                       }
-                      return categoryName.toLowerCase().includes(previewSearchTerm.toLowerCase());
+
+                      // Filter by selected category
+                      if (previewSelectedCategory && actualCategoryId !== previewSelectedCategory) {
+                        return false;
+                      }
+
+                      // Filter by search term
+                      if (previewSearchTerm) {
+                        const matchesName = mt.name.toLowerCase().includes(previewSearchTerm.toLowerCase());
+                        if (!matchesName) {
+                          let categoryName = "General";
+                          if (typeof catId === "string") {
+                            const category = categories.find((c) => c._id === catId);
+                            categoryName = category?.name || "General";
+                          } else if (Array.isArray(catId) && catId.length > 0) {
+                            categoryName = catId[0]?.name || "General";
+                          } else if (catId && typeof catId === "object") {
+                            categoryName = catId?.name || "General";
+                          }
+                          return categoryName.toLowerCase().includes(previewSearchTerm.toLowerCase());
+                        }
+                      }
+
+                      return true;
                     });
                     const totalPages = Math.ceil(filteredMaterials.length / PREVIEW_ITEMS_PER_PAGE);
 
