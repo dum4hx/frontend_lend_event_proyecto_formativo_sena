@@ -1443,6 +1443,18 @@ export default function LocationsPage() {
                         (c) => c.materialTypeId === type._id,
                       );
                       const hasError = !!fieldErrors[`capacity_${type._id}`];
+
+                      // Handle categoryId being either string or populated object/array 
+                      let categoryName = "General";
+                      const catId = type.categoryId as any;
+                      if (typeof catId === "string") {
+                        const category = categories.find((c)=> c._id === catId);
+                        categoryName = category?.name || "General";
+                      } else if (Array.isArray(catId) && catId.length > 0) {
+                        categoryName = catId[0]?.name || "General";
+                      } else if (catId && typeof catId === "object") {
+                        categoryName = catId?.name || "General";
+                      }
                       const isEdited = capacity?.maxQuantity !== "";
 
                       return (
@@ -1459,7 +1471,7 @@ export default function LocationsPage() {
                           <div className="flex-1">
                             <p className="text-sm font-medium text-white">{type.name}</p>
                             <p className="text-xs text-gray-500">
-                              {categories.find((c) => c._id === type.categoryId)?.name || "General"}
+                              {categoryName}
                             </p>
                           </div>
                           <div className="w-28 shrink-0">
@@ -1571,6 +1583,7 @@ export default function LocationsPage() {
               }}
               className="flex-1 overflow-y-auto pr-2 space-y-8 custom-scrollbar"
             >
+              {/* NOTE: Edit modal -categoryId handler active below */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-6">
                   <h3 className="text-lg font-semibold text-white border-l-4 border-[#FFD700] pl-3">
@@ -1878,6 +1891,18 @@ export default function LocationsPage() {
                       const hasError = !!fieldErrors[`capacity_${type._id}`];
                       const isEdited = capacity?.maxQuantity !== "";
 
+                      // Handle categoryId being either string or populated object/array  
+                      let categoryName = "General";
+                      const catId = type.categoryId as any;
+                      if (typeof catId === "string") {
+                        const category = categories.find((c) => c._id === catId);
+                        categoryName = category?.name || "General";
+                      } else if (Array.isArray(catId) && catId.length > 0) {
+                        categoryName = catId[0]?.name || "General";
+                      } else if (catId && typeof catId === "object") {
+                        categoryName = catId?.name || "General";
+                      }
+
                       return (
                         <div
                           key={type._id}
@@ -1892,7 +1917,7 @@ export default function LocationsPage() {
                           <div className="flex-1">
                             <p className="text-sm font-medium text-white">{type.name}</p>
                             <p className="text-xs text-gray-500">
-                              {categories.find((c) => c._id === type.categoryId)?.name || "General"}
+                              {categoryName}
                             </p>
                           </div>
                           <div className="w-28 shrink-0">
