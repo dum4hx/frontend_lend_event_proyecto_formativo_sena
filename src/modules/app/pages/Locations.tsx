@@ -1091,6 +1091,7 @@ export default function LocationsPage() {
               }}
               className="flex-1 overflow-y-auto pr-2 space-y-8 custom-scrollbar"
             >
+              {/* NOTE: Create modal -categoryId handler active below */}
               {/* Basic Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-6">
