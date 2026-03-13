@@ -60,6 +60,7 @@ export interface WarehouseLocation {
   occupied: number;
   status: "available" | "full" | "maintenance";
   isActive: boolean;
+  materialCapacities?: { materialTypeId: string; maxQuantity: number }[];
   createdAt: string;
   updatedAt: string;
 }
@@ -83,6 +84,7 @@ export interface LocationCreatePayload {
   name: string;
   organizationId: string;
   status?: "available" | "full_capacity" | "maintenance" | "inactive";
+  materialCapacities?: { materialTypeId: string; maxQuantity: number }[];
   address: {
     country: string;
     state: string;

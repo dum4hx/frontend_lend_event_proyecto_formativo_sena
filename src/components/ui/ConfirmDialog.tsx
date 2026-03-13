@@ -13,6 +13,9 @@ export interface ConfirmDialogProps {
   message: string;
   confirmText?: string;
   cancelText?: string;
+  /** Optional secondary action rendered between Cancel and Confirm */
+  secondaryText?: string;
+  onSecondaryAction?: () => void;
   variant?: 'danger' | 'warning' | 'info';
   isLoading?: boolean;
 }
@@ -25,6 +28,8 @@ export function ConfirmDialog({
   message,
   confirmText = 'Confirm',
   cancelText = 'Cancel',
+  secondaryText,
+  onSecondaryAction,
   variant = 'danger',
   isLoading = false,
 }: ConfirmDialogProps) {
@@ -98,6 +103,15 @@ export function ConfirmDialog({
           >
             {cancelText}
           </button>
+          {secondaryText && onSecondaryAction && (
+            <button
+              onClick={() => { onSecondaryAction(); onClose(); }}
+              disabled={isLoading}
+              className="px-5 py-2.5 rounded-lg border border-[#444] text-gray-200 bg-[#1a1a1a] hover:bg-[#252525] hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+            >
+              {secondaryText}
+            </button>
+          )}
           <button
             onClick={handleConfirm}
             disabled={isLoading}

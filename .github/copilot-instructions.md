@@ -8,7 +8,7 @@ This workspace contains the **LendEvent** frontend application, a React 19 + Typ
 
 **All code changes, new features, and refactoring must follow:**
 
-📋 [**LendEvent Frontend Coding Standards**](./lend-event-frontend.prompt.md)
+📋 [**LendEvent Frontend Coding Standards**](./instructions/lend-event-frontend.prompt.md)
 
 This document defines:
 
@@ -117,7 +117,7 @@ npm run build && npm run lint && npm run format:check
 
 ## When in Doubt
 
-1. Check [lend-event-frontend.prompt.md](./lend-event-frontend.prompt.md) for detailed patterns
+1. Check [lend-event-frontend.prompt.md](./instructions/lend-event-frontend.prompt.md) for detailed patterns
 2. Refer to [docs/API_DOCUMENTATION.md](../docs/API_DOCUMENTATION.md) for API contracts
 3. Look at existing implementations in `src/services/` and `src/components/ui/`
 4. Follow the PR checklist before committing
@@ -125,3 +125,51 @@ npm run build && npm run lint && npm run format:check
 ---
 
 **Last Updated:** March 6, 2026
+
+---
+
+## Commit Guidelines
+
+Add commits frequently and meaningfully. Commit locally (do not push or open PRs by default) and keep each commit focused on a single logical change.
+
+When to commit:
+
+- Commit early for small, self-contained changes (one logical change per commit).
+- Commit whenever a task reaches a verifiable state (builds, passes unit tests, or adds a test).
+- Commit when you finish implementing a single behavior, refactor, or bugfix — avoid mixing unrelated changes.
+
+Branching (Gitflow basics):
+
+- `main`: always production-ready. Only release merges go here.
+- `develop`: integration branch for completed features; CI must pass before merging to `develop`.
+- `feature/<short-description>`: created off `develop` for new features or tasks. Merge back into `develop` when complete.
+- `hotfix/<short-description>`: created off `main` to fix production issues; merge into both `main` and `develop` after review.
+- `release/<version>`: optional branch from `develop` for preparing a release; merge into `main` and `develop`.
+
+Commit message standard (short + details):
+
+- Use a short, imperative summary line (<= 72 chars). Example: `feat(auth): add magic-link login flow`
+- After the summary line, include a blank line, then a bullet list with details:
+  - **Scope**: what part of the app was changed (e.g., `authService`, `Login.tsx`).
+  - **What**: short list of what was done (one bullet per item).
+  - **Why / Purpose**: reason for the change and any relevant context.
+  - **Testing**: what was tested (unit, manual steps) and any required post-merge actions.
+
+Example commit message:
+
+```
+fix(materials): prevent duplicate category creation
+
+- Scope: materialService.ts, CreateCategoryForm.tsx
+- What: added server-side duplicate check; client shows inline error message
+- Why / Purpose: prevents creating identical categories which caused downstream errors
+- Testing: unit test added for duplicate check; manual test: create category flow
+```
+
+Tips:
+
+- Keep commits focused and reversible. Squash or rebase feature branch commits before merging if they are WIP or noisy.
+- Use `git rebase -i` to tidy history on feature branches before merging.
+- Reference issue/ticket numbers in the commit message when applicable.
+
+If unsure, follow the examples above or ask a teammate for guidance.

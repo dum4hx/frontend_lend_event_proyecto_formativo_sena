@@ -844,7 +844,7 @@ export interface CustomersQueryParams extends PaginationParams {
   search?: string;
 }
 
-export interface MaterialTypesQueryParams {
+export interface MaterialTypesQueryParams extends PaginationParams {
   categoryId?: string;
   search?: string;
 }

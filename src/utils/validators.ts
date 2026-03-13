@@ -586,20 +586,91 @@ export const validateLocationForm = (form: {
     propertyNumber?: string;
   };
 }): ValidationResult => {
-  if (!form.code || !form.code.trim()) return { isValid: false, message: 'Code is required' };
-  if (!form.name || !form.name.trim()) return { isValid: false, message: 'Name is required' };
-  if (!form.section || !form.section.trim()) return { isValid: false, message: 'Section is required' };
-  if (!form.shelf || !form.shelf.trim()) return { isValid: false, message: 'Shelf is required' };
-  if (typeof form.capacity !== 'number' || Number.isNaN(form.capacity) || form.capacity < 0) return { isValid: false, message: 'Capacity must be a non-negative number' };
-  if (typeof form.occupied !== 'number' || Number.isNaN(form.occupied) || form.occupied < 0) return { isValid: false, message: 'Occupied must be a non-negative number' };
-  if ((form.capacity ?? 0) > 0 && (form.occupied ?? 0) > (form.capacity ?? 0)) return { isValid: false, message: 'Occupied cannot be greater than capacity' };
-  const allowed = ['available', 'full', 'maintenance'];
-  if (!allowed.includes(form.status ?? 'available')) return { isValid: false, message: 'Invalid status' };
+  if (!form.code || !form.code.trim()) return { isValid: false, message: "Code is required" };
+  if (!form.name || !form.name.trim()) return { isValid: false, message: "Name is required" };
+  if (!form.section || !form.section.trim())
+    return { isValid: false, message: "Section is required" };
+  if (!form.shelf || !form.shelf.trim()) return { isValid: false, message: "Shelf is required" };
+  if (typeof form.capacity !== "number" || Number.isNaN(form.capacity) || form.capacity < 0)
+    return { isValid: false, message: "Capacity must be a non-negative number" };
+  if (typeof form.occupied !== "number" || Number.isNaN(form.occupied) || form.occupied < 0)
+    return { isValid: false, message: "Occupied must be a non-negative number" };
+  if ((form.capacity ?? 0) > 0 && (form.occupied ?? 0) > (form.capacity ?? 0))
+    return { isValid: false, message: "Occupied cannot be greater than capacity" };
+  const allowed = ["available", "full", "maintenance"];
+  if (!allowed.includes(form.status ?? "available"))
+    return { isValid: false, message: "Invalid status" };
   // Address validation (required by backend)
-  if (!form.address) return { isValid: false, message: 'Address is required' };
-  if (!form.address.country || !form.address.country.trim()) return { isValid: false, message: 'Country is required' };
-  if (!form.address.city || !form.address.city.trim()) return { isValid: false, message: 'City is required' };
-  if (!form.address.street || !form.address.street.trim()) return { isValid: false, message: 'Street is required' };
-  if (!form.address.propertyNumber || !form.address.propertyNumber.trim()) return { isValid: false, message: 'Property number is required' };
+  if (!form.address) return { isValid: false, message: "Address is required" };
+  if (!form.address.country || !form.address.country.trim())
+    return { isValid: false, message: "Country is required" };
+  if (!form.address.city || !form.address.city.trim())
+    return { isValid: false, message: "City is required" };
+  if (!form.address.street || !form.address.street.trim())
+    return { isValid: false, message: "Street is required" };
+  if (!form.address.propertyNumber || !form.address.propertyNumber.trim())
+    return { isValid: false, message: "Property number is required" };
   return { isValid: true };
+};
+
+/**
+ * Validate material capacities for a location
+ */
+export const validateMaterialCapacities = (
+  capacities: Array<{ materialTypeId: string; maxQuantity: number | "" }>,
+): ValidationResult => {
+  if (!capacities || capacities.length === 0) {
+    return { isValid: false, message: "At least one material capacity must be defined" };
+  }
+
+  for (let i = 0; i < capacities.length; i++) {
+    const cap = capacities[i];
+    if (cap.maxQuantity === "") {
+      return { isValid: false, message: "All material types must have a defined capacity" };
+    }
+    if (typeof cap.maxQuantity !== "number" || cap.maxQuantity < 0) {
+      return { isValid: false, message: "Capacity must be a non-negative number" };
+    }
+  }
+
+  return { isValid: true };
+};
+
+/**
+ * Enhanced Location Validation (V2) matching the latest API documentation
+ */
+export const validateLocationV2 = (form: {
+  name: string;
+  address: {
+    country: string;
+    state?: string;
+    city: string;
+    street: string;
+    propertyNumber: string;
+    additionalInfo?: string;
+  };
+  materialCapacities?: Array<{ materialTypeId: string; maxQuantity: number | "" }>;
+}): { isValid: boolean; errors: Record<string, string> } => {
+  const errors: Record<string, string> = {};
+
+  if (!form.name.trim()) errors.name = "Name is required";
+  if (form.name.length > 100) errors.name = "Name must not exceed 100 characters";
+
+  if (!form.address.country.trim()) errors["address.country"] = "Country is required";
+  if (!form.address.city.trim()) errors["address.city"] = "City is required";
+  if (!form.address.street.trim()) errors["address.street"] = "Street is required";
+  if (!form.address.propertyNumber.trim())
+    errors["address.propertyNumber"] = "Property number is required";
+
+  if (form.materialCapacities) {
+    const capValidation = validateMaterialCapacities(form.materialCapacities);
+    if (!capValidation.isValid) {
+      errors.materialCapacities = capValidation.message || "Invalid capacities";
+    }
+  }
+
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors,
+  };
 };

@@ -9,10 +9,10 @@
  * - Keyboard dismissible (Escape)
  */
 
-import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { X, CheckCircle2, AlertCircle, AlertTriangle, Info } from 'lucide-react';
+import React, { useEffect, useState, useRef, useCallback } from "react";
+import { X, CheckCircle2, AlertCircle, AlertTriangle, Info } from "lucide-react";
 
-export type ToastType = 'success' | 'error' | 'warning' | 'info';
+export type ToastType = "success" | "error" | "warning" | "info";
 
 export interface Toast {
   id: string;
@@ -39,32 +39,32 @@ const ICON_MAP = {
 
 const COLOR_MAP = {
   success: {
-    bg: 'bg-green-950/80',
-    border: 'border-green-800',
-    icon: 'text-green-400',
-    text: 'text-green-50',
-    progress: 'bg-green-500',
+    bg: "bg-green-950/80",
+    border: "border-green-800",
+    icon: "text-green-400",
+    text: "text-green-50",
+    progress: "bg-green-500",
   },
   error: {
-    bg: 'bg-red-950/80',
-    border: 'border-red-800',
-    icon: 'text-red-400',
-    text: 'text-red-50',
-    progress: 'bg-red-500',
+    bg: "bg-red-950/80",
+    border: "border-red-800",
+    icon: "text-red-400",
+    text: "text-red-50",
+    progress: "bg-red-500",
   },
   warning: {
-    bg: 'bg-amber-950/80',
-    border: 'border-amber-800',
-    icon: 'text-amber-400',
-    text: 'text-amber-50',
-    progress: 'bg-amber-500',
+    bg: "bg-amber-950/80",
+    border: "border-amber-800",
+    icon: "text-amber-400",
+    text: "text-amber-50",
+    progress: "bg-amber-500",
   },
   info: {
-    bg: 'bg-blue-950/80',
-    border: 'border-blue-800',
-    icon: 'text-blue-400',
-    text: 'text-blue-50',
-    progress: 'bg-blue-500',
+    bg: "bg-blue-950/80",
+    border: "border-blue-800",
+    icon: "text-blue-400",
+    text: "text-blue-50",
+    progress: "bg-blue-500",
   },
 };
 
@@ -116,13 +116,13 @@ const ToastItem: React.FC<ToastItemProps> = ({
   // Handle keyboard escape
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isVisible) {
+      if (e.key === "Escape" && isVisible) {
         dismiss();
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isVisible, dismiss]);
 
   const colors = COLOR_MAP[type];
@@ -131,7 +131,7 @@ const ToastItem: React.FC<ToastItemProps> = ({
   return (
     <div
       className={`transform transition-all duration-300 ${
-        isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
+        isVisible ? "translate-x-0 opacity-100" : "translate-x-full opacity-0"
       }`}
     >
       <div
@@ -139,20 +139,14 @@ const ToastItem: React.FC<ToastItemProps> = ({
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
         role="alert"
-        aria-live={type === 'error' ? 'assertive' : 'polite'}
+        aria-live={type === "error" ? "assertive" : "polite"}
       >
         <div className="flex gap-3">
           <IconComponent className={`${colors.icon} flex-shrink-0 mt-0.5`} size={20} />
-          
+
           <div className="flex-1 min-w-0">
-            {title && (
-              <p className={`font-semibold ${colors.text} text-sm mb-1`}>
-                {title}
-              </p>
-            )}
-            <p className={`${colors.text} text-sm opacity-90 break-words`}>
-              {message}
-            </p>
+            {title && <p className={`font-semibold ${colors.text} text-sm mb-1`}>{title}</p>}
+            <p className={`${colors.text} text-sm opacity-90 break-words`}>{message}</p>
             {action && (
               <button
                 onClick={async () => {
@@ -194,12 +188,9 @@ interface ToastContainerProps {
   onDismiss: (id: string) => void;
 }
 
-export const ToastContainer: React.FC<ToastContainerProps> = ({
-  toasts,
-  onDismiss,
-}) => {
+export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, onDismiss }) => {
   return (
-    <div className="fixed bottom-6 right-6 z-50 space-y-2 pointer-events-none">
+    <div className="fixed bottom-6 right-6 z-[9999] space-y-2 pointer-events-none">
       {toasts.map((toast) => (
         <div key={toast.id} className="pointer-events-auto">
           <ToastItem {...toast} onDismiss={onDismiss} />
