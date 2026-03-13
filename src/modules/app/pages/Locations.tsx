@@ -2264,7 +2264,7 @@ export default function LocationsPage() {
           setBulkConfirmPending(null);
         }}
         title="Apply bulk capacity"
-        message='How do you want to apply this value? \"Override all\" replaces every value. \"Keep existing\" only fills in material types that haven&apos;t been set yet.'
+        message='How do you want to apply this value? "Override all" replaces every value. "Keep existing" only fills in material types that haven&apos;t been set yet.'
         confirmText="Override all"
         cancelText="Cancel"
         variant="warning"
