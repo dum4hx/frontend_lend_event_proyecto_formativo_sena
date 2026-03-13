@@ -9,7 +9,7 @@ import { server } from "../../test/mocks/server";
 import { loginUser, registerUser, logoutUser, getCurrentUser } from "../authService";
 import { ApiError } from "../../lib/api";
 
-const BASE = "https://api.test.local/api/v1";
+const BASE = "http://localhost:3000/api/v1";
 
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 afterEach(() => server.resetHandlers());

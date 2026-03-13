@@ -92,6 +92,7 @@ function App() {
                   "materials:read",
                   "customers:read",
                   "loans:read",
+                  "requests:read",
                 ]}
               >
                 <RequireActiveSubscription>

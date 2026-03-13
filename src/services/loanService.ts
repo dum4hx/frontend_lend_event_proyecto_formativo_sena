@@ -11,6 +11,7 @@ import type {
   CreateLoanRequestPayload,
   AssignMaterialPayload,
   Loan,
+  LoanRequestStatus,
   ExtendLoanPayload,
   LoanRequestsQueryParams,
   LoansQueryParams,
@@ -77,7 +78,7 @@ export async function assignMaterials(
 /** Update a loan request. */
 export async function updateRequest(
   requestId: string,
-  updates: Partial<CreateLoanRequestPayload>,
+  updates: Partial<CreateLoanRequestPayload> & { status?: LoanRequestStatus },
 ): Promise<ApiSuccessResponse<{ request: LoanRequest }>> {
   return patch<{ request: LoanRequest }>(`/requests/${requestId}`, updates);
 }
