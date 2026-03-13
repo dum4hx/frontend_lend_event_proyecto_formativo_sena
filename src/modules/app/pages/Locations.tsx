@@ -128,6 +128,11 @@ export default function LocationsPage() {
   const [materialPage, setMaterialPage] = useState(1);
   const ITEMS_PER_MODAL_PAGE = 5;
 
+  // Preview modal state
+  const [previewSearchTerm, setPreviewSearchTerm] = useState("");
+  const [previewPage, setPreviewPage] = useState(1);
+  const PREVIEW_ITEMS_PER_PAGE = 8;
+
   const initialForm: LocationFormState = {
     name: "",
     address: {
@@ -594,11 +599,15 @@ export default function LocationsPage() {
   const openPreview = (loc: WarehouseLocation) => {
     setPreviewing(loc);
     setShowPreviewModal(true);
+    setPreviewSearchTerm("");
+    setPreviewPage(1);
   };
 
   const closePreviewModal = () => {
     setShowPreviewModal(false);
     setPreviewing(null);
+    setPreviewSearchTerm("");
+    setPreviewPage(1);
   };
 
   const handleUpdate = async () => {
@@ -2112,14 +2121,45 @@ export default function LocationsPage() {
 
                 {/* Material Capacities Table */}
                 <div className="bg-[#1a1a1a] rounded-xl border border-[#333] flex flex-col h-full">
-                  <div className="p-4 border-b border-[#333] flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-yellow-500 uppercase tracking-wider flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-yellow-500"></div>
-                      Material Capacities
-                    </h3>
-                    <div className="bg-yellow-500/10 text-yellow-500 text-[10px] px-2 py-0.5 rounded border border-yellow-500/20 font-bold">
-                      {materialTypes.length} TYPES
+                  <div className="p-4 border-b border-[#333]">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-bold text-yellow-500 uppercase tracking-wider flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-yellow-500"></div>
+                        Material Capacities
+                      </h3>
+                      <div className="bg-yellow-500/10 text-yellow-500 text-[10px] px-2 py-0.5 rounded border border-yellow-500/20 font-bold">
+                        {(() => {
+                          const filtered = materialTypes.filter((mt) => {
+                            const matchesSearch = mt.name.toLowerCase().includes(previewSearchTerm.toLowerCase());
+                            if (!matchesSearch) return false;
+                            if (!previewSearchTerm) return true;
+                            const catId = mt.categoryId as any;
+                            let categoryName = "General";
+                            if (typeof catId === "string") {
+                              const category = categories.find((c) => c._id === catId);
+                              categoryName = category?.name || "General";
+                            } else if (Array.isArray(catId) && catId.length > 0) {
+                              categoryName = catId[0]?.name || "General";
+                            } else if (catId && typeof catId === "object") {
+                              categoryName = catId?.name || "General";
+                            }
+                            return categoryName.toLowerCase().includes(previewSearchTerm.toLowerCase());
+                          });
+                          return filtered.length;
+                        })()}{" "}
+                        / {materialTypes.length} TYPES
+                      </div>
                     </div>
+                    <input
+                      type="text"
+                      value={previewSearchTerm}
+                      onChange={(e) => {
+                        setPreviewSearchTerm(e.target.value);
+                        setPreviewPage(1);
+                      }}
+                      placeholder="Search by material or category..."
+                      className="w-full h-9 px-3 bg-[#111] border border-[#2a2a2a] rounded-lg text-white text-sm focus:outline-none focus:border-yellow-500/50"
+                    />
                   </div>
                   <div className="flex-1 overflow-y-auto max-h-[400px] p-2 custom-scrollbar">
                     <table className="w-full text-left">
@@ -2134,38 +2174,128 @@ export default function LocationsPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[#2a2a2a]">
-                        {materialTypes.map((mt) => {
-                          const cap = (
-                            (previewing.materialCapacities as {
-                              materialTypeId: string;
-                              maxQuantity: number;
-                            }[]) || []
-                          ).find((c) => c.materialTypeId === mt._id);
+                        {(() => {
+                          const filteredMaterials = materialTypes.filter((mt) => {
+                            const matchesSearch = mt.name.toLowerCase().includes(previewSearchTerm.toLowerCase());
+                            if (!matchesSearch) return false;
+                            if (!previewSearchTerm) return true;
+                            const catId = mt.categoryId as any;
+                            let categoryName = "General";
+                            if (typeof catId === "string") {
+                              const category = categories.find((c) => c._id === catId);
+                              categoryName = category?.name || "General";
+                            } else if (Array.isArray(catId) && catId.length > 0) {
+                              categoryName = catId[0]?.name || "General";
+                            } else if (catId && typeof catId === "object") {
+                              categoryName = catId?.name || "General";
+                            }
+                            return categoryName.toLowerCase().includes(previewSearchTerm.toLowerCase());
+                          });
 
-                          return (
-                            <tr key={mt._id} className="group hover:bg-white/5 transition-colors">
-                              <td className="px-3 py-2.5">
-                                <div className="flex flex-col">
-                                  <span className="text-sm font-semibold text-gray-200 group-hover:text-white">
-                                    {mt.name}
+                          const startIndex = (previewPage - 1) * PREVIEW_ITEMS_PER_PAGE;
+                          const endIndex = startIndex + PREVIEW_ITEMS_PER_PAGE;
+                          const paginatedMaterials = filteredMaterials.slice(startIndex, endIndex);
+
+                          return paginatedMaterials.map((mt) => {
+                            const cap = (
+                              (previewing.materialCapacities as {
+                                materialTypeId: string;
+                                maxQuantity: number;
+                              }[]) || []
+                            ).find((c) => c.materialTypeId === mt._id);
+
+                            // Handle categoryId being either string or populated object/array
+                            let categoryName = "General";
+                            const catId = mt.categoryId as any;
+                            if (typeof catId === "string") {
+                              const category = categories.find((c) => c._id === catId);
+                              categoryName = category?.name || "General";
+                            } else if (Array.isArray(catId) && catId.length > 0) {
+                              categoryName = catId[0]?.name || "General";
+                            } else if (catId && typeof catId === "object") {
+                              categoryName = catId?.name || "General";
+                            }
+
+                            return (
+                              <tr key={mt._id} className="group hover:bg-white/5 transition-colors">
+                                <td className="px-3 py-2.5">
+                                  <div className="flex flex-col">
+                                    <span className="text-sm font-semibold text-gray-200 group-hover:text-white">
+                                      {mt.name}
+                                    </span>
+                                    <span className="text-[10px] text-gray-500 group-hover:text-yellow-500/70 transition-colors">
+                                      {categoryName}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="px-3 py-2.5 text-right">
+                                  <span className="text-sm font-mono font-bold text-yellow-500 bg-yellow-500/10 px-2 py-1 rounded border border-yellow-500/20 group-hover:shadow-[0_0_10px_rgba(234,179,8,0.1)]">
+                                    {cap?.maxQuantity || 0}
                                   </span>
-                                  <span className="text-[10px] text-gray-500 group-hover:text-yellow-500/70 transition-colors">
-                                    {categories.find((c) => c._id === mt.categoryId)?.name ||
-                                      "General"}
-                                  </span>
-                                </div>
-                              </td>
-                              <td className="px-3 py-2.5 text-right">
-                                <span className="text-sm font-mono font-bold text-yellow-500 bg-yellow-500/10 px-2 py-1 rounded border border-yellow-500/20 group-hover:shadow-[0_0_10px_rgba(234,179,8,0.1)]">
-                                  {cap?.maxQuantity || 0}
-                                </span>
-                              </td>
-                            </tr>
-                          );
-                        })}
+                                </td>
+                              </tr>
+                            );
+                          });
+                        })()}
                       </tbody>
                     </table>
                   </div>
+                  {/* Pagination Controls */}
+                  {(() => {
+                    const filteredMaterials = materialTypes.filter((mt) => {
+                      const matchesSearch = mt.name.toLowerCase().includes(previewSearchTerm.toLowerCase());
+                      if (!matchesSearch) return false;
+                      if (!previewSearchTerm) return true;
+                      const catId = mt.categoryId as any;
+                      let categoryName = "General";
+                      if (typeof catId === "string") {
+                        const category = categories.find((c) => c._id === catId);
+                        categoryName = category?.name || "General";
+                      } else if (Array.isArray(catId) && catId.length > 0) {
+                        categoryName = catId[0]?.name || "General";
+                      } else if (catId && typeof catId === "object") {
+                        categoryName = catId?.name || "General";
+                      }
+                      return categoryName.toLowerCase().includes(previewSearchTerm.toLowerCase());
+                    });
+                    const totalPages = Math.ceil(filteredMaterials.length / PREVIEW_ITEMS_PER_PAGE);
+
+                    if (totalPages <= 1) return null;
+
+                    return (
+                      <div className="flex items-center justify-center gap-2 p-3 border-t border-[#333]">
+                        <button
+                          onClick={() => setPreviewPage((p) => Math.max(1, p - 1))}
+                          disabled={previewPage === 1}
+                          className="p-1.5 rounded bg-[#111] hover:bg-[#222] disabled:opacity-30 disabled:cursor-not-allowed text-gray-400 hover:text-white transition-colors"
+                        >
+                          <ChevronLeft size={16} />
+                        </button>
+                        <div className="flex gap-1">
+                          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                            <button
+                              key={p}
+                              onClick={() => setPreviewPage(p)}
+                              className={`w-7 h-7 rounded text-xs font-bold transition-all ${
+                                previewPage === p
+                                  ? "bg-yellow-500 text-black"
+                                  : "bg-[#111] text-gray-400 hover:bg-[#222] hover:text-white"
+                              }`}
+                            >
+                              {p}
+                            </button>
+                          ))}
+                        </div>
+                        <button
+                          onClick={() => setPreviewPage((p) => Math.min(totalPages, p + 1))}
+                          disabled={previewPage === totalPages}
+                          className="p-1.5 rounded bg-[#111] hover:bg-[#222] disabled:opacity-30 disabled:cursor-not-allowed text-gray-400 hover:text-white transition-colors"
+                        >
+                          <ChevronRight size={16} />
+                        </button>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
