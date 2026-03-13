@@ -1042,14 +1042,6 @@ export default function LocationsPage() {
                   </div>
                 </div>
 
-                {/* Available Space */}
-                <div className="bg-[#1a1a1a] rounded-lg p-3 mb-4">
-                  <p className="text-gray-400 text-xs mb-1">Available Space</p>
-                  <p className="text-white font-semibold text-lg">
-                    {Math.max(0, location.capacity - location.occupied)} units
-                  </p>
-                </div>
-
                 {/* Additional Details */}
                 {((location.address as Record<string, unknown>)?.additionalDetails as string) && (
                   <div className="bg-[#1a1a1a] rounded-lg p-3 mb-4">
