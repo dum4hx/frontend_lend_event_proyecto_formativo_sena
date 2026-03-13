@@ -66,14 +66,10 @@ export const MaterialAttributeForm: React.FC<MaterialAttributeFormProps> = ({
     });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SubmitEvent) => {
     e.preventDefault();
     if (!formData.name.trim()) {
       showToast("error", "Attribute name is required");
-      return;
-    }
-    if (!formData.unit.trim()) {
-      showToast("error", "Unit of measurement is required");
       return;
     }
 
@@ -93,7 +89,9 @@ export const MaterialAttributeForm: React.FC<MaterialAttributeFormProps> = ({
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Attribute Name *</label>
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Attribute Name <span className="text-red-500">*</span>
+          </label>
           <input
             type="text"
             value={formData.name}
@@ -106,15 +104,14 @@ export const MaterialAttributeForm: React.FC<MaterialAttributeFormProps> = ({
 
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">
-            Unit of Measurement *
+            Unit of Measurement
           </label>
           <input
             type="text"
             value={formData.unit}
             onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
             className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-lg text-white focus:outline-none focus:border-[#FFD700]"
-            placeholder="e.g., GB, kg, Type"
-            required
+            placeholder="e.g., GB, kg, Type (Optional)"
           />
         </div>
       </div>
