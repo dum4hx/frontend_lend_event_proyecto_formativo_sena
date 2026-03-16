@@ -74,17 +74,35 @@ export async function updateCustomer(
 /** Blacklist a customer. */
 export async function blacklistCustomer(
   customerId: string,
-): Promise<ApiSuccessResponse<null>> {
-  return post<null>(`/customers/${customerId}/blacklist`);
+): Promise<ApiSuccessResponse<{ customer: Customer }>> {
+  return post<{ customer: Customer }>(`/customers/${customerId}/blacklist`);
 }
 
-// ─── Reactivate ────────────────────────────────────────────────────────────
+// ─── Activate ──────────────────────────────────────────────────────────────
 
-/** Reactivate an inactive or blacklisted customer (sets status to active). */
+/** Activate or reactivate a customer (sets status to active). */
+export async function activateCustomer(
+  customerId: string,
+): Promise<ApiSuccessResponse<{ customer: Customer }>> {
+  return post<{ customer: Customer }>(`/customers/${customerId}/activate`);
+}
+
+// ─── Deactivate ────────────────────────────────────────────────────────────
+
+/** Deactivate a customer temporarily (sets status to inactive). */
+export async function deactivateCustomer(
+  customerId: string,
+): Promise<ApiSuccessResponse<{ customer: Customer }>> {
+  return post<{ customer: Customer }>(`/customers/${customerId}/deactivate`);
+}
+
+// ─── Reactivate (Deprecated - use activateCustomer) ───────────────────────
+
+/** @deprecated Use activateCustomer instead. */
 export async function reactivateCustomer(
   customerId: string,
-): Promise<ApiSuccessResponse<null>> {
-  return post<null>(`/customers/${customerId}/reactivate`);
+): Promise<ApiSuccessResponse<{ customer: Customer }>> {
+  return activateCustomer(customerId);
 }
 
 // ─── Delete ────────────────────────────────────────────────────────────────

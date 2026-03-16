@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Search, Plus, Edit2, Trash2, Ban, X, RotateCcw } from "lucide-react";
+import { Search, Plus, Edit2, Trash2, Ban, X, RotateCcw, UserX } from "lucide-react";
 import useSWR from "swr";
 import { useDebounce } from "use-debounce";
 import {
@@ -8,7 +8,8 @@ import {
   createCustomer,
   updateCustomer,
   blacklistCustomer,
-  reactivateCustomer,
+  activateCustomer,
+  deactivateCustomer,
   deleteCustomer,
 } from "../../../services/customerService";
 import type {
@@ -550,16 +551,30 @@ export default function Customers() {
     }
   };
 
-  // Reactivate customer
-  const handleReactivate = async (customer: Customer) => {
+  // Deactivate customer
+  const handleDeactivate = async (customer: Customer) => {
     const fullName = `${customer.name.firstName} ${customer.name.firstSurname}`;
-    if (!confirm(`Reactivate ${fullName}?\n\nThis will restore the customer to active status.`)) return;
+    if (!confirm(`Deactivate ${fullName}?\n\nThis will temporarily disable the customer account.`)) return;
 
     try {
-      await reactivateCustomer(customer._id);
+      await deactivateCustomer(customer._id);
       await fetchCustomers();
     } catch (err) {
-      const message = err instanceof ApiError ? err.message : "Failed to reactivate customer";
+      const message = err instanceof ApiError ? err.message : "Failed to deactivate customer";
+      showError(message);
+    }
+  };
+
+  // Activate/Reactivate customer
+  const handleReactivate = async (customer: Customer) => {
+    const fullName = `${customer.name.firstName} ${customer.name.firstSurname}`;
+    if (!confirm(`Activate ${fullName}?\n\nThis will restore the customer to active status.`)) return;
+
+    try {
+      await activateCustomer(customer._id);
+      await fetchCustomers();
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "Failed to activate customer";
       showError(message);
     }
   };
@@ -800,14 +815,24 @@ export default function Customers() {
 
                           {/* Block — only for active customers */}
                           {customer.status === "active" && (
-                            <button
-                              onClick={() => void handleBlacklist(customer)}
-                              className="btn-icon text-amber-500 hover:text-amber-400"
-                              title="Block customer"
-                              aria-label="Block customer"
-                            >
-                              <Ban size={18} />
-                            </button>
+                            <>
+                              <button
+                                onClick={() => void handleDeactivate(customer)}
+                                className="btn-icon text-orange-500 hover:text-orange-400"
+                                title="Deactivate customer"
+                                aria-label="Deactivate customer"
+                              >
+                                <UserX size={18} />
+                              </button>
+                              <button
+                                onClick={() => void handleBlacklist(customer)}
+                                className="btn-icon text-amber-500 hover:text-amber-400"
+                                title="Block customer"
+                                aria-label="Block customer"
+                              >
+                                <Ban size={18} />
+                              </button>
+                            </>
                           )}
 
                           {/* Reactivate — for inactive or blacklisted customers */}
@@ -815,8 +840,8 @@ export default function Customers() {
                             <button
                               onClick={() => void handleReactivate(customer)}
                               className="btn-icon text-emerald-500 hover:text-emerald-400"
-                              title={customer.status === "blacklisted" ? "Unblock & reactivate" : "Reactivate customer"}
-                              aria-label={customer.status === "blacklisted" ? "Unblock & reactivate" : "Reactivate customer"}
+                              title={customer.status === "blacklisted" ? "Unblock & activate" : "Activate customer"}
+                              aria-label={customer.status === "blacklisted" ? "Unblock & activate" : "Activate customer"}
                             >
                               <RotateCcw size={18} />
                             </button>
