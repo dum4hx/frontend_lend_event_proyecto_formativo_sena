@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
-import { Save, Shield, Bell, Globe, Database, AlertTriangle } from "lucide-react";
+import { Save, Shield, Bell, Globe, Database, AlertTriangle, Moon, Palette, Sun } from "lucide-react";
 import { fetchPlatformHealth, fetchOverview } from "../../../services/superAdminService";
 import { logError, normalizeError } from "../../../utils/errorHandling";
+import { useTheme } from "../../../contexts/useTheme";
 import type { PlatformHealth, PlatformOverview } from "../../../types/api";
 
 // --- Validation helpers ----------------------------------------------------
@@ -55,6 +56,8 @@ function hasErrors(errors: SettingsValidationErrors): boolean {
 // ---------------------------------------------------------------------------
 
 export default function SystemSettings() {
+  const { theme, setTheme } = useTheme();
+
   // General
   const [platformName, setPlatformName] = useState("Lend Event");
   const [supportEmail, setSupportEmail] = useState("support@lendevent.com");
@@ -245,6 +248,40 @@ export default function SystemSettings() {
               />
             </FieldGroup>
           </div>
+        </SettingsSection>
+
+        {/* Appearance */}
+        <SettingsSection
+          icon={<Palette size={20} className="text-[#FFD700]" />}
+          title="Appearance"
+          description="Interface theme for the admin panel"
+        >
+          <p className="text-sm text-gray-400 mb-3">Select the colour scheme applied to all authenticated views.</p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setTheme("dark")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition ${
+                theme === "dark"
+                  ? "border-[#FFD700] bg-[rgba(255,215,0,0.1)] text-[#FFD700]"
+                  : "border-[#333] text-gray-400 hover:border-[#FFD700]/50"
+              }`}
+            >
+              <Moon size={15} />
+              Dark
+            </button>
+            <button
+              onClick={() => setTheme("light")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition ${
+                theme === "light"
+                  ? "border-[#FFD700] bg-[rgba(255,215,0,0.1)] text-[#FFD700]"
+                  : "border-[#333] text-gray-400 hover:border-[#FFD700]/50"
+              }`}
+            >
+              <Sun size={15} />
+              Light
+            </button>
+          </div>
+          <p className="text-gray-500 text-xs mt-2">Applied immediately to all pages. Resets to dark on logout.</p>
         </SettingsSection>
 
         {/* Database & Platform Health */}

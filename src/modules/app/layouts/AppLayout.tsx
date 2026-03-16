@@ -11,7 +11,7 @@ function AppLayoutContent() {
   const sidebarMargin = isSidebarCollapsed ? "ml-20" : "ml-64";
 
   return (
-    <div className="min-h-screen bg-[#121212] text-white">
+    <div className="app-shell min-h-screen bg-[#121212] text-white">
       <Sidebar
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}

@@ -23,7 +23,7 @@ export default function SuperAdminLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="app-shell min-h-screen bg-black text-white">
       <SuperAdminSidebar
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}

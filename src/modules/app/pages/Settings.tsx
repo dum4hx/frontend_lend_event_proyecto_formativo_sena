@@ -3,9 +3,11 @@ import {
   Settings as SettingsIcon,
   Bell,
   Lock,
+  Moon,
   Palette,
   Save,
   Shield,
+  Sun,
   UserCircle2,
 } from "lucide-react";
 import { StatCard } from "../components";
@@ -14,6 +16,7 @@ import { ApiError } from "../../../lib/api";
 import { usePermissions } from "../../../contexts/usePermissions";
 import { useAuth } from "../../../contexts/useAuth";
 import { useToast } from "../../../contexts/ToastContext";
+import { useTheme } from "../../../contexts/useTheme";
 
 type SettingsModuleId = "notifications" | "security" | "appearance" | "account";
 
@@ -113,6 +116,7 @@ export default function Settings() {
   const { hasAnyPermission } = usePermissions();
   const { user } = useAuth();
   const { showToast } = useToast();
+  const { theme, setTheme } = useTheme();
 
   const [orgData, setOrgData] = useState({
     name: "",
@@ -350,6 +354,36 @@ export default function Settings() {
         <div className="bg-[#121212] border border-[#333] rounded-[12px] p-6 space-y-4">
           <h2 className="text-xl font-semibold text-white">Appearance</h2>
           <p className="text-gray-400 text-sm">Tune visual preferences for your workspace.</p>
+
+          {/* Theme toggle */}
+          <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-4">
+            <p className="text-gray-200 mb-3 text-sm font-medium">Interface Theme</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setTheme("dark")}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition ${
+                  theme === "dark"
+                    ? "border-[#FFD700] bg-[rgba(255,215,0,0.1)] text-[#FFD700]"
+                    : "border-[#333] text-gray-400 hover:border-[#FFD700]/50"
+                }`}
+              >
+                <Moon size={15} />
+                Dark
+              </button>
+              <button
+                onClick={() => setTheme("light")}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition ${
+                  theme === "light"
+                    ? "border-[#FFD700] bg-[rgba(255,215,0,0.1)] text-[#FFD700]"
+                    : "border-[#333] text-gray-400 hover:border-[#FFD700]/50"
+                }`}
+              >
+                <Sun size={15} />
+                Light
+              </button>
+            </div>
+            <p className="text-gray-500 text-xs mt-2">Applied immediately. Resets to dark on logout.</p>
+          </div>
 
           <label className="flex items-center justify-between bg-[#1a1a1a] border border-[#333] rounded-lg p-4">
             <span className="text-gray-200">Compact mode</span>

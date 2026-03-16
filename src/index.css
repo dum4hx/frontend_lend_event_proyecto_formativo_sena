@@ -587,3 +587,358 @@
     transform: translateY(0);
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Light Theme — scoped to .app-shell (authenticated views only)
+   Public pages always stay dark. Toggle is available in Settings > Appearance
+   and Super Admin > System Settings > Appearance.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Shell root ────────────────────────────────────────────────────────── */
+html.light .app-shell {
+  background-color: #f9fafb;
+  color: #111827;
+  --brand-accent-contrast: #c79200;
+  --brand-accent-contrast-strong: #a97800;
+  --brand-accent-soft: rgba(247, 193, 0, 0.16);
+  --brand-accent-soft-hover: rgba(247, 193, 0, 0.26);
+  --brand-accent-border: rgba(247, 193, 0, 0.55);
+  --brand-accent-border-hover: rgba(247, 193, 0, 0.75);
+}
+
+/* ─── Layout backgrounds ────────────────────────────────────────────────── */
+html.light .app-shell .bg-black,
+html.light .app-shell .bg-\[\#0f0f0f\] {
+  background-color: #f9fafb;
+}
+
+html.light .app-shell .bg-\[\#121212\] {
+  background-color: #ffffff;
+}
+
+html.light .app-shell .bg-\[\#0f0f0f\],
+html.light .app-shell .bg-\[\#111111\] {
+  background-color: #ffffff;
+}
+
+html.light .app-shell .bg-\[\#1a1a1a\],
+html.light .app-shell .bg-zinc-900 {
+  background-color: #f3f4f6;
+}
+
+html.light .app-shell .bg-\[\#0e0e0e\] {
+  background-color: #ffffff;
+}
+
+html.light .app-shell .bg-\[\#252525\],
+html.light .app-shell .bg-zinc-800,
+html.light .app-shell .bg-\[\#222\] {
+  background-color: #e5e7eb;
+}
+
+html.light .app-shell .bg-\[\#2a2a2a\] {
+  background-color: #e5e7eb;
+}
+
+html.light .app-shell .bg-gradient-to-br.from-\[\#1a1a1a\].to-\[\#121212\],
+html.light .app-shell .bg-gradient-to-br.from-\[\#121212\].to-\[\#0f0f0f\],
+html.light .app-shell .bg-gradient-to-br.from-\[\#111111\].to-\[\#0f0f0f\] {
+  background-image: none;
+  background-color: #ffffff;
+}
+
+/* ─── Hover backgrounds ─────────────────────────────────────────────────── */
+html.light .app-shell .hover\:bg-\[\#1a1a1a\]:hover {
+  background-color: #e5e7eb;
+}
+
+html.light .app-shell .hover\:bg-\[\#252525\]:hover {
+  background-color: #d1d5db;
+}
+
+html.light .app-shell .hover\:bg-zinc-800:hover,
+html.light .app-shell .hover\:bg-zinc-800\/60:hover {
+  background-color: #e5e7eb;
+}
+
+html.light .app-shell .hover\:bg-\[\#2a2a2a\]:hover {
+  background-color: #d1d5db;
+}
+
+/* ─── Borders ───────────────────────────────────────────────────────────── */
+html.light .app-shell .border-\[\#333\] {
+  border-color: #e5e7eb;
+}
+
+html.light .app-shell .border-\[\#222\] {
+  border-color: #f3f4f6;
+}
+
+html.light .app-shell .border-\[\#444\] {
+  border-color: #d1d5db;
+}
+
+html.light .app-shell .border-zinc-800 {
+  border-color: #d1d5db;
+}
+
+html.light .app-shell .border-\[\#2a2a2a\],
+html.light .app-shell .border-\[\#262626\] {
+  border-color: #e5e7eb;
+}
+
+html.light .app-shell .border-zinc-800\/60 {
+  border-color: #e5e7eb;
+}
+
+html.light .app-shell .divide-\[\#333\] > * + * {
+  border-color: #e5e7eb;
+}
+
+/* ─── Text ──────────────────────────────────────────────────────────────── */
+html.light .app-shell .text-white {
+  color: #111827;
+}
+
+html.light .app-shell .text-gray-100 {
+  color: #111827;
+}
+
+html.light .app-shell .text-gray-200 {
+  color: #374151;
+}
+
+html.light .app-shell .text-gray-300 {
+  color: #4b5563;
+}
+
+html.light .app-shell .text-gray-400 {
+  color: #6b7280;
+}
+
+html.light .app-shell .text-gray-500 {
+  color: #9ca3af;
+}
+
+html.light .app-shell .text-zinc-300 {
+  color: #4b5563;
+}
+
+html.light .app-shell .text-zinc-400,
+html.light .app-shell .text-zinc-500 {
+  color: #6b7280;
+}
+
+html.light .app-shell .text-zinc-600 {
+  color: #9ca3af;
+}
+
+html.light .app-shell .placeholder\:text-gray-500::placeholder,
+html.light .app-shell .placeholder\:text-gray-600::placeholder {
+  color: #9ca3af;
+}
+
+html.light .app-shell .hover\:text-white:hover {
+  color: #111827;
+}
+
+html.light .app-shell .hover\:text-zinc-300:hover {
+  color: #374151;
+}
+
+/* ─── Brand yellow remap (contrast on white) ───────────────────────────── */
+html.light .app-shell .text-\[\#FFD700\] {
+  color: var(--brand-accent-contrast);
+}
+
+html.light .app-shell .border-\[\#FFD700\] {
+  border-color: var(--brand-accent-contrast);
+}
+
+html.light .app-shell .focus\:border-\[\#FFD700\]:focus {
+  border-color: var(--brand-accent-contrast);
+}
+
+html.light .app-shell .focus\:ring-\[\#FFD700\]:focus {
+  --tw-ring-color: var(--brand-accent-contrast);
+}
+
+html.light .app-shell .border-\[rgba\(255\,215\,0\,0\.35\)\] {
+  border-color: var(--brand-accent-border);
+}
+
+html.light .app-shell .hover\:border-\[rgba\(255\,215\,0\,0\.55\)\]:hover {
+  border-color: var(--brand-accent-border-hover);
+}
+
+html.light .app-shell .bg-\[rgba\(255\,215\,0\,0\.1\)\] {
+  background-color: var(--brand-accent-soft);
+}
+
+html.light .app-shell .hover\:bg-\[rgba\(255\,215\,0\,0\.18\)\]:hover {
+  background-color: var(--brand-accent-soft-hover);
+}
+
+html.light .app-shell .accent-\[\#FFD700\] {
+  accent-color: var(--brand-accent-contrast);
+}
+
+html.light .app-shell .border-\[\#FFD700\]\/50 {
+  border-color: color-mix(in srgb, var(--brand-accent-contrast) 50%, transparent);
+}
+
+html.light .app-shell .text-yellow-300,
+html.light .app-shell .text-yellow-400,
+html.light .app-shell .text-yellow-500 {
+  color: var(--brand-accent-contrast);
+}
+
+html.light .app-shell .border-yellow-300,
+html.light .app-shell .border-yellow-400,
+html.light .app-shell .border-yellow-500 {
+  border-color: var(--brand-accent-contrast);
+}
+
+html.light .app-shell .bg-yellow-300,
+html.light .app-shell .bg-yellow-400,
+html.light .app-shell .bg-yellow-500 {
+  background-color: #f5c400;
+}
+
+html.light .app-shell .bg-\[\#FFD700\] {
+  background-color: #f5c400;
+}
+
+html.light .app-shell .hover\:bg-yellow-300:hover,
+html.light .app-shell .hover\:bg-yellow-400:hover,
+html.light .app-shell .hover\:bg-yellow-500:hover,
+html.light .app-shell .hover\:bg-\[\#FFD700\]:hover {
+  background-color: #f0bb00;
+}
+
+html.light .app-shell .bg-\[\#FFD700\].text-black,
+html.light .app-shell .bg-yellow-400.text-black,
+html.light .app-shell .bg-yellow-500.text-black,
+html.light .app-shell .bg-yellow-600.text-black {
+  color: #111827;
+}
+
+html.light .app-shell .bg-\[\#FFD700\].text-black svg,
+html.light .app-shell .bg-yellow-400.text-black svg,
+html.light .app-shell .bg-yellow-500.text-black svg,
+html.light .app-shell .bg-yellow-600.text-black svg {
+  color: #111827;
+}
+
+html.light .app-shell .gold-action-btn,
+html.light .app-shell .export-btn,
+html.light .app-shell .btn-primary {
+  background: var(--brand-accent-soft);
+  border-color: var(--brand-accent-border);
+  color: var(--brand-accent-contrast);
+}
+
+html.light .app-shell .gold-action-btn:hover,
+html.light .app-shell .export-btn:hover,
+html.light .app-shell .btn-primary:hover {
+  background: var(--brand-accent-soft-hover);
+  border-color: var(--brand-accent-border-hover);
+  color: var(--brand-accent-contrast-strong);
+}
+
+html.light .app-shell .gold-action-btn:focus-visible,
+html.light .app-shell .export-btn:focus-visible,
+html.light .app-shell .btn-primary:focus-visible {
+  outline-color: color-mix(in srgb, var(--brand-accent-contrast) 60%, transparent);
+}
+
+/* ─── Inputs ────────────────────────────────────────────────────────────── */
+html.light .app-shell .input,
+html.light .app-shell input.input {
+  background-color: #ffffff;
+  border-color: #d1d5db;
+  color: #111827;
+}
+
+/* setting-input (inline style in SystemSettings) */
+html.light .app-shell .setting-input {
+  background: #ffffff !important;
+  border-color: #d1d5db !important;
+  color: #111827 !important;
+}
+
+/* Inline ad-hoc inputs used across settings pages */
+html.light .app-shell input[class*="bg-[#1a1a1a]"],
+html.light .app-shell input[class*="bg-[#121212]"],
+html.light .app-shell textarea[class*="bg-[#1a1a1a]"],
+html.light .app-shell textarea[class*="bg-[#121212]"] {
+  background-color: #ffffff;
+  border-color: #d1d5db;
+  color: #111827;
+}
+
+/* ─── Tables ────────────────────────────────────────────────────────────── */
+html.light .app-shell .table thead {
+  background-color: #f3f4f6;
+  border-bottom-color: #e5e7eb;
+}
+
+html.light .app-shell .table th {
+  color: #6b7280;
+}
+
+html.light .app-shell .table tbody tr {
+  border-bottom-color: #f3f4f6;
+}
+
+html.light .app-shell .table tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+html.light .app-shell .table td {
+  color: #374151;
+}
+
+/* ─── Modals ────────────────────────────────────────────────────────────── */
+html.light .app-shell .modal-content {
+  background-color: #ffffff;
+  border-color: #e5e7eb;
+}
+
+html.light .app-shell .modal-header,
+html.light .app-shell .modal-footer {
+  border-color: #e5e7eb;
+}
+
+/* ─── Cards ─────────────────────────────────────────────────────────────── */
+html.light .app-shell .card,
+html.light .app-shell .card-compact {
+  background-color: #ffffff;
+  border-color: #e5e7eb;
+}
+
+/* ─── Scrollbar (sidebar) ───────────────────────────────────────────────── */
+html.light .app-shell .sidebar-scroll {
+  scrollbar-color: rgba(255, 215, 0, 0.7) #e5e7eb;
+}
+
+html.light .app-shell .sidebar-scroll::-webkit-scrollbar-track {
+  background: #e5e7eb;
+}
+
+html.light .app-shell .sidebar-scroll::-webkit-scrollbar-thumb {
+  border-color: rgba(229, 231, 235, 0.9);
+}
+
+/* ─── Scrollbar (html root) for light shell pages ───────────────────────── */
+html.light {
+  scrollbar-color: rgba(255, 215, 0, 0.7) #e5e7eb;
+}
+
+html.light::-webkit-scrollbar-track {
+  background: #e5e7eb;
+}
+
+html.light::-webkit-scrollbar-thumb {
+  border-color: rgba(229, 231, 235, 0.9);
+}
