@@ -6,20 +6,11 @@
  * is logged in; public pages always render in dark mode.
  */
 
-import { createContext, useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useAuth } from "./useAuth";
-
-export type Theme = "dark" | "light";
+import { ThemeContext, type Theme } from "./themeContextDefinition";
 
 const THEME_STORAGE_KEY = "lendevent_theme";
-
-interface ThemeContextValue {
-  theme: Theme;
-  setTheme: (theme: Theme) => void;
-  toggleTheme: () => void;
-}
-
-export const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 function getStoredTheme(): Theme {
   try {
