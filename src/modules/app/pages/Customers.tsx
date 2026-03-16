@@ -456,6 +456,16 @@ export default function Customers() {
     }
   }, [stateCities, cityQuery, selectedCity, isNormalizedEqual]);
 
+  // Auto-select department when departments load and stateQuery has value
+  useEffect(() => {
+    if (departments && stateQuery && !selectedState && showEditModal) {
+      const foundDept = departments.find((d) => isNormalizedEqual(d.name, stateQuery));
+      if (foundDept) {
+        setSelectedState(foundDept);
+      }
+    }
+  }, [departments, stateQuery, selectedState, showEditModal, isNormalizedEqual]);
+
   // Fetch customers
   const fetchCustomers = useCallback(async () => {
     try {
@@ -655,25 +665,18 @@ export default function Customers() {
       setAdditionalDetails("");
     }
     
-    // Set state/city text fields
-    setStateQuery(addr.state ?? "");
-    setCityQuery(addr.city ?? "");
-    setPostalCodeField(addr.postalCode ?? "");
+    // Set state/city text fields first
+    const savedState = addr.state ?? "";
+    const savedCity = addr.city ?? "";
+    const savedPostalCode = addr.postalCode ?? "";
     
-    // Try to find and select the department if available
-    if (addr.state && departments) {
-      const foundDept = departments.find((d) => isNormalizedEqual(d.name, addr.state || ""));
-      if (foundDept) {
-        setSelectedState(foundDept);
-      } else {
-        setSelectedState(null);
-      }
-    } else {
-      setSelectedState(null);
-    }
+    setStateQuery(savedState);
+    setCityQuery(savedCity);
+    setPostalCodeField(savedPostalCode);
     
-    // City will be loaded once we have the department's cities
-    // For now, just clear it - it will be set once stateCities loads
+    // Don't try to select state/city immediately - let useEffect handle it
+    // This ensures departments are loaded first
+    setSelectedState(null);
     setSelectedCity(null);
   };
 
