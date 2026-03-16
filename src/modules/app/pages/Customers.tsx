@@ -1462,15 +1462,41 @@ export default function Customers() {
                     </div>
                   </div>
 
-                  {/* Document (read-only in edit) */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 opacity-50">
+                  {/* Document */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="form-group">
-                      <label className="form-label">Document Type</label>
-                      <input type="text" value={getDocumentTypeLabel(selectedCustomer.documentType)} className={inputClass(false)} title="Document Type" aria-label="Document Type" disabled />
+                      <label className="form-label">Document Type *</label>
+                      <select
+                        title="Document Type"
+                        aria-label="Document Type"
+                        value={formData.documentType}
+                        onChange={(e) => {
+                          setFormData({ ...formData, documentType: e.target.value as DocumentType });
+                        }}
+                        className={inputClass(false)}
+                        disabled={submitting || loadingDocTypes}
+                      >
+                        {loadingDocTypes ? (
+                          <option value="">Loading...</option>
+                        ) : (
+                          documentTypes.map((dt) => (
+                            <option key={dt.value} value={dt.value}>
+                              {dt.displayName}
+                            </option>
+                          ))
+                        )}
+                      </select>
                     </div>
-                    <div className="form-group">
+                    <div className="form-group opacity-50">
                       <label className="form-label">Document Number</label>
-                      <input type="text" value={selectedCustomer.documentNumber} className={inputClass(false)} title="Document Number" aria-label="Document Number" disabled />
+                      <input 
+                        type="text" 
+                        value={selectedCustomer.documentNumber} 
+                        className={inputClass(false)} 
+                        title="Document Number (cannot be edited)" 
+                        aria-label="Document Number (cannot be edited)" 
+                        disabled 
+                      />
                     </div>
                   </div>
 
