@@ -443,6 +443,19 @@ export default function Customers() {
     void fetchDocTypes();
   }, []);
 
+  // Auto-select city when cities load and cityQuery matches
+  useEffect(() => {
+    if (stateCities && cityQuery && !selectedCity) {
+      const foundCity = stateCities.find((c) => isNormalizedEqual(c.name, cityQuery));
+      if (foundCity) {
+        setSelectedCity(foundCity);
+        if (foundCity.postalCode) {
+          setPostalCodeField(foundCity.postalCode);
+        }
+      }
+    }
+  }, [stateCities, cityQuery, selectedCity, isNormalizedEqual]);
+
   // Fetch customers
   const fetchCustomers = useCallback(async () => {
     try {
@@ -523,6 +536,7 @@ export default function Customers() {
         },
         email: formData.email,
         phone: toColombianPhone(formData.phone),
+        documentType: formData.documentType,
         address: buildAddressPayload(),
       };
       await updateCustomer(selectedCustomer._id, payload);
@@ -640,11 +654,26 @@ export default function Customers() {
       setComplementaryNumber("");
       setAdditionalDetails("");
     }
+    
+    // Set state/city text fields
     setStateQuery(addr.state ?? "");
     setCityQuery(addr.city ?? "");
     setPostalCodeField(addr.postalCode ?? "");
-    // State/City objects will need re-selection from autocomplete
-    setSelectedState(null);
+    
+    // Try to find and select the department if available
+    if (addr.state && departments) {
+      const foundDept = departments.find((d) => isNormalizedEqual(d.name, addr.state || ""));
+      if (foundDept) {
+        setSelectedState(foundDept);
+      } else {
+        setSelectedState(null);
+      }
+    } else {
+      setSelectedState(null);
+    }
+    
+    // City will be loaded once we have the department's cities
+    // For now, just clear it - it will be set once stateCities loads
     setSelectedCity(null);
   };
 
