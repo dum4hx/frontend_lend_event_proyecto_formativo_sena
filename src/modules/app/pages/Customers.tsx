@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Search, Plus, Edit2, Trash2, Ban, X, RotateCcw, UserX } from "lucide-react";
+import { Search, Plus, Edit2, Trash2, Ban, X, RotateCcw } from "lucide-react";
 import useSWR from "swr";
 import { useDebounce } from "use-debounce";
 import {
@@ -9,7 +9,6 @@ import {
   updateCustomer,
   blacklistCustomer,
   activateCustomer,
-  deactivateCustomer,
   deleteCustomer,
 } from "../../../services/customerService";
 import type {
@@ -585,27 +584,6 @@ export default function Customers() {
     }
   };
 
-  // Deactivate customer
-  const handleDeactivate = async (customer: Customer) => {
-    const fullName = `${customer.name.firstName} ${customer.name.firstSurname}`;
-    const confirmed = await showConfirm({
-      title: `Deactivate ${fullName}?`,
-      message: 'This will temporarily disable the customer account.',
-      confirmText: 'Deactivate',
-      variant: 'warning',
-    });
-    
-    if (!confirmed) return;
-
-    try {
-      await deactivateCustomer(customer._id);
-      await fetchCustomers();
-    } catch (err) {
-      const message = err instanceof ApiError ? err.message : "Failed to deactivate customer";
-      showError(message);
-    }
-  };
-
   // Activate/Reactivate customer
   const handleReactivate = async (customer: Customer) => {
     const fullName = `${customer.name.firstName} ${customer.name.firstSurname}`;
@@ -901,35 +879,22 @@ export default function Customers() {
                             <Edit2 size={18} />
                           </button>
 
-                          {/* Block — only for active customers */}
-                          {customer.status === "active" && (
-                            <>
-                              <button
-                                onClick={() => void handleDeactivate(customer)}
-                                className="btn-icon text-orange-500 hover:text-orange-400"
-                                title="Deactivate customer"
-                                aria-label="Deactivate customer"
-                              >
-                                <UserX size={18} />
-                              </button>
-                              <button
-                                onClick={() => void handleBlacklist(customer)}
-                                className="btn-icon text-amber-500 hover:text-amber-400"
-                                title="Block customer"
-                                aria-label="Block customer"
-                              >
-                                <Ban size={18} />
-                              </button>
-                            </>
-                          )}
-
-                          {/* Reactivate — for inactive or blacklisted customers */}
-                          {(customer.status === "inactive" || customer.status === "blacklisted") && (
+                          {/* Block or Reactivate based on status */}
+                          {customer.status === "active" ? (
+                            <button
+                              onClick={() => void handleBlacklist(customer)}
+                              className="btn-icon text-amber-500 hover:text-amber-400"
+                              title="Block customer"
+                              aria-label="Block customer"
+                            >
+                              <Ban size={18} />
+                            </button>
+                          ) : (
                             <button
                               onClick={() => void handleReactivate(customer)}
                               className="btn-icon text-emerald-500 hover:text-emerald-400"
-                              title={customer.status === "blacklisted" ? "Unblock & activate" : "Activate customer"}
-                              aria-label={customer.status === "blacklisted" ? "Unblock & activate" : "Activate customer"}
+                              title="Activate customer"
+                              aria-label="Activate customer"
                             >
                               <RotateCcw size={18} />
                             </button>
