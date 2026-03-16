@@ -78,10 +78,20 @@ interface LocationFormAddress {
 
 interface LocationFormState {
   name: string;
-  status: "available" | "full" | "maintenance" | "inactive";
+  status: "available" | "full_capacity" | "maintenance" | "inactive";
   address: LocationFormAddress;
   materialCapacities: MaterialCapacityForm[];
 }
+
+/**
+ * Calculate total capacity of a location by summing all material type limits
+ */
+const calculateLocationCapacity = (location: WarehouseLocation): number => {
+  if (!location.materialCapacities || location.materialCapacities.length === 0) {
+    return location.capacity ?? 0;
+  }
+  return location.materialCapacities.reduce((sum, cap) => sum + (cap.maxQuantity || 0), 0);
+};
 
 /**
  * Get capacity percentage for visual indicator
@@ -97,16 +107,15 @@ const getCapacityPercentage = (occupied: number, total: number): number => {
 const getStatusColor = (status: string): string => {
   switch (status) {
     case "available":
-      return "bg-green-500/20 text-green-400";
-    case "full":
+      return "bg-green-500/10 text-green-400 border-green-500/30";
     case "full_capacity":
-      return "bg-red-500/20 text-red-400";
+      return "bg-red-500/10 text-red-400 border-red-500/30";
     case "maintenance":
-      return "bg-yellow-500/20 text-yellow-400";
+      return "bg-yellow-500/10 text-yellow-400 border-yellow-500/30";
     case "inactive":
-      return "bg-gray-500/20 text-gray-400";
+      return "bg-gray-500/10 text-gray-400 border-gray-500/30";
     default:
-      return "bg-blue-500/20 text-blue-400";
+      return "bg-blue-500/10 text-blue-400 border-blue-500/30";
   }
 };
 
@@ -952,7 +961,7 @@ export default function LocationsPage() {
         <div className="bg-[#121212] border border-[#333] rounded-lg p-4">
           <p className="text-gray-400 text-sm">Total Capacity</p>
           <p className="text-white text-2xl font-bold">
-            {locations.reduce((s, l) => s + (l.capacity ?? 0), 0)}
+            {locations.reduce((s, l) => s + calculateLocationCapacity(l), 0)}
           </p>
         </div>
         <div className="bg-[#121212] border border-[#333] rounded-lg p-4">
@@ -969,7 +978,7 @@ export default function LocationsPage() {
                   (locations.reduce((s, l) => s + (l.occupied ?? 0), 0) /
                     Math.max(
                       1,
-                      locations.reduce((s, l) => s + (l.capacity ?? 1), 1),
+                      locations.reduce((s, l) => s + calculateLocationCapacity(l), 1),
                     )) *
                     100,
                 )
@@ -992,88 +1001,114 @@ export default function LocationsPage() {
       </div>
 
       {/* Locations Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
         {loading && <div className="text-gray-400">Loading locations...</div>}
         {error && <div className="text-red-400">{error}</div>}
         {!loading &&
           !error &&
           filteredLocations.map((location) => {
-            const capacityPercent = getCapacityPercentage(location.occupied, location.capacity);
+            const calculatedCapacity = calculateLocationCapacity(location);
+            const capacityPercent = getCapacityPercentage(location.occupied, calculatedCapacity);
             return (
               <div
                 key={location.id}
-                className="bg-[#121212] border border-[#333] rounded-[12px] p-6 hover:border-[#FFD700] transition-all"
+                className="group relative bg-gradient-to-br from-[#1a1a1a] to-[#121212] border border-[#2a2a2a] rounded-xl p-6 hover:border-[#FFD700]/50 hover:shadow-lg hover:shadow-[#FFD700]/10 transition-all duration-300"
               >
-                {/* Location Header */}
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h3 className="text-xl font-bold text-white">{location.name}</h3>
-                    <p className="text-gray-400 text-sm mt-1">
-                      {((location.address as Record<string, unknown>)?.city as string) || "N/A"} •{" "}
-                      {((location.address as Record<string, unknown>)?.street as string) || "N/A"}
-                    </p>
-                  </div>
+                {/* Status Badge - Top Right */}
+                <div className="absolute top-4 right-4">
                   <span
-                    className={`px-3 py-1 rounded text-xs font-semibold ${getStatusColor(location.status)}`}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${getStatusColor(location.status)} border backdrop-blur-sm`}
                   >
-                    {location.status.replace("_", " ").toUpperCase()}
+                    <div className={`w-1.5 h-1.5 rounded-full ${
+                      location.status === "available" 
+                        ? "bg-green-400 animate-pulse" 
+                        : location.status === "full_capacity"
+                        ? "bg-red-400" 
+                        : location.status === "maintenance"
+                        ? "bg-yellow-400"
+                        : "bg-gray-400"
+                    }`} />
+                    {location.status.replace("_", " ")}
                   </span>
                 </div>
 
-                {/* Capacity Progress */}
-                <div className="mb-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-gray-400 text-sm">Capacity</p>
-                    <p className="text-white font-semibold text-sm">
-                      {location.occupied}/{location.capacity} ({capacityPercent}%)
-                    </p>
+                {/* Location Header */}
+                <div className="mb-5 pr-24">
+                  <h3 className="text-xl font-bold text-white mb-2 group-hover:text-[#FFD700] transition-colors">
+                    {location.name}
+                  </h3>
+                  <div className="flex items-start gap-2 text-gray-400">
+                    <MapPin size={16} className="mt-0.5 flex-shrink-0 text-[#FFD700]/70" />
+                    <div className="text-sm leading-relaxed">
+                      <p className="text-gray-300">
+                        {((location.address as Record<string, unknown>)?.street as string) || "N/A"}
+                      </p>
+                      <p className="text-gray-500 text-xs mt-0.5">
+                        {((location.address as Record<string, unknown>)?.city as string) || "N/A"}
+                      </p>
+                    </div>
                   </div>
-                  <div className="w-full bg-[#333] rounded-full h-2 overflow-hidden">
-                    <div
-                      className={`h-full transition-all ${
-                        capacityPercent > 90
-                          ? "bg-red-500"
-                          : capacityPercent > 70
-                            ? "bg-yellow-500"
-                            : "bg-green-500"
-                      }`}
-                      style={{ width: `${capacityPercent}%` }}
-                    />
+                </div>
+
+                {/* Divider */}
+                <div className="h-px bg-gradient-to-r from-transparent via-[#333] to-transparent mb-5" />
+
+                {/* Capacity Section */}
+                <div className="mb-5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-[#FFD700]/10 flex items-center justify-center">
+                        <Zap size={16} className="text-[#FFD700]" />
+                      </div>
+                      <span className="text-sm font-medium text-gray-300">Capacity</span>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-bold text-white">
+                        {location.occupied}<span className="text-gray-500">/{calculatedCapacity}</span>
+                      </p>
+                      <p className="text-[10px] text-gray-500 uppercase tracking-wider">
+                        {calculatedCapacity - location.occupied} available
+                      </p>
+                    </div>
                   </div>
                 </div>
 
                 {/* Additional Details */}
                 {((location.address as Record<string, unknown>)?.additionalDetails as string) && (
-                  <div className="bg-[#1a1a1a] rounded-lg p-3 mb-4">
-                    <p className="text-gray-400 text-xs mb-1">Additional Details</p>
-                    <p className="text-gray-300 text-sm line-clamp-2">
+                  <div className="bg-[#0f0f0f] border border-[#222] rounded-lg p-3 mb-5">
+                    <p className="text-[#FFD700] text-xs font-semibold mb-1.5 uppercase tracking-wide">
+                      Additional Info
+                    </p>
+                    <p className="text-gray-400 text-xs leading-relaxed line-clamp-2">
                       {(location.address as Record<string, unknown>)?.additionalDetails as string}
                     </p>
                   </div>
                 )}
 
-                {/* Actions - Icon buttons only */}
-                <div className="flex items-center justify-center gap-2">
+                {/* Action Buttons */}
+                <div className="flex items-center gap-2 pt-2">
                   <button
                     onClick={() => openPreview(location as WarehouseLocation)}
-                    className="w-8 h-8 rounded-lg bg-[#1a1a1a] hover:bg-[#333] flex items-center justify-center text-gray-400 hover:text-blue-400 transition"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#0f0f0f] border border-[#2a2a2a] text-gray-300 hover:bg-[#1a1a1a] hover:border-blue-500/50 hover:text-blue-400 transition-all duration-200 group/btn"
                     title="View location details"
                   >
-                    <Eye size={16} />
+                    <Eye size={16} className="group-hover/btn:scale-110 transition-transform" />
+                    <span className="text-xs font-semibold">View</span>
                   </button>
                   <button
                     onClick={() => openEdit(location as WarehouseLocation)}
-                    className="w-8 h-8 rounded-lg bg-[#1a1a1a] hover:bg-[#333] flex items-center justify-center text-gray-400 hover:text-[#FFD700] transition"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#0f0f0f] border border-[#2a2a2a] text-gray-300 hover:bg-[#FFD700]/10 hover:border-[#FFD700] hover:text-[#FFD700] transition-all duration-200 group/btn"
                     title="Edit location"
                   >
-                    <Edit2 size={16} />
+                    <Edit2 size={16} className="group-hover/btn:scale-110 transition-transform" />
+                    <span className="text-xs font-semibold">Edit</span>
                   </button>
                   <button
                     onClick={() => void handleDelete(location.id)}
-                    className="w-8 h-8 rounded-lg bg-red-900/20 hover:bg-red-900/40 flex items-center justify-center text-red-400 transition"
+                    className="flex items-center justify-center w-10 h-10 rounded-lg bg-red-950/30 border border-red-900/30 text-red-400 hover:bg-red-950/50 hover:border-red-500/50 hover:text-red-300 transition-all duration-200 group/btn"
                     title="Delete location"
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={16} className="group-hover/btn:scale-110 transition-transform" />
                   </button>
                 </div>
               </div>
@@ -1156,12 +1191,12 @@ export default function LocationsPage() {
                     <select
                       value={form.status}
                       onChange={(e) => {
-                        updateForm("status", e.target.value as "available" | "full" | "maintenance" | "inactive");
+                        updateForm("status", e.target.value as "available" | "full_capacity" | "maintenance" | "inactive");
                       }}
                       className="w-full h-11 px-3 bg-[#111111] border border-[#262626] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#FFD700]"
                     >
                       <option value="available">Available</option>
-                      <option value="full">Full Capacity</option>
+                      <option value="full_capacity">Full Capacity</option>
                       <option value="maintenance">Maintenance</option>
                       <option value="inactive">Inactive</option>
                     </select>
@@ -1665,12 +1700,12 @@ export default function LocationsPage() {
                     <select
                       value={form.status}
                       onChange={(e) => {
-                        updateForm("status", e.target.value as "available" | "full" | "maintenance" | "inactive");
+                        updateForm("status", e.target.value as "available" | "full_capacity" | "maintenance" | "inactive");
                       }}
                       className="w-full h-11 px-3 bg-[#111111] border border-[#262626] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#FFD700]"
                     >
                       <option value="available">Available</option>
-                      <option value="full">Full Capacity</option>
+                      <option value="full_capacity">Full Capacity</option>
                       <option value="maintenance">Maintenance</option>
                       <option value="inactive">Inactive</option>
                     </select>
@@ -2096,13 +2131,13 @@ export default function LocationsPage() {
                           className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold mt-1 shadow-sm ${
                             previewing.status === "available"
                               ? "bg-green-500/10 text-green-400 border border-green-500/20"
-                              : previewing.status === "full"
+                              : previewing.status === "full_capacity"
                                 ? "bg-red-500/10 text-red-400 border border-red-500/20"
                                 : "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"
                           }`}
                         >
                           <div
-                            className={`w-1.5 h-1.5 rounded-full ${previewing.status === "available" ? "bg-green-400" : previewing.status === "full" ? "bg-red-400" : "bg-yellow-400"}`}
+                            className={`w-1.5 h-1.5 rounded-full ${previewing.status === "available" ? "bg-green-400" : previewing.status === "full_capacity" ? "bg-red-400" : "bg-yellow-400"}`}
                           ></div>
                           {previewing.status.toUpperCase()}
                         </span>

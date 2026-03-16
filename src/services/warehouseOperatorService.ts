@@ -58,7 +58,7 @@ export interface WarehouseLocation {
   address: LocationAddress;
   capacity: number;
   occupied: number;
-  status: "available" | "full" | "maintenance";
+  status: "available" | "full_capacity" | "maintenance" | "inactive";
   isActive: boolean;
   materialCapacities?: { materialTypeId: string; maxQuantity: number }[];
   createdAt: string;
