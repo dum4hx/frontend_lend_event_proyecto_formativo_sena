@@ -30,6 +30,7 @@ import {
   validateState,
 } from "../../../utils/validators";
 import { useAlertModal } from "../../../hooks/useAlertModal";
+import { useConfirmModal } from "../../../hooks/useConfirmModal";
 import { AdminPagination, AdminTable } from "../components";
 
 // --- Colombia API types & fetcher -------------------------------------------
@@ -96,6 +97,7 @@ function parseStreet(street: string) {
 
 export default function Customers() {
   const { showError, AlertModal } = useAlertModal();
+  const { showConfirm, ConfirmModal } = useConfirmModal();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [documentTypes, setDocumentTypes] = useState<DocumentTypeInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -109,6 +111,7 @@ export default function Customers() {
   // Modal states
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [modalKey, setModalKey] = useState(0); // Force re-mount on each open
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [formData, setFormData] = useState<CreateCustomerPayload>({
     name: {
@@ -564,7 +567,14 @@ export default function Customers() {
   // Blacklist customer
   const handleBlacklist = async (customer: Customer) => {
     const fullName = `${customer.name.firstName} ${customer.name.firstSurname}`;
-    if (!confirm(`Block ${fullName}?\n\nThis will prevent the customer from being used in new rentals.`)) return;
+    const confirmed = await showConfirm({
+      title: `Block ${fullName}?`,
+      message: 'This will prevent the customer from being used in new rentals.',
+      confirmText: 'Block',
+      variant: 'warning',
+    });
+    
+    if (!confirmed) return;
 
     try {
       await blacklistCustomer(customer._id);
@@ -578,7 +588,14 @@ export default function Customers() {
   // Deactivate customer
   const handleDeactivate = async (customer: Customer) => {
     const fullName = `${customer.name.firstName} ${customer.name.firstSurname}`;
-    if (!confirm(`Deactivate ${fullName}?\n\nThis will temporarily disable the customer account.`)) return;
+    const confirmed = await showConfirm({
+      title: `Deactivate ${fullName}?`,
+      message: 'This will temporarily disable the customer account.',
+      confirmText: 'Deactivate',
+      variant: 'warning',
+    });
+    
+    if (!confirmed) return;
 
     try {
       await deactivateCustomer(customer._id);
@@ -592,7 +609,14 @@ export default function Customers() {
   // Activate/Reactivate customer
   const handleReactivate = async (customer: Customer) => {
     const fullName = `${customer.name.firstName} ${customer.name.firstSurname}`;
-    if (!confirm(`Activate ${fullName}?\n\nThis will restore the customer to active status.`)) return;
+    const confirmed = await showConfirm({
+      title: `Activate ${fullName}?`,
+      message: 'This will restore the customer to active status.',
+      confirmText: 'Activate',
+      variant: 'info',
+    });
+    
+    if (!confirmed) return;
 
     try {
       await activateCustomer(customer._id);
@@ -606,7 +630,14 @@ export default function Customers() {
   // Delete customer
   const handleDelete = async (customer: Customer) => {
     const fullName = `${customer.name.firstName} ${customer.name.firstSurname}`;
-    if (!confirm(`Delete ${fullName}?\n\nThis action cannot be undone.`)) return;
+    const confirmed = await showConfirm({
+      title: `Delete ${fullName}?`,
+      message: 'This action cannot be undone.',
+      confirmText: 'Delete',
+      variant: 'danger',
+    });
+    
+    if (!confirmed) return;
 
     try {
       await deleteCustomer(customer._id);
@@ -665,7 +696,7 @@ export default function Customers() {
       setAdditionalDetails("");
     }
     
-    // Set state/city text fields first
+    // Set state/city text fields and try to auto-select if data is available
     const savedState = addr.state ?? "";
     const savedCity = addr.city ?? "";
     const savedPostalCode = addr.postalCode ?? "";
@@ -674,14 +705,31 @@ export default function Customers() {
     setCityQuery(savedCity);
     setPostalCodeField(savedPostalCode);
     
-    // Don't try to select state/city immediately - let useEffect handle it
-    // This ensures departments are loaded first
-    setSelectedState(null);
+    // Try to auto-select department if already loaded
+    if (departments && savedState) {
+      const foundDept = departments.find((d) => isNormalizedEqual(d.name, savedState));
+      if (foundDept) {
+        setSelectedState(foundDept);
+      } else {
+        setSelectedState(null);
+      }
+    } else {
+      setSelectedState(null);
+    }
+    
+    // City will be handled by useEffect once department is selected
     setSelectedCity(null);
   };
 
   // --- Open edit modal ------------------------------------------------------
   const openEditModal = (customer: Customer) => {
+    // First, clean up previous state
+    resetForm();
+    
+    // Increment key to force modal re-mount
+    setModalKey((prev) => prev + 1);
+    
+    // Set customer and form data
     setSelectedCustomer(customer);
     // Strip +57 prefix from phone for the input
     const phoneDigits = customer.phone.startsWith(COLOMBIA_PHONE_PREFIX)
@@ -699,7 +747,10 @@ export default function Customers() {
       documentType: customer.documentType,
       documentNumber: customer.documentNumber,
     });
+    
+    // Load address fields
     loadAddressFields(customer);
+    
     setTouched({});
     setFieldErrors({});
     setSubmitted(false);
@@ -735,6 +786,11 @@ export default function Customers() {
   const getDocumentTypeLabel = (type: DocumentType) => {
     const docType = documentTypes.find((dt) => dt.value === type);
     return docType?.displayName || type;
+  };
+
+  const closeEditModal = () => {
+    setShowEditModal(false);
+    resetForm();
   };
 
   return (
@@ -1357,15 +1413,16 @@ export default function Customers() {
         {/* Edit Modal */}
         {showEditModal && selectedCustomer && (
           <div
+            key={`edit-modal-${modalKey}`}
             className="modal-overlay"
             onClick={(e) => {
-              if (e.target === e.currentTarget) setShowEditModal(false);
+              if (e.target === e.currentTarget) closeEditModal();
             }}
           >
             <div className="modal-content">
               <div className="modal-header">
                 <h2 className="text-xl font-bold">Edit Customer</h2>
-                <button onClick={() => setShowEditModal(false)} className="btn-icon" title="Close edit customer modal" aria-label="Close edit customer modal">
+                <button onClick={closeEditModal} className="btn-icon" title="Close edit customer modal" aria-label="Close edit customer modal">
                   <X size={20} />
                 </button>
               </div>
@@ -1788,7 +1845,7 @@ export default function Customers() {
                   </div>
                 </div>
                 <div className="modal-footer">
-                  <button type="button" onClick={() => setShowEditModal(false)} className="btn-secondary" disabled={submitting}>
+                  <button type="button" onClick={closeEditModal} className="btn-secondary" disabled={submitting}>
                     Cancel
                   </button>
                   <button type="submit" className="btn-primary" disabled={submitting}>
@@ -1801,6 +1858,7 @@ export default function Customers() {
         )}
       </div>
       <AlertModal />
+      <ConfirmModal />
     </div>
   );
 }
