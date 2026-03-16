@@ -78,6 +78,15 @@ export async function blacklistCustomer(
   return post<null>(`/customers/${customerId}/blacklist`);
 }
 
+// ─── Reactivate ────────────────────────────────────────────────────────────
+
+/** Reactivate an inactive or blacklisted customer (sets status to active). */
+export async function reactivateCustomer(
+  customerId: string,
+): Promise<ApiSuccessResponse<null>> {
+  return post<null>(`/customers/${customerId}/reactivate`);
+}
+
 // ─── Delete ────────────────────────────────────────────────────────────────
 
 /** Soft-delete a customer (sets status to inactive). */
