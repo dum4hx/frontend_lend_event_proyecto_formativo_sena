@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import { Users, Shield, Plus, Trash2, Edit, X } from "lucide-react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { Users, Shield, Plus, Trash2, Edit, X, RotateCcw } from "lucide-react";
 import { StatCard } from "../components";
 import { AdminPagination, AdminTable } from "../components";
 import {
@@ -8,6 +8,7 @@ import {
   updateUser,
   updateUserRole,
   deactivateUser,
+  reactivateUser,
 } from "../../../services/adminService";
 import { getRoles } from "../../../services/roleService";
 import { ApiError } from "../../../lib/api";
@@ -62,6 +63,8 @@ type TeamMember = {
 
 export default function Team() {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [roleFilter, setRoleFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -247,14 +250,22 @@ export default function Team() {
     void loadRoles();
   }, []);
 
+  const filteredMembers = useMemo(() => {
+    return teamMembers.filter((m) => {
+      if (roleFilter && m.role !== roleFilter) return false;
+      if (statusFilter && m.status !== statusFilter) return false;
+      return true;
+    });
+  }, [teamMembers, roleFilter, statusFilter]);
+
   const pageSize = 10;
-  const totalPages = Math.max(1, Math.ceil(teamMembers.length / pageSize));
+  const totalPages = Math.max(1, Math.ceil(filteredMembers.length / pageSize));
 
   useEffect(() => {
     setCurrentPage((prev) => Math.min(prev, totalPages));
   }, [totalPages]);
 
-  const pagedTeamMembers = teamMembers.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const pagedTeamMembers = filteredMembers.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   useEffect(() => {
     if (!Object.values(formTouched).some(Boolean)) return;
@@ -466,11 +477,23 @@ export default function Team() {
     }
   };
 
-  const handleDeleteUser = async (userId: string) => {
-    if (!confirm("Are you sure you want to deactivate this user?")) return;
+  const handleDeleteUser = async (userId: string, memberName: string) => {
+    if (!confirm(`Deactivate ${memberName}?\n\nThe member will lose access to the platform.`)) return;
 
     try {
       await deactivateUser(userId);
+      await fetchTeamMembers();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      showAlert("error", message);
+    }
+  };
+
+  const handleReactivateUser = async (userId: string, memberName: string) => {
+    if (!confirm(`Reactivate ${memberName}?\n\nThis will restore the member's access to the platform.`)) return;
+
+    try {
+      await reactivateUser(userId);
       await fetchTeamMembers();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Unknown error";
@@ -504,14 +527,47 @@ export default function Team() {
       </div>
 
       <div>
-        <h2 className="text-xl font-semibold text-white mb-4">Team List</h2>
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-4">
+          <h2 className="text-xl font-semibold text-white">Team List</h2>
+          <div className="flex flex-col sm:flex-row gap-3">
+            {/* Filter by role */}
+            <select
+              title="Filter by role"
+              aria-label="Filter by role"
+              value={roleFilter}
+              onChange={(e) => { setRoleFilter(e.target.value); setCurrentPage(1); }}
+              className="bg-zinc-900 border border-zinc-700 text-white rounded-lg px-3 py-2 text-sm outline-none focus:border-yellow-400 transition"
+            >
+              <option value="">All roles</option>
+              {availableRoles.map((r) => (
+                <option key={r._id} value={r.name}>{r.name.charAt(0).toUpperCase() + r.name.slice(1)}</option>
+              ))}
+            </select>
+
+            {/* Filter by status */}
+            <select
+              title="Filter by status"
+              aria-label="Filter by status"
+              value={statusFilter}
+              onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+              className="bg-zinc-900 border border-zinc-700 text-white rounded-lg px-3 py-2 text-sm outline-none focus:border-yellow-400 transition"
+            >
+              <option value="">All statuses</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="invited">Invited</option>
+            </select>
+          </div>
+        </div>
         <div>
           {loading ? (
             <div className="p-6 text-center text-gray-400">Loading team members...</div>
           ) : error ? (
             <div className="p-6 text-center text-red-400">{error}</div>
-          ) : teamMembers.length === 0 ? (
-            <div className="p-6 text-center text-gray-400">No team members found</div>
+          ) : filteredMembers.length === 0 ? (
+            <div className="p-6 text-center text-gray-400">
+              {roleFilter || statusFilter ? "No members match the selected filters" : "No team members found"}
+            </div>
           ) : (
             <AdminTable>
               <thead className="bg-[#0f0f0f] border-b border-[#333]">
@@ -547,18 +603,36 @@ export default function Team() {
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleOpenModal(member)}
-                          className="p-2 text-[#FFD700] hover:bg-[#FFD700]/10 rounded-lg transition-colors"
-                          title="Edit"
+                          className="btn-icon text-blue-400 hover:text-blue-300"
+                          title="Edit member"
+                          aria-label="Edit member"
                         >
                           <Edit size={18} />
                         </button>
-                        <button
-                          onClick={() => handleDeleteUser(member.id)}
-                          className="p-2 danger-icon-btn"
-                          title="Deactivate"
-                        >
-                          <Trash2 size={18} />
-                        </button>
+
+                        {/* Reactivate — only for inactive members */}
+                        {member.status === "inactive" && (
+                          <button
+                            onClick={() => void handleReactivateUser(member.id, member.name)}
+                            className="btn-icon text-emerald-500 hover:text-emerald-400"
+                            title="Reactivate member"
+                            aria-label="Reactivate member"
+                          >
+                            <RotateCcw size={18} />
+                          </button>
+                        )}
+
+                        {/* Deactivate — only for active or invited members */}
+                        {member.status !== "inactive" && (
+                          <button
+                            onClick={() => void handleDeleteUser(member.id, member.name)}
+                            className="btn-icon text-red-500 hover:text-red-400"
+                            title="Deactivate member"
+                            aria-label="Deactivate member"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -570,7 +644,7 @@ export default function Team() {
         <AdminPagination
           currentPage={currentPage}
           totalPages={totalPages}
-          totalItems={teamMembers.length}
+          totalItems={filteredMembers.length}
           pageSize={pageSize}
           itemLabel="members"
           onPageChange={setCurrentPage}

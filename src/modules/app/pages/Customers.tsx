@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Search, Plus, Edit2, Trash2, Ban, X } from "lucide-react";
+import { Search, Plus, Edit2, Trash2, Ban, X, RotateCcw } from "lucide-react";
 import useSWR from "swr";
 import { useDebounce } from "use-debounce";
 import {
@@ -8,6 +8,7 @@ import {
   createCustomer,
   updateCustomer,
   blacklistCustomer,
+  reactivateCustomer,
   deleteCustomer,
 } from "../../../services/customerService";
 import type {
@@ -537,7 +538,8 @@ export default function Customers() {
 
   // Blacklist customer
   const handleBlacklist = async (customer: Customer) => {
-    if (!confirm(`Block ${customer.name.firstName} ${customer.name.firstSurname}?`)) return;
+    const fullName = `${customer.name.firstName} ${customer.name.firstSurname}`;
+    if (!confirm(`Block ${fullName}?\n\nThis will prevent the customer from being used in new rentals.`)) return;
 
     try {
       await blacklistCustomer(customer._id);
@@ -548,9 +550,24 @@ export default function Customers() {
     }
   };
 
+  // Reactivate customer
+  const handleReactivate = async (customer: Customer) => {
+    const fullName = `${customer.name.firstName} ${customer.name.firstSurname}`;
+    if (!confirm(`Reactivate ${fullName}?\n\nThis will restore the customer to active status.`)) return;
+
+    try {
+      await reactivateCustomer(customer._id);
+      await fetchCustomers();
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "Failed to reactivate customer";
+      showError(message);
+    }
+  };
+
   // Delete customer
   const handleDelete = async (customer: Customer) => {
-    if (!confirm(`Delete ${customer.name.firstName} ${customer.name.firstSurname}?`)) return;
+    const fullName = `${customer.name.firstName} ${customer.name.firstSurname}`;
+    if (!confirm(`Delete ${fullName}?\n\nThis action cannot be undone.`)) return;
 
     try {
       await deleteCustomer(customer._id);
@@ -775,23 +792,41 @@ export default function Customers() {
                           <button
                             onClick={() => openEditModal(customer)}
                             className="btn-icon text-blue-400 hover:text-blue-300"
-                            title="Edit"
+                            title="Edit customer"
+                            aria-label="Edit customer"
                           >
                             <Edit2 size={18} />
                           </button>
-                          {customer.status !== "blacklisted" && (
+
+                          {/* Block — only for active customers */}
+                          {customer.status === "active" && (
                             <button
                               onClick={() => void handleBlacklist(customer)}
-                              className="btn-icon text-yellow-400 hover:text-yellow-300"
-                              title="Block"
+                              className="btn-icon text-amber-500 hover:text-amber-400"
+                              title="Block customer"
+                              aria-label="Block customer"
                             >
                               <Ban size={18} />
                             </button>
                           )}
+
+                          {/* Reactivate — for inactive or blacklisted customers */}
+                          {(customer.status === "inactive" || customer.status === "blacklisted") && (
+                            <button
+                              onClick={() => void handleReactivate(customer)}
+                              className="btn-icon text-emerald-500 hover:text-emerald-400"
+                              title={customer.status === "blacklisted" ? "Unblock & reactivate" : "Reactivate customer"}
+                              aria-label={customer.status === "blacklisted" ? "Unblock & reactivate" : "Reactivate customer"}
+                            >
+                              <RotateCcw size={18} />
+                            </button>
+                          )}
+
                           <button
                             onClick={() => void handleDelete(customer)}
-                            className="btn-icon text-red-400 hover:text-red-300"
-                            title="Delete"
+                            className="btn-icon text-red-500 hover:text-red-400"
+                            title="Delete customer"
+                            aria-label="Delete customer"
                           >
                             <Trash2 size={18} />
                           </button>

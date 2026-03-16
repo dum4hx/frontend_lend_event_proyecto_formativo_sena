@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   Plus,
   Eye,
@@ -7,6 +6,7 @@ import {
   ChevronDown,
   Check,
   X,
+  RotateCcw,
   Truck,
   CircleCheck,
   Loader2,
@@ -30,6 +30,8 @@ import {
   getRequests,
   approveRequest,
   rejectRequest,
+  updateRequest,
+  assignMaterials,
   createLoanFromRequest,
   returnLoan,
 } from "../../../services/loanService";
@@ -41,6 +43,15 @@ import {
   getPackages,
 } from "../../../services/materialService";
 import { useAlertModal } from "../../../hooks/useAlertModal";
+import { usePermissions } from "../../../contexts/usePermissions";
+import {
+  applySelectedMaterialToDraftRows,
+  calculateRentalDays,
+  isFormDraftItemEmpty,
+  mergeSelectionsIntoDraftRows,
+  type DraftMaterialSelection,
+  type FormDraftItem,
+} from "./ordersDraft.helpers";
 
 type WorkflowStatus =
   | "order_created"
@@ -53,13 +64,7 @@ type WorkflowStatus =
 
 type WorkflowFilter = "all" | WorkflowStatus;
 
-type FormDraftItem = {
-  localId: string;
-  categoryId: string;
-  materialTypeId: string;
-  materialSearchTerm: string;
-  quantity: string;
-};
+type BackendRequestStatusFilter = LoanRequest["status"] | undefined;
 
 type DraftItemValidationErrors = {
   categoryId?: string;
@@ -120,11 +125,6 @@ type MaterialAvailability = {
   available: number;
 };
 
-type DraftMaterialSelection = {
-  material: MaterialType;
-  quantity: number;
-};
-
 function formatDate(dateValue: string): string {
   if (!dateValue) return "-";
   const parsed = new Date(dateValue);
@@ -168,6 +168,28 @@ function formatMoney(value?: number): string {
     currency: "USD",
     maximumFractionDigits: 2,
   }).format(value);
+}
+
+function normalizeSearchText(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+}
+
+function getMaterialSearchScore(material: MaterialType, normalizedQuery: string): number {
+  if (!normalizedQuery) return 1;
+
+  const normalizedName = normalizeSearchText(material.name);
+  const normalizedDescription = normalizeSearchText(material.description);
+
+  if (normalizedName.startsWith(normalizedQuery)) return 5;
+  if (normalizedName.includes(normalizedQuery)) return 4;
+  if (normalizedDescription.startsWith(normalizedQuery)) return 3;
+  if (normalizedDescription.includes(normalizedQuery)) return 2;
+
+  return 0;
 }
 
 function extractCategoryId(value: unknown): string | undefined {
@@ -329,9 +351,19 @@ function buildOrderViewModel(
   });
 }
 
+function toBackendRequestStatusFilter(selectedStatus: WorkflowFilter): BackendRequestStatusFilter {
+  if (selectedStatus === "all") return undefined;
+  if (selectedStatus === "order_created") return "pending";
+  if (selectedStatus === "order_approved") return "approved";
+  if (selectedStatus === "order_shipped") return "ready";
+  if (selectedStatus === "order_rejected") return "rejected";
+  if (selectedStatus === "order_cancelled") return "cancelled";
+  return undefined;
+}
+
 export default function Orders() {
-  const navigate = useNavigate();
   const { showError, showSuccess, AlertModal } = useAlertModal();
+  const { hasPermission, hasAnyPermission } = usePermissions();
   const [requests, setRequests] = useState<LoanRequest[]>([]);
   const [loans, setLoans] = useState<Loan[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -348,9 +380,12 @@ export default function Orders() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showReactivateModal, setShowReactivateModal] = useState(false);
   const [activeOrder, setActiveOrder] = useState<OrderView | null>(null);
   const [rejectTarget, setRejectTarget] = useState<OrderView | null>(null);
+  const [reactivateTarget, setReactivateTarget] = useState<OrderView | null>(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [reactivateReason, setReactivateReason] = useState("");
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [showValidationErrors, setShowValidationErrors] = useState(false);
   const [createErrors, setCreateErrors] = useState<CreateOrderValidationErrors>({ rows: {} });
@@ -371,7 +406,18 @@ export default function Orders() {
   const [materialUsageCounts, setMaterialUsageCounts] = useState<Record<string, number>>({});
   const [activeMaterialRowId, setActiveMaterialRowId] = useState<string | null>(null);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0);
+  const [requestsPage, setRequestsPage] = useState(1);
+  const [requestsPageSize] = useState(20);
+  const [requestsTotalPages, setRequestsTotalPages] = useState(1);
+  const [requestsTotal, setRequestsTotal] = useState(0);
   const quickSearchInputRef = useRef<HTMLInputElement | null>(null);
+
+  const canCreateRequest = hasPermission("requests:create");
+  const canApproveRequest = hasPermission("requests:approve");
+  const canUpdateRequest = hasPermission("requests:update");
+  const canAssignRequest = hasPermission("requests:assign");
+  const canCreateLoan = hasAnyPermission(["loans:create", "loans:checkout"]);
+  const canReturnLoan = hasPermission("loans:return");
 
   const selectedPlan = useMemo(
     () => packages.find((pkg) => pkg._id === selectedPlanId),
@@ -475,7 +521,11 @@ export default function Orders() {
         materialTypesRes,
       ] =
         await Promise.allSettled([
-        getRequests(),
+        getRequests({
+          page: requestsPage,
+          limit: requestsPageSize,
+          status: toBackendRequestStatusFilter(selectedStatus),
+        }),
         getLoans(),
         getCustomers({ page: 1, limit: 50 }),
         getMaterialCategories(),
@@ -494,11 +544,15 @@ export default function Orders() {
 
       if (requestsRes.status === "fulfilled") {
         setRequests(requestsRes.value.data.requests ?? []);
+        setRequestsTotalPages(Math.max(1, requestsRes.value.data.totalPages ?? 1));
+        setRequestsTotal(requestsRes.value.data.total ?? 0);
       } else {
         // Fallback: some environments reject unpaginated list requests.
         try {
-          const requestsFallbackRes = await getRequests({ page: 1, limit: 50 });
+          const requestsFallbackRes = await getRequests({ page: requestsPage, limit: requestsPageSize });
           setRequests(requestsFallbackRes.data.requests ?? []);
+          setRequestsTotalPages(Math.max(1, requestsFallbackRes.data.totalPages ?? 1));
+          setRequestsTotal(requestsFallbackRes.data.total ?? 0);
           requestsFailed = false;
         } catch {
           // Keep previous requests state if fallback also fails.
@@ -507,9 +561,9 @@ export default function Orders() {
       if (loansRes.status === "fulfilled") {
         setLoans(loansRes.value.data.loans ?? []);
       } else {
-        // Fallback: retry with explicit pagination.
+        // Fallback: retry once without filters.
         try {
-          const loansFallbackRes = await getLoans({ page: 1, limit: 50 });
+          const loansFallbackRes = await getLoans();
           setLoans(loansFallbackRes.data.loans ?? []);
           loansFailed = false;
         } catch {
@@ -571,11 +625,15 @@ export default function Orders() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [requestsPage, requestsPageSize, selectedStatus]);
 
   useEffect(() => {
     refreshData();
   }, [refreshData]);
+
+  useEffect(() => {
+    setRequestsPage(1);
+  }, [selectedStatus]);
 
   const allOrders = useMemo(
     () => buildOrderViewModel(requests, loans, customers, packages, materialTypes),
@@ -587,10 +645,9 @@ export default function Orders() {
       const matchesSearch =
         order.request._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
         order.customerName.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = selectedStatus === "all" || order.workflowStatus === selectedStatus;
-      return matchesSearch && matchesStatus;
+      return matchesSearch;
     });
-  }, [allOrders, searchTerm, selectedStatus]);
+  }, [allOrders, searchTerm]);
 
   const hasCustomers = customers.length > 0;
   const hasSelectableItems = materialTypes.length > 0;
@@ -648,6 +705,15 @@ export default function Orders() {
     [selectedDraftRows],
   );
 
+  const rentalDays = useMemo(() => {
+    return calculateRentalDays(formData.startDate, formData.endDate);
+  }, [formData.endDate, formData.startDate]);
+
+  const estimatedOrderTotal = useMemo(
+    () => estimatedDailyTotal * rentalDays,
+    [estimatedDailyTotal, rentalDays],
+  );
+
   const materialAvailabilityByType = useMemo(() => {
     const availability = new Map<string, MaterialAvailability>();
 
@@ -667,19 +733,21 @@ export default function Orders() {
   }, [materialInstances]);
 
   const quickFilteredMaterials = useMemo(() => {
-    const query = quickSearchTerm.trim().toLowerCase();
+    const normalizedQuery = normalizeSearchText(quickSearchTerm);
     return materialTypes
       .filter((material) => {
         const categoryId = extractCategoryId(material.categoryId);
         const categoryMatch = !quickCategoryId || categoryId === quickCategoryId;
         if (!categoryMatch) return false;
 
-        if (!query) return true;
-        const inName = material.name.toLowerCase().includes(query);
-        const inDescription = material.description.toLowerCase().includes(query);
-        return inName || inDescription;
+        return getMaterialSearchScore(material, normalizedQuery) > 0;
       })
       .sort((a, b) => {
+        const scoreDelta =
+          getMaterialSearchScore(b, normalizedQuery) -
+          getMaterialSearchScore(a, normalizedQuery);
+        if (scoreDelta !== 0) return scoreDelta;
+
         const aAvailability = materialAvailabilityByType.get(a._id);
         const bAvailability = materialAvailabilityByType.get(b._id);
         const aAvailableCount = inventoryDataAvailable ? (aAvailability?.available ?? 0) : 1;
@@ -721,7 +789,7 @@ export default function Orders() {
   }, []);
 
   const isDraftRowEmpty = useCallback((item: FormDraftItem): boolean => {
-    return !item.categoryId && !item.materialTypeId && !item.materialSearchTerm.trim();
+    return isFormDraftItemEmpty(item);
   }, []);
 
   const insertMaterialsIntoDraft = useCallback(
@@ -729,65 +797,32 @@ export default function Orders() {
       if (selections.length === 0) return;
 
       setFormItems((prev) => {
-        const next = [...prev];
-        let selectionIndex = 0;
-
-        for (
-          let rowIndex = 0;
-          rowIndex < next.length && selectionIndex < selections.length;
-          rowIndex += 1
-        ) {
-          if (!isDraftRowEmpty(next[rowIndex])) continue;
-
-          const { material, quantity } = selections[selectionIndex];
-          next[rowIndex] = {
-            ...next[rowIndex],
-            categoryId: extractCategoryId(material.categoryId) ?? "",
-            materialTypeId: material._id,
-            materialSearchTerm: material.name,
-            quantity: String(Math.max(1, Math.floor(quantity || 1))),
-          };
-          selectionIndex += 1;
-        }
-
-        while (selectionIndex < selections.length) {
-          const { material, quantity } = selections[selectionIndex];
-          next.push({
-            localId: crypto.randomUUID(),
-            categoryId: extractCategoryId(material.categoryId) ?? "",
-            materialTypeId: material._id,
-            materialSearchTerm: material.name,
-            quantity: String(Math.max(1, Math.floor(quantity || 1))),
-          });
-          selectionIndex += 1;
-        }
-
-        return next;
+        return mergeSelectionsIntoDraftRows(prev, selections);
       });
 
       selections.forEach(({ material }) => pushRecentMaterial(material._id));
     },
-    [isDraftRowEmpty, pushRecentMaterial],
+    [pushRecentMaterial],
   );
 
   const getRowMaterialSuggestions = useCallback(
     (item: FormDraftItem): MaterialType[] => {
       if (!item.categoryId) return [];
-      const query = item.materialSearchTerm.trim().toLowerCase();
+      const normalizedQuery = normalizeSearchText(item.materialSearchTerm);
 
       return materialTypes
         .filter((material) => {
           const sameCategory = extractCategoryId(material.categoryId) === item.categoryId;
           if (!sameCategory) return false;
 
-          if (!query) return true;
-
-          return (
-            material.name.toLowerCase().includes(query) ||
-            material.description.toLowerCase().includes(query)
-          );
+          return getMaterialSearchScore(material, normalizedQuery) > 0;
         })
         .sort((a, b) => {
+          const scoreDelta =
+            getMaterialSearchScore(b, normalizedQuery) -
+            getMaterialSearchScore(a, normalizedQuery);
+          if (scoreDelta !== 0) return scoreDelta;
+
           const aAvailability = materialAvailabilityByType.get(a._id);
           const bAvailability = materialAvailabilityByType.get(b._id);
           const aAvailableCount = inventoryDataAvailable ? (aAvailability?.available ?? 0) : 1;
@@ -874,8 +909,24 @@ export default function Orders() {
     localId: string,
     updates: Partial<Pick<FormDraftItem, "categoryId" | "materialTypeId" | "materialSearchTerm" | "quantity">>,
   ) => {
-    setFormItems((prev) =>
-      prev.map((item) => {
+    setFormItems((prev) => {
+      if (typeof updates.materialTypeId === "string") {
+        const selectedMaterial = materialTypes.find((material) => material._id === updates.materialTypeId);
+        if (selectedMaterial) {
+          if (!isMaterialSelectable(selectedMaterial._id)) {
+            showError(
+              `${selectedMaterial.name} is currently out of stock.`,
+              "Material Unavailable",
+            );
+            return prev;
+          }
+
+          pushRecentMaterial(selectedMaterial._id);
+          return applySelectedMaterialToDraftRows(prev, localId, selectedMaterial);
+        }
+      }
+
+      return prev.map((item) => {
         if (item.localId !== localId) return item;
         if (typeof updates.categoryId === "string" && updates.categoryId !== item.categoryId) {
           return {
@@ -885,27 +936,10 @@ export default function Orders() {
             materialSearchTerm: "",
           };
         }
-        if (typeof updates.materialTypeId === "string") {
-          const selectedMaterial = materialTypes.find((material) => material._id === updates.materialTypeId);
-          if (selectedMaterial) {
-            if (!isMaterialSelectable(selectedMaterial._id)) {
-              showError(
-                `${selectedMaterial.name} is currently out of stock.`,
-                "Material Unavailable",
-              );
-              return item;
-            }
-            pushRecentMaterial(selectedMaterial._id);
-            return {
-              ...item,
-              materialTypeId: updates.materialTypeId,
-              materialSearchTerm: selectedMaterial.name,
-            };
-          }
-        }
+
         return { ...item, ...updates };
-      }),
-    );
+      });
+    });
   };
 
   const handleDraftItemRemove = (localId: string) => {
@@ -1103,7 +1137,6 @@ export default function Orders() {
       Object.keys(validationErrors.rows).length > 0;
 
     if (hasValidationErrors) {
-      showError("Please fix the highlighted fields in the form.", "Validation Error");
       return;
     }
 
@@ -1178,6 +1211,12 @@ export default function Orders() {
     setShowRejectModal(true);
   };
 
+  const handleOpenReactivateModal = (order: OrderView) => {
+    setReactivateTarget(order);
+    setReactivateReason("");
+    setShowReactivateModal(true);
+  };
+
   const handleRejectOrder = async () => {
     if (!rejectTarget) return;
     if (!rejectReason.trim()) {
@@ -1196,6 +1235,37 @@ export default function Orders() {
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to reject order";
       showError(message, "Rejection Error");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleReactivateOrder = async () => {
+    if (!reactivateTarget) return;
+
+    const reason = reactivateReason.trim();
+    if (!reason) {
+      showError("Reactivation reason is required.", "Validation Error");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await updateRequest(reactivateTarget.request._id, {
+        status: "pending",
+        notes: `Reactivated from rejected state. Reason: ${reason}`,
+      });
+      showSuccess("Order reactivated and moved back to pending.", "Order Reactivated");
+      setShowReactivateModal(false);
+      setReactivateTarget(null);
+      setReactivateReason("");
+      await refreshData();
+    } catch (error) {
+      const rawMessage = error instanceof Error ? error.message : "Failed to reactivate order";
+      const notSupportedMessage = rawMessage.toLowerCase().includes("not found")
+        ? "Reactivation is not available in the current backend yet. Please ask backend to enable request status updates from rejected to pending."
+        : rawMessage;
+      showError(notSupportedMessage, "Reactivation Error");
     } finally {
       setSubmitting(false);
     }
@@ -1229,6 +1299,92 @@ export default function Orders() {
     }
   };
 
+  const handlePrepareOrder = async (order: OrderView) => {
+    if (!canAssignRequest) {
+      showError("You need the requests:assign permission to prepare orders.", "Permission Required");
+      return;
+    }
+
+    if (!inventoryDataAvailable) {
+      showError("Inventory data is unavailable. Try refreshing and prepare again.", "Inventory Required");
+      return;
+    }
+
+    const requiredByMaterialType = new Map<string, number>();
+
+    order.request.items.forEach((item) => {
+      const itemQty = Math.max(1, Number(item.quantity) || 1);
+      const directMaterialId = item.materialTypeId ?? (item.type === "material" ? item.referenceId : undefined);
+
+      if (directMaterialId) {
+        requiredByMaterialType.set(
+          directMaterialId,
+          (requiredByMaterialType.get(directMaterialId) ?? 0) + itemQty,
+        );
+        return;
+      }
+
+      const packageId = item.packageId ?? (item.type === "package" ? item.referenceId : undefined);
+      if (!packageId) return;
+
+      const pkg = packages.find((entry) => entry._id === packageId);
+      const entries = (pkg?.items?.length ? pkg.items : pkg?.materialTypes) ?? [];
+      entries.forEach((entry) => {
+        const materialTypeId = extractMaterialTypeIdFromPackageEntry(entry);
+        if (!materialTypeId) return;
+        const requiredQty = itemQty * Math.max(1, Number(entry.quantity) || 1);
+        requiredByMaterialType.set(
+          materialTypeId,
+          (requiredByMaterialType.get(materialTypeId) ?? 0) + requiredQty,
+        );
+      });
+    });
+
+    const assignments: Array<{ materialTypeId: string; materialInstanceId: string }> = [];
+    const unavailable: string[] = [];
+
+    requiredByMaterialType.forEach((requiredQty, materialTypeId) => {
+      const availableInstances = materialInstances
+        .filter((instance) => {
+          if (instance.status !== "available") return false;
+          return extractMaterialTypeIdFromInstance(instance) === materialTypeId;
+        })
+        .slice(0, requiredQty);
+
+      if (availableInstances.length < requiredQty) {
+        const materialName = materialTypes.find((entry) => entry._id === materialTypeId)?.name ?? materialTypeId;
+        unavailable.push(`${materialName}: ${availableInstances.length}/${requiredQty}`);
+        return;
+      }
+
+      availableInstances.forEach((instance) => {
+        assignments.push({ materialTypeId, materialInstanceId: instance._id });
+      });
+    });
+
+    if (unavailable.length > 0) {
+      showError(`Insufficient stock to prepare order. ${unavailable.join(" | ")}`, "Stock Unavailable");
+      return;
+    }
+
+    if (assignments.length === 0) {
+      showError("No assignable material instances were resolved for this order.", "Preparation Error");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await assignMaterials(order.request._id, assignments);
+      showSuccess("Order prepared and moved to ready status.", "Order Prepared");
+      await refreshData();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to prepare order";
+      showError(message, "Preparation Error");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -1240,6 +1396,7 @@ export default function Orders() {
           className="flex items-center gap-2 px-4 py-2 rounded-[8px] font-semibold transition-all gold-action-btn"
           onClick={() => setShowCreateModal(true)}
           type="button"
+          disabled={!canCreateRequest}
         >
           <Plus size={20} />
           New Order
@@ -1347,7 +1504,7 @@ export default function Orders() {
                             className="px-3 py-1.5 rounded-[8px] text-xs font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/25 transition-colors"
                             onClick={() => handleApproveOrder(order.request._id)}
                             type="button"
-                            disabled={submitting}
+                            disabled={submitting || !canApproveRequest}
                           >
                             <span className="inline-flex items-center gap-1">
                               <Check size={14} />
@@ -1361,11 +1518,39 @@ export default function Orders() {
                             className="px-3 py-1.5 rounded-[8px] text-xs font-semibold bg-red-500/15 text-red-300 border border-red-500/40 hover:bg-red-500/25 transition-colors"
                             onClick={() => handleOpenRejectModal(order)}
                             type="button"
-                            disabled={submitting}
+                            disabled={submitting || !canUpdateRequest}
                           >
                             <span className="inline-flex items-center gap-1">
                               <X size={14} />
                               Reject
+                            </span>
+                          </button>
+                        )}
+
+                        {order.request.status === "rejected" && (
+                          <button
+                            className="px-3 py-1.5 rounded-[8px] text-xs font-semibold bg-[#FFD700]/10 text-[#FFD700] border border-[#FFD700]/40 hover:bg-[#FFD700]/20 transition-colors"
+                            onClick={() => handleOpenReactivateModal(order)}
+                            type="button"
+                            disabled={submitting || !canUpdateRequest}
+                          >
+                            <span className="inline-flex items-center gap-1">
+                              <RotateCcw size={14} />
+                              Reactivate
+                            </span>
+                          </button>
+                        )}
+
+                        {!order.loan && order.request.status === "approved" && (
+                          <button
+                            className="px-3 py-1.5 rounded-[8px] text-xs font-semibold bg-violet-500/15 text-violet-300 border border-violet-500/40 hover:bg-violet-500/25 transition-colors"
+                            onClick={() => handlePrepareOrder(order)}
+                            type="button"
+                            disabled={submitting || !canAssignRequest || !inventoryDataAvailable}
+                          >
+                            <span className="inline-flex items-center gap-1">
+                              <Check size={14} />
+                              Prepare
                             </span>
                           </button>
                         )}
@@ -1375,7 +1560,7 @@ export default function Orders() {
                             className="px-3 py-1.5 rounded-[8px] text-xs font-semibold bg-blue-500/15 text-blue-300 border border-blue-500/40 hover:bg-blue-500/25 transition-colors"
                             onClick={() => handleStartLoan(order.request._id)}
                             type="button"
-                            disabled={submitting}
+                            disabled={submitting || !canCreateLoan}
                           >
                             <span className="inline-flex items-center gap-1">
                               <Truck size={14} />
@@ -1389,7 +1574,7 @@ export default function Orders() {
                             className="px-3 py-1.5 rounded-[8px] text-xs font-semibold bg-cyan-500/15 text-cyan-300 border border-cyan-500/40 hover:bg-cyan-500/25 transition-colors"
                             onClick={() => handleCompleteLoan(order.loan!._id)}
                             type="button"
-                            disabled={submitting}
+                            disabled={submitting || !canReturnLoan}
                           >
                             <span className="inline-flex items-center gap-1">
                               <CircleCheck size={14} />
@@ -1404,6 +1589,30 @@ export default function Orders() {
               )}
             </tbody>
           </table>
+        </div>
+        <div className="border-t border-[#333] bg-[#121212] px-4 py-3 flex items-center justify-between text-sm">
+          <p className="text-gray-400">
+            Showing page <span className="text-white font-semibold">{requestsPage}</span> of <span className="text-white font-semibold">{requestsTotalPages}</span>
+            <span className="ml-2 text-gray-500">({requestsTotal} total requests)</span>
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="btn-secondary text-xs px-3 py-1"
+              onClick={() => setRequestsPage((prev) => Math.max(1, prev - 1))}
+              disabled={loading || requestsPage <= 1}
+            >
+              Previous
+            </button>
+            <button
+              type="button"
+              className="btn-secondary text-xs px-3 py-1"
+              onClick={() => setRequestsPage((prev) => Math.min(requestsTotalPages, prev + 1))}
+              disabled={loading || requestsPage >= requestsTotalPages}
+            >
+              Next
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1502,13 +1711,6 @@ export default function Orders() {
                   <div className="border border-[#333] rounded-lg p-4 space-y-4 bg-[#161616]">
                     <div className="flex items-center justify-between gap-4 flex-wrap">
                       <h3 className="text-white font-semibold">Products and Services *</h3>
-                      <button
-                        type="button"
-                        className="btn-secondary text-sm"
-                        onClick={handleAddDraftItem}
-                      >
-                        Add Item
-                      </button>
                     </div>
 
                     <div className="rounded-lg border border-[#333] bg-[#131313] p-3">
@@ -1574,7 +1776,7 @@ export default function Orders() {
                       {formItems.map((item) => (
                         <div
                           key={item.localId}
-                          className="grid grid-cols-1 md:grid-cols-[220px_1fr_120px_44px] gap-3 items-end"
+                          className="grid grid-cols-1 md:grid-cols-[220px_1fr_120px_44px_44px] gap-3 items-end"
                         >
                           <div className="form-group">
                             <label className="form-label">Category</label>
@@ -1599,7 +1801,8 @@ export default function Orders() {
                             <label className="form-label">Material Type</label>
                             {(() => {
                               const rowSuggestions = getRowMaterialSuggestions(item);
-                              const isOpen = activeMaterialRowId === item.localId && rowSuggestions.length > 0;
+                              const hasQuery = item.materialSearchTerm.trim().length > 0;
+                              const isOpen = activeMaterialRowId === item.localId && Boolean(item.categoryId);
 
                               return (
                                 <div className="relative">
@@ -1652,11 +1855,29 @@ export default function Orders() {
                                     }}
                                     placeholder={item.categoryId ? "Search material..." : "Select category first"}
                                     disabled={!item.categoryId}
-                                    className="input mb-2"
+                                    className={`input ${createErrors.rows[item.localId]?.materialTypeId ? "input-error" : ""}`}
                                   />
 
                                   {isOpen && (
                                     <div className="absolute z-20 left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg border border-[#333] bg-[#111] shadow-2xl">
+                                      {hasQuery && (
+                                        <p className="px-3 py-2 text-[11px] uppercase tracking-wide text-gray-500 border-b border-[#222]">
+                                          {rowSuggestions.length} result{rowSuggestions.length === 1 ? "" : "s"}
+                                        </p>
+                                      )}
+
+                                      {!hasQuery && (
+                                        <p className="px-3 py-2 text-xs text-gray-500">
+                                          Type to search materials in real time.
+                                        </p>
+                                      )}
+
+                                      {hasQuery && rowSuggestions.length === 0 && (
+                                        <p className="px-3 py-2 text-xs text-gray-500">
+                                          No materials found for this category.
+                                        </p>
+                                      )}
+
                                       {rowSuggestions.map((material, suggestionIndex) => {
                                         const active = suggestionIndex === activeSuggestionIndex;
                                         return (
@@ -1673,24 +1894,24 @@ export default function Orders() {
                                                 ? "bg-[#FFD700]/15 text-[#FFD700]"
                                                 : "text-gray-200 hover:bg-[#1b1b1b]"
                                             }`}
-                                              disabled={!isMaterialSelectable(material._id)}
+                                            disabled={!isMaterialSelectable(material._id)}
                                           >
                                             <span className="block text-sm font-medium truncate">{material.name}</span>
-                                              <span className="block text-xs text-gray-400 truncate">
-                                                {formatMoney(material.pricePerDay)} / day
-                                              </span>
-                                              {(() => {
-                                                const availability = getMaterialAvailabilityLabel(material._id);
-                                                return (
-                                                  <span
-                                                    className={`mt-1 inline-flex text-[11px] px-1.5 py-0.5 rounded ${getAvailabilityBadgeClass(
-                                                      availability.tone,
-                                                    )}`}
-                                                  >
-                                                    {availability.text}
-                                                  </span>
-                                                );
-                                              })()}
+                                            <span className="block text-xs text-gray-400 truncate">
+                                              {formatMoney(material.pricePerDay)} / day
+                                            </span>
+                                            {(() => {
+                                              const availability = getMaterialAvailabilityLabel(material._id);
+                                              return (
+                                                <span
+                                                  className={`mt-1 inline-flex text-[11px] px-1.5 py-0.5 rounded ${getAvailabilityBadgeClass(
+                                                    availability.tone,
+                                                  )}`}
+                                                >
+                                                  {availability.text}
+                                                </span>
+                                              );
+                                            })()}
                                           </button>
                                         );
                                       })}
@@ -1699,44 +1920,6 @@ export default function Orders() {
                                 </div>
                               );
                             })()}
-
-                            <select
-                              value={item.materialTypeId}
-                              onChange={(e) => handleDraftItemChange(item.localId, { materialTypeId: e.target.value })}
-                              className={`input ${createErrors.rows[item.localId]?.materialTypeId ? "input-error" : ""}`}
-                              disabled={!item.categoryId}
-                            >
-                              <option value="">{item.categoryId ? "Select material type" : "Select category first"}</option>
-                              {materialTypes
-                                .filter(
-                                  (material) => {
-                                    const sameCategory =
-                                      extractCategoryId(
-                                        (material as MaterialType & {
-                                          categoryId?: string | string[] | { _id?: string } | { _id?: string }[];
-                                        }).categoryId,
-                                      ) === item.categoryId;
-                                    if (!sameCategory) return false;
-
-                                    const query = item.materialSearchTerm.trim().toLowerCase();
-                                    if (!query) return true;
-
-                                    return (
-                                      material.name.toLowerCase().includes(query) ||
-                                      material.description.toLowerCase().includes(query)
-                                    );
-                                  },
-                                )
-                                .map((material) => (
-                                  <option
-                                    key={material._id}
-                                    value={material._id}
-                                    disabled={!isMaterialSelectable(material._id)}
-                                  >
-                                    {material.name} - {formatMoney(material.pricePerDay)}/day
-                                  </option>
-                                ))}
-                            </select>
                             {createErrors.rows[item.localId]?.materialTypeId && (
                               <p className="form-error">{createErrors.rows[item.localId]?.materialTypeId}</p>
                             )}
@@ -1758,6 +1941,15 @@ export default function Orders() {
 
                           <button
                             type="button"
+                            className="text-[#FFD700] transition-colors hover:text-[#FFE566] hover:bg-[#FFD700]/10 rounded-[8px]"
+                            title="Add new item"
+                            onClick={handleAddDraftItem}
+                          >
+                            <Plus size={18} />
+                          </button>
+
+                          <button
+                            type="button"
                             className="danger-icon-btn"
                             title="Remove item"
                             onClick={() => handleDraftItemRemove(item.localId)}
@@ -1766,7 +1958,7 @@ export default function Orders() {
                           </button>
 
                           {item.materialTypeId && selectedDraftById.get(item.localId)?.name && (
-                            <div className="md:col-span-4 rounded-lg border border-[#3d3d3d] bg-[#121212] px-3 py-3 space-y-2">
+                            <div className="md:col-span-5 rounded-lg border border-[#3d3d3d] bg-[#121212] px-3 py-3 space-y-2">
                               <div className="flex items-center justify-between gap-3 flex-wrap">
                                 <p className="text-sm font-semibold text-white">
                                   {selectedDraftById.get(item.localId)?.name}
@@ -1816,9 +2008,9 @@ export default function Orders() {
                     <div className="mt-3 space-y-2 text-sm">
                       <p className="text-gray-300">Rows: <span className="text-white font-semibold">{formItems.length}</span></p>
                       <p className="text-gray-300">Selected Items: <span className="text-white font-semibold">{selectedDraftRows.length}</span></p>
-                      <p className="text-gray-300">Categories: <span className="text-white font-semibold">{materialCategories.length}</span></p>
-                      <p className="text-gray-300">Materials: <span className="text-white font-semibold">{materialTypes.length}</span></p>
-                      <p className="text-gray-300">Customers: <span className="text-white font-semibold">{customers.length}</span></p>
+                      <p className="text-gray-300">Rental period: <span className="text-white font-semibold">{rentalDays} day{rentalDays === 1 ? "" : "s"}</span></p>
+                      <p className="text-gray-300">Daily subtotal: <span className="text-white font-semibold">{formatMoney(estimatedDailyTotal)}</span></p>
+                      <p className="text-gray-300">Estimated total: <span className="text-white font-semibold">{formatMoney(estimatedOrderTotal)}</span></p>
                     </div>
                   </div>
 
@@ -1882,6 +2074,10 @@ export default function Orders() {
                       className="input"
                     />
                     <p className="text-[11px] text-gray-500">Tip: Press Ctrl/Cmd + K to focus this search, then Enter to add the first result.</p>
+
+                    <p className="text-[11px] text-gray-500">
+                      {quickFilteredMaterials.length} result{quickFilteredMaterials.length === 1 ? "" : "s"} in real time
+                    </p>
 
                     <div className="max-h-44 overflow-y-auto space-y-2 pr-1">
                       {quickFilteredMaterials.length === 0 ? (
@@ -1967,6 +2163,10 @@ export default function Orders() {
                           <span className="text-sm text-gray-300">Estimated daily total</span>
                           <span className="text-base font-semibold text-[#FFD700]">{formatMoney(estimatedDailyTotal)}</span>
                         </div>
+                        <div className="pt-2 border-t border-[#333] flex items-center justify-between">
+                          <span className="text-sm text-gray-300">Estimated total ({rentalDays} day{rentalDays === 1 ? "" : "s"})</span>
+                          <span className="text-base font-semibold text-[#FFD700]">{formatMoney(estimatedOrderTotal)}</span>
+                        </div>
                       </>
                     )}
                   </div>
@@ -1980,39 +2180,6 @@ export default function Orders() {
                     </div>
                   )}
 
-                  <div className="rounded-lg border border-[#333] bg-[#1a1a1a] p-4 space-y-3">
-                    <p className="text-sm font-semibold text-white">Quick Links</p>
-                    <div className="grid grid-cols-1 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => navigate("/app/customers")}
-                        className="btn-secondary text-sm w-full"
-                      >
-                        Manage Customers
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => navigate("/app/material-categories")}
-                        className="btn-secondary text-sm w-full"
-                      >
-                        Manage Material Categories
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => navigate("/app/material-types")}
-                        className="btn-secondary text-sm w-full"
-                      >
-                        Manage Material Types
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => navigate("/app/material-instances")}
-                        className="btn-secondary text-sm w-full"
-                      >
-                        Manage Inventory Items
-                      </button>
-                    </div>
-                  </div>
                 </aside>
               </div>
             </div>
@@ -2170,6 +2337,66 @@ export default function Orders() {
                 disabled={submitting}
               >
                 Reject Order
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showReactivateModal && reactivateTarget && (
+        <div
+          className="modal-overlay"
+          onClick={(e) => e.target === e.currentTarget && setShowReactivateModal(false)}
+        >
+          <div className="modal-content max-w-2xl overflow-hidden">
+            <div className="modal-header">
+              <div>
+                <h2 className="text-xl font-bold text-white">Reactivate Order</h2>
+                <p className="text-sm text-gray-400 mt-1">
+                  Explain why this rejected request should be moved back to pending.
+                </p>
+              </div>
+              <button
+                className="btn-icon text-gray-400"
+                onClick={() => setShowReactivateModal(false)}
+                type="button"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="modal-body space-y-4">
+              <p className="text-gray-300 text-sm">
+                Provide a reactivation reason for request{" "}
+                <span className="text-white font-semibold">{reactivateTarget.request._id}</span>.
+              </p>
+              <div className="form-group">
+                <label className="form-label">Reason *</label>
+                <textarea
+                  value={reactivateReason}
+                  onChange={(e) => setReactivateReason(e.target.value)}
+                  className="input min-h-[130px]"
+                  placeholder="Example: Customer confirmed updated dates and stock is now available"
+                />
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button
+                className="btn-secondary"
+                onClick={() => setShowReactivateModal(false)}
+                type="button"
+                disabled={submitting}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 rounded-[8px] font-semibold border border-[#FFD700]/45 text-[#FFD700] bg-[#FFD700]/10 hover:bg-[#FFD700]/20 transition-colors disabled:opacity-60"
+                onClick={handleReactivateOrder}
+                type="button"
+                disabled={submitting}
+              >
+                {submitting ? "Reactivating..." : "Reactivate Order"}
               </button>
             </div>
           </div>
