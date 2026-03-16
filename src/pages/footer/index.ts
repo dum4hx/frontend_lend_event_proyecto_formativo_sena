@@ -1,0 +1,11 @@
+export { default as AboutPage } from "./AboutPage";
+export { default as BillingPage } from "./BillingPage";
+export { default as BlogPage } from "./BlogPage";
+export { default as BookDemoPage } from "./BookDemoPage";
+export { default as BusinessPage } from "./BusinessPage";
+export { default as CookiePolicyPage } from "./CookiePolicyPage";
+export { default as ContactPage } from "./ContactPage";
+export { default as HelpCenterPage } from "./HelpCenterPage";
+export { default as PricingPage } from "./PricingPage";
+export { default as TermsOfServicePage } from "./TermsOfServicePage";
+export { default as WhatsNewPage } from "./WhatsNewPage";

@@ -1,6 +1,6 @@
 import { Outlet } from "react-router-dom";
 import { useState } from "react";
-import { Sidebar } from "../components/Sidebar";
+import { Sidebar } from "../components";
 import { ToastContainer } from "../../../components/ui/ToastContainer";
 import { ToastProvider, useToast } from "../../../contexts/ToastContext";
 
@@ -8,22 +8,21 @@ function AppLayoutContent() {
   const { toasts, dismissToast } = useToast();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
+  const sidebarMargin = isSidebarCollapsed ? "ml-20" : "ml-64";
+
   return (
     <div className="min-h-screen bg-[#121212] text-white">
       <Sidebar
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
       />
+      <div className={`transition-all duration-300 ${sidebarMargin}`}>
+        <main className="p-8 min-h-screen">
+          <Outlet />
+        </main>
+      </div>
 
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
-
-      <main
-        className={`p-8 min-h-screen transition-all duration-300 ${
-          isSidebarCollapsed ? "ml-20" : "ml-64"
-        }`}
-      >
-        <Outlet />
-      </main>
     </div>
   );
 }

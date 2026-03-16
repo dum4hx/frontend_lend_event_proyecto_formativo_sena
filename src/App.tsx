@@ -4,18 +4,31 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { RequirePermission } from "./utils/permissionGuard";
 import { RequireActiveSubscription } from "./utils/subscriptionGuard";
 import { LoadingSpinner } from "./components/ui";
+import ScrollToTop from "./components/ScrollToTop";
 
 // Public pages
 import Dashboard from "./pages/Dashboard";
 import Paquetes from "./pages/Packages";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
-import AboutUs from "./pages/AboutUs";
 import PasswordRecovery from "./pages/PasswordRecovery";
 import AcceptInvite from "./pages/AcceptInvite";
 import EmailVerification from "./pages/EmailVerification";
 import Checkout from "./pages/Checkout";
 import CheckoutSuccess from "./pages/CheckoutSuccess";
+import {
+  AboutPage,
+  BillingPage,
+  BlogPage,
+  BookDemoPage,
+  BusinessPage,
+  CookiePolicyPage,
+  ContactPage,
+  HelpCenterPage,
+  PricingPage,
+  TermsOfServicePage,
+  WhatsNewPage,
+} from "./pages/footer";
 
 // Fallback pages
 import NotFound from "./pages/NotFound";
@@ -67,11 +80,12 @@ function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <ScrollToTop />
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<Dashboard />} />
           <Route path="/packages" element={<Paquetes />} />
-          <Route path="/about" element={<AboutUs />} />
+          <Route path="/about" element={<AboutPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/sign-up" element={<SignUp />} />
           <Route path="/password-recovery" element={<PasswordRecovery />} />
@@ -80,6 +94,17 @@ function App() {
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/checkout/success" element={<CheckoutSuccess />} />
           <Route path="/export-demo" element={<ExportDemo />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/billing" element={<BillingPage />} />
+          <Route path="/about-company" element={<Navigate to="/about" replace />} />
+          <Route path="/business" element={<BusinessPage />} />
+          <Route path="/pricing" element={<PricingPage />} />
+          <Route path="/blog" element={<BlogPage />} />
+          <Route path="/book-demo" element={<BookDemoPage />} />
+          <Route path="/whats-new" element={<WhatsNewPage />} />
+          <Route path="/help-center" element={<HelpCenterPage />} />
+          <Route path="/terms-of-service" element={<TermsOfServicePage />} />
+          <Route path="/cookie-policy" element={<CookiePolicyPage />} />
 
           {/* Unified /app routes — visibility controlled by permissions */}
           <Route

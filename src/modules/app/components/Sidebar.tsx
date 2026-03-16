@@ -131,40 +131,36 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
 
   return (
     <aside
-      className={`sidebar-scroll fixed left-0 top-0 ${sidebarWidthClass} h-screen bg-[#121212] border-r border-[#333] flex flex-col p-4 overflow-y-auto z-50 transition-all duration-300`}
+      className={`sidebar-scroll fixed left-0 top-0 ${sidebarWidthClass} h-screen bg-[#0e0e0e] border-r border-zinc-800/60 flex flex-col overflow-y-auto z-50 transition-all duration-300`}
     >
       {/* Logo */}
-      <div className="mb-6">
-        <div
-          className={`flex items-center gap-2 ${isCollapsed ? "justify-end" : "justify-between"}`}
-        >
-          {!isCollapsed && (
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-[#FFD700] flex items-center justify-center">
-                <span className="text-black font-bold text-sm">L</span>
-              </div>
-              <div>
-                <h1 className="text-lg font-bold text-white">Lend Event</h1>
-                <p className="text-xs text-gray-500">Management</p>
-              </div>
+      <div className={`flex items-center border-b border-zinc-800/60 ${isCollapsed ? "justify-center px-4 py-4" : "justify-between px-4 py-4"}`}>
+        {!isCollapsed && (
+          <div className="flex items-center gap-2.5 min-w-0">
+            <img src="/lendevent-logo.png" alt="LendEvent" className="h-8 w-auto flex-shrink-0" />
+            <div className="flex flex-col leading-none">
+              <span className="text-2xl text-white font-bold tracking-tight italic">
+                Lend<span className="text-yellow-400">Event</span>
+              </span>
             </div>
-          )}
-          <button
-            type="button"
-            onClick={onToggleCollapse}
-            className="h-8 w-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-[#FFD700] hover:bg-[#1a1a1a] transition-colors"
-            aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            {isCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
-          </button>
-        </div>
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={onToggleCollapse}
+          className="h-8 w-8 rounded-lg flex items-center justify-center text-zinc-500 hover:text-[#FFD700] hover:bg-zinc-800 transition-colors flex-shrink-0"
+          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {isCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+        </button>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1">
+      <nav className="flex-1 px-3 py-4 space-y-0.5">
         {sections.map(({ section, items }) => {
           const sectionKey = section ?? "";
-          const isSectionCollapsed = !isCollapsed && sectionKey ? collapsedSections[sectionKey] : false;
+          const isSectionCollapsed =
+            !isCollapsed && sectionKey ? collapsedSections[sectionKey] : false;
 
           return (
             <div key={sectionKey}>
@@ -177,12 +173,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
                       [sectionKey]: !prev[sectionKey],
                     }))
                   }
-                  className="w-full flex items-center justify-between mt-4 mb-1 px-4 py-1 text-[10px] uppercase tracking-wider text-gray-500 hover:text-gray-300 transition-colors"
+                  className="w-full flex items-center justify-between mt-5 mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-widest text-zinc-500 hover:text-zinc-300 transition-colors"
                   aria-expanded={!isSectionCollapsed}
-                  aria-label={`${isSectionCollapsed ? "Expand" : "Collapse"} ${section} section`}
                 >
                   <span>{section}</span>
-                  {isSectionCollapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
+                  {isSectionCollapsed ? <ChevronRight size={11} /> : <ChevronDown size={11} />}
                 </button>
               )}
 
@@ -194,15 +189,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
                     end={item.path === "/app"}
                     title={isCollapsed ? item.label : undefined}
                     className={({ isActive }) =>
-                      `w-full flex items-center gap-3 rounded-lg transition-all text-sm ${itemPaddingClass} ${
+                      `flex items-center gap-3 rounded-lg text-sm font-medium transition-all ${itemPaddingClass} ${
                         isActive
-                          ? "bg-[#FFD700] text-black font-semibold"
-                          : "text-gray-400 hover:bg-[#1a1a1a] hover:text-[#FFD700]"
+                          ? "bg-[#FFD700] text-black"
+                          : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
                       }`
                     }
                   >
-                    {iconMap[item.id] ?? <LayoutDashboard size={20} />}
-                    {!isCollapsed && <span>{item.label}</span>}
+                    <span className="flex-shrink-0">{iconMap[item.id] ?? <LayoutDashboard size={18} />}</span>
+                    {!isCollapsed && <span className="truncate">{item.label}</span>}
                   </NavLink>
                 ))}
             </div>
@@ -211,18 +206,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
       </nav>
 
       {/* User Info & Logout */}
-      <div className="border-t border-[#333] pt-4 mt-4">
-        <div className={`flex items-center ${isCollapsed ? "justify-center" : "gap-3 px-2"} mb-4`}>
-          <div className="w-9 h-9 rounded-full bg-[#FFD700] flex items-center justify-center">
-            <span className="text-black font-bold text-sm">
+      <div className="border-t border-zinc-800/60 px-3 py-3">
+        <div className={`flex items-center ${isCollapsed ? "justify-center mb-2" : "gap-3 px-2 py-2 mb-1"}`}>
+          <div className="w-8 h-8 rounded-full bg-[#FFD700] flex items-center justify-center flex-shrink-0">
+            <span className="text-black font-bold text-xs">
               {user?.name.firstName.charAt(0).toUpperCase()}
               {user?.name.firstSurname.charAt(0).toUpperCase()}
             </span>
           </div>
           {!isCollapsed && (
             <div className="overflow-hidden">
-              <p className="text-white text-sm font-medium truncate">{displayName}</p>
-              <p className="text-gray-500 text-xs truncate">{user?.email}</p>
+              <p className="text-white text-sm font-medium truncate leading-tight">{displayName}</p>
+              <p className="text-zinc-500 text-xs truncate">{user?.email}</p>
             </div>
           )}
         </div>
@@ -230,11 +225,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
           onClick={handleLogout}
           disabled={isLoggingOut}
           title={isCollapsed ? "Logout" : undefined}
-          className={`w-full flex items-center rounded-lg transition-all disabled:opacity-50 text-gray-400 hover:text-red-400 ${
-            isCollapsed ? "justify-center px-2 py-3" : "gap-3 px-4 py-3"
+          className={`w-full flex items-center rounded-lg text-sm transition-all disabled:opacity-50 text-zinc-500 hover:text-red-400 hover:bg-zinc-800/60 ${
+            isCollapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3 py-2.5"
           }`}
         >
-          <LogOut size={20} />
+          <LogOut size={16} />
           {!isCollapsed && <span>{isLoggingOut ? "Logging out..." : "Logout"}</span>}
         </button>
       </div>
