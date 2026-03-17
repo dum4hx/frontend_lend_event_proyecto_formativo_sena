@@ -874,16 +874,26 @@ export default function Customers() {
                             <Edit2 size={18} />
                           </button>
 
-                          {/* Block — only for active customers */}
+                          {/* Deactivate & Block — only for active customers */}
                           {customer.status === "active" && (
-                            <button
-                              onClick={() => void handleBlacklist(customer)}
-                              className="btn-icon text-amber-500 hover:text-amber-400"
-                              title="Block customer"
-                              aria-label="Block customer"
-                            >
-                              <Ban size={18} />
-                            </button>
+                            <>
+                              <button
+                                onClick={() => void handleDeactivate(customer)}
+                                className="btn-icon text-orange-500 hover:text-orange-400"
+                                title="Deactivate customer"
+                                aria-label="Deactivate customer"
+                              >
+                                <UserX size={18} />
+                              </button>
+                              <button
+                                onClick={() => void handleBlacklist(customer)}
+                                className="btn-icon text-amber-500 hover:text-amber-400"
+                                title="Block customer"
+                                aria-label="Block customer"
+                              >
+                                <Ban size={18} />
+                              </button>
+                            </>
                           )}
 
                           {/* Reactivate — for inactive or blacklisted customers */}
