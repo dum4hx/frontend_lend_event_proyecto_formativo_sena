@@ -130,6 +130,13 @@ export const allNavItems: NavItem[] = [
     requiredPermissions: ["materials:read"],
     section: "Materials",
   },
+  {
+    id: "transfer-requests",
+    label: "Transfer Requests",
+    path: "/app/transfer-requests",
+    requiredPermissions: ["transfers:read", "transfers:create"],
+    section: "Materials",
+  },
 
   // -- Warehouse --
   {

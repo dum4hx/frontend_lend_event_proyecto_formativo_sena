@@ -1108,3 +1108,74 @@ export interface RentalsQueryParams extends PaginationParams {
   materialTypeId?: string;
   overdue?: boolean;
 }
+
+// ─── Transfers ─────────────────────────────────────────────────────────────
+
+export type TransferRequestStatus = "pending" | "approved" | "rejected" | "cancelled";
+export type TransferStatus = "in_transit" | "completed" | "cancelled";
+
+/** A transfer request (planning stage). */
+export interface TransferRequest {
+  _id: string;
+  fromLocationId: string;
+  toLocationId: string;
+  requestedBy: string;
+  status: TransferRequestStatus;
+  notes?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+/** A physical transfer (shipment stage). */
+export interface TransferItem {
+  instanceId: string;
+  notes?: string;
+}
+
+export interface Transfer {
+  _id: string;
+  requestId?: string;
+  fromLocationId: string;
+  toLocationId: string;
+  items: TransferItem[];
+  senderNotes?: string;
+  receiverNotes?: string;
+  status: TransferStatus;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+/** Payload to create a transfer request. */
+export interface CreateTransferRequestPayload {
+  fromLocationId: string;
+  toLocationId: string;
+  notes?: string;
+}
+
+/** Payload to respond to a transfer request. */
+export interface RespondTransferRequestPayload {
+  status: "approved" | "rejected" | "cancelled";
+}
+
+/** Payload to initiate a physical transfer. */
+export interface CreateTransferPayload {
+  requestId?: string;
+  fromLocationId: string;
+  toLocationId: string;
+  items: TransferItem[];
+  senderNotes?: string;
+}
+
+/** Payload to mark a transfer as received. */
+export interface ReceiveTransferPayload {
+  receiverNotes?: string;
+}
+
+/** Query params for listing transfer requests. */
+export interface TransferRequestsQueryParams {
+  status?: TransferRequestStatus;
+}
+
+export interface TransfersQueryParams {
+  status?: TransferStatus;
+}

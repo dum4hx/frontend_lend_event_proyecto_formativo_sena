@@ -25,6 +25,7 @@ import {
   Tag,
   BookOpen,
   BarChart3,
+  ArrowLeftRight,
 } from "lucide-react";
 import { ApiError } from "../../../lib/api";
 import { useLogout } from "../../../hooks/useLogout";
@@ -50,6 +51,7 @@ const iconMap: Record<string, React.ReactNode> = {
   "material-instances": <Layers size={20} />,
   attributes: <Tag size={20} />,
   plans: <BookOpen size={20} />,
+  "transfer-requests": <ArrowLeftRight size={20} />,
   // Warehouse
   inventory: <Package size={20} />,
   locations: <MapPin size={20} />,
