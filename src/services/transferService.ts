@@ -15,6 +15,7 @@ import type {
   CreateTransferPayload,
   ReceiveTransferPayload,
   TransferRequestsQueryParams,
+  TransferRequestItem,
 } from "../types/api";
 
 // ─── Transfer Requests ─────────────────────────────────────────────────────
@@ -59,6 +60,7 @@ export async function getTransferRequests(
     toLocationId?: string | { _id?: string; name?: string };
     requestedBy?: string | { _id?: string; name?: unknown };
     status?: TransferRequest["status"];
+    items?: TransferRequestItem[];
     notes?: string;
     createdAt?: string;
     updatedAt?: string;
@@ -71,10 +73,11 @@ export async function getTransferRequests(
     const requester = r.requestedBy;
     return {
       _id: r._id ?? "",
-      fromLocationId: typeof from === "string" ? from : from?._id ?? "",
-      toLocationId: typeof to === "string" ? to : to?._id ?? "",
-      requestedBy: typeof requester === "string" ? requester : requester?._id ?? "",
-      status: r.status ?? "pending",
+      fromLocationId: typeof from === "string" ? from : (from?._id ?? ""),
+      toLocationId: typeof to === "string" ? to : (to?._id ?? ""),
+      requestedBy: typeof requester === "string" ? requester : (requester?._id ?? ""),
+      status: r.status ?? "requested",
+      items: r.items ?? [],
       notes: r.notes,
       createdAt: r.createdAt ?? new Date().toISOString(),
       updatedAt: r.updatedAt,

@@ -1111,8 +1111,23 @@ export interface RentalsQueryParams extends PaginationParams {
 
 // ─── Transfers ─────────────────────────────────────────────────────────────
 
-export type TransferRequestStatus = "pending" | "approved" | "rejected" | "cancelled";
+export type TransferRequestStatus = "requested" | "approved" | "rejected";
 export type TransferStatus = "in_transit" | "completed" | "cancelled";
+
+/** Condition of a material instance during/after a transfer. */
+export type TransferCondition =
+  | "OK"
+  | "DAMAGED"
+  | "MISSING_PARTS"
+  | "DIRTY"
+  | "REPAIR_REQUIRED"
+  | "LOST";
+
+/** Model-level item in a transfer request (quantity, not instance-specific). */
+export interface TransferRequestItem {
+  modelId: string;
+  quantity: number;
+}
 
 /** A transfer request (planning stage). */
 export interface TransferRequest {
@@ -1121,15 +1136,24 @@ export interface TransferRequest {
   toLocationId: string;
   requestedBy: string;
   status: TransferRequestStatus;
+  items: TransferRequestItem[];
   notes?: string;
   createdAt: string;
   updatedAt?: string;
 }
 
-/** A physical transfer (shipment stage). */
+/** Instance-level item in a physical transfer. */
 export interface TransferItem {
   instanceId: string;
+  sentCondition?: TransferCondition;
+  receivedCondition?: TransferCondition;
   notes?: string;
+}
+
+/** Per-item received condition for marking a transfer as received. */
+export interface ReceiveTransferItem {
+  instanceId: string;
+  receivedCondition: TransferCondition;
 }
 
 export interface Transfer {
@@ -1149,12 +1173,13 @@ export interface Transfer {
 export interface CreateTransferRequestPayload {
   fromLocationId: string;
   toLocationId: string;
+  items: TransferRequestItem[];
   notes?: string;
 }
 
 /** Payload to respond to a transfer request. */
 export interface RespondTransferRequestPayload {
-  status: "approved" | "rejected" | "cancelled";
+  status: "approved" | "rejected";
 }
 
 /** Payload to initiate a physical transfer. */
@@ -1169,6 +1194,7 @@ export interface CreateTransferPayload {
 /** Payload to mark a transfer as received. */
 export interface ReceiveTransferPayload {
   receiverNotes?: string;
+  items?: ReceiveTransferItem[];
 }
 
 /** Query params for listing transfer requests. */

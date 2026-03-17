@@ -22,15 +22,19 @@ import {
   receiveTransfer,
 } from "../../../services/transferService";
 import { getLocations, type WarehouseLocation } from "../../../services/warehouseOperatorService";
-import { getMaterialInstances } from "../../../services/materialService";
+import { getMaterialInstances, getMaterialTypes } from "../../../services/materialService";
 import type {
   TransferRequest,
   TransferRequestStatus,
   Transfer,
   TransferStatus,
   CreateTransferRequestPayload,
+  TransferRequestItem,
   TransferItem,
+  TransferCondition,
+  ReceiveTransferItem,
   MaterialInstance,
+  MaterialType,
 } from "../../../types/api";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -38,17 +42,24 @@ import type {
 type ActiveTab = "requests" | "shipments";
 
 const REQUEST_STATUS_LABEL: Record<TransferRequestStatus, string> = {
-  pending: "Pending",
+  requested: "Requested",
   approved: "Approved",
   rejected: "Rejected",
-  cancelled: "Cancelled",
 };
 
 const REQUEST_STATUS_CLASSES: Record<TransferRequestStatus, string> = {
-  pending: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
+  requested: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
   approved: "bg-green-500/15 text-green-400 border-green-500/30",
   rejected: "bg-red-500/15 text-red-400 border-red-500/30",
-  cancelled: "bg-gray-500/15 text-gray-400 border-gray-500/30",
+};
+
+const CONDITION_LABEL: Record<TransferCondition, string> = {
+  OK: "OK",
+  DAMAGED: "Damaged",
+  MISSING_PARTS: "Missing Parts",
+  DIRTY: "Dirty",
+  REPAIR_REQUIRED: "Repair Required",
+  LOST: "Lost",
 };
 
 const TRANSFER_STATUS_LABEL: Record<TransferStatus, string> = {
@@ -102,7 +113,27 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
   const [fromLocationId, setFromLocationId] = useState("");
   const [toLocationId, setToLocationId] = useState("");
   const [notes, setNotes] = useState("");
+  const [requestItems, setRequestItems] = useState<TransferRequestItem[]>([
+    { modelId: "", quantity: 1 },
+  ]);
+  const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    getMaterialTypes({ limit: 100 })
+      .then((res) => setMaterialTypes(res.data.materialTypes ?? []))
+      .catch(() => {
+        /* non-critical */
+      });
+  }, []);
+
+  const addItem = () => setRequestItems((prev) => [...prev, { modelId: "", quantity: 1 }]);
+
+  const removeItem = (index: number) =>
+    setRequestItems((prev) => prev.filter((_, i) => i !== index));
+
+  const updateItem = (index: number, patch: Partial<TransferRequestItem>) =>
+    setRequestItems((prev) => prev.map((item, i) => (i === index ? { ...item, ...patch } : item)));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,11 +142,17 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
       showToast("error", "Origin and destination must be different", "Validation Error");
       return;
     }
+    const filledItems = requestItems.filter((it) => it.modelId.trim() !== "");
+    if (filledItems.length === 0) {
+      showToast("error", "Add at least one material item to the request", "Validation Error");
+      return;
+    }
     setLoading(true);
     try {
       const payload: CreateTransferRequestPayload = {
         fromLocationId,
         toLocationId,
+        items: filledItems,
         ...(notes.trim() ? { notes: notes.trim() } : {}),
       };
       await createTransferRequest(payload);
@@ -136,7 +173,7 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="bg-[#111] border border-[#2a2a2a] rounded-xl shadow-2xl w-full max-w-md">
+      <div className="bg-[#111] border border-[#2a2a2a] rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between p-5 border-b border-[#222]">
           <h2 className="text-base font-bold text-white flex items-center gap-2">
             <ArrowLeftRight size={18} className="text-[#FFD700]" />
@@ -150,7 +187,7 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
             <X size={20} />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+        <form onSubmit={handleSubmit} className="p-5 space-y-4 overflow-y-auto custom-scrollbar">
           {/* From location */}
           <div>
             <label className="block text-xs font-medium text-gray-400 mb-1.5">
@@ -195,13 +232,68 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
             </select>
           </div>
 
+          {/* Items */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-medium text-gray-400">
+                Items <span className="text-red-400">*</span>
+              </label>
+              <button
+                type="button"
+                onClick={addItem}
+                className="flex items-center gap-1 text-xs text-[#FFD700] hover:text-[#FFD700]/80 transition-colors"
+              >
+                <Plus size={12} />
+                Add item
+              </button>
+            </div>
+            <div className="space-y-2">
+              {requestItems.map((item, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <select
+                    value={item.modelId}
+                    onChange={(e) => updateItem(idx, { modelId: e.target.value })}
+                    className="flex-1 h-9 px-2 bg-[#0a0a0a] border border-[#222] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all"
+                  >
+                    <option value="">Select material type</option>
+                    {materialTypes.map((mt) => (
+                      <option key={mt._id} value={mt._id}>
+                        {mt.name}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    min={1}
+                    value={item.quantity}
+                    onChange={(e) =>
+                      updateItem(idx, { quantity: Math.max(1, Number(e.target.value)) })
+                    }
+                    className="w-20 h-9 px-2 bg-[#0a0a0a] border border-[#222] rounded text-sm text-white text-center focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all"
+                    aria-label={`Quantity for item ${idx + 1}`}
+                  />
+                  {requestItems.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeItem(idx)}
+                      className="text-gray-600 hover:text-red-400 transition-colors shrink-0"
+                      aria-label="Remove item"
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Notes */}
           <div>
             <label className="block text-xs font-medium text-gray-400 mb-1.5">Notes</label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              rows={3}
+              rows={2}
               placeholder="Optional request notes…"
               className="w-full px-3 py-2 bg-[#0a0a0a] border border-[#222] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all resize-none"
             />
@@ -275,7 +367,16 @@ const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
     });
   };
 
+  const setItemCondition = (instanceId: string, sentCondition: TransferCondition) => {
+    setSelectedItems((prev) =>
+      prev.map((i) => (i.instanceId === instanceId ? { ...i, sentCondition } : i)),
+    );
+  };
+
   const isSelected = (instanceId: string) => selectedItems.some((i) => i.instanceId === instanceId);
+
+  const getItemCondition = (instanceId: string): TransferCondition | "" =>
+    selectedItems.find((i) => i.instanceId === instanceId)?.sentCondition ?? "";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -307,7 +408,7 @@ const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="bg-[#111] border border-[#2a2a2a] rounded-xl shadow-2xl w-full max-w-lg">
+      <div className="bg-[#111] border border-[#2a2a2a] rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between p-5 border-b border-[#222]">
           <h2 className="text-base font-bold text-white flex items-center gap-2">
             <Truck size={18} className="text-[#FFD700]" />
@@ -322,7 +423,7 @@ const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+        <form onSubmit={handleSubmit} className="p-5 space-y-4 overflow-y-auto custom-scrollbar">
           {/* Route summary */}
           <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-4 py-3 flex items-center gap-3 text-sm">
             <span className="text-white font-medium">{locationName(request.fromLocationId)}</span>
@@ -348,25 +449,46 @@ const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
                 </div>
               )}
               {!fetching &&
-                instances.map((inst) => (
-                  <label
-                    key={inst._id}
-                    className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-white/5 transition-colors"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isSelected(inst._id)}
-                      onChange={() => toggleItem(inst._id)}
-                      className="accent-[#FFD700] w-4 h-4 shrink-0"
-                    />
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-sm text-gray-200 font-medium truncate">
-                        {inst.serialNumber}
-                      </span>
-                      <span className="text-xs text-gray-500">{inst.model.name}</span>
+                instances.map((inst) => {
+                  const selected = isSelected(inst._id);
+                  return (
+                    <div key={inst._id} className="px-3 py-2.5 hover:bg-white/5 transition-colors">
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          onChange={() => toggleItem(inst._id)}
+                          className="accent-[#FFD700] w-4 h-4 shrink-0"
+                        />
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-sm text-gray-200 font-medium truncate">
+                            {inst.serialNumber}
+                          </span>
+                          <span className="text-xs text-gray-500">{inst.model.name}</span>
+                        </div>
+                      </label>
+                      {selected && (
+                        <div className="mt-2 ml-7">
+                          <select
+                            value={getItemCondition(inst._id)}
+                            onChange={(e) =>
+                              setItemCondition(inst._id, e.target.value as TransferCondition)
+                            }
+                            className="h-8 px-2 bg-[#0a0a0a] border border-[#222] rounded text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all"
+                            aria-label={`Sent condition for ${inst.serialNumber}`}
+                          >
+                            <option value="">Sent condition (optional)</option>
+                            {(Object.keys(CONDITION_LABEL) as TransferCondition[]).map((c) => (
+                              <option key={c} value={c}>
+                                {CONDITION_LABEL[c]}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
                     </div>
-                  </label>
-                ))}
+                  );
+                })}
             </div>
           </div>
 
@@ -423,13 +545,30 @@ const ReceiveTransferModal: React.FC<ReceiveTransferModalProps> = ({
 }) => {
   const { showToast } = useToast();
   const [receiverNotes, setReceiverNotes] = useState("");
+  const [itemConditions, setItemConditions] = useState<Record<string, TransferCondition | "">>(() =>
+    Object.fromEntries(transfer.items.map((i) => [i.instanceId, ""])),
+  );
   const [loading, setLoading] = useState(false);
+
+  const setCondition = (instanceId: string, condition: TransferCondition | "") => {
+    setItemConditions((prev) => ({ ...prev, [instanceId]: condition }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await receiveTransfer(transfer._id, receiverNotes.trim() ? { receiverNotes } : undefined);
+      const items: ReceiveTransferItem[] = Object.entries(itemConditions)
+        .filter(([, cond]) => cond !== "")
+        .map(([instanceId, receivedCondition]) => ({
+          instanceId,
+          receivedCondition: receivedCondition as TransferCondition,
+        }));
+
+      await receiveTransfer(transfer._id, {
+        ...(receiverNotes.trim() ? { receiverNotes } : {}),
+        ...(items.length > 0 ? { items } : {}),
+      });
       showToast("success", "Transfer marked as received", "Success");
       onReceived();
     } catch (err: unknown) {
@@ -445,7 +584,7 @@ const ReceiveTransferModal: React.FC<ReceiveTransferModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="bg-[#111] border border-[#2a2a2a] rounded-xl shadow-2xl w-full max-w-sm">
+      <div className="bg-[#111] border border-[#2a2a2a] rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between p-5 border-b border-[#222]">
           <h2 className="text-base font-bold text-white flex items-center gap-2">
             <CheckCircle size={18} className="text-green-400" />
@@ -459,7 +598,7 @@ const ReceiveTransferModal: React.FC<ReceiveTransferModalProps> = ({
             <X size={20} />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+        <form onSubmit={handleSubmit} className="p-5 space-y-4 overflow-y-auto custom-scrollbar">
           <p className="text-sm text-gray-300">
             Confirm receipt of shipment from{" "}
             <span className="text-white font-medium">{locationName(transfer.fromLocationId)}</span>{" "}
@@ -467,6 +606,40 @@ const ReceiveTransferModal: React.FC<ReceiveTransferModalProps> = ({
             . All items will be set to <span className="text-green-400 font-medium">available</span>{" "}
             at the destination.
           </p>
+
+          {/* Per-item condition */}
+          {transfer.items.length > 0 && (
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-2">
+                Received Condition per Item
+              </label>
+              <div className="rounded-lg border border-[#222] divide-y divide-[#1a1a1a]">
+                {transfer.items.map((item) => (
+                  <div key={item.instanceId} className="flex items-center gap-3 px-3 py-2.5">
+                    <span className="text-sm text-gray-300 font-mono flex-1 truncate">
+                      {item.instanceId}
+                    </span>
+                    <select
+                      value={itemConditions[item.instanceId] ?? ""}
+                      onChange={(e) =>
+                        setCondition(item.instanceId, e.target.value as TransferCondition | "")
+                      }
+                      className="h-8 px-2 bg-[#0a0a0a] border border-[#222] rounded text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all"
+                      aria-label={`Received condition for ${item.instanceId}`}
+                    >
+                      <option value="">Condition (optional)</option>
+                      {(Object.keys(CONDITION_LABEL) as TransferCondition[]).map((c) => (
+                        <option key={c} value={c}>
+                          {CONDITION_LABEL[c]}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div>
             <label className="block text-xs font-medium text-gray-400 mb-1.5">Receiver Notes</label>
             <textarea
@@ -593,10 +766,7 @@ const TransferRequests: React.FC = () => {
   }, [loadTransfers]);
 
   // ── Request actions ──
-  const handleRespond = async (
-    requestId: string,
-    status: "approved" | "rejected" | "cancelled",
-  ) => {
+  const handleRespond = async (requestId: string, status: "approved" | "rejected") => {
     try {
       await respondToTransferRequest(requestId, { status });
       showToast("success", `Request ${status} successfully`, "Success");
@@ -612,7 +782,7 @@ const TransferRequests: React.FC = () => {
 
   // ── Render helpers ──
   const renderRequestActions = (req: TransferRequest) => {
-    if (req.status === "pending" && canUpdate) {
+    if (req.status === "requested" && canUpdate) {
       return (
         <div className="flex items-center gap-1.5">
           <button
@@ -630,14 +800,6 @@ const TransferRequests: React.FC = () => {
           >
             <XCircle size={12} />
             Reject
-          </button>
-          <button
-            onClick={() => void handleRespond(req._id, "cancelled")}
-            title="Cancel"
-            className="flex items-center gap-1 px-2.5 h-7 bg-gray-700/20 hover:bg-gray-600/30 text-gray-400 hover:text-gray-300 border border-gray-600/30 rounded text-xs font-medium transition-all"
-          >
-            <X size={12} />
-            Cancel
           </button>
         </div>
       );
@@ -761,6 +923,7 @@ const TransferRequests: React.FC = () => {
                     <tr className="border-b border-[#1a1a1a] text-xs text-gray-500 uppercase tracking-wider">
                       <th className="px-4 py-3">From</th>
                       <th className="px-4 py-3">To</th>
+                      <th className="px-4 py-3">Items</th>
                       <th className="px-4 py-3">Status</th>
                       <th className="px-4 py-3">Notes</th>
                       <th className="px-4 py-3">Created</th>
@@ -775,6 +938,9 @@ const TransferRequests: React.FC = () => {
                         </td>
                         <td className="px-4 py-3 text-gray-200 whitespace-nowrap">
                           {locationName(req.toLocationId)}
+                        </td>
+                        <td className="px-4 py-3 text-gray-400 whitespace-nowrap">
+                          {req.items.length} type(s)
                         </td>
                         <td className="px-4 py-3">
                           <StatusBadge

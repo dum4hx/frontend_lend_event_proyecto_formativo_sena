@@ -1972,17 +1972,171 @@ Creates a new customer.
 
 Updates a customer's information.
 
+**Permission Required:** `customers:update`
+
+---
+
+#### POST /customers/:id/activate
+
+Activates or reactivates a customer (changes status to `active`).
+
+**Authentication Required:** Yes
+
+**Permission Required:** `customers:update`
+
+**Example Request:**
+
+```bash
+curl -X POST https://api.test.local/api/v1/customers/507f1f77bcf86cd799439011/activate \
+  -b cookies.txt
+```
+
+**Response:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "message": "Customer activated successfully",
+  "data": {
+    "customer": {
+      "_id": "507f1f77bcf86cd799439011",
+      "organizationId": "507f1f77bcf86cd799439012",
+      "name": {
+        "firstName": "Juan",
+        "firstSurname": "Pérez"
+      },
+      "email": "juan.perez@example.com",
+      "phone": "+573001234567",
+      "status": "active",
+      "totalLoans": 5,
+      "activeLoans": 1,
+      "createdAt": "2026-01-15T10:30:00.000Z",
+      "updatedAt": "2026-03-16T14:20:00.000Z"
+    }
+  }
+}
+```
+
+**Notes:**
+
+- Can reactivate customers with status `inactive` or `blacklisted`
+- Customer will regain access to all services
+
+---
+
+#### POST /customers/:id/deactivate
+
+Deactivates a customer (changes status to `inactive`).
+
+**Authentication Required:** Yes
+
+**Permission Required:** `customers:update`
+
+**Example Request:**
+
+```bash
+curl -X POST https://api.test.local/api/v1/customers/507f1f77bcf86cd799439011/deactivate \
+  -b cookies.txt
+```
+
+**Response:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "message": "Customer deactivated successfully",
+  "data": {
+    "customer": {
+      "_id": "507f1f77bcf86cd799439011",
+      "status": "inactive"
+    }
+  }
+}
+```
+
+**Notes:**
+
+- This is a soft deactivation; customer data is preserved
+- Can be used to temporarily disable a customer without blacklisting
+
 ---
 
 #### POST /customers/:id/blacklist
 
-Blacklists a customer.
+Blacklists a customer (changes status to `blacklisted`).
+
+**Authentication Required:** Yes
+
+**Permission Required:** `customers:update`
+
+**Example Request:**
+
+```bash
+curl -X POST https://api.test.local/api/v1/customers/507f1f77bcf86cd799439011/blacklist \
+  -b cookies.txt
+```
+
+**Response:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "message": "Customer blacklisted successfully",
+  "data": {
+    "customer": {
+      "_id": "507f1f77bcf86cd799439011",
+      "status": "blacklisted"
+    }
+  }
+}
+```
+
+**Notes:**
+
+- Should be used for customers who violated terms or have payment issues
+- Blacklisted customers cannot create new loans or transactions
+- Can be reactivated using the activate endpoint if needed
 
 ---
 
 #### DELETE /customers/:id
 
-Soft deletes a customer (sets status to inactive).
+Soft deletes a customer (sets status to inactive). Validates that customer has no active loans.
+
+**Authentication Required:** Yes
+
+**Permission Required:** `customers:delete`
+
+**Example Request:**
+
+```bash
+curl -X DELETE https://api.test.local/api/v1/customers/507f1f77bcf86cd799439011 \
+  -b cookies.txt
+```
+
+**Response:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "message": "Customer deleted successfully"
+}
+```
+
+**Error Response:** `400 Bad Request` (if customer has active loans)
+
+```json
+{
+  "status": "error",
+  "message": "Cannot delete customer with active loans"
+}
+```
+
+**Notes:**
+
+- Cannot delete customers with active or overdue loans
+- This is a soft delete (status becomes `inactive`), not a permanent deletion
+- Customer data is preserved and can be reactivated
 
 ---
 
@@ -2465,17 +2619,18 @@ Deletes a material instance. Only instances with `available` or `retired` status
 
 ### Transfer Endpoints
 
-The transfer module handles the movement of material instances between different physical locations within an organization. It consists of a two-stage process: a **Transfer Request** (planning/approval) and a **Transfer** (physical shipment).
+The transfer module handles the movement of material instances between different physical locations within an organization. It consists of a two-stage process: a **Transfer Request** (model-level planning/approval, before exact units are chosen) and a **Transfer** (instance-level physical shipment).
 
 #### POST /transfers/requests
 
-Creates a new transfer request to move materials between locations.
+Creates a new transfer request to move materials between locations. Items are specified at the **model level** (material type + quantity) because the exact units are not yet determined at request time.
 
-| Parameter      | Location | Type   | Required | Description             |
-| -------------- | -------- | ------ | -------- | ----------------------- |
-| fromLocationId | body     | string | Yes      | Origin location ID      |
-| toLocationId   | body     | string | Yes      | Destination location ID |
-| notes          | body     | string | No       | Request notes           |
+| Parameter      | Location | Type   | Required | Description                                                  |
+| -------------- | -------- | ------ | -------- | ------------------------------------------------------------ |
+| fromLocationId | body     | string | Yes      | Origin location ID                                           |
+| toLocationId   | body     | string | Yes      | Destination location ID                                      |
+| items          | body     | array  | Yes      | List of `{ modelId: string, quantity: number }` (min 1 item) |
+| notes          | body     | string | No       | Request notes                                                |
 
 **Permission Required:** `transfers:create`
 
@@ -2489,7 +2644,8 @@ Creates a new transfer request to move materials between locations.
     "fromLocationId": "64f1a2...",
     "toLocationId": "64f1a2...",
     "requestedBy": "64f1a2...",
-    "status": "pending",
+    "status": "requested",
+    "items": [{ "modelId": "64f1a2...", "quantity": 2 }],
     "notes": "Request for testing",
     "createdAt": "2026-03-16T..."
   }
@@ -2502,9 +2658,9 @@ Creates a new transfer request to move materials between locations.
 
 Lists all transfer requests for the organization.
 
-| Parameter | Location | Type   | Required | Description                                       |
-| --------- | -------- | ------ | -------- | ------------------------------------------------- |
-| status    | query    | string | No       | Filter by `pending`, `approved`, `rejected`, etc. |
+| Parameter | Location | Type   | Required | Description                                      |
+| --------- | -------- | ------ | -------- | ------------------------------------------------ |
+| status    | query    | string | No       | Filter by `requested`, `approved`, or `rejected` |
 
 **Permission Required:** `transfers:read`
 
@@ -2512,11 +2668,11 @@ Lists all transfer requests for the organization.
 
 #### PATCH /transfers/requests/:id/respond
 
-Approves, rejects, or cancels a transfer request.
+Approves or rejects a transfer request.
 
-| Parameter | Location | Type   | Required | Description                                     |
-| --------- | -------- | ------ | -------- | ----------------------------------------------- |
-| status    | body     | string | Yes      | New status: `approved`, `rejected`, `cancelled` |
+| Parameter | Location | Type   | Required | Description                          |
+| --------- | -------- | ------ | -------- | ------------------------------------ |
+| status    | body     | string | Yes      | New status: `approved` or `rejected` |
 
 **Permission Required:** `transfers:update`
 
@@ -2524,15 +2680,15 @@ Approves, rejects, or cancels a transfer request.
 
 #### POST /transfers
 
-Initiates a physical transfer (shipment). This marks the items as `in_use` (in transit) and locks them from other operations.
+Initiates a physical transfer (shipment) at the **instance level**. Marks the items as `in_use` (in transit) and locks them from other operations. Optionally links to an approved transfer request.
 
-| Parameter      | Location | Type   | Required | Description                                     |
-| -------------- | -------- | ------ | -------- | ----------------------------------------------- |
-| requestId      | body     | string | No       | Related transfer request ID                     |
-| fromLocationId | body     | string | Yes      | Origin location ID                              |
-| toLocationId   | body     | string | Yes      | Destination location ID                         |
-| items          | body     | array  | Yes      | List of `{ instanceId: string, notes: string }` |
-| senderNotes    | body     | string | No       | Notes from the sender                           |
+| Parameter      | Location | Type   | Required | Description                                                                                                                                                                                               |
+| -------------- | -------- | ------ | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| requestId      | body     | string | No       | Related approved transfer request ID                                                                                                                                                                      |
+| fromLocationId | body     | string | Yes      | Origin location ID                                                                                                                                                                                        |
+| toLocationId   | body     | string | Yes      | Destination location ID                                                                                                                                                                                   |
+| items          | body     | array  | Yes      | List of `{ instanceId, sentCondition?, receivedCondition?, notes? }` (min 1 item). `sentCondition` and `receivedCondition` are enum: `OK`, `DAMAGED`, `MISSING_PARTS`, `DIRTY`, `REPAIR_REQUIRED`, `LOST` |
+| senderNotes    | body     | string | No       | Notes from the sender                                                                                                                                                                                     |
 
 **Permission Required:** `transfers:create`
 
@@ -2540,11 +2696,12 @@ Initiates a physical transfer (shipment). This marks the items as `in_use` (in t
 
 #### PATCH /transfers/:id/receive
 
-Marks a transfer as received at the destination location. This updates the location of all items and sets their status back to `available`.
+Marks a transfer as received at the destination location. Updates the location of all items and sets their status back to `available`. Optionally records the received condition per item.
 
-| Parameter     | Location | Type   | Required | Description             |
-| ------------- | -------- | ------ | -------- | ----------------------- |
-| receiverNotes | body     | string | No       | Notes from the receiver |
+| Parameter     | Location | Type   | Required | Description                                                                                                                                                                       |
+| ------------- | -------- | ------ | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| receiverNotes | body     | string | No       | Notes from the receiver                                                                                                                                                           |
+| items         | body     | array  | No       | List of `{ instanceId, receivedCondition }` to record per-item received condition. `receivedCondition` enum: `OK`, `DAMAGED`, `MISSING_PARTS`, `DIRTY`, `REPAIR_REQUIRED`, `LOST` |
 
 **Permission Required:** `transfers:update`
 
