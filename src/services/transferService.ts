@@ -112,7 +112,56 @@ export async function respondToTransferRequest(
 
 /** List all physical transfers for the organization. */
 export async function getTransfers(): Promise<ApiSuccessResponse<{ transfers: Transfer[] }>> {
-  return get<{ transfers: Transfer[] }>("/transfers");
+  const res = await get<unknown>("/transfers");
+
+  type RawTransfer = {
+    _id?: string;
+    requestId?: string;
+    fromLocationId?: string | { _id?: string; name?: string };
+    toLocationId?: string | { _id?: string; name?: string };
+    items?: Transfer["items"];
+    senderNotes?: string;
+    receiverNotes?: string;
+    status?: Transfer["status"];
+    createdAt?: string;
+    updatedAt?: string;
+  };
+
+  let rawArray: unknown[] = [];
+  if (Array.isArray(res.data)) {
+    rawArray = res.data as unknown[];
+  } else if (
+    res &&
+    typeof res.data === "object" &&
+    res.data !== null &&
+    "transfers" in (res.data as Record<string, unknown>) &&
+    Array.isArray((res.data as Record<string, unknown>).transfers)
+  ) {
+    rawArray = (res.data as Record<string, unknown>).transfers as unknown[];
+  }
+
+  const normalized: Transfer[] = rawArray.map((it) => {
+    const r = it as RawTransfer;
+    const from = r.fromLocationId;
+    const to = r.toLocationId;
+    return {
+      _id: r._id ?? "",
+      requestId: r.requestId,
+      fromLocationId: typeof from === "string" ? from : (from?._id ?? ""),
+      toLocationId: typeof to === "string" ? to : (to?._id ?? ""),
+      items: r.items ?? [],
+      senderNotes: r.senderNotes,
+      receiverNotes: r.receiverNotes,
+      status: r.status ?? "in_transit",
+      createdAt: r.createdAt ?? new Date().toISOString(),
+      updatedAt: r.updatedAt,
+    };
+  });
+
+  return {
+    ...res,
+    data: { transfers: normalized },
+  } as ApiSuccessResponse<{ transfers: Transfer[] }>;
 }
 
 /** Get a specific transfer by ID. */

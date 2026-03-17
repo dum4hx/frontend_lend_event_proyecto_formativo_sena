@@ -501,10 +501,13 @@ export default function Customers() {
 
   // --- Build address payload from sub-fields --------------------------------
   const buildAddressPayload = () => ({
-    street: formattedStreet || undefined,
+    streetType: streetType || undefined,
+    primaryNumber: mainNumber || undefined,
+    secondaryNumber: secondaryNumber || undefined,
+    complementaryNumber: complementaryNumber || undefined,
+    department: selectedState?.name || undefined,
     city: selectedCity?.name || undefined,
-    state: selectedState?.name || undefined,
-    country: "Colombia",
+    additionalDetails: additionalDetails || undefined,
     postalCode: postalCodeField || undefined,
   });
 
@@ -653,43 +656,24 @@ export default function Customers() {
       resetAddressFields();
       return;
     }
-    // Try to decompose the street
-    if (addr.street) {
-      const parsed = parseStreet(addr.street);
-      if (parsed) {
-        setStreetType(parsed.streetType);
-        setMainNumber(parsed.mainNumber);
-        setSecondaryNumber(parsed.secondaryNumber);
-        setComplementaryNumber(parsed.complementaryNumber);
-        setAdditionalDetails(parsed.additionalDetails);
-      } else {
-        // Fallback: put entire street in additionalDetails
-        setStreetType("");
-        setMainNumber("");
-        setSecondaryNumber("");
-        setComplementaryNumber("");
-        setAdditionalDetails(addr.street);
-      }
-    } else {
-      setStreetType("");
-      setMainNumber("");
-      setSecondaryNumber("");
-      setComplementaryNumber("");
-      setAdditionalDetails("");
-    }
-    
-    // Set state/city text fields and try to auto-select if data is available
-    const savedState = addr.state ?? "";
+
+    setStreetType(addr.streetType ?? "");
+    setMainNumber(addr.primaryNumber ?? "");
+    setSecondaryNumber(addr.secondaryNumber ?? "");
+    setComplementaryNumber(addr.complementaryNumber ?? "");
+    setAdditionalDetails(addr.additionalDetails ?? "");
+
+    const savedDepartment = addr.department ?? "";
     const savedCity = addr.city ?? "";
     const savedPostalCode = addr.postalCode ?? "";
-    
-    setStateQuery(savedState);
+
+    setStateQuery(savedDepartment);
     setCityQuery(savedCity);
     setPostalCodeField(savedPostalCode);
-    
+
     // Try to auto-select department if already loaded
-    if (departments && savedState) {
-      const foundDept = departments.find((d) => isNormalizedEqual(d.name, savedState));
+    if (departments && savedDepartment) {
+      const foundDept = departments.find((d) => isNormalizedEqual(d.name, savedDepartment));
       if (foundDept) {
         setSelectedState(foundDept);
       } else {
@@ -698,7 +682,7 @@ export default function Customers() {
     } else {
       setSelectedState(null);
     }
-    
+
     // City will be handled by useEffect once department is selected
     setSelectedCity(null);
   };

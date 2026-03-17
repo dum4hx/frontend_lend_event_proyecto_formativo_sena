@@ -45,12 +45,15 @@ export interface PersonName {
   secondSurname?: string;
 }
 
-/** Postal address shared between organizations and customers. */
+/** Colombian address shared between organizations, customers, and locations. */
 export interface Address {
-  street?: string;
+  streetType?: string;
+  primaryNumber?: string;
+  secondaryNumber?: string;
+  complementaryNumber?: string;
+  department?: string;
   city?: string;
-  state?: string;
-  country?: string;
+  additionalDetails?: string;
   postalCode?: string;
 }
 

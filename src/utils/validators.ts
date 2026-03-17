@@ -642,12 +642,13 @@ export const validateMaterialCapacities = (
 export const validateLocationV2 = (form: {
   name: string;
   address: {
-    country: string;
-    state?: string;
+    streetType: string;
+    primaryNumber: string;
+    secondaryNumber: string;
+    complementaryNumber: string;
+    department: string;
     city: string;
-    street: string;
-    propertyNumber: string;
-    additionalInfo?: string;
+    additionalDetails?: string;
   };
   materialCapacities?: Array<{ materialTypeId: string; maxQuantity: number | "" }>;
 }): { isValid: boolean; errors: Record<string, string> } => {
@@ -656,11 +657,12 @@ export const validateLocationV2 = (form: {
   if (!form.name.trim()) errors.name = "Name is required";
   if (form.name.length > 100) errors.name = "Name must not exceed 100 characters";
 
-  if (!form.address.country.trim()) errors["address.country"] = "Country is required";
-  if (!form.address.city.trim()) errors["address.city"] = "City is required";
-  if (!form.address.street.trim()) errors["address.street"] = "Street is required";
-  if (!form.address.propertyNumber.trim())
+  if (!form.address.streetType.trim()) errors["address.street"] = "Street type is required";
+  if (!form.address.primaryNumber.trim()) errors["address.street"] = "Street number is required";
+  if (!form.address.secondaryNumber.trim())
     errors["address.propertyNumber"] = "Property number is required";
+  if (!form.address.department.trim()) errors["address.state"] = "Department is required";
+  if (!form.address.city.trim()) errors["address.city"] = "City is required";
 
   if (form.materialCapacities) {
     const capValidation = validateMaterialCapacities(form.materialCapacities);

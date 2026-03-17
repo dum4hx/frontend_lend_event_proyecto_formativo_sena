@@ -66,17 +66,14 @@ export interface WarehouseLocation {
 }
 
 export interface LocationAddress {
-  country?: string;
-  street?: string;
-  propertyNumber?: string;
   streetType?: string;
   primaryNumber?: string;
   secondaryNumber?: string;
   complementaryNumber?: string;
-  state?: string;
+  department?: string;
   city?: string;
   additionalDetails?: string;
-  additionalInfo?: string;
+  postalCode?: string;
   formatted?: string;
 }
 
@@ -86,12 +83,14 @@ export interface LocationCreatePayload {
   status?: "available" | "full_capacity" | "maintenance" | "inactive";
   materialCapacities?: { materialTypeId: string; maxQuantity: number }[];
   address: {
-    country: string;
-    state: string;
+    streetType: string;
+    primaryNumber: string;
+    secondaryNumber: string;
+    complementaryNumber: string;
+    department: string;
     city: string;
-    street: string;
-    propertyNumber: string;
-    additionalInfo?: string;
+    additionalDetails?: string;
+    postalCode?: string;
   };
 }
 

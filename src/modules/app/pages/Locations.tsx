@@ -64,15 +64,12 @@ interface MaterialCapacityForm {
 }
 
 interface LocationFormAddress {
-  country: string;
   state: string;
   city: string;
-  street: string;
-  propertyNumber: string;
-  streetType?: string;
-  primaryNumber?: string;
-  secondaryNumber?: string;
-  complementaryNumber?: string;
+  streetType: string;
+  primaryNumber: string;
+  secondaryNumber: string;
+  complementaryNumber: string;
   additionalInfo: string;
 }
 
@@ -148,11 +145,8 @@ export default function LocationsPage() {
     name: "",
     status: "available",
     address: {
-      country: "Colombia",
       state: "",
       city: "",
-      street: "",
-      propertyNumber: "",
       streetType: "",
       primaryNumber: "",
       secondaryNumber: "",
@@ -321,20 +315,24 @@ export default function LocationsPage() {
     return locs.map((loc) => {
       const address =
         (loc.address as {
-          street?: string;
-          propertyNumber?: string;
-          state?: string;
+          streetType?: string;
+          primaryNumber?: string;
+          secondaryNumber?: string;
+          complementaryNumber?: string;
+          department?: string;
           city?: string;
-          additionalInfo?: string;
+          additionalDetails?: string;
         }) || {};
       return {
         Name: loc.name || "",
         Status: loc.isActive ? "active" : "inactive",
-        Street: address.street || "",
-        "Property Number": address.propertyNumber || "",
-        State: address.state || "",
+        "Street Type": address.streetType || "",
+        "Primary Number": address.primaryNumber || "",
+        "Secondary Number": address.secondaryNumber || "",
+        "Complementary Number": address.complementaryNumber || "",
+        Department: address.department || "",
         City: address.city || "",
-        "Additional Info": address.additionalInfo || "",
+        "Additional Details": address.additionalDetails || "",
       };
     });
   }, []);
@@ -488,23 +486,16 @@ export default function LocationsPage() {
   };
 
   const handleCreate = async () => {
-    const formattedStreet = form.address.streetType
-      ? `${form.address.streetType} ${form.address.primaryNumber} #${form.address.secondaryNumber}${form.address.complementaryNumber ? `-${form.address.complementaryNumber}` : ""}`
-      : form.address.street;
-
-    const propertyNum =
-      form.address.propertyNumber ||
-      `${form.address.secondaryNumber}${form.address.complementaryNumber ? `-${form.address.complementaryNumber}` : ""}`;
-
     const validation = validateLocationV2({
       name: form.name,
       address: {
-        country: form.address.country,
-        state: form.address.state,
+        streetType: form.address.streetType,
+        primaryNumber: form.address.primaryNumber,
+        secondaryNumber: form.address.secondaryNumber,
+        complementaryNumber: form.address.complementaryNumber,
+        department: form.address.state,
         city: form.address.city,
-        street: formattedStreet,
-        propertyNumber: propertyNum,
-        additionalInfo: form.address.additionalInfo,
+        additionalDetails: form.address.additionalInfo,
       },
       materialCapacities: form.materialCapacities,
     });
@@ -528,12 +519,13 @@ export default function LocationsPage() {
         organizationId: user?.organizationId ?? "",
         status: form.status as "available" | "full_capacity" | "maintenance" | "inactive",
         address: {
-          country: form.address.country,
-          state: form.address.state,
+          streetType: form.address.streetType,
+          primaryNumber: form.address.primaryNumber,
+          secondaryNumber: form.address.secondaryNumber,
+          complementaryNumber: form.address.complementaryNumber,
+          department: form.address.state,
           city: form.address.city,
-          street: formattedStreet,
-          propertyNumber: propertyNum,
-          additionalInfo: form.address.additionalInfo,
+          additionalDetails: form.address.additionalInfo || undefined,
         },
         materialCapacities: form.materialCapacities.map((c) => ({
           materialTypeId: c.materialTypeId,
@@ -557,28 +549,30 @@ export default function LocationsPage() {
 
     const address =
       (loc.address as {
-        street?: string;
-        city?: string;
+        department?: string;
         state?: string;
-        country?: string;
-        propertyNumber?: string;
+        city?: string;
         streetType?: string;
         primaryNumber?: string;
         secondaryNumber?: string;
         complementaryNumber?: string;
-        additionalInfo?: string;
         additionalDetails?: string;
+        additionalInfo?: string;
+        // legacy fallback fields
+        street?: string;
+        propertyNumber?: string;
       }) || {};
 
-    setStateQuery(address.state || "");
+    const resolvedDepartment = address.department || address.state || "";
+    setStateQuery(resolvedDepartment);
     setCityQuery(address.city || "");
 
-    if (address.state && departments) {
-      const dept = departments.find((d) => d.name === address.state);
+    if (resolvedDepartment && departments) {
+      const dept = departments.find((d) => d.name === resolvedDepartment);
       if (dept) setSelectedState(dept.id.toString());
     }
 
-    // Parse street if it comes in compact format (e.g., "Calle 10 #45" or "Calle 10 #45-30")
+    // Use new direct fields; fall back to parsing legacy street if needed
     let parsedStreetType = address.streetType || "";
     let parsedPrimaryNumber = address.primaryNumber || "";
     let parsedSecondaryNumber = address.secondaryNumber || "";
@@ -588,10 +582,10 @@ export default function LocationsPage() {
       // Try to parse: "Calle 10 #45" or "Calle 10 #45-30"
       const streetMatch = address.street.match(/^(.+?)\s+(\d+)\s*#\s*(\d+)(?:-(\d+))?/);
       if (streetMatch) {
-        parsedStreetType = streetMatch[1].trim(); // "Calle"
-        parsedPrimaryNumber = streetMatch[2]; // "10"
-        parsedSecondaryNumber = streetMatch[3]; // "45"
-        parsedComplementaryNumber = streetMatch[4] || ""; // "30" or ""
+        parsedStreetType = streetMatch[1].trim();
+        parsedPrimaryNumber = streetMatch[2];
+        parsedSecondaryNumber = streetMatch[3];
+        parsedComplementaryNumber = streetMatch[4] || "";
       }
     }
 
@@ -610,16 +604,13 @@ export default function LocationsPage() {
       name: loc.name || "",
       status: loc.status || "available",
       address: {
-        country: address.country || "Colombia",
-        state: address.state || "",
+        state: resolvedDepartment,
         city: address.city || "",
-        street: address.street || "",
-        propertyNumber: address.propertyNumber || "",
         streetType: parsedStreetType,
         primaryNumber: parsedPrimaryNumber,
         secondaryNumber: parsedSecondaryNumber,
         complementaryNumber: parsedComplementaryNumber,
-        additionalInfo: address.additionalInfo || address.additionalDetails || "",
+        additionalInfo: address.additionalDetails || address.additionalInfo || "",
       },
       materialCapacities: caps,
     });
@@ -646,23 +637,16 @@ export default function LocationsPage() {
   const handleUpdate = async () => {
     if (!editing) return;
 
-    const formattedStreet = form.address.streetType
-      ? `${form.address.streetType} ${form.address.primaryNumber} #${form.address.secondaryNumber}${form.address.complementaryNumber ? `-${form.address.complementaryNumber}` : ""}`
-      : form.address.street;
-
-    const propertyNum =
-      form.address.propertyNumber ||
-      `${form.address.secondaryNumber}${form.address.complementaryNumber ? `-${form.address.complementaryNumber}` : ""}`;
-
     const validation = validateLocationV2({
       name: form.name,
       address: {
-        country: form.address.country,
-        state: form.address.state,
+        streetType: form.address.streetType,
+        primaryNumber: form.address.primaryNumber,
+        secondaryNumber: form.address.secondaryNumber,
+        complementaryNumber: form.address.complementaryNumber,
+        department: form.address.state,
         city: form.address.city,
-        street: formattedStreet,
-        propertyNumber: propertyNum,
-        additionalInfo: form.address.additionalInfo,
+        additionalDetails: form.address.additionalInfo,
       },
       materialCapacities: form.materialCapacities,
     });
@@ -685,12 +669,13 @@ export default function LocationsPage() {
         name: form.name,
         status: form.status as "available" | "full_capacity" | "maintenance" | "inactive",
         address: {
-          country: form.address.country,
-          state: form.address.state,
+          streetType: form.address.streetType,
+          primaryNumber: form.address.primaryNumber,
+          secondaryNumber: form.address.secondaryNumber,
+          complementaryNumber: form.address.complementaryNumber,
+          department: form.address.state,
           city: form.address.city,
-          street: formattedStreet,
-          propertyNumber: propertyNum,
-          additionalInfo: form.address.additionalInfo,
+          additionalDetails: form.address.additionalInfo || undefined,
         },
         materialCapacities: form.materialCapacities.map((c) => ({
           materialTypeId: c.materialTypeId,
@@ -709,13 +694,13 @@ export default function LocationsPage() {
 
   const filteredLocations = locations.filter((loc) => {
     const name = loc.name ?? "";
-    const address = (loc.address as { street?: string; city?: string }) || {};
-    const street = address.street ?? "";
+    const address = (loc.address as { streetType?: string; primaryNumber?: string; city?: string }) || {};
+    const streetInfo = `${address.streetType ?? ""} ${address.primaryNumber ?? ""}`.trim();
     const city = address.city ?? "";
 
     return (
       name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      street.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      streetInfo.toLowerCase().includes(searchTerm.toLowerCase()) ||
       city.toLowerCase().includes(searchTerm.toLowerCase())
     );
   });
@@ -845,16 +830,30 @@ export default function LocationsPage() {
             const city = row[cityIdx]?.trim() || "";
             const propertyNumber = row[propertyNumberIdx]?.trim() || "";
 
+            // Try to parse legacy street into components
+            let parsedStreetType = "";
+            let parsedPrimaryNumber = street;
+            let parsedSecondaryNumber = propertyNumber;
+            let parsedComplementaryNumber = "";
+            const streetMatch = street.match(/^(.+?)\s+(\S+)\s*#\s*(\S+)(?:-(\S+))?/);
+            if (streetMatch) {
+              parsedStreetType = streetMatch[1].trim();
+              parsedPrimaryNumber = streetMatch[2];
+              parsedSecondaryNumber = streetMatch[3];
+              parsedComplementaryNumber = streetMatch[4] || "";
+            }
+
             locationData = {
               name: name,
               organizationId: user?.organizationId ?? "",
               materialCapacities: rowCapacities,
               address: {
-                country: "Colombia",
-                state: state,
+                streetType: parsedStreetType,
+                primaryNumber: parsedPrimaryNumber,
+                secondaryNumber: parsedSecondaryNumber,
+                complementaryNumber: parsedComplementaryNumber,
+                department: state,
                 city: city,
-                street: street,
-                propertyNumber: propertyNumber,
               },
             };
           } else {
@@ -867,22 +866,18 @@ export default function LocationsPage() {
             const city = row[6]?.trim() || "";
             const additionalDetails = row[7]?.trim() || "";
 
-            const formattedStreet =
-              streetType && primaryNum && secondaryNum
-                ? `${streetType} ${primaryNum} # ${secondaryNum}${complementaryNum ? `-${complementaryNum}` : ""}`
-                : "";
-
             locationData = {
               name: name,
               organizationId: user?.organizationId ?? "",
               materialCapacities: rowCapacities,
               address: {
-                country: "Colombia",
-                state: state,
+                streetType: streetType,
+                primaryNumber: primaryNum,
+                secondaryNumber: secondaryNum,
+                complementaryNumber: complementaryNum,
+                department: state,
                 city: city,
-                street: formattedStreet,
-                propertyNumber: `${secondaryNum}${complementaryNum ? `-${complementaryNum}` : ""}`,
-                additionalInfo: additionalDetails,
+                additionalDetails: additionalDetails || undefined,
               },
             };
           }
@@ -1204,32 +1199,13 @@ export default function LocationsPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Country <span className="text-red-400">*</span>
+                      Country
                     </label>
                     <input
-                      value={form.address.country}
-                      onChange={(e) => {
-                        updateAddressField("country", e.target.value);
-                        setFieldErrors((s) => ({
-                          ...s,
-                          "address.country": e.target.value.trim()
-                            ? undefined
-                            : "Country is required",
-                        }));
-                      }}
-                      onBlur={(e) => {
-                        if (!e.target.value.trim())
-                          setFieldErrors((s) => ({
-                            ...s,
-                            "address.country": "Country is required",
-                          }));
-                      }}
-                      placeholder="e.g. Colombia"
-                      className={`w-full h-11 px-3 bg-[#111111] border rounded-md text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FFD700] ${fieldErrors["address.country"] ? "border-red-500" : "border-[#262626]"}`}
+                      value="Colombia"
+                      disabled
+                      className="w-full h-11 px-3 bg-[#111111] border border-[#262626] rounded-md text-gray-500 cursor-not-allowed"
                     />
-                    {fieldErrors["address.country"] && (
-                      <p className="text-xs text-red-400 mt-1">{fieldErrors["address.country"]}</p>
-                    )}
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

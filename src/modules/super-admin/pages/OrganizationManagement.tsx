@@ -129,7 +129,7 @@ export default function OrganizationManagement() {
           status: org.status,
           plan: org.subscription.plan,
           seatCount: org.subscription.seatCount,
-          country: org.address?.country ?? "",
+          country: org.address?.department ?? "",
           city: org.address?.city ?? "",
           createdAt: org.createdAt,
         });
@@ -441,7 +441,7 @@ export default function OrganizationManagement() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-gray-300">
-                    {[org.address?.city, org.address?.country].filter(Boolean).join(", ") || "—"}
+                    {[org.address?.city, org.address?.department].filter(Boolean).join(", ") || "—"}
                   </td>
                   <td className="px-4 py-3 text-gray-400 whitespace-nowrap">
                     {new Date(org.createdAt).toLocaleDateString()}
