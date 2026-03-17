@@ -570,7 +570,14 @@ export default function Customers() {
   // Blacklist customer
   const handleBlacklist = async (customer: Customer) => {
     const fullName = `${customer.name.firstName} ${customer.name.firstSurname}`;
-    if (!confirm(`Block ${fullName}?\n\nThis will prevent the customer from being used in new rentals.`)) return;
+    const confirmed = await showConfirm({
+      title: `Block ${fullName}?`,
+      message: 'This will prevent the customer from being used in new rentals.',
+      confirmText: 'Block',
+      variant: 'danger',
+    });
+    
+    if (!confirmed) return;
 
     try {
       await blacklistCustomer(customer._id);
@@ -584,7 +591,14 @@ export default function Customers() {
   // Deactivate customer
   const handleDeactivate = async (customer: Customer) => {
     const fullName = `${customer.name.firstName} ${customer.name.firstSurname}`;
-    if (!confirm(`Deactivate ${fullName}?\n\nThis will temporarily deactivate the customer.`)) return;
+    const confirmed = await showConfirm({
+      title: `Deactivate ${fullName}?`,
+      message: 'This will temporarily deactivate the customer.',
+      confirmText: 'Deactivate',
+      variant: 'warning',
+    });
+    
+    if (!confirmed) return;
 
     try {
       await deactivateCustomer(customer._id);
