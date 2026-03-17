@@ -91,14 +91,6 @@ const calculateLocationCapacity = (location: WarehouseLocation): number => {
 };
 
 /**
- * Get capacity percentage for visual indicator
- */
-const getCapacityPercentage = (occupied: number, total: number): number => {
-  if (!total || total <= 0) return 0;
-  return Math.min(100, Math.round((occupied / total) * 100));
-};
-
-/**
  * Get status color classes for location status badges
  */
 const getStatusColor = (status: string): string => {
@@ -694,7 +686,8 @@ export default function LocationsPage() {
 
   const filteredLocations = locations.filter((loc) => {
     const name = loc.name ?? "";
-    const address = (loc.address as { streetType?: string; primaryNumber?: string; city?: string }) || {};
+    const address =
+      (loc.address as { streetType?: string; primaryNumber?: string; city?: string }) || {};
     const streetInfo = `${address.streetType ?? ""} ${address.primaryNumber ?? ""}`.trim();
     const city = address.city ?? "";
 
@@ -1003,7 +996,6 @@ export default function LocationsPage() {
           !error &&
           filteredLocations.map((location) => {
             const calculatedCapacity = calculateLocationCapacity(location);
-            const capacityPercent = getCapacityPercentage(location.occupied, calculatedCapacity);
             return (
               <div
                 key={location.id}
@@ -1014,15 +1006,17 @@ export default function LocationsPage() {
                   <span
                     className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${getStatusColor(location.status)} border backdrop-blur-sm`}
                   >
-                    <div className={`w-1.5 h-1.5 rounded-full ${
-                      location.status === "available" 
-                        ? "bg-green-400 animate-pulse" 
-                        : location.status === "full_capacity"
-                        ? "bg-red-400" 
-                        : location.status === "maintenance"
-                        ? "bg-yellow-400"
-                        : "bg-gray-400"
-                    }`} />
+                    <div
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        location.status === "available"
+                          ? "bg-green-400 animate-pulse"
+                          : location.status === "full_capacity"
+                            ? "bg-red-400"
+                            : location.status === "maintenance"
+                              ? "bg-yellow-400"
+                              : "bg-gray-400"
+                      }`}
+                    />
                     {location.status.replace("_", " ")}
                   </span>
                 </div>
@@ -1059,7 +1053,8 @@ export default function LocationsPage() {
                     </div>
                     <div className="text-right">
                       <p className="text-lg font-bold text-white">
-                        {location.occupied}<span className="text-gray-500">/{calculatedCapacity}</span>
+                        {location.occupied}
+                        <span className="text-gray-500">/{calculatedCapacity}</span>
                       </p>
                       <p className="text-[10px] text-gray-500 uppercase tracking-wider">
                         {calculatedCapacity - location.occupied} available
@@ -1186,7 +1181,14 @@ export default function LocationsPage() {
                     <select
                       value={form.status}
                       onChange={(e) => {
-                        updateForm("status", e.target.value as "available" | "full_capacity" | "maintenance" | "inactive");
+                        updateForm(
+                          "status",
+                          e.target.value as
+                            | "available"
+                            | "full_capacity"
+                            | "maintenance"
+                            | "inactive",
+                        );
                       }}
                       className="w-full h-11 px-3 bg-[#111111] border border-[#262626] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#FFD700]"
                     >
@@ -1198,9 +1200,7 @@ export default function LocationsPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Country
-                    </label>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Country</label>
                     <input
                       value="Colombia"
                       disabled
@@ -1497,16 +1497,19 @@ export default function LocationsPage() {
                       );
                       const hasError = !!fieldErrors[`capacity_${type._id}`];
 
-                      // Handle categoryId being either string or populated object/array 
+                      // Handle categoryId being either string or populated object/array
                       let categoryName = "General";
-                      const catId = type.categoryId as any;
+                      const catId = type.categoryId as unknown as
+                        | string
+                        | { name?: string; _id?: string }
+                        | Array<{ name?: string; _id?: string }>;
                       if (typeof catId === "string") {
-                        const category = categories.find((c)=> c._id === catId);
+                        const category = categories.find((c) => c._id === catId);
                         categoryName = category?.name || "General";
                       } else if (Array.isArray(catId) && catId.length > 0) {
-                        categoryName = catId[0]?.name || "General";
+                        categoryName = (catId[0] as { name?: string })?.name || "General";
                       } else if (catId && typeof catId === "object") {
-                        categoryName = catId?.name || "General";
+                        categoryName = (catId as { name?: string })?.name || "General";
                       }
                       const isEdited = capacity?.maxQuantity !== "";
 
@@ -1523,9 +1526,7 @@ export default function LocationsPage() {
                         >
                           <div className="flex-1">
                             <p className="text-sm font-medium text-white">{type.name}</p>
-                            <p className="text-xs text-gray-500">
-                              {categoryName}
-                            </p>
+                            <p className="text-xs text-gray-500">{categoryName}</p>
                           </div>
                           <div className="w-28 shrink-0">
                             <input
@@ -1676,7 +1677,14 @@ export default function LocationsPage() {
                     <select
                       value={form.status}
                       onChange={(e) => {
-                        updateForm("status", e.target.value as "available" | "full_capacity" | "maintenance" | "inactive");
+                        updateForm(
+                          "status",
+                          e.target.value as
+                            | "available"
+                            | "full_capacity"
+                            | "maintenance"
+                            | "inactive",
+                        );
                       }}
                       className="w-full h-11 px-3 bg-[#111111] border border-[#262626] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#FFD700]"
                     >
@@ -1689,30 +1697,12 @@ export default function LocationsPage() {
 
                   {/* Country */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Country <span className="text-red-400">*</span>
-                    </label>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Country</label>
                     <input
-                      value={form.address.country}
-                      onChange={(e) => {
-                        updateAddressField("country", e.target.value);
-                        setFieldErrors((s) => ({ ...s, "address.country": undefined }));
-                      }}
-                      onBlur={() => {
-                        if (!form.address.country.trim())
-                          setFieldErrors((s) => ({
-                            ...s,
-                            "address.country": "Country is required",
-                          }));
-                      }}
-                      placeholder="Colombia"
-                      className={`w-full h-11 px-3 bg-[#111111] border rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#FFD700] ${
-                        fieldErrors["address.country"] ? "border-red-500" : "border-[#262626]"
-                      }`}
+                      value="Colombia"
+                      disabled
+                      className="w-full h-11 px-3 bg-[#111111] border border-[#262626] rounded-md text-gray-500 cursor-not-allowed"
                     />
-                    {fieldErrors["address.country"] && (
-                      <p className="text-xs text-red-400 mt-1">{fieldErrors["address.country"]}</p>
-                    )}
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1961,16 +1951,19 @@ export default function LocationsPage() {
                       const hasError = !!fieldErrors[`capacity_${type._id}`];
                       const isEdited = capacity?.maxQuantity !== "";
 
-                      // Handle categoryId being either string or populated object/array  
+                      // Handle categoryId being either string or populated object/array
                       let categoryName = "General";
-                      const catId = type.categoryId as any;
+                      const catId = type.categoryId as unknown as
+                        | string
+                        | { name?: string; _id?: string }
+                        | Array<{ name?: string; _id?: string }>;
                       if (typeof catId === "string") {
                         const category = categories.find((c) => c._id === catId);
                         categoryName = category?.name || "General";
                       } else if (Array.isArray(catId) && catId.length > 0) {
-                        categoryName = catId[0]?.name || "General";
+                        categoryName = (catId[0] as { name?: string })?.name || "General";
                       } else if (catId && typeof catId === "object") {
-                        categoryName = catId?.name || "General";
+                        categoryName = (catId as { name?: string })?.name || "General";
                       }
 
                       return (
@@ -1986,9 +1979,7 @@ export default function LocationsPage() {
                         >
                           <div className="flex-1">
                             <p className="text-sm font-medium text-white">{type.name}</p>
-                            <p className="text-xs text-gray-500">
-                              {categoryName}
-                            </p>
+                            <p className="text-xs text-gray-500">{categoryName}</p>
                           </div>
                           <div className="w-28 shrink-0">
                             <input
@@ -2149,13 +2140,13 @@ export default function LocationsPage() {
                         <div>
                           <p className="text-xs text-gray-500 font-semibold mb-1">Country</p>
                           <p className="text-white text-sm bg-[#111] p-2 rounded-lg border border-[#2a2a2a] truncate">
-                            {previewing.address?.country || "N/A"}
+                            Colombia
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500 font-semibold mb-1">State</p>
+                          <p className="text-xs text-gray-500 font-semibold mb-1">Department</p>
                           <p className="text-white text-sm bg-[#111] p-2 rounded-lg border border-[#2a2a2a] truncate">
-                            {previewing.address?.state || "N/A"}
+                            {previewing.address?.department || "N/A"}
                           </p>
                         </div>
                         <div>
@@ -2168,12 +2159,11 @@ export default function LocationsPage() {
                       <div>
                         <p className="text-xs text-gray-500 font-semibold mb-1">Full Address</p>
                         <p className="text-white text-sm bg-[#111] p-3 rounded-lg border border-[#2a2a2a] break-words">
-                          {previewing.address?.street ||
-                            (previewing.address?.streetType &&
-                            previewing.address?.primaryNumber &&
-                            previewing.address?.secondaryNumber
-                              ? `${previewing.address.streetType} ${previewing.address.primaryNumber} #${previewing.address.secondaryNumber}${previewing.address.complementaryNumber ? `-${previewing.address.complementaryNumber}` : ""}`
-                              : "N/A")}
+                          {previewing.address?.streetType &&
+                          previewing.address?.primaryNumber &&
+                          previewing.address?.secondaryNumber
+                            ? `${previewing.address.streetType} ${previewing.address.primaryNumber} #${previewing.address.secondaryNumber}${previewing.address.complementaryNumber ? `-${previewing.address.complementaryNumber}` : ""}`
+                            : "N/A"}
                         </p>
                       </div>
                     </div>
@@ -2192,35 +2182,45 @@ export default function LocationsPage() {
                         {(() => {
                           const filtered = materialTypes.filter((mt) => {
                             // Get category ID from potentially populated field
-                            const catId = mt.categoryId as any;
+                            const catId = mt.categoryId as unknown as
+                              | string
+                              | { name?: string; _id?: string }
+                              | Array<{ name?: string; _id?: string }>;
                             let actualCategoryId = "";
                             if (typeof catId === "string") {
                               actualCategoryId = catId;
                             } else if (Array.isArray(catId) && catId.length > 0) {
-                              actualCategoryId = catId[0]?._id || "";
+                              actualCategoryId = (catId[0] as { _id?: string })?._id || "";
                             } else if (catId && typeof catId === "object") {
-                              actualCategoryId = catId?._id || "";
+                              actualCategoryId = (catId as { _id?: string })?._id || "";
                             }
 
                             // Filter by selected category
-                            if (previewSelectedCategory && actualCategoryId !== previewSelectedCategory) {
+                            if (
+                              previewSelectedCategory &&
+                              actualCategoryId !== previewSelectedCategory
+                            ) {
                               return false;
                             }
 
                             // Filter by search term
                             if (previewSearchTerm) {
-                              const matchesName = mt.name.toLowerCase().includes(previewSearchTerm.toLowerCase());
+                              const matchesName = mt.name
+                                .toLowerCase()
+                                .includes(previewSearchTerm.toLowerCase());
                               if (!matchesName) {
                                 let categoryName = "General";
                                 if (typeof catId === "string") {
                                   const category = categories.find((c) => c._id === catId);
                                   categoryName = category?.name || "General";
                                 } else if (Array.isArray(catId) && catId.length > 0) {
-                                  categoryName = catId[0]?.name || "General";
+                                  categoryName = (catId[0] as { name?: string })?.name || "General";
                                 } else if (catId && typeof catId === "object") {
-                                  categoryName = catId?.name || "General";
+                                  categoryName = (catId as { name?: string })?.name || "General";
                                 }
-                                return categoryName.toLowerCase().includes(previewSearchTerm.toLowerCase());
+                                return categoryName
+                                  .toLowerCase()
+                                  .includes(previewSearchTerm.toLowerCase());
                               }
                             }
 
@@ -2275,35 +2275,45 @@ export default function LocationsPage() {
                         {(() => {
                           const filteredMaterials = materialTypes.filter((mt) => {
                             // Get category ID from potentially populated field
-                            const catId = mt.categoryId as any;
+                            const catId = mt.categoryId as unknown as
+                              | string
+                              | { name?: string; _id?: string }
+                              | Array<{ name?: string; _id?: string }>;
                             let actualCategoryId = "";
                             if (typeof catId === "string") {
                               actualCategoryId = catId;
                             } else if (Array.isArray(catId) && catId.length > 0) {
-                              actualCategoryId = catId[0]?._id || "";
+                              actualCategoryId = (catId[0] as { _id?: string })?._id || "";
                             } else if (catId && typeof catId === "object") {
-                              actualCategoryId = catId?._id || "";
+                              actualCategoryId = (catId as { _id?: string })?._id || "";
                             }
 
                             // Filter by selected category
-                            if (previewSelectedCategory && actualCategoryId !== previewSelectedCategory) {
+                            if (
+                              previewSelectedCategory &&
+                              actualCategoryId !== previewSelectedCategory
+                            ) {
                               return false;
                             }
 
                             // Filter by search term
                             if (previewSearchTerm) {
-                              const matchesName = mt.name.toLowerCase().includes(previewSearchTerm.toLowerCase());
+                              const matchesName = mt.name
+                                .toLowerCase()
+                                .includes(previewSearchTerm.toLowerCase());
                               if (!matchesName) {
                                 let categoryName = "General";
                                 if (typeof catId === "string") {
                                   const category = categories.find((c) => c._id === catId);
                                   categoryName = category?.name || "General";
                                 } else if (Array.isArray(catId) && catId.length > 0) {
-                                  categoryName = catId[0]?.name || "General";
+                                  categoryName = (catId[0] as { name?: string })?.name || "General";
                                 } else if (catId && typeof catId === "object") {
-                                  categoryName = catId?.name || "General";
+                                  categoryName = (catId as { name?: string })?.name || "General";
                                 }
-                                return categoryName.toLowerCase().includes(previewSearchTerm.toLowerCase());
+                                return categoryName
+                                  .toLowerCase()
+                                  .includes(previewSearchTerm.toLowerCase());
                               }
                             }
 
@@ -2324,14 +2334,17 @@ export default function LocationsPage() {
 
                             // Handle categoryId being either string or populated object/array
                             let categoryName = "General";
-                            const catId = mt.categoryId as any;
+                            const catId = mt.categoryId as unknown as
+                              | string
+                              | { name?: string; _id?: string }
+                              | Array<{ name?: string; _id?: string }>;
                             if (typeof catId === "string") {
                               const category = categories.find((c) => c._id === catId);
                               categoryName = category?.name || "General";
                             } else if (Array.isArray(catId) && catId.length > 0) {
-                              categoryName = catId[0]?.name || "General";
+                              categoryName = (catId[0] as { name?: string })?.name || "General";
                             } else if (catId && typeof catId === "object") {
-                              categoryName = catId?.name || "General";
+                              categoryName = (catId as { name?: string })?.name || "General";
                             }
 
                             return (
@@ -2362,14 +2375,17 @@ export default function LocationsPage() {
                   {(() => {
                     const filteredMaterials = materialTypes.filter((mt) => {
                       // Get category ID from potentially populated field
-                      const catId = mt.categoryId as any;
+                      const catId = mt.categoryId as unknown as
+                        | string
+                        | { name?: string; _id?: string }
+                        | Array<{ name?: string; _id?: string }>;
                       let actualCategoryId = "";
                       if (typeof catId === "string") {
                         actualCategoryId = catId;
                       } else if (Array.isArray(catId) && catId.length > 0) {
-                        actualCategoryId = catId[0]?._id || "";
+                        actualCategoryId = (catId[0] as { _id?: string })?._id || "";
                       } else if (catId && typeof catId === "object") {
-                        actualCategoryId = catId?._id || "";
+                        actualCategoryId = (catId as { _id?: string })?._id || "";
                       }
 
                       // Filter by selected category
@@ -2379,18 +2395,22 @@ export default function LocationsPage() {
 
                       // Filter by search term
                       if (previewSearchTerm) {
-                        const matchesName = mt.name.toLowerCase().includes(previewSearchTerm.toLowerCase());
+                        const matchesName = mt.name
+                          .toLowerCase()
+                          .includes(previewSearchTerm.toLowerCase());
                         if (!matchesName) {
                           let categoryName = "General";
                           if (typeof catId === "string") {
                             const category = categories.find((c) => c._id === catId);
                             categoryName = category?.name || "General";
                           } else if (Array.isArray(catId) && catId.length > 0) {
-                            categoryName = catId[0]?.name || "General";
+                            categoryName = (catId[0] as { name?: string })?.name || "General";
                           } else if (catId && typeof catId === "object") {
-                            categoryName = catId?.name || "General";
+                            categoryName = (catId as { name?: string })?.name || "General";
                           }
-                          return categoryName.toLowerCase().includes(previewSearchTerm.toLowerCase());
+                          return categoryName
+                            .toLowerCase()
+                            .includes(previewSearchTerm.toLowerCase());
                         }
                       }
 

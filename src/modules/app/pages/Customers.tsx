@@ -80,21 +80,6 @@ type CustomerFormField =
   | "cityQuery"
   | "postalCode";
 
-/** Try to decompose a previously-composed street string. */
-function parseStreet(street: string) {
-  const re =
-    /^(Calle|Carrera|Avenida|Transversal|Diagonal|Circular)\s+(.+?)\s*#\s*(.+?)\s*-\s*(.+?)(?:\s*,\s*(.+))?$/i;
-  const m = street.match(re);
-  if (!m) return null;
-  return {
-    streetType: m[1],
-    mainNumber: m[2],
-    secondaryNumber: m[3],
-    complementaryNumber: m[4],
-    additionalDetails: m[5] ?? "",
-  };
-}
-
 export default function Customers() {
   const { showError, AlertModal } = useAlertModal();
   const { showConfirm, ConfirmModal } = useConfirmModal();
@@ -575,11 +560,11 @@ export default function Customers() {
     const fullName = `${customer.name.firstName} ${customer.name.firstSurname}`;
     const confirmed = await showConfirm({
       title: `Block ${fullName}?`,
-      message: 'This will prevent the customer from being used in new rentals.',
-      confirmText: 'Block',
-      variant: 'danger',
+      message: "This will prevent the customer from being used in new rentals.",
+      confirmText: "Block",
+      variant: "danger",
     });
-    
+
     if (!confirmed) return;
 
     try {
@@ -596,11 +581,11 @@ export default function Customers() {
     const fullName = `${customer.name.firstName} ${customer.name.firstSurname}`;
     const confirmed = await showConfirm({
       title: `Deactivate ${fullName}?`,
-      message: 'This will temporarily deactivate the customer.',
-      confirmText: 'Deactivate',
-      variant: 'warning',
+      message: "This will temporarily deactivate the customer.",
+      confirmText: "Deactivate",
+      variant: "warning",
     });
-    
+
     if (!confirmed) return;
 
     try {
@@ -617,11 +602,11 @@ export default function Customers() {
     const fullName = `${customer.name.firstName} ${customer.name.firstSurname}`;
     const confirmed = await showConfirm({
       title: `Activate ${fullName}?`,
-      message: 'This will restore the customer to active status.',
-      confirmText: 'Activate',
-      variant: 'info',
+      message: "This will restore the customer to active status.",
+      confirmText: "Activate",
+      variant: "info",
     });
-    
+
     if (!confirmed) return;
 
     try {
@@ -691,10 +676,10 @@ export default function Customers() {
   const openEditModal = (customer: Customer) => {
     // First, clean up previous state
     resetForm();
-    
+
     // Increment key to force modal re-mount
     setModalKey((prev) => prev + 1);
-    
+
     // Set customer and form data
     setSelectedCustomer(customer);
     // Strip +57 prefix from phone for the input
@@ -713,10 +698,10 @@ export default function Customers() {
       documentType: customer.documentType,
       documentNumber: customer.documentNumber,
     });
-    
+
     // Load address fields
     loadAddressFields(customer);
-    
+
     setTouched({});
     setFieldErrors({});
     setSubmitted(false);
@@ -847,68 +832,81 @@ export default function Customers() {
                 </tr>
               </thead>
               <tbody>
-                  {customers.map((customer) => (
-                    <tr key={customer._id} className="border-b border-[#333] hover:bg-[#1a1a1a] transition-all">
-                      <td className="px-6 py-4 font-medium text-white">
-                        {customer.name.firstName} {customer.name.firstSurname}
-                      </td>
-                      <td className="px-6 py-4 text-gray-400">{customer.email}</td>
-                      <td className="px-6 py-4 text-gray-400">{customer.phone}</td>
-                      <td className="px-6 py-4">
-                        <div className="text-xs">
-                          <div className="text-gray-500">{getDocumentTypeLabel(customer.documentType)}</div>
-                          <div>{customer.documentNumber}</div>
+                {customers.map((customer) => (
+                  <tr
+                    key={customer._id}
+                    className="border-b border-[#333] hover:bg-[#1a1a1a] transition-all"
+                  >
+                    <td className="px-6 py-4 font-medium text-white">
+                      {customer.name.firstName} {customer.name.firstSurname}
+                    </td>
+                    <td className="px-6 py-4 text-gray-400">{customer.email}</td>
+                    <td className="px-6 py-4 text-gray-400">{customer.phone}</td>
+                    <td className="px-6 py-4">
+                      <div className="text-xs">
+                        <div className="text-gray-500">
+                          {getDocumentTypeLabel(customer.documentType)}
                         </div>
-                      </td>
-                      <td className="px-6 py-4">{getStatusBadge(customer.status)}</td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => openEditModal(customer)}
-                            className="btn-icon text-blue-400 hover:text-blue-300"
-                            title="Edit customer"
-                            aria-label="Edit customer"
-                          >
-                            <Edit2 size={18} />
-                          </button>
+                        <div>{customer.documentNumber}</div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">{getStatusBadge(customer.status)}</td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => openEditModal(customer)}
+                          className="btn-icon text-blue-400 hover:text-blue-300"
+                          title="Edit customer"
+                          aria-label="Edit customer"
+                        >
+                          <Edit2 size={18} />
+                        </button>
 
-                          {/* Deactivate & Block — only for active customers */}
-                          {customer.status === "active" && (
-                            <>
-                              <button
-                                onClick={() => void handleDeactivate(customer)}
-                                className="btn-icon text-orange-500 hover:text-orange-400"
-                                title="Deactivate customer"
-                                aria-label="Deactivate customer"
-                              >
-                                <UserX size={18} />
-                              </button>
-                              <button
-                                onClick={() => void handleBlacklist(customer)}
-                                className="btn-icon text-amber-500 hover:text-amber-400"
-                                title="Block customer"
-                                aria-label="Block customer"
-                              >
-                                <Ban size={18} />
-                              </button>
-                            </>
-                          )}
-
-                          {/* Reactivate — for inactive or blacklisted customers */}
-                          {(customer.status === "inactive" || customer.status === "blacklisted") && (
+                        {/* Deactivate & Block — only for active customers */}
+                        {customer.status === "active" && (
+                          <>
                             <button
-                              onClick={() => void handleReactivate(customer)}
-                              className="btn-icon text-emerald-500 hover:text-emerald-400"
-                              title={customer.status === "blacklisted" ? "Unblock & reactivate" : "Reactivate customer"}
-                              aria-label={customer.status === "blacklisted" ? "Unblock & reactivate" : "Reactivate customer"}
+                              onClick={() => void handleDeactivate(customer)}
+                              className="btn-icon text-orange-500 hover:text-orange-400"
+                              title="Deactivate customer"
+                              aria-label="Deactivate customer"
                             >
-                              <RotateCcw size={18} />
+                              <UserX size={18} />
                             </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                            <button
+                              onClick={() => void handleBlacklist(customer)}
+                              className="btn-icon text-amber-500 hover:text-amber-400"
+                              title="Block customer"
+                              aria-label="Block customer"
+                            >
+                              <Ban size={18} />
+                            </button>
+                          </>
+                        )}
+
+                        {/* Reactivate — for inactive or blacklisted customers */}
+                        {(customer.status === "inactive" || customer.status === "blacklisted") && (
+                          <button
+                            onClick={() => void handleReactivate(customer)}
+                            className="btn-icon text-emerald-500 hover:text-emerald-400"
+                            title={
+                              customer.status === "blacklisted"
+                                ? "Unblock & reactivate"
+                                : "Reactivate customer"
+                            }
+                            aria-label={
+                              customer.status === "blacklisted"
+                                ? "Unblock & reactivate"
+                                : "Reactivate customer"
+                            }
+                          >
+                            <RotateCcw size={18} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </AdminTable>
 
@@ -1435,7 +1433,12 @@ export default function Customers() {
             <div className="modal-content">
               <div className="modal-header">
                 <h2 className="text-xl font-bold">Edit Customer</h2>
-                <button onClick={() => setShowEditModal(false)} className="btn-icon" title="Close edit customer modal" aria-label="Close edit customer modal">
+                <button
+                  onClick={() => setShowEditModal(false)}
+                  className="btn-icon"
+                  title="Close edit customer modal"
+                  aria-label="Close edit customer modal"
+                >
                   <X size={20} />
                 </button>
               </div>
@@ -1579,11 +1582,25 @@ export default function Customers() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="form-group">
                       <label className="form-label">Document Type</label>
-                      <input type="text" value={getDocumentTypeLabel(selectedCustomer.documentType)} className={inputClass(false)} title="Document Type" aria-label="Document Type" disabled />
+                      <input
+                        type="text"
+                        value={getDocumentTypeLabel(selectedCustomer.documentType)}
+                        className={inputClass(false)}
+                        title="Document Type"
+                        aria-label="Document Type"
+                        disabled
+                      />
                     </div>
                     <div className="form-group opacity-50">
                       <label className="form-label">Document Number</label>
-                      <input type="text" value={selectedCustomer.documentNumber} className={inputClass(false)} title="Document Number" aria-label="Document Number" disabled />
+                      <input
+                        type="text"
+                        value={selectedCustomer.documentNumber}
+                        className={inputClass(false)}
+                        title="Document Number"
+                        aria-label="Document Number"
+                        disabled
+                      />
                     </div>
                   </div>
 
@@ -1870,7 +1887,12 @@ export default function Customers() {
                   </div>
                 </div>
                 <div className="modal-footer">
-                  <button type="button" onClick={() => setShowEditModal(false)} className="btn-secondary" disabled={submitting}>
+                  <button
+                    type="button"
+                    onClick={() => setShowEditModal(false)}
+                    className="btn-secondary"
+                    disabled={submitting}
+                  >
                     Cancel
                   </button>
                   <Button type="submit" loading={submitting}>

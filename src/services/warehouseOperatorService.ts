@@ -125,7 +125,7 @@ export async function updateLocation(
 ): Promise<ApiSuccessResponse<WarehouseLocation>> {
   return patch<WarehouseLocation, Partial<LocationCreatePayload | WarehouseLocation>>(
     `/locations/${id}`,
-    data as any,
+    data,
   );
 }
 

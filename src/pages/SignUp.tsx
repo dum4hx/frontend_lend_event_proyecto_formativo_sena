@@ -911,10 +911,10 @@ export default function SignUp() {
       const response = await registerUser(payload);
 
       if (response.status === "success") {
-        navigate(
-          "/verify-email",
-          { state: { email: ownerEmail, returnTo: safeReturnTo }, replace: true },
-        );
+        navigate("/verify-email", {
+          state: { email: ownerEmail, returnTo: safeReturnTo },
+          replace: true,
+        });
       }
     } catch (err: unknown) {
       if (err instanceof ApiError) {
@@ -965,11 +965,12 @@ export default function SignUp() {
         } else if (
           err.details &&
           typeof err.details === "object" &&
-          Array.isArray((err.details as any).errors)
+          Array.isArray((err.details as { errors?: unknown[] }).errors)
         ) {
           // API returned structured validation errors array
-          const apiErrors: Array<{ field?: string; message?: string }> = (err.details as any)
-            .errors;
+          const apiErrors: Array<{ field?: string; message?: string }> = (
+            err.details as { errors: Array<{ field?: string; message?: string }> }
+          ).errors;
           const otherMessages: string[] = [];
           for (const e of apiErrors) {
             const fieldPath = e.field ?? "";
