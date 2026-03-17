@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Search, Plus, Edit2, Trash2, Ban, X, RotateCcw } from "lucide-react";
+import { Search, Plus, Edit2, Ban, X, RotateCcw, UserX } from "lucide-react";
 import useSWR from "swr";
 import { useDebounce } from "use-debounce";
 import { Button, IconButton } from "../../../components/ui";
@@ -9,8 +9,8 @@ import {
   createCustomer,
   updateCustomer,
   blacklistCustomer,
-  reactivateCustomer,
-  deleteCustomer,
+  activateCustomer,
+  deactivateCustomer,
 } from "../../../services/customerService";
 import type {
   Customer,
@@ -30,6 +30,7 @@ import {
   validateState,
 } from "../../../utils/validators";
 import { useAlertModal } from "../../../hooks/useAlertModal";
+import { useConfirmModal } from "../../../hooks/useConfirmModal";
 import { AdminPagination, AdminTable } from "../components";
 
 // --- Colombia API types & fetcher -------------------------------------------
@@ -96,6 +97,7 @@ function parseStreet(street: string) {
 
 export default function Customers() {
   const { showError, AlertModal } = useAlertModal();
+  const { showConfirm, ConfirmModal } = useConfirmModal();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [documentTypes, setDocumentTypes] = useState<DocumentTypeInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -109,6 +111,7 @@ export default function Customers() {
   // Modal states
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [modalKey, setModalKey] = useState(0); // Force re-mount on each open
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [formData, setFormData] = useState<CreateCustomerPayload>({
     name: {
@@ -447,6 +450,29 @@ export default function Customers() {
     void fetchDocTypes();
   }, []);
 
+  // Auto-select city when cities load and cityQuery matches
+  useEffect(() => {
+    if (stateCities && cityQuery && !selectedCity) {
+      const foundCity = stateCities.find((c) => isNormalizedEqual(c.name, cityQuery));
+      if (foundCity) {
+        setSelectedCity(foundCity);
+        if (foundCity.postalCode) {
+          setPostalCodeField(foundCity.postalCode);
+        }
+      }
+    }
+  }, [stateCities, cityQuery, selectedCity, isNormalizedEqual]);
+
+  // Auto-select department when departments load and stateQuery has value
+  useEffect(() => {
+    if (departments && stateQuery && !selectedState && showEditModal) {
+      const foundDept = departments.find((d) => isNormalizedEqual(d.name, stateQuery));
+      if (foundDept) {
+        setSelectedState(foundDept);
+      }
+    }
+  }, [departments, stateQuery, selectedState, showEditModal, isNormalizedEqual]);
+
   // Fetch customers
   const fetchCustomers = useCallback(async () => {
     try {
@@ -544,12 +570,7 @@ export default function Customers() {
   // Blacklist customer
   const handleBlacklist = async (customer: Customer) => {
     const fullName = `${customer.name.firstName} ${customer.name.firstSurname}`;
-    if (
-      !confirm(
-        `Block ${fullName}?\n\nThis will prevent the customer from being used in new rentals.`,
-      )
-    )
-      return;
+    if (!confirm(`Block ${fullName}?\n\nThis will prevent the customer from being used in new rentals.`)) return;
 
     try {
       await blacklistCustomer(customer._id);
@@ -560,31 +581,37 @@ export default function Customers() {
     }
   };
 
-  // Reactivate customer
-  const handleReactivate = async (customer: Customer) => {
+  // Deactivate customer
+  const handleDeactivate = async (customer: Customer) => {
     const fullName = `${customer.name.firstName} ${customer.name.firstSurname}`;
-    if (!confirm(`Reactivate ${fullName}?\n\nThis will restore the customer to active status.`))
-      return;
+    if (!confirm(`Deactivate ${fullName}?\n\nThis will temporarily deactivate the customer.`)) return;
 
     try {
-      await reactivateCustomer(customer._id);
+      await deactivateCustomer(customer._id);
       await fetchCustomers();
     } catch (err) {
-      const message = err instanceof ApiError ? err.message : "Failed to reactivate customer";
+      const message = err instanceof ApiError ? err.message : "Failed to deactivate customer";
       showError(message);
     }
   };
 
-  // Delete customer
-  const handleDelete = async (customer: Customer) => {
+  // Activate/Reactivate customer
+  const handleReactivate = async (customer: Customer) => {
     const fullName = `${customer.name.firstName} ${customer.name.firstSurname}`;
-    if (!confirm(`Delete ${fullName}?\n\nThis action cannot be undone.`)) return;
+    const confirmed = await showConfirm({
+      title: `Activate ${fullName}?`,
+      message: 'This will restore the customer to active status.',
+      confirmText: 'Activate',
+      variant: 'info',
+    });
+    
+    if (!confirmed) return;
 
     try {
-      await deleteCustomer(customer._id);
+      await activateCustomer(customer._id);
       await fetchCustomers();
     } catch (err) {
-      const message = err instanceof ApiError ? err.message : "Failed to delete customer";
+      const message = err instanceof ApiError ? err.message : "Failed to activate customer";
       showError(message);
     }
   };
@@ -636,16 +663,41 @@ export default function Customers() {
       setComplementaryNumber("");
       setAdditionalDetails("");
     }
-    setStateQuery(addr.state ?? "");
-    setCityQuery(addr.city ?? "");
-    setPostalCodeField(addr.postalCode ?? "");
-    // State/City objects will need re-selection from autocomplete
-    setSelectedState(null);
+    
+    // Set state/city text fields and try to auto-select if data is available
+    const savedState = addr.state ?? "";
+    const savedCity = addr.city ?? "";
+    const savedPostalCode = addr.postalCode ?? "";
+    
+    setStateQuery(savedState);
+    setCityQuery(savedCity);
+    setPostalCodeField(savedPostalCode);
+    
+    // Try to auto-select department if already loaded
+    if (departments && savedState) {
+      const foundDept = departments.find((d) => isNormalizedEqual(d.name, savedState));
+      if (foundDept) {
+        setSelectedState(foundDept);
+      } else {
+        setSelectedState(null);
+      }
+    } else {
+      setSelectedState(null);
+    }
+    
+    // City will be handled by useEffect once department is selected
     setSelectedCity(null);
   };
 
   // --- Open edit modal ------------------------------------------------------
   const openEditModal = (customer: Customer) => {
+    // First, clean up previous state
+    resetForm();
+    
+    // Increment key to force modal re-mount
+    setModalKey((prev) => prev + 1);
+    
+    // Set customer and form data
     setSelectedCustomer(customer);
     // Strip +57 prefix from phone for the input
     const phoneDigits = customer.phone.startsWith(COLOMBIA_PHONE_PREFIX)
@@ -663,7 +715,10 @@ export default function Customers() {
       documentType: customer.documentType,
       documentNumber: customer.documentNumber,
     });
+    
+    // Load address fields
     loadAddressFields(customer);
+    
     setTouched({});
     setFieldErrors({});
     setSubmitted(false);
@@ -699,6 +754,11 @@ export default function Customers() {
   const getDocumentTypeLabel = (type: DocumentType) => {
     const docType = documentTypes.find((dt) => dt.value === type);
     return docType?.displayName || type;
+  };
+
+  const closeEditModal = () => {
+    setShowEditModal(false);
+    resetForm();
   };
 
   return (
@@ -789,77 +849,58 @@ export default function Customers() {
                 </tr>
               </thead>
               <tbody>
-                {customers.map((customer) => (
-                  <tr
-                    key={customer._id}
-                    className="border-b border-[#333] hover:bg-[#1a1a1a] transition-all"
-                  >
-                    <td className="px-6 py-4 font-medium text-white">
-                      {customer.name.firstName} {customer.name.firstSurname}
-                    </td>
-                    <td className="px-6 py-4 text-gray-400">{customer.email}</td>
-                    <td className="px-6 py-4 text-gray-400">{customer.phone}</td>
-                    <td className="px-6 py-4">
-                      <div className="text-xs">
-                        <div className="text-gray-500">
-                          {getDocumentTypeLabel(customer.documentType)}
+                  {customers.map((customer) => (
+                    <tr key={customer._id} className="border-b border-[#333] hover:bg-[#1a1a1a] transition-all">
+                      <td className="px-6 py-4 font-medium text-white">
+                        {customer.name.firstName} {customer.name.firstSurname}
+                      </td>
+                      <td className="px-6 py-4 text-gray-400">{customer.email}</td>
+                      <td className="px-6 py-4 text-gray-400">{customer.phone}</td>
+                      <td className="px-6 py-4">
+                        <div className="text-xs">
+                          <div className="text-gray-500">{getDocumentTypeLabel(customer.documentType)}</div>
+                          <div>{customer.documentNumber}</div>
                         </div>
-                        <div>{customer.documentNumber}</div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">{getStatusBadge(customer.status)}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <IconButton
-                          onClick={() => openEditModal(customer)}
-                          icon={Edit2}
-                          intent="edit"
-                          ariaLabel="Edit customer"
-                          title="Edit customer"
-                        />
+                      </td>
+                      <td className="px-6 py-4">{getStatusBadge(customer.status)}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => openEditModal(customer)}
+                            className="btn-icon text-blue-400 hover:text-blue-300"
+                            title="Edit customer"
+                            aria-label="Edit customer"
+                          >
+                            <Edit2 size={18} />
+                          </button>
 
-                        {/* Block — only for active customers */}
-                        {customer.status === "active" && (
-                          <IconButton
-                            onClick={() => void handleBlacklist(customer)}
-                            icon={Ban}
-                            intent="neutral"
-                            ariaLabel="Block customer"
-                            className="text-amber-500 hover:text-amber-400"
-                            title="Block customer"
-                          />
-                        )}
+                          {/* Block — only for active customers */}
+                          {customer.status === "active" && (
+                            <button
+                              onClick={() => void handleBlacklist(customer)}
+                              className="btn-icon text-amber-500 hover:text-amber-400"
+                              title="Block customer"
+                              aria-label="Block customer"
+                            >
+                              <Ban size={18} />
+                            </button>
+                          )}
 
-                        {/* Reactivate — for inactive or blacklisted customers */}
-                        {(customer.status === "inactive" || customer.status === "blacklisted") && (
-                          <IconButton
-                            onClick={() => void handleReactivate(customer)}
-                            icon={RotateCcw}
-                            intent="approve"
-                            ariaLabel={
-                              customer.status === "blacklisted"
-                                ? "Unblock & reactivate"
-                                : "Reactivate customer"
-                            }
-                            title={
-                              customer.status === "blacklisted"
-                                ? "Unblock & reactivate"
-                                : "Reactivate customer"
-                            }
-                          />
-                        )}
-
-                        <IconButton
-                          onClick={() => void handleDelete(customer)}
-                          icon={Trash2}
-                          intent="delete"
-                          ariaLabel="Delete customer"
-                          title="Delete customer"
-                        />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                          {/* Reactivate — for inactive or blacklisted customers */}
+                          {(customer.status === "inactive" || customer.status === "blacklisted") && (
+                            <button
+                              onClick={() => void handleReactivate(customer)}
+                              className="btn-icon text-emerald-500 hover:text-emerald-400"
+                              title={customer.status === "blacklisted" ? "Unblock & reactivate" : "Reactivate customer"}
+                              aria-label={customer.status === "blacklisted" ? "Unblock & reactivate" : "Reactivate customer"}
+                            >
+                              <RotateCcw size={18} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
               </tbody>
             </AdminTable>
 
@@ -1377,21 +1418,18 @@ export default function Customers() {
         {/* Edit Modal */}
         {showEditModal && selectedCustomer && (
           <div
+            key={`edit-modal-${modalKey}`}
             className="modal-overlay"
             onClick={(e) => {
-              if (e.target === e.currentTarget) setShowEditModal(false);
+              if (e.target === e.currentTarget) closeEditModal();
             }}
           >
             <div className="modal-content">
               <div className="modal-header">
                 <h2 className="text-xl font-bold">Edit Customer</h2>
-                <IconButton
-                  icon={X}
-                  onClick={() => setShowEditModal(false)}
-                  title="Close edit customer modal"
-                  ariaLabel="Close edit customer modal"
-                  intent="secondary"
-                />
+                <button onClick={() => setShowEditModal(false)} className="btn-icon" title="Close edit customer modal" aria-label="Close edit customer modal">
+                  <X size={20} />
+                </button>
               </div>
               <form onSubmit={handleUpdate}>
                 <div className="modal-body space-y-4">
@@ -1529,29 +1567,15 @@ export default function Customers() {
                     </div>
                   </div>
 
-                  {/* Document (read-only in edit) */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 opacity-50">
+                  {/* Document */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="form-group">
                       <label className="form-label">Document Type</label>
-                      <input
-                        type="text"
-                        value={getDocumentTypeLabel(selectedCustomer.documentType)}
-                        className={inputClass(false)}
-                        title="Document Type"
-                        aria-label="Document Type"
-                        disabled
-                      />
+                      <input type="text" value={getDocumentTypeLabel(selectedCustomer.documentType)} className={inputClass(false)} title="Document Type" aria-label="Document Type" disabled />
                     </div>
-                    <div className="form-group">
+                    <div className="form-group opacity-50">
                       <label className="form-label">Document Number</label>
-                      <input
-                        type="text"
-                        value={selectedCustomer.documentNumber}
-                        className={inputClass(false)}
-                        title="Document Number"
-                        aria-label="Document Number"
-                        disabled
-                      />
+                      <input type="text" value={selectedCustomer.documentNumber} className={inputClass(false)} title="Document Number" aria-label="Document Number" disabled />
                     </div>
                   </div>
 
@@ -1838,14 +1862,9 @@ export default function Customers() {
                   </div>
                 </div>
                 <div className="modal-footer">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => setShowEditModal(false)}
-                    disabled={submitting}
-                  >
+                  <button type="button" onClick={() => setShowEditModal(false)} className="btn-secondary" disabled={submitting}>
                     Cancel
-                  </Button>
+                  </button>
                   <Button type="submit" loading={submitting}>
                     {submitting ? "Saving..." : "Save Changes"}
                   </Button>
@@ -1856,6 +1875,7 @@ export default function Customers() {
         )}
       </div>
       <AlertModal />
+      <ConfirmModal />
     </div>
   );
 }
