@@ -858,7 +858,34 @@ export default function Customers() {
                     <tr key={customer._id} className="border-b border-[#333] hover:bg-[#1a1a1a] transition-all">
                       <td className="px-6 py-4 font-medium text-white">
                         {customer.name.firstName} {customer.name.firstSurname}
-                      </td>Actions based on status */}
+                      </td>
+                      <td className="px-6 py-4 text-gray-300">{customer.email}</td>
+                      <td className="px-6 py-4 text-gray-300">{customer.phone}</td>
+                      <td className="px-6 py-4 text-gray-300">{customer.documentNumber}</td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                            customer.status === "active"
+                              ? "bg-emerald-500/20 text-emerald-400"
+                              : customer.status === "blacklisted"
+                              ? "bg-red-500/20 text-red-400"
+                              : "bg-gray-500/20 text-gray-400"
+                          }`}
+                        >
+                          {customer.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => openEditModal(customer)}
+                            className="btn-icon text-blue-500 hover:text-blue-400"
+                            title="Edit customer"
+                            aria-label="Edit customer"
+                          >
+                            <Pencil size={18} />
+                          </button>
+                          {/* Actions based on status */}
                           {customer.status === "active" ? (
                             <>
                               <button
@@ -878,18 +905,6 @@ export default function Customers() {
                                 <Ban size={18} />
                               </button>
                             </>
-                          ) : (
-                            <button
-                              onClick={() => void handleReactivate(customer)}
-                              className="btn-icon text-emerald-500 hover:text-emerald-400"
-                              title="Activate customer"
-                              aria-label="Activate customer"
-                            >
-                              <RotateCcw size={18} />
-                            </button>
-                          )}
-                              <Ban size={18} />
-                            </button>
                           ) : (
                             <button
                               onClick={() => void handleReactivate(customer)}
