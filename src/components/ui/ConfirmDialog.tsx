@@ -3,7 +3,8 @@
  * Provides clear visual hierarchy and accessibility features.
  */
 
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle } from "lucide-react";
+import Button, { type ButtonVariant } from "./Button";
 
 export interface ConfirmDialogProps {
   isOpen: boolean;
@@ -16,7 +17,7 @@ export interface ConfirmDialogProps {
   /** Optional secondary action rendered between Cancel and Confirm */
   secondaryText?: string;
   onSecondaryAction?: () => void;
-  variant?: 'danger' | 'warning' | 'info';
+  variant?: "danger" | "warning" | "info";
   isLoading?: boolean;
 }
 
@@ -26,27 +27,27 @@ export function ConfirmDialog({
   onConfirm,
   title,
   message,
-  confirmText = 'Confirm',
-  cancelText = 'Cancel',
+  confirmText = "Confirm",
+  cancelText = "Cancel",
   secondaryText,
   onSecondaryAction,
-  variant = 'danger',
+  variant = "danger",
   isLoading = false,
 }: ConfirmDialogProps) {
   if (!isOpen) return null;
 
-  const variantStyles = {
+  const variantStyles: Record<string, { icon: string; btnVariant: ButtonVariant }> = {
     danger: {
-      icon: 'text-red-400',
-      button: 'bg-red-500 hover:bg-red-600 text-white',
+      icon: "text-red-400",
+      btnVariant: "danger",
     },
     warning: {
-      icon: 'text-yellow-400',
-      button: 'bg-yellow-500 hover:bg-yellow-600 text-black',
+      icon: "text-yellow-400",
+      btnVariant: "primary",
     },
     info: {
-      icon: 'text-blue-400',
-      button: 'bg-blue-500 hover:bg-blue-600 text-white',
+      icon: "text-blue-400",
+      btnVariant: "primary",
     },
   };
 
@@ -58,7 +59,7 @@ export function ConfirmDialog({
       onClose();
     } catch (error) {
       // Error is handled by the caller
-      console.error('[ConfirmDialog] Confirmation failed:', error);
+      console.error("[ConfirmDialog] Confirmation failed:", error);
     }
   };
 
@@ -96,29 +97,24 @@ export function ConfirmDialog({
 
         {/* Actions */}
         <div className="px-6 py-4 border-t border-[#333] flex items-center justify-end gap-3">
-          <button
-            onClick={onClose}
-            disabled={isLoading}
-            className="px-5 py-2.5 rounded-lg border border-[#333] text-gray-300 hover:bg-[#1a1a1a] hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-          >
+          <Button variant="secondary" onClick={onClose} disabled={isLoading}>
             {cancelText}
-          </button>
+          </Button>
           {secondaryText && onSecondaryAction && (
-            <button
-              onClick={() => { onSecondaryAction(); onClose(); }}
+            <Button
+              variant="secondary"
+              onClick={() => {
+                onSecondaryAction();
+                onClose();
+              }}
               disabled={isLoading}
-              className="px-5 py-2.5 rounded-lg border border-[#444] text-gray-200 bg-[#1a1a1a] hover:bg-[#252525] hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
             >
               {secondaryText}
-            </button>
+            </Button>
           )}
-          <button
-            onClick={handleConfirm}
-            disabled={isLoading}
-            className={`px-5 py-2.5 rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed ${styles.button}`}
-          >
-            {isLoading ? 'Processing...' : confirmText}
-          </button>
+          <Button variant={styles.btnVariant} onClick={handleConfirm} loading={isLoading}>
+            {confirmText}
+          </Button>
         </div>
       </div>
     </div>

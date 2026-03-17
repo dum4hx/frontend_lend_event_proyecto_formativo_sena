@@ -3,7 +3,8 @@
  * Provides clear visual feedback and optional actions.
  */
 
-import type { LucideIcon } from 'lucide-react';
+import type { LucideIcon } from "lucide-react";
+import Button from "./Button";
 
 export interface EmptyStateProps {
   icon?: LucideIcon;
@@ -28,12 +29,9 @@ export function EmptyState({ icon: Icon, title, description, action }: EmptyStat
       <p className="text-gray-400 max-w-md mb-6">{description}</p>
 
       {action && (
-        <button
-          onClick={action.onClick}
-          className="px-6 py-2.5 bg-[#FFD700] text-black font-semibold rounded-lg hover:bg-yellow-300 transition"
-        >
+        <Button onClick={action.onClick} size="lg">
           {action.label}
-        </button>
+        </Button>
       )}
     </div>
   );
