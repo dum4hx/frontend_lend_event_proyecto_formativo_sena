@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { Search, Plus, Edit2, Trash2, Ban, X, RotateCcw } from "lucide-react";
 import useSWR from "swr";
 import { useDebounce } from "use-debounce";
+import { Button, IconButton } from "../../../components/ui";
 import {
   getCustomers,
   getDocumentTypes,
@@ -429,7 +430,11 @@ export default function Customers() {
       } catch (err) {
         console.error("Failed to fetch document types:", err);
         setDocumentTypes([
-          { value: "cc", displayName: "Colombian National ID", description: "Colombian National ID" },
+          {
+            value: "cc",
+            displayName: "Colombian National ID",
+            description: "Colombian National ID",
+          },
           { value: "ce", displayName: "Colombian Foreign ID", description: "Colombian Foreign ID" },
           { value: "passport", displayName: "Passport", description: "International Passport" },
           { value: "nit", displayName: "NIT", description: "Tax Identification Number" },
@@ -539,7 +544,12 @@ export default function Customers() {
   // Blacklist customer
   const handleBlacklist = async (customer: Customer) => {
     const fullName = `${customer.name.firstName} ${customer.name.firstSurname}`;
-    if (!confirm(`Block ${fullName}?\n\nThis will prevent the customer from being used in new rentals.`)) return;
+    if (
+      !confirm(
+        `Block ${fullName}?\n\nThis will prevent the customer from being used in new rentals.`,
+      )
+    )
+      return;
 
     try {
       await blacklistCustomer(customer._id);
@@ -553,7 +563,8 @@ export default function Customers() {
   // Reactivate customer
   const handleReactivate = async (customer: Customer) => {
     const fullName = `${customer.name.firstName} ${customer.name.firstSurname}`;
-    if (!confirm(`Reactivate ${fullName}?\n\nThis will restore the customer to active status.`)) return;
+    if (!confirm(`Reactivate ${fullName}?\n\nThis will restore the customer to active status.`))
+      return;
 
     try {
       await reactivateCustomer(customer._id);
@@ -711,7 +722,10 @@ export default function Customers() {
           <div className="flex flex-col md:flex-row gap-4">
             {/* Search */}
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={20} />
+              <Search
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
+                size={20}
+              />
               <input
                 type="text"
                 placeholder="Search by name, email, or document..."
@@ -742,10 +756,10 @@ export default function Customers() {
             </select>
 
             {/* Create Button */}
-            <button onClick={() => setShowCreateModal(true)} className="btn-primary flex items-center gap-2">
+            <Button onClick={() => setShowCreateModal(true)}>
               <Plus size={20} />
               New Customer
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -767,73 +781,85 @@ export default function Customers() {
                   <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">Name</th>
                   <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">Email</th>
                   <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">Phone</th>
-                  <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">Document</th>
+                  <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">
+                    Document
+                  </th>
                   <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">Status</th>
                   <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                  {customers.map((customer) => (
-                    <tr key={customer._id} className="border-b border-[#333] hover:bg-[#1a1a1a] transition-all">
-                      <td className="px-6 py-4 font-medium text-white">
-                        {customer.name.firstName} {customer.name.firstSurname}
-                      </td>
-                      <td className="px-6 py-4 text-gray-400">{customer.email}</td>
-                      <td className="px-6 py-4 text-gray-400">{customer.phone}</td>
-                      <td className="px-6 py-4">
-                        <div className="text-xs">
-                          <div className="text-gray-500">{getDocumentTypeLabel(customer.documentType)}</div>
-                          <div>{customer.documentNumber}</div>
+                {customers.map((customer) => (
+                  <tr
+                    key={customer._id}
+                    className="border-b border-[#333] hover:bg-[#1a1a1a] transition-all"
+                  >
+                    <td className="px-6 py-4 font-medium text-white">
+                      {customer.name.firstName} {customer.name.firstSurname}
+                    </td>
+                    <td className="px-6 py-4 text-gray-400">{customer.email}</td>
+                    <td className="px-6 py-4 text-gray-400">{customer.phone}</td>
+                    <td className="px-6 py-4">
+                      <div className="text-xs">
+                        <div className="text-gray-500">
+                          {getDocumentTypeLabel(customer.documentType)}
                         </div>
-                      </td>
-                      <td className="px-6 py-4">{getStatusBadge(customer.status)}</td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => openEditModal(customer)}
-                            className="btn-icon text-blue-400 hover:text-blue-300"
-                            title="Edit customer"
-                            aria-label="Edit customer"
-                          >
-                            <Edit2 size={18} />
-                          </button>
+                        <div>{customer.documentNumber}</div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">{getStatusBadge(customer.status)}</td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <IconButton
+                          onClick={() => openEditModal(customer)}
+                          icon={Edit2}
+                          intent="edit"
+                          ariaLabel="Edit customer"
+                          title="Edit customer"
+                        />
 
-                          {/* Block — only for active customers */}
-                          {customer.status === "active" && (
-                            <button
-                              onClick={() => void handleBlacklist(customer)}
-                              className="btn-icon text-amber-500 hover:text-amber-400"
-                              title="Block customer"
-                              aria-label="Block customer"
-                            >
-                              <Ban size={18} />
-                            </button>
-                          )}
+                        {/* Block — only for active customers */}
+                        {customer.status === "active" && (
+                          <IconButton
+                            onClick={() => void handleBlacklist(customer)}
+                            icon={Ban}
+                            intent="neutral"
+                            ariaLabel="Block customer"
+                            className="text-amber-500 hover:text-amber-400"
+                            title="Block customer"
+                          />
+                        )}
 
-                          {/* Reactivate — for inactive or blacklisted customers */}
-                          {(customer.status === "inactive" || customer.status === "blacklisted") && (
-                            <button
-                              onClick={() => void handleReactivate(customer)}
-                              className="btn-icon text-emerald-500 hover:text-emerald-400"
-                              title={customer.status === "blacklisted" ? "Unblock & reactivate" : "Reactivate customer"}
-                              aria-label={customer.status === "blacklisted" ? "Unblock & reactivate" : "Reactivate customer"}
-                            >
-                              <RotateCcw size={18} />
-                            </button>
-                          )}
+                        {/* Reactivate — for inactive or blacklisted customers */}
+                        {(customer.status === "inactive" || customer.status === "blacklisted") && (
+                          <IconButton
+                            onClick={() => void handleReactivate(customer)}
+                            icon={RotateCcw}
+                            intent="approve"
+                            ariaLabel={
+                              customer.status === "blacklisted"
+                                ? "Unblock & reactivate"
+                                : "Reactivate customer"
+                            }
+                            title={
+                              customer.status === "blacklisted"
+                                ? "Unblock & reactivate"
+                                : "Reactivate customer"
+                            }
+                          />
+                        )}
 
-                          <button
-                            onClick={() => void handleDelete(customer)}
-                            className="btn-icon text-red-500 hover:text-red-400"
-                            title="Delete customer"
-                            aria-label="Delete customer"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        <IconButton
+                          onClick={() => void handleDelete(customer)}
+                          icon={Trash2}
+                          intent="delete"
+                          ariaLabel="Delete customer"
+                          title="Delete customer"
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </AdminTable>
 
@@ -860,9 +886,13 @@ export default function Customers() {
             <div className="modal-content">
               <div className="modal-header">
                 <h2 className="text-xl font-bold">Create New Customer</h2>
-                <button onClick={() => setShowCreateModal(false)} className="btn-icon" title="Close create customer modal" aria-label="Close create customer modal">
-                  <X size={20} />
-                </button>
+                <IconButton
+                  onClick={() => setShowCreateModal(false)}
+                  icon={X}
+                  intent="close"
+                  ariaLabel="Close create customer modal"
+                  title="Close create customer modal"
+                />
               </div>
               <form onSubmit={handleCreate}>
                 <div className="modal-body space-y-4">
@@ -884,7 +914,9 @@ export default function Customers() {
                         className={inputClass(!!fieldErrors.firstName)}
                         disabled={submitting}
                       />
-                      {fieldErrors.firstName && <p className="text-red-400 text-xs mt-1">{fieldErrors.firstName}</p>}
+                      {fieldErrors.firstName && (
+                        <p className="text-red-400 text-xs mt-1">{fieldErrors.firstName}</p>
+                      )}
                     </div>
                     <div className="form-group">
                       <label className="form-label">Middle Name</label>
@@ -920,7 +952,9 @@ export default function Customers() {
                         className={inputClass(!!fieldErrors.firstSurname)}
                         disabled={submitting}
                       />
-                      {fieldErrors.firstSurname && <p className="text-red-400 text-xs mt-1">{fieldErrors.firstSurname}</p>}
+                      {fieldErrors.firstSurname && (
+                        <p className="text-red-400 text-xs mt-1">{fieldErrors.firstSurname}</p>
+                      )}
                     </div>
                     <div className="form-group">
                       <label className="form-label">Second Last Name</label>
@@ -931,7 +965,10 @@ export default function Customers() {
                         value={formData.name.secondSurname || ""}
                         onChange={(e) => {
                           const v = formatNameInput(e.target.value);
-                          setFormData({ ...formData, name: { ...formData.name, secondSurname: v } });
+                          setFormData({
+                            ...formData,
+                            name: { ...formData.name, secondSurname: v },
+                          });
                         }}
                         className={inputClass(false)}
                         disabled={submitting}
@@ -960,7 +997,9 @@ export default function Customers() {
                         className={inputClass(!!fieldErrors.email)}
                         disabled={submitting}
                       />
-                      {fieldErrors.email && <p className="text-red-400 text-xs mt-1">{fieldErrors.email}</p>}
+                      {fieldErrors.email && (
+                        <p className="text-red-400 text-xs mt-1">{fieldErrors.email}</p>
+                      )}
                     </div>
                     <div className="form-group">
                       <label className="form-label">Phone *</label>
@@ -985,7 +1024,9 @@ export default function Customers() {
                           />
                         </div>
                       </div>
-                      {fieldErrors.phone && <p className="text-red-400 text-xs mt-1">{fieldErrors.phone}</p>}
+                      {fieldErrors.phone && (
+                        <p className="text-red-400 text-xs mt-1">{fieldErrors.phone}</p>
+                      )}
                     </div>
                   </div>
 
@@ -997,7 +1038,9 @@ export default function Customers() {
                         title="Document Type"
                         aria-label="Document Type"
                         value={formData.documentType}
-                        onChange={(e) => setFormData({ ...formData, documentType: e.target.value as DocumentType })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, documentType: e.target.value as DocumentType })
+                        }
                         className={inputClass(false)}
                         disabled={submitting}
                       >
@@ -1025,12 +1068,16 @@ export default function Customers() {
                         className={inputClass(!!fieldErrors.documentNumber)}
                         disabled={submitting}
                       />
-                      {fieldErrors.documentNumber && <p className="text-red-400 text-xs mt-1">{fieldErrors.documentNumber}</p>}
+                      {fieldErrors.documentNumber && (
+                        <p className="text-red-400 text-xs mt-1">{fieldErrors.documentNumber}</p>
+                      )}
                     </div>
                   </div>
 
                   {/* Address */}
-                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest pt-2">Address</h3>
+                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest pt-2">
+                    Address
+                  </h3>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="form-group md:col-span-2">
@@ -1046,12 +1093,18 @@ export default function Customers() {
                         className={inputClass(!!fieldErrors.streetType)}
                         disabled={submitting}
                       >
-                        <option disabled value="">Select street type</option>
+                        <option disabled value="">
+                          Select street type
+                        </option>
                         {COLOMBIA_STREET_TYPES.map((type) => (
-                          <option key={type} value={type}>{type}</option>
+                          <option key={type} value={type}>
+                            {type}
+                          </option>
                         ))}
                       </select>
-                      {fieldErrors.streetType && <p className="text-red-400 text-xs mt-1">{fieldErrors.streetType}</p>}
+                      {fieldErrors.streetType && (
+                        <p className="text-red-400 text-xs mt-1">{fieldErrors.streetType}</p>
+                      )}
                     </div>
 
                     <div className="form-group">
@@ -1070,7 +1123,9 @@ export default function Customers() {
                         className={inputClass(!!fieldErrors.mainNumber)}
                         disabled={submitting}
                       />
-                      {fieldErrors.mainNumber && <p className="text-red-400 text-xs mt-1">{fieldErrors.mainNumber}</p>}
+                      {fieldErrors.mainNumber && (
+                        <p className="text-red-400 text-xs mt-1">{fieldErrors.mainNumber}</p>
+                      )}
                     </div>
 
                     <div className="form-group">
@@ -1089,7 +1144,9 @@ export default function Customers() {
                         className={inputClass(!!fieldErrors.secondaryNumber)}
                         disabled={submitting}
                       />
-                      {fieldErrors.secondaryNumber && <p className="text-red-400 text-xs mt-1">{fieldErrors.secondaryNumber}</p>}
+                      {fieldErrors.secondaryNumber && (
+                        <p className="text-red-400 text-xs mt-1">{fieldErrors.secondaryNumber}</p>
+                      )}
                     </div>
 
                     <div className="form-group">
@@ -1108,7 +1165,11 @@ export default function Customers() {
                         className={inputClass(!!fieldErrors.complementaryNumber)}
                         disabled={submitting}
                       />
-                      {fieldErrors.complementaryNumber && <p className="text-red-400 text-xs mt-1">{fieldErrors.complementaryNumber}</p>}
+                      {fieldErrors.complementaryNumber && (
+                        <p className="text-red-400 text-xs mt-1">
+                          {fieldErrors.complementaryNumber}
+                        </p>
+                      )}
                     </div>
 
                     <div className="form-group relative">
@@ -1135,7 +1196,8 @@ export default function Customers() {
                           validateFieldOnBlur("stateQuery");
                         }}
                         onFocus={() => {
-                          if (filteredDepartments.length && !selectedState) setShowStateSuggestions(true);
+                          if (filteredDepartments.length && !selectedState)
+                            setShowStateSuggestions(true);
                         }}
                         className={inputClass(!!fieldErrors.stateQuery)}
                         disabled={submitting}
@@ -1168,7 +1230,9 @@ export default function Customers() {
                           )}
                         </div>
                       )}
-                      {fieldErrors.stateQuery && <p className="text-red-400 text-xs mt-1">{fieldErrors.stateQuery}</p>}
+                      {fieldErrors.stateQuery && (
+                        <p className="text-red-400 text-xs mt-1">{fieldErrors.stateQuery}</p>
+                      )}
                     </div>
 
                     <div className="form-group relative">
@@ -1224,11 +1288,15 @@ export default function Customers() {
                           )}
                         </div>
                       )}
-                      {fieldErrors.cityQuery && <p className="text-red-400 text-xs mt-1">{fieldErrors.cityQuery}</p>}
+                      {fieldErrors.cityQuery && (
+                        <p className="text-red-400 text-xs mt-1">{fieldErrors.cityQuery}</p>
+                      )}
                     </div>
 
                     <div className="form-group md:col-span-2">
-                      <label className="form-label">Additional Details <span className="text-gray-600">(Optional)</span></label>
+                      <label className="form-label">
+                        Additional Details <span className="text-gray-600">(Optional)</span>
+                      </label>
                       <input
                         type="text"
                         placeholder="Centro Empresarial, Oficina 602"
@@ -1241,7 +1309,9 @@ export default function Customers() {
                         className={inputClass(!!fieldErrors.additionalDetails)}
                         disabled={submitting}
                       />
-                      {fieldErrors.additionalDetails && <p className="text-red-400 text-xs mt-1">{fieldErrors.additionalDetails}</p>}
+                      {fieldErrors.additionalDetails && (
+                        <p className="text-red-400 text-xs mt-1">{fieldErrors.additionalDetails}</p>
+                      )}
                     </div>
 
                     <div className="form-group">
@@ -1268,7 +1338,9 @@ export default function Customers() {
                         }}
                         className={inputClass(!!fieldErrors.postalCode)}
                       />
-                      {fieldErrors.postalCode && <p className="text-red-400 text-xs mt-1">{fieldErrors.postalCode}</p>}
+                      {fieldErrors.postalCode && (
+                        <p className="text-red-400 text-xs mt-1">{fieldErrors.postalCode}</p>
+                      )}
                     </div>
 
                     <div className="form-group">
@@ -1285,12 +1357,17 @@ export default function Customers() {
                   </div>
                 </div>
                 <div className="modal-footer">
-                  <button type="button" onClick={() => setShowCreateModal(false)} className="btn-secondary" disabled={submitting}>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setShowCreateModal(false)}
+                    disabled={submitting}
+                  >
                     Cancel
-                  </button>
-                  <button type="submit" className="btn-primary" disabled={submitting}>
+                  </Button>
+                  <Button type="submit" loading={submitting}>
                     {submitting ? "Creating..." : "Create Customer"}
-                  </button>
+                  </Button>
                 </div>
               </form>
             </div>
@@ -1308,9 +1385,13 @@ export default function Customers() {
             <div className="modal-content">
               <div className="modal-header">
                 <h2 className="text-xl font-bold">Edit Customer</h2>
-                <button onClick={() => setShowEditModal(false)} className="btn-icon" title="Close edit customer modal" aria-label="Close edit customer modal">
-                  <X size={20} />
-                </button>
+                <IconButton
+                  icon={X}
+                  onClick={() => setShowEditModal(false)}
+                  title="Close edit customer modal"
+                  ariaLabel="Close edit customer modal"
+                  intent="secondary"
+                />
               </div>
               <form onSubmit={handleUpdate}>
                 <div className="modal-body space-y-4">
@@ -1332,7 +1413,9 @@ export default function Customers() {
                         className={inputClass(!!fieldErrors.firstName)}
                         disabled={submitting}
                       />
-                      {fieldErrors.firstName && <p className="text-red-400 text-xs mt-1">{fieldErrors.firstName}</p>}
+                      {fieldErrors.firstName && (
+                        <p className="text-red-400 text-xs mt-1">{fieldErrors.firstName}</p>
+                      )}
                     </div>
                     <div className="form-group">
                       <label className="form-label">Middle Name</label>
@@ -1368,7 +1451,9 @@ export default function Customers() {
                         className={inputClass(!!fieldErrors.firstSurname)}
                         disabled={submitting}
                       />
-                      {fieldErrors.firstSurname && <p className="text-red-400 text-xs mt-1">{fieldErrors.firstSurname}</p>}
+                      {fieldErrors.firstSurname && (
+                        <p className="text-red-400 text-xs mt-1">{fieldErrors.firstSurname}</p>
+                      )}
                     </div>
                     <div className="form-group">
                       <label className="form-label">Second Last Name</label>
@@ -1379,7 +1464,10 @@ export default function Customers() {
                         value={formData.name.secondSurname || ""}
                         onChange={(e) => {
                           const v = formatNameInput(e.target.value);
-                          setFormData({ ...formData, name: { ...formData.name, secondSurname: v } });
+                          setFormData({
+                            ...formData,
+                            name: { ...formData.name, secondSurname: v },
+                          });
                         }}
                         className={inputClass(false)}
                         disabled={submitting}
@@ -1408,7 +1496,9 @@ export default function Customers() {
                         className={inputClass(!!fieldErrors.email)}
                         disabled={submitting}
                       />
-                      {fieldErrors.email && <p className="text-red-400 text-xs mt-1">{fieldErrors.email}</p>}
+                      {fieldErrors.email && (
+                        <p className="text-red-400 text-xs mt-1">{fieldErrors.email}</p>
+                      )}
                     </div>
                     <div className="form-group">
                       <label className="form-label">Phone *</label>
@@ -1433,7 +1523,9 @@ export default function Customers() {
                           />
                         </div>
                       </div>
-                      {fieldErrors.phone && <p className="text-red-400 text-xs mt-1">{fieldErrors.phone}</p>}
+                      {fieldErrors.phone && (
+                        <p className="text-red-400 text-xs mt-1">{fieldErrors.phone}</p>
+                      )}
                     </div>
                   </div>
 
@@ -1441,16 +1533,32 @@ export default function Customers() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 opacity-50">
                     <div className="form-group">
                       <label className="form-label">Document Type</label>
-                      <input type="text" value={getDocumentTypeLabel(selectedCustomer.documentType)} className={inputClass(false)} title="Document Type" aria-label="Document Type" disabled />
+                      <input
+                        type="text"
+                        value={getDocumentTypeLabel(selectedCustomer.documentType)}
+                        className={inputClass(false)}
+                        title="Document Type"
+                        aria-label="Document Type"
+                        disabled
+                      />
                     </div>
                     <div className="form-group">
                       <label className="form-label">Document Number</label>
-                      <input type="text" value={selectedCustomer.documentNumber} className={inputClass(false)} title="Document Number" aria-label="Document Number" disabled />
+                      <input
+                        type="text"
+                        value={selectedCustomer.documentNumber}
+                        className={inputClass(false)}
+                        title="Document Number"
+                        aria-label="Document Number"
+                        disabled
+                      />
                     </div>
                   </div>
 
                   {/* Address */}
-                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest pt-2">Address</h3>
+                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest pt-2">
+                    Address
+                  </h3>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="form-group md:col-span-2">
@@ -1466,12 +1574,18 @@ export default function Customers() {
                         className={inputClass(!!fieldErrors.streetType)}
                         disabled={submitting}
                       >
-                        <option disabled value="">Select street type</option>
+                        <option disabled value="">
+                          Select street type
+                        </option>
                         {COLOMBIA_STREET_TYPES.map((type) => (
-                          <option key={type} value={type}>{type}</option>
+                          <option key={type} value={type}>
+                            {type}
+                          </option>
                         ))}
                       </select>
-                      {fieldErrors.streetType && <p className="text-red-400 text-xs mt-1">{fieldErrors.streetType}</p>}
+                      {fieldErrors.streetType && (
+                        <p className="text-red-400 text-xs mt-1">{fieldErrors.streetType}</p>
+                      )}
                     </div>
 
                     <div className="form-group">
@@ -1490,7 +1604,9 @@ export default function Customers() {
                         className={inputClass(!!fieldErrors.mainNumber)}
                         disabled={submitting}
                       />
-                      {fieldErrors.mainNumber && <p className="text-red-400 text-xs mt-1">{fieldErrors.mainNumber}</p>}
+                      {fieldErrors.mainNumber && (
+                        <p className="text-red-400 text-xs mt-1">{fieldErrors.mainNumber}</p>
+                      )}
                     </div>
 
                     <div className="form-group">
@@ -1509,7 +1625,9 @@ export default function Customers() {
                         className={inputClass(!!fieldErrors.secondaryNumber)}
                         disabled={submitting}
                       />
-                      {fieldErrors.secondaryNumber && <p className="text-red-400 text-xs mt-1">{fieldErrors.secondaryNumber}</p>}
+                      {fieldErrors.secondaryNumber && (
+                        <p className="text-red-400 text-xs mt-1">{fieldErrors.secondaryNumber}</p>
+                      )}
                     </div>
 
                     <div className="form-group">
@@ -1528,7 +1646,11 @@ export default function Customers() {
                         className={inputClass(!!fieldErrors.complementaryNumber)}
                         disabled={submitting}
                       />
-                      {fieldErrors.complementaryNumber && <p className="text-red-400 text-xs mt-1">{fieldErrors.complementaryNumber}</p>}
+                      {fieldErrors.complementaryNumber && (
+                        <p className="text-red-400 text-xs mt-1">
+                          {fieldErrors.complementaryNumber}
+                        </p>
+                      )}
                     </div>
 
                     <div className="form-group relative">
@@ -1555,7 +1677,8 @@ export default function Customers() {
                           validateFieldOnBlur("stateQuery");
                         }}
                         onFocus={() => {
-                          if (filteredDepartments.length && !selectedState) setShowStateSuggestions(true);
+                          if (filteredDepartments.length && !selectedState)
+                            setShowStateSuggestions(true);
                         }}
                         className={inputClass(!!fieldErrors.stateQuery)}
                         disabled={submitting}
@@ -1588,7 +1711,9 @@ export default function Customers() {
                           )}
                         </div>
                       )}
-                      {fieldErrors.stateQuery && <p className="text-red-400 text-xs mt-1">{fieldErrors.stateQuery}</p>}
+                      {fieldErrors.stateQuery && (
+                        <p className="text-red-400 text-xs mt-1">{fieldErrors.stateQuery}</p>
+                      )}
                     </div>
 
                     <div className="form-group relative">
@@ -1644,11 +1769,15 @@ export default function Customers() {
                           )}
                         </div>
                       )}
-                      {fieldErrors.cityQuery && <p className="text-red-400 text-xs mt-1">{fieldErrors.cityQuery}</p>}
+                      {fieldErrors.cityQuery && (
+                        <p className="text-red-400 text-xs mt-1">{fieldErrors.cityQuery}</p>
+                      )}
                     </div>
 
                     <div className="form-group md:col-span-2">
-                      <label className="form-label">Additional Details <span className="text-gray-600">(Optional)</span></label>
+                      <label className="form-label">
+                        Additional Details <span className="text-gray-600">(Optional)</span>
+                      </label>
                       <input
                         type="text"
                         placeholder="Centro Empresarial, Oficina 602"
@@ -1661,7 +1790,9 @@ export default function Customers() {
                         className={inputClass(!!fieldErrors.additionalDetails)}
                         disabled={submitting}
                       />
-                      {fieldErrors.additionalDetails && <p className="text-red-400 text-xs mt-1">{fieldErrors.additionalDetails}</p>}
+                      {fieldErrors.additionalDetails && (
+                        <p className="text-red-400 text-xs mt-1">{fieldErrors.additionalDetails}</p>
+                      )}
                     </div>
 
                     <div className="form-group">
@@ -1688,7 +1819,9 @@ export default function Customers() {
                         }}
                         className={inputClass(!!fieldErrors.postalCode)}
                       />
-                      {fieldErrors.postalCode && <p className="text-red-400 text-xs mt-1">{fieldErrors.postalCode}</p>}
+                      {fieldErrors.postalCode && (
+                        <p className="text-red-400 text-xs mt-1">{fieldErrors.postalCode}</p>
+                      )}
                     </div>
 
                     <div className="form-group">
@@ -1705,12 +1838,17 @@ export default function Customers() {
                   </div>
                 </div>
                 <div className="modal-footer">
-                  <button type="button" onClick={() => setShowEditModal(false)} className="btn-secondary" disabled={submitting}>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setShowEditModal(false)}
+                    disabled={submitting}
+                  >
                     Cancel
-                  </button>
-                  <button type="submit" className="btn-primary" disabled={submitting}>
+                  </Button>
+                  <Button type="submit" loading={submitting}>
                     {submitting ? "Saving..." : "Save Changes"}
-                  </button>
+                  </Button>
                 </div>
               </form>
             </div>

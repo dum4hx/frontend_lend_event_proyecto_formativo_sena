@@ -12,6 +12,7 @@ import {
   Loader2,
   Trash2,
 } from "lucide-react";
+import { Button, IconButton } from "../../../components/ui";
 import type {
   Customer,
   CreateLoanRequestPayload,
@@ -228,7 +229,10 @@ function extractMaterialTypeIdFromPackageEntry(entry: PackageMaterialEntry): str
   return undefined;
 }
 
-function getWorkflowFromRequestAndLoan(request: LoanRequest, loan?: Loan): {
+function getWorkflowFromRequestAndLoan(
+  request: LoanRequest,
+  loan?: Loan,
+): {
   status: WorkflowStatus;
   label: string;
 } {
@@ -335,9 +339,7 @@ function buildOrderViewModel(
     const relatedLoan = findRelatedLoan(request._id, loans);
     const workflow = getWorkflowFromRequestAndLoan(request, relatedLoan);
     const customerId = extractCustomerIdFromRequest(request);
-    const customer = customerId
-      ? customers.find((entry) => entry._id === customerId)
-      : undefined;
+    const customer = customerId ? customers.find((entry) => entry._id === customerId) : undefined;
 
     return {
       request,
@@ -519,8 +521,7 @@ export default function Orders() {
         instancesRes,
         packagesRes,
         materialTypesRes,
-      ] =
-        await Promise.allSettled([
+      ] = await Promise.allSettled([
         getRequests({
           page: requestsPage,
           limit: requestsPageSize,
@@ -549,7 +550,10 @@ export default function Orders() {
       } else {
         // Fallback: some environments reject unpaginated list requests.
         try {
-          const requestsFallbackRes = await getRequests({ page: requestsPage, limit: requestsPageSize });
+          const requestsFallbackRes = await getRequests({
+            page: requestsPage,
+            limit: requestsPageSize,
+          });
           setRequests(requestsFallbackRes.data.requests ?? []);
           setRequestsTotalPages(Math.max(1, requestsFallbackRes.data.totalPages ?? 1));
           setRequestsTotal(requestsFallbackRes.data.total ?? 0);
@@ -599,20 +603,46 @@ export default function Orders() {
       }
 
       const failures: Array<{ source: string; reason: unknown }> = [];
-      if (requestsFailed) failures.push({ source: "orders", reason: requestsRes.status === "rejected" ? requestsRes.reason : null });
-      if (loansFailed) failures.push({ source: "loans", reason: loansRes.status === "rejected" ? loansRes.reason : null });
-      if (customersFailed) failures.push({ source: "customers", reason: customersRes.status === "rejected" ? customersRes.reason : null });
-      if (categoriesFailed) failures.push({ source: "categories", reason: categoriesRes.status === "rejected" ? categoriesRes.reason : null });
-      if (instancesFailed) failures.push({ source: "inventory", reason: instancesRes.status === "rejected" ? instancesRes.reason : null });
-      if (packagesFailed) failures.push({ source: "packages", reason: packagesRes.status === "rejected" ? packagesRes.reason : null });
-      if (materialTypesFailed) failures.push({ source: "material types", reason: materialTypesRes.status === "rejected" ? materialTypesRes.reason : null });
+      if (requestsFailed)
+        failures.push({
+          source: "orders",
+          reason: requestsRes.status === "rejected" ? requestsRes.reason : null,
+        });
+      if (loansFailed)
+        failures.push({
+          source: "loans",
+          reason: loansRes.status === "rejected" ? loansRes.reason : null,
+        });
+      if (customersFailed)
+        failures.push({
+          source: "customers",
+          reason: customersRes.status === "rejected" ? customersRes.reason : null,
+        });
+      if (categoriesFailed)
+        failures.push({
+          source: "categories",
+          reason: categoriesRes.status === "rejected" ? categoriesRes.reason : null,
+        });
+      if (instancesFailed)
+        failures.push({
+          source: "inventory",
+          reason: instancesRes.status === "rejected" ? instancesRes.reason : null,
+        });
+      if (packagesFailed)
+        failures.push({
+          source: "packages",
+          reason: packagesRes.status === "rejected" ? packagesRes.reason : null,
+        });
+      if (materialTypesFailed)
+        failures.push({
+          source: "material types",
+          reason: materialTypesRes.status === "rejected" ? materialTypesRes.reason : null,
+        });
 
       if (failures.length > 0) {
         const firstFailure = failures[0];
         const reasonMessage =
-          firstFailure.reason instanceof Error
-            ? firstFailure.reason.message
-            : "Request failed";
+          firstFailure.reason instanceof Error ? firstFailure.reason.message : "Request failed";
         setLoadWarning(
           `Some data could not be loaded: ${failures.map((entry) => entry.source).join(", ")}. ${reasonMessage}`,
         );
@@ -669,8 +699,12 @@ export default function Orders() {
       const quantity = Number(item.quantity);
       const normalizedQuantity = Number.isFinite(quantity) && quantity > 0 ? quantity : 1;
 
-      const selectedMaterial = materialTypes.find((material) => material._id === item.materialTypeId);
-      const selectedCategory = materialCategories.find((category) => category._id === item.categoryId);
+      const selectedMaterial = materialTypes.find(
+        (material) => material._id === item.materialTypeId,
+      );
+      const selectedCategory = materialCategories.find(
+        (category) => category._id === item.categoryId,
+      );
 
       details.set(item.localId, {
         name: selectedMaterial?.name,
@@ -744,8 +778,7 @@ export default function Orders() {
       })
       .sort((a, b) => {
         const scoreDelta =
-          getMaterialSearchScore(b, normalizedQuery) -
-          getMaterialSearchScore(a, normalizedQuery);
+          getMaterialSearchScore(b, normalizedQuery) - getMaterialSearchScore(a, normalizedQuery);
         if (scoreDelta !== 0) return scoreDelta;
 
         const aAvailability = materialAvailabilityByType.get(a._id);
@@ -819,8 +852,7 @@ export default function Orders() {
         })
         .sort((a, b) => {
           const scoreDelta =
-            getMaterialSearchScore(b, normalizedQuery) -
-            getMaterialSearchScore(a, normalizedQuery);
+            getMaterialSearchScore(b, normalizedQuery) - getMaterialSearchScore(a, normalizedQuery);
           if (scoreDelta !== 0) return scoreDelta;
 
           const aAvailability = materialAvailabilityByType.get(a._id);
@@ -849,18 +881,22 @@ export default function Orders() {
       const total = availability?.total ?? 0;
 
       if (available <= 0) return { text: "Out of stock", tone: "danger" };
-      if (available <= LOW_STOCK_THRESHOLD) return { text: `Low stock (${available}/${total})`, tone: "warning" };
+      if (available <= LOW_STOCK_THRESHOLD)
+        return { text: `Low stock (${available}/${total})`, tone: "warning" };
       return { text: `Available (${available}/${total})`, tone: "success" };
     },
     [inventoryDataAvailable, materialAvailabilityByType],
   );
 
-  const getAvailabilityBadgeClass = useCallback((tone: "neutral" | "success" | "warning" | "danger") => {
-    if (tone === "success") return "bg-green-500/15 text-green-300 border border-green-500/30";
-    if (tone === "warning") return "bg-yellow-500/15 text-yellow-300 border border-yellow-500/30";
-    if (tone === "danger") return "bg-red-500/15 text-red-300 border border-red-500/30";
-    return "bg-zinc-500/15 text-zinc-300 border border-zinc-500/30";
-  }, []);
+  const getAvailabilityBadgeClass = useCallback(
+    (tone: "neutral" | "success" | "warning" | "danger") => {
+      if (tone === "success") return "bg-green-500/15 text-green-300 border border-green-500/30";
+      if (tone === "warning") return "bg-yellow-500/15 text-yellow-300 border border-yellow-500/30";
+      if (tone === "danger") return "bg-red-500/15 text-red-300 border border-red-500/30";
+      return "bg-zinc-500/15 text-zinc-300 border border-zinc-500/30";
+    },
+    [],
+  );
 
   const isMaterialSelectable = useCallback(
     (materialId: string): boolean => {
@@ -907,11 +943,15 @@ export default function Orders() {
 
   const handleDraftItemChange = (
     localId: string,
-    updates: Partial<Pick<FormDraftItem, "categoryId" | "materialTypeId" | "materialSearchTerm" | "quantity">>,
+    updates: Partial<
+      Pick<FormDraftItem, "categoryId" | "materialTypeId" | "materialSearchTerm" | "quantity">
+    >,
   ) => {
     setFormItems((prev) => {
       if (typeof updates.materialTypeId === "string") {
-        const selectedMaterial = materialTypes.find((material) => material._id === updates.materialTypeId);
+        const selectedMaterial = materialTypes.find(
+          (material) => material._id === updates.materialTypeId,
+        );
         if (selectedMaterial) {
           if (!isMaterialSelectable(selectedMaterial._id)) {
             showError(
@@ -961,9 +1001,7 @@ export default function Orders() {
 
   const handleQuickToggleMaterial = (materialId: string) => {
     setQuickSelectedMaterialIds((prev) =>
-      prev.includes(materialId)
-        ? prev.filter((id) => id !== materialId)
-        : [...prev, materialId],
+      prev.includes(materialId) ? prev.filter((id) => id !== materialId) : [...prev, materialId],
     );
   };
 
@@ -984,13 +1022,13 @@ export default function Orders() {
 
     if (selectedMaterials.length === 0) return;
 
-    const availableMaterials = selectedMaterials.filter((material) => isMaterialSelectable(material._id));
+    const availableMaterials = selectedMaterials.filter((material) =>
+      isMaterialSelectable(material._id),
+    );
     const skippedCount = selectedMaterials.length - availableMaterials.length;
 
     if (availableMaterials.length > 0) {
-      insertMaterialsIntoDraft(
-        availableMaterials.map((material) => ({ material, quantity: 1 })),
-      );
+      insertMaterialsIntoDraft(availableMaterials.map((material) => ({ material, quantity: 1 })));
     }
 
     if (skippedCount > 0) {
@@ -1009,7 +1047,8 @@ export default function Orders() {
       return;
     }
 
-    const planEntries = (selectedPlan.items?.length ? selectedPlan.items : selectedPlan.materialTypes) ?? [];
+    const planEntries =
+      (selectedPlan.items?.length ? selectedPlan.items : selectedPlan.materialTypes) ?? [];
     if (planEntries.length === 0) {
       showError("The selected plan does not contain material types.", "Material Plan");
       return;
@@ -1301,12 +1340,18 @@ export default function Orders() {
 
   const handlePrepareOrder = async (order: OrderView) => {
     if (!canAssignRequest) {
-      showError("You need the requests:assign permission to prepare orders.", "Permission Required");
+      showError(
+        "You need the requests:assign permission to prepare orders.",
+        "Permission Required",
+      );
       return;
     }
 
     if (!inventoryDataAvailable) {
-      showError("Inventory data is unavailable. Try refreshing and prepare again.", "Inventory Required");
+      showError(
+        "Inventory data is unavailable. Try refreshing and prepare again.",
+        "Inventory Required",
+      );
       return;
     }
 
@@ -1314,7 +1359,8 @@ export default function Orders() {
 
     order.request.items.forEach((item) => {
       const itemQty = Math.max(1, Number(item.quantity) || 1);
-      const directMaterialId = item.materialTypeId ?? (item.type === "material" ? item.referenceId : undefined);
+      const directMaterialId =
+        item.materialTypeId ?? (item.type === "material" ? item.referenceId : undefined);
 
       if (directMaterialId) {
         requiredByMaterialType.set(
@@ -1352,7 +1398,8 @@ export default function Orders() {
         .slice(0, requiredQty);
 
       if (availableInstances.length < requiredQty) {
-        const materialName = materialTypes.find((entry) => entry._id === materialTypeId)?.name ?? materialTypeId;
+        const materialName =
+          materialTypes.find((entry) => entry._id === materialTypeId)?.name ?? materialTypeId;
         unavailable.push(`${materialName}: ${availableInstances.length}/${requiredQty}`);
         return;
       }
@@ -1363,12 +1410,18 @@ export default function Orders() {
     });
 
     if (unavailable.length > 0) {
-      showError(`Insufficient stock to prepare order. ${unavailable.join(" | ")}`, "Stock Unavailable");
+      showError(
+        `Insufficient stock to prepare order. ${unavailable.join(" | ")}`,
+        "Stock Unavailable",
+      );
       return;
     }
 
     if (assignments.length === 0) {
-      showError("No assignable material instances were resolved for this order.", "Preparation Error");
+      showError(
+        "No assignable material instances were resolved for this order.",
+        "Preparation Error",
+      );
       return;
     }
 
@@ -1390,17 +1443,17 @@ export default function Orders() {
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-3xl font-bold text-white">Orders</h1>
-          <p className="text-gray-400 mt-1">Create, approve, and track order lifecycle from one place</p>
+          <p className="text-gray-400 mt-1">
+            Create, approve, and track order lifecycle from one place
+          </p>
         </div>
-        <button
-          className="flex items-center gap-2 px-4 py-2 rounded-[8px] font-semibold transition-all gold-action-btn"
+        <Button
+          leftIcon={Plus}
           onClick={() => setShowCreateModal(true)}
-          type="button"
           disabled={!canCreateRequest}
         >
-          <Plus size={20} />
           New Order
-        </button>
+        </Button>
       </div>
 
       {loadWarning && (
@@ -1411,7 +1464,10 @@ export default function Orders() {
 
       <div className="flex gap-4 flex-wrap">
         <div className="flex-1 min-w-[250px] relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" size={20} />
+          <Search
+            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+            size={20}
+          />
           <input
             type="text"
             placeholder="Search by request ID or customer..."
@@ -1433,7 +1489,10 @@ export default function Orders() {
               </option>
             ))}
           </select>
-          <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none" size={20} />
+          <ChevronDown
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none"
+            size={20}
+          />
         </div>
       </div>
 
@@ -1442,10 +1501,18 @@ export default function Orders() {
           <table className="w-full">
             <thead>
               <tr className="bg-[#121212] border-b border-[#333]">
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Request ID</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Customer</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Date Range</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Products / Services</th>
+                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">
+                  Request ID
+                </th>
+                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">
+                  Customer
+                </th>
+                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">
+                  Date Range
+                </th>
+                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">
+                  Products / Services
+                </th>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Status</th>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Actions</th>
               </tr>
@@ -1468,7 +1535,10 @@ export default function Orders() {
                 </tr>
               ) : (
                 filteredOrders.map((order) => (
-                  <tr key={order.request._id} className="border-b border-[#333] hover:bg-[#1a1a1a] transition-all">
+                  <tr
+                    key={order.request._id}
+                    className="border-b border-[#333] hover:bg-[#1a1a1a] transition-all"
+                  >
                     <td className="px-6 py-4 text-white font-semibold">{order.request._id}</td>
                     <td className="px-6 py-4 text-gray-300">{order.customerName}</td>
                     <td className="px-6 py-4 text-gray-400 text-sm">
@@ -1481,107 +1551,98 @@ export default function Orders() {
                       items
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadgeStyle(order.workflowStatus)}`}>
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadgeStyle(order.workflowStatus)}`}
+                      >
                         {order.workflowLabel}
                       </span>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <button
-                          className="p-2 hover:bg-[#1a1a1a] rounded-[6px] text-gray-400 hover:text-[#FFD700] transition-all"
+                        <IconButton
+                          icon={Eye}
                           title="View details"
-                          type="button"
                           onClick={() => {
                             setActiveOrder(order);
                             setShowDetailsModal(true);
                           }}
-                        >
-                          <Eye size={18} />
-                        </button>
+                          intent="secondary"
+                          ariaLabel="View order details"
+                        />
 
                         {order.request.status === "pending" && (
-                          <button
-                            className="px-3 py-1.5 rounded-[8px] text-xs font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/25 transition-colors"
+                          <Button
+                            size="sm"
+                            leftIcon={Check}
                             onClick={() => handleApproveOrder(order.request._id)}
-                            type="button"
                             disabled={submitting || !canApproveRequest}
+                            className="bg-emerald-500/15 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/25"
                           >
-                            <span className="inline-flex items-center gap-1">
-                              <Check size={14} />
-                              Approve
-                            </span>
-                          </button>
+                            Approve
+                          </Button>
                         )}
 
                         {order.request.status === "pending" && (
-                          <button
-                            className="px-3 py-1.5 rounded-[8px] text-xs font-semibold bg-red-500/15 text-red-300 border border-red-500/40 hover:bg-red-500/25 transition-colors"
+                          <Button
+                            size="sm"
+                            leftIcon={X}
                             onClick={() => handleOpenRejectModal(order)}
-                            type="button"
                             disabled={submitting || !canUpdateRequest}
+                            variant="danger"
+                            className="bg-red-500/15 text-red-300 border-red-500/40 hover:bg-red-500/25"
                           >
-                            <span className="inline-flex items-center gap-1">
-                              <X size={14} />
-                              Reject
-                            </span>
-                          </button>
+                            Reject
+                          </Button>
                         )}
 
                         {order.request.status === "rejected" && (
-                          <button
-                            className="px-3 py-1.5 rounded-[8px] text-xs font-semibold bg-[#FFD700]/10 text-[#FFD700] border border-[#FFD700]/40 hover:bg-[#FFD700]/20 transition-colors"
+                          <Button
+                            size="sm"
+                            leftIcon={RotateCcw}
                             onClick={() => handleOpenReactivateModal(order)}
-                            type="button"
                             disabled={submitting || !canUpdateRequest}
+                            className="bg-[#FFD700]/10 text-[#FFD700] border-[#FFD700]/40 hover:bg-[#FFD700]/20"
                           >
-                            <span className="inline-flex items-center gap-1">
-                              <RotateCcw size={14} />
-                              Reactivate
-                            </span>
-                          </button>
+                            Reactivate
+                          </Button>
                         )}
 
                         {!order.loan && order.request.status === "approved" && (
-                          <button
-                            className="px-3 py-1.5 rounded-[8px] text-xs font-semibold bg-violet-500/15 text-violet-300 border border-violet-500/40 hover:bg-violet-500/25 transition-colors"
+                          <Button
+                            size="sm"
+                            leftIcon={Check}
                             onClick={() => handlePrepareOrder(order)}
-                            type="button"
                             disabled={submitting || !canAssignRequest || !inventoryDataAvailable}
+                            className="bg-violet-500/15 text-violet-300 border-violet-500/40 hover:bg-violet-500/25"
                           >
-                            <span className="inline-flex items-center gap-1">
-                              <Check size={14} />
-                              Prepare
-                            </span>
-                          </button>
+                            Prepare
+                          </Button>
                         )}
 
                         {!order.loan && order.request.status === "ready" && (
-                          <button
-                            className="px-3 py-1.5 rounded-[8px] text-xs font-semibold bg-blue-500/15 text-blue-300 border border-blue-500/40 hover:bg-blue-500/25 transition-colors"
+                          <Button
+                            size="sm"
+                            leftIcon={Truck}
                             onClick={() => handleStartLoan(order.request._id)}
-                            type="button"
                             disabled={submitting || !canCreateLoan}
+                            className="bg-blue-500/15 text-blue-300 border-blue-500/40 hover:bg-blue-500/25"
                           >
-                            <span className="inline-flex items-center gap-1">
-                              <Truck size={14} />
-                              Start Loan
-                            </span>
-                          </button>
+                            Start Loan
+                          </Button>
                         )}
 
-                        {order.loan && (order.loan.status === "active" || order.loan.status === "overdue") && (
-                          <button
-                            className="px-3 py-1.5 rounded-[8px] text-xs font-semibold bg-cyan-500/15 text-cyan-300 border border-cyan-500/40 hover:bg-cyan-500/25 transition-colors"
-                            onClick={() => handleCompleteLoan(order.loan!._id)}
-                            type="button"
-                            disabled={submitting || !canReturnLoan}
-                          >
-                            <span className="inline-flex items-center gap-1">
-                              <CircleCheck size={14} />
+                        {order.loan &&
+                          (order.loan.status === "active" || order.loan.status === "overdue") && (
+                            <Button
+                              size="sm"
+                              leftIcon={CircleCheck}
+                              onClick={() => handleCompleteLoan(order.loan!._id)}
+                              disabled={submitting || !canReturnLoan}
+                              className="bg-cyan-500/15 text-cyan-300 border-cyan-500/40 hover:bg-cyan-500/25"
+                            >
                               Complete
-                            </span>
-                          </button>
-                        )}
+                            </Button>
+                          )}
                       </div>
                     </td>
                   </tr>
@@ -1592,26 +1653,27 @@ export default function Orders() {
         </div>
         <div className="border-t border-[#333] bg-[#121212] px-4 py-3 flex items-center justify-between text-sm">
           <p className="text-gray-400">
-            Showing page <span className="text-white font-semibold">{requestsPage}</span> of <span className="text-white font-semibold">{requestsTotalPages}</span>
+            Showing page <span className="text-white font-semibold">{requestsPage}</span> of{" "}
+            <span className="text-white font-semibold">{requestsTotalPages}</span>
             <span className="ml-2 text-gray-500">({requestsTotal} total requests)</span>
           </p>
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              className="btn-secondary text-xs px-3 py-1"
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => setRequestsPage((prev) => Math.max(1, prev - 1))}
               disabled={loading || requestsPage <= 1}
             >
               Previous
-            </button>
-            <button
-              type="button"
-              className="btn-secondary text-xs px-3 py-1"
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => setRequestsPage((prev) => Math.min(requestsTotalPages, prev + 1))}
               disabled={loading || requestsPage >= requestsTotalPages}
             >
               Next
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -1629,9 +1691,13 @@ export default function Orders() {
                   Register walk-in orders and review all details before creating the request.
                 </p>
               </div>
-              <button className="btn-icon text-gray-400" onClick={closeCreateModal} type="button">
-                <X size={20} />
-              </button>
+              <IconButton
+                icon={X}
+                onClick={closeCreateModal}
+                title="Close create order modal"
+                ariaLabel="Close create order modal"
+                intent="secondary"
+              />
             </div>
 
             <div className="modal-body p-0">
@@ -1648,7 +1714,9 @@ export default function Orders() {
                       <label className="form-label">Customer *</label>
                       <select
                         value={formData.customerId}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, customerId: e.target.value }))}
+                        onChange={(e) =>
+                          setFormData((prev) => ({ ...prev, customerId: e.target.value }))
+                        }
                         className={`input ${createErrors.customerId ? "input-error" : ""}`}
                       >
                         <option value="">Select customer</option>
@@ -1658,7 +1726,9 @@ export default function Orders() {
                           </option>
                         ))}
                       </select>
-                      {createErrors.customerId && <p className="form-error">{createErrors.customerId}</p>}
+                      {createErrors.customerId && (
+                        <p className="form-error">{createErrors.customerId}</p>
+                      )}
                     </div>
 
                     <div className="form-group">
@@ -1670,9 +1740,10 @@ export default function Orders() {
                         onChange={(e) =>
                           setFormData((prev) => {
                             const nextStartDate = e.target.value;
-                            const nextEndDate = prev.endDate && prev.endDate < nextStartDate
-                              ? nextStartDate
-                              : prev.endDate;
+                            const nextEndDate =
+                              prev.endDate && prev.endDate < nextStartDate
+                                ? nextStartDate
+                                : prev.endDate;
                             return {
                               ...prev,
                               startDate: nextStartDate,
@@ -1682,7 +1753,9 @@ export default function Orders() {
                         }
                         className={`input ${createErrors.startDate ? "input-error" : ""}`}
                       />
-                      {createErrors.startDate && <p className="form-error">{createErrors.startDate}</p>}
+                      {createErrors.startDate && (
+                        <p className="form-error">{createErrors.startDate}</p>
+                      )}
                     </div>
 
                     <div className="form-group">
@@ -1691,7 +1764,9 @@ export default function Orders() {
                         type="date"
                         value={formData.endDate}
                         min={formData.startDate || todayDate}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, endDate: e.target.value }))}
+                        onChange={(e) =>
+                          setFormData((prev) => ({ ...prev, endDate: e.target.value }))
+                        }
                         className={`input ${createErrors.endDate ? "input-error" : ""}`}
                       />
                       {createErrors.endDate && <p className="form-error">{createErrors.endDate}</p>}
@@ -1701,7 +1776,9 @@ export default function Orders() {
                       <label className="form-label">Notes</label>
                       <textarea
                         value={formData.notes}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value }))}
+                        onChange={(e) =>
+                          setFormData((prev) => ({ ...prev, notes: e.target.value }))
+                        }
                         className="input min-h-[96px]"
                         placeholder="Optional notes for this order"
                       />
@@ -1714,7 +1791,9 @@ export default function Orders() {
                     </div>
 
                     <div className="rounded-lg border border-[#333] bg-[#131313] p-3">
-                      <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Add from Material Plan</p>
+                      <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">
+                        Add from Material Plan
+                      </p>
                       <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3">
                         <select
                           value={selectedPlanId}
@@ -1723,10 +1802,13 @@ export default function Orders() {
                           disabled={packages.length === 0}
                         >
                           <option value="">
-                            {packages.length > 0 ? "Select an existing plan" : "No material plans available"}
+                            {packages.length > 0
+                              ? "Select an existing plan"
+                              : "No material plans available"}
                           </option>
                           {packages.map((pkg) => {
-                            const planItemCount = (pkg.items?.length ?? 0) || (pkg.materialTypes?.length ?? 0);
+                            const planItemCount =
+                              (pkg.items?.length ?? 0) || (pkg.materialTypes?.length ?? 0);
                             return (
                               <option key={`plan-${pkg._id}`} value={pkg._id}>
                                 {pkg.name} ({planItemCount} items)
@@ -1734,14 +1816,13 @@ export default function Orders() {
                             );
                           })}
                         </select>
-                        <button
-                          type="button"
-                          className="btn-secondary"
+                        <Button
+                          variant="secondary"
                           onClick={handleAddPlanToDraft}
                           disabled={!selectedPlanId || packages.length === 0}
                         >
                           Import Plan Materials
-                        </button>
+                        </Button>
                       </div>
                       {selectedPlan && (
                         <div className="mt-2 space-y-2">
@@ -1782,7 +1863,9 @@ export default function Orders() {
                             <label className="form-label">Category</label>
                             <select
                               value={item.categoryId}
-                              onChange={(e) => handleDraftItemChange(item.localId, { categoryId: e.target.value })}
+                              onChange={(e) =>
+                                handleDraftItemChange(item.localId, { categoryId: e.target.value })
+                              }
                               className={`input ${createErrors.rows[item.localId]?.categoryId ? "input-error" : ""}`}
                             >
                               <option value="">Select category</option>
@@ -1793,7 +1876,9 @@ export default function Orders() {
                               ))}
                             </select>
                             {createErrors.rows[item.localId]?.categoryId && (
-                              <p className="form-error">{createErrors.rows[item.localId]?.categoryId}</p>
+                              <p className="form-error">
+                                {createErrors.rows[item.localId]?.categoryId}
+                              </p>
                             )}
                           </div>
 
@@ -1802,7 +1887,8 @@ export default function Orders() {
                             {(() => {
                               const rowSuggestions = getRowMaterialSuggestions(item);
                               const hasQuery = item.materialSearchTerm.trim().length > 0;
-                              const isOpen = activeMaterialRowId === item.localId && Boolean(item.categoryId);
+                              const isOpen =
+                                activeMaterialRowId === item.localId && Boolean(item.categoryId);
 
                               return (
                                 <div className="relative">
@@ -1844,16 +1930,24 @@ export default function Orders() {
                                       } else if (e.key === "Enter") {
                                         if (activeMaterialRowId !== item.localId) return;
                                         e.preventDefault();
-                                        const selected = rowSuggestions[activeSuggestionIndex] ?? rowSuggestions[0];
+                                        const selected =
+                                          rowSuggestions[activeSuggestionIndex] ??
+                                          rowSuggestions[0];
                                         if (selected) {
-                                          handleDraftItemChange(item.localId, { materialTypeId: selected._id });
+                                          handleDraftItemChange(item.localId, {
+                                            materialTypeId: selected._id,
+                                          });
                                           setActiveMaterialRowId(null);
                                         }
                                       } else if (e.key === "Escape") {
                                         setActiveMaterialRowId(null);
                                       }
                                     }}
-                                    placeholder={item.categoryId ? "Search material..." : "Select category first"}
+                                    placeholder={
+                                      item.categoryId
+                                        ? "Search material..."
+                                        : "Select category first"
+                                    }
                                     disabled={!item.categoryId}
                                     className={`input ${createErrors.rows[item.localId]?.materialTypeId ? "input-error" : ""}`}
                                   />
@@ -1862,7 +1956,8 @@ export default function Orders() {
                                     <div className="absolute z-20 left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg border border-[#333] bg-[#111] shadow-2xl">
                                       {hasQuery && (
                                         <p className="px-3 py-2 text-[11px] uppercase tracking-wide text-gray-500 border-b border-[#222]">
-                                          {rowSuggestions.length} result{rowSuggestions.length === 1 ? "" : "s"}
+                                          {rowSuggestions.length} result
+                                          {rowSuggestions.length === 1 ? "" : "s"}
                                         </p>
                                       )}
 
@@ -1886,7 +1981,9 @@ export default function Orders() {
                                             type="button"
                                             onMouseDown={(mouseEvent) => {
                                               mouseEvent.preventDefault();
-                                              handleDraftItemChange(item.localId, { materialTypeId: material._id });
+                                              handleDraftItemChange(item.localId, {
+                                                materialTypeId: material._id,
+                                              });
                                               setActiveMaterialRowId(null);
                                             }}
                                             className={`w-full text-left px-3 py-2 border-b border-[#222] last:border-b-0 transition-colors ${
@@ -1896,12 +1993,16 @@ export default function Orders() {
                                             }`}
                                             disabled={!isMaterialSelectable(material._id)}
                                           >
-                                            <span className="block text-sm font-medium truncate">{material.name}</span>
+                                            <span className="block text-sm font-medium truncate">
+                                              {material.name}
+                                            </span>
                                             <span className="block text-xs text-gray-400 truncate">
                                               {formatMoney(material.pricePerDay)} / day
                                             </span>
                                             {(() => {
-                                              const availability = getMaterialAvailabilityLabel(material._id);
+                                              const availability = getMaterialAvailabilityLabel(
+                                                material._id,
+                                              );
                                               return (
                                                 <span
                                                   className={`mt-1 inline-flex text-[11px] px-1.5 py-0.5 rounded ${getAvailabilityBadgeClass(
@@ -1921,7 +2022,9 @@ export default function Orders() {
                               );
                             })()}
                             {createErrors.rows[item.localId]?.materialTypeId && (
-                              <p className="form-error">{createErrors.rows[item.localId]?.materialTypeId}</p>
+                              <p className="form-error">
+                                {createErrors.rows[item.localId]?.materialTypeId}
+                              </p>
                             )}
                           </div>
 
@@ -1931,31 +2034,34 @@ export default function Orders() {
                               type="number"
                               min={1}
                               value={item.quantity}
-                              onChange={(e) => handleDraftItemChange(item.localId, { quantity: e.target.value })}
+                              onChange={(e) =>
+                                handleDraftItemChange(item.localId, { quantity: e.target.value })
+                              }
                               className={`input ${createErrors.rows[item.localId]?.quantity ? "input-error" : ""}`}
                             />
                             {createErrors.rows[item.localId]?.quantity && (
-                              <p className="form-error">{createErrors.rows[item.localId]?.quantity}</p>
+                              <p className="form-error">
+                                {createErrors.rows[item.localId]?.quantity}
+                              </p>
                             )}
                           </div>
 
-                          <button
-                            type="button"
-                            className="text-[#FFD700] transition-colors hover:text-[#FFE566] hover:bg-[#FFD700]/10 rounded-[8px]"
+                          <IconButton
+                            icon={Plus}
                             title="Add new item"
                             onClick={handleAddDraftItem}
-                          >
-                            <Plus size={18} />
-                          </button>
+                            intent="secondary"
+                            className="bg-transparent text-[#FFD700] border-none hover:bg-[#FFD700]/10"
+                            ariaLabel="Add new item"
+                          />
 
-                          <button
-                            type="button"
-                            className="danger-icon-btn"
+                          <IconButton
+                            icon={Trash2}
                             title="Remove item"
                             onClick={() => handleDraftItemRemove(item.localId)}
-                          >
-                            <Trash2 size={18} />
-                          </button>
+                            intent="delete"
+                            ariaLabel="Remove item"
+                          />
 
                           {item.materialTypeId && selectedDraftById.get(item.localId)?.name && (
                             <div className="md:col-span-5 rounded-lg border border-[#3d3d3d] bg-[#121212] px-3 py-3 space-y-2">
@@ -1965,7 +2071,8 @@ export default function Orders() {
                                 </p>
                                 <div className="flex items-center gap-2 text-xs">
                                   <span className="px-2 py-1 rounded-full bg-[#FFD700]/20 text-[#FFD700] border border-[#FFD700]/30">
-                                    {formatMoney(selectedDraftById.get(item.localId)?.unitPrice)} / day
+                                    {formatMoney(selectedDraftById.get(item.localId)?.unitPrice)} /
+                                    day
                                   </span>
                                   <span className="px-2 py-1 rounded-full bg-blue-500/15 text-blue-300 border border-blue-500/30">
                                     Qty: {selectedDraftById.get(item.localId)?.quantity ?? 1}
@@ -2006,35 +2113,58 @@ export default function Orders() {
                   <div className="rounded-lg border border-[#333] bg-[#1a1a1a] p-4">
                     <p className="text-xs uppercase tracking-wide text-gray-500">Current Draft</p>
                     <div className="mt-3 space-y-2 text-sm">
-                      <p className="text-gray-300">Rows: <span className="text-white font-semibold">{formItems.length}</span></p>
-                      <p className="text-gray-300">Selected Items: <span className="text-white font-semibold">{selectedDraftRows.length}</span></p>
-                      <p className="text-gray-300">Rental period: <span className="text-white font-semibold">{rentalDays} day{rentalDays === 1 ? "" : "s"}</span></p>
-                      <p className="text-gray-300">Daily subtotal: <span className="text-white font-semibold">{formatMoney(estimatedDailyTotal)}</span></p>
-                      <p className="text-gray-300">Estimated total: <span className="text-white font-semibold">{formatMoney(estimatedOrderTotal)}</span></p>
+                      <p className="text-gray-300">
+                        Rows: <span className="text-white font-semibold">{formItems.length}</span>
+                      </p>
+                      <p className="text-gray-300">
+                        Selected Items:{" "}
+                        <span className="text-white font-semibold">{selectedDraftRows.length}</span>
+                      </p>
+                      <p className="text-gray-300">
+                        Rental period:{" "}
+                        <span className="text-white font-semibold">
+                          {rentalDays} day{rentalDays === 1 ? "" : "s"}
+                        </span>
+                      </p>
+                      <p className="text-gray-300">
+                        Daily subtotal:{" "}
+                        <span className="text-white font-semibold">
+                          {formatMoney(estimatedDailyTotal)}
+                        </span>
+                      </p>
+                      <p className="text-gray-300">
+                        Estimated total:{" "}
+                        <span className="text-white font-semibold">
+                          {formatMoney(estimatedOrderTotal)}
+                        </span>
+                      </p>
                     </div>
                   </div>
 
                   <div className="rounded-lg border border-[#333] bg-[#1a1a1a] p-4 space-y-3">
                     <p className="text-sm font-semibold text-white">Recent Materials</p>
                     {recentMaterials.length === 0 ? (
-                      <p className="text-xs text-gray-500">Your most recent selections will appear here.</p>
+                      <p className="text-xs text-gray-500">
+                        Your most recent selections will appear here.
+                      </p>
                     ) : (
                       <div className="flex flex-wrap gap-2">
                         {recentMaterials.map((material) => (
-                          <button
+                          <Button
                             key={`recent-${material._id}`}
-                            type="button"
+                            variant="secondary"
+                            size="sm"
                             onClick={() => addMaterialAsRow(material)}
-                            className={`text-xs px-2.5 py-1.5 rounded-md border transition-colors ${
-                              isMaterialSelectable(material._id)
-                                ? "bg-[#151515] border-[#333] text-gray-200 hover:border-[#FFD700] hover:text-white"
-                                : "bg-[#101010] border-red-500/30 text-red-300 cursor-not-allowed"
-                            }`}
                             title={`Add ${material.name}`}
                             disabled={!isMaterialSelectable(material._id)}
+                            className={
+                              !isMaterialSelectable(material._id)
+                                ? "border-red-500/30 text-red-300"
+                                : ""
+                            }
                           >
                             {material.name}
-                          </button>
+                          </Button>
                         ))}
                       </div>
                     )}
@@ -2073,15 +2203,21 @@ export default function Orders() {
                       placeholder="Search material by name or description..."
                       className="input"
                     />
-                    <p className="text-[11px] text-gray-500">Tip: Press Ctrl/Cmd + K to focus this search, then Enter to add the first result.</p>
+                    <p className="text-[11px] text-gray-500">
+                      Tip: Press Ctrl/Cmd + K to focus this search, then Enter to add the first
+                      result.
+                    </p>
 
                     <p className="text-[11px] text-gray-500">
-                      {quickFilteredMaterials.length} result{quickFilteredMaterials.length === 1 ? "" : "s"} in real time
+                      {quickFilteredMaterials.length} result
+                      {quickFilteredMaterials.length === 1 ? "" : "s"} in real time
                     </p>
 
                     <div className="max-h-44 overflow-y-auto space-y-2 pr-1">
                       {quickFilteredMaterials.length === 0 ? (
-                        <p className="text-xs text-gray-500">No materials found for current filters.</p>
+                        <p className="text-xs text-gray-500">
+                          No materials found for current filters.
+                        </p>
                       ) : (
                         quickFilteredMaterials.map((material) => {
                           const selected = quickSelectedMaterialIds.includes(material._id);
@@ -2102,7 +2238,9 @@ export default function Orders() {
                                 disabled={!isMaterialSelectable(material._id)}
                               />
                               <span className="flex-1 min-w-0">
-                                <span className="block text-gray-100 truncate">{material.name}</span>
+                                <span className="block text-gray-100 truncate">
+                                  {material.name}
+                                </span>
                                 <span className="block text-gray-400 truncate">
                                   {formatMoney(material.pricePerDay)} / day
                                 </span>
@@ -2130,30 +2268,37 @@ export default function Orders() {
                       )}
                     </div>
 
-                    <button
-                      type="button"
+                    <Button
+                      variant="secondary"
+                      size="sm"
                       onClick={handleBulkAddSelectedMaterials}
-                      className="btn-secondary text-sm w-full"
+                      className="w-full"
                       disabled={quickSelectedMaterialIds.length === 0}
                     >
                       Add selected items ({quickSelectedMaterialIds.length})
-                    </button>
+                    </Button>
                   </div>
 
                   <div className="rounded-lg border border-[#333] bg-[#1a1a1a] p-4 space-y-3">
                     <p className="text-sm font-semibold text-white">Order Cost Preview</p>
                     {selectedDraftRows.length === 0 ? (
-                      <p className="text-xs text-gray-500">Select products or services to see real catalog pricing.</p>
+                      <p className="text-xs text-gray-500">
+                        Select products or services to see real catalog pricing.
+                      </p>
                     ) : (
                       <>
                         <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
                           {selectedDraftRows.map(({ item, detail }) => {
                             const lineTotal = (detail?.unitPrice ?? 0) * (detail?.quantity ?? 1);
                             return (
-                              <div key={`summary-${item.localId}`} className="text-xs border border-[#333] rounded-md p-2 bg-[#151515]">
+                              <div
+                                key={`summary-${item.localId}`}
+                                className="text-xs border border-[#333] rounded-md p-2 bg-[#151515]"
+                              >
                                 <p className="text-gray-200 font-medium truncate">{detail?.name}</p>
                                 <p className="text-gray-400 mt-1">
-                                  {detail?.quantity ?? 1} x {formatMoney(detail?.unitPrice)} = {formatMoney(lineTotal)} / day
+                                  {detail?.quantity ?? 1} x {formatMoney(detail?.unitPrice)} ={" "}
+                                  {formatMoney(lineTotal)} / day
                                 </p>
                               </div>
                             );
@@ -2161,11 +2306,17 @@ export default function Orders() {
                         </div>
                         <div className="pt-2 border-t border-[#333] flex items-center justify-between">
                           <span className="text-sm text-gray-300">Estimated daily total</span>
-                          <span className="text-base font-semibold text-[#FFD700]">{formatMoney(estimatedDailyTotal)}</span>
+                          <span className="text-base font-semibold text-[#FFD700]">
+                            {formatMoney(estimatedDailyTotal)}
+                          </span>
                         </div>
                         <div className="pt-2 border-t border-[#333] flex items-center justify-between">
-                          <span className="text-sm text-gray-300">Estimated total ({rentalDays} day{rentalDays === 1 ? "" : "s"})</span>
-                          <span className="text-base font-semibold text-[#FFD700]">{formatMoney(estimatedOrderTotal)}</span>
+                          <span className="text-sm text-gray-300">
+                            Estimated total ({rentalDays} day{rentalDays === 1 ? "" : "s"})
+                          </span>
+                          <span className="text-base font-semibold text-[#FFD700]">
+                            {formatMoney(estimatedOrderTotal)}
+                          </span>
                         </div>
                       </>
                     )}
@@ -2173,45 +2324,54 @@ export default function Orders() {
 
                   {(!hasCustomers || !hasSelectableItems) && (
                     <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-4 space-y-3">
-                      <p className="text-sm font-semibold text-red-300">Missing required setup data</p>
+                      <p className="text-sm font-semibold text-red-300">
+                        Missing required setup data
+                      </p>
                       <p className="text-xs text-red-200/90">
                         You need at least one customer and one material type to create orders.
                       </p>
                     </div>
                   )}
-
                 </aside>
               </div>
             </div>
 
             <div className="modal-footer">
-              <button className="btn-secondary" onClick={closeCreateModal} type="button" disabled={submitting}>
+              <Button variant="secondary" onClick={closeCreateModal} disabled={submitting}>
                 Cancel
-              </button>
-              <button
-                className="btn-primary"
+              </Button>
+              <Button
                 onClick={handleCreateOrder}
-                type="button"
-                disabled={submitting || !hasCustomers || !hasSelectableItems}
+                loading={submitting}
+                disabled={!hasCustomers || !hasSelectableItems}
               >
                 {submitting ? "Creating..." : "Create Order"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
       )}
 
       {showDetailsModal && activeOrder && (
-        <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setShowDetailsModal(false)}>
+        <div
+          className="modal-overlay"
+          onClick={(e) => e.target === e.currentTarget && setShowDetailsModal(false)}
+        >
           <div className="modal-content max-w-5xl max-h-[92vh] overflow-hidden">
             <div className="modal-header">
               <div>
                 <h2 className="text-2xl font-bold text-white">Order Details</h2>
-                <p className="text-sm text-gray-400 mt-1">Review full order data and current workflow step.</p>
+                <p className="text-sm text-gray-400 mt-1">
+                  Review full order data and current workflow step.
+                </p>
               </div>
-              <button className="btn-icon text-gray-400" onClick={() => setShowDetailsModal(false)} type="button">
-                <X size={20} />
-              </button>
+              <IconButton
+                icon={X}
+                onClick={() => setShowDetailsModal(false)}
+                title="Close order details modal"
+                ariaLabel="Close order details modal"
+                intent="secondary"
+              />
             </div>
 
             <div className="modal-body p-0">
@@ -2220,7 +2380,9 @@ export default function Orders() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <p className="text-gray-500 text-sm">Request ID</p>
-                      <p className="text-white font-semibold break-all">{activeOrder.request._id}</p>
+                      <p className="text-white font-semibold break-all">
+                        {activeOrder.request._id}
+                      </p>
                     </div>
                     <div>
                       <p className="text-gray-500 text-sm">Customer</p>
@@ -2240,7 +2402,10 @@ export default function Orders() {
                     <p className="text-gray-500 text-sm mb-2">Products / Services</p>
                     <div className="space-y-2">
                       {activeOrder.displayItems.map((itemLabel) => (
-                        <div key={itemLabel} className="text-gray-200 text-sm border border-[#333] rounded-lg px-3 py-2 bg-[#1a1a1a]">
+                        <div
+                          key={itemLabel}
+                          className="text-gray-200 text-sm border border-[#333] rounded-lg px-3 py-2 bg-[#1a1a1a]"
+                        >
                           {itemLabel}
                         </div>
                       ))}
@@ -2250,7 +2415,9 @@ export default function Orders() {
                   {activeOrder.request.notes && (
                     <div>
                       <p className="text-gray-500 text-sm">Notes</p>
-                      <p className="text-gray-300 text-sm whitespace-pre-wrap">{activeOrder.request.notes}</p>
+                      <p className="text-gray-300 text-sm whitespace-pre-wrap">
+                        {activeOrder.request.notes}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -2280,7 +2447,9 @@ export default function Orders() {
 
                   <div className="border border-[#333] rounded-lg p-3 bg-[#1a1a1a]">
                     <p className="text-xs uppercase tracking-wide text-gray-500">Current Status</p>
-                    <span className={`inline-flex mt-2 px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadgeStyle(activeOrder.workflowStatus)}`}>
+                    <span
+                      className={`inline-flex mt-2 px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadgeStyle(activeOrder.workflowStatus)}`}
+                    >
                       {activeOrder.workflowLabel}
                     </span>
                   </div>
@@ -2299,21 +2468,31 @@ export default function Orders() {
       )}
 
       {showRejectModal && rejectTarget && (
-        <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setShowRejectModal(false)}>
+        <div
+          className="modal-overlay"
+          onClick={(e) => e.target === e.currentTarget && setShowRejectModal(false)}
+        >
           <div className="modal-content max-w-2xl overflow-hidden">
             <div className="modal-header">
               <div>
                 <h2 className="text-xl font-bold text-white">Reject Order</h2>
-                <p className="text-sm text-gray-400 mt-1">Provide a clear reason that can be shared with the customer.</p>
+                <p className="text-sm text-gray-400 mt-1">
+                  Provide a clear reason that can be shared with the customer.
+                </p>
               </div>
-              <button className="btn-icon text-gray-400" onClick={() => setShowRejectModal(false)} type="button">
-                <X size={20} />
-              </button>
+              <IconButton
+                icon={X}
+                onClick={() => setShowRejectModal(false)}
+                title="Close reject order modal"
+                ariaLabel="Close reject order modal"
+                intent="secondary"
+              />
             </div>
 
             <div className="modal-body space-y-4">
               <p className="text-gray-300 text-sm">
-                Provide a rejection reason for request <span className="text-white font-semibold">{rejectTarget.request._id}</span>.
+                Provide a rejection reason for request{" "}
+                <span className="text-white font-semibold">{rejectTarget.request._id}</span>.
               </p>
               <div className="form-group">
                 <label className="form-label">Reason *</label>
@@ -2327,17 +2506,16 @@ export default function Orders() {
             </div>
 
             <div className="modal-footer">
-              <button className="btn-secondary" onClick={() => setShowRejectModal(false)} type="button" disabled={submitting}>
-                Cancel
-              </button>
-              <button
-                className="btn-danger"
-                onClick={handleRejectOrder}
-                type="button"
+              <Button
+                variant="secondary"
+                onClick={() => setShowRejectModal(false)}
                 disabled={submitting}
               >
+                Cancel
+              </Button>
+              <Button variant="danger" onClick={handleRejectOrder} loading={submitting}>
                 Reject Order
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -2356,13 +2534,13 @@ export default function Orders() {
                   Explain why this rejected request should be moved back to pending.
                 </p>
               </div>
-              <button
-                className="btn-icon text-gray-400"
+              <IconButton
+                icon={X}
                 onClick={() => setShowReactivateModal(false)}
-                type="button"
-              >
-                <X size={20} />
-              </button>
+                title="Close reactivate order modal"
+                ariaLabel="Close reactivate order modal"
+                intent="secondary"
+              />
             </div>
 
             <div className="modal-body space-y-4">
@@ -2382,22 +2560,20 @@ export default function Orders() {
             </div>
 
             <div className="modal-footer">
-              <button
-                className="btn-secondary"
+              <Button
+                variant="secondary"
                 onClick={() => setShowReactivateModal(false)}
-                type="button"
                 disabled={submitting}
               >
                 Cancel
-              </button>
-              <button
-                className="px-4 py-2 rounded-[8px] font-semibold border border-[#FFD700]/45 text-[#FFD700] bg-[#FFD700]/10 hover:bg-[#FFD700]/20 transition-colors disabled:opacity-60"
+              </Button>
+              <Button
                 onClick={handleReactivateOrder}
-                type="button"
-                disabled={submitting}
+                loading={submitting}
+                className="bg-[#FFD700]/10 text-[#FFD700] border-[#FFD700]/45 hover:bg-[#FFD700]/20"
               >
                 {submitting ? "Reactivating..." : "Reactivate Order"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

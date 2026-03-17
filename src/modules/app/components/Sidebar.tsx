@@ -136,7 +136,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
       className={`sidebar-scroll fixed left-0 top-0 ${sidebarWidthClass} h-screen bg-[#0e0e0e] border-r border-zinc-800/60 flex flex-col overflow-y-auto z-50 transition-all duration-300`}
     >
       {/* Logo */}
-      <div className={`flex items-center border-b border-zinc-800/60 ${isCollapsed ? "justify-center px-4 py-4" : "justify-between px-4 py-4"}`}>
+      <div
+        className={`flex items-center border-b border-zinc-800/60 ${isCollapsed ? "justify-center px-4 py-4" : "justify-between px-4 py-4"}`}
+      >
         {!isCollapsed && (
           <div className="flex items-center gap-2.5 min-w-0">
             <img src="/lendevent-logo.png" alt="LendEvent" className="h-8 w-auto flex-shrink-0" />
@@ -198,7 +200,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
                       }`
                     }
                   >
-                    <span className="flex-shrink-0">{iconMap[item.id] ?? <LayoutDashboard size={18} />}</span>
+                    <span className="flex-shrink-0">
+                      {iconMap[item.id] ?? <LayoutDashboard size={18} />}
+                    </span>
                     {!isCollapsed && <span className="truncate">{item.label}</span>}
                   </NavLink>
                 ))}
@@ -209,7 +213,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
 
       {/* User Info & Logout */}
       <div className="border-t border-zinc-800/60 px-3 py-3">
-        <div className={`flex items-center ${isCollapsed ? "justify-center mb-2" : "gap-3 px-2 py-2 mb-1"}`}>
+        <div
+          className={`flex items-center ${isCollapsed ? "justify-center mb-2" : "gap-3 px-2 py-2 mb-1"}`}
+        >
           <div className="w-8 h-8 rounded-full bg-[#FFD700] flex items-center justify-center flex-shrink-0">
             <span className="text-black font-bold text-xs">
               {user?.name.firstName.charAt(0).toUpperCase()}

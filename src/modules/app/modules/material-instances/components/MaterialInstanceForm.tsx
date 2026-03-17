@@ -6,6 +6,7 @@ import {
   type WarehouseLocation,
 } from "../../../../../services/warehouseOperatorService";
 import type { CreateMaterialInstancePayload } from "../../../../../types/api";
+import { Button } from "../../../../../components/ui";
 
 interface MaterialInstanceFormProps {
   onSubmit: (data: CreateMaterialInstancePayload) => Promise<void>;
@@ -182,11 +183,7 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
       </div>
 
       <div className="flex gap-4 pt-4">
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="flex-1 px-6 py-3 font-semibold rounded-lg transition-colors gold-action-btn disabled:opacity-50 disabled:cursor-not-allowed"
-        >
+        <Button type="submit" loading={isSubmitting} className="flex-1">
           {isSubmitting
             ? isEditing
               ? "Updating..."
@@ -194,15 +191,10 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
             : isEditing
               ? "Update Instance"
               : "Create Instance"}
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={isSubmitting}
-          className="px-6 py-3 bg-[#1a1a1a] text-gray-300 font-semibold rounded-lg hover:bg-[#222] transition-colors border border-[#333] disabled:opacity-50"
-        >
+        </Button>
+        <Button type="button" variant="secondary" onClick={onCancel} disabled={isSubmitting}>
           Cancel
-        </button>
+        </Button>
       </div>
     </form>
   );

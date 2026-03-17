@@ -275,8 +275,7 @@ const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
     });
   };
 
-  const isSelected = (instanceId: string) =>
-    selectedItems.some((i) => i.instanceId === instanceId);
+  const isSelected = (instanceId: string) => selectedItems.some((i) => i.instanceId === instanceId);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -335,9 +334,7 @@ const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
           <div>
             <label className="block text-xs font-medium text-gray-400 mb-2">
               Available Items at Origin{" "}
-              <span className="text-gray-500">
-                ({selectedItems.length} selected)
-              </span>
+              <span className="text-gray-500">({selectedItems.length} selected)</span>
             </label>
             <div className="max-h-56 overflow-y-auto rounded-lg border border-[#222] divide-y divide-[#1a1a1a] custom-scrollbar">
               {fetching && (
@@ -465,20 +462,13 @@ const ReceiveTransferModal: React.FC<ReceiveTransferModalProps> = ({
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <p className="text-sm text-gray-300">
             Confirm receipt of shipment from{" "}
-            <span className="text-white font-medium">
-              {locationName(transfer.fromLocationId)}
-            </span>{" "}
-            to{" "}
-            <span className="text-white font-medium">
-              {locationName(transfer.toLocationId)}
-            </span>
+            <span className="text-white font-medium">{locationName(transfer.fromLocationId)}</span>{" "}
+            to <span className="text-white font-medium">{locationName(transfer.toLocationId)}</span>
             . All items will be set to <span className="text-green-400 font-medium">available</span>{" "}
             at the destination.
           </p>
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1.5">
-              Receiver Notes
-            </label>
+            <label className="block text-xs font-medium text-gray-400 mb-1.5">Receiver Notes</label>
             <textarea
               value={receiverNotes}
               onChange={(e) => setReceiverNotes(e.target.value)}
@@ -525,8 +515,7 @@ const TransferRequests: React.FC = () => {
   // ── State: requests ──
   const [requests, setRequests] = useState<TransferRequest[]>([]);
   const [requestsLoading, setRequestsLoading] = useState(true);
-  const [requestStatusFilter, setRequestStatusFilter] =
-    useState<TransferRequestStatus | "">("");
+  const [requestStatusFilter, setRequestStatusFilter] = useState<TransferRequestStatus | "">("");
 
   // ── State: transfers (shipments) ──
   const [transfers, setTransfers] = useState<Transfer[]>([]);
@@ -585,11 +574,7 @@ const TransferRequests: React.FC = () => {
         : all;
       setTransfers(filtered);
     } catch (err: unknown) {
-      showToast(
-        "error",
-        err instanceof Error ? err.message : "Failed to load shipments",
-        "Error",
-      );
+      showToast("error", err instanceof Error ? err.message : "Failed to load shipments", "Error");
     } finally {
       setTransfersLoading(false);
     }
@@ -683,9 +668,7 @@ const TransferRequests: React.FC = () => {
             <ArrowLeftRight size={26} className="text-[#FFD700]" />
             Transfer Requests
           </h1>
-          <p className="text-sm text-gray-400 mt-1">
-            Manage material transfers between locations
-          </p>
+          <p className="text-sm text-gray-400 mt-1">Manage material transfers between locations</p>
         </div>
         {canCreate && (
           <button
@@ -735,7 +718,10 @@ const TransferRequests: React.FC = () => {
                   </option>
                 ))}
               </select>
-              <ChevronDown size={14} className="absolute right-2.5 top-2.5 text-gray-500 pointer-events-none" />
+              <ChevronDown
+                size={14}
+                className="absolute right-2.5 top-2.5 text-gray-500 pointer-events-none"
+              />
             </div>
             <button
               onClick={() => void loadRequests()}
@@ -802,9 +788,7 @@ const TransferRequests: React.FC = () => {
                         <td className="px-4 py-3 text-gray-400 whitespace-nowrap">
                           {formatDate(req.createdAt)}
                         </td>
-                        <td className="px-4 py-3 text-right">
-                          {renderRequestActions(req)}
-                        </td>
+                        <td className="px-4 py-3 text-right">{renderRequestActions(req)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -823,9 +807,7 @@ const TransferRequests: React.FC = () => {
             <div className="relative">
               <select
                 value={transferStatusFilter}
-                onChange={(e) =>
-                  setTransferStatusFilter(e.target.value as TransferStatus | "")
-                }
+                onChange={(e) => setTransferStatusFilter(e.target.value as TransferStatus | "")}
                 className="h-9 pl-3 pr-8 bg-[#111] border border-[#2a2a2a] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] appearance-none"
               >
                 <option value="">All statuses</option>
@@ -835,7 +817,10 @@ const TransferRequests: React.FC = () => {
                   </option>
                 ))}
               </select>
-              <ChevronDown size={14} className="absolute right-2.5 top-2.5 text-gray-500 pointer-events-none" />
+              <ChevronDown
+                size={14}
+                className="absolute right-2.5 top-2.5 text-gray-500 pointer-events-none"
+              />
             </div>
             <button
               onClick={() => void loadTransfers()}
@@ -883,9 +868,7 @@ const TransferRequests: React.FC = () => {
                         <td className="px-4 py-3 text-gray-200 whitespace-nowrap">
                           {locationName(tr.toLocationId)}
                         </td>
-                        <td className="px-4 py-3 text-gray-400">
-                          {tr.items.length} item(s)
-                        </td>
+                        <td className="px-4 py-3 text-gray-400">{tr.items.length} item(s)</td>
                         <td className="px-4 py-3">
                           <StatusBadge
                             label={TRANSFER_STATUS_LABEL[tr.status]}

@@ -6,6 +6,7 @@ import type {
   MaterialAttribute,
   MaterialCategory,
 } from "../../../../../types/api";
+import { Button, IconButton } from "../../../../../components/ui";
 
 interface MaterialAttributeFormProps {
   categories: MaterialCategory[];
@@ -147,13 +148,14 @@ export const MaterialAttributeForm: React.FC<MaterialAttributeFormProps> = ({
             className="flex-1 px-4 py-2 bg-[#1a1a1a] border border-[#333] rounded-lg text-white focus:outline-none focus:border-[#FFD700]"
             placeholder="Add allowed value..."
           />
-          <button
+          <Button
             type="button"
+            variant="secondary"
             onClick={handleAddValue}
-            className="px-4 py-2 bg-[#333] text-white rounded-lg hover:bg-[#444] transition-all"
+            className="border-[#333]"
           >
             <Plus size={20} />
-          </button>
+          </Button>
         </div>
         <div className="flex flex-wrap gap-2 min-h-[40px] p-2 bg-[#121212] border border-[#333] rounded-lg">
           {formData.allowedValues?.map((val: string) => (
@@ -162,9 +164,14 @@ export const MaterialAttributeForm: React.FC<MaterialAttributeFormProps> = ({
               className="flex items-center gap-1 px-3 py-1 bg-[#222] border border-[#444] text-gray-300 rounded-full text-xs"
             >
               {val}
-              <button type="button" onClick={() => removeValue(val)} className="hover:text-red-400">
-                <X size={14} />
-              </button>
+              <IconButton
+                type="button"
+                icon={X}
+                intent="delete"
+                ariaLabel="Remove value"
+                onClick={() => removeValue(val)}
+                className="hover:text-red-400 p-0"
+              />
             </span>
           ))}
           {(!formData.allowedValues || formData.allowedValues.length === 0) && (
@@ -187,21 +194,12 @@ export const MaterialAttributeForm: React.FC<MaterialAttributeFormProps> = ({
       </div>
 
       <div className="flex justify-end gap-3 pt-4">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-6 py-2 border border-[#333] text-gray-400 rounded-lg hover:bg-[#121212] transition-all"
-          disabled={isSubmitting}
-        >
+        <Button type="button" variant="secondary" onClick={onCancel} disabled={isSubmitting}>
           Cancel
-        </button>
-        <button
-          type="submit"
-          className="px-6 py-2 bg-[#FFD700] text-black rounded-lg font-bold hover:bg-[#FFC700] disabled:opacity-50 transition-all flex items-center gap-2"
-          disabled={isSubmitting}
-        >
+        </Button>
+        <Button type="submit" loading={isSubmitting}>
           {isSubmitting ? "Saving..." : isEditing ? "Update Attribute" : "Create Attribute"}
-        </button>
+        </Button>
       </div>
     </form>
   );
