@@ -22,14 +22,15 @@ import {
   useCallback,
   type ReactNode,
   type KeyboardEvent,
-} from 'react';
-import { CheckCircle2, Info, AlertTriangle, XCircle, X } from 'lucide-react';
-import { EXPORT_I18N } from '../../types/export';
+} from "react";
+import { CheckCircle2, Info, AlertTriangle, XCircle, X } from "lucide-react";
+import { EXPORT_I18N } from "../../types/export";
+import IconButton from "./IconButton";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
 /** Alert severity variants. */
-export type AlertType = 'success' | 'info' | 'warning' | 'error';
+export type AlertType = "success" | "info" | "warning" | "error";
 
 /** Configuration props for AlertCard. */
 export interface AlertCardProps {
@@ -65,11 +66,11 @@ const ICONS: Record<AlertType, typeof CheckCircle2> = {
 };
 
 /** ARIA live politeness by type. */
-const ARIA_LIVE: Record<AlertType, 'polite' | 'assertive'> = {
-  success: 'polite',
-  info: 'polite',
-  warning: 'polite',
-  error: 'assertive',
+const ARIA_LIVE: Record<AlertType, "polite" | "assertive"> = {
+  success: "polite",
+  info: "polite",
+  warning: "polite",
+  error: "assertive",
 };
 
 // ─── Component ─────────────────────────────────────────────────────────────
@@ -83,7 +84,7 @@ export function AlertCard({
   showProgress = true,
   persistent = false,
   onDismiss,
-  className = '',
+  className = "",
   visible: controlledVisible,
 }: AlertCardProps) {
   const [internalVisible, setInternalVisible] = useState(true);
@@ -146,7 +147,7 @@ export function AlertCard({
   // Keyboard: Escape to dismiss
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLDivElement>) => {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         e.preventDefault();
         dismiss();
       }
@@ -207,15 +208,15 @@ export function AlertCard({
         </div>
 
         {/* Close button */}
-        <button
+        <IconButton
           type="button"
-          className="alert-card__close"
+          icon={X}
+          intent="close"
+          className="alert-card__close !p-1"
           onClick={dismiss}
-          aria-label={EXPORT_I18N['alert.dismiss']}
+          ariaLabel={EXPORT_I18N["alert.dismiss"]}
           tabIndex={0}
-        >
-          <X size={18} />
-        </button>
+        />
       </div>
 
       {/* Progress bar */}
@@ -245,20 +246,16 @@ export interface AlertItem {
 export interface AlertContainerProps {
   alerts: AlertItem[];
   onDismiss: (id: string) => void;
-  position?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' | 'top-center';
+  position?: "top-right" | "top-left" | "bottom-right" | "bottom-left" | "top-center";
 }
 
-export function AlertContainer({
-  alerts,
-  onDismiss,
-  position = 'top-right',
-}: AlertContainerProps) {
+export function AlertContainer({ alerts, onDismiss, position = "top-right" }: AlertContainerProps) {
   const positionClasses: Record<string, string> = {
-    'top-right': 'alert-container--top-right',
-    'top-left': 'alert-container--top-left',
-    'bottom-right': 'alert-container--bottom-right',
-    'bottom-left': 'alert-container--bottom-left',
-    'top-center': 'alert-container--top-center',
+    "top-right": "alert-container--top-right",
+    "top-left": "alert-container--top-left",
+    "bottom-right": "alert-container--bottom-right",
+    "bottom-left": "alert-container--bottom-left",
+    "top-center": "alert-container--top-center",
   };
 
   return (

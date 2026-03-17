@@ -2463,9 +2463,110 @@ Deletes a material instance. Only instances with `available` or `retired` status
 
 ---
 
-### Material Attribute Endpoints
+### Transfer Endpoints
 
-These endpoints manage configurable attribute definitions that organizations assign to material types (e.g., weight, height, RAM). Attributes are scoped to an organization and optionally restricted to a specific material category.
+The transfer module handles the movement of material instances between different physical locations within an organization. It consists of a two-stage process: a **Transfer Request** (planning/approval) and a **Transfer** (physical shipment).
+
+#### POST /transfers/requests
+
+Creates a new transfer request to move materials between locations.
+
+| Parameter      | Location | Type   | Required | Description             |
+| -------------- | -------- | ------ | -------- | ----------------------- |
+| fromLocationId | body     | string | Yes      | Origin location ID      |
+| toLocationId   | body     | string | Yes      | Destination location ID |
+| notes          | body     | string | No       | Request notes           |
+
+**Permission Required:** `transfers:create`
+
+**Response (201):**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "_id": "64f1a2...",
+    "fromLocationId": "64f1a2...",
+    "toLocationId": "64f1a2...",
+    "requestedBy": "64f1a2...",
+    "status": "pending",
+    "notes": "Request for testing",
+    "createdAt": "2026-03-16T..."
+  }
+}
+```
+
+---
+
+#### GET /transfers/requests
+
+Lists all transfer requests for the organization.
+
+| Parameter | Location | Type   | Required | Description                                       |
+| --------- | -------- | ------ | -------- | ------------------------------------------------- |
+| status    | query    | string | No       | Filter by `pending`, `approved`, `rejected`, etc. |
+
+**Permission Required:** `transfers:read`
+
+---
+
+#### PATCH /transfers/requests/:id/respond
+
+Approves, rejects, or cancels a transfer request.
+
+| Parameter | Location | Type   | Required | Description                                     |
+| --------- | -------- | ------ | -------- | ----------------------------------------------- |
+| status    | body     | string | Yes      | New status: `approved`, `rejected`, `cancelled` |
+
+**Permission Required:** `transfers:update`
+
+---
+
+#### POST /transfers
+
+Initiates a physical transfer (shipment). This marks the items as `in_use` (in transit) and locks them from other operations.
+
+| Parameter      | Location | Type   | Required | Description                                     |
+| -------------- | -------- | ------ | -------- | ----------------------------------------------- |
+| requestId      | body     | string | No       | Related transfer request ID                     |
+| fromLocationId | body     | string | Yes      | Origin location ID                              |
+| toLocationId   | body     | string | Yes      | Destination location ID                         |
+| items          | body     | array  | Yes      | List of `{ instanceId: string, notes: string }` |
+| senderNotes    | body     | string | No       | Notes from the sender                           |
+
+**Permission Required:** `transfers:create`
+
+---
+
+#### PATCH /transfers/:id/receive
+
+Marks a transfer as received at the destination location. This updates the location of all items and sets their status back to `available`.
+
+| Parameter     | Location | Type   | Required | Description             |
+| ------------- | -------- | ------ | -------- | ----------------------- |
+| receiverNotes | body     | string | No       | Notes from the receiver |
+
+**Permission Required:** `transfers:update`
+
+---
+
+#### GET /transfers
+
+Lists all physical transfers.
+
+**Permission Required:** `transfers:read`
+
+---
+
+#### GET /transfers/:id
+
+Gets detailed information about a specific transfer, including item details.
+
+**Permission Required:** `transfers:read`
+
+---
+
+### Material Attribute Endpoints
 
 #### GET /materials/attributes
 
@@ -2721,11 +2822,33 @@ Rejects a loan request.
 
 #### POST /requests/:id/assign-materials
 
-Assigns specific material instances to a request (warehouse operator).
+Assigns inventory instances and prepares the request in a single operation (warehouse operator).
+
+This endpoint performs assignment + ready transition atomically:
+
+- Valid request state: `approved`
+- Each `materialInstanceId` must be unique in the same payload
+- Each instance must exist in the same organization
+- Each instance must match the provided `materialTypeId`
+- Availability is enforced at write-time (`status=available`) to prevent race conditions
+- On conflict/error, all updates are rolled back
 
 | Parameter   | Location | Type  | Required | Description                                       |
 | ----------- | -------- | ----- | -------- | ------------------------------------------------- |
 | assignments | body     | array | Yes      | Array of `{ materialTypeId, materialInstanceId }` |
+
+**Success (200):** request returns with `status: "ready"` and assigned materials persisted.
+
+**Common errors:**
+
+- `400 BAD_REQUEST`: invalid payload, duplicated `materialInstanceId`, type-instance mismatch
+- `404 NOT_FOUND`: request or material instance does not exist in organization
+- `409 CONFLICT`: request not in `approved` status or one/more instances unavailable
+
+Legacy compatibility remains available through:
+
+- `POST /requests/:id/assign`
+- `POST /requests/:id/ready`
 
 ---
 
