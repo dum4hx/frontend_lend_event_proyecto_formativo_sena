@@ -1114,8 +1114,8 @@ export interface RentalsQueryParams extends PaginationParams {
 
 // ─── Transfers ─────────────────────────────────────────────────────────────
 
-export type TransferRequestStatus = "requested" | "approved" | "rejected";
-export type TransferStatus = "in_transit" | "completed" | "cancelled";
+export type TransferRequestStatus = "requested" | "approved" | "rejected" | "fulfilled";
+export type TransferStatus = "in_transit" | "completed" | "cancelled" | "received";
 
 /** Condition of a material instance during/after a transfer. */
 export type TransferCondition =
@@ -1203,6 +1203,7 @@ export interface ReceiveTransferPayload {
 /** Query params for listing transfer requests. */
 export interface TransferRequestsQueryParams {
   status?: TransferRequestStatus;
+  fulfilled?: boolean;
 }
 
 export interface TransfersQueryParams {

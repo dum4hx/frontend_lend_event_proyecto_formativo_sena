@@ -45,12 +45,14 @@ const REQUEST_STATUS_LABEL: Record<TransferRequestStatus, string> = {
   requested: "Requested",
   approved: "Approved",
   rejected: "Rejected",
+  fulfilled: "Fulfilled",
 };
 
 const REQUEST_STATUS_CLASSES: Record<TransferRequestStatus, string> = {
   requested: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
   approved: "bg-green-500/15 text-green-400 border-green-500/30",
   rejected: "bg-red-500/15 text-red-400 border-red-500/30",
+  fulfilled: "bg-blue-500/15 text-blue-400 border-blue-500/30",
 };
 
 const CONDITION_LABEL: Record<TransferCondition, string> = {
@@ -66,12 +68,14 @@ const TRANSFER_STATUS_LABEL: Record<TransferStatus, string> = {
   in_transit: "In Transit",
   completed: "Completed",
   cancelled: "Cancelled",
+  received: "Received",
 };
 
 const TRANSFER_STATUS_CLASSES: Record<TransferStatus, string> = {
   in_transit: "bg-blue-500/15 text-blue-400 border-blue-500/30",
   completed: "bg-green-500/15 text-green-400 border-green-500/30",
   cancelled: "bg-gray-500/15 text-gray-400 border-gray-500/30",
+  received: "bg-green-500/15 text-green-400 border-green-500/30",
 };
 
 function formatDate(iso: string): string {
@@ -689,6 +693,7 @@ const TransferRequests: React.FC = () => {
   const [requests, setRequests] = useState<TransferRequest[]>([]);
   const [requestsLoading, setRequestsLoading] = useState(true);
   const [requestStatusFilter, setRequestStatusFilter] = useState<TransferRequestStatus | "">("");
+  const [showFulfilled, setShowFulfilled] = useState(false);
 
   // ── State: transfers (shipments) ──
   const [transfers, setTransfers] = useState<Transfer[]>([]);
@@ -722,9 +727,10 @@ const TransferRequests: React.FC = () => {
   const loadRequests = useCallback(async () => {
     setRequestsLoading(true);
     try {
-      const res = await getTransferRequests(
-        requestStatusFilter ? { status: requestStatusFilter } : undefined,
-      );
+      const res = await getTransferRequests({
+        status: requestStatusFilter || undefined,
+        fulfilled: showFulfilled,
+      });
       setRequests(res.data.requests ?? []);
     } catch (err: unknown) {
       showToast(
@@ -735,7 +741,7 @@ const TransferRequests: React.FC = () => {
     } finally {
       setRequestsLoading(false);
     }
-  }, [requestStatusFilter, showToast]);
+  }, [requestStatusFilter, showFulfilled, showToast]);
 
   const loadTransfers = useCallback(async () => {
     setTransfersLoading(true);
@@ -885,6 +891,31 @@ const TransferRequests: React.FC = () => {
                 className="absolute right-2.5 top-2.5 text-gray-500 pointer-events-none"
               />
             </div>
+
+            <label className="flex items-center gap-2 cursor-pointer group">
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={showFulfilled}
+                  onChange={(e) => setShowFulfilled(e.target.checked)}
+                  className="sr-only"
+                />
+                <div
+                  className={`w-8 h-4 rounded-full transition-colors ${
+                    showFulfilled ? "bg-[#FFD700]" : "bg-gray-600"
+                  }`}
+                ></div>
+                <div
+                  className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform ${
+                    showFulfilled ? "translate-x-4" : ""
+                  }`}
+                ></div>
+              </div>
+              <span className="text-xs text-gray-400 group-hover:text-gray-300 transition-colors">
+                Show fulfilled
+              </span>
+            </label>
+
             <button
               onClick={() => void loadRequests()}
               disabled={requestsLoading}
