@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Users, Shield, Plus, Trash2, Edit, X, RotateCcw } from "lucide-react";
+import { Users, Shield, Plus, UserX, Edit, X, RotateCcw, Search } from "lucide-react";
 import { StatCard } from "../components";
 import { AdminPagination, AdminTable } from "../components";
 import {
@@ -19,6 +19,7 @@ import {
   validateRequiredPhone,
 } from "../../../utils/validators";
 import { AlertModal, type AlertModalType } from "../../../components/ui/AlertModal";
+import { useConfirmModal } from "../../../hooks/useConfirmModal";
 import type { Role } from "../../../types/api";
 
 const COLOMBIA_PHONE_PREFIX = "+57";
@@ -57,12 +58,14 @@ type TeamMember = {
   id: string;
   name: string;
   email: string;
+  phone: string;
   role: string;
   status: "active" | "inactive" | "invited";
 };
 
 export default function Team() {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -103,6 +106,7 @@ export default function Team() {
     title?: string;
     message: string;
   }>({ open: false, type: "error", message: "" });
+  const { showConfirm, ConfirmModal } = useConfirmModal();
 
   const showAlert = (type: AlertModalType, message: string, title?: string) =>
     setAlertModal({ open: true, type, message, title });
@@ -194,6 +198,7 @@ export default function Team() {
         _id?: string;
         id?: string;
         email?: string;
+        phone?: string;
         name?: { firstName: string; firstSurname: string };
         roleName?: string;
         status?: string;
@@ -219,6 +224,7 @@ export default function Team() {
           id: user._id || user.id || "",
           name: `${firstName} ${lastName}`.trim() || user.email || "",
           email: user.email || "",
+          phone: user.phone || "—",
           role: user.roleName || "undefined",
           status: status,
         };
@@ -244,7 +250,8 @@ export default function Team() {
         const res = await getRoles();
         setAvailableRoles(res.data.items);
       } catch (err) {
-        console.error("[Team] Failed to load roles:", err);
+        const message = err instanceof Error ? err.message : "Failed to load roles";
+        showAlert("error", message);
       }
     };
     void loadRoles();
@@ -252,11 +259,16 @@ export default function Team() {
 
   const filteredMembers = useMemo(() => {
     return teamMembers.filter((m) => {
+      const normalizedSearch = searchQuery.trim().toLowerCase();
+      if (normalizedSearch) {
+        const haystack = `${m.name} ${m.email}`.toLowerCase();
+        if (!haystack.includes(normalizedSearch)) return false;
+      }
       if (roleFilter && m.role !== roleFilter) return false;
       if (statusFilter && m.status !== statusFilter) return false;
       return true;
     });
-  }, [teamMembers, roleFilter, statusFilter]);
+  }, [teamMembers, searchQuery, roleFilter, statusFilter]);
 
   const pageSize = 10;
   const totalPages = Math.max(1, Math.ceil(filteredMembers.length / pageSize));
@@ -402,29 +414,10 @@ export default function Team() {
           },
         });
 
-        console.log("[Team] Updating user role to:", formData.role, "| User ID:", editingId);
-
         await updateUserRole(editingId, {
           roleId: formData.role,
         });
       } else {
-        console.log(
-          "[Team] 🚀 Inviting new user with role:",
-          formData.role,
-          "| Email:",
-          formData.email,
-          "| Full payload:",
-          {
-            email: formData.email,
-            phone: formData.phone,
-            role: formData.role,
-            name: {
-              firstName: formData.firstName,
-              firstSurname: formData.firstSurname,
-            },
-          },
-        );
-
         const invitePayload = {
           email: formData.email,
           phone: toColombianPhone(formData.phone),
@@ -435,21 +428,7 @@ export default function Team() {
           roleId: formData.role,
         };
 
-        const response = await inviteUser(invitePayload);
-
-        console.log(
-          "[Team] ✅ Invitation sent successfully for:",
-          formData.email,
-          "| Role assigned:",
-          formData.role,
-          "| Server response:",
-          response,
-        );
-
-        console.log(
-          "[Team] 📋 User data from server:",
-          response.data?.user || "No user data returned",
-        );
+        await inviteUser(invitePayload);
       }
 
       handleCloseModal();
@@ -478,7 +457,13 @@ export default function Team() {
   };
 
   const handleDeleteUser = async (userId: string, memberName: string) => {
-    if (!confirm(`Deactivate ${memberName}?\n\nThe member will lose access to the platform.`)) return;
+    const confirmed = await showConfirm({
+      title: `Deactivate ${memberName}?`,
+      message: "The member will lose access to the platform.",
+      confirmText: "Deactivate",
+      variant: "warning",
+    });
+    if (!confirmed) return;
 
     try {
       await deactivateUser(userId);
@@ -490,7 +475,13 @@ export default function Team() {
   };
 
   const handleReactivateUser = async (userId: string, memberName: string) => {
-    if (!confirm(`Reactivate ${memberName}?\n\nThis will restore the member's access to the platform.`)) return;
+    const confirmed = await showConfirm({
+      title: `Reactivate ${memberName}?`,
+      message: "This will restore the member's access to the platform.",
+      confirmText: "Reactivate",
+      variant: "info",
+    });
+    if (!confirmed) return;
 
     try {
       await reactivateUser(userId);
@@ -502,7 +493,22 @@ export default function Team() {
   };
 
   const activeCount = teamMembers.filter((m) => m.status === "active").length;
+  const inactiveCount = teamMembers.filter((m) => m.status === "inactive").length;
+  const invitedCount = teamMembers.filter((m) => m.status === "invited").length;
   const rolesCount = new Set(teamMembers.map((m) => m.role)).size;
+
+  const getStatusBadge = (status: TeamMember["status"]) => {
+    switch (status) {
+      case "active":
+        return <span className="badge badge-success">Active</span>;
+      case "inactive":
+        return <span className="badge badge-warning">Inactive</span>;
+      case "invited":
+        return <span className="badge badge-info">Invited</span>;
+      default:
+        return <span className="badge">{status}</span>;
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -520,27 +526,50 @@ export default function Team() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
         <StatCard label="Total Members" value={teamMembers.length} icon={<Users size={28} />} />
         <StatCard label="Active Members" value={activeCount} icon={<Shield size={28} />} />
+        <StatCard label="Invited" value={invitedCount} icon={<Users size={28} />} />
+        <StatCard label="Inactive" value={inactiveCount} icon={<Shield size={28} />} />
         <StatCard label="Roles" value={rolesCount} icon={<Users size={28} />} />
       </div>
 
       <div>
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-4">
-          <h2 className="text-xl font-semibold text-white">Team List</h2>
-          <div className="flex flex-col sm:flex-row gap-3">
+        <h2 className="text-xl font-semibold text-white mb-4">Team List</h2>
+
+        <div className="card mb-6">
+          <div className="flex flex-col md:flex-row gap-4">
+            {/* Search */}
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={20} />
+              <input
+                type="text"
+                placeholder="Search by name or email..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="input pl-10"
+              />
+            </div>
+
             {/* Filter by role */}
             <select
               title="Filter by role"
               aria-label="Filter by role"
               value={roleFilter}
-              onChange={(e) => { setRoleFilter(e.target.value); setCurrentPage(1); }}
-              className="bg-zinc-900 border border-zinc-700 text-white rounded-lg px-3 py-2 text-sm outline-none focus:border-yellow-400 transition"
+              onChange={(e) => {
+                setRoleFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="input md:w-48"
             >
               <option value="">All roles</option>
               {availableRoles.map((r) => (
-                <option key={r._id} value={r.name}>{r.name.charAt(0).toUpperCase() + r.name.slice(1)}</option>
+                <option key={r._id} value={r.name}>
+                  {r.name.charAt(0).toUpperCase() + r.name.slice(1)}
+                </option>
               ))}
             </select>
 
@@ -549,8 +578,11 @@ export default function Team() {
               title="Filter by status"
               aria-label="Filter by status"
               value={statusFilter}
-              onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-              className="bg-zinc-900 border border-zinc-700 text-white rounded-lg px-3 py-2 text-sm outline-none focus:border-yellow-400 transition"
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="input md:w-48"
             >
               <option value="">All statuses</option>
               <option value="active">Active</option>
@@ -559,13 +591,19 @@ export default function Team() {
             </select>
           </div>
         </div>
+
         <div>
           {loading ? (
-            <div className="p-6 text-center text-gray-400">Loading team members...</div>
+            <div className="card flex items-center justify-center py-12">
+              <div className="spinner w-8 h-8"></div>
+              <p className="mt-4 text-gray-400">Loading team members...</p>
+            </div>
           ) : error ? (
-            <div className="p-6 text-center text-red-400">{error}</div>
+            <div className="card bg-red-500/10 border-red-500/30 p-6 text-center text-red-400">
+              {error}
+            </div>
           ) : filteredMembers.length === 0 ? (
-            <div className="p-6 text-center text-gray-400">
+            <div className="card p-6 text-center text-gray-400">
               {roleFilter || statusFilter ? "No members match the selected filters" : "No team members found"}
             </div>
           ) : (
@@ -574,6 +612,7 @@ export default function Team() {
                 <tr>
                   <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">Name</th>
                   <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">Email</th>
+                  <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">Phone</th>
                   <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">Role</th>
                   <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">Status</th>
                   <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">Actions</th>
@@ -587,20 +626,11 @@ export default function Team() {
                   >
                     <td className="px-6 py-4 text-white">{member.name}</td>
                     <td className="px-6 py-4 text-gray-400">{member.email}</td>
+                    <td className="px-6 py-4 text-gray-400">{member.phone}</td>
                     <td className="px-6 py-4 text-gray-400">{member.role}</td>
+                    <td className="px-6 py-4">{getStatusBadge(member.status)}</td>
                     <td className="px-6 py-4">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${member.status === "active" ? "bg-green-900 text-green-200" : member.status === "inactive" ? "bg-red-900 text-red-200" : "bg-yellow-900 text-yellow-200"}`}
-                      >
-                        {member.status === "active"
-                          ? "Active"
-                          : member.status === "inactive"
-                            ? "Inactive"
-                            : "Invited"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex gap-2">
+                      <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleOpenModal(member)}
                           className="btn-icon text-blue-400 hover:text-blue-300"
@@ -626,11 +656,11 @@ export default function Team() {
                         {member.status !== "inactive" && (
                           <button
                             onClick={() => void handleDeleteUser(member.id, member.name)}
-                            className="btn-icon text-red-500 hover:text-red-400"
+                            className="btn-icon text-orange-500 hover:text-orange-400"
                             title="Deactivate member"
                             aria-label="Deactivate member"
                           >
-                            <Trash2 size={18} />
+                            <UserX size={18} />
                           </button>
                         )}
                       </div>
@@ -658,6 +688,7 @@ export default function Team() {
         message={alertModal.message}
         onClose={closeAlert}
       />
+      <ConfirmModal />
 
       {/* Modal Create/Edit */}
       {showModal && (
