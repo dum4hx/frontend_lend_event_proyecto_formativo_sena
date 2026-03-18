@@ -24,7 +24,11 @@ import type {
 export async function getTransferRequests(
   params?: TransferRequestsQueryParams,
 ): Promise<ApiSuccessResponse<{ requests: TransferRequest[] }>> {
-  const query = params?.status ? `?status=${params.status}` : "";
+  const queryParts: string[] = [];
+  if (params?.status) queryParts.push(`status=${params.status}`);
+  if (params?.fulfilled !== undefined) queryParts.push(`fulfilled=${params.fulfilled}`);
+
+  const query = queryParts.length > 0 ? `?${queryParts.join("&")}` : "";
   const res = await get<unknown>(`/transfers/requests${query}`);
 
   // If API already returns { requests: [...] } keep as-is
