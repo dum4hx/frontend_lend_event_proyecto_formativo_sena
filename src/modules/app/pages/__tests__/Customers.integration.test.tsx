@@ -198,10 +198,12 @@ describe("Customers integration", () => {
     mockInitialData([
       customerFactory({
         address: {
-          street: "Calle 15 # 93B-47A",
+          streetType: "Calle",
+          primaryNumber: "15",
+          secondaryNumber: "93B",
+          complementaryNumber: "47A",
           city: "Medellin",
-          state: "Antioquia",
-          country: "Colombia",
+          department: "Antioquia",
           postalCode: "050001",
         },
       }),
@@ -221,10 +223,12 @@ describe("Customers integration", () => {
 
     const payload = mocks.updateCustomer.mock.calls[0][1] as UpdateCustomerPayload;
     expect(payload.address).toMatchObject({
-      street: "Calle 15 # 93B-47A",
+      streetType: "Calle",
+      primaryNumber: "15",
+      secondaryNumber: "93B",
+      complementaryNumber: "47A",
       city: "Medellin",
-      state: "Antioquia",
-      country: "Colombia",
+      department: "Antioquia",
       postalCode: "050001",
     });
     expect(payload.name?.firstName).toBe("Janet");

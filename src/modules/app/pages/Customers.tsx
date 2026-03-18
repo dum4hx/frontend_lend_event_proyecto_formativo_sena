@@ -14,6 +14,7 @@ import {
   deleteCustomer,
 } from "../../../services/customerService";
 import type {
+  Address,
   Customer,
   CreateCustomerPayload,
   UpdateCustomerPayload,
@@ -58,9 +59,12 @@ const COLOMBIA_STREET_TYPES = [
   "Calle",
   "Carrera",
   "Avenida",
+  "Avenida Calle",
+  "Avenida Carrera",
   "Transversal",
   "Diagonal",
   "Circular",
+  "Via",
 ] as const;
 const ADDRESS_SEGMENT_MAX_LENGTH = 8;
 const ADDRESS_DETAILS_MAX_LENGTH = 80;
@@ -81,10 +85,22 @@ type CustomerFormField =
   | "cityQuery"
   | "postalCode";
 
+type LegacyCustomerAddress = Address & {
+  street?: string;
+  state?: string;
+  additionalInfo?: string;
+  details?: string;
+  cityName?: string;
+  municipality?: string;
+  town?: string;
+  province?: string;
+  region?: string;
+};
+
 /** Try to decompose a previously-composed street string. */
 function parseStreet(street: string) {
   const re =
-    /^(Calle|Carrera|Avenida|Transversal|Diagonal|Circular)\s+(.+?)\s*#\s*(.+?)\s*-\s*(.+?)(?:\s*,\s*(.+))?$/i;
+    /^(Calle|Carrera|Avenida|Avenida Calle|Avenida Carrera|Transversal|Diagonal|Circular|Via)\s+(.+?)\s*#\s*(.+?)\s*-\s*(.+?)(?:\s*,\s*(.+))?$/i;
   const m = street.match(re);
   if (!m) return null;
   return {
@@ -94,6 +110,10 @@ function parseStreet(street: string) {
     complementaryNumber: m[4],
     additionalDetails: m[5] ?? "",
   };
+}
+
+function asTrimmedString(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
 }
 
 export default function Customers() {
@@ -181,6 +201,18 @@ export default function Customers() {
     [normalize],
   );
 
+  const normalizeStreetTypeValue = useCallback(
+    (value: string) => {
+      const normalized = value.trim();
+      if (!normalized) return "";
+      const canonical = COLOMBIA_STREET_TYPES.find((type) =>
+        isNormalizedEqual(type, normalized),
+      );
+      return canonical ?? normalized;
+    },
+    [isNormalizedEqual],
+  );
+
   // Client-side filter for departments
   const filteredDepartments = useMemo(() => {
     if (!departments) return [];
@@ -260,7 +292,7 @@ export default function Customers() {
     return d ? `${formattedStreetBase}, ${d}` : formattedStreetBase;
   }, [formattedStreetBase, additionalDetails]);
 
-  const canEditPostalCode = !!selectedCity && !selectedCity.postalCode;
+  const canEditPostalCode = !!cityQuery.trim() && (!selectedCity || !selectedCity.postalCode);
 
   // --- Styling helper (same as SignUp) --------------------------------------
   const inputClass = (hasError: boolean) =>
@@ -352,14 +384,11 @@ export default function Customers() {
         if (additionalDetails.length > ADDRESS_DETAILS_MAX_LENGTH)
           nextErrors.additionalDetails = `Must not exceed ${ADDRESS_DETAILS_MAX_LENGTH} characters`;
 
-        const isStateSelected = !!selectedState && isNormalizedEqual(stateQuery, selectedState.name);
-        const stateV = validateState(stateQuery, isStateSelected);
+        const stateV = validateState(stateQuery, !!stateQuery.trim());
         if (!stateV.isValid && stateV.message) nextErrors.stateQuery = stateV.message;
 
         if (!cityQuery.trim()) {
           nextErrors.cityQuery = "City is required";
-        } else if (!selectedCity || !isNormalizedEqual(cityQuery, selectedCity.name)) {
-          nextErrors.cityQuery = "Please select a valid city from the list";
         }
 
         if (selectedCity && !selectedCity.postalCode && !postalCodeField.trim()) {
@@ -393,9 +422,7 @@ export default function Customers() {
       stateQuery,
       cityQuery,
       postalCodeField,
-      selectedState,
       selectedCity,
-      isNormalizedEqual,
       toColombianPhone,
     ],
   );
@@ -507,16 +534,42 @@ export default function Customers() {
   }, [fetchCustomers]);
 
   // --- Build address payload from sub-fields --------------------------------
-  const buildAddressPayload = () => {
-    if (!showAddress) return undefined;
-    return {
-      street: formattedStreet || undefined,
-      city: selectedCity?.name || undefined,
-      state: selectedState?.name || undefined,
-      country: "Colombia",
-      postalCode: postalCodeField || undefined,
-    };
-  };
+  const buildAddressPayload = useCallback(
+    (opts?: { preserveExistingOnHide?: boolean }) => {
+      if (!showAddress) {
+        if (opts?.preserveExistingOnHide && selectedCustomer?.address) {
+          return selectedCustomer.address;
+        }
+        return undefined;
+      }
+
+      const address: Address = {
+        streetType: streetType || undefined,
+        primaryNumber: mainNumber || undefined,
+        secondaryNumber: secondaryNumber || undefined,
+        complementaryNumber: complementaryNumber || undefined,
+        department: stateQuery.trim() || undefined,
+        city: cityQuery.trim() || undefined,
+        additionalDetails: additionalDetails.trim() || undefined,
+        postalCode: postalCodeField.trim() || undefined,
+      };
+
+      const hasAddressData = Object.values(address).some((value) => !!value);
+      return hasAddressData ? address : undefined;
+    },
+    [
+      showAddress,
+      selectedCustomer,
+      streetType,
+      mainNumber,
+      secondaryNumber,
+      complementaryNumber,
+      stateQuery,
+      cityQuery,
+      additionalDetails,
+      postalCodeField,
+    ],
+  );
 
   // --- Create customer ------------------------------------------------------
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -530,7 +583,7 @@ export default function Customers() {
       const payload: CreateCustomerPayload = {
         ...formData,
         phone: toColombianPhone(formData.phone),
-        address: buildAddressPayload(),
+        address: buildAddressPayload({ preserveExistingOnHide: false }),
       };
       await createCustomer(payload);
       setShowCreateModal(false);
@@ -563,7 +616,7 @@ export default function Customers() {
         },
         email: formData.email,
         phone: toColombianPhone(formData.phone),
-        address: buildAddressPayload(),
+        address: buildAddressPayload({ preserveExistingOnHide: true }),
       };
       await updateCustomer(selectedCustomer._id, payload);
       setShowEditModal(false);
@@ -680,40 +733,51 @@ export default function Customers() {
 
   /** Populate address sub-fields from a customer's saved address. */
   const loadAddressFields = (customer: Customer) => {
-    const addr = customer.address;
+    const addr = customer.address as LegacyCustomerAddress | undefined;
+
     if (!addr) {
       resetAddressFields();
       return;
     }
-    // Try to decompose the street
-    if (addr.street) {
-      const parsed = parseStreet(addr.street);
-      if (parsed) {
-        setStreetType(parsed.streetType);
-        setMainNumber(parsed.mainNumber);
-        setSecondaryNumber(parsed.secondaryNumber);
-        setComplementaryNumber(parsed.complementaryNumber);
-        setAdditionalDetails(parsed.additionalDetails);
-      } else {
-        // Fallback: put entire street in additionalDetails
-        setStreetType("");
-        setMainNumber("");
-        setSecondaryNumber("");
-        setComplementaryNumber("");
-        setAdditionalDetails(addr.street);
-      }
-    } else {
-      setStreetType("");
-      setMainNumber("");
-      setSecondaryNumber("");
-      setComplementaryNumber("");
-      setAdditionalDetails("");
-    }
+
+    const parsedLegacyStreet = asTrimmedString(addr.street)
+      ? parseStreet(asTrimmedString(addr.street))
+      : null;
+
+    const resolvedStreetType = normalizeStreetTypeValue(
+      asTrimmedString(addr.streetType) || parsedLegacyStreet?.streetType || "",
+    );
+    const resolvedPrimaryNumber =
+      asTrimmedString(addr.primaryNumber) || parsedLegacyStreet?.mainNumber || "";
+    const resolvedSecondaryNumber =
+      asTrimmedString(addr.secondaryNumber) || parsedLegacyStreet?.secondaryNumber || "";
+    const resolvedComplementaryNumber =
+      asTrimmedString(addr.complementaryNumber) || parsedLegacyStreet?.complementaryNumber || "";
+    const resolvedAdditionalDetails =
+      asTrimmedString(addr.additionalDetails) ||
+      asTrimmedString(addr.additionalInfo) ||
+      asTrimmedString(addr.details) ||
+      parsedLegacyStreet?.additionalDetails ||
+      (!parsedLegacyStreet ? asTrimmedString(addr.street) : "");
+
+    setStreetType(resolvedStreetType);
+    setMainNumber(resolvedPrimaryNumber);
+    setSecondaryNumber(resolvedSecondaryNumber);
+    setComplementaryNumber(resolvedComplementaryNumber);
+    setAdditionalDetails(resolvedAdditionalDetails);
     
     // Set state/city text fields and try to auto-select if data is available
-    const savedState = addr.state ?? "";
-    const savedCity = addr.city ?? "";
-    const savedPostalCode = addr.postalCode ?? "";
+    const savedState =
+      asTrimmedString(addr.department) ||
+      asTrimmedString(addr.state) ||
+      asTrimmedString(addr.province) ||
+      asTrimmedString(addr.region);
+    const savedCity =
+      asTrimmedString(addr.city) ||
+      asTrimmedString(addr.cityName) ||
+      asTrimmedString(addr.municipality) ||
+      asTrimmedString(addr.town);
+    const savedPostalCode = asTrimmedString(addr.postalCode);
     
     setStateQuery(savedState);
     setCityQuery(savedCity);
@@ -767,8 +831,29 @@ export default function Customers() {
     // Load address fields
     loadAddressFields(customer);
 
-    // Show address section if customer has existing address data
-    setShowAddress(!!(customer.address?.street || customer.address?.city));
+    // Show address section if customer has any existing address data.
+    const addr = customer.address as LegacyCustomerAddress | undefined;
+    setShowAddress(
+      !!(
+        addr?.streetType ||
+        addr?.primaryNumber ||
+        addr?.secondaryNumber ||
+        addr?.complementaryNumber ||
+        addr?.department ||
+        addr?.state ||
+        addr?.province ||
+        addr?.region ||
+        addr?.city ||
+        addr?.cityName ||
+        addr?.municipality ||
+        addr?.town ||
+        addr?.postalCode ||
+        addr?.additionalDetails ||
+        addr?.additionalInfo ||
+        addr?.details ||
+        addr?.street
+      ),
+    );
     
     setTouched({});
     setFieldErrors({});
@@ -1225,6 +1310,10 @@ export default function Customers() {
                         <option disabled value="">
                           Select street type
                         </option>
+                        {streetType &&
+                          !COLOMBIA_STREET_TYPES.some((type) =>
+                            isNormalizedEqual(type, streetType),
+                          ) && <option value={streetType}>{streetType}</option>}
                         {COLOMBIA_STREET_TYPES.map((type) => (
                           <option key={type} value={type}>
                             {type}
@@ -1702,6 +1791,10 @@ export default function Customers() {
                         <option disabled value="">
                           Select street type
                         </option>
+                        {streetType &&
+                          !COLOMBIA_STREET_TYPES.some((type) =>
+                            isNormalizedEqual(type, streetType),
+                          ) && <option value={streetType}>{streetType}</option>}
                         {COLOMBIA_STREET_TYPES.map((type) => (
                           <option key={type} value={type}>
                             {type}
