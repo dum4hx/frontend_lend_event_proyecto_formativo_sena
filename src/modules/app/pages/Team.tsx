@@ -11,6 +11,7 @@ import {
   reactivateUser,
 } from "../../../services/adminService";
 import { getRoles } from "../../../services/roleService";
+import { getLocations, type WarehouseLocation } from "../../../services/warehouseOperatorService";
 import { ApiError } from "../../../lib/api";
 import {
   validateFirstName,
@@ -76,11 +77,13 @@ export default function Team() {
     email: "",
     phone: "",
     role: "", // populated once availableRoles load
+    locations: [] as string[], // location IDs to assign
   });
   const [formErrors, setFormErrors] = useState<Partial<Record<TeamFormField, string>>>({});
   const [formTouched, setFormTouched] = useState<Partial<Record<TeamFormField, boolean>>>({});
   const [submitting, setSubmitting] = useState(false);
   const [availableRoles, setAvailableRoles] = useState<Role[]>([]);
+  const [availableLocations, setAvailableLocations] = useState<WarehouseLocation[]>([]);
   const [initialRole, setInitialRole] = useState<string>("");
   const [ownerSecurity, setOwnerSecurity] = useState<{
     acceptedCritical: boolean;
@@ -250,6 +253,18 @@ export default function Team() {
     void loadRoles();
   }, []);
 
+  useEffect(() => {
+    const loadLocations = async () => {
+      try {
+        const res = await getLocations();
+        setAvailableLocations(res.data.items || []);
+      } catch (err) {
+        console.error("[Team] Failed to load locations:", err);
+      }
+    };
+    void loadLocations();
+  }, []);
+
   const filteredMembers = useMemo(() => {
     return teamMembers.filter((m) => {
       if (roleFilter && m.role !== roleFilter) return false;
@@ -326,6 +341,7 @@ export default function Team() {
         email: member.email,
         phone: "",
         role: matchedRole?._id ?? "",
+        locations: [],
       });
     } else {
       setEditingId(null);
@@ -337,6 +353,7 @@ export default function Team() {
         email: "",
         phone: "",
         role: defaultRole,
+        locations: availableLocations.length > 0 ? [availableLocations[0]._id] : [],
       });
     }
     setFormErrors({});
@@ -356,6 +373,7 @@ export default function Team() {
       email: "",
       phone: "",
       role: defaultRole,
+      locations: [],
     });
     setFormErrors({});
     setFormTouched({});
@@ -380,6 +398,16 @@ export default function Team() {
       setFormTouched((prev) => ({ ...prev, ...allTouched }));
       setFormErrors(allErrors);
       if (Object.keys(allErrors).length > 0) return;
+
+      // Validate locations for new invitations
+      if (!editingId && formData.locations.length === 0) {
+        showAlert(
+          "warning",
+          "Please select at least one location for this team member.",
+          "Locations Required"
+        );
+        return;
+      }
 
       if (isOwnerPromotion) {
         setOwnerSecurityTouched(true);
@@ -413,11 +441,14 @@ export default function Team() {
           formData.role,
           "| Email:",
           formData.email,
+          "| Locations:",
+          formData.locations,
           "| Full payload:",
           {
             email: formData.email,
             phone: formData.phone,
             role: formData.role,
+            locations: formData.locations,
             name: {
               firstName: formData.firstName,
               firstSurname: formData.firstSurname,
@@ -432,6 +463,7 @@ export default function Team() {
             firstName: formData.firstName,
             firstSurname: formData.firstSurname,
           },
+          locations: formData.locations,
           roleId: formData.role,
         };
 
@@ -442,6 +474,8 @@ export default function Team() {
           formData.email,
           "| Role assigned:",
           formData.role,
+          "| Locations assigned:",
+          formData.locations,
           "| Server response:",
           response,
         );
@@ -462,11 +496,18 @@ export default function Team() {
             : undefined;
 
         if (detailsCode === "USER_EMAIL_ALREADY_EXISTS") {
-          const fieldMsg = "This email is already registered. Please use a different email.";
-          setFormErrors((prev) => ({ ...prev, email: fieldMsg }));
+          // Show the server message in the alert and also mark the email field
+          setFormErrors((prev) => ({ ...prev, email: err.message }));
           setFormTouched((prev) => ({ ...prev, email: true }));
-          showAlert("warning", fieldMsg, "Duplicate Email");
+          showAlert("warning", err.message, "Email Already Registered");
+        } else if (err.code === "CONFLICT") {
+          // Handle other conflict errors
+          showAlert("error", err.message, "Conflict");
+        } else if (err.code === "BAD_REQUEST") {
+          // Handle validation errors
+          showAlert("error", err.message, "Validation Error");
         } else {
+          // Show the server message for any other error
           showAlert("error", err.message);
         }
       } else {
@@ -484,8 +525,11 @@ export default function Team() {
       await deactivateUser(userId);
       await fetchTeamMembers();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Unknown error";
-      showAlert("error", message);
+      if (err instanceof ApiError) {
+        showAlert("error", err.message, "Deactivation Failed");
+      } else {
+        showAlert("error", "An unexpected error occurred while deactivating the user.");
+      }
     }
   };
 
@@ -496,8 +540,11 @@ export default function Team() {
       await reactivateUser(userId);
       await fetchTeamMembers();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Unknown error";
-      showAlert("error", message);
+      if (err instanceof ApiError) {
+        showAlert("error", err.message, "Reactivation Failed");
+      } else {
+        showAlert("error", "An unexpected error occurred while reactivating the user.");
+      }
     }
   };
 
@@ -796,6 +843,49 @@ export default function Team() {
                     ))}
                   </select>
                 </div>
+
+                {!editingId && (
+                  <div>
+                    <label className="form-label">Assigned Locations *</label>
+                    <div className="space-y-2 max-h-48 overflow-y-auto bg-zinc-900 border border-zinc-800 rounded-xl p-3">
+                      {availableLocations.length === 0 ? (
+                        <p className="text-sm text-gray-400">No locations available. Please create a location first.</p>
+                      ) : (
+                        availableLocations.map((location) => (
+                          <label
+                            key={location._id}
+                            className="flex items-start gap-3 cursor-pointer hover:bg-zinc-800 p-2 rounded-lg transition"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={formData.locations.includes(location._id)}
+                              onChange={(e) => {
+                                const isChecked = e.target.checked;
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  locations: isChecked
+                                    ? [...prev.locations, location._id]
+                                    : prev.locations.filter((id) => id !== location._id),
+                                }));
+                              }}
+                              disabled={submitting}
+                              className="mt-1 w-4 h-4 text-yellow-400 bg-zinc-800 border-zinc-700 rounded focus:ring-yellow-400 focus:ring-2"
+                            />
+                            <div className="flex-1">
+                              <div className="text-white text-sm font-medium">{location.name}</div>
+                              {location.address?.formatted && (
+                                <div className="text-gray-400 text-xs">{location.address.formatted}</div>
+                              )}
+                            </div>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                    {formData.locations.length === 0 && availableLocations.length > 0 && (
+                      <p className="text-amber-400 text-xs mt-1">Please select at least one location</p>
+                    )}
+                  </div>
+                )}
 
                 {isOwnerPromotion && (
                   <div className="space-y-4 rounded-xl border border-yellow-500/50 bg-yellow-500/10 p-4">

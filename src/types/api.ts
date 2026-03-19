@@ -785,6 +785,7 @@ export interface InviteUserPayload {
   name: PersonName;
   email: string;
   phone: string;
+  locations: string[];
   roleId: string;
 }
 

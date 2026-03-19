@@ -32,7 +32,7 @@ export interface ApiSuccessResponse<T> {
 
 /** Standard error response envelope returned by the API. */
 export interface ApiErrorResponse {
-  status: "error";
+  status: "error" | "fail";
   message: string;
   code?: string;
   details?: Record<string, unknown>;
@@ -43,7 +43,7 @@ export type ApiResponse<T> = ApiSuccessResponse<T> | ApiErrorResponse;
 
 /** Convenience type-guard: narrows an `ApiResponse` to the error variant. */
 export function isApiError<T>(res: ApiResponse<T>): res is ApiErrorResponse {
-  return res.status === "error";
+  return res.status === "error" || res.status === "fail";
 }
 
 /**
