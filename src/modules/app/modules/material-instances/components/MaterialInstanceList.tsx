@@ -1,6 +1,6 @@
 import React from "react";
 import { Eye, Edit, Trash2 } from "lucide-react";
-import type { MaterialInstance } from "../../../../../types/api";
+import { type MaterialInstance, MATERIAL_INSTANCE_STATUS_LABELS } from "../../../../../types/api";
 import { AdminTable } from "../../../components";
 
 interface MaterialInstanceListProps {
@@ -26,6 +26,7 @@ export const MaterialInstanceList: React.FC<MaterialInstanceListProps> = ({
       damaged: "text-red-400",
       lost: "text-red-600",
       retired: "text-gray-500",
+      in_use: "text-blue-400",
     };
     return colors[status] || "text-gray-400";
   };
@@ -44,6 +45,7 @@ export const MaterialInstanceList: React.FC<MaterialInstanceListProps> = ({
         <tr>
           <th className="text-left py-4 px-4 text-gray-400 font-semibold">Serial Number</th>
           <th className="text-left py-4 px-4 text-gray-400 font-semibold">Material Type</th>
+          <th className="text-left py-4 px-4 text-gray-400 font-semibold">Location</th>
           <th className="text-left py-4 px-4 text-gray-400 font-semibold">Status</th>
           <th className="text-right py-4 px-4 text-gray-400 font-semibold">Actions</th>
         </tr>
@@ -56,9 +58,10 @@ export const MaterialInstanceList: React.FC<MaterialInstanceListProps> = ({
           >
             <td className="py-4 px-4 text-white font-mono font-medium">{instance.serialNumber}</td>
             <td className="py-4 px-4 text-gray-400">{instance.model.name}</td>
+            <td className="py-4 px-4 text-gray-400">{instance.location?.name || "Unknown"}</td>
             <td className="py-4 px-4">
               <span className={`font-semibold ${getStatusColor(instance.status)}`}>
-                {instance.status.toUpperCase()}
+                {MATERIAL_INSTANCE_STATUS_LABELS[instance.status]}
               </span>
             </td>
             <td className="py-4 px-4">

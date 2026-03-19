@@ -300,7 +300,20 @@ export type MaterialInstanceStatus =
   | "maintenance"
   | "damaged"
   | "lost"
-  | "retired";
+  | "retired"
+  | "in_use";
+
+export const MATERIAL_INSTANCE_STATUS_LABELS: Record<MaterialInstanceStatus, string> = {
+  available: "AVAILABLE",
+  reserved: "RESERVED",
+  loaned: "LOANED",
+  returned: "RETURNED",
+  maintenance: "MAINTENANCE",
+  damaged: "DAMAGED",
+  lost: "LOST",
+  retired: "RETIRED",
+  in_use: "IN USE",
+};
 
 export interface MaterialInstance {
   _id: string;
@@ -311,10 +324,13 @@ export interface MaterialInstance {
   };
   serialNumber: string;
   locationId: string;
+  location?: {
+    _id: string;
+    name: string;
+  };
   status: MaterialInstanceStatus;
   purchaseDate?: string;
   purchaseCost?: number;
-  [key: string]: unknown;
 }
 
 export interface CreateMaterialInstancePayload {
@@ -856,6 +872,7 @@ export interface MaterialInstancesQueryParams {
   status?: MaterialInstanceStatus;
   materialTypeId?: string;
   search?: string;
+  byLocation?: boolean;
 }
 
 export interface LoanRequestsQueryParams extends PaginationParams {

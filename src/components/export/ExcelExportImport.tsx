@@ -13,19 +13,19 @@ import * as XLSX from "xlsx";
 import { Button } from "../ui";
 
 interface ExcelExportImportProps {
-  data: Record<string, unknown>[];
+  data: any[];
   filename: string;
-  onImport?: (data: Record<string, unknown>[]) => void;
+  onImport?: (data: any[]) => void;
   showLabels?: boolean;
 }
 
 /**
  * Calculates column width based on content
  */
-const calculateColumnWidth = (data: Record<string, unknown>[], columnName: string): number => {
+const calculateColumnWidth = (data: any[], columnName: string): number => {
   const maxLength = Math.max(
     columnName.length,
-    ...data.map((row) => String(row[columnName] || "").length),
+    ...data.map((row) => String(row[columnName as keyof typeof row] || "").length),
   );
   return Math.min(maxLength + 2, 50);
 };
@@ -33,7 +33,7 @@ const calculateColumnWidth = (data: Record<string, unknown>[], columnName: strin
 /**
  * Format data for Excel export
  */
-const formatDataForExcel = (data: Record<string, unknown>[]): Record<string, unknown>[] => {
+const formatDataForExcel = (data: any[]): Record<string, unknown>[] => {
   return data.map((item) => {
     const formatted: Record<string, unknown> = {};
     Object.keys(item).forEach((key) => {
@@ -41,7 +41,7 @@ const formatDataForExcel = (data: Record<string, unknown>[]): Record<string, unk
       if (key.startsWith("_") || key === "id") {
         formatted["_id"] = item._id || item.id;
       } else {
-        formatted[key] = item[key];
+        formatted[key] = item[key as keyof typeof item];
       }
     });
     return formatted;

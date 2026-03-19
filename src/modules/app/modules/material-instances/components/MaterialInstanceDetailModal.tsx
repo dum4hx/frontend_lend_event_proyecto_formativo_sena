@@ -1,6 +1,6 @@
 import React from "react";
 import { X } from "lucide-react";
-import type { MaterialInstance } from "../../../../../types/api";
+import { type MaterialInstance, MATERIAL_INSTANCE_STATUS_LABELS } from "../../../../../types/api";
 
 interface MaterialInstanceDetailModalProps {
   instance: MaterialInstance;
@@ -11,15 +11,6 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
   instance,
   onClose,
 }) => {
-  const formatCost = (cost?: number) => {
-    if (!cost) return "N/A";
-    return new Intl.NumberFormat("es-CO", {
-      style: "currency",
-      currency: "COP",
-      minimumFractionDigits: 0,
-    }).format(cost);
-  };
-
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
       available: "text-green-400",
@@ -59,7 +50,7 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-2">Status</label>
               <p className={`font-bold text-lg ${getStatusColor(instance.status)}`}>
-                {instance.status.toUpperCase()}
+                {MATERIAL_INSTANCE_STATUS_LABELS[instance.status]}
               </p>
             </div>
           </div>
@@ -71,25 +62,14 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">Instance ID</label>
-              <p className="text-gray-400 text-sm font-mono">{instance._id}</p>
+              <label className="block text-sm font-medium text-gray-400 mb-2">Location</label>
+              <p className="text-white">{instance.location?.name || "Unknown"}</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">Purchase Date</label>
-              <p className="text-white">
-                {instance.purchaseDate
-                  ? new Date(instance.purchaseDate).toLocaleDateString()
-                  : "N/A"}
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">Purchase Cost</label>
-              <p className="text-[#FFD700] font-semibold">{formatCost(instance.purchaseCost)}</p>
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-400 mb-2">Instance ID</label>
+            <p className="text-gray-400 text-sm font-mono">{instance._id}</p>
           </div>
         </div>
 
