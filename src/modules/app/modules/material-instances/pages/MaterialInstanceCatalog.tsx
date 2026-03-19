@@ -11,12 +11,16 @@ import {
 import { AdminPagination } from "../../../components";
 import { ExcelExportImport } from "../../../../../components/export/ExcelExportImport";
 import { useToast } from "../../../../../contexts/ToastContext";
-import { getLocations, type WarehouseLocation } from "../../../../../services/warehouseOperatorService";
+import {
+  getLocations,
+  type WarehouseLocation,
+} from "../../../../../services/warehouseOperatorService";
 import type { MaterialInstance, CreateMaterialInstancePayload } from "../../../../../types/api";
 
 export const MaterialInstanceCatalog: React.FC = () => {
   const navigate = useNavigate();
-  const { instances, loading, error, removeInstance, addInstance } = useMaterialInstances();
+  const { instances, loading, error, removeInstance, addInstance, refetch } =
+    useMaterialInstances();
   const { materialTypes } = useMaterialTypes();
   const { showToast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
@@ -130,16 +134,25 @@ export const MaterialInstanceCatalog: React.FC = () => {
           continue;
         }
         try {
-          await addInstance({
-            modelId: item.modelId,
-            serialNumber: item.serialNumber,
-            locationId: item.locationId,
-          });
+          await addInstance(
+            {
+              modelId: item.modelId,
+              serialNumber: item.serialNumber,
+              locationId: item.locationId,
+            },
+            true, // skipFetch: true, avoid refetching inside the loop
+          );
           successCount++;
         } catch (itemError) {
           console.error("Error importing item:", item, itemError);
         }
       }
+
+      // One single final refetch after all items are imported
+      if (successCount > 0) {
+        await refetch();
+      }
+
       showToast(
         "success",
         `Imported ${successCount}/${data.length} material instances`,

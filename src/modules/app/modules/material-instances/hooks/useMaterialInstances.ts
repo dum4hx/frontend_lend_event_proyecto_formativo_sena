@@ -52,9 +52,12 @@ export function useMaterialInstances() {
     fetchInstances();
   }, []);
 
-  const addInstance = async (payload: CreateMaterialInstancePayload) => {
+  const addInstance = async (payload: CreateMaterialInstancePayload, skipFetch = false) => {
     const response = await createMaterialInstance(payload);
-    setInstances((prev) => [...prev, response.data.instance]);
+    // Refresh the list from the server to ensure we get the grouped location metadata correctly
+    if (!skipFetch) {
+      await fetchInstances();
+    }
     return response.data.instance;
   };
 

@@ -173,7 +173,7 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
           <option value="">Select a location</option>
           {locations.map((loc) => (
             <option key={loc._id} value={loc._id}>
-              {loc.name} — {loc.address.city}, {loc.address.street} {loc.address.propertyNumber}
+              {loc.name} — {loc.address.city}, {loc.address.streetType} {loc.address.primaryNumber}
             </option>
           ))}
         </select>
