@@ -48,7 +48,6 @@ import Settings from "./modules/app/pages/Settings";
 import SubscriptionManagement from "./modules/app/pages/SubscriptionManagement";
 import RoleManagement from "./modules/app/pages/RoleManagement";
 import Alerts from "./modules/app/pages/Alerts";
-import Inventory from "./modules/app/pages/Inventory";
 import Locations from "./modules/app/pages/Locations";
 import StockMovements from "./modules/app/pages/StockMovements";
 import Attributes from "./modules/app/pages/Attributes";
@@ -141,7 +140,6 @@ function App() {
               <Route path="transfer-requests" element={<TransferRequests />} />
               <Route path="attributes" element={<Attributes />} />
               <Route path="plans" element={<Plans />} />
-              <Route path="inventory" element={<Inventory />} />
               <Route path="locations" element={<Locations />} />
               <Route path="stock-movements" element={<StockMovements />} />
               <Route path="alerts" element={<Alerts />} />
