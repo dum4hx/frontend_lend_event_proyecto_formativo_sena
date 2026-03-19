@@ -13,7 +13,7 @@ This workspace contains the **LendEvent** frontend application, a React 19 + Typ
 This document defines:
 
 - Project architecture and structure
-- TypeScript conventions (strict, no `any`)
+- TypeScript conventions (strict, DO NOT use type `any`, always use interfaces, types, enums, etc)
 - API integration patterns (via `src/lib/api.ts`)
 - Component design patterns
 - Styling conventions (Tailwind + CSS Modules)
