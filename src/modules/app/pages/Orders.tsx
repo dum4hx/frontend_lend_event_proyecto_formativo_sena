@@ -207,7 +207,7 @@ function extractCategoryId(value: unknown): string | undefined {
 function extractMaterialTypeIdFromInstance(instance: MaterialInstance): string | undefined {
   const withModel = instance as MaterialInstance & {
     model?: { _id?: string } | string;
-    modelId?: string;
+    modelId?: { _id?: string } | string;
     materialTypeId?: string;
   };
 
@@ -215,7 +215,10 @@ function extractMaterialTypeIdFromInstance(instance: MaterialInstance): string |
   if (withModel.model && typeof withModel.model === "object" && withModel.model._id) {
     return withModel.model._id;
   }
-  if (withModel.modelId) return withModel.modelId;
+  if (typeof withModel.modelId === "string") return withModel.modelId;
+  if (withModel.modelId && typeof withModel.modelId === "object" && withModel.modelId._id) {
+    return withModel.modelId._id;
+  }
   if (withModel.materialTypeId) return withModel.materialTypeId;
   return undefined;
 }
