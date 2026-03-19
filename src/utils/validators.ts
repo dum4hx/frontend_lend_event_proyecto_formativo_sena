@@ -661,6 +661,8 @@ export const validateLocationV2 = (form: {
   if (!form.address.primaryNumber.trim()) errors["address.street"] = "Street number is required";
   if (!form.address.secondaryNumber.trim())
     errors["address.propertyNumber"] = "Property number is required";
+  if (!form.address.complementaryNumber.trim())
+    errors["address.complementaryNumber"] = "Complementary number is required";
   if (!form.address.department.trim()) errors["address.state"] = "Department is required";
   if (!form.address.city.trim()) errors["address.city"] = "City is required";
 

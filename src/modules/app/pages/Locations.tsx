@@ -1389,13 +1389,40 @@ export default function LocationsPage() {
                       )}
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">Comp.</label>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Comp. <span className="text-red-400">*</span>
+                      </label>
                       <input
                         value={form.address.complementaryNumber}
-                        onChange={(e) => updateAddressField("complementaryNumber", e.target.value)}
+                        onChange={(e) => {
+                          updateAddressField("complementaryNumber", e.target.value);
+                          setFieldErrors((s) => ({
+                            ...s,
+                            "address.complementaryNumber": e.target.value.trim()
+                              ? undefined
+                              : "Complementary number is required",
+                          }));
+                        }}
+                        onBlur={(e) => {
+                          if (!e.target.value.trim()) {
+                            setFieldErrors((s) => ({
+                              ...s,
+                              "address.complementaryNumber": "Complementary number is required",
+                            }));
+                          }
+                        }}
                         placeholder="e.g. 67"
-                        className="w-full h-11 px-3 bg-[#111111] border border-[#262626] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#FFD700]"
+                        className={`w-full h-11 px-3 bg-[#111111] border rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#FFD700] ${
+                          fieldErrors["address.complementaryNumber"]
+                            ? "border-red-500"
+                            : "border-[#262626]"
+                        }`}
                       />
+                      {fieldErrors["address.complementaryNumber"] && (
+                        <p className="text-xs text-red-400 mt-1">
+                          {fieldErrors["address.complementaryNumber"]}
+                        </p>
+                      )}
                     </div>
                   </div>
                   {fieldErrors["address.street"] && (
@@ -1841,18 +1868,34 @@ export default function LocationsPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">Comp.</label>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Comp. <span className="text-red-400">*</span>
+                      </label>
                       <input
                         value={form.address.complementaryNumber}
-                        onChange={(e) => updateAddressField("complementaryNumber", e.target.value)}
+                        onChange={(e) => {
+                          updateAddressField("complementaryNumber", e.target.value);
+                          setFieldErrors((s) => ({
+                            ...s,
+                            "address.complementaryNumber": undefined,
+                          }));
+                        }}
                         placeholder="30"
-                        className="w-full h-11 px-3 bg-[#111111] border border-[#262626] rounded-md text-white focus:outline-none"
+                        className={`w-full h-11 px-3 bg-[#111111] border rounded-md text-white focus:outline-none ${
+                          fieldErrors["address.complementaryNumber"]
+                            ? "border-red-500"
+                            : "border-[#262626]"
+                        }`}
                       />
                     </div>
                   </div>
-                  {(fieldErrors["address.street"] || fieldErrors["address.propertyNumber"]) && (
+                  {(fieldErrors["address.street"] ||
+                    fieldErrors["address.propertyNumber"] ||
+                    fieldErrors["address.complementaryNumber"]) && (
                     <p className="text-xs text-red-400 -mt-3">
-                      {fieldErrors["address.street"] || fieldErrors["address.propertyNumber"]}
+                      {fieldErrors["address.street"] ||
+                        fieldErrors["address.propertyNumber"] ||
+                        fieldErrors["address.complementaryNumber"]}
                     </p>
                   )}
 
