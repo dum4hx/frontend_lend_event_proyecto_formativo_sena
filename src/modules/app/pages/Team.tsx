@@ -100,6 +100,10 @@ export default function Team() {
     Partial<Record<OwnerSecurityField, string>>
   >({});
   const [ownerSecurityTouched, setOwnerSecurityTouched] = useState(false);
+  const [formError, setFormError] = useState<{
+    type: "error" | "warning";
+    message: string;
+  } | null>(null);
   const [alertModal, setAlertModal] = useState<{
     open: boolean;
     type: AlertModalType;
@@ -311,6 +315,8 @@ export default function Team() {
   const handleFieldChange = (field: TeamFormField, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     setFormTouched((prev) => (prev[field] ? prev : { ...prev, [field]: true }));
+    // Clear form error when user starts typing
+    if (formError) setFormError(null);
   };
 
   const handleFieldBlur = (field: TeamFormField) => {
@@ -328,6 +334,7 @@ export default function Team() {
     formTouched[field] ? formErrors[field] : undefined;
 
   const handleOpenModal = (member?: TeamMember) => {
+    setFormError(null); // Clear any previous errors
     if (member) {
       setEditingId(member.id);
       setInitialRole(member.role); // keeps role name for owner-promo check
@@ -377,12 +384,13 @@ export default function Team() {
     });
     setFormErrors({});
     setFormTouched({});
+    setFormError(null);
     resetOwnerSecurity();
   };
 
   const handleSaveUser = async (e?: { preventDefault?: () => void }) => {
     e?.preventDefault?.();
-    setSubmitting(true);
+    setFormError(null); // Clear any previous form errors
     try {
       // Touch all fields and run full validation
       const fieldsToValidate: TeamFormField[] = editingId
@@ -401,11 +409,10 @@ export default function Team() {
 
       // Validate locations for new invitations
       if (!editingId && formData.locations.length === 0) {
-        showAlert(
-          "warning",
-          "Please select at least one location for this team member.",
-          "Locations Required"
-        );
+        setFormError({
+          type: "warning",
+          message: "Please select at least one location for this team member."
+        });
         return;
       }
 
@@ -413,11 +420,10 @@ export default function Team() {
         setOwnerSecurityTouched(true);
         const securityValid = validateOwnerSecurity();
         if (!securityValid) {
-          showAlert(
-            "warning",
-            "Complete all ownership transfer security checks before saving this role change.",
-            "Security Verification Required",
-          );
+          setFormError({
+            type: "warning",
+            message: "Complete all ownership transfer security checks before saving this role change."
+          });
           return;
         }
       }
@@ -496,22 +502,37 @@ export default function Team() {
             : undefined;
 
         if (detailsCode === "USER_EMAIL_ALREADY_EXISTS") {
-          // Show the server message in the alert and also mark the email field
+          // Show the server message in form and also mark the email field
           setFormErrors((prev) => ({ ...prev, email: err.message }));
           setFormTouched((prev) => ({ ...prev, email: true }));
-          showAlert("warning", err.message, "Email Already Registered");
+          setFormError({
+            type: "warning",
+            message: err.message
+          });
         } else if (err.code === "CONFLICT") {
           // Handle other conflict errors
-          showAlert("error", err.message, "Conflict");
+          setFormError({
+            type: "error",
+            message: err.message
+          });
         } else if (err.code === "BAD_REQUEST") {
           // Handle validation errors
-          showAlert("error", err.message, "Validation Error");
+          setFormError({
+            type: "error",
+            message: err.message
+          });
         } else {
           // Show the server message for any other error
-          showAlert("error", err.message);
+          setFormError({
+            type: "error",
+            message: err.message
+          });
         }
       } else {
-        showAlert("error", "An unexpected error occurred. Please try again.");
+        setFormError({
+          type: "error",
+          message: "An unexpected error occurred. Please try again."
+        });
       }
     } finally {
       setSubmitting(false);
@@ -728,6 +749,39 @@ export default function Team() {
                 <X size={20} />
               </button>
             </div>
+
+            {/* Inline error message */}
+            {formError && (
+              <div className={`mx-6 mt-4 p-4 rounded-lg border ${
+                formError.type === "error" 
+                  ? "bg-red-900/20 border-red-500/50 text-red-200" 
+                  : "bg-amber-900/20 border-amber-500/50 text-amber-200"
+              }`}>
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 mt-0.5">
+                    {formError.type === "error" ? (
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{formError.message}</p>
+                  </div>
+                  <button
+                    onClick={() => setFormError(null)}
+                    className="flex-shrink-0 text-current opacity-70 hover:opacity-100 transition"
+                    aria-label="Dismiss error"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              </div>
+            )}
 
             <form onSubmit={handleSaveUser}>
               <div className="modal-body space-y-4">
