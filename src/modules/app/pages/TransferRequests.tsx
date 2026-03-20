@@ -86,6 +86,40 @@ function formatDate(iso: string): string {
   });
 }
 
+function extractInstanceLocationId(instance: MaterialInstance): string | undefined {
+  const candidate: unknown = (
+    instance as MaterialInstance & {
+      locationId?: string | { _id?: string; id?: string };
+      location?: { _id?: string; id?: string };
+    }
+  ).locationId;
+
+  if (typeof candidate === "string") return candidate;
+  if (candidate && typeof candidate === "object") {
+    const locationObj = candidate as { _id?: string; id?: string };
+    return locationObj._id ?? locationObj.id;
+  }
+
+  const fallback = (instance as MaterialInstance & { location?: { _id?: string; id?: string } })
+    .location;
+  return fallback?._id ?? fallback?.id;
+}
+
+function getInstanceModelName(instance: MaterialInstance): string {
+  const raw = instance as MaterialInstance & {
+    model?: string | { _id?: string; name?: string };
+    modelId?: string | { _id?: string; name?: string };
+  };
+
+  if (raw.model && typeof raw.model === "object" && raw.model.name) {
+    return raw.model.name;
+  }
+  if (raw.modelId && typeof raw.modelId === "object" && raw.modelId.name) {
+    return raw.modelId.name;
+  }
+  return "Unknown material";
+}
+
 // ─── Sub-components ────────────────────────────────────────────────────────
 
 interface StatusBadgeProps {
@@ -353,7 +387,11 @@ const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
       try {
         const res = await getMaterialInstances({ status: "available" });
         const items = res.data.instances ?? [];
-        setInstances(items.filter((i) => i.locationId === request.fromLocationId));
+        setInstances(
+          items.filter(
+            (instance) => extractInstanceLocationId(instance) === request.fromLocationId,
+          ),
+        );
       } catch {
         // silently fall through — user sees empty list
       } finally {
@@ -468,7 +506,9 @@ const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
                           <span className="text-sm text-gray-200 font-medium truncate">
                             {inst.serialNumber}
                           </span>
-                          <span className="text-xs text-gray-500">{inst.model.name}</span>
+                          <span className="text-xs text-gray-500">
+                            {getInstanceModelName(inst)}
+                          </span>
                         </div>
                       </label>
                       {selected && (
