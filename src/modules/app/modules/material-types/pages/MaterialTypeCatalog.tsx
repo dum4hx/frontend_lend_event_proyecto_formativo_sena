@@ -23,6 +23,7 @@ export const MaterialTypeCatalog: React.FC = () => {
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<Set<string>>(new Set());
   const [selectedMaterialType, setSelectedMaterialType] = useState<MaterialType | null>(null);
   const pageSize = 10;
+  const searchInputId = "material-types-search";
 
   const toggleCategory = (id: string) => {
     setSelectedCategoryIds((prev) => {
@@ -92,24 +93,38 @@ export const MaterialTypeCatalog: React.FC = () => {
 
   const handleImportMaterialTypes = async (data: Record<string, unknown>[]) => {
     try {
-      // Build a Set of valid category IDs from the list already loaded by useCategories()
-      const validCategoryIds = new Set(categories.map((c) => c._id));
+      // Build lookup structures from loaded categories
+      const categoryIdMap = new Map(categories.map((c) => [c._id, c._id]));
+      const categoryNameMap = new Map(
+        categories.map((c) => [c.name.toLowerCase().trim(), c._id]),
+      );
 
       let successCount = 0;
       const rejected: { name: string; categoryId: string; reason: string }[] = [];
 
       for (const item of data) {
-        const catId = item.categoryId as string | undefined;
+        // Accept either categoryId (ObjectId) or categoryName (human-readable)
+        const rawCatId = item.categoryId as string | undefined;
+        const rawCatName = item.categoryName as string | undefined;
 
-        // ✅ Strict validation: reject if categoryId is empty or not found in DB categories
-        if (!catId || !validCategoryIds.has(catId)) {
+        let resolvedCategoryId: string | undefined;
+
+        if (rawCatId && categoryIdMap.has(rawCatId)) {
+          resolvedCategoryId = rawCatId;
+        } else if (rawCatName) {
+          resolvedCategoryId = categoryNameMap.get(rawCatName.toLowerCase().trim());
+        }
+
+        if (!resolvedCategoryId) {
           rejected.push({
             name: (item.name as string) ?? "(unnamed)",
-            categoryId: catId ?? "(empty)",
-            reason: "categoryId does not exist in the categories collection",
+            categoryId: rawCatId ?? rawCatName ?? "(empty)",
+            reason: "categoryId / categoryName not found in categories collection",
           });
           continue;
         }
+
+        const catId = resolvedCategoryId;
 
         try {
           await addMaterialType({
@@ -151,16 +166,48 @@ export const MaterialTypeCatalog: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-gray-400">Loading material types...</div>
+      <div className="min-h-screen bg-[#121212] p-8">
+        <div className="max-w-7xl mx-auto animate-pulse">
+          <div className="mb-8 space-y-3">
+            <div className="h-9 w-72 rounded bg-[#262626]" />
+            <div className="h-4 w-80 rounded bg-[#222]" />
+          </div>
+          <div className="mb-6 h-14 rounded-lg bg-[#1a1a1a] border border-[#333]" />
+          <div className="mb-4 flex flex-wrap gap-2">
+            <div className="h-8 w-16 rounded-full bg-[#262626]" />
+            <div className="h-8 w-28 rounded-full bg-[#222]" />
+            <div className="h-8 w-24 rounded-full bg-[#222]" />
+            <div className="h-8 w-32 rounded-full bg-[#222]" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+            <div className="h-28 rounded-lg bg-[#1a1a1a] border border-[#333]" />
+            <div className="h-28 rounded-lg bg-[#1a1a1a] border border-[#333]" />
+          </div>
+          <div className="rounded-lg bg-[#1a1a1a] border border-[#333] p-6 space-y-3">
+            <div className="h-12 rounded bg-[#232323]" />
+            <div className="h-12 rounded bg-[#232323]" />
+            <div className="h-12 rounded bg-[#232323]" />
+            <div className="h-12 rounded bg-[#232323]" />
+          </div>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-red-400">Error: {error}</div>
+      <div className="min-h-screen bg-[#121212] p-8 flex items-center justify-center">
+        <div className="bg-[#1a1a1a] border border-red-900/70 rounded-xl p-6 max-w-lg w-full">
+          <h2 className="text-xl font-semibold text-red-300 mb-2">Unable to load material types</h2>
+          <p className="text-sm text-red-200/80 mb-4">{error}</p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 rounded-lg border border-[#B88A00] text-[#FFD700] hover:bg-[#FFD700]/10 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
@@ -179,11 +226,15 @@ export const MaterialTypeCatalog: React.FC = () => {
           {/* Search + buttons row */}
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1 relative">
+              <label htmlFor={searchInputId} className="sr-only">
+                Search material types
+              </label>
               <Search
                 className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
                 size={20}
               />
               <input
+                id={searchInputId}
                 type="text"
                 placeholder="Search material types..."
                 value={searchTerm}
@@ -203,7 +254,7 @@ export const MaterialTypeCatalog: React.FC = () => {
               />
               <button
                 onClick={() => navigate("create")}
-                className="flex items-center gap-2 px-6 py-3 bg-[#FFD700] text-black font-semibold rounded-lg hover:bg-[#FFC700] transition-colors whitespace-nowrap"
+                className="flex items-center gap-2 px-6 py-3 font-semibold rounded-lg transition-colors whitespace-nowrap border border-[#B88A00] text-[#FFD700] hover:bg-[#FFD700]/10"
               >
                 <Plus size={20} />
                 New Material Type
@@ -286,21 +337,44 @@ export const MaterialTypeCatalog: React.FC = () => {
 
         {/* Material Type List */}
         <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-6">
-          <MaterialTypeList
-            materialTypes={pagedMaterialTypes}
-            categories={categories}
-            onView={setSelectedMaterialType}
-            onEdit={(type) => navigate("create", { state: { materialType: type } })}
-            onDelete={handleDelete}
-          />
-          <AdminPagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalItems={filteredMaterialTypes.length}
-            pageSize={pageSize}
-            itemLabel="types"
-            onPageChange={setPage}
-          />
+          {filteredMaterialTypes.length === 0 ? (
+            <div className="py-16 text-center">
+              <p className="text-lg text-white mb-2">No material types found</p>
+              <p className="text-sm text-gray-400 mb-6">
+                {searchTerm || selectedCategoryIds.size > 0
+                  ? "Try changing your search term or clearing the filters."
+                  : "Create your first material type to start building your catalog."}
+              </p>
+              {!searchTerm && selectedCategoryIds.size === 0 && (
+                <button
+                  type="button"
+                  onClick={() => navigate("create")}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-[#B88A00] text-[#FFD700] hover:bg-[#FFD700]/10 transition-colors"
+                >
+                  <Plus size={18} />
+                  Create Material Type
+                </button>
+              )}
+            </div>
+          ) : (
+            <>
+              <MaterialTypeList
+                materialTypes={pagedMaterialTypes}
+                categories={categories}
+                onView={setSelectedMaterialType}
+                onEdit={(type) => navigate("create", { state: { materialType: type } })}
+                onDelete={handleDelete}
+              />
+              <AdminPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={filteredMaterialTypes.length}
+                pageSize={pageSize}
+                itemLabel="types"
+                onPageChange={setPage}
+              />
+            </>
+          )}
         </div>
 
         {/* Detail Modal */}

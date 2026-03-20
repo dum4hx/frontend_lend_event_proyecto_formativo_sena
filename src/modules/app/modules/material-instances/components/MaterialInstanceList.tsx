@@ -6,7 +6,7 @@ import { AdminTable } from "../../../components";
 interface MaterialInstanceListProps {
   instances: MaterialInstance[];
   onView: (instance: MaterialInstance) => void;
-  onEdit: (instance: MaterialInstance) => void;
+  onEdit?: (instance: MaterialInstance) => void;
   onDelete: (instance: MaterialInstance) => void;
 }
 
@@ -67,23 +67,31 @@ export const MaterialInstanceList: React.FC<MaterialInstanceListProps> = ({
             <td className="py-4 px-4">
               <div className="flex gap-2 justify-end">
                 <button
+                  type="button"
                   onClick={() => onView(instance)}
                   className="p-2 text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors"
                   title="View Details"
+                  aria-label={`View details for instance ${instance.serialNumber}`}
                 >
                   <Eye size={18} />
                 </button>
+                {onEdit && (
+                  <button
+                    type="button"
+                    onClick={() => onEdit(instance)}
+                    className="p-2 text-[#FFD700] hover:bg-[#FFD700]/10 rounded-lg transition-colors"
+                    title="Edit Status"
+                    aria-label={`Edit instance ${instance.serialNumber}`}
+                  >
+                    <Edit size={18} />
+                  </button>
+                )}
                 <button
-                  onClick={() => onEdit(instance)}
-                  className="p-2 text-[#FFD700] hover:bg-[#FFD700]/10 rounded-lg transition-colors"
-                  title="Edit Status"
-                >
-                  <Edit size={18} />
-                </button>
-                <button
+                  type="button"
                   onClick={() => onDelete(instance)}
-                  className="p-2 text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
+                  className="p-2 text-red-300 border border-red-500/40 hover:bg-red-500/15 rounded-lg transition-colors"
                   title="Delete Instance"
+                  aria-label={`Delete instance ${instance.serialNumber}`}
                 >
                   <Trash2 size={18} />
                 </button>

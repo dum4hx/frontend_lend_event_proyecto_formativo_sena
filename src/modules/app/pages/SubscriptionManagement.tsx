@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import {
   CreditCard,
   Users,
@@ -7,6 +7,9 @@ import {
   Download,
   CheckCircle,
   RefreshCw,
+  Search,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { StatCard } from "../components";
 import { AdminPagination, AdminTable } from "../components";
@@ -27,7 +30,6 @@ import {
   getSubscriptionTypes,
 } from "../../../services/subscriptionTypeService";
 import {
-  LoadingSpinner,
   ErrorDisplay,
   AlertContainer,
   ConfirmDialog,
@@ -39,7 +41,13 @@ import { useAuth } from "../../../contexts/useAuth";
 import { ExportSettingsModal } from "../../../components/export/ExportSettingsModal";
 import { exportService, BILLING_HISTORY_POLICY } from "../../../services/export";
 import type { ExportConfig, ExportProgress } from "../../../types/export";
-import type { BillingHistoryEntry, AvailablePlan, Organization } from "../../../types/api";
+import type {
+  BillingHistoryEntry,
+  AvailablePlan,
+  Organization,
+  PublicPlan,
+  SubscriptionType,
+} from "../../../types/api";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -80,6 +88,10 @@ function formatDate(iso: string): string {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function SubscriptionManagement() {
+  type HistorySortField = "date" | "event" | "amount";
+  type HistorySortDirection = "asc" | "desc";
+  const HISTORY_PREFS_KEY = "subscriptionManagement.historyPrefs";
+
   // Data
   const [history, setHistory] = useState<BillingHistoryEntry[]>([]);
   const [plans, setPlans] = useState<AvailablePlan[]>([]);
@@ -93,6 +105,10 @@ export default function SubscriptionManagement() {
   const [error, setError] = useState("");
   const [sessionExpired, setSessionExpired] = useState(false);
   const [historyPage, setHistoryPage] = useState(1);
+  const [historySearch, setHistorySearch] = useState("");
+  const [historyEventFilter, setHistoryEventFilter] = useState("");
+  const [historySortField, setHistorySortField] = useState<HistorySortField>("date");
+  const [historySortDirection, setHistorySortDirection] = useState<HistorySortDirection>("desc");
   const historyPageSize = 10;
 
   // Seat update
@@ -123,9 +139,22 @@ export default function SubscriptionManagement() {
       try {
         // 1) Prefer public subscription types (commonly implemented)
         const typesRes = await getSubscriptionTypesPublic();
-        const pubPlans = typesRes.data.subscriptionTypes ?? [];
+        const pubPlans = (typesRes.data.subscriptionTypes ?? []) as Array<
+          PublicPlan | SubscriptionType
+        >;
         if (pubPlans.length > 0) {
-          setPlans(pubPlans as unknown as AvailablePlan[]);
+          const mappedPublicPlans: AvailablePlan[] = pubPlans.map((p) => ({
+            name: "name" in p ? p.name : p.plan,
+            displayName: p.displayName,
+            billingModel: p.billingModel,
+            maxCatalogItems: p.maxCatalogItems,
+            maxSeats: p.maxSeats,
+            features: p.features ?? [],
+            basePriceMonthly: "basePriceMonthly" in p ? p.basePriceMonthly : p.baseCost,
+            pricePerSeat: p.pricePerSeat,
+          }));
+
+          setPlans(mappedPublicPlans);
         } else {
           // 2) Try organization plans endpoint
           try {
@@ -367,6 +396,54 @@ export default function SubscriptionManagement() {
     exportAbort.current?.abort();
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const storedPrefs = window.localStorage.getItem(HISTORY_PREFS_KEY);
+    if (!storedPrefs) return;
+
+    try {
+      const parsed = JSON.parse(storedPrefs) as {
+        search?: string;
+        eventFilter?: string;
+        sortField?: HistorySortField;
+        sortDirection?: HistorySortDirection;
+      };
+
+      if (typeof parsed.search === "string") {
+        setHistorySearch(parsed.search);
+      }
+
+      if (typeof parsed.eventFilter === "string") {
+        setHistoryEventFilter(parsed.eventFilter);
+      }
+
+      if (parsed.sortField && ["date", "event", "amount"].includes(parsed.sortField)) {
+        setHistorySortField(parsed.sortField);
+      }
+
+      if (parsed.sortDirection && ["asc", "desc"].includes(parsed.sortDirection)) {
+        setHistorySortDirection(parsed.sortDirection);
+      }
+    } catch {
+      // Ignore malformed persisted preferences.
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    window.localStorage.setItem(
+      HISTORY_PREFS_KEY,
+      JSON.stringify({
+        search: historySearch,
+        eventFilter: historyEventFilter,
+        sortField: historySortField,
+        sortDirection: historySortDirection,
+      }),
+    );
+  }, [historySearch, historyEventFilter, historySortField, historySortDirection]);
+
   // ─── Derived stats ─────────────────────────────────────────────────────────
 
   const totalSpend = history
@@ -376,8 +453,61 @@ export default function SubscriptionManagement() {
   const currency = history[0]?.currency ?? "usd";
 
   const currentPlan = organization?.subscription?.plan ?? history.find((e) => e.newPlan)?.newPlan;
-  const historyTotalPages = Math.max(1, Math.ceil(history.length / historyPageSize));
-  const pagedHistory = history.slice(
+  const historyEventOptions = useMemo(
+    () => Array.from(new Set(history.map((entry) => entry.eventType))).sort(),
+    [history],
+  );
+
+  const filteredHistory = useMemo(() => {
+    const normalizedSearch = historySearch.trim().toLowerCase();
+
+    return history.filter((entry) => {
+      if (historyEventFilter && entry.eventType !== historyEventFilter) {
+        return false;
+      }
+
+      if (!normalizedSearch) {
+        return true;
+      }
+
+      const searchable = [
+        formatEventType(entry.eventType),
+        entry.newPlan ?? "",
+        formatDate(entry.createdAt),
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return searchable.includes(normalizedSearch);
+    });
+  }, [history, historySearch, historyEventFilter]);
+
+  const sortedHistory = useMemo(() => {
+    const cloned = [...filteredHistory];
+
+    cloned.sort((a, b) => {
+      if (historySortField === "event") {
+        const comparison = formatEventType(a.eventType).localeCompare(formatEventType(b.eventType));
+        return historySortDirection === "asc" ? comparison : -comparison;
+      }
+
+      if (historySortField === "amount") {
+        const amountA = a.amount ?? 0;
+        const amountB = b.amount ?? 0;
+        const comparison = amountA - amountB;
+        return historySortDirection === "asc" ? comparison : -comparison;
+      }
+
+      const comparison =
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      return historySortDirection === "asc" ? comparison : -comparison;
+    });
+
+    return cloned;
+  }, [filteredHistory, historySortField, historySortDirection]);
+
+  const historyTotalPages = Math.max(1, Math.ceil(sortedHistory.length / historyPageSize));
+  const pagedHistory = sortedHistory.slice(
     (historyPage - 1) * historyPageSize,
     historyPage * historyPageSize,
   );
@@ -386,21 +516,36 @@ export default function SubscriptionManagement() {
     setHistoryPage((prev) => Math.min(prev, historyTotalPages));
   }, [historyTotalPages]);
 
+  useEffect(() => {
+    setHistoryPage(1);
+  }, [historySearch, historyEventFilter, historySortField, historySortDirection]);
+
+  const handleHistorySort = (field: HistorySortField) => {
+    if (historySortField === field) {
+      setHistorySortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+      return;
+    }
+
+    setHistorySortField(field);
+    setHistorySortDirection(field === "date" ? "desc" : "asc");
+  };
+
+  const renderSortIcon = (field: HistorySortField) => {
+    if (historySortField !== field) return <ChevronDown size={14} className="opacity-30" />;
+    return historySortDirection === "asc" ? <ChevronUp size={14} /> : <ChevronDown size={14} />;
+  };
+
   // ─── Render ────────────────────────────────────────────────────────────────
 
-  if (loading) {
-    return <LoadingSpinner fullScreen message="Loading subscription data…" />;
-  }
-
   // For non-auth fatal errors, show the full-screen error. For 401, we keep the view.
-  if (error && !sessionExpired) {
+  if (error && !sessionExpired && !loading) {
     return <ErrorDisplay error={error} onRetry={fetchData} fullScreen />;
   }
 
   const isOwner = user?.roleName === "owner";
 
   return (
-    <div>
+    <div className="w-full max-w-full overflow-x-hidden">
       {/* Alerts */}
       <AlertContainer alerts={alerts} onDismiss={dismissAlert} position="top-right" />
 
@@ -445,14 +590,14 @@ export default function SubscriptionManagement() {
       />
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-white">Subscription Management</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white">Subscription Management</h1>
           <p className="text-gray-400 mt-1">Manage your plan, seats, and billing history</p>
         </div>
         <button
           onClick={() => setExportOpen(true)}
-          className="export-btn flex items-center gap-2"
+          className="export-btn w-full sm:w-auto flex items-center justify-center gap-2"
           disabled={history.length === 0}
         >
           <Download size={18} />
@@ -460,30 +605,48 @@ export default function SubscriptionManagement() {
         </button>
       </div>
 
-      {/* Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-        <StatCard
-          label="Current Plan"
-          value={currentPlan ? currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1) : "—"}
-          icon={<CreditCard size={20} />}
-        />
-        <StatCard
-          label="Seats"
-          value={
-            usage ? `${usage.currentSeats} / ${usage.maxSeats < 0 ? "∞" : usage.maxSeats}` : "—"
-          }
-          icon={<Users size={20} />}
-        />
-        <StatCard
-          label="Total Paid"
-          value={totalSpend > 0 ? formatCurrency(totalSpend, currency) : "$0.00"}
-          icon={<CreditCard size={20} />}
-        />
-      </div>
+      {loading ? (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array.from({ length: 3 }).map((_, idx) => (
+              <div key={idx} className="card h-[96px] animate-pulse">
+                <div className="h-4 bg-[#1a1a1a] rounded w-1/2 mb-3" />
+                <div className="h-7 bg-[#1a1a1a] rounded w-1/3" />
+              </div>
+            ))}
+          </div>
+          <div className="card space-y-4">
+            {Array.from({ length: 6 }).map((_, idx) => (
+              <div key={idx} className="h-12 bg-[#1a1a1a] rounded animate-pulse" />
+            ))}
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Stat Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+            <StatCard
+              label="Current Plan"
+              value={currentPlan ? currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1) : "—"}
+              icon={<CreditCard size={20} />}
+            />
+            <StatCard
+              label="Seats"
+              value={
+                usage ? `${usage.currentSeats} / ${usage.maxSeats < 0 ? "∞" : usage.maxSeats}` : "—"
+              }
+              icon={<Users size={20} />}
+            />
+            <StatCard
+              label="Total Paid"
+              value={totalSpend > 0 ? formatCurrency(totalSpend, currency) : "$0.00"}
+              icon={<CreditCard size={20} />}
+            />
+          </div>
 
-      {/* Actions — owner only */}
-      {isOwner && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Actions — owner only */}
+          {isOwner && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* Manage via Stripe Portal */}
           <div className="bg-[#121212] border border-[#333] rounded-xl p-6">
             <h2 className="text-lg font-bold text-white mb-2">Billing Portal</h2>
@@ -493,7 +656,7 @@ export default function SubscriptionManagement() {
             </p>
             <button
               onClick={() => void handleOpenPortal()}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-semibold gold-action-btn"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-semibold gold-action-btn"
             >
               <ExternalLink size={16} />
               Open Billing Portal
@@ -506,30 +669,30 @@ export default function SubscriptionManagement() {
             <p className="text-gray-400 text-sm mb-4">
               Adjust the number of seats on your current plan.
             </p>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
               <input
                 type="number"
                 min={1}
                 max={usage?.maxSeats && usage.maxSeats > 0 ? usage.maxSeats : undefined}
                 value={seatCount}
                 onChange={(e) => setSeatCount(Math.max(1, parseInt(e.target.value) || 1))}
-                className="w-24 bg-[#1a1a1a] border border-[#444] text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-[#FFD700]"
+                className="w-full sm:w-24 bg-[#1a1a1a] border border-[#444] text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-[#FFD700]"
               />
               <button
                 onClick={() => void handleUpdateSeats()}
                 disabled={updatingSeats || seatCount === (usage?.currentSeats ?? 0)}
-                className="px-4 py-2 rounded-lg transition-colors text-sm font-semibold gold-action-btn disabled:opacity-40"
+                className="w-full sm:w-auto px-4 py-2 rounded-lg transition-colors text-sm font-semibold gold-action-btn disabled:opacity-40"
               >
                 {updatingSeats ? "Updating…" : "Update Seats"}
               </button>
             </div>
           </div>
-        </div>
-      )}
+            </div>
+          )}
 
-      {/* Available Plans — owner only */}
-      {isOwner && (
-        <div className="bg-[#121212] border border-[#333] rounded-xl p-6 mb-8">
+          {/* Available Plans — owner only */}
+          {isOwner && (
+            <div className="bg-[#121212] border border-[#333] rounded-xl p-6 mb-8">
           <h2 className="text-lg font-bold text-white mb-4">Available Plans</h2>
           {plans.length === 0 ? (
             <div className="text-gray-400 text-sm">
@@ -538,8 +701,8 @@ export default function SubscriptionManagement() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {plans.map((p) => {
-                const planKey = (p as any).name ?? (p as any).plan ?? p.displayName;
-                const targetPlanName = (p as any).name ?? (p as any).plan ?? p.displayName;
+                const planKey = p.name;
+                const targetPlanName = p.name;
                 const isActive =
                   currentPlan &&
                   (targetPlanName === currentPlan ||
@@ -607,12 +770,12 @@ export default function SubscriptionManagement() {
           <p className="text-xs text-gray-500 mt-3">
             Plan changes use the existing payment gateway and require valid authentication.
           </p>
-        </div>
-      )}
+            </div>
+          )}
 
-      {/* Cancel Subscription — owner only */}
-      {isOwner && (
-        <div className="bg-[#121212] border border-red-900/40 rounded-xl p-6 mb-8">
+          {/* Cancel Subscription — owner only */}
+          {isOwner && (
+            <div className="bg-[#121212] border border-red-900/40 rounded-xl p-6 mb-8">
           <div className="flex items-start justify-between">
             <div>
               <h2 className="text-lg font-bold text-white mb-1">Danger Zone</h2>
@@ -629,85 +792,184 @@ export default function SubscriptionManagement() {
               Cancel Subscription
             </button>
           </div>
-        </div>
-      )}
+            </div>
+          )}
 
-      {/* Billing History */}
-      <div>
-        <div className="px-6 py-4 border-b border-[#333] flex items-center justify-between">
+          {/* Billing History */}
+          <div className="bg-[#121212] border border-[#333] rounded-xl p-4 sm:p-6">
+        <div className="mb-4 pb-4 border-b border-[#333] flex items-center justify-between">
           <h2 className="text-lg font-bold text-white">Billing History</h2>
-          <span className="text-xs text-gray-500">{history.length} records</span>
+          <span className="badge badge-info">
+            {filteredHistory.length} of {history.length} records
+          </span>
         </div>
 
-        <AdminTable>
-          <thead className="bg-[#0f0f0f] border-b border-[#333]">
-            <tr>
-              <th className="px-6 py-3 text-gray-400 font-medium">Date</th>
-              <th className="px-6 py-3 text-gray-400 font-medium">Event</th>
-              <th className="px-6 py-3 text-gray-400 font-medium">Plan / Seats</th>
-              <th className="px-6 py-3 text-gray-400 font-medium text-right">Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {history.length === 0 ? (
+        <div className="card-compact mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_220px] gap-3">
+            <div className="relative">
+              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+              <input
+                type="text"
+                value={historySearch}
+                onChange={(e) => setHistorySearch(e.target.value)}
+                placeholder="Search event, plan, or date..."
+                className="input pl-10"
+              />
+            </div>
+            <select
+              value={historyEventFilter}
+              onChange={(e) => setHistoryEventFilter(e.target.value)}
+              className="input"
+              title="Filter by event type"
+              aria-label="Filter billing history by event type"
+            >
+              <option value="">All events</option>
+              {historyEventOptions.map((eventType) => (
+                <option key={eventType} value={eventType}>
+                  {formatEventType(eventType)}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="hidden md:block">
+          <AdminTable>
+            <thead className="bg-[#0f0f0f] border-b border-[#333]">
               <tr>
-                <td colSpan={4} className="px-6 py-10 text-center text-gray-500">
-                  No billing history available.
-                </td>
+                <th className="px-6 py-3 text-gray-400 font-medium">
+                  <button
+                    type="button"
+                    onClick={() => handleHistorySort("date")}
+                    className="inline-flex items-center gap-1 hover:text-white transition-colors"
+                  >
+                    Date
+                    {renderSortIcon("date")}
+                  </button>
+                </th>
+                <th className="px-6 py-3 text-gray-400 font-medium">
+                  <button
+                    type="button"
+                    onClick={() => handleHistorySort("event")}
+                    className="inline-flex items-center gap-1 hover:text-white transition-colors"
+                  >
+                    Event
+                    {renderSortIcon("event")}
+                  </button>
+                </th>
+                <th className="px-6 py-3 text-gray-400 font-medium">Plan / Seats</th>
+                <th className="px-6 py-3 text-gray-400 font-medium text-right">
+                  <button
+                    type="button"
+                    onClick={() => handleHistorySort("amount")}
+                    className="inline-flex items-center gap-1 hover:text-white transition-colors"
+                  >
+                    Amount
+                    {renderSortIcon("amount")}
+                  </button>
+                </th>
               </tr>
-            ) : (
-              pagedHistory.map((entry) => (
-                <tr
-                  key={entry._id}
-                  className="border-b border-[#222] hover:bg-[#1a1a1a] transition-colors"
-                >
-                  <td className="px-6 py-3 text-gray-400 whitespace-nowrap">
-                    {formatDate(entry.createdAt)}
-                  </td>
-                  <td className="px-6 py-3">
-                    <span
-                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                        EVENT_TYPE_BADGE[entry.eventType] ??
-                        "bg-gray-800 text-gray-400 border border-gray-600"
-                      }`}
-                    >
-                      {EVENT_TYPE_ICON[entry.eventType] ?? <CreditCard size={14} />}
-                      {formatEventType(entry.eventType)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-3 text-gray-300">
-                    {entry.newPlan ? <span className="capitalize">{entry.newPlan}</span> : null}
-                    {entry.newPlan && entry.seatChange != null ? " · " : null}
-                    {entry.seatChange != null ? (
-                      <span className="text-gray-400">
-                        {entry.seatChange} seat{entry.seatChange !== 1 ? "s" : ""}
-                      </span>
-                    ) : null}
-                    {!entry.newPlan && entry.seatChange == null ? (
-                      <span className="text-gray-600">—</span>
-                    ) : null}
-                  </td>
-                  <td className="px-6 py-3 text-white font-medium text-right whitespace-nowrap">
-                    {entry.amount != null && entry.amount > 0 ? (
-                      formatCurrency(entry.amount, entry.currency)
-                    ) : (
-                      <span className="text-gray-500">—</span>
-                    )}
+            </thead>
+            <tbody>
+              {filteredHistory.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-6 py-10 text-center text-gray-500">
+                    No billing history available for the selected filters.
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </AdminTable>
+              ) : (
+                pagedHistory.map((entry) => (
+                  <tr
+                    key={entry._id}
+                    className="border-b border-[#222] hover:bg-[#1a1a1a] transition-colors"
+                  >
+                    <td className="px-6 py-3 text-gray-400 whitespace-nowrap">
+                      {formatDate(entry.createdAt)}
+                    </td>
+                    <td className="px-6 py-3">
+                      <span
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                          EVENT_TYPE_BADGE[entry.eventType] ??
+                          "bg-gray-800 text-gray-400 border border-gray-600"
+                        }`}
+                      >
+                        {EVENT_TYPE_ICON[entry.eventType] ?? <CreditCard size={14} />}
+                        {formatEventType(entry.eventType)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-3 text-gray-300">
+                      {entry.newPlan ? <span className="capitalize">{entry.newPlan}</span> : null}
+                      {entry.newPlan && entry.seatChange != null ? " · " : null}
+                      {entry.seatChange != null ? (
+                        <span className="text-gray-400">
+                          {entry.seatChange} seat{entry.seatChange !== 1 ? "s" : ""}
+                        </span>
+                      ) : null}
+                      {!entry.newPlan && entry.seatChange == null ? (
+                        <span className="text-gray-600">—</span>
+                      ) : null}
+                    </td>
+                    <td className="px-6 py-3 text-white font-medium text-right whitespace-nowrap">
+                      {entry.amount != null && entry.amount > 0 ? (
+                        formatCurrency(entry.amount, entry.currency)
+                      ) : (
+                        <span className="text-gray-500">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </AdminTable>
+        </div>
+
+        <div className="grid gap-3 md:hidden">
+          {filteredHistory.length === 0 ? (
+            <div className="card p-5 text-center text-gray-500">
+              No billing history available for the selected filters.
+            </div>
+          ) : (
+            pagedHistory.map((entry) => (
+              <div key={entry._id} className="card-compact">
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <span className="text-xs text-gray-500">{formatDate(entry.createdAt)}</span>
+                  <span
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                      EVENT_TYPE_BADGE[entry.eventType] ??
+                      "bg-gray-800 text-gray-400 border border-gray-600"
+                    }`}
+                  >
+                    {EVENT_TYPE_ICON[entry.eventType] ?? <CreditCard size={14} />}
+                    {formatEventType(entry.eventType)}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-300 mb-1">
+                  {entry.newPlan ? <span className="capitalize">{entry.newPlan}</span> : "—"}
+                  {entry.seatChange != null ? (
+                    <span className="text-gray-500"> · {entry.seatChange} seats</span>
+                  ) : null}
+                </p>
+                <p className="text-sm font-semibold text-white">
+                  {entry.amount != null && entry.amount > 0
+                    ? formatCurrency(entry.amount, entry.currency)
+                    : "—"}
+                </p>
+              </div>
+            ))
+          )}
+        </div>
+
         <AdminPagination
           currentPage={historyPage}
           totalPages={historyTotalPages}
-          totalItems={history.length}
+          totalItems={sortedHistory.length}
           pageSize={historyPageSize}
           itemLabel="records"
           onPageChange={setHistoryPage}
         />
-      </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -33,6 +33,18 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const { showToast } = useToast();
 
+  const formatLocationAddress = useCallback((location: WarehouseLocation) => {
+    const address = location.address;
+    const city = address.city ?? "Unknown city";
+    const formattedStreet =
+      address.formatted ||
+      [address.streetType, address.primaryNumber, address.secondaryNumber, address.complementaryNumber]
+        .filter(Boolean)
+        .join(" ");
+
+    return `${city}${formattedStreet ? `, ${formattedStreet}` : ""}`;
+  }, []);
+
   const fetchLocations = useCallback(async () => {
     try {
       const response = await getLocations();
@@ -173,7 +185,7 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
           <option value="">Select a location</option>
           {locations.map((loc) => (
             <option key={loc._id} value={loc._id}>
-              {loc.name} — {loc.address.city}, {loc.address.streetType} {loc.address.primaryNumber}
+              {loc.name} — {formatLocationAddress(loc)}
             </option>
           ))}
         </select>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Search } from "lucide-react";
 import { useCategories } from "../hooks";
@@ -8,17 +8,44 @@ import { ExcelExportImport } from "../../../../../components/export/ExcelExportI
 import { useToast } from "../../../../../contexts/ToastContext";
 import type { MaterialCategory } from "../../../../../types/api";
 
+const CATALOG_STORAGE_KEY = "materialCategories.catalog.v1";
+
+function readStoredCatalogState(): { searchTerm: string; page: number } {
+  try {
+    const raw = localStorage.getItem(CATALOG_STORAGE_KEY);
+    if (!raw) {
+      return { searchTerm: "", page: 1 };
+    }
+
+    const parsed = JSON.parse(raw) as { searchTerm?: string; page?: number };
+    return {
+      searchTerm: typeof parsed.searchTerm === "string" ? parsed.searchTerm : "",
+      page: typeof parsed.page === "number" && parsed.page > 0 ? parsed.page : 1,
+    };
+  } catch {
+    return { searchTerm: "", page: 1 };
+  }
+}
+
 export const CategoryCatalog: React.FC = () => {
   const navigate = useNavigate();
-  const { categories, loading, error, removeCategory, addCategory } = useCategories();
+  const { categories, loading, error, removeCategory, addCategory, refetch } = useCategories();
   const { showToast } = useToast();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [page, setPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState(() => readStoredCatalogState().searchTerm);
+  const [page, setPage] = useState(() => readStoredCatalogState().page);
   const [selectedCategory, setSelectedCategory] = useState<MaterialCategory | null>(null);
   const pageSize = 10;
+  const searchInputId = "material-categories-search";
 
-  const filteredCategories = categories.filter((cat) =>
-    cat.name.toLowerCase().includes(searchTerm.toLowerCase()),
+  useEffect(() => {
+    const payload = { searchTerm, page };
+    localStorage.setItem(CATALOG_STORAGE_KEY, JSON.stringify(payload));
+  }, [searchTerm, page]);
+
+  const filteredCategories = useMemo(
+    () =>
+      categories.filter((cat) => cat.name.toLowerCase().includes(searchTerm.toLowerCase())),
+    [categories, searchTerm],
   );
 
   const totalPages = Math.max(1, Math.ceil(filteredCategories.length / pageSize));
@@ -60,18 +87,46 @@ export const CategoryCatalog: React.FC = () => {
   const handleImportCategories = async (data: Record<string, unknown>[]) => {
     try {
       let successCount = 0;
+      let failedCount = 0;
       for (const item of data) {
         try {
+          const name = typeof item.name === "string" ? item.name.trim() : "";
+          const description = typeof item.description === "string" ? item.description.trim() : "";
+
+          if (!name) {
+            failedCount++;
+            continue;
+          }
+
           await addCategory({
-            name: item.name as string,
-            description: item.description as string,
+            name,
+            description,
           });
           successCount++;
-        } catch (itemError) {
-          console.error("Error importing item:", item, itemError);
+        } catch {
+          failedCount++;
         }
       }
-      showToast("success", `Imported ${successCount}/${data.length} categories`, "Import Complete");
+
+      if (successCount > 0 && failedCount === 0) {
+        showToast(
+          "success",
+          `Imported ${successCount}/${data.length} categories`,
+          "Import Complete",
+        );
+        return;
+      }
+
+      if (successCount > 0 && failedCount > 0) {
+        showToast(
+          "warning",
+          `Imported ${successCount}/${data.length}. ${failedCount} rows were skipped due to invalid or duplicate data.`,
+          "Import Partial",
+        );
+        return;
+      }
+
+      showToast("error", "No valid categories were imported", "Import Failed");
     } catch (error) {
       const err = error as Error;
       showToast("error", err.message || "Error importing categories", "Import Failed");
@@ -80,16 +135,41 @@ export const CategoryCatalog: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-gray-400">Loading categories...</div>
+      <div className="min-h-screen bg-[#121212] p-8">
+        <div className="max-w-7xl mx-auto animate-pulse">
+          <div className="mb-8 space-y-3">
+            <div className="h-9 w-72 rounded bg-[#262626]" />
+            <div className="h-4 w-80 rounded bg-[#222]" />
+          </div>
+          <div className="mb-6 h-14 rounded-lg bg-[#1a1a1a] border border-[#333]" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+            <div className="h-28 rounded-lg bg-[#1a1a1a] border border-[#333]" />
+            <div className="h-28 rounded-lg bg-[#1a1a1a] border border-[#333]" />
+          </div>
+          <div className="rounded-lg bg-[#1a1a1a] border border-[#333] p-6 space-y-3">
+            <div className="h-12 rounded bg-[#232323]" />
+            <div className="h-12 rounded bg-[#232323]" />
+            <div className="h-12 rounded bg-[#232323]" />
+            <div className="h-12 rounded bg-[#232323]" />
+          </div>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-red-400">Error: {error}</div>
+      <div className="min-h-screen bg-[#121212] p-8 flex items-center justify-center">
+        <div className="bg-[#1a1a1a] border border-red-900/70 rounded-xl p-6 max-w-lg w-full">
+          <h2 className="text-xl font-semibold text-red-300 mb-2">Unable to load categories</h2>
+          <p className="text-sm text-red-200/80 mb-4">{error}</p>
+          <button
+            onClick={() => void refetch()}
+            className="px-4 py-2 rounded-lg border border-[#B88A00] text-[#FFD700] hover:bg-[#FFD700]/10 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
@@ -106,8 +186,12 @@ export const CategoryCatalog: React.FC = () => {
         {/* Actions Bar */}
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
           <div className="flex-1 relative">
+            <label htmlFor={searchInputId} className="sr-only">
+              Search categories
+            </label>
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
             <input
+              id={searchInputId}
               type="text"
               placeholder="Search categories..."
               value={searchTerm}
@@ -127,7 +211,7 @@ export const CategoryCatalog: React.FC = () => {
             />
             <button
               onClick={() => navigate("create")}
-              className="flex items-center gap-2 px-6 py-3 font-semibold rounded-lg transition-colors whitespace-nowrap gold-action-btn"
+              className="flex items-center gap-2 px-6 py-3 font-semibold rounded-lg transition-colors whitespace-nowrap border border-[#B88A00] text-[#FFD700] hover:bg-[#FFD700]/10"
             >
               <Plus size={20} />
               New Category
@@ -149,20 +233,42 @@ export const CategoryCatalog: React.FC = () => {
 
         {/* Category List */}
         <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-6">
-          <CategoryList
-            categories={pagedCategories}
-            onView={setSelectedCategory}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-          />
-          <AdminPagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalItems={filteredCategories.length}
-            pageSize={pageSize}
-            itemLabel="categories"
-            onPageChange={setPage}
-          />
+          {filteredCategories.length === 0 ? (
+            <div className="py-16 text-center">
+              <p className="text-lg text-white mb-2">No categories found</p>
+              <p className="text-sm text-gray-400 mb-6">
+                {searchTerm
+                  ? "Try changing your search term or clear filters."
+                  : "Create your first category to start organizing materials."}
+              </p>
+              {!searchTerm && (
+                <button
+                  onClick={() => navigate("create")}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-[#B88A00] text-[#FFD700] hover:bg-[#FFD700]/10 transition-colors"
+                >
+                  <Plus size={18} />
+                  Create Category
+                </button>
+              )}
+            </div>
+          ) : (
+            <>
+              <CategoryList
+                categories={pagedCategories}
+                onView={setSelectedCategory}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+              />
+              <AdminPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={filteredCategories.length}
+                pageSize={pageSize}
+                itemLabel="categories"
+                onPageChange={setPage}
+              />
+            </>
+          )}
         </div>
 
         {/* Detail Modal */}

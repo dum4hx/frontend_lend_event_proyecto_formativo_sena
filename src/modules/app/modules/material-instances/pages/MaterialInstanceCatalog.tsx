@@ -19,8 +19,7 @@ import type { MaterialInstance, CreateMaterialInstancePayload } from "../../../.
 
 export const MaterialInstanceCatalog: React.FC = () => {
   const navigate = useNavigate();
-  const { instances, loading, error, removeInstance, addInstance, refetch } =
-    useMaterialInstances();
+  const { instances, loading, error, removeInstance, addInstance, refetch } = useMaterialInstances();
   const { materialTypes } = useMaterialTypes();
   const { showToast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
@@ -28,9 +27,9 @@ export const MaterialInstanceCatalog: React.FC = () => {
   const [selectedInstance, setSelectedInstance] = useState<MaterialInstance | null>(null);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [isDependencyModalOpen, setIsDependencyModalOpen] = useState(false);
-  const [editingInstance, setEditingInstance] = useState<MaterialInstance | null>(null);
   const [locations, setLocations] = useState<WarehouseLocation[]>([]);
   const pageSize = 10;
+  const searchInputId = "material-instances-search";
 
   useEffect(() => {
     const fetchLocations = async () => {
@@ -88,19 +87,9 @@ export const MaterialInstanceCatalog: React.FC = () => {
 
   const handleCreateOrUpdate = async (data: CreateMaterialInstancePayload) => {
     try {
-      if (editingInstance) {
-        // Since the current useMaterialInstances doesn't have an update method for general fields,
-        // and per instructions we are focusing on the form modal flow.
-        // For now, if editing is needed, we'd need an update method in the service/hook.
-        // If the service doesn't support PATCH /instances/:id yet for modelId/serial/loc,
-        // we might only support creation for now.
-        showToast("info", "Update functionality depends on backend PATCH implementation.");
-      } else {
-        await addInstance(data);
-        showToast("success", "Material instance created successfully", "Success");
-      }
+      await addInstance(data);
+      showToast("success", "Material instance created successfully", "Success");
       setIsFormModalOpen(false);
-      setEditingInstance(null);
     } catch (error: unknown) {
       showToast(
         "error",
@@ -111,7 +100,6 @@ export const MaterialInstanceCatalog: React.FC = () => {
   };
 
   const handleOpenCreateModal = () => {
-    setEditingInstance(null);
     if (!canCreateInstance) {
       setIsDependencyModalOpen(true);
       return;
@@ -169,16 +157,43 @@ export const MaterialInstanceCatalog: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-gray-400">Loading material instances...</div>
+      <div className="min-h-screen bg-[#121212] p-8">
+        <div className="max-w-7xl mx-auto animate-pulse">
+          <div className="mb-8 space-y-3">
+            <div className="h-9 w-72 rounded bg-[#262626]" />
+            <div className="h-4 w-96 rounded bg-[#222]" />
+          </div>
+          <div className="mb-6 h-14 rounded-lg bg-[#1a1a1a] border border-[#333]" />
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
+            <div className="h-28 rounded-lg bg-[#1a1a1a] border border-[#333]" />
+            <div className="h-28 rounded-lg bg-[#1a1a1a] border border-[#333]" />
+            <div className="h-28 rounded-lg bg-[#1a1a1a] border border-[#333]" />
+            <div className="h-28 rounded-lg bg-[#1a1a1a] border border-[#333]" />
+          </div>
+          <div className="rounded-lg bg-[#1a1a1a] border border-[#333] p-6 space-y-3">
+            <div className="h-12 rounded bg-[#232323]" />
+            <div className="h-12 rounded bg-[#232323]" />
+            <div className="h-12 rounded bg-[#232323]" />
+          </div>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-red-400">Error: {error}</div>
+      <div className="min-h-screen bg-[#121212] p-8 flex items-center justify-center">
+        <div className="bg-[#1a1a1a] border border-red-900/70 rounded-xl p-6 max-w-lg w-full">
+          <h2 className="text-xl font-semibold text-red-300 mb-2">Unable to load material instances</h2>
+          <p className="text-sm text-red-200/80 mb-4">{error}</p>
+          <button
+            type="button"
+            onClick={() => void refetch()}
+            className="px-4 py-2 rounded-lg border border-[#B88A00] text-[#FFD700] hover:bg-[#FFD700]/10 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
@@ -203,8 +218,12 @@ export const MaterialInstanceCatalog: React.FC = () => {
         {/* Actions Bar */}
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
           <div className="flex-1 relative">
+            <label htmlFor={searchInputId} className="sr-only">
+              Search material instances by serial number
+            </label>
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
             <input
+              id={searchInputId}
               type="text"
               placeholder="Search by serial number..."
               value={searchTerm}
@@ -261,9 +280,12 @@ export const MaterialInstanceCatalog: React.FC = () => {
           <MaterialInstanceList
             instances={pagedInstances}
             onView={setSelectedInstance}
-            onEdit={(instance) => {
-              setEditingInstance(instance);
-              setIsFormModalOpen(true);
+            onEdit={() => {
+              showToast(
+                "info",
+                "Edit flow for instance data is not available yet. Use View for details.",
+                "Coming Soon",
+              );
             }}
             onDelete={handleDelete}
           />
@@ -283,7 +305,7 @@ export const MaterialInstanceCatalog: React.FC = () => {
             <div className="bg-[#121212] border border-[#333] rounded-xl w-full max-w-2xl overflow-hidden shadow-2xl">
               <div className="flex items-center justify-between px-6 py-4 border-b border-[#333]">
                 <h2 className="text-xl font-bold text-white">
-                  {editingInstance ? "Edit Material Instance" : "New Material Instance"}
+                  New Material Instance
                 </h2>
                 <button
                   onClick={() => setIsFormModalOpen(false)}
@@ -296,8 +318,6 @@ export const MaterialInstanceCatalog: React.FC = () => {
                 <MaterialInstanceForm
                   onSubmit={handleCreateOrUpdate}
                   onCancel={() => setIsFormModalOpen(false)}
-                  initialData={editingInstance || undefined}
-                  isEditing={!!editingInstance}
                 />
               </div>
             </div>

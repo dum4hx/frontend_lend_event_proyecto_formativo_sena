@@ -678,3 +678,37 @@ export const validateLocationV2 = (form: {
     errors,
   };
 };
+
+/**
+ * Category name validation
+ */
+export const validateCategoryName = (name: string): ValidationResult => {
+  if (!name.trim()) {
+    return { isValid: false, message: "Category name is required" };
+  }
+
+  if (name.length < 2) {
+    return { isValid: false, message: "Category name must be at least 2 characters" };
+  }
+
+  if (name.length > 100) {
+    return { isValid: false, message: "Category name must not exceed 100 characters" };
+  }
+
+  return { isValid: true };
+};
+
+/**
+ * Category description validation (optional)
+ */
+export const validateCategoryDescription = (description?: string): ValidationResult => {
+  if (!description) {
+    return { isValid: true };
+  }
+
+  if (description.length > 500) {
+    return { isValid: false, message: "Description must not exceed 500 characters" };
+  }
+
+  return { isValid: true };
+};

@@ -46,23 +46,29 @@ export const CategoryList: React.FC<CategoryListProps> = ({
               <td className="py-4 px-4">
                 <div className="flex gap-2 justify-end">
                   <button
+                    type="button"
                     onClick={() => onView(category)}
                     className="p-2 text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors"
                     title="View Details"
+                    aria-label={`View details for ${category.name}`}
                   >
                     <Eye size={18} />
                   </button>
                   <button
+                    type="button"
                     onClick={() => onEdit(category)}
                     className="p-2 text-[#FFD700] hover:bg-[#FFD700]/10 rounded-lg transition-colors"
                     title="Edit Category"
+                    aria-label={`Edit ${category.name}`}
                   >
                     <Edit size={18} />
                   </button>
                   <button
+                    type="button"
                     onClick={() => onDelete(category)}
-                    className="p-2 text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
+                    className="p-2 text-red-300 border border-red-500/40 hover:bg-red-500/15 rounded-lg transition-colors"
                     title="Delete Category"
+                    aria-label={`Delete ${category.name}`}
                   >
                     <Trash2 size={18} />
                   </button>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Search, Plus, Edit2, Ban, X, RotateCcw, UserX } from "lucide-react";
+import { Search, Plus, Edit2, Ban, X, RotateCcw, UserX, Trash2 } from "lucide-react";
 import useSWR from "swr";
 import { useDebounce } from "use-debounce";
 import { Button, IconButton } from "../../../components/ui";
@@ -11,8 +11,10 @@ import {
   blacklistCustomer,
   activateCustomer,
   deactivateCustomer,
+  deleteCustomer,
 } from "../../../services/customerService";
 import type {
+  Address,
   Customer,
   CreateCustomerPayload,
   UpdateCustomerPayload,
@@ -57,9 +59,12 @@ const COLOMBIA_STREET_TYPES = [
   "Calle",
   "Carrera",
   "Avenida",
+  "Avenida Calle",
+  "Avenida Carrera",
   "Transversal",
   "Diagonal",
   "Circular",
+  "Via",
 ] as const;
 const ADDRESS_SEGMENT_MAX_LENGTH = 8;
 const ADDRESS_DETAILS_MAX_LENGTH = 80;
@@ -79,6 +84,37 @@ type CustomerFormField =
   | "stateQuery"
   | "cityQuery"
   | "postalCode";
+
+type LegacyCustomerAddress = Address & {
+  street?: string;
+  state?: string;
+  additionalInfo?: string;
+  details?: string;
+  cityName?: string;
+  municipality?: string;
+  town?: string;
+  province?: string;
+  region?: string;
+};
+
+/** Try to decompose a previously-composed street string. */
+function parseStreet(street: string) {
+  const re =
+    /^(Calle|Carrera|Avenida|Avenida Calle|Avenida Carrera|Transversal|Diagonal|Circular|Via)\s+(.+?)\s*#\s*(.+?)\s*-\s*(.+?)(?:\s*,\s*(.+))?$/i;
+  const m = street.match(re);
+  if (!m) return null;
+  return {
+    streetType: m[1],
+    mainNumber: m[2],
+    secondaryNumber: m[3],
+    complementaryNumber: m[4],
+    additionalDetails: m[5] ?? "",
+  };
+}
+
+function asTrimmedString(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
 
 export default function Customers() {
   const { showError, AlertModal } = useAlertModal();
@@ -125,6 +161,7 @@ export default function Customers() {
   const [showStateSuggestions, setShowStateSuggestions] = useState(false);
   const [showCitySuggestions, setShowCitySuggestions] = useState(false);
   const [debouncedStateQuery] = useDebounce(stateQuery, 200);
+  const [debouncedSearch] = useDebounce(searchQuery, 350);
 
   // Real-time validation state (like SignUp)
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -133,6 +170,8 @@ export default function Customers() {
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [modalError, setModalError] = useState("");
+  const [showAddress, setShowAddress] = useState(false);
 
   // --- SWR: Colombia departments & cities ------------------------------------
   const { data: departments, isLoading: deptLoading } = useSWR<ColombiaDepartment[]>(
@@ -160,6 +199,18 @@ export default function Customers() {
   const isNormalizedEqual = useCallback(
     (a: string, b: string) => normalize(a.trim()) === normalize(b.trim()),
     [normalize],
+  );
+
+  const normalizeStreetTypeValue = useCallback(
+    (value: string) => {
+      const normalized = value.trim();
+      if (!normalized) return "";
+      const canonical = COLOMBIA_STREET_TYPES.find((type) =>
+        isNormalizedEqual(type, normalized),
+      );
+      return canonical ?? normalized;
+    },
+    [isNormalizedEqual],
   );
 
   // Client-side filter for departments
@@ -241,7 +292,7 @@ export default function Customers() {
     return d ? `${formattedStreetBase}, ${d}` : formattedStreetBase;
   }, [formattedStreetBase, additionalDetails]);
 
-  const canEditPostalCode = !!selectedCity && !selectedCity.postalCode;
+  const canEditPostalCode = !!cityQuery.trim() && (!selectedCity || !selectedCity.postalCode);
 
   // --- Styling helper (same as SignUp) --------------------------------------
   const inputClass = (hasError: boolean) =>
@@ -317,35 +368,35 @@ export default function Customers() {
       }
 
       // --- Address (optional but validated if any part filled) ---
-      if (!streetType) nextErrors.streetType = "Street type is required";
+      // --- Address (only validated when user has toggled it on) ---
+      if (showAddress) {
+        if (!streetType) nextErrors.streetType = "Street type is required";
 
-      const mainV = validateAddressSegmentField(mainNumber, "Primary number");
-      if (!mainV.isValid && mainV.message) nextErrors.mainNumber = mainV.message;
+        const mainV = validateAddressSegmentField(mainNumber, "Primary number");
+        if (!mainV.isValid && mainV.message) nextErrors.mainNumber = mainV.message;
 
-      const secV = validateAddressSegmentField(secondaryNumber, "Secondary number");
-      if (!secV.isValid && secV.message) nextErrors.secondaryNumber = secV.message;
+        const secV = validateAddressSegmentField(secondaryNumber, "Secondary number");
+        if (!secV.isValid && secV.message) nextErrors.secondaryNumber = secV.message;
 
-      const compV = validateAddressSegmentField(complementaryNumber, "Complementary number");
-      if (!compV.isValid && compV.message) nextErrors.complementaryNumber = compV.message;
+        const compV = validateAddressSegmentField(complementaryNumber, "Complementary number");
+        if (!compV.isValid && compV.message) nextErrors.complementaryNumber = compV.message;
 
-      if (additionalDetails.length > ADDRESS_DETAILS_MAX_LENGTH)
-        nextErrors.additionalDetails = `Must not exceed ${ADDRESS_DETAILS_MAX_LENGTH} characters`;
+        if (additionalDetails.length > ADDRESS_DETAILS_MAX_LENGTH)
+          nextErrors.additionalDetails = `Must not exceed ${ADDRESS_DETAILS_MAX_LENGTH} characters`;
 
-      const isStateSelected = !!selectedState && isNormalizedEqual(stateQuery, selectedState.name);
-      const stateV = validateState(stateQuery, isStateSelected);
-      if (!stateV.isValid && stateV.message) nextErrors.stateQuery = stateV.message;
+        const stateV = validateState(stateQuery, !!stateQuery.trim());
+        if (!stateV.isValid && stateV.message) nextErrors.stateQuery = stateV.message;
 
-      if (!cityQuery.trim()) {
-        nextErrors.cityQuery = "City is required";
-      } else if (!selectedCity || !isNormalizedEqual(cityQuery, selectedCity.name)) {
-        nextErrors.cityQuery = "Please select a valid city from the list";
-      }
+        if (!cityQuery.trim()) {
+          nextErrors.cityQuery = "City is required";
+        }
 
-      if (selectedCity && !selectedCity.postalCode && !postalCodeField.trim()) {
-        nextErrors.postalCode = "Postal code is required";
-      } else {
-        const pcV = validatePostalCode(postalCodeField);
-        if (!pcV.isValid && pcV.message) nextErrors.postalCode = pcV.message;
+        if (selectedCity && !selectedCity.postalCode && !postalCodeField.trim()) {
+          nextErrors.postalCode = "Postal code is required";
+        } else {
+          const pcV = validatePostalCode(postalCodeField);
+          if (!pcV.isValid && pcV.message) nextErrors.postalCode = pcV.message;
+        }
       }
 
       // Only expose errors for touched or submitted fields
@@ -362,6 +413,7 @@ export default function Customers() {
       formData,
       touched,
       submitted,
+      showAddress,
       streetType,
       mainNumber,
       secondaryNumber,
@@ -370,9 +422,7 @@ export default function Customers() {
       stateQuery,
       cityQuery,
       postalCodeField,
-      selectedState,
       selectedCity,
-      isNormalizedEqual,
       toColombianPhone,
     ],
   );
@@ -415,8 +465,7 @@ export default function Customers() {
       try {
         const response = await getDocumentTypes();
         setDocumentTypes(response.data.documentTypes);
-      } catch (err) {
-        console.error("Failed to fetch document types:", err);
+      } catch {
         setDocumentTypes([
           {
             value: "cc",
@@ -467,7 +516,7 @@ export default function Customers() {
         page: currentPage,
         limit: 10,
         status: statusFilter || undefined,
-        search: searchQuery || undefined,
+        search: debouncedSearch || undefined,
       });
       setCustomers(response.data.customers);
       setTotal(response.data.total);
@@ -478,26 +527,52 @@ export default function Customers() {
     } finally {
       setLoading(false);
     }
-  }, [searchQuery, statusFilter, currentPage]);
+  }, [debouncedSearch, statusFilter, currentPage]);
 
   useEffect(() => {
     void fetchCustomers();
   }, [fetchCustomers]);
 
   // --- Build address payload from sub-fields --------------------------------
-  const buildAddressPayload = () => ({
-    streetType: streetType || undefined,
-    primaryNumber: mainNumber || undefined,
-    secondaryNumber: secondaryNumber || undefined,
-    complementaryNumber: complementaryNumber || undefined,
-    department: selectedState?.name || undefined,
-    city: selectedCity?.name || undefined,
-    additionalDetails: additionalDetails || undefined,
-    postalCode: postalCodeField || undefined,
-  });
+  const buildAddressPayload = useCallback(
+    (opts?: { preserveExistingOnHide?: boolean }) => {
+      if (!showAddress) {
+        if (opts?.preserveExistingOnHide && selectedCustomer?.address) {
+          return selectedCustomer.address;
+        }
+        return undefined;
+      }
+
+      const address: Address = {
+        streetType: streetType || undefined,
+        primaryNumber: mainNumber || undefined,
+        secondaryNumber: secondaryNumber || undefined,
+        complementaryNumber: complementaryNumber || undefined,
+        department: stateQuery.trim() || undefined,
+        city: cityQuery.trim() || undefined,
+        additionalDetails: additionalDetails.trim() || undefined,
+        postalCode: postalCodeField.trim() || undefined,
+      };
+
+      const hasAddressData = Object.values(address).some((value) => !!value);
+      return hasAddressData ? address : undefined;
+    },
+    [
+      showAddress,
+      selectedCustomer,
+      streetType,
+      mainNumber,
+      secondaryNumber,
+      complementaryNumber,
+      stateQuery,
+      cityQuery,
+      additionalDetails,
+      postalCodeField,
+    ],
+  );
 
   // --- Create customer ------------------------------------------------------
-  const handleCreate = async (e: React.SubmitEvent<HTMLFormElement>) => {
+  const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setSubmitted(true);
     const allErrors = runValidation({ allTouched: true });
@@ -508,7 +583,7 @@ export default function Customers() {
       const payload: CreateCustomerPayload = {
         ...formData,
         phone: toColombianPhone(formData.phone),
-        address: buildAddressPayload(),
+        address: buildAddressPayload({ preserveExistingOnHide: false }),
       };
       await createCustomer(payload);
       setShowCreateModal(false);
@@ -516,14 +591,14 @@ export default function Customers() {
       await fetchCustomers();
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "Failed to create customer";
-      setError(message);
+      setModalError(message);
     } finally {
       setSubmitting(false);
     }
   };
 
   // --- Update customer ------------------------------------------------------
-  const handleUpdate = async (e: React.SubmitEvent<HTMLFormElement>) => {
+  const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!selectedCustomer) return;
     setSubmitted(true);
@@ -541,7 +616,7 @@ export default function Customers() {
         },
         email: formData.email,
         phone: toColombianPhone(formData.phone),
-        address: buildAddressPayload(),
+        address: buildAddressPayload({ preserveExistingOnHide: true }),
       };
       await updateCustomer(selectedCustomer._id, payload);
       setShowEditModal(false);
@@ -549,7 +624,7 @@ export default function Customers() {
       await fetchCustomers();
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "Failed to update customer";
-      setError(message);
+      setModalError(message);
     } finally {
       setSubmitting(false);
     }
@@ -560,11 +635,11 @@ export default function Customers() {
     const fullName = `${customer.name.firstName} ${customer.name.firstSurname}`;
     const confirmed = await showConfirm({
       title: `Block ${fullName}?`,
-      message: "This will prevent the customer from being used in new rentals.",
-      confirmText: "Block",
-      variant: "danger",
+      message: 'This will prevent the customer from being used in new rentals.',
+      confirmText: 'Block',
+      variant: 'danger',
     });
-
+    
     if (!confirmed) return;
 
     try {
@@ -581,11 +656,11 @@ export default function Customers() {
     const fullName = `${customer.name.firstName} ${customer.name.firstSurname}`;
     const confirmed = await showConfirm({
       title: `Deactivate ${fullName}?`,
-      message: "This will temporarily deactivate the customer.",
-      confirmText: "Deactivate",
-      variant: "warning",
+      message: 'This will temporarily deactivate the customer.',
+      confirmText: 'Deactivate',
+      variant: 'warning',
     });
-
+    
     if (!confirmed) return;
 
     try {
@@ -602,11 +677,11 @@ export default function Customers() {
     const fullName = `${customer.name.firstName} ${customer.name.firstSurname}`;
     const confirmed = await showConfirm({
       title: `Activate ${fullName}?`,
-      message: "This will restore the customer to active status.",
-      confirmText: "Activate",
-      variant: "info",
+      message: 'This will restore the customer to active status.',
+      confirmText: 'Activate',
+      variant: 'info',
     });
-
+    
     if (!confirmed) return;
 
     try {
@@ -614,6 +689,28 @@ export default function Customers() {
       await fetchCustomers();
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "Failed to activate customer";
+      showError(message);
+    }
+  };
+
+  // Delete customer
+  const handleDeleteCustomer = async (customer: Customer) => {
+    const fullName = `${customer.name.firstName} ${customer.name.firstSurname}`;
+    const confirmed = await showConfirm({
+      title: `Delete ${fullName}?`,
+      message:
+        "This action is destructive and cannot be undone from the UI. The customer will be removed from active operations.",
+      confirmText: "Delete permanently",
+      variant: "danger",
+    });
+
+    if (!confirmed) return;
+
+    try {
+      await deleteCustomer(customer._id);
+      await fetchCustomers();
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "Failed to delete customer";
       showError(message);
     }
   };
@@ -636,29 +733,59 @@ export default function Customers() {
 
   /** Populate address sub-fields from a customer's saved address. */
   const loadAddressFields = (customer: Customer) => {
-    const addr = customer.address;
+    const addr = customer.address as LegacyCustomerAddress | undefined;
+
     if (!addr) {
       resetAddressFields();
       return;
     }
 
-    setStreetType(addr.streetType ?? "");
-    setMainNumber(addr.primaryNumber ?? "");
-    setSecondaryNumber(addr.secondaryNumber ?? "");
-    setComplementaryNumber(addr.complementaryNumber ?? "");
-    setAdditionalDetails(addr.additionalDetails ?? "");
+    const parsedLegacyStreet = asTrimmedString(addr.street)
+      ? parseStreet(asTrimmedString(addr.street))
+      : null;
 
-    const savedDepartment = addr.department ?? "";
-    const savedCity = addr.city ?? "";
-    const savedPostalCode = addr.postalCode ?? "";
+    const resolvedStreetType = normalizeStreetTypeValue(
+      asTrimmedString(addr.streetType) || parsedLegacyStreet?.streetType || "",
+    );
+    const resolvedPrimaryNumber =
+      asTrimmedString(addr.primaryNumber) || parsedLegacyStreet?.mainNumber || "";
+    const resolvedSecondaryNumber =
+      asTrimmedString(addr.secondaryNumber) || parsedLegacyStreet?.secondaryNumber || "";
+    const resolvedComplementaryNumber =
+      asTrimmedString(addr.complementaryNumber) || parsedLegacyStreet?.complementaryNumber || "";
+    const resolvedAdditionalDetails =
+      asTrimmedString(addr.additionalDetails) ||
+      asTrimmedString(addr.additionalInfo) ||
+      asTrimmedString(addr.details) ||
+      parsedLegacyStreet?.additionalDetails ||
+      (!parsedLegacyStreet ? asTrimmedString(addr.street) : "");
 
-    setStateQuery(savedDepartment);
+    setStreetType(resolvedStreetType);
+    setMainNumber(resolvedPrimaryNumber);
+    setSecondaryNumber(resolvedSecondaryNumber);
+    setComplementaryNumber(resolvedComplementaryNumber);
+    setAdditionalDetails(resolvedAdditionalDetails);
+    
+    // Set state/city text fields and try to auto-select if data is available
+    const savedState =
+      asTrimmedString(addr.department) ||
+      asTrimmedString(addr.state) ||
+      asTrimmedString(addr.province) ||
+      asTrimmedString(addr.region);
+    const savedCity =
+      asTrimmedString(addr.city) ||
+      asTrimmedString(addr.cityName) ||
+      asTrimmedString(addr.municipality) ||
+      asTrimmedString(addr.town);
+    const savedPostalCode = asTrimmedString(addr.postalCode);
+    
+    setStateQuery(savedState);
     setCityQuery(savedCity);
     setPostalCodeField(savedPostalCode);
-
+    
     // Try to auto-select department if already loaded
-    if (departments && savedDepartment) {
-      const foundDept = departments.find((d) => isNormalizedEqual(d.name, savedDepartment));
+    if (departments && savedState) {
+      const foundDept = departments.find((d) => isNormalizedEqual(d.name, savedState));
       if (foundDept) {
         setSelectedState(foundDept);
       } else {
@@ -667,7 +794,7 @@ export default function Customers() {
     } else {
       setSelectedState(null);
     }
-
+    
     // City will be handled by useEffect once department is selected
     setSelectedCity(null);
   };
@@ -676,10 +803,12 @@ export default function Customers() {
   const openEditModal = (customer: Customer) => {
     // First, clean up previous state
     resetForm();
-
+    setError("");
+    setModalError("");
+    
     // Increment key to force modal re-mount
     setModalKey((prev) => prev + 1);
-
+    
     // Set customer and form data
     setSelectedCustomer(customer);
     // Strip +57 prefix from phone for the input
@@ -698,10 +827,34 @@ export default function Customers() {
       documentType: customer.documentType,
       documentNumber: customer.documentNumber,
     });
-
+    
     // Load address fields
     loadAddressFields(customer);
 
+    // Show address section if customer has any existing address data.
+    const addr = customer.address as LegacyCustomerAddress | undefined;
+    setShowAddress(
+      !!(
+        addr?.streetType ||
+        addr?.primaryNumber ||
+        addr?.secondaryNumber ||
+        addr?.complementaryNumber ||
+        addr?.department ||
+        addr?.state ||
+        addr?.province ||
+        addr?.region ||
+        addr?.city ||
+        addr?.cityName ||
+        addr?.municipality ||
+        addr?.town ||
+        addr?.postalCode ||
+        addr?.additionalDetails ||
+        addr?.additionalInfo ||
+        addr?.details ||
+        addr?.street
+      ),
+    );
+    
     setTouched({});
     setFieldErrors({});
     setSubmitted(false);
@@ -721,6 +874,7 @@ export default function Customers() {
     setFieldErrors({});
     setSubmitted(false);
     setSelectedCustomer(null);
+    setShowAddress(false);
   };
 
   const getStatusBadge = (status: CustomerStatus) => {
@@ -799,10 +953,18 @@ export default function Customers() {
             </select>
 
             {/* Create Button */}
-            <Button onClick={() => setShowCreateModal(true)}>
+            <button
+              onClick={() => {
+                setError("");
+                setModalError("");
+                resetForm();
+                setShowCreateModal(true);
+              }}
+              className="flex items-center gap-2 px-4 py-2 font-bold rounded-lg transition gold-action-btn"
+            >
               <Plus size={20} />
               New Customer
-            </Button>
+            </button>
           </div>
         </div>
 
@@ -832,81 +994,77 @@ export default function Customers() {
                 </tr>
               </thead>
               <tbody>
-                {customers.map((customer) => (
-                  <tr
-                    key={customer._id}
-                    className="border-b border-[#333] hover:bg-[#1a1a1a] transition-all"
-                  >
-                    <td className="px-6 py-4 font-medium text-white">
-                      {customer.name.firstName} {customer.name.firstSurname}
-                    </td>
-                    <td className="px-6 py-4 text-gray-400">{customer.email}</td>
-                    <td className="px-6 py-4 text-gray-400">{customer.phone}</td>
-                    <td className="px-6 py-4">
-                      <div className="text-xs">
-                        <div className="text-gray-500">
-                          {getDocumentTypeLabel(customer.documentType)}
+                  {customers.map((customer) => (
+                    <tr key={customer._id} className="border-b border-[#333] hover:bg-[#1a1a1a] transition-all">
+                      <td className="px-6 py-4 font-medium text-white">
+                        {customer.name.firstName} {customer.name.firstSurname}
+                      </td>
+                      <td className="px-6 py-4 text-gray-400">{customer.email}</td>
+                      <td className="px-6 py-4 text-gray-400">{customer.phone}</td>
+                      <td className="px-6 py-4">
+                        <div className="text-xs">
+                          <div className="text-gray-500">{getDocumentTypeLabel(customer.documentType)}</div>
+                          <div>{customer.documentNumber}</div>
                         </div>
-                        <div>{customer.documentNumber}</div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">{getStatusBadge(customer.status)}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => openEditModal(customer)}
-                          className="btn-icon text-blue-400 hover:text-blue-300"
-                          title="Edit customer"
-                          aria-label="Edit customer"
-                        >
-                          <Edit2 size={18} />
-                        </button>
-
-                        {/* Deactivate & Block — only for active customers */}
-                        {customer.status === "active" && (
-                          <>
-                            <button
-                              onClick={() => void handleDeactivate(customer)}
-                              className="btn-icon text-orange-500 hover:text-orange-400"
-                              title="Deactivate customer"
-                              aria-label="Deactivate customer"
-                            >
-                              <UserX size={18} />
-                            </button>
-                            <button
-                              onClick={() => void handleBlacklist(customer)}
-                              className="btn-icon text-amber-500 hover:text-amber-400"
-                              title="Block customer"
-                              aria-label="Block customer"
-                            >
-                              <Ban size={18} />
-                            </button>
-                          </>
-                        )}
-
-                        {/* Reactivate — for inactive or blacklisted customers */}
-                        {(customer.status === "inactive" || customer.status === "blacklisted") && (
+                      </td>
+                      <td className="px-6 py-4">{getStatusBadge(customer.status)}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
                           <button
-                            onClick={() => void handleReactivate(customer)}
-                            className="btn-icon text-emerald-500 hover:text-emerald-400"
-                            title={
-                              customer.status === "blacklisted"
-                                ? "Unblock & reactivate"
-                                : "Reactivate customer"
-                            }
-                            aria-label={
-                              customer.status === "blacklisted"
-                                ? "Unblock & reactivate"
-                                : "Reactivate customer"
-                            }
+                            onClick={() => openEditModal(customer)}
+                            className="btn-icon text-blue-400 hover:text-blue-300"
+                            title="Edit customer"
+                            aria-label="Edit customer"
                           >
-                            <RotateCcw size={18} />
+                            <Edit2 size={18} />
                           </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+
+                          {/* Deactivate & Block — only for active customers */}
+                          {customer.status === "active" && (
+                            <>
+                              <button
+                                onClick={() => void handleDeactivate(customer)}
+                                className="btn-icon text-orange-500 hover:text-orange-400"
+                                title="Deactivate customer"
+                                aria-label="Deactivate customer"
+                              >
+                                <UserX size={18} />
+                              </button>
+                              <button
+                                onClick={() => void handleBlacklist(customer)}
+                                className="btn-icon text-amber-500 hover:text-amber-400"
+                                title="Block customer"
+                                aria-label="Block customer"
+                              >
+                                <Ban size={18} />
+                              </button>
+                            </>
+                          )}
+
+                          {/* Reactivate — for inactive or blacklisted customers */}
+                          {(customer.status === "inactive" || customer.status === "blacklisted") && (
+                            <button
+                              onClick={() => void handleReactivate(customer)}
+                              className="btn-icon text-emerald-500 hover:text-emerald-400"
+                              title={customer.status === "blacklisted" ? "Unblock & reactivate" : "Reactivate customer"}
+                              aria-label={customer.status === "blacklisted" ? "Unblock & reactivate" : "Reactivate customer"}
+                            >
+                              <RotateCcw size={18} />
+                            </button>
+                          )}
+
+                          <button
+                            onClick={() => void handleDeleteCustomer(customer)}
+                            className="btn-icon text-red-500 hover:text-red-300 hover:bg-red-500/10 border border-transparent hover:border-red-500/40"
+                            title="Delete customer"
+                            aria-label="Delete customer"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
               </tbody>
             </AdminTable>
 
@@ -1122,11 +1280,20 @@ export default function Customers() {
                   </div>
 
                   {/* Address */}
-                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest pt-2">
-                    Address
-                  </h3>
+                    <div className="flex items-center justify-between pt-2">
+                      <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Address</h3>
+                      <button
+                        type="button"
+                        onClick={() => setShowAddress((v) => !v)}
+                        className="text-xs text-yellow-400 hover:text-yellow-300 transition border border-yellow-400/30 hover:border-yellow-400/60 rounded-lg px-3 py-1"
+                        disabled={submitting}
+                      >
+                        {showAddress ? "Hide" : "Add Address"}
+                      </button>
+                    </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {showAddress && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="form-group md:col-span-2">
                       <label className="form-label">Street Type *</label>
                       <select
@@ -1143,6 +1310,10 @@ export default function Customers() {
                         <option disabled value="">
                           Select street type
                         </option>
+                        {streetType &&
+                          !COLOMBIA_STREET_TYPES.some((type) =>
+                            isNormalizedEqual(type, streetType),
+                          ) && <option value={streetType}>{streetType}</option>}
                         {COLOMBIA_STREET_TYPES.map((type) => (
                           <option key={type} value={type}>
                             {type}
@@ -1402,21 +1573,25 @@ export default function Customers() {
                       />
                     </div>
                   </div>
-                </div>
-                <div className="modal-footer">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => setShowCreateModal(false)}
-                    disabled={submitting}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit" loading={submitting}>
-                    {submitting ? "Creating..." : "Create Customer"}
-                  </Button>
-                </div>
-              </form>
+                    )}
+                  </div>
+                  <div className="modal-footer">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => setShowCreateModal(false)}
+                      disabled={submitting}
+                    >
+                      Cancel
+                    </Button>
+                    {modalError && (
+                      <p className="text-red-400 text-sm flex-1 text-left">{modalError}</p>
+                    )}
+                    <Button type="submit" loading={submitting}>
+                      {submitting ? "Creating..." : "Create Customer"}
+                    </Button>
+                  </div>
+                </form>
             </div>
           </div>
         )}
@@ -1433,12 +1608,7 @@ export default function Customers() {
             <div className="modal-content">
               <div className="modal-header">
                 <h2 className="text-xl font-bold">Edit Customer</h2>
-                <button
-                  onClick={() => setShowEditModal(false)}
-                  className="btn-icon"
-                  title="Close edit customer modal"
-                  aria-label="Close edit customer modal"
-                >
+                <button onClick={closeEditModal} className="btn-icon" title="Close edit customer modal" aria-label="Close edit customer modal">
                   <X size={20} />
                 </button>
               </div>
@@ -1582,33 +1752,28 @@ export default function Customers() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="form-group">
                       <label className="form-label">Document Type</label>
-                      <input
-                        type="text"
-                        value={getDocumentTypeLabel(selectedCustomer.documentType)}
-                        className={inputClass(false)}
-                        title="Document Type"
-                        aria-label="Document Type"
-                        disabled
-                      />
+                      <input type="text" value={getDocumentTypeLabel(selectedCustomer.documentType)} className={inputClass(false)} title="Document Type" aria-label="Document Type" disabled />
                     </div>
                     <div className="form-group opacity-50">
                       <label className="form-label">Document Number</label>
-                      <input
-                        type="text"
-                        value={selectedCustomer.documentNumber}
-                        className={inputClass(false)}
-                        title="Document Number"
-                        aria-label="Document Number"
-                        disabled
-                      />
+                      <input type="text" value={selectedCustomer.documentNumber} className={inputClass(false)} title="Document Number" aria-label="Document Number" disabled />
                     </div>
                   </div>
 
                   {/* Address */}
-                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest pt-2">
-                    Address
-                  </h3>
+                  <div className="flex items-center justify-between pt-2">
+                    <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Address</h3>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddress((v) => !v)}
+                      className="text-xs text-yellow-400 hover:text-yellow-300 transition border border-yellow-400/30 hover:border-yellow-400/60 rounded-lg px-3 py-1"
+                      disabled={submitting}
+                    >
+                      {showAddress ? "Hide" : "Add Address"}
+                    </button>
+                  </div>
 
+                  {showAddress && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="form-group md:col-span-2">
                       <label className="form-label">Street Type *</label>
@@ -1626,6 +1791,10 @@ export default function Customers() {
                         <option disabled value="">
                           Select street type
                         </option>
+                        {streetType &&
+                          !COLOMBIA_STREET_TYPES.some((type) =>
+                            isNormalizedEqual(type, streetType),
+                          ) && <option value={streetType}>{streetType}</option>}
                         {COLOMBIA_STREET_TYPES.map((type) => (
                           <option key={type} value={type}>
                             {type}
@@ -1885,16 +2054,15 @@ export default function Customers() {
                       />
                     </div>
                   </div>
+                  )}
                 </div>
                 <div className="modal-footer">
-                  <button
-                    type="button"
-                    onClick={() => setShowEditModal(false)}
-                    className="btn-secondary"
-                    disabled={submitting}
-                  >
+                  <button type="button" onClick={closeEditModal} className="btn-secondary" disabled={submitting}>
                     Cancel
                   </button>
+                  {modalError && (
+                    <p className="text-red-400 text-sm flex-1 text-left">{modalError}</p>
+                  )}
                   <Button type="submit" loading={submitting}>
                     {submitting ? "Saving..." : "Save Changes"}
                   </Button>
