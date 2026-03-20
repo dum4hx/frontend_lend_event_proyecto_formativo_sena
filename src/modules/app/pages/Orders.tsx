@@ -32,7 +32,6 @@ import {
   approveRequest,
   rejectRequest,
   updateRequest,
-  assignMaterials,
   createLoanFromRequest,
   returnLoan,
 } from "../../../services/loanService";
@@ -45,6 +44,7 @@ import {
 } from "../../../services/materialService";
 import { useAlertModal } from "../../../hooks/useAlertModal";
 import { usePermissions } from "../../../contexts/usePermissions";
+import PrepareOrderModal from "./PrepareOrderModal";
 import {
   applySelectedMaterialToDraftRows,
   calculateRentalDays,
@@ -414,6 +414,11 @@ export default function Orders() {
   const [activeOrder, setActiveOrder] = useState<OrderView | null>(null);
   const [rejectTarget, setRejectTarget] = useState<OrderView | null>(null);
   const [reactivateTarget, setReactivateTarget] = useState<OrderView | null>(null);
+  const [showPrepareModal, setShowPrepareModal] = useState(false);
+  const [prepareTargetOrder, setPrepareTargetOrder] = useState<OrderView | null>(null);
+  const [prepareRequiredTypes, setPrepareRequiredTypes] = useState<
+    Array<{ materialTypeId: string; materialTypeName: string; quantity: number }>
+  >([]);
   const [rejectReason, setRejectReason] = useState("");
   const [reactivateReason, setReactivateReason] = useState("");
   const [formData, setFormData] = useState(EMPTY_FORM);
@@ -1373,19 +1378,11 @@ export default function Orders() {
     }
   };
 
-  const handlePrepareOrder = async (order: OrderView) => {
+  const handlePrepareOrder = (order: OrderView) => {
     if (!canAssignRequest) {
       showError(
         "You need the requests:assign permission to prepare orders.",
         "Permission Required",
-      );
-      return;
-    }
-
-    if (!inventoryDataAvailable) {
-      showError(
-        "Inventory data is unavailable. Try refreshing and prepare again.",
-        "Inventory Required",
       );
       return;
     }
@@ -1421,56 +1418,18 @@ export default function Orders() {
       });
     });
 
-    const assignments: Array<{ materialTypeId: string; materialInstanceId: string }> = [];
-    const unavailable: string[] = [];
+    const types = Array.from(requiredByMaterialType.entries()).map(
+      ([materialTypeId, quantity]) => ({
+        materialTypeId,
+        materialTypeName:
+          materialTypes.find((t) => t._id === materialTypeId)?.name ?? materialTypeId,
+        quantity,
+      }),
+    );
 
-    requiredByMaterialType.forEach((requiredQty, materialTypeId) => {
-      const availableInstances = materialInstances
-        .filter((instance) => {
-          if (instance.status !== "available") return false;
-          return extractMaterialTypeIdFromInstance(instance) === materialTypeId;
-        })
-        .slice(0, requiredQty);
-
-      if (availableInstances.length < requiredQty) {
-        const materialName =
-          materialTypes.find((entry) => entry._id === materialTypeId)?.name ?? materialTypeId;
-        unavailable.push(`${materialName}: ${availableInstances.length}/${requiredQty}`);
-        return;
-      }
-
-      availableInstances.forEach((instance) => {
-        assignments.push({ materialTypeId, materialInstanceId: instance._id });
-      });
-    });
-
-    if (unavailable.length > 0) {
-      showError(
-        `Insufficient stock to prepare order. ${unavailable.join(" | ")}`,
-        "Stock Unavailable",
-      );
-      return;
-    }
-
-    if (assignments.length === 0) {
-      showError(
-        "No assignable material instances were resolved for this order.",
-        "Preparation Error",
-      );
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      await assignMaterials(order.request._id, assignments);
-      showSuccess("Order prepared and moved to ready status.", "Order Prepared");
-      await refreshData();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to prepare order";
-      showError(message, "Preparation Error");
-    } finally {
-      setSubmitting(false);
-    }
+    setPrepareRequiredTypes(types);
+    setPrepareTargetOrder(order);
+    setShowPrepareModal(true);
   };
 
   return (
@@ -1647,7 +1606,7 @@ export default function Orders() {
                             size="sm"
                             leftIcon={Check}
                             onClick={() => handlePrepareOrder(order)}
-                            disabled={submitting || !canAssignRequest || !inventoryDataAvailable}
+                            disabled={submitting || !canAssignRequest}
                             className="bg-violet-500/15 text-violet-300 border-violet-500/40 hover:bg-violet-500/25"
                           >
                             Prepare
@@ -2612,6 +2571,20 @@ export default function Orders() {
             </div>
           </div>
         </div>
+      )}
+
+      {prepareTargetOrder && (
+        <PrepareOrderModal
+          isOpen={showPrepareModal}
+          requestId={prepareTargetOrder.request._id}
+          customerName={prepareTargetOrder.customerName}
+          requiredMaterialTypes={prepareRequiredTypes}
+          onClose={() => {
+            setShowPrepareModal(false);
+            setPrepareTargetOrder(null);
+          }}
+          onSuccess={refreshData}
+        />
       )}
 
       <AlertModal />

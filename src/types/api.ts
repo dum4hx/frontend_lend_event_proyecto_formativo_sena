@@ -71,6 +71,8 @@ export interface User {
   phone?: string;
   organizationId?: string;
   permissions?: string[];
+  /** Location IDs accessible to this user. */
+  locations?: string[];
 }
 
 // ─── Organization ──────────────────────────────────────────────────────────
@@ -339,6 +341,28 @@ export interface CreateMaterialInstancePayload {
   locationId: string;
   purchaseDate?: string;
   purchaseCost?: number;
+}
+
+// ─── Available Materials ────────────────────────────────────────────────────
+
+export type AvailabilityTag = "available" | "upcoming";
+
+/** A material instance enriched with an availability tag from GET /requests/:id/available-materials. */
+export interface AvailableMaterialInstance extends MaterialInstance {
+  availability: AvailabilityTag;
+}
+
+export interface LocationWithAvailableInstances {
+  location: {
+    _id: string;
+    name: string;
+  };
+  instances: AvailableMaterialInstance[];
+}
+
+export interface AvailableMaterialsResponse {
+  currentUserLocations: LocationWithAvailableInstances[];
+  otherLocations: LocationWithAvailableInstances[];
 }
 
 export interface UpdateMaterialInstanceStatusPayload {

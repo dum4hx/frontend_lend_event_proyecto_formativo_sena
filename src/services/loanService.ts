@@ -10,6 +10,7 @@ import type {
   LoanRequest,
   CreateLoanRequestPayload,
   AssignMaterialPayload,
+  AvailableMaterialsResponse,
   Loan,
   LoanRequestStatus,
   ExtendLoanPayload,
@@ -36,10 +37,7 @@ export async function getRequests(
 export async function createRequest(
   payload: CreateLoanRequestPayload,
 ): Promise<ApiSuccessResponse<{ request: LoanRequest }>> {
-  return post<{ request: LoanRequest }, CreateLoanRequestPayload>(
-    "/requests",
-    payload,
-  );
+  return post<{ request: LoanRequest }, CreateLoanRequestPayload>("/requests", payload);
 }
 
 /** Approve a pending loan request (manager action). */
@@ -62,17 +60,21 @@ export async function rejectRequest(
   });
 }
 
+/** Fetch available material instances for a request, classified by user-accessible locations. */
+export async function getAvailableMaterials(
+  requestId: string,
+): Promise<ApiSuccessResponse<AvailableMaterialsResponse>> {
+  return get<AvailableMaterialsResponse>(`/requests/${requestId}/available-materials`);
+}
+
 /** Assign specific material instances to a request (warehouse op). */
 export async function assignMaterials(
   requestId: string,
   assignments: AssignMaterialPayload[],
 ): Promise<ApiSuccessResponse<{ request: LoanRequest }>> {
-  return post<{ request: LoanRequest }>(
-    `/requests/${requestId}/assign-materials`,
-    {
-      assignments,
-    },
-  );
+  return post<{ request: LoanRequest }>(`/requests/${requestId}/assign-materials`, {
+    assignments,
+  });
 }
 
 /** Update a loan request. */
@@ -98,16 +100,12 @@ export async function getLoans(
 }
 
 /** Get a specific loan by ID. */
-export async function getLoan(
-  loanId: string,
-): Promise<ApiSuccessResponse<{ loan: Loan }>> {
+export async function getLoan(loanId: string): Promise<ApiSuccessResponse<{ loan: Loan }>> {
   return get<{ loan: Loan }>(`/loans/${loanId}`);
 }
 
 /** Get all overdue loans (auto-updates overdue status). */
-export async function getOverdueLoans(): Promise<
-  ApiSuccessResponse<{ loans: Loan[] }>
-> {
+export async function getOverdueLoans(): Promise<ApiSuccessResponse<{ loans: Loan[] }>> {
   return get<{ loans: Loan[] }>("/loans/overdue");
 }
 
@@ -123,15 +121,10 @@ export async function extendLoan(
   loanId: string,
   payload: ExtendLoanPayload,
 ): Promise<ApiSuccessResponse<{ loan: Loan }>> {
-  return post<{ loan: Loan }, ExtendLoanPayload>(
-    `/loans/${loanId}/extend`,
-    payload,
-  );
+  return post<{ loan: Loan }, ExtendLoanPayload>(`/loans/${loanId}/extend`, payload);
 }
 
 /** Mark a loan as returned. */
-export async function returnLoan(
-  loanId: string,
-): Promise<ApiSuccessResponse<{ loan: Loan }>> {
+export async function returnLoan(loanId: string): Promise<ApiSuccessResponse<{ loan: Loan }>> {
   return post<{ loan: Loan }>(`/loans/${loanId}/return`);
 }
