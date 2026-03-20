@@ -73,7 +73,7 @@ export default function SalesOverview() {
     } catch (err: unknown) {
       const normalized = normalizeError(err);
       setError(normalized.message);
-      logError(err, 'SalesOverview.fetchData');
+      logError(err, "SalesOverview.fetchData");
     } finally {
       setLoading(false);
     }
@@ -89,7 +89,9 @@ export default function SalesOverview() {
 
     // Plan-level rows enriched with subscription counts
     for (const plan of plans) {
-      const sub = dashboard?.subscriptionStats.subscriptionsByPlan.find((s) => s.plan === plan.plan);
+      const sub = dashboard?.subscriptionStats.subscriptionsByPlan.find(
+        (s) => s.plan === plan.plan,
+      );
       rows.push({
         plan: plan.plan,
         displayName: plan.displayName,
@@ -117,72 +119,86 @@ export default function SalesOverview() {
   }, [plans, dashboard, revenue]);
 
   /** Build the "Totals" additional sheet with aggregate metrics. */
-  const buildTotalsSheet = useCallback((): ExportSheet => ({
-    name: 'Totals',
-    columns: [
-      { key: 'totalRevenue', label: 'Total Revenue' },
-      { key: 'churnRate', label: 'Churn Rate (%)' },
-      { key: 'totalActiveSubscriptions', label: 'Active Subscriptions' },
-      { key: 'monthlyRecurringRevenue', label: 'MRR' },
-    ],
-    rows: [{
-      totalRevenue: revenue?.totalRevenue ?? 0,
-      churnRate: dashboard?.subscriptionStats.churnRate ?? 0,
-      totalActiveSubscriptions: dashboard?.subscriptionStats.totalActiveSubscriptions ?? 0,
-      monthlyRecurringRevenue: dashboard?.overview.monthlyRecurringRevenue ?? 0,
-    }],
-  }), [revenue, dashboard]);
+  const buildTotalsSheet = useCallback(
+    (): ExportSheet => ({
+      name: "Totals",
+      columns: [
+        { key: "totalRevenue", label: "Total Revenue" },
+        { key: "churnRate", label: "Churn Rate (%)" },
+        { key: "totalActiveSubscriptions", label: "Active Subscriptions" },
+        { key: "monthlyRecurringRevenue", label: "MRR" },
+      ],
+      rows: [
+        {
+          totalRevenue: revenue?.totalRevenue ?? 0,
+          churnRate: dashboard?.subscriptionStats.churnRate ?? 0,
+          totalActiveSubscriptions: dashboard?.subscriptionStats.totalActiveSubscriptions ?? 0,
+          monthlyRecurringRevenue: dashboard?.overview.monthlyRecurringRevenue ?? 0,
+        },
+      ],
+    }),
+    [revenue, dashboard],
+  );
 
-  const handleExport = useCallback(async (config: ExportConfig) => {
-    const rawData = buildExportRows();
+  const handleExport = useCallback(
+    async (config: ExportConfig) => {
+      const rawData = buildExportRows();
 
-    if (rawData.length === 0) {
-      showAlert('warning', 'No data available to export.');
-      return;
-    }
+      if (rawData.length === 0) {
+        showAlert("warning", "No data available to export.");
+        return;
+      }
 
-    // Attach the Totals sheet to the config
-    const configWithTotals: ExportConfig = {
-      ...config,
-      additionalSheets: [buildTotalsSheet()],
-    };
+      // Attach the Totals sheet to the config
+      const configWithTotals: ExportConfig = {
+        ...config,
+        additionalSheets: [buildTotalsSheet()],
+      };
 
-    const abort = new AbortController();
-    exportAbort.current = abort;
-    setExporting(true);
-    setExportProgress(undefined);
+      const abort = new AbortController();
+      exportAbort.current = abort;
+      setExporting(true);
+      setExportProgress(undefined);
 
-    const result = await exportService.export(
-      rawData,
-      configWithTotals,
-      user?.id ?? 'anonymous',
-      (p) => setExportProgress(p),
-      abort.signal,
-    );
+      const result = await exportService.export(
+        rawData,
+        configWithTotals,
+        user?.id ?? "anonymous",
+        (p) => setExportProgress(p),
+        abort.signal,
+      );
 
-    setExporting(false);
-    setExportProgress(undefined);
-    exportAbort.current = null;
+      setExporting(false);
+      setExportProgress(undefined);
+      exportAbort.current = null;
 
-    if (result.status === 'success') {
-      showAlert('success', `Exported ${result.metadata.recordCount} records as ${result.filename}`);
-      setExportOpen(false);
-    } else if (result.status === 'cancelled') {
-      showAlert('info', result.reason);
-    } else {
-      showAlert('error', result.error);
-    }
-  }, [buildExportRows, buildTotalsSheet, user?.id, showAlert]);
+      if (result.status === "success") {
+        showAlert(
+          "success",
+          `Exported ${result.metadata.recordCount} records as ${result.filename}`,
+        );
+        setExportOpen(false);
+      } else if (result.status === "cancelled") {
+        showAlert("info", result.reason);
+      } else {
+        showAlert("error", result.error);
+      }
+    },
+    [buildExportRows, buildTotalsSheet, user?.id, showAlert],
+  );
 
-  const handleExportPreview = useCallback(async (config: ExportConfig) => {
-    const rawData = buildExportRows();
-    if (rawData.length === 0) return undefined;
-    const configWithTotals: ExportConfig = {
-      ...config,
-      additionalSheets: [buildTotalsSheet()],
-    };
-    return exportService.preview(rawData, configWithTotals, user?.id ?? 'anonymous');
-  }, [buildExportRows, buildTotalsSheet, user?.id]);
+  const handleExportPreview = useCallback(
+    async (config: ExportConfig) => {
+      const rawData = buildExportRows();
+      if (rawData.length === 0) return undefined;
+      const configWithTotals: ExportConfig = {
+        ...config,
+        additionalSheets: [buildTotalsSheet()],
+      };
+      return exportService.preview(rawData, configWithTotals, user?.id ?? "anonymous");
+    },
+    [buildExportRows, buildTotalsSheet, user?.id],
+  );
 
   const handleCancelExport = useCallback(() => {
     exportAbort.current?.abort();
@@ -227,7 +243,7 @@ export default function SalesOverview() {
         onPreview={handleExportPreview}
         module="sales-overview"
         policy={SALES_OVERVIEW_POLICY}
-        allowedFormats={['xlsx']}
+        allowedFormats={["xlsx"]}
         exporting={exporting}
         progress={exportProgress}
         onCancel={handleCancelExport}
@@ -241,10 +257,7 @@ export default function SalesOverview() {
             Complete analytics and performance metrics for Lend Event
           </p>
         </div>
-        <button
-          onClick={() => setExportOpen(true)}
-          className="export-btn flex items-center gap-2"
-        >
+        <button onClick={() => setExportOpen(true)} className="export-btn flex items-center gap-2">
           <Download size={18} />
           Export
         </button>
@@ -295,7 +308,7 @@ export default function SalesOverview() {
 
           {/* Bar Chart */}
           <div className="flex items-end justify-around h-48 gap-4 mb-4">
-            {plans.map((plan) => {
+            {plans.slice(0, 4).map((plan) => {
               const height = Math.max(20, (plan.baseCost / maxPlanRevenue) * 100);
               return (
                 <div key={plan.plan} className="flex flex-col items-center flex-1">
@@ -318,7 +331,7 @@ export default function SalesOverview() {
 
           {/* Plan labels + prices */}
           <div className="flex justify-around mt-4">
-            {plans.map((plan) => (
+            {plans.slice(0, 4).map((plan) => (
               <div key={plan.plan} className="text-center">
                 <p className="text-xs text-gray-400">{plan.displayName}</p>
                 <p className="text-white font-bold text-sm">{formatCurrency(plan.baseCost)}</p>
@@ -404,10 +417,7 @@ export default function SalesOverview() {
         </div>
 
         {/* Simple SVG line chart */}
-        <RevenueLineChart
-          trend={revenue?.monthlyTrend ?? []}
-          fallbackData={dashboard}
-        />
+        <RevenueLineChart trend={revenue?.monthlyTrend ?? []} fallbackData={dashboard} />
       </div>
     </div>
   );
@@ -435,7 +445,9 @@ function RevenueLineChart({
   }
 
   const values = displayTrend.map((t) =>
-    "revenue" in t ? (t as MonthlyTrend).revenue : ((t as { newOrganizations?: number }).newOrganizations ?? 0),
+    "revenue" in t
+      ? (t as MonthlyTrend).revenue
+      : ((t as { newOrganizations?: number }).newOrganizations ?? 0),
   );
   const max = Math.max(...values, 1);
   const min = 0;
