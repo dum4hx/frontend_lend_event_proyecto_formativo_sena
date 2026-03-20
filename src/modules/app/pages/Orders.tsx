@@ -130,7 +130,7 @@ function formatDate(dateValue: string): string {
   if (!dateValue) return "-";
   const parsed = new Date(dateValue);
   if (Number.isNaN(parsed.getTime())) return dateValue;
-  return parsed.toLocaleDateString();
+  return parsed.toLocaleString();
 }
 
 function formatCustomerName(customer: Customer): string {
@@ -145,21 +145,46 @@ function getTodayLocalDateString(): string {
   return `${year}-${month}-${day}`;
 }
 
-function toSafeStartDateIso(dateOnly: string): string {
-  const today = getTodayLocalDateString();
-  if (dateOnly === today) {
-    // If start date is today, send a timestamp slightly in the future.
-    const nearFuture = new Date(Date.now() + 5 * 60 * 1000);
-    return nearFuture.toISOString();
-  }
-
-  const localStart = new Date(`${dateOnly}T09:00:00`);
-  return localStart.toISOString();
+function getTodayLocalDatetimeString(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  const hour = String(now.getHours()).padStart(2, "0");
+  const minute = String(now.getMinutes()).padStart(2, "0");
+  return `${year}-${month}-${day}T${hour}:${minute}`;
 }
 
-function toSafeEndDateIso(dateOnly: string): string {
-  const localEnd = new Date(`${dateOnly}T23:59:59`);
-  return localEnd.toISOString();
+function toSafeStartDateIso(dateTimeLocal: string): string {
+  if (!dateTimeLocal) return "";
+  // If it's already a full ISO string from backend, just return it
+  if (dateTimeLocal.includes("Z")) return dateTimeLocal;
+
+  // If it's a date-only YYYY-MM-DD
+  if (dateTimeLocal.length === 10 && !dateTimeLocal.includes("T")) {
+    const today = getTodayLocalDateString();
+    if (dateTimeLocal === today) {
+      const nearFuture = new Date(Date.now() + 5 * 60 * 1000);
+      return nearFuture.toISOString();
+    }
+    return new Date(`${dateTimeLocal}T09:00:00`).toISOString();
+  }
+
+  // If it's YYYY-MM-DDTHH:MM from datetime-local input
+  const date = new Date(dateTimeLocal);
+  return Number.isNaN(date.getTime()) ? "" : date.toISOString();
+}
+
+function toSafeEndDateIso(dateTimeLocal: string): string {
+  if (!dateTimeLocal) return "";
+  if (dateTimeLocal.includes("Z")) return dateTimeLocal;
+
+  if (dateTimeLocal.length === 10 && !dateTimeLocal.includes("T")) {
+    return new Date(`${dateTimeLocal}T23:59:59`).toISOString();
+  }
+
+  const date = new Date(dateTimeLocal);
+  return Number.isNaN(date.getTime()) ? "" : date.toISOString();
 }
 
 function formatMoney(value?: number): string {
@@ -684,7 +709,6 @@ export default function Orders() {
 
   const hasCustomers = customers.length > 0;
   const hasSelectableItems = materialTypes.length > 0;
-  const todayDate = getTodayLocalDateString();
 
   const selectedDraftById = useMemo(() => {
     const details = new Map<
@@ -1116,16 +1140,24 @@ export default function Orders() {
       nextErrors.customerId = "Select the customer for this order.";
     }
 
+    const isDatetimeIncomplete = (val: string) => val && val.length < 16 && val.includes("T");
+
     if (!formData.startDate) {
       nextErrors.startDate = "Select a start date.";
-    } else if (formData.startDate < todayDate) {
-      nextErrors.startDate = "Start date cannot be in the past.";
+    } else if (isDatetimeIncomplete(formData.startDate)) {
+      nextErrors.startDate = "Please set both date and hour for the start time.";
+    } else if (formData.startDate < getTodayLocalDatetimeString()) {
+      nextErrors.startDate = "Start date and time cannot be in the past.";
     }
 
     if (!formData.endDate) {
       nextErrors.endDate = "Select an end date.";
-    } else if (formData.startDate && formData.endDate < formData.startDate) {
-      nextErrors.endDate = "End date must be on or after start date.";
+    } else if (isDatetimeIncomplete(formData.endDate)) {
+      nextErrors.endDate = "Please set both date and hour for the end time.";
+    } else if (!formData.startDate) {
+      nextErrors.endDate = "Please select a start date before choosing an end date.";
+    } else if (formData.endDate < formData.startDate) {
+      nextErrors.endDate = "End date and time must be after the start date and time.";
     }
 
     const draftRowsToValidate = formItems.filter((item) => !isDraftRowEmpty(item));
@@ -1159,7 +1191,7 @@ export default function Orders() {
     }
 
     return nextErrors;
-  }, [formData, formItems, todayDate, isMaterialSelectable, isDraftRowEmpty, selectedPlanId]);
+  }, [formData, formItems, isMaterialSelectable, isDraftRowEmpty, selectedPlanId]);
 
   useEffect(() => {
     if (!showValidationErrors) return;
@@ -1737,9 +1769,9 @@ export default function Orders() {
                     <div className="form-group">
                       <label className="form-label">Start Date *</label>
                       <input
-                        type="date"
+                        type="datetime-local"
                         value={formData.startDate}
-                        min={todayDate}
+                        min={getTodayLocalDatetimeString()}
                         onChange={(e) =>
                           setFormData((prev) => {
                             const nextStartDate = e.target.value;
@@ -1764,9 +1796,9 @@ export default function Orders() {
                     <div className="form-group">
                       <label className="form-label">End Date *</label>
                       <input
-                        type="date"
+                        type="datetime-local"
                         value={formData.endDate}
-                        min={formData.startDate || todayDate}
+                        min={formData.startDate || getTodayLocalDatetimeString()}
                         onChange={(e) =>
                           setFormData((prev) => ({ ...prev, endDate: e.target.value }))
                         }

@@ -31,14 +31,25 @@ export function isFormDraftItemEmpty(item: FormDraftItem): boolean {
 export function calculateRentalDays(startDate: string, endDate: string): number {
   if (!startDate || !endDate) return 1;
 
-  const start = new Date(`${startDate}T00:00:00`);
-  const end = new Date(`${endDate}T00:00:00`);
+  // If time is missing, add it to ensure stable parsing
+  const startFull = startDate.includes("T") ? startDate : `${startDate}T00:00:00`;
+  const endFull = endDate.includes("T") ? endDate : `${endDate}T00:00:00`;
+
+  const start = new Date(startFull);
+  const end = new Date(endFull);
+
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) {
     return 1;
   }
 
   const millisecondsPerDay = 24 * 60 * 60 * 1000;
-  return Math.floor((end.getTime() - start.getTime()) / millisecondsPerDay) + 1;
+  const diffTime = end.getTime() - start.getTime();
+
+  // If exactly same or very close (less than 1s), count as 1 day
+  if (diffTime < 1000) return 1;
+
+  // Count partial days as a full day (ceil)
+  return Math.ceil(diffTime / millisecondsPerDay);
 }
 
 export function mergeSelectionsIntoDraftRows(
@@ -53,9 +64,8 @@ export function mergeSelectionsIntoDraftRows(
 
     if (existingIndex >= 0) {
       const currentQuantity = Number(next[existingIndex].quantity);
-      const safeCurrentQuantity = Number.isFinite(currentQuantity) && currentQuantity > 0
-        ? currentQuantity
-        : 1;
+      const safeCurrentQuantity =
+        Number.isFinite(currentQuantity) && currentQuantity > 0 ? currentQuantity : 1;
       next[existingIndex] = {
         ...next[existingIndex],
         categoryId: extractCategoryId(material.categoryId) ?? next[existingIndex].categoryId,
@@ -99,9 +109,8 @@ export function applySelectedMaterialToDraftRows(
   if (!sourceRow) return currentItems;
 
   const sourceQuantity = Number(sourceRow.quantity);
-  const normalizedSourceQuantity = Number.isFinite(sourceQuantity) && sourceQuantity > 0
-    ? sourceQuantity
-    : 1;
+  const normalizedSourceQuantity =
+    Number.isFinite(sourceQuantity) && sourceQuantity > 0 ? sourceQuantity : 1;
 
   const duplicateIndex = currentItems.findIndex(
     (item) => item.localId !== sourceLocalId && item.materialTypeId === selectedMaterial._id,
