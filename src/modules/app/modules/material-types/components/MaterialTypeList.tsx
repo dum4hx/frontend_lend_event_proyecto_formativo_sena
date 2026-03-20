@@ -104,23 +104,29 @@ export const MaterialTypeList: React.FC<MaterialTypeListProps> = ({
               <td className="py-4 px-4">
                 <div className="flex gap-2 justify-end">
                   <button
+                    type="button"
                     onClick={() => onView(type)}
                     className="p-2 text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors"
                     title="View Details"
+                    aria-label={`View details for ${type.name}`}
                   >
                     <Eye size={18} />
                   </button>
                   <button
+                    type="button"
                     onClick={() => onEdit(type)}
                     className="p-2 text-[#FFD700] hover:bg-[#FFD700]/10 rounded-lg transition-colors"
                     title="Edit Material Type"
+                    aria-label={`Edit ${type.name}`}
                   >
                     <Edit size={18} />
                   </button>
                   <button
+                    type="button"
                     onClick={() => onDelete(type)}
-                    className="p-2 text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
+                    className="p-2 text-red-300 border border-red-500/40 hover:bg-red-500/15 rounded-lg transition-colors"
                     title="Delete Material Type"
+                    aria-label={`Delete ${type.name}`}
                   >
                     <Trash2 size={18} />
                   </button>
