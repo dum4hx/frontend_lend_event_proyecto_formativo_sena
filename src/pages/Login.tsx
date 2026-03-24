@@ -10,9 +10,12 @@ import {
   requiresActiveSubscriptionByPermissions,
 } from "../utils/roleRouting";
 import { useAuth } from "../contexts/useAuth";
+import { useLanguage } from "../contexts/useLanguage";
 import styles from "./Login.module.css";
 
 export default function Login() {
+  const { language } = useLanguage();
+  const isEs = language === "es";
   const navigate = useNavigate();
   const { checkAuth } = useAuth();
   const [email, setEmail] = useState("");
@@ -47,13 +50,13 @@ export default function Login() {
     // Frontend validation
     const validation = validateLoginForm({ email: normalisedEmail, password: normalisedPassword });
     if (!validation.isValid) {
-      setError(validation.message || "Validation failed");
+      setError(validation.message || (isEs ? "Validacion fallida" : "Validation failed"));
       return;
     }
 
     // Prevent submit if field errors exist
     if (Object.keys(fieldErrors).length > 0) {
-      setError("Please fix the highlighted fields");
+      setError(isEs ? "Corrige los campos marcados" : "Please fix the highlighted fields");
       return;
     }
 
@@ -166,11 +169,15 @@ export default function Login() {
           navigate(dashboardUrl);
           return;
         } catch {
-          setError("Invalid credentials");
+          setError(isEs ? "Credenciales invalidas" : "Invalid credentials");
           return;
         }
       }
-      const message = err instanceof ApiError ? err.message : "Connection error. Please try again.";
+      const message = err instanceof ApiError
+        ? err.message
+        : isEs
+          ? "Error de conexion. Intenta de nuevo."
+          : "Connection error. Please try again.";
       setError(message);
     } finally {
       setLoading(false);
@@ -199,7 +206,7 @@ export default function Login() {
               </svg>
             </div>
             <h2 className="text-2xl font-extrabold text-white text-center mb-3">
-              Subscription Required
+              {isEs ? "Suscripcion requerida" : "Subscription Required"}
             </h2>
             <p className="text-gray-400 text-center text-sm mb-8 leading-relaxed">
               Your account does not have an active subscription. You need to purchase a plan before
@@ -211,13 +218,13 @@ export default function Login() {
                 onClick={() => setShowNoSubModal(false)}
                 className="flex-1 py-3 rounded-xl border border-zinc-700 text-gray-300 font-semibold hover:bg-zinc-800 hover:text-white transition"
               >
-                Close
+                {isEs ? "Cerrar" : "Close"}
               </button>
               <button
                 onClick={() => navigate("/packages")}
                 className="flex-1 py-3 rounded-xl bg-yellow-400 text-black font-extrabold hover:bg-yellow-300 transition"
               >
-                Buy Subscription
+                {isEs ? "Comprar suscripcion" : "Buy Subscription"}
               </button>
             </div>
           </div>
@@ -256,9 +263,9 @@ export default function Login() {
 
             {/* Title */}
             <h1 className="text-5xl text-white lg:text-6xl font-extrabold mb-6 leading-tight">
-              Global Management
+              {isEs ? "Gestion global" : "Global Management"}
               <br />
-              <span className="text-yellow-400">Command Center</span>
+              <span className="text-yellow-400">{isEs ? "Centro de control" : "Command Center"}</span>
             </h1>
 
             {/* Description */}
@@ -297,7 +304,7 @@ export default function Login() {
         <div className="flex-grow md:w-1/2 flex items-center justify-center p-8 bg-black">
           <div className="w-full max-w-md">
             <h2 className="text-4xl font-extrabold mb-2">Welcome</h2>
-            <p className="text-gray-400 mb-10">Enter your corporate credentials to continue</p>
+            <p className="text-gray-400 mb-10">{isEs ? "Ingresa tus credenciales corporativas para continuar" : "Enter your corporate credentials to continue"}</p>
 
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Error Message */}
@@ -310,7 +317,7 @@ export default function Login() {
               {/* Email */}
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                  Corporate Email
+                  {isEs ? "Correo corporativo" : "Corporate Email"}
                 </label>
                 <div className="relative group">
                   <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 group-focus-within:text-yellow-400 transition-colors">
@@ -351,7 +358,7 @@ export default function Login() {
               {/* Password */}
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                  Password
+                  {isEs ? "Contrasena" : "Password"}
                 </label>
                 <div className="relative group">
                   <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 group-focus-within:text-yellow-400 transition-colors">
@@ -386,7 +393,7 @@ export default function Login() {
                       type="button"
                       onClick={() => setShowPassword((s) => !s)}
                       className="absolute inset-y-0 right-0 mr-3 my-auto text-gray-400 hover:text-white"
-                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      aria-label={showPassword ? (isEs ? "Ocultar contrasena" : "Hide password") : (isEs ? "Mostrar contrasena" : "Show password")}
                     >
                       {showPassword ? (
                         <svg
@@ -447,7 +454,7 @@ export default function Login() {
                   to="/password-recovery"
                   className="text-yellow-400 hover:text-yellow-300 font-bold transition"
                 >
-                  Forgot your password?
+                  {isEs ? "Olvidaste tu contrasena?" : "Forgot your password?"}
                 </Link>
               </div>
 
@@ -457,15 +464,15 @@ export default function Login() {
                 disabled={loading || Object.keys(fieldErrors).length > 0}
                 className={`w-full bg-yellow-400 text-black font-extrabold py-4 rounded-xl text-lg ${styles.glowButton} mt-4 shadow-xl hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed transition`}
               >
-                {loading ? "Signing in..." : "Sign In"}
+                {loading ? (isEs ? "Iniciando sesion..." : "Signing in...") : (isEs ? "Ingresar" : "Sign In")}
               </button>
             </form>
 
             {/* Link to Plans */}
             <p className="text-center text-sm text-gray-500 mt-8">
-              Don't have a license?{" "}
+              {isEs ? "No tienes licencia?" : "Don't have a license?"}{" "}
               <Link to="/packages" className="text-yellow-400 font-bold hover:underline">
-                View plans
+                {isEs ? "Ver planes" : "View plans"}
               </Link>
             </p>
           </div>

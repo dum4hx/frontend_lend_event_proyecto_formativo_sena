@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/useAuth";
+import { useLanguage } from "../contexts/useLanguage";
 import { usePermissions } from "../contexts/usePermissions";
 import { LoadingSpinner } from "../components/ui";
 
@@ -25,6 +26,7 @@ export function RequirePermission({
 }: RequirePermissionProps) {
   const { user, isLoading, isLoggedIn } = useAuth();
   const { hasAnyPermission } = usePermissions();
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   const hasAccess = requiredPermissions.length === 0 || hasAnyPermission(requiredPermissions);
@@ -40,11 +42,11 @@ export function RequirePermission({
   }, [isLoading, isLoggedIn, hasAccess, navigate, redirectTo]);
 
   if (isLoading || !user) {
-    return <LoadingSpinner fullScreen message="Verifying access…" />;
+    return <LoadingSpinner fullScreen message={t("common.verifyingAccess")} />;
   }
 
   if (!hasAccess) {
-    return <LoadingSpinner fullScreen message="Verifying access…" />;
+    return <LoadingSpinner fullScreen message={t("common.verifyingAccess")} />;
   }
 
   return <>{children}</>;

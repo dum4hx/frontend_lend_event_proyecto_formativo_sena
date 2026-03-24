@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Plus, Eye, Search, X, Loader2, AlertCircle } from "lucide-react";
 import { useApiQuery } from "../../../hooks/useApiQuery";
+import { useLanguage } from "../../../contexts/useLanguage";
 import { getPackages, createPackage, getMaterialTypes } from "../../../services/materialService";
 import { normalizeError, logError } from "../../../utils/errorHandling";
 import type {
@@ -32,6 +33,8 @@ interface CreatePackageModalProps {
 }
 
 function CreatePackageModal({ onClose, onSaved }: CreatePackageModalProps) {
+  const { language } = useLanguage();
+  const isEs = language === "es";
   const [form, setForm] = useState<PackageFormData>(DEFAULT_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -96,7 +99,7 @@ function CreatePackageModal({ onClose, onSaved }: CreatePackageModalProps) {
 
     const validEntries = form.entries.filter((e) => e.materialTypeId.trim() !== "");
     if (validEntries.length === 0) {
-      setError("Add at least one material type.");
+      setError(isEs ? "Agrega al menos un tipo de material." : "Add at least one material type.");
       return;
     }
 
@@ -127,7 +130,7 @@ function CreatePackageModal({ onClose, onSaved }: CreatePackageModalProps) {
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-[#121212] border border-[#333] rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-[#121212] border-b border-[#333] p-5 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-white">New Package</h2>
+          <h2 className="text-lg font-bold text-white">{isEs ? "Nuevo Paquete" : "New Package"}</h2>
           <button
             type="button"
             onClick={onClose}
@@ -141,20 +144,20 @@ function CreatePackageModal({ onClose, onSaved }: CreatePackageModalProps) {
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div>
             <label className="block text-xs font-semibold text-gray-400 mb-1">
-              Name <span className="text-[#FFD700]">*</span>
+              {isEs ? "Nombre" : "Name"} <span className="text-[#FFD700]">*</span>
             </label>
             <input
               required
               value={form.name}
               onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-              placeholder="e.g. Office Starter Pack"
+              placeholder={isEs ? "ej. Paquete Empresarial" : "e.g. Office Starter Pack"}
               disabled={submitting}
               className={inputCls}
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-1">Description</label>
+            <label className="block text-xs font-semibold text-gray-400 mb-1">{isEs ? "Descripción" : "Description"}</label>
             <textarea
               value={form.description}
               onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
@@ -166,8 +169,8 @@ function CreatePackageModal({ onClose, onSaved }: CreatePackageModalProps) {
 
           <div>
             <label className="block text-xs font-semibold text-gray-400 mb-1">
-              Price per Day ($){" "}
-              <span className="text-gray-600 font-normal">(leave blank to sum materials)</span>
+              {isEs ? "Precio por Día ($)" : "Price per Day ($)"}{" "}
+              <span className="text-gray-600 font-normal">({isEs ? "dejar en blanco para sumar materiales" : "leave blank to sum materials"})</span>
             </label>
             <input
               type="number"
@@ -175,7 +178,7 @@ function CreatePackageModal({ onClose, onSaved }: CreatePackageModalProps) {
               step={0.01}
               value={form.pricePerDay}
               onChange={(e) => setForm((p) => ({ ...p, pricePerDay: e.target.value }))}
-              placeholder="Optional override"
+              placeholder={isEs ? "Anulación opcional" : "Optional override"}
               disabled={submitting}
               className={inputCls}
             />
@@ -184,7 +187,7 @@ function CreatePackageModal({ onClose, onSaved }: CreatePackageModalProps) {
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="text-xs font-semibold text-gray-400">
-                Material Types <span className="text-[#FFD700]">*</span>
+                {isEs ? "Tipos de Material" : "Material Types"} <span className="text-[#FFD700]">*</span>
               </label>
               <button
                 type="button"
@@ -192,7 +195,7 @@ function CreatePackageModal({ onClose, onSaved }: CreatePackageModalProps) {
                 disabled={submitting}
                 className="text-xs text-[#FFD700] hover:text-yellow-300 transition disabled:opacity-50"
               >
-                + Add row
+                {isEs ? "+ Agregar fila" : "+ Add row"}
               </button>
             </div>
             <div className="space-y-2">
@@ -205,7 +208,7 @@ function CreatePackageModal({ onClose, onSaved }: CreatePackageModalProps) {
                       disabled={submitting || typesLoading}
                       className={`${inputCls} flex-1`}
                     >
-                      <option value="">Select material type</option>
+                      <option value="">{isEs ? "Seleccionar tipo de material" : "Select material type"}</option>
                       {materialTypes.map((t) => (
                         <option key={t._id} value={t._id}>
                           {t.name}
@@ -216,7 +219,7 @@ function CreatePackageModal({ onClose, onSaved }: CreatePackageModalProps) {
                     <input
                       value={entry.materialTypeId}
                       onChange={(e) => updateEntry(idx, "materialTypeId", e.target.value)}
-                      placeholder={typesLoading ? "Loading material types..." : "Material Type ID"}
+                      placeholder={typesLoading ? (isEs ? "Cargando tipos de material..." : "Loading material types...") : (isEs ? "ID del Tipo de Material" : "Material Type ID")}
                       disabled={submitting || typesLoading}
                       className={`${inputCls} flex-1`}
                     />
@@ -260,7 +263,7 @@ function CreatePackageModal({ onClose, onSaved }: CreatePackageModalProps) {
               disabled={submitting}
               className="px-4 py-2 border border-[#333] text-gray-300 rounded-lg hover:bg-[#1a1a1a] transition text-sm disabled:opacity-50"
             >
-              Cancel
+              {isEs ? "Cancelar" : "Cancel"}
             </button>
             <button
               type="submit"
@@ -270,12 +273,12 @@ function CreatePackageModal({ onClose, onSaved }: CreatePackageModalProps) {
               {submitting ? (
                 <>
                   <Loader2 size={14} className="animate-spin" />
-                  Creating...
+                  {isEs ? "Creando..." : "Creating..."}
                 </>
               ) : (
                 <>
                   <Plus size={14} />
-                  Create
+                  {isEs ? "Crear" : "Create"}
                 </>
               )}
             </button>
@@ -289,6 +292,8 @@ function CreatePackageModal({ onClose, onSaved }: CreatePackageModalProps) {
 // ─── Detail Modal ───────────────────────────────────────────────────────────
 
 function PackageDetailModal({ pkg, onClose }: { pkg: Package; onClose: () => void }) {
+  const { language } = useLanguage();
+  const isEs = language === "es";
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-[#121212] border border-[#333] rounded-xl max-w-md w-full">
@@ -305,15 +310,15 @@ function PackageDetailModal({ pkg, onClose }: { pkg: Package; onClose: () => voi
           {pkg.description && <p className="text-gray-400 text-sm">{pkg.description}</p>}
 
           <div className="flex items-center justify-between">
-            <span className="text-gray-400 text-sm">Price / Day</span>
+            <span className="text-gray-400 text-sm">{isEs ? "Precio / Día" : "Price / Day"}</span>
             <span className="text-[#FFD700] font-bold">
-              {pkg.pricePerDay != null ? `$${pkg.pricePerDay.toFixed(2)}` : "Sum of materials"}
+              {pkg.pricePerDay != null ? `$${pkg.pricePerDay.toFixed(2)}` : (isEs ? "Suma de materiales" : "Sum of materials")}
             </span>
           </div>
 
           <div>
             <p className="text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider">
-              Material Types
+              {isEs ? "Tipos de Material" : "Material Types"}
             </p>
             {pkg.items.length > 0 ? (
               <ul className="space-y-2">
@@ -355,7 +360,7 @@ function PackageDetailModal({ pkg, onClose }: { pkg: Package; onClose: () => voi
                 })}
               </ul>
             ) : (
-              <p className="text-gray-600 text-sm">No materials assigned.</p>
+              <p className="text-gray-600 text-sm">{isEs ? "Sin materiales asignados." : "No materials assigned."}</p>
             )}
           </div>
         </div>
@@ -367,6 +372,8 @@ function PackageDetailModal({ pkg, onClose }: { pkg: Package; onClose: () => voi
 // ─── Main Page ──────────────────────────────────────────────────────────────
 
 export default function MaterialPlans() {
+  const { language } = useLanguage();
+  const isEs = language === "es";
   const { data, isLoading, error, refetch } = useApiQuery(() => getPackages(), {
     context: "MaterialPlans",
   });
@@ -397,7 +404,7 @@ export default function MaterialPlans() {
           onClick={refetch}
           className="px-4 py-2 bg-[#1a1a1a] border border-[#333] text-gray-300 rounded-lg hover:border-[#FFD700] text-sm transition"
         >
-          Retry
+          {isEs ? "Reintentar" : "Retry"}
         </button>
       </div>
     );
@@ -408,15 +415,15 @@ export default function MaterialPlans() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">Material Plans</h1>
-          <p className="text-gray-400 mt-1">Create and manage rental plans for material bundles</p>
+          <h1 className="text-3xl font-bold text-white">{isEs ? "Planes de Material" : "Material Plans"}</h1>
+          <p className="text-gray-400 mt-1">{isEs ? "Crea y gestiona planes para paquetes de materiales" : "Create and manage rental plans for material bundles"}</p>
         </div>
         <button
           onClick={() => setShowCreate(true)}
           className="flex items-center gap-2 px-4 py-2 rounded-[8px] font-semibold transition-all gold-action-btn"
         >
           <Plus size={20} />
-          Add Plan
+          {isEs ? "Agregar Plan" : "Add Plan"}
         </button>
       </div>
 
@@ -428,7 +435,7 @@ export default function MaterialPlans() {
         />
         <input
           type="text"
-          placeholder="Search plans..."
+          placeholder={isEs ? "Buscar planes..." : "Search plans..."}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full pl-10 pr-4 py-2 bg-[#1a1a1a] border border-[#333] rounded-[8px] text-white placeholder-gray-600 focus:outline-none focus:border-[#FFD700] transition-all"
@@ -461,13 +468,13 @@ export default function MaterialPlans() {
             {/* Details */}
             <div className="space-y-3 border-t border-[#333] pt-4">
               <div className="flex items-center justify-between">
-                <span className="text-gray-400 text-sm">Price / Day</span>
+                <span className="text-gray-400 text-sm">{isEs ? "Precio / Día" : "Price / Day"}</span>
                 <span className="text-[#FFD700] font-bold text-lg">
-                  {pkg.pricePerDay != null ? `$${pkg.pricePerDay.toFixed(2)}` : "Auto"}
+                  {pkg.pricePerDay != null ? `$${pkg.pricePerDay.toFixed(2)}` : (isEs ? "Auto" : "Auto")}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-gray-400 text-sm">Material Types</span>
+                <span className="text-gray-400 text-sm">{isEs ? "Tipos de Material" : "Material Types"}</span>
                 <span className="bg-[#FFD700]/20 text-[#FFD700] px-3 py-1 rounded-full text-sm font-semibold">
                   {pkg.items.length}
                 </span>
@@ -480,7 +487,7 @@ export default function MaterialPlans() {
       {/* Empty State */}
       {filtered.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-gray-400">No plans found</p>
+          <p className="text-gray-400">{isEs ? "No se encontraron planes" : "No plans found"}</p>
         </div>
       )}
 

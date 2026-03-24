@@ -5,6 +5,7 @@ import { fetchOrganizationsPii, fetchOrganizationStats } from "../../../services
 import { LoadingSpinner, ErrorDisplay, AlertContainer } from "../../../components/ui";
 import { normalizeError, logError } from "../../../utils/errorHandling";
 import { useAuth } from "../../../contexts/useAuth";
+import { useLanguage } from "../../../contexts/useLanguage";
 import { useAlerts } from "../../../hooks/useAlerts";
 import { AdminPagination, AdminTable } from "../../app/components";
 import { ExportSettingsModal } from "../../../components/export/ExportSettingsModal";
@@ -23,6 +24,8 @@ const STATUS_BADGE: Record<string, string> = {
 };
 
 export default function OrganizationManagement() {
+  const { language, locale } = useLanguage();
+  const isEs = language === "es";
   // Page data
   const [organizations, setOrganizations] = useState<OrganizationPii[]>([]);
   const [page, setPage] = useState(1);
@@ -151,7 +154,7 @@ export default function OrganizationManagement() {
         const rawData = await buildAllExportRows();
 
         if (rawData.length === 0) {
-          showAlert("warning", "No data available to export.");
+          showAlert("warning", isEs ? "No hay datos disponibles para exportar." : "No data available to export.");
           return;
         }
 
@@ -166,7 +169,9 @@ export default function OrganizationManagement() {
         if (result.status === "success") {
           showAlert(
             "success",
-            `Exported ${result.metadata.recordCount} records as ${result.filename}`,
+            isEs
+              ? `Se exportaron ${result.metadata.recordCount} registros como ${result.filename}`
+              : `Exported ${result.metadata.recordCount} records as ${result.filename}`,
           );
           setExportOpen(false);
         } else if (result.status === "cancelled") {
@@ -201,7 +206,7 @@ export default function OrganizationManagement() {
   // ─── Render ────────────────────────────────────────────────────────────────
 
   if (loading) {
-    return <LoadingSpinner fullScreen message="Loading organizations…" />;
+    return <LoadingSpinner fullScreen message={isEs ? "Cargando organizaciones..." : "Loading organizations..."} />;
   }
 
   if (error) {
@@ -231,33 +236,33 @@ export default function OrganizationManagement() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-white">Organization Management</h1>
-          <p className="text-gray-400 mt-1">Platform organization analytics &amp; directory</p>
+          <p className="text-gray-400 mt-1">{isEs ? "Analitica y directorio de organizaciones" : "Platform organization analytics & directory"}</p>
         </div>
         <button onClick={() => setExportOpen(true)} className="export-btn flex items-center gap-2">
           <Download size={18} />
-          Export
+          {isEs ? "Exportar" : "Export"}
         </button>
       </div>
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <SuperAdminStatCard
-          label="Total Organizations"
+          label={isEs ? "Organizaciones totales" : "Total Organizations"}
           value={total}
           icon={<Building2 size={20} className="text-black" />}
         />
         <SuperAdminStatCard
-          label="Active"
+          label={isEs ? "Activas" : "Active"}
           value={activeCount}
           icon={<CheckCircle size={20} className="text-black" />}
         />
         <SuperAdminStatCard
-          label="Suspended"
+          label={isEs ? "Suspendidas" : "Suspended"}
           value={suspendedCount}
           icon={<XCircle size={20} className="text-black" />}
         />
         <SuperAdminStatCard
-          label="Avg Seats / Org"
+          label={isEs ? "Promedio asientos / org" : "Avg Seats / Org"}
           value={avgSeats.toFixed(1)}
           icon={<TrendingUp size={20} className="text-black" />}
         />
@@ -269,7 +274,7 @@ export default function OrganizationManagement() {
         {orgStats && orgStats.growthTrend.length > 0 && (
           <div className="bg-[#121212] border border-[#333] rounded-xl p-6">
             <h2 className="text-lg font-bold text-white mb-4">
-              Organization Growth (Last 30 Days)
+              {isEs ? "Crecimiento de organizaciones (ultimos 30 dias)" : "Organization Growth (Last 30 Days)"}
             </h2>
             <div className="flex items-end gap-1 h-32">
               {orgStats.growthTrend.map((point) => {
@@ -302,7 +307,7 @@ export default function OrganizationManagement() {
         {/* Organizations by Status */}
         {orgStats && (
           <div className="bg-[#121212] border border-[#333] rounded-xl p-6">
-            <h2 className="text-lg font-bold text-white mb-4">Organizations by Status</h2>
+            <h2 className="text-lg font-bold text-white mb-4">{isEs ? "Organizaciones por estado" : "Organizations by Status"}</h2>
             <div className="space-y-3">
               {orgStats.byStatus.map((entry) => {
                 const pct = total > 0 ? Math.round((entry.count / total) * 100) : 0;
@@ -330,7 +335,7 @@ export default function OrganizationManagement() {
             {/* Plans breakdown */}
             {orgStats.byPlan.length > 0 && (
               <div className="mt-6 pt-4 border-t border-[#333]">
-                <h3 className="text-sm font-semibold text-gray-400 mb-3">By Plan</h3>
+                <h3 className="text-sm font-semibold text-gray-400 mb-3">{isEs ? "Por plan" : "By Plan"}</h3>
                 <div className="space-y-2">
                   {orgStats.byPlan.map((entry) => (
                     <div key={entry.plan} className="flex justify-between text-sm">
@@ -349,7 +354,7 @@ export default function OrganizationManagement() {
       <div className="bg-[#121212] border border-[#333] rounded-xl p-4 mb-4 flex flex-wrap gap-3 items-center">
         <input
           type="text"
-          placeholder="Search by name or email…"
+          placeholder={isEs ? "Buscar por nombre o correo..." : "Search by name or email..."}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="bg-[#1a1a1a] border border-[#444] text-white text-sm rounded-lg px-3 py-2 w-56 focus:outline-none focus:border-[#FFD700]"
@@ -360,9 +365,9 @@ export default function OrganizationManagement() {
           onChange={(e) => setStatusFilter(e.target.value as "all" | "active" | "suspended")}
           className="bg-[#1a1a1a] border border-[#444] text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-[#FFD700]"
         >
-          <option value="all">All Statuses</option>
-          <option value="active">Active</option>
-          <option value="suspended">Suspended</option>
+          <option value="all">{isEs ? "Todos los estados" : "All Statuses"}</option>
+          <option value="active">{isEs ? "Activas" : "Active"}</option>
+          <option value="suspended">{isEs ? "Suspendidas" : "Suspended"}</option>
         </select>
 
         <select
@@ -370,7 +375,7 @@ export default function OrganizationManagement() {
           onChange={(e) => setPlanFilter(e.target.value)}
           className="bg-[#1a1a1a] border border-[#444] text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-[#FFD700]"
         >
-          <option value="all">All Plans</option>
+          <option value="all">{isEs ? "Todos los planes" : "All Plans"}</option>
           {availablePlans.map((plan) => (
             <option key={plan} value={plan}>
               {plan}
@@ -387,12 +392,14 @@ export default function OrganizationManagement() {
             }}
             className="text-sm text-gray-400 hover:text-white transition-colors"
           >
-            Clear filters
+            {isEs ? "Limpiar filtros" : "Clear filters"}
           </button>
         )}
 
         <span className="ml-auto text-xs text-gray-500">
-          {filtered.length} of {organizations.length} on this page
+          {isEs
+            ? `${filtered.length} de ${organizations.length} en esta pagina`
+            : `${filtered.length} of ${organizations.length} on this page`}
         </span>
       </div>
 
@@ -401,21 +408,21 @@ export default function OrganizationManagement() {
         <AdminTable>
           <thead className="bg-[#0f0f0f] border-b border-[#333]">
             <tr>
-              <th className="px-4 py-3 text-gray-400 font-medium">Name</th>
-              <th className="px-4 py-3 text-gray-400 font-medium">Legal Name</th>
+              <th className="px-4 py-3 text-gray-400 font-medium">{isEs ? "Nombre" : "Name"}</th>
+              <th className="px-4 py-3 text-gray-400 font-medium">{isEs ? "Razon social" : "Legal Name"}</th>
               <th className="px-4 py-3 text-gray-400 font-medium">Email</th>
               <th className="px-4 py-3 text-gray-400 font-medium">Plan</th>
-              <th className="px-4 py-3 text-gray-400 font-medium text-center">Seats</th>
-              <th className="px-4 py-3 text-gray-400 font-medium">Status</th>
-              <th className="px-4 py-3 text-gray-400 font-medium">Location</th>
-              <th className="px-4 py-3 text-gray-400 font-medium">Created</th>
+              <th className="px-4 py-3 text-gray-400 font-medium text-center">{isEs ? "Asientos" : "Seats"}</th>
+              <th className="px-4 py-3 text-gray-400 font-medium">{isEs ? "Estado" : "Status"}</th>
+              <th className="px-4 py-3 text-gray-400 font-medium">{isEs ? "Ubicacion" : "Location"}</th>
+              <th className="px-4 py-3 text-gray-400 font-medium">{isEs ? "Creado" : "Created"}</th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
                 <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
-                  No organizations match the current filters.
+                  {isEs ? "Ninguna organizacion coincide con los filtros actuales." : "No organizations match the current filters."}
                 </td>
               </tr>
             ) : (
@@ -444,7 +451,7 @@ export default function OrganizationManagement() {
                     {[org.address?.city, org.address?.department].filter(Boolean).join(", ") || "—"}
                   </td>
                   <td className="px-4 py-3 text-gray-400 whitespace-nowrap">
-                    {new Date(org.createdAt).toLocaleDateString()}
+                    {new Date(org.createdAt).toLocaleDateString(locale)}
                   </td>
                 </tr>
               ))
@@ -457,7 +464,7 @@ export default function OrganizationManagement() {
           totalPages={totalPages}
           totalItems={total}
           pageSize={limit}
-          itemLabel="organizations"
+          itemLabel={isEs ? "organizaciones" : "organizations"}
           onPageChange={handlePageChange}
         />
       </div>

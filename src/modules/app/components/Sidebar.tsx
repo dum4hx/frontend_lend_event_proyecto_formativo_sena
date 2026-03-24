@@ -30,9 +30,11 @@ import {
 import { ApiError } from "../../../lib/api";
 import { useLogout } from "../../../hooks/useLogout";
 import { useAuth } from "../../../contexts/useAuth";
+import { useLanguage } from "../../../contexts/useLanguage";
 import { usePermissions } from "../../../contexts/usePermissions";
 import { useAlertModal } from "../../../hooks/useAlertModal";
 import { getNavItemsByPrefix, groupNavItemsBySection } from "../../../config/modulePermissions";
+import { getNavItemLabel, getNavSectionLabel } from "../../../i18n/translations";
 
 const iconMap: Record<string, React.ReactNode> = {
   // Overview
@@ -77,6 +79,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
   const { logout } = useLogout();
   const { user } = useAuth();
+  const { t } = useLanguage();
   const { hasAnyPermission } = usePermissions();
   const { showError, AlertModal } = useAlertModal();
 
@@ -118,7 +121,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
       setIsLoggingOut(true);
       await logout();
     } catch (error: unknown) {
-      const message = error instanceof ApiError ? error.message : "Error logging out";
+      const message = error instanceof ApiError ? error.message : t("common.loggingOut");
       console.error("Logout error:", error);
       showError(message);
     } finally {
@@ -153,7 +156,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
           type="button"
           onClick={onToggleCollapse}
           className="h-8 w-8 rounded-lg flex items-center justify-center text-zinc-500 hover:text-[#FFD700] hover:bg-zinc-800 transition-colors flex-shrink-0"
-          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-label={isCollapsed ? t("common.expandSidebar") : t("common.collapseSidebar")}
         >
           {isCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
         </button>
@@ -163,6 +166,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
       <nav className="flex-1 px-3 py-4 space-y-0.5">
         {sections.map(({ section, items }) => {
           const sectionKey = section ?? "";
+          const translatedSection = getNavSectionLabel(section, t);
           const isSectionCollapsed =
             !isCollapsed && sectionKey ? collapsedSections[sectionKey] : false;
 
@@ -180,7 +184,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
                   className="w-full flex items-center justify-between mt-5 mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-widest text-zinc-500 hover:text-zinc-300 transition-colors"
                   aria-expanded={!isSectionCollapsed}
                 >
-                  <span>{section}</span>
+                  <span>{translatedSection}</span>
                   {isSectionCollapsed ? <ChevronRight size={11} /> : <ChevronDown size={11} />}
                 </button>
               )}
@@ -191,7 +195,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
                     key={item.id}
                     to={item.path}
                     end={item.path === "/app"}
-                    title={isCollapsed ? item.label : undefined}
+                    title={isCollapsed ? getNavItemLabel(item.id, item.label, t) : undefined}
                     className={({ isActive }) =>
                       `flex items-center gap-3 rounded-lg text-sm font-medium transition-all ${itemPaddingClass} ${
                         isActive
@@ -203,7 +207,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
                     <span className="flex-shrink-0">
                       {iconMap[item.id] ?? <LayoutDashboard size={18} />}
                     </span>
-                    {!isCollapsed && <span className="truncate">{item.label}</span>}
+                    {!isCollapsed && (
+                      <span className="truncate">{getNavItemLabel(item.id, item.label, t)}</span>
+                    )}
                   </NavLink>
                 ))}
             </div>
@@ -232,13 +238,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
         <button
           onClick={handleLogout}
           disabled={isLoggingOut}
-          title={isCollapsed ? "Logout" : undefined}
+          title={isCollapsed ? t("common.logout") : undefined}
           className={`w-full flex items-center rounded-lg text-sm transition-all disabled:opacity-50 text-zinc-500 hover:text-red-400 hover:bg-zinc-800/60 ${
             isCollapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3 py-2.5"
           }`}
         >
           <LogOut size={16} />
-          {!isCollapsed && <span>{isLoggingOut ? "Logging out..." : "Logout"}</span>}
+          {!isCollapsed && <span>{isLoggingOut ? t("common.loggingOut") : t("common.logout")}</span>}
         </button>
       </div>
       <AlertModal />

@@ -19,15 +19,16 @@ import { ApiError } from "../lib/api";
 import type { AvailablePlan } from "../types/api";
 import styles from "./Packages.module.css";
 import { useAuth } from "../contexts/useAuth";
+import { useLanguage } from "../contexts/useLanguage";
 import LoginModal from "../components/LoginModal";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
 /** Format a monthly price in dollars. */
-function formatPrice(amount: number | null | undefined): string {
+function formatPrice(amount: number | null | undefined, locale: string): string {
   if (amount === null || amount === undefined) return "No price";
   const value = Number(amount);
-  return value.toLocaleString("en-US", {
+  return value.toLocaleString(locale, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -47,6 +48,8 @@ interface ActivationInfoModalProps {
 }
 
 function ActivationInfoModal({ onViewPlans, onClose }: ActivationInfoModalProps) {
+  const { language } = useLanguage();
+  const isEs = language === "es";
   return (
     <div
       className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4"
@@ -64,10 +67,10 @@ function ActivationInfoModal({ onViewPlans, onClose }: ActivationInfoModalProps)
 
           <div className="text-center mb-6">
             <span className="inline-flex items-center rounded-full border border-yellow-400/20 bg-yellow-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-yellow-300 mb-3">
-              Final activation step
+              {isEs ? "Paso final de activacion" : "Final activation step"}
             </span>
             <h2 className="text-2xl md:text-3xl font-extrabold text-white leading-tight mb-3">
-              Activate your account
+              {isEs ? "Activa tu cuenta" : "Activate your account"}
             </h2>
             <p className="text-gray-300 text-sm md:text-base leading-relaxed">
               To access your account and use all platform features, you need to purchase one of
@@ -97,13 +100,13 @@ function ActivationInfoModal({ onViewPlans, onClose }: ActivationInfoModalProps)
               onClick={onViewPlans}
               className="flex-1 bg-yellow-400 hover:bg-yellow-300 text-black font-extrabold py-3 rounded-xl transition-colors text-sm"
             >
-              View plans and activate account
+              {isEs ? "Ver planes y activar cuenta" : "View plans and activate account"}
             </button>
             <button
               onClick={onClose}
               className="flex-1 border border-zinc-600 hover:border-zinc-400 text-gray-300 hover:text-white font-medium py-3 rounded-xl transition-colors text-sm"
             >
-              Not now
+              {isEs ? "Ahora no" : "Not now"}
             </button>
           </div>
         </div>
@@ -113,6 +116,8 @@ function ActivationInfoModal({ onViewPlans, onClose }: ActivationInfoModalProps)
 }
 
 function ActiveSubscriptionModal({ plan, onManage, onClose }: ActiveSubscriptionModalProps) {
+  const { language } = useLanguage();
+  const isEs = language === "es";
   return (
     <div
       className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
@@ -124,7 +129,7 @@ function ActiveSubscriptionModal({ plan, onManage, onClose }: ActiveSubscription
         <div className="mb-4 rounded-full bg-yellow-400/10 p-4">
           <ShieldCheck className="w-10 h-10 text-yellow-400" />
         </div>
-        <h2 className="text-xl font-bold text-white mb-2">Active Subscription</h2>
+        <h2 className="text-xl font-bold text-white mb-2">{isEs ? "Suscripcion activa" : "Active Subscription"}</h2>
         <p className="text-gray-400 text-sm mb-2">
           You already have an active{" "}
           <span className="text-yellow-400 font-semibold capitalize">{plan}</span> subscription.
@@ -138,13 +143,13 @@ function ActiveSubscriptionModal({ plan, onManage, onClose }: ActiveSubscription
             onClick={onManage}
             className="flex-1 bg-yellow-400 hover:bg-yellow-300 text-black font-bold py-2.5 rounded-xl transition-colors text-sm"
           >
-            Manage Subscription
+            {isEs ? "Gestionar suscripcion" : "Manage Subscription"}
           </button>
           <button
             onClick={onClose}
             className="flex-1 border border-zinc-600 hover:border-zinc-400 text-gray-300 hover:text-white font-medium py-2.5 rounded-xl transition-colors text-sm"
           >
-            Close
+            {isEs ? "Cerrar" : "Close"}
           </button>
         </div>
       </div>
@@ -167,6 +172,8 @@ interface PlanCardProps {
 }
 
 function PlanCard({ plan, featured, onSelect }: PlanCardProps) {
+  const { language, locale } = useLanguage();
+  const isEs = language === "es";
   const isUnlimited = (n: number) => n === -1;
   const isFreePlan = plan.basePriceMonthly === 0 && (plan.pricePerSeat ?? 0) <= 0;
 
@@ -193,7 +200,7 @@ function PlanCard({ plan, featured, onSelect }: PlanCardProps) {
       {/* Price */}
       <div className="text-left mb-6">
         <span className={`font-extrabold ${featured ? "text-5xl" : "text-4xl"}`}>
-          {isFreePlan ? "Free" : `$${formatPrice(plan.basePriceMonthly)}`}
+          {isFreePlan ? (isEs ? "Gratis" : "Free") : `$${formatPrice(plan.basePriceMonthly, locale)}`}
         </span>
         {plan.durationDays != null && (
           <span className="text-gray-500 ml-2 text-base font-normal">
@@ -206,7 +213,7 @@ function PlanCard({ plan, featured, onSelect }: PlanCardProps) {
           </span>
         )}
         {plan.billingModel === "dynamic" && plan.pricePerSeat > 0 && (
-          <p className="text-gray-500 text-sm mt-1">+ ${formatPrice(plan.pricePerSeat)} / seat</p>
+          <p className="text-gray-500 text-sm mt-1">+ ${formatPrice(plan.pricePerSeat, locale)} / {isEs ? "asiento" : "seat"}</p>
         )}
       </div>
 
@@ -239,7 +246,7 @@ function PlanCard({ plan, featured, onSelect }: PlanCardProps) {
           featured ? "py-4" : "py-3"
         } ${styles.glowButton}`}
       >
-        Get Started
+        {isEs ? "Comenzar" : "Get Started"}
       </button>
     </div>
   );
@@ -248,6 +255,8 @@ function PlanCard({ plan, featured, onSelect }: PlanCardProps) {
 // ─── Page ──────────────────────────────────────────────────────────────────
 
 export default function Packages() {
+  const { language } = useLanguage();
+  const isEs = language === "es";
   const navigate = useNavigate();
   const location = useLocation();
   const plansSectionRef = useRef<HTMLElement | null>(null);
@@ -345,7 +354,9 @@ export default function Packages() {
           setError(
             err2 instanceof ApiError
               ? err2.message
-              : "Failed to load plans. Please try again later.",
+              : isEs
+                ? "No fue posible cargar los planes. Intenta de nuevo mas tarde."
+                : "Failed to load plans. Please try again later.",
           );
         }
       } finally {
@@ -442,15 +453,15 @@ export default function Packages() {
             }}
           />
           <h2 className="text-4xl md:text-5xl font-extrabold mb-4">
-            Simple <span className="text-yellow-400">Pricing</span>
+            {isEs ? "Precios" : "Simple"} <span className="text-yellow-400">{isEs ? "simples" : "Pricing"}</span>
           </h2>
-          <p className="text-gray-400 mb-12 text-lg">Choose the perfect plan for your business</p>
+          <p className="text-gray-400 mb-12 text-lg">{isEs ? "Elige el plan perfecto para tu negocio" : "Choose the perfect plan for your business"}</p>
 
           {/* Loading */}
           {loading && (
             <div className="flex items-center justify-center py-20">
               <Loader2 className="w-8 h-8 text-yellow-400 animate-spin" />
-              <span className="ml-3 text-gray-400">Loading plans…</span>
+              <span className="ml-3 text-gray-400">{isEs ? "Cargando planes..." : "Loading plans..."}</span>
             </div>
           )}
 
@@ -463,7 +474,7 @@ export default function Packages() {
                 onClick={() => window.location.reload()}
                 className="text-sm text-yellow-400 underline hover:text-yellow-300"
               >
-                Retry
+                {isEs ? "Reintentar" : "Retry"}
               </button>
             </div>
           )}
@@ -472,7 +483,7 @@ export default function Packages() {
           {!loading && !error && plans.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 text-gray-500">
               <Package className="w-12 h-12 mb-4 opacity-50" />
-              <p>No plans available at this time. Check back soon!</p>
+              <p>{isEs ? "No hay planes disponibles en este momento." : "No plans available at this time. Check back soon!"}</p>
             </div>
           )}
 

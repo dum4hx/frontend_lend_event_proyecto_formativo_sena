@@ -6,6 +6,7 @@ import {
   Search,
   ChevronDown,
 } from "lucide-react";
+import { useLanguage } from "../../../contexts/useLanguage";
 
 interface Rental {
   id: string;
@@ -84,6 +85,8 @@ const SAMPLE_RENTALS: Rental[] = [
 ];
 
 export default function Rentals() {
+  const { language, locale } = useLanguage();
+  const isEs = language === "es";
   const [rentals] = useState<Rental[]>(SAMPLE_RENTALS);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
@@ -96,6 +99,23 @@ export default function Rentals() {
   });
 
   const statuses = ["all", ...Array.from(new Set(rentals.map((r) => r.status)))];
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "all":
+        return isEs ? "Todos los estados" : "All Status";
+      case "active":
+        return isEs ? "Activo" : "Active";
+      case "pending":
+        return isEs ? "Pendiente" : "Pending";
+      case "returned":
+        return isEs ? "Devuelto" : "Returned";
+      case "overdue":
+        return isEs ? "Vencido" : "Overdue";
+      default:
+        return status;
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -121,12 +141,14 @@ export default function Rentals() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">Rentals</h1>
-          <p className="text-gray-400 mt-1">Track active rentals and returns</p>
+          <h1 className="text-3xl font-bold text-white">{isEs ? "Alquileres" : "Rentals"}</h1>
+          <p className="text-gray-400 mt-1">
+            {isEs ? "Haz seguimiento de alquileres activos y devoluciones" : "Track active rentals and returns"}
+          </p>
         </div>
         <button className="flex items-center gap-2 px-4 py-2 rounded-[8px] font-semibold transition-all gold-action-btn">
           <Plus size={20} />
-          New Rental
+          {isEs ? "Nuevo alquiler" : "New Rental"}
         </button>
       </div>
 
@@ -136,7 +158,7 @@ export default function Rentals() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" size={20} />
           <input
             type="text"
-            placeholder="Search rentals..."
+            placeholder={isEs ? "Buscar alquileres..." : "Search rentals..."}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 bg-[#1a1a1a] border border-[#333] rounded-[8px] text-white placeholder-gray-600 focus:outline-none focus:border-[#FFD700] transition-all"
@@ -151,7 +173,7 @@ export default function Rentals() {
           >
             {statuses.map((status) => (
               <option key={status} value={status}>
-                {status === "all" ? "All Status" : status.replace("-", " ")}
+                {getStatusLabel(status)}
               </option>
             ))}
           </select>
@@ -173,7 +195,7 @@ export default function Rentals() {
               </div>
               <div className="flex items-center gap-2">
                 <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(rental.status)}`}>
-                  {rental.status}
+                  {getStatusLabel(rental.status)}
                 </span>
                 {rental.status === "overdue" && (
                   <AlertCircle size={20} className="text-red-400" />
@@ -183,7 +205,7 @@ export default function Rentals() {
 
             {/* Materials */}
             <div className="mb-4 pb-4 border-b border-[#333]">
-              <p className="text-gray-400 text-sm mb-2 font-semibold">Materials:</p>
+              <p className="text-gray-400 text-sm mb-2 font-semibold">{isEs ? "Materiales:" : "Materials:"}</p>
               <div className="flex flex-wrap gap-2">
                 {rental.materials.map((material, idx) => (
                   <span
@@ -200,13 +222,15 @@ export default function Rentals() {
             {/* Dates and Progress */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <p className="text-gray-400 text-xs mb-1">Rental Period</p>
+                <p className="text-gray-400 text-xs mb-1">{isEs ? "Periodo de alquiler" : "Rental Period"}</p>
                 <p className="text-white font-semibold text-sm">
-                  {rental.startDate} to {rental.endDate}
+                  {rental.startDate} {isEs ? "a" : "to"} {rental.endDate}
                 </p>
               </div>
               <div>
-                <p className="text-gray-400 text-xs mb-2">Progress ({rental.daysElapsed}/{rental.totalDays} days)</p>
+                <p className="text-gray-400 text-xs mb-2">
+                  {isEs ? "Progreso" : "Progress"} ({rental.daysElapsed}/{rental.totalDays} {isEs ? "dias" : "days"})
+                </p>
                 <div className="w-full bg-[#121212] rounded-full h-2">
                   <div
                     className="bg-[#FFD700] h-2 rounded-full transition-all"
@@ -215,8 +239,15 @@ export default function Rentals() {
                 </div>
               </div>
               <div>
-                <p className="text-gray-400 text-xs mb-1">Deposit</p>
-                <p className="text-[#FFD700] font-bold">${rental.depositAmount.toLocaleString()}</p>
+                <p className="text-gray-400 text-xs mb-1">{isEs ? "Deposito" : "Deposit"}</p>
+                <p className="text-[#FFD700] font-bold">
+                  {new Intl.NumberFormat(locale, {
+                    style: "currency",
+                    currency: "USD",
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                  }).format(rental.depositAmount)}
+                </p>
               </div>
             </div>
           </div>
@@ -226,7 +257,7 @@ export default function Rentals() {
       {/* Empty State */}
       {filtered.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-gray-400">No rentals found</p>
+          <p className="text-gray-400">{isEs ? "No se encontraron alquileres" : "No rentals found"}</p>
         </div>
       )}
     </div>

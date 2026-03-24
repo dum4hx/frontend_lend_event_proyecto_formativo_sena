@@ -40,6 +40,7 @@ import {
   validateStripePriceId,
 } from "../../../utils/validators";
 import { useAuth } from "../../../contexts/useAuth";
+import { useLanguage } from "../../../contexts/useLanguage";
 import { useAlerts } from "../../../hooks/useAlerts";
 import { useAlertModal } from "../../../hooks/useAlertModal";
 import { ExportSettingsModal } from "../../../components/export/ExportSettingsModal";
@@ -127,8 +128,9 @@ function TextareaInput({ error: _err, className = "", ...props }: TextareaInputP
 interface FeaturesEditorProps {
   features: string[];
   onChange: (features: string[]) => void;
+  isEs: boolean;
 }
-function FeaturesEditor({ features, onChange }: FeaturesEditorProps) {
+function FeaturesEditor({ features, onChange, isEs }: FeaturesEditorProps) {
   const [draft, setDraft] = useState("");
 
   const add = () => {
@@ -147,7 +149,7 @@ function FeaturesEditor({ features, onChange }: FeaturesEditorProps) {
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), add())}
-          placeholder="Add a feature and press Enter…"
+          placeholder={isEs ? "Agrega una funcionalidad y presiona Enter..." : "Add a feature and press Enter..."}
           className={`${inputCls} flex-1`}
         />
         <button
@@ -155,7 +157,7 @@ function FeaturesEditor({ features, onChange }: FeaturesEditorProps) {
           onClick={add}
           className="px-3 py-2 text-sm font-semibold rounded-lg transition whitespace-nowrap gold-action-btn"
         >
-          + Add
+          {isEs ? "+ Agregar" : "+ Add"}
         </button>
       </div>
       {features.length > 0 && (
@@ -186,8 +188,9 @@ function FeaturesEditor({ features, onChange }: FeaturesEditorProps) {
 
 interface CostCalculatorProps {
   planId: string;
+  isEs: boolean;
 }
-function CostCalculator({ planId }: CostCalculatorProps) {
+function CostCalculator({ planId, isEs }: CostCalculatorProps) {
   const [seats, setSeats] = useState(1);
   const [result, setResult] = useState<PlanCostResult | null>(null);
   const [loading, setLoading] = useState(false);
@@ -217,7 +220,7 @@ function CostCalculator({ planId }: CostCalculatorProps) {
         className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-[#FFD700] transition"
       >
         <Calculator size={13} />
-        Cost calculator
+        {isEs ? "Calculadora de costos" : "Cost calculator"}
         {open ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
       </button>
 
@@ -236,21 +239,21 @@ function CostCalculator({ planId }: CostCalculatorProps) {
               disabled={loading}
               className="px-3 py-1.5 text-xs font-semibold rounded-lg transition disabled:opacity-50 gold-action-btn"
             >
-              {loading ? "…" : "Calculate"}
+              {loading ? "..." : isEs ? "Calcular" : "Calculate"}
             </button>
           </div>
           {error && <p className="text-red-400 text-xs">{error}</p>}
           {result && (
             <div className="text-xs space-y-0.5 text-gray-400">
               <p>
-                Base: <span className="text-white">${(result.baseCost / 100).toFixed(2)}</span>
+                {isEs ? "Base" : "Base"}: <span className="text-white">${(result.baseCost / 100).toFixed(2)}</span>
               </p>
               <p>
-                Seats ({result.seatCount}):{" "}
+                {isEs ? "Asientos" : "Seats"} ({result.seatCount}):{" "}
                 <span className="text-white">${(result.seatCost / 100).toFixed(2)}</span>
               </p>
               <p className="font-semibold text-[#FFD700]">
-                Total: ${(result.totalCost / 100).toFixed(2)} {result.currency.toUpperCase()}/mo
+                {isEs ? "Total" : "Total"}: ${(result.totalCost / 100).toFixed(2)} {result.currency.toUpperCase()}/{isEs ? "mes" : "mo"}
               </p>
             </div>
           )}
@@ -355,10 +358,10 @@ function hasErrors(errors: PlanValidationErrors): boolean {
 
 // --- Helpers ----------------------------------------------------------------
 
-function formatDollars(cents: number | null | undefined): string {
+function formatDollars(cents: number | null | undefined, locale: string): string {
   if (cents === null || cents === undefined) return "No price";
   const dollars = cents / 100;
-  return dollars.toLocaleString("en-US", {
+  return dollars.toLocaleString(locale, {
     minimumFractionDigits: dollars < 1 ? 2 : 0,
     maximumFractionDigits: 2,
   });
@@ -431,6 +434,8 @@ type EditFields = Partial<Omit<SubscriptionType, "_id" | "plan">>;
 // ---------------------------------------------------------------------------
 
 export default function PlanConfiguration() {
+  const { language, locale } = useLanguage();
+  const isEs = language === "es";
   const [plans, setPlans] = useState<SubscriptionType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
@@ -517,7 +522,7 @@ export default function PlanConfiguration() {
     async (config: ExportConfig) => {
       const rawData = buildExportRows();
       if (rawData.length === 0) {
-        showAlert("warning", "No plans available to export.");
+        showAlert("warning", isEs ? "No hay planes para exportar." : "No plans available to export.");
         return;
       }
       const abort = new AbortController();
@@ -538,7 +543,12 @@ export default function PlanConfiguration() {
       exportAbort.current = null;
 
       if (result.status === "success") {
-        showAlert("success", `Exported ${result.metadata.recordCount} plans as ${result.filename}`);
+        showAlert(
+          "success",
+          isEs
+            ? `Se exportaron ${result.metadata.recordCount} planes como ${result.filename}`
+            : `Exported ${result.metadata.recordCount} plans as ${result.filename}`,
+        );
         setExportOpen(false);
       } else if (result.status === "cancelled") {
         showAlert("info", result.reason);
@@ -642,7 +652,7 @@ export default function PlanConfiguration() {
       });
       setEditingPlan(null);
       setEditFields({});
-      showAlert("success", "Plan updated successfully.");
+      showAlert("success", isEs ? "Plan actualizado correctamente." : "Plan updated successfully.");
       await fetchPlans();
     } catch (err: unknown) {
       const normalized = normalizeError(err);
@@ -660,7 +670,7 @@ export default function PlanConfiguration() {
     if (hasErrors(errors)) return;
 
     if (!createFields.plan || !createFields.displayName || !createFields.billingModel) {
-      showWarning("Please fill in all required fields.");
+      showWarning(isEs ? "Completa todos los campos obligatorios." : "Please fill in all required fields.");
       return;
     }
 
@@ -705,7 +715,10 @@ export default function PlanConfiguration() {
       setCreateBillingModel("dynamic");
       setCreateFields(DEFAULT_CREATE_STATE);
       setCreateErrors({});
-      showAlert("success", `Plan "${createFields.displayName}" created.`);
+      showAlert(
+        "success",
+        isEs ? `Plan "${createFields.displayName}" creado.` : `Plan "${createFields.displayName}" created.`,
+      );
       await fetchPlans();
     } catch (err: unknown) {
       const normalized = normalizeError(err);
@@ -731,7 +744,12 @@ export default function PlanConfiguration() {
     try {
       await deleteSubscriptionType(deleteConfirm.plan);
       setDeleteConfirm(null);
-      showAlert("success", `Plan "${deleteConfirm.displayName}" deactivated.`);
+      showAlert(
+        "success",
+        isEs
+          ? `Plan "${deleteConfirm.displayName}" desactivado.`
+          : `Plan "${deleteConfirm.displayName}" deactivated.`,
+      );
       await fetchPlans();
     } catch (err: unknown) {
       const normalized = normalizeError(err);
@@ -749,7 +767,10 @@ export default function PlanConfiguration() {
     try {
       setActionBusy(key, true);
       await updateSubscriptionType(plan.plan, { status: "active" });
-      showAlert("success", `Plan "${plan.displayName}" activated.`);
+      showAlert(
+        "success",
+        isEs ? `Plan "${plan.displayName}" activado.` : `Plan "${plan.displayName}" activated.`,
+      );
       await fetchPlans();
     } catch (err: unknown) {
       const normalized = normalizeError(err);
@@ -822,7 +843,12 @@ export default function PlanConfiguration() {
 
   // Render loading state
   if (loading) {
-    return <LoadingSpinner fullScreen message="Loading subscription plans…" />;
+    return (
+      <LoadingSpinner
+        fullScreen
+        message={isEs ? "Cargando planes de suscripcion..." : "Loading subscription plans..."}
+      />
+    );
   }
 
   // Render error state
@@ -835,14 +861,24 @@ export default function PlanConfiguration() {
     return (
       <div>
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white">Plan Configuration</h1>
-          <p className="text-gray-400 mt-1">Manage subscription plans, pricing, and features</p>
+          <h1 className="text-3xl font-bold text-white">
+            {isEs ? "Configuracion de planes" : "Plan Configuration"}
+          </h1>
+          <p className="text-gray-400 mt-1">
+            {isEs
+              ? "Gestiona planes de suscripcion, precios y funcionalidades"
+              : "Manage subscription plans, pricing, and features"}
+          </p>
         </div>
         <EmptyState
           icon={Package}
-          title="No subscription plans"
-          description="Get started by creating your first subscription plan for organizations."
-          action={{ label: "Create Plan", onClick: () => setShowCreateForm(true) }}
+          title={isEs ? "No hay planes de suscripcion" : "No subscription plans"}
+          description={
+            isEs
+              ? "Comienza creando tu primer plan de suscripcion para organizaciones."
+              : "Get started by creating your first subscription plan for organizations."
+          }
+          action={{ label: isEs ? "Crear plan" : "Create Plan", onClick: () => setShowCreateForm(true) }}
         />
       </div>
     );
@@ -850,14 +886,17 @@ export default function PlanConfiguration() {
 
   // ─── Shared options ──────────────────────────────────────────────────────
   const billingModelOptions = [
-    { value: "dynamic", label: "Dynamic (per-seat pricing)" },
-    { value: "fixed", label: "Fixed (flat rate)" },
-    { value: "free", label: "Free (no cost fields)" },
+    {
+      value: "dynamic",
+      label: isEs ? "Dinamico (precio por usuario)" : "Dynamic (per-seat pricing)",
+    },
+    { value: "fixed", label: isEs ? "Fijo (tarifa plana)" : "Fixed (flat rate)" },
+    { value: "free", label: isEs ? "Gratis (sin costos)" : "Free (no cost fields)" },
   ];
   const statusOptions: { value: SubscriptionStatus; label: string }[] = [
-    { value: "active", label: "Active" },
-    { value: "inactive", label: "Inactive" },
-    { value: "deprecated", label: "Deprecated" },
+    { value: "active", label: isEs ? "Activo" : "Active" },
+    { value: "inactive", label: isEs ? "Inactivo" : "Inactive" },
+    { value: "deprecated", label: isEs ? "Obsoleto" : "Deprecated" },
   ];
 
   return (
@@ -882,8 +921,14 @@ export default function PlanConfiguration() {
       {/* ── Header ───────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-white">Plan Configuration</h1>
-          <p className="text-gray-400 mt-1">Manage subscription plans, pricing, and features</p>
+          <h1 className="text-3xl font-bold text-white">
+            {isEs ? "Configuracion de planes" : "Plan Configuration"}
+          </h1>
+          <p className="text-gray-400 mt-1">
+            {isEs
+              ? "Gestiona planes de suscripcion, precios y funcionalidades"
+              : "Manage subscription plans, pricing, and features"}
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -891,7 +936,7 @@ export default function PlanConfiguration() {
             className="export-btn flex items-center gap-2"
           >
             <Download size={18} />
-            Export
+            {isEs ? "Exportar" : "Export"}
           </button>
           {!showCreateForm && (
             <button
@@ -899,7 +944,7 @@ export default function PlanConfiguration() {
               className="flex items-center gap-2 font-semibold px-5 py-2.5 rounded-lg transition gold-action-btn"
             >
               <Plus size={18} />
-              Create Plan
+              {isEs ? "Crear plan" : "Create Plan"}
             </button>
           )}
         </div>
@@ -908,14 +953,16 @@ export default function PlanConfiguration() {
       {/* ── Create Form ──────────────────────────────────────────────────── */}
       {showCreateForm && (
         <div className="bg-[#121212] border border-[#FFD700] rounded-xl p-6 mb-8">
-          <h2 className="text-xl font-bold text-white mb-5">Create New Plan</h2>
+          <h2 className="text-xl font-bold text-white mb-5">
+            {isEs ? "Crear nuevo plan" : "Create New Plan"}
+          </h2>
 
           {/* Row 1 – identifiers */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <Field
-              label="Subscription Name"
+              label={isEs ? "Nombre del plan" : "Subscription Name"}
               required
-              hint="lowercase, alphanumeric, underscores"
+              hint={isEs ? "minusculas, alfanumerico, guiones bajos" : "lowercase, alphanumeric, underscores"}
               error={createErrors.plan}
             >
               <TextInput
@@ -926,11 +973,11 @@ export default function PlanConfiguration() {
                   if (createErrors.plan !== undefined) liveCreateField("plan", updated);
                 }}
                 onBlur={() => liveCreateField("plan", { plan: createFields.plan ?? "" })}
-                placeholder="e.g., premium_pro"
+                placeholder={isEs ? "ej., premium_pro" : "e.g., premium_pro"}
               />
             </Field>
 
-            <Field label="Display Name" required error={createErrors.displayName}>
+            <Field label={isEs ? "Nombre visible" : "Display Name"} required error={createErrors.displayName}>
               <TextInput
                 value={createFields.displayName ?? ""}
                 onChange={(e) => {
@@ -941,11 +988,11 @@ export default function PlanConfiguration() {
                 onBlur={() =>
                   liveCreateField("displayName", { displayName: createFields.displayName ?? "" })
                 }
-                placeholder="e.g., Premium Pro"
+                placeholder={isEs ? "ej., Premium Pro" : "e.g., Premium Pro"}
               />
             </Field>
 
-            <Field label="Billing Model" required error={createErrors.billingModel}>
+            <Field label={isEs ? "Modelo de cobro" : "Billing Model"} required error={createErrors.billingModel}>
               <SelectInput
                 options={billingModelOptions}
                 value={createBillingModel}
@@ -1003,22 +1050,24 @@ export default function PlanConfiguration() {
 
           {createBillingModel === "free" && (
             <div className="mb-4 rounded-lg border border-green-600/40 bg-green-900/10 p-4">
-              <p className="text-sm font-semibold text-green-400 mb-2">Predefined Free Plan</p>
+              <p className="text-sm font-semibold text-green-400 mb-2">
+                {isEs ? "Plan gratuito predefinido" : "Predefined Free Plan"}
+              </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs text-gray-300">
                 <p>
-                  Base cost: <span className="text-white">Free</span>
+                  {isEs ? "Costo base" : "Base cost"}: <span className="text-white">{isEs ? "Gratis" : "Free"}</span>
                 </p>
                 <p>
-                  Price per seat: <span className="text-white">Free</span>
+                  {isEs ? "Precio por asiento" : "Price per seat"}: <span className="text-white">{isEs ? "Gratis" : "Free"}</span>
                 </p>
                 <p>
-                  Users: <span className="text-white">{createFields.maxSeats ?? 3}</span>
+                  {isEs ? "Usuarios" : "Users"}: <span className="text-white">{createFields.maxSeats ?? 3}</span>
                 </p>
                 <p>
-                  Catalog: <span className="text-white">{createFields.maxCatalogItems ?? 50}</span>
+                  {isEs ? "Catalogo" : "Catalog"}: <span className="text-white">{createFields.maxCatalogItems ?? 50}</span>
                 </p>
                 <p>
-                  Status:{" "}
+                  {isEs ? "Estado" : "Status"}:{" "}
                   <span className="text-white capitalize">{createFields.status ?? "active"}</span>
                 </p>
               </div>
@@ -1028,7 +1077,7 @@ export default function PlanConfiguration() {
           {/* Row 2 – pricing */}
           {createBillingModel !== "free" && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-              <Field label="Base Cost" hint="cents" required error={createErrors.baseCost}>
+              <Field label={isEs ? "Costo base" : "Base Cost"} hint={isEs ? "centavos" : "cents"} required error={createErrors.baseCost}>
                 <NumberInput
                   min={0}
                   value={createFields.baseCost ?? 0}
@@ -1043,7 +1092,7 @@ export default function PlanConfiguration() {
                 />
               </Field>
 
-              <Field label="Price Per Seat" hint="cents" error={createErrors.pricePerSeat}>
+              <Field label={isEs ? "Precio por asiento" : "Price Per Seat"} hint={isEs ? "centavos" : "cents"} error={createErrors.pricePerSeat}>
                 <NumberInput
                   min={0}
                   value={createFields.pricePerSeat ?? 0}
@@ -1061,7 +1110,7 @@ export default function PlanConfiguration() {
                 />
               </Field>
 
-              <Field label="Max Seats" hint="-1 = unlimited" error={createErrors.maxSeats}>
+              <Field label={isEs ? "Max asientos" : "Max Seats"} hint={isEs ? "-1 = ilimitado" : "-1 = unlimited"} error={createErrors.maxSeats}>
                 <NumberInput
                   value={createFields.maxSeats ?? -1}
                   onChange={(e) => {
@@ -1076,8 +1125,8 @@ export default function PlanConfiguration() {
               </Field>
 
               <Field
-                label="Max Catalog Items"
-                hint="-1 = unlimited"
+                label={isEs ? "Max items de catalogo" : "Max Catalog Items"}
+                hint={isEs ? "-1 = ilimitado" : "-1 = unlimited"}
                 error={createErrors.maxCatalogItems}
               >
                 <NumberInput
@@ -1100,7 +1149,7 @@ export default function PlanConfiguration() {
 
           {/* Row 3 – meta */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <Field label="Duration (days)" required hint="1–365" error={createErrors.durationDays}>
+            <Field label={isEs ? "Duracion (dias)" : "Duration (days)"} required hint="1–365" error={createErrors.durationDays}>
               <NumberInput
                 min={1}
                 max={365}
@@ -1119,7 +1168,7 @@ export default function PlanConfiguration() {
               />
             </Field>
 
-            <Field label="Sort Order" error={createErrors.sortOrder}>
+            <Field label={isEs ? "Orden" : "Sort Order"} error={createErrors.sortOrder}>
               <NumberInput
                 value={createFields.sortOrder ?? 0}
                 onChange={(e) => {
@@ -1133,7 +1182,7 @@ export default function PlanConfiguration() {
               />
             </Field>
 
-            <Field label="Status">
+            <Field label={isEs ? "Estado" : "Status"}>
               <SelectInput
                 options={statusOptions}
                 value={createFields.status ?? "active"}
@@ -1145,7 +1194,7 @@ export default function PlanConfiguration() {
 
             {createBillingModel !== "free" && (
               <>
-                <Field label="Stripe Base Price ID" error={createErrors.stripePriceIdBase}>
+                <Field label={isEs ? "ID Stripe precio base" : "Stripe Base Price ID"} error={createErrors.stripePriceIdBase}>
                   <TextInput
                     value={createFields.stripePriceIdBase ?? ""}
                     onChange={(e) => {
@@ -1163,7 +1212,7 @@ export default function PlanConfiguration() {
                   />
                 </Field>
 
-                <Field label="Stripe Seat Price ID" error={createErrors.stripePriceIdSeat}>
+                <Field label={isEs ? "ID Stripe precio por asiento" : "Stripe Seat Price ID"} error={createErrors.stripePriceIdSeat}>
                   <TextInput
                     value={createFields.stripePriceIdSeat ?? ""}
                     onChange={(e) => {
@@ -1186,7 +1235,7 @@ export default function PlanConfiguration() {
 
           {/* Description */}
           <div className="mb-4">
-            <Field label="Description" hint="max 500 chars" error={createErrors.description}>
+            <Field label={isEs ? "Descripcion" : "Description"} hint={isEs ? "max 500 caracteres" : "max 500 chars"} error={createErrors.description}>
               <TextareaInput
                 value={createFields.description ?? ""}
                 onChange={(e) => {
@@ -1202,16 +1251,17 @@ export default function PlanConfiguration() {
                 }
                 rows={2}
                 maxLength={500}
-                placeholder="Brief description of this plan…"
+                placeholder={isEs ? "Descripcion breve de este plan..." : "Brief description of this plan..."}
               />
             </Field>
           </div>
 
           {/* Features */}
           <div className="mb-5">
-            <label className="block text-sm font-semibold text-gray-400 mb-1.5">Features</label>
+            <label className="block text-sm font-semibold text-gray-400 mb-1.5">{isEs ? "Funcionalidades" : "Features"}</label>
             <FeaturesEditor
               features={createFields.features ?? []}
+              isEs={isEs}
               onChange={(features) => setCreateFields((f) => ({ ...f, features }))}
             />
           </div>
@@ -1223,7 +1273,7 @@ export default function PlanConfiguration() {
               disabled={creating}
               className="px-5 py-2.5 border border-[#333] text-gray-300 rounded-lg hover:bg-[#1a1a1a] hover:text-white transition font-medium disabled:opacity-50"
             >
-              Cancel
+              {isEs ? "Cancelar" : "Cancel"}
             </button>
             <button
               onClick={() => void handleCreate()}
@@ -1231,10 +1281,10 @@ export default function PlanConfiguration() {
               className="flex items-center gap-2 px-5 py-2.5 font-semibold rounded-lg transition disabled:opacity-50 gold-action-btn"
             >
               {creating ? (
-                "Creating…"
+                isEs ? "Creando..." : "Creating..."
               ) : (
                 <>
-                  <Plus size={16} /> Create Plan
+                  <Plus size={16} /> {isEs ? "Crear plan" : "Create Plan"}
                 </>
               )}
             </button>
@@ -1246,8 +1296,9 @@ export default function PlanConfiguration() {
       {activeAndDeprecatedPlans.length === 0 && (
         <div className="bg-[#121212] border border-[#333] rounded-xl p-6 mb-6">
           <p className="text-sm text-gray-400">
-            There are no active or deprecated plans to show as cards. Use the inactive plans table
-            below to reactivate plans.
+            {isEs
+              ? "No hay planes activos ni obsoletos para mostrar en tarjetas. Usa la tabla de inactivos para reactivarlos."
+              : "There are no active or deprecated plans to show as cards. Use the inactive plans table below to reactivate plans."}
           </p>
         </div>
       )}
@@ -1265,7 +1316,7 @@ export default function PlanConfiguration() {
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1 min-w-0 mr-2">
                   {isEditing ? (
-                    <Field label="Display Name" required error={validationErrors.displayName}>
+                    <Field label={isEs ? "Nombre visible" : "Display Name"} required error={validationErrors.displayName}>
                       <TextInput
                         value={editFields.displayName ?? ""}
                         onChange={(e) => {
@@ -1297,14 +1348,14 @@ export default function PlanConfiguration() {
                       onClick={() => void saveEdit()}
                       disabled={saving}
                       className="w-8 h-8 rounded-lg bg-green-900/30 hover:bg-green-900/50 flex items-center justify-center text-green-400 transition disabled:opacity-50"
-                      title="Save"
+                      title={isEs ? "Guardar" : "Save"}
                     >
                       {saving ? <span className="text-xs">…</span> : <Check size={15} />}
                     </button>
                     <button
                       onClick={cancelEdit}
                       className="w-8 h-8 rounded-lg bg-red-900/30 hover:bg-red-900/50 flex items-center justify-center text-red-400 transition"
-                      title="Cancel"
+                      title={isEs ? "Cancelar" : "Cancel"}
                     >
                       <X size={15} />
                     </button>
@@ -1314,7 +1365,7 @@ export default function PlanConfiguration() {
                     <button
                       onClick={() => startEdit(plan)}
                       className="w-8 h-8 rounded-lg bg-[#1a1a1a] hover:bg-[#333] flex items-center justify-center text-gray-400 hover:text-[#FFD700] transition"
-                      title="Edit plan"
+                      title={isEs ? "Editar plan" : "Edit plan"}
                     >
                       <Pencil size={15} />
                     </button>
@@ -1323,7 +1374,7 @@ export default function PlanConfiguration() {
                         setDeleteConfirm({ plan: plan.plan, displayName: plan.displayName })
                       }
                       className="w-8 h-8 rounded-lg bg-red-900/20 hover:bg-red-900/40 flex items-center justify-center text-red-400 transition"
-                      title="Deactivate plan"
+                      title={isEs ? "Desactivar plan" : "Deactivate plan"}
                     >
                       <Trash2 size={15} />
                     </button>
@@ -1334,7 +1385,7 @@ export default function PlanConfiguration() {
               {/* ── Pricing ─────────────────────────────────────── */}
               {isEditing ? (
                 <div className="grid grid-cols-2 gap-3 mb-3">
-                  <Field label="Base Cost" hint="¢" error={validationErrors.baseCost}>
+                    <Field label={isEs ? "Costo base" : "Base Cost"} hint="¢" error={validationErrors.baseCost}>
                     <NumberInput
                       min={0}
                       value={editFields.baseCost ?? 0}
@@ -1346,7 +1397,7 @@ export default function PlanConfiguration() {
                       onBlur={() => liveEditField("baseCost", { baseCost: editFields.baseCost ?? 0 })}
                     />
                   </Field>
-                  <Field label="Price / Seat" hint="¢" error={validationErrors.pricePerSeat}>
+                  <Field label={isEs ? "Precio / asiento" : "Price / Seat"} hint="¢" error={validationErrors.pricePerSeat}>
                     <NumberInput
                       min={0}
                       value={editFields.pricePerSeat ?? 0}
@@ -1365,16 +1416,16 @@ export default function PlanConfiguration() {
               ) : (
                 <div className="flex items-baseline gap-1 mb-1">
                   {plan.baseCost === 0 && plan.pricePerSeat === 0 ? (
-                    <span className="text-2xl font-extrabold text-green-400">Free</span>
+                    <span className="text-2xl font-extrabold text-green-400">{isEs ? "Gratis" : "Free"}</span>
                   ) : (
                     <>
                       <span className="text-2xl font-extrabold text-white">
-                        ${formatDollars(plan.baseCost)}
+                        ${formatDollars(plan.baseCost, locale)}
                       </span>
-                      <span className="text-gray-500 text-xs">/month</span>
+                      <span className="text-gray-500 text-xs">/{isEs ? "mes" : "month"}</span>
                       {plan.pricePerSeat > 0 && (
                         <span className="text-gray-500 text-xs ml-1">
-                          +${formatDollars(plan.pricePerSeat)}/seat
+                          +${formatDollars(plan.pricePerSeat, locale)}/{isEs ? "asiento" : "seat"}
                         </span>
                       )}
                     </>
@@ -1387,7 +1438,7 @@ export default function PlanConfiguration() {
                 <div className="mb-3">
                   <div className="flex gap-3">
                     <div className="flex-1">
-                      <Field label="Status">
+                      <Field label={isEs ? "Estado" : "Status"}>
                         <SelectInput
                           options={statusOptions}
                           value={editFields.status ?? "active"}
@@ -1401,7 +1452,7 @@ export default function PlanConfiguration() {
                       </Field>
                     </div>
                     <div className="flex-1">
-                      <Field label="Billing Model" error={validationErrors.billingModel}>
+                      <Field label={isEs ? "Modelo de cobro" : "Billing Model"} error={validationErrors.billingModel}>
                         <SelectInput
                           options={billingModelOptions}
                           value={editFields.billingModel ?? "dynamic"}
@@ -1438,7 +1489,7 @@ export default function PlanConfiguration() {
               {/* ── Limits ──────────────────────────────────────── */}
               {isEditing ? (
                 <div className="grid grid-cols-2 gap-3 mb-3">
-                  <Field label="Max Seats" hint="-1 = ∞" error={validationErrors.maxSeats}>
+                  <Field label={isEs ? "Max asientos" : "Max Seats"} hint="-1 = ∞" error={validationErrors.maxSeats}>
                     <NumberInput
                       value={editFields.maxSeats ?? -1}
                       onChange={(e) => {
@@ -1450,7 +1501,7 @@ export default function PlanConfiguration() {
                     />
                   </Field>
                   <Field
-                    label="Max Catalog Items"
+                    label={isEs ? "Max items de catalogo" : "Max Catalog Items"}
                     hint="-1 = ∞"
                     error={validationErrors.maxCatalogItems}
                   >
@@ -1469,7 +1520,7 @@ export default function PlanConfiguration() {
                       }
                     />
                   </Field>
-                  <Field label="Duration (days)" hint="1–365" error={validationErrors.durationDays}>
+                  <Field label={isEs ? "Duracion (dias)" : "Duration (days)"} hint="1–365" error={validationErrors.durationDays}>
                     <NumberInput
                       min={1}
                       max={365}
@@ -1487,7 +1538,7 @@ export default function PlanConfiguration() {
                       }
                     />
                   </Field>
-                  <Field label="Sort Order" error={validationErrors.sortOrder}>
+                  <Field label={isEs ? "Orden" : "Sort Order"} error={validationErrors.sortOrder}>
                     <NumberInput
                       value={editFields.sortOrder ?? 0}
                       onChange={(e) => {
@@ -1527,8 +1578,8 @@ export default function PlanConfiguration() {
               {isEditing ? (
                 <div className="mb-3">
                   <Field
-                    label="Description"
-                    hint="max 500 chars"
+                    label={isEs ? "Descripcion" : "Description"}
+                    hint={isEs ? "max 500 caracteres" : "max 500 chars"}
                     error={validationErrors.description}
                   >
                     <TextareaInput
@@ -1560,18 +1611,19 @@ export default function PlanConfiguration() {
                 {isEditing ? (
                   <div>
                     <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                      Features
+                      {isEs ? "Funcionalidades" : "Features"}
                     </label>
                     <FeaturesEditor
                       features={editFields.features ?? []}
+                      isEs={isEs}
                       onChange={(features) => setEditFields((f) => ({ ...f, features }))}
                     />
                   </div>
                 ) : (
                   <>
-                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Features</p>
+                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">{isEs ? "Funcionalidades" : "Features"}</p>
                     {plan.features.length === 0 ? (
-                      <p className="text-xs text-gray-600 italic">No features listed</p>
+                      <p className="text-xs text-gray-600 italic">{isEs ? "Sin funcionalidades" : "No features listed"}</p>
                     ) : (
                       <ul className="space-y-1.5">
                         {plan.features.map((feat, i) => (
@@ -1589,7 +1641,7 @@ export default function PlanConfiguration() {
               {/* ── Stripe IDs (edit only) ───────────────────────── */}
               {isEditing && (
                 <div className="grid grid-cols-1 gap-3 mb-3">
-                  <Field label="Stripe Base Price ID" error={validationErrors.stripePriceIdBase}>
+                  <Field label={isEs ? "ID Stripe precio base" : "Stripe Base Price ID"} error={validationErrors.stripePriceIdBase}>
                     <TextInput
                       value={editFields.stripePriceIdBase ?? ""}
                       onChange={(e) => {
@@ -1606,7 +1658,7 @@ export default function PlanConfiguration() {
                       placeholder="price_…"
                     />
                   </Field>
-                  <Field label="Stripe Seat Price ID" error={validationErrors.stripePriceIdSeat}>
+                  <Field label={isEs ? "ID Stripe precio por asiento" : "Stripe Seat Price ID"} error={validationErrors.stripePriceIdSeat}>
                     <TextInput
                       value={editFields.stripePriceIdSeat ?? ""}
                       onChange={(e) => {
@@ -1631,19 +1683,19 @@ export default function PlanConfiguration() {
                 <div className="text-xs text-gray-600 space-y-0.5 mb-3">
                   {plan.stripePriceIdBase && (
                     <p>
-                      Base ID: <span className="font-mono">{plan.stripePriceIdBase}</span>
+                      {isEs ? "ID base" : "Base ID"}: <span className="font-mono">{plan.stripePriceIdBase}</span>
                     </p>
                   )}
                   {plan.stripePriceIdSeat && (
                     <p>
-                      Seat ID: <span className="font-mono">{plan.stripePriceIdSeat}</span>
+                      {isEs ? "ID asiento" : "Seat ID"}: <span className="font-mono">{plan.stripePriceIdSeat}</span>
                     </p>
                   )}
                 </div>
               )}
 
               {/* ── Cost Calculator (view mode only) ────────────── */}
-              {!isEditing && <CostCalculator planId={plan.plan} />}
+              {!isEditing && <CostCalculator planId={plan.plan} isEs={isEs} />}
             </div>
           );
         })}
@@ -1652,9 +1704,11 @@ export default function PlanConfiguration() {
       {/* ── Inactive Plans Table ─────────────────────────────────────────── */}
       <div className="mt-10">
         <div className="mb-4">
-          <h2 className="text-2xl font-bold text-white">Inactive Plans</h2>
+          <h2 className="text-2xl font-bold text-white">{isEs ? "Planes inactivos" : "Inactive Plans"}</h2>
           <p className="text-gray-400 mt-1">
-            Manage inactive plans: reactivate them or review complete details in a child view.
+            {isEs
+              ? "Gestiona planes inactivos: reactivalos o revisa sus detalles completos."
+              : "Manage inactive plans: reactivate them or review complete details in a child view."}
           </p>
         </div>
 
@@ -1663,7 +1717,7 @@ export default function PlanConfiguration() {
             type="text"
             value={inactiveSearch}
             onChange={(e) => setInactiveSearch(e.target.value)}
-            placeholder="Search by display name or plan id…"
+            placeholder={isEs ? "Buscar por nombre visible o id del plan..." : "Search by display name or plan id..."}
             className="bg-[#1a1a1a] border border-[#444] text-white text-sm rounded-lg px-3 py-2 w-64 focus:outline-none focus:border-[#FFD700]"
           />
 
@@ -1673,7 +1727,7 @@ export default function PlanConfiguration() {
             step="0.01"
             value={inactiveMinPrice}
             onChange={(e) => setInactiveMinPrice(e.target.value)}
-            placeholder="Min price (USD)"
+            placeholder={isEs ? "Precio minimo (USD)" : "Min price (USD)"}
             className="bg-[#1a1a1a] border border-[#444] text-white text-sm rounded-lg px-3 py-2 w-40 focus:outline-none focus:border-[#FFD700]"
           />
 
@@ -1683,7 +1737,7 @@ export default function PlanConfiguration() {
             step="0.01"
             value={inactiveMaxPrice}
             onChange={(e) => setInactiveMaxPrice(e.target.value)}
-            placeholder="Max price (USD)"
+            placeholder={isEs ? "Precio maximo (USD)" : "Max price (USD)"}
             className="bg-[#1a1a1a] border border-[#444] text-white text-sm rounded-lg px-3 py-2 w-40 focus:outline-none focus:border-[#FFD700]"
           />
 
@@ -1692,11 +1746,11 @@ export default function PlanConfiguration() {
             onChange={(e) => setInactiveDurationFilter(e.target.value)}
             className="bg-[#1a1a1a] border border-[#444] text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-[#FFD700]"
           >
-            <option value="all">All durations</option>
-            <option value="30">30 days</option>
-            <option value="90">90 days</option>
-            <option value="180">180 days</option>
-            <option value="365">365 days</option>
+            <option value="all">{isEs ? "Todas las duraciones" : "All durations"}</option>
+            <option value="30">30 {isEs ? "dias" : "days"}</option>
+            <option value="90">90 {isEs ? "dias" : "days"}</option>
+            <option value="180">180 {isEs ? "dias" : "days"}</option>
+            <option value="365">365 {isEs ? "dias" : "days"}</option>
           </select>
 
           {(inactiveSearch.trim() || inactiveMinPrice || inactiveMaxPrice || inactiveDurationFilter !== "all") && (
@@ -1710,29 +1764,31 @@ export default function PlanConfiguration() {
               }}
               className="text-sm text-gray-400 hover:text-white transition-colors"
             >
-              Clear filters
+              {isEs ? "Limpiar filtros" : "Clear filters"}
             </button>
           )}
 
-          <span className="ml-auto text-xs text-gray-500">{filteredInactivePlans.length} inactive plans</span>
+          <span className="ml-auto text-xs text-gray-500">
+            {filteredInactivePlans.length} {isEs ? "planes inactivos" : "inactive plans"}
+          </span>
         </div>
 
         <AdminTable>
           <thead className="bg-[#0f0f0f] border-b border-[#333]">
             <tr>
-              <th className="px-4 py-3 text-gray-400 font-medium">Plan</th>
-              <th className="px-4 py-3 text-gray-400 font-medium">Price</th>
-              <th className="px-4 py-3 text-gray-400 font-medium">Duration</th>
-              <th className="px-4 py-3 text-gray-400 font-medium">Status</th>
-              <th className="px-4 py-3 text-gray-400 font-medium">Created</th>
-              <th className="px-4 py-3 text-gray-400 font-medium text-right">Actions</th>
+              <th className="px-4 py-3 text-gray-400 font-medium">{isEs ? "Plan" : "Plan"}</th>
+              <th className="px-4 py-3 text-gray-400 font-medium">{isEs ? "Precio" : "Price"}</th>
+              <th className="px-4 py-3 text-gray-400 font-medium">{isEs ? "Duracion" : "Duration"}</th>
+              <th className="px-4 py-3 text-gray-400 font-medium">{isEs ? "Estado" : "Status"}</th>
+              <th className="px-4 py-3 text-gray-400 font-medium">{isEs ? "Creado" : "Created"}</th>
+              <th className="px-4 py-3 text-gray-400 font-medium text-right">{isEs ? "Acciones" : "Actions"}</th>
             </tr>
           </thead>
           <tbody>
             {paginatedInactivePlans.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
-                  No inactive plans match the current filters.
+                  {isEs ? "No hay planes inactivos para los filtros actuales." : "No inactive plans match the current filters."}
                 </td>
               </tr>
             ) : (
@@ -1751,17 +1807,19 @@ export default function PlanConfiguration() {
                     </td>
                     <td className="px-4 py-3 text-gray-300">
                       {plan.baseCost === 0 && plan.pricePerSeat === 0
-                        ? "Free"
-                        : `$${formatDollars(plan.baseCost)}${plan.pricePerSeat > 0 ? ` + $${formatDollars(plan.pricePerSeat)}/seat` : ""}`}
+                        ? isEs
+                          ? "Gratis"
+                          : "Free"
+                        : `$${formatDollars(plan.baseCost, locale)}${plan.pricePerSeat > 0 ? ` + $${formatDollars(plan.pricePerSeat, locale)}/${isEs ? "asiento" : "seat"}` : ""}`}
                     </td>
-                    <td className="px-4 py-3 text-gray-300">{plan.durationDays} days</td>
+                    <td className="px-4 py-3 text-gray-300">{plan.durationDays} {isEs ? "dias" : "days"}</td>
                     <td className="px-4 py-3">
                       <span className="px-2 py-0.5 rounded-full text-xs font-medium capitalize bg-gray-600/20 text-gray-400">
                         {plan.status}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-gray-400 whitespace-nowrap">
-                      {createdAt ? new Date(createdAt).toLocaleDateString() : "—"}
+                      {createdAt ? new Date(createdAt).toLocaleDateString(locale) : "—"}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-2">
@@ -1772,7 +1830,7 @@ export default function PlanConfiguration() {
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-900/30 hover:bg-green-900/50 text-green-300 text-xs font-semibold transition disabled:opacity-50"
                         >
                           <RotateCcw size={13} />
-                          {rowActionLoading[activateKey] ? "Activating…" : "Activate"}
+                          {rowActionLoading[activateKey] ? (isEs ? "Activando..." : "Activating...") : (isEs ? "Activar" : "Activate")}
                         </button>
                         <button
                           type="button"
@@ -1780,7 +1838,7 @@ export default function PlanConfiguration() {
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1a1a1a] hover:bg-[#2a2a2a] text-gray-200 text-xs font-semibold transition"
                         >
                           <Eye size={13} />
-                          View details
+                          {isEs ? "Ver detalles" : "View details"}
                         </button>
                       </div>
                     </td>
@@ -1796,7 +1854,7 @@ export default function PlanConfiguration() {
           totalPages={inactiveTotalPages}
           totalItems={filteredInactivePlans.length}
           pageSize={INACTIVE_PAGE_SIZE}
-          itemLabel="inactive plans"
+          itemLabel={isEs ? "planes inactivos" : "inactive plans"}
           onPageChange={setInactivePage}
         />
       </div>
@@ -1808,9 +1866,13 @@ export default function PlanConfiguration() {
         onConfirm={() => {
           void handleDelete();
         }}
-        title="Deactivate Plan"
-        message={`Are you sure you want to deactivate the "${deleteConfirm?.displayName}" plan? It will no longer be visible to new customers, but existing subscriptions will not be affected.`}
-        confirmText="Deactivate"
+        title={isEs ? "Desactivar plan" : "Deactivate Plan"}
+        message={
+          isEs
+            ? `Seguro que deseas desactivar el plan "${deleteConfirm?.displayName}"? Ya no sera visible para nuevos clientes, pero las suscripciones existentes no se veran afectadas.`
+            : `Are you sure you want to deactivate the "${deleteConfirm?.displayName}" plan? It will no longer be visible to new customers, but existing subscriptions will not be affected.`
+        }
+        confirmText={isEs ? "Desactivar" : "Deactivate"}
         variant="danger"
       />
 
@@ -1824,16 +1886,16 @@ export default function PlanConfiguration() {
           <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-[#121212] border border-[#333] rounded-xl p-5">
             <div className="flex items-start justify-between gap-3 mb-4">
               <div>
-                <h3 className="text-lg font-bold text-white">Plan Details</h3>
+                <h3 className="text-lg font-bold text-white">{isEs ? "Detalles del plan" : "Plan Details"}</h3>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Detailed information for <span className="text-gray-300">{selectedInactivePlan.displayName}</span>
+                  {isEs ? "Informacion detallada de" : "Detailed information for"} <span className="text-gray-300">{selectedInactivePlan.displayName}</span>
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedInactivePlanId(null)}
-                aria-label="Close details"
-                title="Close"
+                aria-label={isEs ? "Cerrar detalles" : "Close details"}
+                title={isEs ? "Cerrar" : "Close"}
                 className="w-9 h-9 rounded-lg border border-[#333] text-gray-300 hover:bg-[#1a1a1a] hover:text-white transition flex items-center justify-center"
               >
                 <X size={16} />
@@ -1842,62 +1904,66 @@ export default function PlanConfiguration() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
               <div className="bg-[#1a1a1a] rounded-lg p-3">
-                <p className="text-gray-500 text-xs">Plan ID</p>
+                <p className="text-gray-500 text-xs">{isEs ? "ID del plan" : "Plan ID"}</p>
                 <p className="text-white font-medium">{selectedInactivePlan.plan}</p>
               </div>
               <div className="bg-[#1a1a1a] rounded-lg p-3">
-                <p className="text-gray-500 text-xs">Display Name</p>
+                <p className="text-gray-500 text-xs">{isEs ? "Nombre visible" : "Display Name"}</p>
                 <p className="text-white font-medium">{selectedInactivePlan.displayName}</p>
               </div>
               <div className="bg-[#1a1a1a] rounded-lg p-3">
-                <p className="text-gray-500 text-xs">Status</p>
+                <p className="text-gray-500 text-xs">{isEs ? "Estado" : "Status"}</p>
                 <p className="text-gray-300 capitalize">{selectedInactivePlan.status}</p>
               </div>
               <div className="bg-[#1a1a1a] rounded-lg p-3">
-                <p className="text-gray-500 text-xs">Base Cost</p>
-                <p className="text-gray-300">${formatDollars(selectedInactivePlan.baseCost)}</p>
+                <p className="text-gray-500 text-xs">{isEs ? "Costo base" : "Base Cost"}</p>
+                <p className="text-gray-300">${formatDollars(selectedInactivePlan.baseCost, locale)}</p>
               </div>
               <div className="bg-[#1a1a1a] rounded-lg p-3">
-                <p className="text-gray-500 text-xs">Seat Cost</p>
+                <p className="text-gray-500 text-xs">{isEs ? "Costo por asiento" : "Seat Cost"}</p>
                 <p className="text-gray-300">
                   {selectedInactivePlan.pricePerSeat > 0
-                    ? `$${formatDollars(selectedInactivePlan.pricePerSeat)}`
-                    : "No per-seat charge"}
+                    ? `$${formatDollars(selectedInactivePlan.pricePerSeat, locale)}`
+                    : isEs
+                      ? "Sin cobro por asiento"
+                      : "No per-seat charge"}
                 </p>
               </div>
               <div className="bg-[#1a1a1a] rounded-lg p-3">
-                <p className="text-gray-500 text-xs">Duration</p>
-                <p className="text-gray-300">{selectedInactivePlan.durationDays} days</p>
+                <p className="text-gray-500 text-xs">{isEs ? "Duracion" : "Duration"}</p>
+                <p className="text-gray-300">{selectedInactivePlan.durationDays} {isEs ? "dias" : "days"}</p>
               </div>
               <div className="bg-[#1a1a1a] rounded-lg p-3">
-                <p className="text-gray-500 text-xs">Max Seats</p>
-                <p className="text-gray-300">{selectedInactivePlan.maxSeats === -1 ? "Unlimited" : selectedInactivePlan.maxSeats}</p>
+                <p className="text-gray-500 text-xs">{isEs ? "Max asientos" : "Max Seats"}</p>
+                <p className="text-gray-300">{selectedInactivePlan.maxSeats === -1 ? (isEs ? "Ilimitado" : "Unlimited") : selectedInactivePlan.maxSeats}</p>
               </div>
               <div className="bg-[#1a1a1a] rounded-lg p-3">
-                <p className="text-gray-500 text-xs">Max Catalog Items</p>
+                <p className="text-gray-500 text-xs">{isEs ? "Max items de catalogo" : "Max Catalog Items"}</p>
                 <p className="text-gray-300">
                   {selectedInactivePlan.maxCatalogItems === -1
-                    ? "Unlimited"
+                    ? isEs
+                      ? "Ilimitado"
+                      : "Unlimited"
                     : selectedInactivePlan.maxCatalogItems}
                 </p>
               </div>
               <div className="bg-[#1a1a1a] rounded-lg p-3">
-                <p className="text-gray-500 text-xs">Billing Model</p>
+                <p className="text-gray-500 text-xs">{isEs ? "Modelo de cobro" : "Billing Model"}</p>
                 <p className="text-gray-300 capitalize">{selectedInactivePlan.billingModel}</p>
               </div>
             </div>
 
             {selectedInactivePlan.description && (
               <div className="mt-3 bg-[#1a1a1a] rounded-lg p-3">
-                <p className="text-gray-500 text-xs mb-1">Description</p>
+                <p className="text-gray-500 text-xs mb-1">{isEs ? "Descripcion" : "Description"}</p>
                 <p className="text-gray-300 text-sm">{selectedInactivePlan.description}</p>
               </div>
             )}
 
             <div className="mt-3 bg-[#1a1a1a] rounded-lg p-3">
-              <p className="text-gray-500 text-xs mb-1">Features</p>
+              <p className="text-gray-500 text-xs mb-1">{isEs ? "Funcionalidades" : "Features"}</p>
               {selectedInactivePlan.features.length === 0 ? (
-                <p className="text-gray-500 text-sm italic">No features listed</p>
+                <p className="text-gray-500 text-sm italic">{isEs ? "Sin funcionalidades" : "No features listed"}</p>
               ) : (
                 <ul className="space-y-1">
                   {selectedInactivePlan.features.map((feature, idx) => (

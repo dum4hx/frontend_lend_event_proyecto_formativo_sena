@@ -5,6 +5,7 @@ import { fetchUserStats } from "../../../services/superAdminService";
 import { LoadingSpinner, ErrorDisplay, AlertContainer } from "../../../components/ui";
 import { normalizeError, logError } from "../../../utils/errorHandling";
 import { useAuth } from "../../../contexts/useAuth";
+import { useLanguage } from "../../../contexts/useLanguage";
 import { useAlerts } from "../../../hooks/useAlerts";
 import { ExportSettingsModal } from "../../../components/export/ExportSettingsModal";
 import { exportService, USER_MANAGEMENT_POLICY } from "../../../services/export";
@@ -25,6 +26,8 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function UserManagement() {
+  const { language } = useLanguage();
+  const isEs = language === "es";
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -99,7 +102,7 @@ export default function UserManagement() {
         const rawData = buildExportRows(freshStats);
 
         if (rawData.length === 0) {
-          showAlert("warning", "No data available to export.");
+          showAlert("warning", isEs ? "No hay datos disponibles para exportar." : "No data available to export.");
           return;
         }
 
@@ -114,7 +117,9 @@ export default function UserManagement() {
         if (result.status === "success") {
           showAlert(
             "success",
-            `Exported ${result.metadata.recordCount} records as ${result.filename}`,
+            isEs
+              ? `Se exportaron ${result.metadata.recordCount} registros como ${result.filename}`
+              : `Exported ${result.metadata.recordCount} records as ${result.filename}`,
           );
           setExportOpen(false);
         } else if (result.status === "cancelled") {
@@ -149,7 +154,7 @@ export default function UserManagement() {
   }, []);
 
   if (loading) {
-    return <LoadingSpinner fullScreen message="Loading user data…" />;
+    return <LoadingSpinner fullScreen message={isEs ? "Cargando datos de usuarios..." : "Loading user data..."} />;
   }
 
   if (error) {
@@ -193,7 +198,7 @@ export default function UserManagement() {
         <div>
           <h1 className="text-3xl font-bold text-white">User Management</h1>
           <p className="text-gray-400 mt-1">
-            Platform user analytics &amp; distribution
+            {isEs ? "Analitica y distribucion de usuarios de la plataforma" : "Platform user analytics & distribution"}
           </p>
         </div>
         <button
@@ -201,29 +206,29 @@ export default function UserManagement() {
           className="export-btn flex items-center gap-2"
         >
           <Download size={18} />
-          Export
+          {isEs ? "Exportar" : "Export"}
         </button>
       </div>
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <SuperAdminStatCard
-          label="Total Users"
+          label={isEs ? "Usuarios totales" : "Total Users"}
           value={totalUsers}
           icon={<Users size={20} className="text-black" />}
         />
         <SuperAdminStatCard
-          label="Active"
+          label={isEs ? "Activos" : "Active"}
           value={activeUsers}
           icon={<UserCheck size={20} className="text-black" />}
         />
         <SuperAdminStatCard
-          label="Pending Activation"
+          label={isEs ? "Pendientes de activacion" : "Pending Activation"}
           value={pendingUsers}
           icon={<ShieldCheck size={20} className="text-black" />}
         />
         <SuperAdminStatCard
-          label="Avg Users / Org"
+          label={isEs ? "Promedio usuarios / org" : "Avg Users / Org"}
           value={userStats.averageUsersPerOrganization.toFixed(1)}
           icon={<TrendingUp size={20} className="text-black" />}
         />
@@ -233,7 +238,7 @@ export default function UserManagement() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         {/* Users by Role */}
         <div className="bg-[#121212] border border-[#333] rounded-xl p-6">
-          <h2 className="text-lg font-bold text-white mb-4">Users by Role</h2>
+          <h2 className="text-lg font-bold text-white mb-4">{isEs ? "Usuarios por rol" : "Users by Role"}</h2>
           <div className="space-y-3">
             {userStats.byRole.map((entry) => {
               const pct =
@@ -265,7 +270,7 @@ export default function UserManagement() {
         {/* Users by Status */}
         <div className="bg-[#121212] border border-[#333] rounded-xl p-6">
           <h2 className="text-lg font-bold text-white mb-4">
-            Users by Status
+            {isEs ? "Usuarios por estado" : "Users by Status"}
           </h2>
           <div className="space-y-3">
             {userStats.byStatus.map((entry) => {
@@ -295,7 +300,7 @@ export default function UserManagement() {
           </div>
           <div className="mt-6 pt-4 border-t border-[#333] text-sm text-gray-400">
             <p>
-              Avg users per organization:{" "}
+              {isEs ? "Promedio de usuarios por organizacion:" : "Avg users per organization:"}{" "}
               <span className="text-white font-medium">
                 {userStats.averageUsersPerOrganization.toFixed(1)}
               </span>
@@ -307,7 +312,7 @@ export default function UserManagement() {
       {/* User Growth Trend */}
       {userStats.growthTrend.length > 0 && (
         <div className="bg-[#121212] border border-[#333] rounded-xl p-6 mb-8">
-          <h2 className="text-lg font-bold text-white mb-4">User Growth</h2>
+          <h2 className="text-lg font-bold text-white mb-4">{isEs ? "Crecimiento de usuarios" : "User Growth"}</h2>
           <div className="flex items-end gap-1 h-32">
             {userStats.growthTrend.map((point) => {
               const newUsers = point.newUsers ?? 0;

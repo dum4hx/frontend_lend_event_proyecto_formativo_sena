@@ -7,6 +7,7 @@ import {
   BarChart3,
   Calendar,
 } from "lucide-react";
+import { useLanguage } from "../../../contexts/useLanguage";
 
 interface ReportMetrics {
   label: string;
@@ -16,36 +17,7 @@ interface ReportMetrics {
   trendUp?: boolean;
 }
 
-const SAMPLE_REPORTS: ReportMetrics[] = [
-  {
-    label: "Total Revenue",
-    value: "$156,850",
-    icon: <DollarSign size={32} />,
-    trend: "18% from last month",
-    trendUp: true,
-  },
-  {
-    label: "Average Order Value",
-    value: "$1,245",
-    icon: <BarChart3 size={32} />,
-    trend: "5% increase",
-    trendUp: true,
-  },
-  {
-    label: "Total Customers",
-    value: "156",
-    icon: <Users size={32} />,
-    trend: "12 new this month",
-    trendUp: true,
-  },
-  {
-    label: "Growth Rate",
-    value: "22%",
-    icon: <TrendingUp size={32} />,
-    trend: "YoY growth",
-    trendUp: true,
-  },
-];
+
 
 interface ReportData {
   id: string;
@@ -92,15 +64,48 @@ const SAMPLE_REPORT_LIST: ReportData[] = [
 ];
 
 export default function Reports() {
+  const { language } = useLanguage();
+  const isEs = language === "es";
   const [reports] = useState<ReportData[]>(SAMPLE_REPORT_LIST);
   const [selectedPeriod, setSelectedPeriod] = useState<string>("monthly");
+
+  const SAMPLE_REPORTS: ReportMetrics[] = [
+    {
+      label: isEs ? "Ingresos Totales" : "Total Revenue",
+      value: "$156,850",
+      icon: <DollarSign size={32} />,
+      trend: isEs ? "18% del mes pasado" : "18% from last month",
+      trendUp: true,
+    },
+    {
+      label: isEs ? "Valor Promedio del Pedido" : "Average Order Value",
+      value: "$1,245",
+      icon: <BarChart3 size={32} />,
+      trend: isEs ? "5% de aumento" : "5% increase",
+      trendUp: true,
+    },
+    {
+      label: isEs ? "Total de Clientes" : "Total Customers",
+      value: "156",
+      icon: <Users size={32} />,
+      trend: isEs ? "12 nuevos este mes" : "12 new this month",
+      trendUp: true,
+    },
+    {
+      label: isEs ? "Tasa de Crecimiento" : "Growth Rate",
+      value: "22%",
+      icon: <TrendingUp size={32} />,
+      trend: isEs ? "Crecimiento anual" : "YoY growth",
+      trendUp: true,
+    },
+  ];
 
   return (
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-white">Reports & Analytics</h1>
-        <p className="text-gray-400 mt-1">Track key metrics and generate detailed reports</p>
+        <h1 className="text-3xl font-bold text-white">{isEs ? "Reportes & Analítica" : "Reports & Analytics"}</h1>
+        <p className="text-gray-400 mt-1">{isEs ? "Sigue métricas clave y genera reportes detallados" : "Track key metrics and generate detailed reports"}</p>
       </div>
 
       {/* KPI Cards */}
@@ -128,41 +133,41 @@ export default function Reports() {
 
       {/* Report Generation */}
       <div className="bg-[#1a1a1a] border border-[#333] rounded-[12px] p-6">
-        <h2 className="text-xl font-bold text-white mb-6">Generate Report</h2>
+        <h2 className="text-xl font-bold text-white mb-6">{isEs ? "Generar Reporte" : "Generate Report"}</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div>
             <label className="block text-sm font-semibold text-gray-300 mb-2">
-              Report Type
+              {isEs ? "Tipo de Reporte" : "Report Type"}
             </label>
             <select className="w-full px-4 py-2 bg-[#121212] border border-[#333] rounded-[8px] text-white focus:outline-none focus:border-[#FFD700] transition-all cursor-pointer">
-              <option>Sales Report</option>
-              <option>Customer Analytics</option>
-              <option>Rental Performance</option>
-              <option>Payment Analysis</option>
-              <option>Inventory Report</option>
+              <option>{isEs ? "Reporte de Ventas" : "Sales Report"}</option>
+              <option>{isEs ? "Analítica de Clientes" : "Customer Analytics"}</option>
+              <option>{isEs ? "Rendimiento de Alquileres" : "Rental Performance"}</option>
+              <option>{isEs ? "Análisis de Pagos" : "Payment Analysis"}</option>
+              <option>{isEs ? "Reporte de Inventario" : "Inventory Report"}</option>
             </select>
           </div>
 
           <div>
             <label className="block text-sm font-semibold text-gray-300 mb-2">
-              Period
+              {isEs ? "Período" : "Period"}
             </label>
             <select
               value={selectedPeriod}
               onChange={(e) => setSelectedPeriod(e.target.value)}
               className="w-full px-4 py-2 bg-[#121212] border border-[#333] rounded-[8px] text-white focus:outline-none focus:border-[#FFD700] transition-all cursor-pointer"
             >
-              <option value="weekly">Weekly</option>
-              <option value="monthly">Monthly</option>
-              <option value="quarterly">Quarterly</option>
-              <option value="yearly">Yearly</option>
+              <option value="weekly">{isEs ? "Semanal" : "Weekly"}</option>
+              <option value="monthly">{isEs ? "Mensual" : "Monthly"}</option>
+              <option value="quarterly">{isEs ? "Trimestral" : "Quarterly"}</option>
+              <option value="yearly">{isEs ? "Anual" : "Yearly"}</option>
             </select>
           </div>
 
           <div>
             <label className="block text-sm font-semibold text-gray-300 mb-2">
-              Start Date
+              {isEs ? "Fecha de Inicio" : "Start Date"}
             </label>
             <input
               type="date"
@@ -172,7 +177,7 @@ export default function Reports() {
 
           <div>
             <label className="block text-sm font-semibold text-gray-300 mb-2">
-              End Date
+              {isEs ? "Fecha de Fin" : "End Date"}
             </label>
             <input
               type="date"
@@ -183,13 +188,13 @@ export default function Reports() {
 
         <button className="w-full flex items-center justify-center gap-2 px-6 py-3 font-semibold rounded-[8px] transition-all gold-action-btn">
           <Calendar size={20} />
-          Generate Report
+          {isEs ? "Generar Reporte" : "Generate Report"}
         </button>
       </div>
 
       {/* Recent Reports */}
       <div className="bg-[#1a1a1a] border border-[#333] rounded-[12px] p-6">
-        <h2 className="text-xl font-bold text-white mb-6">Recent Reports</h2>
+        <h2 className="text-xl font-bold text-white mb-6">{isEs ? "Reportes Recientes" : "Recent Reports"}</h2>
 
         <div className="space-y-3">
           {reports.map((report) => (

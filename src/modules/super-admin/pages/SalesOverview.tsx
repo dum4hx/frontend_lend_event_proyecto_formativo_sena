@@ -5,6 +5,7 @@ import { fetchSalesOverviewData } from "../../../services/superAdminService";
 import { LoadingSpinner, ErrorDisplay, AlertContainer } from "../../../components/ui";
 import { normalizeError, logError } from "../../../utils/errorHandling";
 import { useAuth } from "../../../contexts/useAuth";
+import { useLanguage } from "../../../contexts/useLanguage";
 import { useAlerts } from "../../../hooks/useAlerts";
 import { ExportSettingsModal } from "../../../components/export/ExportSettingsModal";
 import { exportService, SALES_OVERVIEW_POLICY } from "../../../services/export";
@@ -32,16 +33,18 @@ function normalizePlan(plan: SubscriptionTypeApi): SubscriptionType {
   };
 }
 
-function formatCurrency(cents: number | null | undefined): string {
+function formatCurrency(cents: number | null | undefined, locale: string): string {
   if (cents === null || cents === undefined) return "$0";
   const dollars = cents / 100;
-  return `$${dollars.toLocaleString("en-US", {
+  return `$${dollars.toLocaleString(locale, {
     minimumFractionDigits: dollars < 1 ? 2 : 0,
     maximumFractionDigits: 2,
   })}`;
 }
 
 export default function SalesOverview() {
+  const { language, locale } = useLanguage();
+  const isEs = language === "es";
   const [dashboard, setDashboard] = useState<AdminDashboardData | null>(null);
   const [plans, setPlans] = useState<SubscriptionType[]>([]);
   const [revenue, setRevenue] = useState<RevenueStats | null>(null);
@@ -145,7 +148,7 @@ export default function SalesOverview() {
       const rawData = buildExportRows();
 
       if (rawData.length === 0) {
-        showAlert("warning", "No data available to export.");
+        showAlert("warning", isEs ? "No hay datos disponibles para exportar." : "No data available to export.");
         return;
       }
 
@@ -175,7 +178,9 @@ export default function SalesOverview() {
       if (result.status === "success") {
         showAlert(
           "success",
-          `Exported ${result.metadata.recordCount} records as ${result.filename}`,
+          isEs
+            ? `Se exportaron ${result.metadata.recordCount} registros como ${result.filename}`
+            : `Exported ${result.metadata.recordCount} records as ${result.filename}`,
         );
         setExportOpen(false);
       } else if (result.status === "cancelled") {
@@ -205,7 +210,7 @@ export default function SalesOverview() {
   }, []);
 
   if (loading) {
-    return <LoadingSpinner fullScreen message="Loading analytics…" />;
+    return <LoadingSpinner fullScreen message={isEs ? "Cargando analitica..." : "Loading analytics..."} />;
   }
 
   if (error) {
@@ -252,45 +257,47 @@ export default function SalesOverview() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-white">Sales Overview</h1>
+          <h1 className="text-3xl font-bold text-white">{isEs ? "Resumen de ventas" : "Sales Overview"}</h1>
           <p className="text-gray-400 mt-1">
-            Complete analytics and performance metrics for Lend Event
+            {isEs
+              ? "Analitica completa y metricas de rendimiento para Lend Event"
+              : "Complete analytics and performance metrics for Lend Event"}
           </p>
         </div>
         <button onClick={() => setExportOpen(true)} className="export-btn flex items-center gap-2">
           <Download size={18} />
-          Export
+          {isEs ? "Exportar" : "Export"}
         </button>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <SuperAdminStatCard
-          label="Total Revenue"
-          value={formatCurrency(overview.monthlyRecurringRevenue * 12)}
+          label={isEs ? "Ingresos totales" : "Total Revenue"}
+          value={formatCurrency(overview.monthlyRecurringRevenue * 12, locale)}
           icon={<DollarSign size={20} className="text-black" />}
-          trend="Last 7 days"
+          trend={isEs ? "Ultimos 7 dias" : "Last 7 days"}
           trendUp
         />
         <SuperAdminStatCard
-          label="Total Corporate Clients"
+          label={isEs ? "Total de clientes corporativos" : "Total Corporate Clients"}
           value={overview.totalOrganizations.toLocaleString()}
           icon={<Users size={20} className="text-black" />}
-          trend="Monthly"
+          trend={isEs ? "Mensual" : "Monthly"}
           trendUp
         />
         <SuperAdminStatCard
-          label="Active Subscriptions"
+          label={isEs ? "Suscripciones activas" : "Active Subscriptions"}
           value={subscriptionStats.totalActiveSubscriptions.toLocaleString()}
           icon={<CreditCard size={20} className="text-black" />}
-          trend="Monthly"
+          trend={isEs ? "Mensual" : "Monthly"}
           trendUp
         />
         <SuperAdminStatCard
-          label="Churn Rate"
+          label={isEs ? "Tasa de cancelacion" : "Churn Rate"}
           value={`${subscriptionStats.churnRate.toFixed(1)}%`}
           icon={<TrendingDown size={20} className="text-black" />}
-          trend="Quarterly"
+          trend={isEs ? "Trimestral" : "Quarterly"}
           trendUp={false}
         />
       </div>
@@ -301,8 +308,10 @@ export default function SalesOverview() {
         <div className="lg:col-span-2 bg-[#121212] border border-[#333] rounded-xl p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-lg font-bold text-white">Plan Comparison</h2>
-              <p className="text-xs text-gray-500">Subscription distribution across plans</p>
+              <h2 className="text-lg font-bold text-white">{isEs ? "Comparacion de planes" : "Plan Comparison"}</h2>
+              <p className="text-xs text-gray-500">
+                {isEs ? "Distribucion de suscripciones entre planes" : "Subscription distribution across plans"}
+              </p>
             </div>
           </div>
 
@@ -325,7 +334,7 @@ export default function SalesOverview() {
           <div className="flex justify-around border-t border-[#333] pt-3">
             <div className="flex items-center gap-2 text-xs text-gray-400">
               <span className="w-3 h-3 bg-[#FFD700] rounded" />
-              Subscriptions
+              {isEs ? "Suscripciones" : "Subscriptions"}
             </div>
           </div>
 
@@ -334,7 +343,7 @@ export default function SalesOverview() {
             {plans.slice(0, 4).map((plan) => (
               <div key={plan.plan} className="text-center">
                 <p className="text-xs text-gray-400">{plan.displayName}</p>
-                <p className="text-white font-bold text-sm">{formatCurrency(plan.baseCost)}</p>
+                <p className="text-white font-bold text-sm">{formatCurrency(plan.baseCost, locale)}</p>
               </div>
             ))}
           </div>
@@ -342,8 +351,8 @@ export default function SalesOverview() {
 
         {/* Most Sold Plan - Donut Chart */}
         <div className="bg-[#121212] border border-[#333] rounded-xl p-6">
-          <h2 className="text-lg font-bold text-white mb-1">Most Sold Plan</h2>
-          <p className="text-xs text-gray-500 mb-6">Current distribution</p>
+          <h2 className="text-lg font-bold text-white mb-1">{isEs ? "Plan mas vendido" : "Most Sold Plan"}</h2>
+          <p className="text-xs text-gray-500 mb-6">{isEs ? "Distribucion actual" : "Current distribution"}</p>
 
           {/* Simple Donut Visualization */}
           <div className="flex justify-center mb-6">
@@ -403,15 +412,15 @@ export default function SalesOverview() {
       <div className="bg-[#121212] border border-[#333] rounded-xl p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-lg font-bold text-white">Revenue Analytics</h2>
+            <h2 className="text-lg font-bold text-white">{isEs ? "Analitica de ingresos" : "Revenue Analytics"}</h2>
             <p className="text-xs text-gray-500">
               {revenue ? `$${revenue.totalRevenue.toLocaleString()} total • ` : ""}
-              Monthly revenue trend
+              {isEs ? "Tendencia mensual de ingresos" : "Monthly revenue trend"}
             </p>
           </div>
           {revenue && (
             <span className="text-xs text-gray-500">
-              Avg per org: ${revenue.averageRevenuePerOrganization.toLocaleString()}
+              {isEs ? "Promedio por organizacion" : "Avg per org"}: ${revenue.averageRevenuePerOrganization.toLocaleString()}
             </span>
           )}
         </div>
@@ -434,6 +443,8 @@ function RevenueLineChart({
   trend: MonthlyTrend[];
   fallbackData: AdminDashboardData;
 }) {
+  const { language } = useLanguage();
+  const isEs = language === "es";
   // Prefer real revenue trend; fall back to org growth trend
   const useRevenueTrend = trend.length >= 2;
   const displayTrend = useRevenueTrend
@@ -441,7 +452,11 @@ function RevenueLineChart({
     : fallbackData.organizationStats.growthTrend.slice(-8);
 
   if (displayTrend.length < 2) {
-    return <p className="text-gray-500 text-center py-8">Not enough data to render chart.</p>;
+    return (
+      <p className="text-gray-500 text-center py-8">
+        {isEs ? "No hay suficientes datos para renderizar la grafica." : "Not enough data to render chart."}
+      </p>
+    );
   }
 
   const values = displayTrend.map((t) =>

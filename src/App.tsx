@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
+import { LanguageProvider } from "./contexts/LanguageContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { RequirePermission } from "./utils/permissionGuard";
 import { RequireActiveSubscription } from "./utils/subscriptionGuard";
@@ -80,10 +81,11 @@ const OrganizationManagement = lazy(
 function App() {
   return (
     <AuthProvider>
-      <ThemeProvider>
-        <BrowserRouter>
-          <ScrollToTop />
-          <Routes>
+      <LanguageProvider>
+        <ThemeProvider>
+          <BrowserRouter>
+            <ScrollToTop />
+            <Routes>
             {/* Public Routes */}
             <Route path="/" element={<Dashboard />} />
             <Route path="/packages" element={<Paquetes />} />
@@ -181,9 +183,10 @@ function App() {
             {/* Fallback routes */}
             <Route path="/unauthorized" element={<Unauthorized />} />
             <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </ThemeProvider>
+            </Routes>
+          </BrowserRouter>
+        </ThemeProvider>
+      </LanguageProvider>
     </AuthProvider>
   );
 }

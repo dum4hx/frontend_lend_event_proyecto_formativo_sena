@@ -20,6 +20,7 @@ import {
   validateConfirmPassword,
   validateState,
 } from "../utils/validators";
+import { useLanguage } from "../contexts/useLanguage";
 import styles from "./SignUp.module.css";
 
 // --- Colombia API types & fetcher -------------------------------------------
@@ -189,6 +190,8 @@ const INITIAL_FIELD_VALIDATION_STATUS: Record<FormField, FieldValidationStatus> 
 };
 
 export default function SignUp() {
+  const { language } = useLanguage();
+  const isEs = language === "es";
   const navigate = useNavigate();
   const location = useLocation();
   const requestedReturnTo = new URLSearchParams(location.search).get("returnTo");
@@ -817,7 +820,11 @@ export default function SignUp() {
   const handleNextStep = () => {
     const { isValid, firstInvalidField } = validateCurrentStep();
     if (!isValid) {
-      setError("Please fix the highlighted fields before continuing");
+      setError(
+        isEs
+          ? "Corrige los campos marcados antes de continuar"
+          : "Please fix the highlighted fields before continuing",
+      );
       setSubmitAttempt((prev) => prev + 1);
       if (firstInvalidField) {
         focusField(firstInvalidField);
@@ -864,7 +871,7 @@ export default function SignUp() {
     const nextErrors = runValidation(formData, { touched: ALL_FIELDS_TOUCHED, submitted: true });
     const mergedErrors = { ...nextErrors, ...backendErrors };
     if (Object.keys(mergedErrors).length > 0) {
-      setError("Please fix the highlighted fields");
+      setError(isEs ? "Corrige los campos marcados" : "Please fix the highlighted fields");
       setSubmitAttempt((prev) => prev + 1);
       const firstInvalidField = getFirstInvalidField(mergedErrors);
       if (firstInvalidField) {
@@ -1023,7 +1030,7 @@ export default function SignUp() {
           }
         }
       } else {
-        setError("Network error. Please try again.");
+        setError(isEs ? "Error de red. Intenta de nuevo." : "Network error. Please try again.");
       }
     } finally {
       setLoading(false);
@@ -1095,19 +1102,21 @@ export default function SignUp() {
         <div className="flex-grow md:w-1/2 flex items-center justify-center p-6 bg-black relative z-10 overflow-y-auto">
           <div className="w-full max-w-2xl py-4">
             <h2 className="text-4xl font-extrabold mb-2">Get Started</h2>
-            <p className="text-gray-400 mb-10">Create your Lend Event account today</p>
+            <p className="text-gray-400 mb-10">
+              {isEs ? "Crea tu cuenta de Lend Event hoy" : "Create your Lend Event account today"}
+            </p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
                 <div className="flex items-center justify-between text-sm mb-3">
                   <span className="text-gray-300 font-semibold">
-                    Step {currentStep} of {TOTAL_STEPS}
+                    {isEs ? "Paso" : "Step"} {currentStep} {isEs ? "de" : "of"} {TOTAL_STEPS}
                   </span>
                   <span className="text-gray-400">
-                    {currentStep === 1 && "Personal Information"}
-                    {currentStep === 2 && "Organization Information"}
-                    {currentStep === 3 && "Business Address"}
-                    {currentStep === 4 && "Security"}
+                    {currentStep === 1 && (isEs ? "Informacion personal" : "Personal Information")}
+                    {currentStep === 2 && (isEs ? "Informacion de la organizacion" : "Organization Information")}
+                    {currentStep === 3 && (isEs ? "Direccion del negocio" : "Business Address")}
+                    {currentStep === 4 && (isEs ? "Seguridad" : "Security")}
                   </span>
                 </div>
                 <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
@@ -1128,7 +1137,7 @@ export default function SignUp() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                      First Name
+                      {isEs ? "Nombre" : "First Name"}
                     </label>
                     <input
                       type="text"
@@ -1155,7 +1164,7 @@ export default function SignUp() {
 
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                      Last Name
+                      {isEs ? "Apellido" : "Last Name"}
                     </label>
                     <input
                       type="text"
@@ -1182,7 +1191,7 @@ export default function SignUp() {
 
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                      Owner Email
+                      {isEs ? "Correo del propietario" : "Owner Email"}
                     </label>
                     <input
                       type="email"
@@ -1213,7 +1222,7 @@ export default function SignUp() {
 
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                      Owner Phone
+                      {isEs ? "Telefono del propietario" : "Owner Phone"}
                     </label>
                     <div className={phoneInputWrapperClass(!!fieldErrors.ownerPhone)}>
                       <div className="flex items-center">
@@ -1255,7 +1264,7 @@ export default function SignUp() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                      Organization Name
+                      {isEs ? "Nombre de la organizacion" : "Organization Name"}
                     </label>
                     <input
                       type="text"
@@ -1282,7 +1291,7 @@ export default function SignUp() {
 
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                      Legal Name
+                      {isEs ? "Razon social" : "Legal Name"}
                     </label>
                     <input
                       type="text"
@@ -1341,7 +1350,7 @@ export default function SignUp() {
 
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                      Organization Email
+                      {isEs ? "Correo de la organizacion" : "Organization Email"}
                     </label>
                     <input
                       type="email"
@@ -1372,7 +1381,7 @@ export default function SignUp() {
 
                   <div className="md:col-span-2">
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                      Organization Phone <span className="text-gray-600">(Optional)</span>
+                      {isEs ? "Telefono de la organizacion" : "Organization Phone"} <span className="text-gray-600">({isEs ? "Opcional" : "Optional"})</span>
                     </label>
                     <div className={phoneInputWrapperClass(!!fieldErrors.organizationPhone)}>
                       <div className="flex items-center">
@@ -1615,7 +1624,7 @@ export default function SignUp() {
 
                     <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                        City
+                        {isEs ? "Ciudad" : "City"}
                       </label>
                       <input
                         type="text"
@@ -1711,7 +1720,7 @@ export default function SignUp() {
 
                     <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                        Postal Code
+                        {isEs ? "Codigo postal" : "Postal Code"}
                       </label>
                       <input
                         type="text"
@@ -1773,7 +1782,7 @@ export default function SignUp() {
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                      Password
+                      {isEs ? "Contrasena" : "Password"}
                     </label>
                     <input
                       type="password"
@@ -1808,7 +1817,7 @@ export default function SignUp() {
 
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                      Confirm Password
+                      {isEs ? "Confirmar contrasena" : "Confirm Password"}
                     </label>
                     <input
                       type="password"
@@ -1844,7 +1853,7 @@ export default function SignUp() {
                   disabled={loading || currentStep === 1}
                   className="px-5 py-3 rounded-xl border border-zinc-700 text-gray-300 font-semibold hover:bg-zinc-800 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition"
                 >
-                  Back
+                  {isEs ? "Atras" : "Back"}
                 </button>
 
                 {currentStep < TOTAL_STEPS ? (
@@ -1854,7 +1863,7 @@ export default function SignUp() {
                     disabled={loading}
                     className={`px-6 py-3 rounded-xl bg-yellow-400 text-black font-extrabold ${styles.glowButton} hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed transition`}
                   >
-                    Next
+                    {isEs ? "Siguiente" : "Next"}
                   </button>
                 ) : (
                   <button
@@ -1863,7 +1872,13 @@ export default function SignUp() {
                     ref={createAccountButtonRef}
                     className={`px-6 py-3 rounded-xl bg-yellow-400 text-black font-extrabold ${styles.glowButton} hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed transition`}
                   >
-                    {loading ? "Creating account..." : "Create Account"}
+                    {loading
+                      ? isEs
+                        ? "Creando cuenta..."
+                        : "Creating account..."
+                      : isEs
+                        ? "Crear cuenta"
+                        : "Create Account"}
                   </button>
                 )}
               </div>
@@ -1871,9 +1886,9 @@ export default function SignUp() {
 
             {/* Link a Login */}
             <p className="text-center text-sm text-gray-500 mt-8">
-              Already have an account?{" "}
+              {isEs ? "Ya tienes una cuenta?" : "Already have an account?"}{" "}
               <Link to="/login" className="text-yellow-400 font-bold hover:underline">
-                Sign in
+                {isEs ? "Inicia sesion" : "Sign in"}
               </Link>
             </p>
           </div>

@@ -1,5 +1,6 @@
 import { Bot, Zap, Settings as SettingsIcon } from 'lucide-react';
 import { StatCard } from '../components';
+import { useLanguage } from '../../../contexts/useLanguage';
 
 type AISetting = {
   id: string;
@@ -8,29 +9,32 @@ type AISetting = {
   enabled: boolean;
 };
 
-const aiSettings: AISetting[] = [
-  { id: '1', name: 'Auto Response', description: 'Automatically respond to event inquiries', enabled: true },
-  { id: '2', name: 'Smart Scheduling', description: 'AI-powered event scheduling', enabled: true },
-  { id: '3', name: 'Attendee Analysis', description: 'Analyze attendee patterns and trends', enabled: false },
-  { id: '4', name: 'Predictive Pricing', description: 'AI-based pricing recommendations', enabled: true },
-];
-
 export default function IASettings() {
+  const { language } = useLanguage();
+  const isEs = language === 'es';
+
+  const aiSettings: AISetting[] = [
+    { id: '1', name: isEs ? 'Respuesta Automática' : 'Auto Response', description: isEs ? 'Responder automáticamente a consultas de eventos' : 'Automatically respond to event inquiries', enabled: true },
+    { id: '2', name: isEs ? 'Programación Inteligente' : 'Smart Scheduling', description: isEs ? 'Programación de eventos con IA' : 'AI-powered event scheduling', enabled: true },
+    { id: '3', name: isEs ? 'Análisis de Asistentes' : 'Attendee Analysis', description: isEs ? 'Analizar patrones y tendencias de asistentes' : 'Analyze attendee patterns and trends', enabled: false },
+    { id: '4', name: isEs ? 'Precios Predictivos' : 'Predictive Pricing', description: isEs ? 'Recomendaciones de precios basadas en IA' : 'AI-based pricing recommendations', enabled: true },
+  ];
+
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-white">AI Settings</h1>
-        <p className="text-gray-400">Configure artificial intelligence features</p>
+        <h1 className="text-3xl font-bold text-white">{isEs ? 'Configuración de IA' : 'AI Settings'}</h1>
+        <p className="text-gray-400">{isEs ? 'Configura las funciones de inteligencia artificial' : 'Configure artificial intelligence features'}</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard label="Total Features" value={aiSettings.length} icon={<Bot size={28} />} />
-        <StatCard label="Enabled" value={aiSettings.filter(s => s.enabled).length} icon={<Zap size={28} />} />
-        <StatCard label="Disabled" value={aiSettings.filter(s => !s.enabled).length} icon={<SettingsIcon size={28} />} />
+        <StatCard label={isEs ? 'Total de Funciones' : 'Total Features'} value={aiSettings.length} icon={<Bot size={28} />} />
+        <StatCard label={isEs ? 'Habilitadas' : 'Enabled'} value={aiSettings.filter(s => s.enabled).length} icon={<Zap size={28} />} />
+        <StatCard label={isEs ? 'Deshabilitadas' : 'Disabled'} value={aiSettings.filter(s => !s.enabled).length} icon={<SettingsIcon size={28} />} />
       </div>
 
       <div>
-        <h2 className="text-xl font-semibold text-white mb-4">AI Features</h2>
+        <h2 className="text-xl font-semibold text-white mb-4">{isEs ? 'Funciones de IA' : 'AI Features'}</h2>
         <div className="space-y-4">
           {aiSettings.map((setting) => (
             <div key={setting.id} className="bg-[#121212] border border-[#333] rounded-[12px] p-6 flex items-center justify-between hover:border-[#FFD700] transition-all">

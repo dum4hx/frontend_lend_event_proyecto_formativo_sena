@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { useLanguage } from "../../../contexts/useLanguage";
 import {
   ArrowLeftRight,
   CheckCircle,
@@ -48,6 +49,16 @@ const REQUEST_STATUS_LABEL: Record<TransferRequestStatus, string> = {
   fulfilled: "Fulfilled",
 };
 
+const getRequestStatusLabel = (status: TransferRequestStatus, isEs: boolean): string => {
+  const labels: Record<TransferRequestStatus, string> = {
+    requested: isEs ? "Solicitado" : "Requested",
+    approved: isEs ? "Aprobado" : "Approved",
+    rejected: isEs ? "Rechazado" : "Rejected",
+    fulfilled: isEs ? "Cumplido" : "Fulfilled",
+  };
+  return labels[status];
+};
+
 const REQUEST_STATUS_CLASSES: Record<TransferRequestStatus, string> = {
   requested: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
   approved: "bg-green-500/15 text-green-400 border-green-500/30",
@@ -64,11 +75,33 @@ const CONDITION_LABEL: Record<TransferCondition, string> = {
   LOST: "Lost",
 };
 
+const getConditionLabel = (condition: TransferCondition, isEs: boolean): string => {
+  const labels: Record<TransferCondition, string> = {
+    OK: "OK",
+    DAMAGED: isEs ? "Dañado" : "Damaged",
+    MISSING_PARTS: isEs ? "Piezas Faltantes" : "Missing Parts",
+    DIRTY: isEs ? "Sucio" : "Dirty",
+    REPAIR_REQUIRED: isEs ? "Reparación Requerida" : "Repair Required",
+    LOST: isEs ? "Perdido" : "Lost",
+  };
+  return labels[condition];
+};
+
 const TRANSFER_STATUS_LABEL: Record<TransferStatus, string> = {
   in_transit: "In Transit",
   completed: "Completed",
   cancelled: "Cancelled",
   received: "Received",
+};
+
+const getTransferStatusLabel = (status: TransferStatus, isEs: boolean): string => {
+  const labels: Record<TransferStatus, string> = {
+    in_transit: isEs ? "En Tránsito" : "In Transit",
+    completed: isEs ? "Completado" : "Completed",
+    cancelled: isEs ? "Cancelado" : "Cancelled",
+    received: isEs ? "Recibido" : "Received",
+  };
+  return labels[status];
 };
 
 const TRANSFER_STATUS_CLASSES: Record<TransferStatus, string> = {
@@ -78,8 +111,8 @@ const TRANSFER_STATUS_CLASSES: Record<TransferStatus, string> = {
   received: "bg-green-500/15 text-green-400 border-green-500/30",
 };
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
+function formatDate(iso: string, isEs: boolean): string {
+  return new Date(iso).toLocaleDateString(isEs ? "es-CO" : "en-US", {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -105,7 +138,7 @@ function extractInstanceLocationId(instance: MaterialInstance): string | undefin
   return fallback?._id ?? fallback?.id;
 }
 
-function getInstanceModelName(instance: MaterialInstance): string {
+function getInstanceModelName(instance: MaterialInstance, isEs: boolean): string {
   const raw = instance as MaterialInstance & {
     model?: string | { _id?: string; name?: string };
     modelId?: string | { _id?: string; name?: string };
@@ -117,7 +150,7 @@ function getInstanceModelName(instance: MaterialInstance): string {
   if (raw.modelId && typeof raw.modelId === "object" && raw.modelId.name) {
     return raw.modelId.name;
   }
-  return "Unknown material";
+  return isEs ? "Material desconocido" : "Unknown material";
 }
 
 // ─── Sub-components ────────────────────────────────────────────────────────
@@ -148,6 +181,8 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
   onCreated,
 }) => {
   const { showToast } = useToast();
+  const { language } = useLanguage();
+  const isEs = language === "es";
   const [fromLocationId, setFromLocationId] = useState("");
   const [toLocationId, setToLocationId] = useState("");
   const [notes, setNotes] = useState("");
@@ -177,12 +212,12 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
     e.preventDefault();
     if (!fromLocationId || !toLocationId) return;
     if (fromLocationId === toLocationId) {
-      showToast("error", "Origin and destination must be different", "Validation Error");
+      showToast("error", isEs ? "El origen y el destino deben ser diferentes" : "Origin and destination must be different", isEs ? "Error de Validación" : "Validation Error");
       return;
     }
     const filledItems = requestItems.filter((it) => it.modelId.trim() !== "");
     if (filledItems.length === 0) {
-      showToast("error", "Add at least one material item to the request", "Validation Error");
+      showToast("error", isEs ? "Agrega al menos un artículo a la solicitud" : "Add at least one material item to the request", isEs ? "Error de Validación" : "Validation Error");
       return;
     }
     setLoading(true);
@@ -194,12 +229,12 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
         ...(notes.trim() ? { notes: notes.trim() } : {}),
       };
       await createTransferRequest(payload);
-      showToast("success", "Transfer request created successfully", "Success");
+      showToast("success", isEs ? "Solicitud de transferencia creada exitosamente" : "Transfer request created successfully", isEs ? "Éxito" : "Success");
       onCreated();
     } catch (err: unknown) {
       showToast(
         "error",
-        err instanceof Error ? err.message : "Failed to create transfer request",
+        err instanceof Error ? err.message : (isEs ? "Error al crear la solicitud de transferencia" : "Failed to create transfer request"),
         "Error",
       );
     } finally {
@@ -215,12 +250,12 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
         <div className="flex items-center justify-between p-5 border-b border-[#222]">
           <h2 className="text-base font-bold text-white flex items-center gap-2">
             <ArrowLeftRight size={18} className="text-[#FFD700]" />
-            New Transfer Request
+            {isEs ? "Nueva Solicitud de Transferencia" : "New Transfer Request"}
           </h2>
           <button
             onClick={onClose}
             className="text-gray-500 hover:text-white transition-colors"
-            aria-label="Close"
+            aria-label={isEs ? "Cerrar" : "Close"}
           >
             <X size={20} />
           </button>
@@ -229,7 +264,7 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
           {/* From location */}
           <div>
             <label className="block text-xs font-medium text-gray-400 mb-1.5">
-              From Location <span className="text-red-400">*</span>
+              {isEs ? "Ubicación de Origen" : "From Location"} <span className="text-red-400">*</span>
             </label>
             <select
               value={fromLocationId}
@@ -240,7 +275,7 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
               required
               className="w-full h-10 px-3 bg-[#0a0a0a] border border-[#222] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all"
             >
-              <option value="">Select origin location</option>
+              <option value="">{isEs ? "Seleccionar ubicación de origen" : "Select origin location"}</option>
               {locations.map((loc) => (
                 <option key={loc._id} value={loc._id}>
                   {loc.name}
@@ -252,7 +287,7 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
           {/* To location */}
           <div>
             <label className="block text-xs font-medium text-gray-400 mb-1.5">
-              To Location <span className="text-red-400">*</span>
+              {isEs ? "Ubicación de Destino" : "To Location"} <span className="text-red-400">*</span>
             </label>
             <select
               value={toLocationId}
@@ -261,7 +296,7 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
               disabled={!fromLocationId}
               className="w-full h-10 px-3 bg-[#0a0a0a] border border-[#222] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all disabled:opacity-40"
             >
-              <option value="">Select destination location</option>
+              <option value="">{isEs ? "Seleccionar ubicación de destino" : "Select destination location"}</option>
               {availableDestinations.map((loc) => (
                 <option key={loc._id} value={loc._id}>
                   {loc.name}
@@ -274,7 +309,7 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="block text-xs font-medium text-gray-400">
-                Items <span className="text-red-400">*</span>
+                {isEs ? "Artículos" : "Items"} <span className="text-red-400">*</span>
               </label>
               <button
                 type="button"
@@ -282,7 +317,7 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                 className="flex items-center gap-1 text-xs text-[#FFD700] hover:text-[#FFD700]/80 transition-colors"
               >
                 <Plus size={12} />
-                Add item
+                {isEs ? "Agregar artículo" : "Add item"}
               </button>
             </div>
             <div className="space-y-2">
@@ -293,7 +328,7 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                     onChange={(e) => updateItem(idx, { modelId: e.target.value })}
                     className="flex-1 h-9 px-2 bg-[#0a0a0a] border border-[#222] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all"
                   >
-                    <option value="">Select material type</option>
+                    <option value="">{isEs ? "Seleccionar tipo de material" : "Select material type"}</option>
                     {materialTypes.map((mt) => (
                       <option key={mt._id} value={mt._id}>
                         {mt.name}
@@ -308,14 +343,14 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                       updateItem(idx, { quantity: Math.max(1, Number(e.target.value)) })
                     }
                     className="w-20 h-9 px-2 bg-[#0a0a0a] border border-[#222] rounded text-sm text-white text-center focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all"
-                    aria-label={`Quantity for item ${idx + 1}`}
+                    aria-label={isEs ? `Cantidad para artículo ${idx + 1}` : `Quantity for item ${idx + 1}`}
                   />
                   {requestItems.length > 1 && (
                     <button
                       type="button"
                       onClick={() => removeItem(idx)}
                       className="text-gray-600 hover:text-red-400 transition-colors shrink-0"
-                      aria-label="Remove item"
+                      aria-label={isEs ? "Eliminar artículo" : "Remove item"}
                     >
                       <X size={16} />
                     </button>
@@ -327,12 +362,12 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
 
           {/* Notes */}
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1.5">Notes</label>
+            <label className="block text-xs font-medium text-gray-400 mb-1.5">{isEs ? "Notas" : "Notes"}</label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
-              placeholder="Optional request notes…"
+              placeholder={isEs ? "Notas opcionales de la solicitud…" : "Optional request notes…"}
               className="w-full px-3 py-2 bg-[#0a0a0a] border border-[#222] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all resize-none"
             />
           </div>
@@ -344,14 +379,14 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
               disabled={loading}
               className="px-4 h-9 rounded text-sm text-gray-400 hover:text-white border border-[#333] hover:border-[#555] transition-all"
             >
-              Cancel
+              {isEs ? "Cancelar" : "Cancel"}
             </button>
             <button
               type="submit"
               disabled={loading || !fromLocationId || !toLocationId}
               className="px-5 h-9 bg-[#FFD700] hover:bg-[#FFD700]/90 text-black font-semibold rounded text-sm transition-all disabled:opacity-50"
             >
-              {loading ? "Creating…" : "Create Request"}
+              {loading ? (isEs ? "Creando…" : "Creating…") : (isEs ? "Crear Solicitud" : "Create Request")}
             </button>
           </div>
         </form>
@@ -376,6 +411,8 @@ const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
   onCreated,
 }) => {
   const { showToast } = useToast();
+  const { language } = useLanguage();
+  const isEs = language === "es";
   const [instances, setInstances] = useState<MaterialInstance[]>([]);
   const [selectedItems, setSelectedItems] = useState<TransferItem[]>([]);
   const [senderNotes, setSenderNotes] = useState("");
@@ -423,7 +460,7 @@ const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedItems.length === 0) {
-      showToast("error", "Select at least one item to transfer", "Validation");
+      showToast("error", isEs ? "Selecciona al menos un artículo para transferir" : "Select at least one item to transfer", isEs ? "Validación" : "Validation");
       return;
     }
     setLoading(true);
@@ -435,12 +472,12 @@ const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
         items: selectedItems,
         ...(senderNotes.trim() ? { senderNotes: senderNotes.trim() } : {}),
       });
-      showToast("success", "Shipment initiated successfully", "Success");
+      showToast("success", isEs ? "Envío iniciado exitosamente" : "Shipment initiated successfully", isEs ? "Éxito" : "Success");
       onCreated();
     } catch (err: unknown) {
       showToast(
         "error",
-        err instanceof Error ? err.message : "Failed to initiate shipment",
+        err instanceof Error ? err.message : (isEs ? "Error al iniciar el envío" : "Failed to initiate shipment"),
         "Error",
       );
     } finally {
@@ -454,12 +491,12 @@ const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
         <div className="flex items-center justify-between p-5 border-b border-[#222]">
           <h2 className="text-base font-bold text-white flex items-center gap-2">
             <Truck size={18} className="text-[#FFD700]" />
-            Initiate Shipment
+            {isEs ? "Iniciar Envío" : "Initiate Shipment"}
           </h2>
           <button
             onClick={onClose}
             className="text-gray-500 hover:text-white transition-colors"
-            aria-label="Close"
+            aria-label={isEs ? "Cerrar" : "Close"}
           >
             <X size={20} />
           </button>
@@ -476,18 +513,22 @@ const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
           {/* Item selection */}
           <div>
             <label className="block text-xs font-medium text-gray-400 mb-2">
-              Available Items at Origin{" "}
-              <span className="text-gray-500">({selectedItems.length} selected)</span>
+              {isEs ? "Artículos Disponibles en Origen" : "Available Items at Origin"}{" "}
+              <span className="text-gray-500">
+                ({selectedItems.length} {isEs ? "seleccionado(s)" : "selected"})
+              </span>
             </label>
             <div className="max-h-56 overflow-y-auto rounded-lg border border-[#222] divide-y divide-[#1a1a1a] custom-scrollbar">
               {fetching && (
                 <div className="flex items-center justify-center py-8 text-gray-500 text-sm">
-                  Loading…
+                  {isEs ? "Cargando…" : "Loading…"}
                 </div>
               )}
               {!fetching && instances.length === 0 && (
                 <div className="flex items-center justify-center py-8 text-gray-500 text-sm">
-                  No available items at this location.
+                  {isEs
+                    ? "No hay artículos disponibles en esta ubicación."
+                    : "No available items at this location."}
                 </div>
               )}
               {!fetching &&
@@ -507,7 +548,7 @@ const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
                             {inst.serialNumber}
                           </span>
                           <span className="text-xs text-gray-500">
-                            {getInstanceModelName(inst)}
+                            {getInstanceModelName(inst, isEs)}
                           </span>
                         </div>
                       </label>
@@ -519,12 +560,14 @@ const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
                               setItemCondition(inst._id, e.target.value as TransferCondition)
                             }
                             className="h-8 px-2 bg-[#0a0a0a] border border-[#222] rounded text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all"
-                            aria-label={`Sent condition for ${inst.serialNumber}`}
+                            aria-label={isEs ? `Condición de envío para ${inst.serialNumber}` : `Sent condition for ${inst.serialNumber}`}
                           >
-                            <option value="">Sent condition (optional)</option>
+                            <option value="">
+                              {isEs ? "Condición de envío (opcional)" : "Sent condition (optional)"}
+                            </option>
                             {(Object.keys(CONDITION_LABEL) as TransferCondition[]).map((c) => (
                               <option key={c} value={c}>
-                                {CONDITION_LABEL[c]}
+                                {getConditionLabel(c, isEs)}
                               </option>
                             ))}
                           </select>
@@ -538,12 +581,14 @@ const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
 
           {/* Sender notes */}
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1.5">Sender Notes</label>
+            <label className="block text-xs font-medium text-gray-400 mb-1.5">
+              {isEs ? "Notas del Remitente" : "Sender Notes"}
+            </label>
             <textarea
               value={senderNotes}
               onChange={(e) => setSenderNotes(e.target.value)}
               rows={2}
-              placeholder="Optional notes from the sender…"
+              placeholder={isEs ? "Notas opcionales del remitente…" : "Optional notes from the sender…"}
               className="w-full px-3 py-2 bg-[#0a0a0a] border border-[#222] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all resize-none"
             />
           </div>
@@ -555,7 +600,7 @@ const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
               disabled={loading}
               className="px-4 h-9 rounded text-sm text-gray-400 hover:text-white border border-[#333] hover:border-[#555] transition-all"
             >
-              Cancel
+              {isEs ? "Cancelar" : "Cancel"}
             </button>
             <button
               type="submit"
@@ -563,7 +608,7 @@ const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
               className="px-5 h-9 bg-[#FFD700] hover:bg-[#FFD700]/90 text-black font-semibold rounded text-sm transition-all disabled:opacity-50 flex items-center gap-2"
             >
               <Send size={14} />
-              {loading ? "Sending…" : "Send Shipment"}
+              {loading ? (isEs ? "Enviando…" : "Sending…") : (isEs ? "Enviar Envío" : "Send Shipment")}
             </button>
           </div>
         </form>
@@ -588,6 +633,8 @@ const ReceiveTransferModal: React.FC<ReceiveTransferModalProps> = ({
   onReceived,
 }) => {
   const { showToast } = useToast();
+  const { language } = useLanguage();
+  const isEs = language === "es";
   const [receiverNotes, setReceiverNotes] = useState("");
   const [itemConditions, setItemConditions] = useState<Record<string, TransferCondition | "">>(() =>
     Object.fromEntries(transfer.items.map((i) => [i.instanceId, ""])),
@@ -613,13 +660,21 @@ const ReceiveTransferModal: React.FC<ReceiveTransferModalProps> = ({
         ...(receiverNotes.trim() ? { receiverNotes } : {}),
         ...(items.length > 0 ? { items } : {}),
       });
-      showToast("success", "Transfer marked as received", "Success");
+      showToast(
+        "success",
+        isEs ? "Transferencia marcada como recibida" : "Transfer marked as received",
+        isEs ? "Éxito" : "Success",
+      );
       onReceived();
     } catch (err: unknown) {
       showToast(
         "error",
-        err instanceof Error ? err.message : "Failed to mark transfer as received",
-        "Error",
+        err instanceof Error
+          ? err.message
+          : isEs
+            ? "No se pudo marcar la transferencia como recibida"
+            : "Failed to mark transfer as received",
+        isEs ? "Error" : "Error",
       );
     } finally {
       setLoading(false);
@@ -632,30 +687,33 @@ const ReceiveTransferModal: React.FC<ReceiveTransferModalProps> = ({
         <div className="flex items-center justify-between p-5 border-b border-[#222]">
           <h2 className="text-base font-bold text-white flex items-center gap-2">
             <CheckCircle size={18} className="text-green-400" />
-            Confirm Receipt
+            {isEs ? "Confirmar Recepción" : "Confirm Receipt"}
           </h2>
           <button
             onClick={onClose}
             className="text-gray-500 hover:text-white transition-colors"
-            aria-label="Close"
+            aria-label={isEs ? "Cerrar" : "Close"}
           >
             <X size={20} />
           </button>
         </div>
         <form onSubmit={handleSubmit} className="p-5 space-y-4 overflow-y-auto custom-scrollbar">
           <p className="text-sm text-gray-300">
-            Confirm receipt of shipment from{" "}
+            {isEs ? "Confirma la recepción del envío desde" : "Confirm receipt of shipment from"}{" "}
             <span className="text-white font-medium">{locationName(transfer.fromLocationId)}</span>{" "}
-            to <span className="text-white font-medium">{locationName(transfer.toLocationId)}</span>
-            . All items will be set to <span className="text-green-400 font-medium">available</span>{" "}
-            at the destination.
+            {isEs ? "hacia" : "to"}{" "}
+            <span className="text-white font-medium">{locationName(transfer.toLocationId)}</span>
+            .{" "}
+            {isEs ? "Todos los artículos quedarán como" : "All items will be set to"}{" "}
+            <span className="text-green-400 font-medium">{isEs ? "disponible" : "available"}</span>{" "}
+            {isEs ? "en el destino." : "at the destination."}
           </p>
 
           {/* Per-item condition */}
           {transfer.items.length > 0 && (
             <div>
               <label className="block text-xs font-medium text-gray-400 mb-2">
-                Received Condition per Item
+                {isEs ? "Condición Recibida por Artículo" : "Received Condition per Item"}
               </label>
               <div className="rounded-lg border border-[#222] divide-y divide-[#1a1a1a]">
                 {transfer.items.map((item) => (
@@ -669,12 +727,12 @@ const ReceiveTransferModal: React.FC<ReceiveTransferModalProps> = ({
                         setCondition(item.instanceId, e.target.value as TransferCondition | "")
                       }
                       className="h-8 px-2 bg-[#0a0a0a] border border-[#222] rounded text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all"
-                      aria-label={`Received condition for ${item.instanceId}`}
+                      aria-label={isEs ? `Condición recibida para ${item.instanceId}` : `Received condition for ${item.instanceId}`}
                     >
-                      <option value="">Condition (optional)</option>
+                      <option value="">{isEs ? "Condición (opcional)" : "Condition (optional)"}</option>
                       {(Object.keys(CONDITION_LABEL) as TransferCondition[]).map((c) => (
                         <option key={c} value={c}>
-                          {CONDITION_LABEL[c]}
+                          {getConditionLabel(c, isEs)}
                         </option>
                       ))}
                     </select>
@@ -685,12 +743,14 @@ const ReceiveTransferModal: React.FC<ReceiveTransferModalProps> = ({
           )}
 
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1.5">Receiver Notes</label>
+            <label className="block text-xs font-medium text-gray-400 mb-1.5">
+              {isEs ? "Notas del Receptor" : "Receiver Notes"}
+            </label>
             <textarea
               value={receiverNotes}
               onChange={(e) => setReceiverNotes(e.target.value)}
               rows={3}
-              placeholder="Optional notes from the receiver…"
+              placeholder={isEs ? "Notas opcionales del receptor…" : "Optional notes from the receiver…"}
               className="w-full px-3 py-2 bg-[#0a0a0a] border border-[#222] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all resize-none"
             />
           </div>
@@ -701,7 +761,7 @@ const ReceiveTransferModal: React.FC<ReceiveTransferModalProps> = ({
               disabled={loading}
               className="px-4 h-9 rounded text-sm text-gray-400 hover:text-white border border-[#333] hover:border-[#555] transition-all"
             >
-              Cancel
+              {isEs ? "Cancelar" : "Cancel"}
             </button>
             <button
               type="submit"
@@ -709,7 +769,7 @@ const ReceiveTransferModal: React.FC<ReceiveTransferModalProps> = ({
               className="px-5 h-9 bg-green-600 hover:bg-green-500 text-white font-semibold rounded text-sm transition-all disabled:opacity-50 flex items-center gap-2"
             >
               <CheckCircle size={14} />
-              {loading ? "Confirming…" : "Mark as Received"}
+              {loading ? (isEs ? "Confirmando…" : "Confirming…") : (isEs ? "Marcar como Recibido" : "Mark as Received")}
             </button>
           </div>
         </form>
@@ -721,6 +781,8 @@ const ReceiveTransferModal: React.FC<ReceiveTransferModalProps> = ({
 // ─── Main Page ─────────────────────────────────────────────────────────────
 
 const TransferRequests: React.FC = () => {
+  const { language } = useLanguage();
+  const isEs = language === "es";
   const { hasPermission } = usePermissions();
   const { showToast } = useToast();
 
@@ -775,13 +837,17 @@ const TransferRequests: React.FC = () => {
     } catch (err: unknown) {
       showToast(
         "error",
-        err instanceof Error ? err.message : "Failed to load transfer requests",
-        "Error",
+        err instanceof Error
+          ? err.message
+          : isEs
+            ? "No se pudieron cargar las solicitudes de transferencia"
+            : "Failed to load transfer requests",
+        isEs ? "Error" : "Error",
       );
     } finally {
       setRequestsLoading(false);
     }
-  }, [requestStatusFilter, showFulfilled, showToast]);
+  }, [isEs, requestStatusFilter, showFulfilled, showToast]);
 
   const loadTransfers = useCallback(async () => {
     setTransfersLoading(true);
@@ -793,11 +859,19 @@ const TransferRequests: React.FC = () => {
         : all;
       setTransfers(filtered);
     } catch (err: unknown) {
-      showToast("error", err instanceof Error ? err.message : "Failed to load shipments", "Error");
+      showToast(
+        "error",
+        err instanceof Error
+          ? err.message
+          : isEs
+            ? "No se pudieron cargar los envíos"
+            : "Failed to load shipments",
+        isEs ? "Error" : "Error",
+      );
     } finally {
       setTransfersLoading(false);
     }
-  }, [transferStatusFilter, showToast]);
+  }, [isEs, transferStatusFilter, showToast]);
 
   useEffect(() => {
     void loadLocations();
@@ -815,13 +889,31 @@ const TransferRequests: React.FC = () => {
   const handleRespond = async (requestId: string, status: "approved" | "rejected") => {
     try {
       await respondToTransferRequest(requestId, { status });
-      showToast("success", `Request ${status} successfully`, "Success");
+      const statusLabel = status === "approved"
+        ? isEs
+          ? "aprobada"
+          : "approved"
+        : isEs
+          ? "rechazada"
+          : "rejected";
+
+      showToast(
+        "success",
+        isEs
+          ? `Solicitud ${statusLabel} exitosamente`
+          : `Request ${statusLabel} successfully`,
+        isEs ? "Éxito" : "Success",
+      );
       void loadRequests();
     } catch (err: unknown) {
       showToast(
         "error",
-        err instanceof Error ? err.message : `Failed to ${status} request`,
-        "Error",
+        err instanceof Error
+          ? err.message
+          : isEs
+            ? `No se pudo ${status === "approved" ? "aprobar" : "rechazar"} la solicitud`
+            : `Failed to ${status} request`,
+        isEs ? "Error" : "Error",
       );
     }
   };
@@ -833,19 +925,19 @@ const TransferRequests: React.FC = () => {
         <div className="flex items-center gap-1.5">
           <button
             onClick={() => void handleRespond(req._id, "approved")}
-            title="Approve"
+            title={isEs ? "Aprobar" : "Approve"}
             className="flex items-center gap-1 px-2.5 h-7 bg-green-700/20 hover:bg-green-600/30 text-green-400 hover:text-green-300 border border-green-700/30 rounded text-xs font-medium transition-all"
           >
             <CheckCircle size={12} />
-            Approve
+            {isEs ? "Aprobar" : "Approve"}
           </button>
           <button
             onClick={() => void handleRespond(req._id, "rejected")}
-            title="Reject"
+            title={isEs ? "Rechazar" : "Reject"}
             className="flex items-center gap-1 px-2.5 h-7 bg-red-700/20 hover:bg-red-600/30 text-red-400 hover:text-red-300 border border-red-700/30 rounded text-xs font-medium transition-all"
           >
             <XCircle size={12} />
-            Reject
+            {isEs ? "Rechazar" : "Reject"}
           </button>
         </div>
       );
@@ -858,12 +950,12 @@ const TransferRequests: React.FC = () => {
           className="flex items-center gap-1 px-2.5 h-7 bg-[#FFD700]/15 hover:bg-[#FFD700]/25 text-[#FFD700] border border-[#FFD700]/30 rounded text-xs font-medium transition-all"
         >
           <Truck size={12} />
-          Initiate Shipment
+          {isEs ? "Iniciar Envío" : "Initiate Shipment"}
         </button>
       );
     }
 
-    return <span className="text-xs text-gray-600 italic">No actions</span>;
+    return <span className="text-xs text-gray-600 italic">{isEs ? "Sin acciones" : "No actions"}</span>;
   };
 
   // ── Render ──
@@ -874,9 +966,13 @@ const TransferRequests: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-3">
             <ArrowLeftRight size={26} className="text-[#FFD700]" />
-            Transfer Requests
+            {isEs ? "Solicitudes de Transferencia" : "Transfer Requests"}
           </h1>
-          <p className="text-sm text-gray-400 mt-1">Manage material transfers between locations</p>
+          <p className="text-sm text-gray-400 mt-1">
+            {isEs
+              ? "Gestiona transferencias de material entre ubicaciones"
+              : "Manage material transfers between locations"}
+          </p>
         </div>
         {canCreate && (
           <button
@@ -884,7 +980,7 @@ const TransferRequests: React.FC = () => {
             className="flex items-center gap-2 h-10 px-5 bg-[#FFD700] hover:bg-[#FFD700]/90 text-black font-semibold rounded text-sm transition-all shadow-md hover:shadow-lg active:scale-95 shrink-0"
           >
             <Plus size={16} />
-            New Request
+            {isEs ? "Nueva Solicitud" : "New Request"}
           </button>
         )}
       </div>
@@ -901,7 +997,13 @@ const TransferRequests: React.FC = () => {
                 : "text-gray-400 hover:text-white"
             }`}
           >
-            {tab === "requests" ? "Transfer Requests" : "Shipments"}
+            {tab === "requests"
+              ? isEs
+                ? "Solicitudes de Transferencia"
+                : "Transfer Requests"
+              : isEs
+                ? "Envíos"
+                : "Shipments"}
           </button>
         ))}
       </div>
@@ -919,10 +1021,10 @@ const TransferRequests: React.FC = () => {
                 }
                 className="h-9 pl-3 pr-8 bg-[#111] border border-[#2a2a2a] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] appearance-none"
               >
-                <option value="">All statuses</option>
+                <option value="">{isEs ? "Todos los estados" : "All statuses"}</option>
                 {(Object.keys(REQUEST_STATUS_LABEL) as TransferRequestStatus[]).map((s) => (
                   <option key={s} value={s}>
-                    {REQUEST_STATUS_LABEL[s]}
+                    {getRequestStatusLabel(s, isEs)}
                   </option>
                 ))}
               </select>
@@ -952,7 +1054,7 @@ const TransferRequests: React.FC = () => {
                 ></div>
               </div>
               <span className="text-xs text-gray-400 group-hover:text-gray-300 transition-colors">
-                Show fulfilled
+                {isEs ? "Mostrar cumplidas" : "Show fulfilled"}
               </span>
             </label>
 
@@ -962,9 +1064,11 @@ const TransferRequests: React.FC = () => {
               className="flex items-center gap-1.5 h-9 px-3 bg-[#111] border border-[#2a2a2a] rounded text-sm text-gray-400 hover:text-white transition-all disabled:opacity-40"
             >
               <RefreshCw size={14} className={requestsLoading ? "animate-spin" : ""} />
-              Refresh
+              {isEs ? "Actualizar" : "Refresh"}
             </button>
-            <span className="ml-auto text-xs text-gray-500">{requests.length} result(s)</span>
+            <span className="ml-auto text-xs text-gray-500">
+              {requests.length} {isEs ? "resultado(s)" : "result(s)"}
+            </span>
           </div>
 
           {/* Table */}
@@ -972,18 +1076,20 @@ const TransferRequests: React.FC = () => {
             {requestsLoading ? (
               <div className="flex items-center justify-center py-16 text-gray-500">
                 <RefreshCw size={20} className="animate-spin mr-2" />
-                Loading requests…
+                {isEs ? "Cargando solicitudes…" : "Loading requests…"}
               </div>
             ) : requests.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 gap-3 text-gray-500">
                 <CircleDashed size={32} />
-                <p className="text-sm">No transfer requests found</p>
+                <p className="text-sm">
+                  {isEs ? "No se encontraron solicitudes de transferencia" : "No transfer requests found"}
+                </p>
                 {canCreate && (
                   <button
                     onClick={() => setShowCreateModal(true)}
                     className="text-[#FFD700] hover:underline text-sm"
                   >
-                    Create the first request
+                    {isEs ? "Crear la primera solicitud" : "Create the first request"}
                   </button>
                 )}
               </div>
@@ -992,13 +1098,13 @@ const TransferRequests: React.FC = () => {
                 <table className="w-full text-left text-sm">
                   <thead>
                     <tr className="border-b border-[#1a1a1a] text-xs text-gray-500 uppercase tracking-wider">
-                      <th className="px-4 py-3">From</th>
-                      <th className="px-4 py-3">To</th>
-                      <th className="px-4 py-3">Items</th>
-                      <th className="px-4 py-3">Status</th>
-                      <th className="px-4 py-3">Notes</th>
-                      <th className="px-4 py-3">Created</th>
-                      <th className="px-4 py-3 text-right">Actions</th>
+                      <th className="px-4 py-3">{isEs ? "Desde" : "From"}</th>
+                      <th className="px-4 py-3">{isEs ? "Hacia" : "To"}</th>
+                      <th className="px-4 py-3">{isEs ? "Artículos" : "Items"}</th>
+                      <th className="px-4 py-3">{isEs ? "Estado" : "Status"}</th>
+                      <th className="px-4 py-3">{isEs ? "Notas" : "Notes"}</th>
+                      <th className="px-4 py-3">{isEs ? "Creado" : "Created"}</th>
+                      <th className="px-4 py-3 text-right">{isEs ? "Acciones" : "Actions"}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#1a1a1a]">
@@ -1011,11 +1117,11 @@ const TransferRequests: React.FC = () => {
                           {locationName(req.toLocationId)}
                         </td>
                         <td className="px-4 py-3 text-gray-400 whitespace-nowrap">
-                          {req.items.length} type(s)
+                          {req.items.length} {isEs ? "tipo(s)" : "type(s)"}
                         </td>
                         <td className="px-4 py-3">
                           <StatusBadge
-                            label={REQUEST_STATUS_LABEL[req.status]}
+                            label={getRequestStatusLabel(req.status, isEs)}
                             className={REQUEST_STATUS_CLASSES[req.status]}
                           />
                         </td>
@@ -1023,7 +1129,7 @@ const TransferRequests: React.FC = () => {
                           {req.notes ?? <span className="text-gray-600 italic">—</span>}
                         </td>
                         <td className="px-4 py-3 text-gray-400 whitespace-nowrap">
-                          {formatDate(req.createdAt)}
+                          {formatDate(req.createdAt, isEs)}
                         </td>
                         <td className="px-4 py-3 text-right">{renderRequestActions(req)}</td>
                       </tr>
@@ -1047,10 +1153,10 @@ const TransferRequests: React.FC = () => {
                 onChange={(e) => setTransferStatusFilter(e.target.value as TransferStatus | "")}
                 className="h-9 pl-3 pr-8 bg-[#111] border border-[#2a2a2a] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] appearance-none"
               >
-                <option value="">All statuses</option>
+                <option value="">{isEs ? "Todos los estados" : "All statuses"}</option>
                 {(Object.keys(TRANSFER_STATUS_LABEL) as TransferStatus[]).map((s) => (
                   <option key={s} value={s}>
-                    {TRANSFER_STATUS_LABEL[s]}
+                    {getTransferStatusLabel(s, isEs)}
                   </option>
                 ))}
               </select>
@@ -1065,9 +1171,11 @@ const TransferRequests: React.FC = () => {
               className="flex items-center gap-1.5 h-9 px-3 bg-[#111] border border-[#2a2a2a] rounded text-sm text-gray-400 hover:text-white transition-all disabled:opacity-40"
             >
               <RefreshCw size={14} className={transfersLoading ? "animate-spin" : ""} />
-              Refresh
+              {isEs ? "Actualizar" : "Refresh"}
             </button>
-            <span className="ml-auto text-xs text-gray-500">{transfers.length} result(s)</span>
+            <span className="ml-auto text-xs text-gray-500">
+              {transfers.length} {isEs ? "resultado(s)" : "result(s)"}
+            </span>
           </div>
 
           {/* Table */}
@@ -1075,25 +1183,25 @@ const TransferRequests: React.FC = () => {
             {transfersLoading ? (
               <div className="flex items-center justify-center py-16 text-gray-500">
                 <RefreshCw size={20} className="animate-spin mr-2" />
-                Loading shipments…
+                {isEs ? "Cargando envíos…" : "Loading shipments…"}
               </div>
             ) : transfers.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 gap-3 text-gray-500">
                 <Truck size={32} />
-                <p className="text-sm">No shipments found</p>
+                <p className="text-sm">{isEs ? "No se encontraron envíos" : "No shipments found"}</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
                   <thead>
                     <tr className="border-b border-[#1a1a1a] text-xs text-gray-500 uppercase tracking-wider">
-                      <th className="px-4 py-3">From</th>
-                      <th className="px-4 py-3">To</th>
-                      <th className="px-4 py-3">Items</th>
-                      <th className="px-4 py-3">Status</th>
-                      <th className="px-4 py-3">Sender Notes</th>
-                      <th className="px-4 py-3">Created</th>
-                      <th className="px-4 py-3 text-right">Actions</th>
+                      <th className="px-4 py-3">{isEs ? "Desde" : "From"}</th>
+                      <th className="px-4 py-3">{isEs ? "Hacia" : "To"}</th>
+                      <th className="px-4 py-3">{isEs ? "Artículos" : "Items"}</th>
+                      <th className="px-4 py-3">{isEs ? "Estado" : "Status"}</th>
+                      <th className="px-4 py-3">{isEs ? "Notas del Remitente" : "Sender Notes"}</th>
+                      <th className="px-4 py-3">{isEs ? "Creado" : "Created"}</th>
+                      <th className="px-4 py-3 text-right">{isEs ? "Acciones" : "Actions"}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#1a1a1a]">
@@ -1105,10 +1213,12 @@ const TransferRequests: React.FC = () => {
                         <td className="px-4 py-3 text-gray-200 whitespace-nowrap">
                           {locationName(tr.toLocationId)}
                         </td>
-                        <td className="px-4 py-3 text-gray-400">{tr.items.length} item(s)</td>
+                        <td className="px-4 py-3 text-gray-400">
+                          {tr.items.length} {isEs ? "artículo(s)" : "item(s)"}
+                        </td>
                         <td className="px-4 py-3">
                           <StatusBadge
-                            label={TRANSFER_STATUS_LABEL[tr.status]}
+                            label={getTransferStatusLabel(tr.status, isEs)}
                             className={TRANSFER_STATUS_CLASSES[tr.status]}
                           />
                         </td>
@@ -1116,7 +1226,7 @@ const TransferRequests: React.FC = () => {
                           {tr.senderNotes ?? <span className="text-gray-600 italic">—</span>}
                         </td>
                         <td className="px-4 py-3 text-gray-400 whitespace-nowrap">
-                          {formatDate(tr.createdAt)}
+                          {formatDate(tr.createdAt, isEs)}
                         </td>
                         <td className="px-4 py-3 text-right">
                           {tr.status === "in_transit" && canUpdate ? (
@@ -1125,7 +1235,7 @@ const TransferRequests: React.FC = () => {
                               className="flex items-center gap-1 px-2.5 h-7 bg-green-700/20 hover:bg-green-600/30 text-green-400 hover:text-green-300 border border-green-700/30 rounded text-xs font-medium transition-all"
                             >
                               <CheckCircle size={12} />
-                              Receive
+                              {isEs ? "Recibir" : "Receive"}
                             </button>
                           ) : (
                             <span className="text-xs text-gray-600 italic">—</span>
