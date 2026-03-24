@@ -319,20 +319,39 @@ export const MATERIAL_INSTANCE_STATUS_LABELS: Record<MaterialInstanceStatus, str
 
 export interface MaterialInstance {
   _id: string;
-  model: {
+  /**
+   * The parent model (Material Type) - comes as modelId from API.
+   */
+  modelId: {
     _id: string;
     name: string;
+    description?: string;
+    /** Rental price in cents (COP) per day. */
     pricePerDay: number;
   };
+  /**
+   * Unique identifier for this specific instance (e.g., serial number).
+   */
   serialNumber: string;
-  locationId: string;
-  location?: {
+  status: MaterialInstanceStatus;
+  /**
+   * Location where this instance is currently stored - comes as locationId from API.
+   */
+  locationId: {
     _id: string;
     name: string;
+    id: string;
   };
-  status: MaterialInstanceStatus;
-  purchaseDate?: string;
-  purchaseCost?: number;
+  /** Organization ID */
+  organizationId: string;
+  /** Attributes array */
+  attributes: any[];
+  /** Date when the instance was created (ISO date string) */
+  createdAt: string;
+  /** Date when the instance was last updated (ISO date string) */
+  updatedAt: string;
+  /** Version key */
+  __v: number;
 }
 
 export interface CreateMaterialInstancePayload {

@@ -49,12 +49,45 @@ const SAMPLE_RENTALS: Rental[] = [
     rentalId: "RNT-001",
     customer: "John Doe",
     materials: ["Material A", "Material B"],
+    items: 2, // número de materiales
     startDate: "2024-01-15",
     endDate: "2024-02-15",
     daysElapsed: 15,
     totalDays: 32,
+    total: 1500, // valor total del rental
+    paid: 800, // cantidad pagada
     status: "active",
     depositAmount: 500,
+  },
+  {
+    id: "2",
+    rentalId: "RNT-002",
+    customer: "Jane Smith",
+    materials: ["Sillas", "Mesas", "Iluminación"],
+    items: 3,
+    startDate: "2024-02-01",
+    endDate: "2024-02-28",
+    daysElapsed: 25,
+    totalDays: 28,
+    total: 3200,
+    paid: 3200,
+    status: "active",
+    depositAmount: 800,
+  },
+  {
+    id: "3",
+    rentalId: "RNT-003",
+    customer: "Carlos López",
+    materials: ["Carpas", "Audio", "Tarima"],
+    items: 3,
+    startDate: "2024-01-20",
+    endDate: "2024-01-22",
+    daysElapsed: 3,
+    totalDays: 3,
+    total: 2800,
+    paid: 2800,
+    status: "completed",
+    depositAmount: 600,
   },
 ];
 
@@ -118,11 +151,14 @@ export interface Rental {
   rentalId: string;
   customer: string;
   materials: string[];
+  items: number; // número de materiales
   startDate: string;
   endDate: string;
   daysElapsed: number;
   totalDays: number;
-  status: "active" | "pending" | "returned" | "overdue";
+  total: number; // valor total del rental
+  paid: number; // cantidad pagada
+  status: "active" | "pending" | "returned" | "overdue" | "completed";
   depositAmount: number;
 }
 
