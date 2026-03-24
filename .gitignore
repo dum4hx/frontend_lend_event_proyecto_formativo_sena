@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Translation temporary files
+pending-translations.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
