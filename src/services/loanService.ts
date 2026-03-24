@@ -128,3 +128,10 @@ export async function extendLoan(
 export async function returnLoan(loanId: string): Promise<ApiSuccessResponse<{ loan: Loan }>> {
   return post<{ loan: Loan }>(`/loans/${loanId}/return`);
 }
+
+/** Record that a deposit for a request has been paid manually. */
+export async function recordPayment(
+  requestId: string,
+): Promise<ApiSuccessResponse<{ request: LoanRequest }>> {
+  return post<{ request: LoanRequest }>(`/requests/${requestId}/record-payment`);
+}

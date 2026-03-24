@@ -11,6 +11,7 @@ import {
   CircleCheck,
   Loader2,
   Trash2,
+  CreditCard,
 } from "lucide-react";
 import { Button, IconButton } from "../../../components/ui";
 import type {
@@ -27,13 +28,13 @@ import type {
 } from "../../../types/api";
 import {
   createRequest,
-  getLoans,
   getRequests,
   approveRequest,
   rejectRequest,
   updateRequest,
   createLoanFromRequest,
   returnLoan,
+  recordPayment,
 } from "../../../services/loanService";
 import { getCustomers } from "../../../services/customerService";
 import {
@@ -56,6 +57,7 @@ import {
 
 type WorkflowStatus =
   | "order_created"
+  | "order_deposit_pending"
   | "order_approved"
   | "order_shipped"
   | "order_in_use"
@@ -93,6 +95,7 @@ type OrderView = {
 
 const WORKFLOW_STEPS: Array<{ status: WorkflowStatus; label: string }> = [
   { status: "order_created", label: "Order Created" },
+  { status: "order_deposit_pending", label: "Deposit Pending" },
   { status: "order_approved", label: "Order Approved" },
   { status: "order_shipped", label: "Order Shipped" },
   { status: "order_in_use", label: "Order In Use / Loaned" },
@@ -102,6 +105,7 @@ const WORKFLOW_STEPS: Array<{ status: WorkflowStatus; label: string }> = [
 const FILTER_OPTIONS: Array<{ value: WorkflowFilter; label: string }> = [
   { value: "all", label: "All Status" },
   { value: "order_created", label: "Order Created" },
+  { value: "order_deposit_pending", label: "Deposit Pending" },
   { value: "order_approved", label: "Order Approved" },
   { value: "order_shipped", label: "Order Shipped" },
   { value: "order_in_use", label: "Order In Use / Loaned" },
@@ -270,6 +274,9 @@ function getWorkflowFromRequestAndLoan(
   if (request.status === "cancelled") {
     return { status: "order_cancelled", label: "Cancelled" };
   }
+  if (request.status === "expired") {
+    return { status: "order_cancelled", label: "Expired" };
+  }
 
   if (loan) {
     if (loan.status === "returned" || loan.status === "closed") {
@@ -280,8 +287,17 @@ function getWorkflowFromRequestAndLoan(
     }
   }
 
-  if (request.status === "ready") {
+  if (request.status === "completed") {
+    return { status: "order_completed", label: "Order Completed / Delivered" };
+  }
+  if (request.status === "shipped") {
+    return { status: "order_in_use", label: "Order In Use / Loaned" };
+  }
+  if (request.status === "ready" || request.status === "assigned") {
     return { status: "order_shipped", label: "Order Shipped" };
+  }
+  if (request.status === "deposit_pending") {
+    return { status: "order_deposit_pending", label: "Deposit Pending" };
   }
   if (request.status === "approved") {
     return { status: "order_approved", label: "Order Approved" };
@@ -300,6 +316,8 @@ function getStatusBadgeStyle(status: WorkflowStatus): string {
       return "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30";
     case "order_approved":
       return "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
+    case "order_deposit_pending":
+      return "bg-orange-500/20 text-orange-300 border border-orange-500/30";
     case "order_created":
       return "bg-yellow-500/20 text-yellow-300 border border-yellow-500/30";
     case "order_rejected":
@@ -384,8 +402,11 @@ function buildOrderViewModel(
 function toBackendRequestStatusFilter(selectedStatus: WorkflowFilter): BackendRequestStatusFilter {
   if (selectedStatus === "all") return undefined;
   if (selectedStatus === "order_created") return "pending";
+  if (selectedStatus === "order_deposit_pending") return "deposit_pending";
   if (selectedStatus === "order_approved") return "approved";
-  if (selectedStatus === "order_shipped") return "ready";
+  if (selectedStatus === "order_shipped") return "assigned";
+  if (selectedStatus === "order_in_use") return "shipped";
+  if (selectedStatus === "order_completed") return "completed";
   if (selectedStatus === "order_rejected") return "rejected";
   if (selectedStatus === "order_cancelled") return "cancelled";
   return undefined;
@@ -395,7 +416,6 @@ export default function Orders() {
   const { showError, showSuccess, AlertModal } = useAlertModal();
   const { hasPermission, hasAnyPermission } = usePermissions();
   const [requests, setRequests] = useState<LoanRequest[]>([]);
-  const [loans, setLoans] = useState<Loan[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [materialCategories, setMaterialCategories] = useState<MaterialCategory[]>([]);
   const [materialInstances, setMaterialInstances] = useState<MaterialInstance[]>([]);
@@ -421,6 +441,8 @@ export default function Orders() {
   >([]);
   const [rejectReason, setRejectReason] = useState("");
   const [reactivateReason, setReactivateReason] = useState("");
+  const [showRecordPaymentModal, setShowRecordPaymentModal] = useState(false);
+  const [paymentTarget, setPaymentTarget] = useState<OrderView | null>(null);
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [showValidationErrors, setShowValidationErrors] = useState(false);
   const [createErrors, setCreateErrors] = useState<CreateOrderValidationErrors>({ rows: {} });
@@ -453,6 +475,7 @@ export default function Orders() {
   const canAssignRequest = hasPermission("requests:assign");
   const canCreateLoan = hasAnyPermission(["loans:create", "loans:checkout"]);
   const canReturnLoan = hasPermission("loans:return");
+  const canRecordPayment = hasPermission("requests:update");
 
   const selectedPlan = useMemo(
     () => packages.find((pkg) => pkg._id === selectedPlanId),
@@ -548,7 +571,6 @@ export default function Orders() {
     try {
       const [
         requestsRes,
-        loansRes,
         customersRes,
         categoriesRes,
         instancesRes,
@@ -560,7 +582,6 @@ export default function Orders() {
           limit: requestsPageSize,
           status: toBackendRequestStatusFilter(selectedStatus),
         }),
-        getLoans(),
         getCustomers({ page: 1, limit: 50 }),
         getMaterialCategories(),
         getMaterialInstances(),
@@ -569,7 +590,6 @@ export default function Orders() {
       ]);
 
       let requestsFailed = requestsRes.status === "rejected";
-      let loansFailed = loansRes.status === "rejected";
       let customersFailed = customersRes.status === "rejected";
       const categoriesFailed = categoriesRes.status === "rejected";
       const instancesFailed = instancesRes.status === "rejected";
@@ -593,18 +613,6 @@ export default function Orders() {
           requestsFailed = false;
         } catch {
           // Keep previous requests state if fallback also fails.
-        }
-      }
-      if (loansRes.status === "fulfilled") {
-        setLoans(loansRes.value.data.loans ?? []);
-      } else {
-        // Fallback: retry once without filters.
-        try {
-          const loansFallbackRes = await getLoans();
-          setLoans(loansFallbackRes.data.loans ?? []);
-          loansFailed = false;
-        } catch {
-          // Keep previous loans state if fallback also fails.
         }
       }
       if (customersRes.status === "fulfilled") {
@@ -640,11 +648,6 @@ export default function Orders() {
         failures.push({
           source: "orders",
           reason: requestsRes.status === "rejected" ? requestsRes.reason : null,
-        });
-      if (loansFailed)
-        failures.push({
-          source: "loans",
-          reason: loansRes.status === "rejected" ? loansRes.reason : null,
         });
       if (customersFailed)
         failures.push({
@@ -699,8 +702,8 @@ export default function Orders() {
   }, [selectedStatus]);
 
   const allOrders = useMemo(
-    () => buildOrderViewModel(requests, loans, customers, packages, materialTypes),
-    [requests, loans, customers, packages, materialTypes],
+    () => buildOrderViewModel(requests, [], customers, packages, materialTypes),
+    [requests, customers, packages, materialTypes],
   );
 
   const filteredOrders = useMemo(() => {
@@ -1378,6 +1381,28 @@ export default function Orders() {
     }
   };
 
+  const handleOpenRecordPaymentModal = (order: OrderView) => {
+    setPaymentTarget(order);
+    setShowRecordPaymentModal(true);
+  };
+
+  const handleRecordPayment = async () => {
+    if (!paymentTarget) return;
+    setSubmitting(true);
+    try {
+      await recordPayment(paymentTarget.request._id);
+      showSuccess("Deposit recorded as paid.", "Payment Recorded");
+      setShowRecordPaymentModal(false);
+      setPaymentTarget(null);
+      await refreshData();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to record payment";
+      showError(message, "Payment Error");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handlePrepareOrder = (order: OrderView) => {
     if (!canAssignRequest) {
       showError(
@@ -1600,6 +1625,20 @@ export default function Orders() {
                             Reactivate
                           </Button>
                         )}
+
+                        {order.request.depositAmount != null &&
+                          order.request.depositAmount > 0 &&
+                          !order.request.depositPaidAt && (
+                            <Button
+                              size="sm"
+                              leftIcon={CreditCard}
+                              onClick={() => handleOpenRecordPaymentModal(order)}
+                              disabled={submitting || !canRecordPayment}
+                              className="bg-orange-500/15 text-orange-300 border-orange-500/40 hover:bg-orange-500/25"
+                            >
+                              Record Payment
+                            </Button>
+                          )}
 
                         {!order.loan && order.request.status === "approved" && (
                           <Button
@@ -2588,6 +2627,52 @@ export default function Orders() {
       )}
 
       <AlertModal />
+
+      {showRecordPaymentModal && paymentTarget && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={(e) => e.target === e.currentTarget && setShowRecordPaymentModal(false)}
+        >
+          <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-6 w-full max-w-md shadow-2xl">
+            <h2 className="text-xl font-semibold text-white mb-2">Record Deposit Payment</h2>
+            <p className="text-zinc-400 text-sm mb-4">
+              Mark the deposit for order{" "}
+              <span className="text-white font-medium">
+                #{paymentTarget.request._id.slice(-6).toUpperCase()}
+              </span>{" "}
+              as paid?
+            </p>
+            {paymentTarget.request.depositAmount != null && (
+              <p className="text-orange-300 text-sm mb-6">
+                Deposit amount:{" "}
+                <span className="font-semibold">
+                  ${paymentTarget.request.depositAmount.toFixed(2)}
+                </span>
+              </p>
+            )}
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setShowRecordPaymentModal(false);
+                  setPaymentTarget(null);
+                }}
+                disabled={submitting}
+              >
+                Cancel
+              </Button>
+              <Button
+                leftIcon={CreditCard}
+                onClick={handleRecordPayment}
+                disabled={submitting}
+                className="bg-orange-500 hover:bg-orange-600 text-white border-transparent"
+              >
+                {submitting ? "Recording..." : "Record Payment"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

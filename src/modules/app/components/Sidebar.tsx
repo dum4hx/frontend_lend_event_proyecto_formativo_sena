@@ -26,6 +26,7 @@ import {
   BookOpen,
   BarChart3,
   ArrowLeftRight,
+  DollarSign,
 } from "lucide-react";
 import { ApiError } from "../../../lib/api";
 import { useLogout } from "../../../hooks/useLogout";
@@ -63,6 +64,7 @@ const iconMap: Record<string, React.ReactNode> = {
   rentals: <Package size={20} />,
   invoices: <FileText size={20} />,
   reports: <BarChart3 size={20} />,
+  pricing: <DollarSign size={20} />,
   // Super admin
   "sa-plans": <BookOpen size={20} />,
 };

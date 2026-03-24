@@ -396,7 +396,17 @@ export interface CreatePackagePayload {
 
 // ─── Loan Requests ─────────────────────────────────────────────────────────
 
-export type LoanRequestStatus = "pending" | "approved" | "rejected" | "ready" | "cancelled";
+export type LoanRequestStatus =
+  | "pending"
+  | "approved"
+  | "deposit_pending"
+  | "assigned"
+  | "ready"
+  | "shipped"
+  | "completed"
+  | "rejected"
+  | "cancelled"
+  | "expired";
 
 export interface LoanRequestItem {
   type?: "material" | "package";
@@ -414,6 +424,9 @@ export interface LoanRequest {
   endDate: string;
   status: LoanRequestStatus;
   notes?: string;
+  depositAmount?: number;
+  depositPaidAt?: string;
+  loanId?: string;
 }
 
 export interface CreateLoanRequestPayload {
@@ -1250,4 +1263,69 @@ export interface TransferRequestsQueryParams {
 
 export interface TransfersQueryParams {
   status?: TransferStatus;
+}
+
+// ─── Pricing Configurations ────────────────────────────────────────────────
+
+export type PricingStrategyType = "per_day" | "weekly_monthly" | "fixed";
+export type PricingScope = "organization" | "materialType" | "package";
+
+export interface PerDayParams {
+  overridePricePerDay: number | null;
+}
+
+export interface WeeklyMonthlyParams {
+  weeklyPrice: number;
+  weeklyThreshold: number;
+  monthlyPrice: number;
+  monthlyThreshold: number;
+}
+
+export interface FixedParams {
+  flatPrice: number;
+}
+
+export interface PricingConfig {
+  _id: string;
+  organizationId: string;
+  scope: PricingScope;
+  referenceId: string;
+  strategyType: PricingStrategyType;
+  isActive: boolean;
+  perDayParams: PerDayParams | null;
+  weeklyMonthlyParams: WeeklyMonthlyParams | null;
+  fixedParams: FixedParams | null;
+}
+
+export interface CreatePricingConfigPayload {
+  scope: PricingScope;
+  referenceId: string;
+  strategyType: PricingStrategyType;
+  perDayParams?: PerDayParams;
+  weeklyMonthlyParams?: WeeklyMonthlyParams;
+  fixedParams?: FixedParams;
+}
+
+export interface UpdatePricingConfigPayload {
+  strategyType?: PricingStrategyType;
+  isActive?: boolean;
+  perDayParams?: PerDayParams;
+  weeklyMonthlyParams?: WeeklyMonthlyParams;
+  fixedParams?: FixedParams;
+}
+
+export interface PricingPreviewParams {
+  itemType: "material" | "package";
+  referenceId: string;
+  quantity: number;
+  durationInDays: number;
+}
+
+export interface PricingPreviewResult {
+  strategyType: PricingStrategyType;
+  durationInDays: number;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  effectivePricePerDay: number;
 }

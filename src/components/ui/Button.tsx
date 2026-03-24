@@ -1,6 +1,6 @@
 import React, { type ButtonHTMLAttributes, forwardRef } from "react";
 
-export type ButtonVariant = "primary" | "secondary" | "danger" | "success";
+export type ButtonVariant = "primary" | "secondary" | "danger" | "success" | "outline";
 export type ButtonSize = "sm" | "md" | "lg";
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -44,6 +44,8 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         "bg-[#1a1a1a] text-gray-300 border border-[#333] hover:bg-[#252525] hover:text-white",
       danger: "bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20",
       success: "bg-green-600 text-white hover:bg-green-500 active:scale-[0.98]",
+      outline:
+        "bg-transparent text-gray-300 border border-gray-600 hover:border-[#FFD700] hover:text-[#FFD700] transition-colors",
     };
 
     const sizeStyles: Record<ButtonSize, string> = {

@@ -57,6 +57,7 @@ import Orders from "./modules/app/pages/Orders";
 import Rentals from "./modules/app/pages/Rentals";
 import Invoices from "./modules/app/pages/Invoices";
 import Reports from "./modules/app/pages/Reports";
+import PricingConfigs from "./modules/app/pages/PricingConfigs";
 
 // App - Material sub-modules
 import { CategoryCatalog, CreateCategory } from "./modules/app/modules/material-categories";
@@ -146,6 +147,7 @@ function App() {
               <Route path="orders" element={<Orders />} />
               <Route path="contracts" element={<Contracts />} />
               <Route path="rentals" element={<Rentals />} />
+              <Route path="pricing" element={<PricingConfigs />} />
               <Route path="invoices" element={<Invoices />} />
               <Route path="reports" element={<Reports />} />
               <Route path="ia-settings" element={<IASettings />} />

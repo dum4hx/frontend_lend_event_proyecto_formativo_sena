@@ -2281,6 +2281,8 @@ Creates a new location in the organization.
 | materialCapacities[].materialTypeId | string   | Yes      | Valid ObjectId     | ID of the material type to set capacity for                                                           |
 | materialCapacities[].maxQuantity    | number   | Yes      | Min 0              | Maximum number of items of this type allowed here                                                     |
 
+**Note:** `currentQuantity` for each capacity entry is managed automatically by the inventory system and cannot be provided via the API.
+
 #### Example Request
 
 ```json
@@ -2510,6 +2512,34 @@ Lists all material types (catalog items).
 | categoryId | query    | string  | No       | Filter by category            |
 | search     | query    | string  | No       | Search by name or description |
 
+**Success Response (200):**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "materialTypes": [
+      {
+        "_id": "60d5f49f1c7d2e001f8e4b1a",
+        "name": "Tripod",
+        "description": "Standard tripod",
+        "categoryId": {
+          "_id": "60d5f48f1c7d2e001f8e4b19",
+          "name": "Accessories"
+        },
+        "pricePerDay": 1500,
+        "attributes": []
+      }
+    ],
+    "total": 1,
+    "organizationTotal": 5,
+    "count": 1,
+    "page": 1,
+    "totalPages": 1
+  }
+}
+```
+
 ---
 
 #### GET /materials/types/:id
@@ -2560,18 +2590,23 @@ Deletes a material type. Fails if any material instances of this type exist.
 
 #### GET /materials/instances
 
-Lists all material instances. By default, returns a flat list of instances. If `byLocation=true` is provided, returns instances grouped by location.
+Lists all material instances. Supports three display modes controlled by query parameters:
+
+- **Default**: flat paginated list.
+- **`byLocation=true`**: paginated list grouped by location.
+- **`byUserAccessibleLocation=true`**: all instances split into two groups based on the requesting user's assigned locations (no pagination — returns all matching instances).
 
 **Permission Required:** `materials:read`
 
-| Parameter      | Location | Type    | Required | Description                                                                                |
-| -------------- | -------- | ------- | -------- | ------------------------------------------------------------------------------------------ |
-| page           | query    | integer | No       | Page number (default: 1)                                                                   |
-| limit          | query    | integer | No       | Items per page (default: 20)                                                               |
-| status         | query    | string  | No       | `available`, `reserved`, `loaned`, `returned`, `maintenance`, `damaged`, `lost`, `retired` |
-| materialTypeId | query    | string  | No       | Filter by material type                                                                    |
-| search         | query    | string  | No       | Search by serial number                                                                    |
-| byLocation     | query    | boolean | No       | If `true`, groups instances on the current page by location. Default: `false`.             |
+| Parameter                | Location | Type    | Required | Description                                                                                                                                     |
+| ------------------------ | -------- | ------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| page                     | query    | integer | No       | Page number (default: 1). Ignored when `byUserAccessibleLocation=true`.                                                                         |
+| limit                    | query    | integer | No       | Items per page (default: 20). Ignored when `byUserAccessibleLocation=true`.                                                                     |
+| status                   | query    | string  | No       | `available`, `reserved`, `loaned`, `returned`, `maintenance`, `damaged`, `lost`, `retired`                                                      |
+| materialTypeId           | query    | string  | No       | Filter by material type                                                                                                                         |
+| search                   | query    | string  | No       | Search by serial number                                                                                                                         |
+| byLocation               | query    | boolean | No       | If `true`, groups instances on the current page by location. Default: `false`. Ignored when `byUserAccessibleLocation=true`.                    |
+| byUserAccessibleLocation | query    | boolean | No       | If `true`, returns all matching instances split into `currentUserLocations` (user's assigned locations) and `otherLocations`. Default: `false`. |
 
 **Success Response (200) - Default (Flat List):**
 
@@ -2633,6 +2668,57 @@ Lists all material instances. By default, returns a flat list of instances. If `
 ```
 
 Pagination applies to the total number of instances. When `byLocation=true` is used, the `byLocation` array groups the instances on the current page by their assigned location.
+
+**Success Response (200) - With `byUserAccessibleLocation=true`:**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "currentUserLocations": [
+      {
+        "location": { "_id": "<locationId>", "name": "Warehouse A" },
+        "instances": [
+          {
+            "_id": "<instanceId>",
+            "serialNumber": "SN-001",
+            "status": "available",
+            "model": {
+              "_id": "<typeId>",
+              "name": "Canon EOS",
+              "pricePerDay": 1000
+            }
+          }
+        ]
+      }
+    ],
+    "otherLocations": [
+      {
+        "location": { "_id": "<locationId2>", "name": "Warehouse B" },
+        "instances": [
+          {
+            "_id": "<instanceId2>",
+            "serialNumber": "SN-002",
+            "status": "available",
+            "model": {
+              "_id": "<typeId>",
+              "name": "Canon EOS",
+              "pricePerDay": 1000
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+When `byUserAccessibleLocation=true`:
+
+- `currentUserLocations` — instances whose `locationId` matches one of the locations assigned to the authenticated user (`user.locations`), grouped by location.
+- `otherLocations` — instances at all other locations in the organization, grouped by location.
+- Pagination parameters are ignored; all matching instances are returned.
+- The same `status`, `materialTypeId`, and `search` filters apply to both groups.
 
 ---
 
@@ -2993,11 +3079,11 @@ Creates a new package (bundle of materials).
 
 Lists all loan requests in the organization.
 
-| Parameter  | Location | Type   | Required | Description                                             |
-| ---------- | -------- | ------ | -------- | ------------------------------------------------------- |
-| status     | query    | string | No       | `pending`, `approved`, `rejected`, `ready`, `cancelled` |
-| customerId | query    | string | No       | Filter by customer                                      |
-| packageId  | query    | string | No       | Filter by package                                       |
+| Parameter  | Location | Type   | Required | Description                                                                                                               |
+| ---------- | -------- | ------ | -------- | ------------------------------------------------------------------------------------------------------------------------- |
+| status     | query    | string | No       | `pending`, `approved`, `deposit_pending`, `assigned`, `ready`, `shipped`, `completed`, `cancelled`, `rejected`, `expired` |
+| customerId | query    | string | No       | Filter by customer                                                                                                        |
+| packageId  | query    | string | No       | Filter by package                                                                                                         |
 
 ---
 
@@ -3090,6 +3176,73 @@ Legacy compatibility remains available through:
 
 ---
 
+#### POST /requests/:id/record-payment
+
+Records that the deposit for a request has been paid manually (cash, bank transfer, etc.).
+
+**Auth:** `authenticate` + `requireActiveOrganization` + `requests:update`
+
+Valid request states: `approved`, `deposit_pending`, `assigned`, `ready`
+
+- Requires `depositAmount > 0`; returns `400` if the request has no deposit.
+- Returns `409 CONFLICT` if the deposit was already recorded as paid.
+
+**Errors:**
+
+| Code              | Condition                                     |
+| ----------------- | --------------------------------------------- |
+| `400 BAD_REQUEST` | `depositAmount` is `0` — no deposit to record |
+| `404 NOT_FOUND`   | Request not found or not in a payable status  |
+| `409 CONFLICT`    | Deposit already recorded as paid              |
+
+---
+
+#### GET /requests/:id/available-materials
+
+Returns material instances that can fulfil the request's material-type needs, classified by availability and split by the requesting user's accessible locations.
+
+**Auth:** `authenticate` + `requireActiveOrganization` + `requests:read`
+
+Each returned instance carries an `availability` tag:
+
+| Tag         | Meaning                                                                              |
+| ----------- | ------------------------------------------------------------------------------------ |
+| `available` | Instance status is currently `available` — can be assigned immediately               |
+| `upcoming`  | Instance is `reserved` or `loaned` but will be free before the request's `startDate` |
+
+Instances that are `damaged`, `maintenance`, `retired`, `lost`, or won't be free in time are excluded.
+
+**Response shape** (same split as `GET /materials/instances?byUserAccessibleLocation=true`):
+
+```json
+{
+  "status": "success",
+  "data": {
+    "currentUserLocations": [
+      {
+        "location": { "_id": "...", "name": "Warehouse A" },
+        "instances": [
+          { "_id": "...", "serialNumber": "SN-001", "status": "available", "availability": "available", "model": { ... } },
+          { "_id": "...", "serialNumber": "SN-002", "status": "reserved", "availability": "upcoming", "model": { ... } }
+        ]
+      }
+    ],
+    "otherLocations": [
+      {
+        "location": { "_id": "...", "name": "Warehouse B" },
+        "instances": [ ... ]
+      }
+    ]
+  }
+}
+```
+
+**Common errors:**
+
+- `404 NOT_FOUND`: request does not exist in the organization
+
+---
+
 ### Loan Endpoints
 
 #### GET /loans
@@ -3118,7 +3271,27 @@ Gets a specific loan with full details.
 
 #### POST /loans/from-request/:requestId
 
-Creates a loan from a ready request (pickup action).
+Creates a loan from a ready request (pickup / checkout action).
+
+**Auth:** `authenticate` + `requireActiveOrganization` + `loans:create`
+
+**Preconditions (enforced server-side):**
+
+1. The request must be in `ready` status.
+2. If `depositAmount > 0`, the deposit must have been recorded as paid (`depositPaidAt` is set). Use `POST /requests/:id/record-payment` to record manual payments first.
+
+On success:
+
+- A new `Loan` is created with `status: "active"`.
+- The source request transitions to `status: "shipped"` and its `loanId` field is populated with the new loan's ID.
+- All assigned material instances are marked as `loaned`.
+
+**Errors:**
+
+| Code              | Condition                                         |
+| ----------------- | ------------------------------------------------- |
+| `400 BAD_REQUEST` | Deposit has not been paid and `depositAmount > 0` |
+| `404 NOT_FOUND`   | Request not found or not in `ready` status        |
 
 ---
 
@@ -3789,3 +3962,152 @@ For API support, contact:
 ---
 
 _This documentation was generated for LendEvent API v1.0.0_
+
+---
+
+## Pricing Configurations
+
+Base path: `/api/v1/pricing`
+
+All endpoints require authentication (`authenticate` middleware) and an active organization (`requireActiveOrganization`).
+
+---
+
+### GET /pricing/configs
+
+**Permission:** `pricing:read`
+
+Returns all pricing configurations for the organization.
+
+**Response 200:**
+`json
+{
+  "status": "success",
+  "data": [
+    {
+      "_id": "...",
+      "organizationId": "...",
+      "scope": "organization",
+      "referenceId": "...",
+      "strategyType": "per_day",
+      "isActive": true,
+      "perDayParams": { "overridePricePerDay": null },
+      "weeklyMonthlyParams": null,
+      "fixedParams": null
+    }
+  ]
+}
+`
+
+---
+
+### POST /pricing/configs
+
+**Permission:** `pricing:manage`
+
+Creates a new pricing configuration. Only one config per (organizationId, scope, referenceId) combination is allowed.
+
+**Request Body:**
+`json
+{
+  "scope": "materialType",
+  "referenceId": "<materialTypeId>",
+  "strategyType": "weekly_monthly",
+  "weeklyMonthlyParams": {
+    "weeklyPrice": 50,
+    "weeklyThreshold": 7,
+    "monthlyPrice": 150,
+    "monthlyThreshold": 30
+  }
+}
+`
+
+**Response 201:**
+`json
+{
+  "status": "success",
+  "data": { ... }
+}
+`
+
+**Errors:**
+
+- `400` � Missing required params for chosen strategy (e.g. `fixed` without `flatPrice`).
+- `409` � A config already exists for this (scope, referenceId) combination.
+
+---
+
+### GET /pricing/configs/:id
+
+**Permission:** `pricing:read`
+
+Returns a single pricing configuration by ID.
+
+**Errors:**
+
+- `404` � Config not found or belongs to a different organization.
+
+---
+
+### PUT /pricing/configs/:id
+
+**Permission:** `pricing:manage`
+
+Updates an existing pricing configuration. `scope` and `referenceId` cannot be changed.
+
+**Request Body:** Same fields as POST but all optional.
+
+**Errors:**
+
+- `404` � Config not found.
+- `409` � Update would create a duplicate (scope, referenceId).
+
+---
+
+### DELETE /pricing/configs/:id
+
+**Permission:** `pricing:manage`
+
+Deletes a pricing configuration.
+
+**Errors:**
+
+- `400` � Cannot delete the organization-level default config.
+- `404` � Config not found.
+
+---
+
+### POST /pricing/preview
+
+**Permission:** `pricing:read`
+
+Calculates and returns the estimated price for a given item without persisting anything.
+
+**Request Body:**
+`json
+{
+  "itemType": "materialType",
+  "referenceId": "<materialTypeId>",
+  "quantity": 2,
+  "durationInDays": 10
+}
+`
+
+**Response 200:**
+`json
+{
+  "status": "success",
+  "data": {
+    "strategyType": "per_day",
+    "durationInDays": 10,
+    "quantity": 2,
+    "unitPrice": 25.00,
+    "totalPrice": 500.00,
+    "effectivePricePerDay": 25.00
+  }
+}
+`
+
+**Errors:**
+
+- `404` � The referenced materialType or package was not found.

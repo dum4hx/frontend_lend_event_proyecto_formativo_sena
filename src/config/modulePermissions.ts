@@ -197,6 +197,13 @@ export const allNavItems: NavItem[] = [
     requiredPermissions: ["reports:read"],
     section: "Commerce",
   },
+  {
+    id: "pricing",
+    label: "Pricing",
+    path: "/app/pricing",
+    requiredPermissions: ["pricing:read"],
+    section: "Commerce",
+  },
 
   // -- /super-admin (separate module, kept here for getNavItemsByPrefix) --
   {

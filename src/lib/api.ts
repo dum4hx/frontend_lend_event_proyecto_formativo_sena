@@ -334,6 +334,11 @@ export function patch<TData, TBody = unknown>(path: string, body?: TBody) {
   return request<TData, TBody>(path, { method: "PATCH", body });
 }
 
+/** Perform a typed PUT request. */
+export function put<TData, TBody = unknown>(path: string, body?: TBody) {
+  return request<TData, TBody>(path, { method: "PUT", body });
+}
+
 /** Perform a typed DELETE request. */
 export function del<TData>(path: string) {
   return request<TData>(path, { method: "DELETE" });
@@ -348,5 +353,10 @@ export function publicGet<TData>(
   path: string,
   params?: Record<string, string | number | boolean | undefined>,
 ) {
-  return request<TData>(path, { method: "GET", params, skipRefresh: true, credentialsMode: "omit" });
+  return request<TData>(path, {
+    method: "GET",
+    params,
+    skipRefresh: true,
+    credentialsMode: "omit",
+  });
 }
