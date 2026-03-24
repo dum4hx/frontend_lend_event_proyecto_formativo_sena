@@ -7,57 +7,31 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const translationsPath = path.join(
-  __dirname,
-  "..",
-  "src",
-  "i18n",
-  "translations.ts"
-);
-const pendingPath = path.join(
-  __dirname,
-  "..",
-  "pending-translations.json"
-);
+const localesPath = path.join(__dirname, "..", "src", "i18n", "locales");
+const pendingPath = path.join(__dirname, "..", "pending-translations.json");
 
 /**
- * Extract translation objects from TypeScript file
+ * Load all translation files from modular structure
  */
-function extractTranslations(filePath) {
-  const content = fs.readFileSync(filePath, "utf-8");
+function loadModularTranslations(lang) {
+  const langPath = path.join(localesPath, lang);
+  const translations = {};
 
-  const enMatch = content.match(/const EN_TRANSLATIONS = \{([\s\S]*?)\} as const/);
-  const esMatch = content.match(
-    /const ES_TRANSLATIONS: Record<TranslationKey, string> = \{([\s\S]*?)\};/
-  );
-
-  if (!enMatch || !esMatch) {
-    console.error("❌ Could not find translation objects in file");
+  if (!fs.existsSync(langPath)) {
+    console.error(`❌ Language path not found: ${langPath}`);
     process.exit(1);
   }
 
-  return {
-    enContent: enMatch[1],
-    esContent: esMatch[1],
-  };
-}
+  const files = fs.readdirSync(langPath).filter((f) => f.endsWith(".json"));
 
-/**
- * Parse translation entries from content string
- */
-function parseTranslationEntries(content) {
-  const entries = {};
-  const lines = content.split("\n");
-
-  for (const line of lines) {
-    const match = line.match(/"([^"]+)":\s*"([^"]*)"/);
-    if (match) {
-      const [, key, value] = match;
-      entries[key] = value;
-    }
+  for (const file of files) {
+    const filePath = path.join(langPath, file);
+    const content = fs.readFileSync(filePath, "utf-8");
+    const json = JSON.parse(content);
+    Object.assign(translations, json);
   }
 
-  return entries;
+  return translations;
 }
 
 /**
@@ -67,13 +41,14 @@ function generatePendingTranslations() {
   console.log("\n 🔍 Analyzing pending translations...\n");
 
   try {
-    const { enContent, esContent } = extractTranslations(translationsPath);
-    const enEntries = parseTranslationEntries(enContent);
-    const esEntries = parseTranslationEntries(esContent);
+    const enTranslations = loadModularTranslations("en");
+    const esTranslations = loadModularTranslations("es");
 
     // Find missing keys
     const pending = {};
-    const missingKeys = Object.keys(enEntries).filter((key) => !esEntries[key]);
+    const missingKeys = Object.keys(enTranslations).filter(
+      (key) => !esTranslations[key]
+    );
 
     if (missingKeys.length === 0) {
       console.log("✅ No pending translations! All keys are translated.");
@@ -88,17 +63,13 @@ function generatePendingTranslations() {
     // Build pending object with English reference
     missingKeys.forEach((key) => {
       pending[key] = {
-        en: enEntries[key],
+        en: enTranslations[key],
         es: "[TRANSLATE_ME]",
       };
     });
 
     // Write to file
-    fs.writeFileSync(
-      pendingPath,
-      JSON.stringify(pending, null, 2),
-      "utf-8"
-    );
+    fs.writeFileSync(pendingPath, JSON.stringify(pending, null, 2), "utf-8");
 
     console.log(
       `📝 Generated pending-translations.json with ${missingKeys.length} keys`
