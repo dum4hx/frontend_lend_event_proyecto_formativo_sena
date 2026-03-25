@@ -473,7 +473,7 @@ export type LoanStatus = "active" | "overdue" | "returned" | "closed";
 
 export interface Loan {
   _id: string;
-  customerId: string;
+  customerId: string | Customer;
   requestId: string;
   status: LoanStatus;
   startDate: string;

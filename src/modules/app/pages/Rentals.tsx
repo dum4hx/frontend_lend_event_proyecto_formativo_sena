@@ -129,18 +129,30 @@ export default function Rentals() {
       const customerMap = new Map<string, Customer>();
       (customersRes.data.customers as Customer[]).forEach((c) => customerMap.set(c._id, c));
 
-      const views: LoanView[] = (loansRes.data.loans as Loan[]).map((loan) => ({
-        loan,
-        customer: customerMap.get(loan.customerId),
-      }));
+      const views: LoanView[] = (loansRes.data.loans as Loan[]).map((loan) => {
+        const customerId =
+          typeof loan.customerId === "string" ? loan.customerId : loan.customerId._id;
+        return {
+          loan,
+          customer:
+            typeof loan.customerId !== "string"
+              ? (loan.customerId as Customer)
+              : customerMap.get(customerId),
+        };
+      });
       setLoans(views);
     } catch (error) {
-      const message = error instanceof Error ? error.message : isEs ? "No se pudieron cargar los prestamos" : "Failed to load loans";
+      const message =
+        error instanceof Error
+          ? error.message
+          : isEs
+            ? "No se pudieron cargar los prestamos"
+            : "Failed to load loans";
       showError(message, isEs ? "Error de carga" : "Load Error");
     } finally {
       setLoading(false);
     }
-  }, [showError]);
+  }, [showError, isEs]);
 
   useEffect(() => {
     void fetchData();
@@ -178,13 +190,18 @@ export default function Rentals() {
       await extendLoan(extendTarget.loan._id, payload);
       showSuccess(
         isEs ? "Prestamo extendido correctamente." : "Loan extended successfully.",
-        isEs ? "Prestamo extendido" : "Loan Extended"
+        isEs ? "Prestamo extendido" : "Loan Extended",
       );
       setShowExtendModal(false);
       setExtendTarget(null);
       await fetchData();
     } catch (error) {
-      const message = error instanceof Error ? error.message : isEs ? "No se pudo extender el prestamo" : "Failed to extend loan";
+      const message =
+        error instanceof Error
+          ? error.message
+          : isEs
+            ? "No se pudo extender el prestamo"
+            : "Failed to extend loan";
       showError(message, isEs ? "Error al extender" : "Extend Error");
     } finally {
       setSubmitting(false);
@@ -203,13 +220,18 @@ export default function Rentals() {
       await returnLoan(returnTarget.loan._id);
       showSuccess(
         isEs ? "Prestamo marcado como devuelto." : "Loan marked as returned.",
-        isEs ? "Prestamo devuelto" : "Loan Returned"
+        isEs ? "Prestamo devuelto" : "Loan Returned",
       );
       setShowReturnModal(false);
       setReturnTarget(null);
       await fetchData();
     } catch (error) {
-      const message = error instanceof Error ? error.message : isEs ? "No se pudo registrar la devolucion" : "Failed to return loan";
+      const message =
+        error instanceof Error
+          ? error.message
+          : isEs
+            ? "No se pudo registrar la devolucion"
+            : "Failed to return loan";
       showError(message, isEs ? "Error de devolucion" : "Return Error");
     } finally {
       setSubmitting(false);
@@ -224,7 +246,9 @@ export default function Rentals() {
         <div>
           <h1 className="text-3xl font-bold text-white">{isEs ? "Prestamos" : "Loans"}</h1>
           <p className="text-gray-400 mt-1">
-            {isEs ? "Haz seguimiento de prestamos activos y devoluciones" : "Track active loans and manage returns"}
+            {isEs
+              ? "Haz seguimiento de prestamos activos y devoluciones"
+              : "Track active loans and manage returns"}
           </p>
         </div>
       </div>
@@ -235,7 +259,9 @@ export default function Rentals() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={20} />
           <input
             type="text"
-            placeholder={isEs ? "Buscar por ID de prestamo o cliente..." : "Search by loan ID or customer..."}
+            placeholder={
+              isEs ? "Buscar por ID de prestamo o cliente..." : "Search by loan ID or customer..."
+            }
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 bg-[#1a1a1a] border border-[#333] rounded-[8px] text-white placeholder-gray-600 focus:outline-none focus:border-[#FFD700] transition-all"
@@ -266,19 +292,31 @@ export default function Rentals() {
           <Loader2 className="animate-spin text-[#FFD700]" size={32} />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-12 text-gray-400">{isEs ? "No se encontraron prestamos" : "No loans found"}</div>
+        <div className="text-center py-12 text-gray-400">
+          {isEs ? "No se encontraron prestamos" : "No loans found"}
+        </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-[#333]">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-[#1a1a1a] text-gray-400 border-b border-[#333]">
-                <th className="text-left px-4 py-3 font-semibold">{isEs ? "ID Prestamo" : "Loan ID"}</th>
-                <th className="text-left px-4 py-3 font-semibold">{isEs ? "Cliente" : "Customer"}</th>
-                <th className="text-left px-4 py-3 font-semibold">{isEs ? "Fecha inicio" : "Start Date"}</th>
-                <th className="text-left px-4 py-3 font-semibold">{isEs ? "Fecha fin" : "End Date"}</th>
+                <th className="text-left px-4 py-3 font-semibold">
+                  {isEs ? "ID Prestamo" : "Loan ID"}
+                </th>
+                <th className="text-left px-4 py-3 font-semibold">
+                  {isEs ? "Cliente" : "Customer"}
+                </th>
+                <th className="text-left px-4 py-3 font-semibold">
+                  {isEs ? "Fecha inicio" : "Start Date"}
+                </th>
+                <th className="text-left px-4 py-3 font-semibold">
+                  {isEs ? "Fecha fin" : "End Date"}
+                </th>
                 <th className="text-left px-4 py-3 font-semibold">{isEs ? "Dias" : "Days"}</th>
                 <th className="text-left px-4 py-3 font-semibold">{isEs ? "Estado" : "Status"}</th>
-                <th className="text-left px-4 py-3 font-semibold">{isEs ? "Acciones" : "Actions"}</th>
+                <th className="text-left px-4 py-3 font-semibold">
+                  {isEs ? "Acciones" : "Actions"}
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -298,8 +336,12 @@ export default function Rentals() {
                     <td className="px-4 py-3 text-white font-medium">
                       {customerFullName(lv.customer)}
                     </td>
-                    <td className="px-4 py-3 text-gray-300">{formatDate(lv.loan.startDate, locale)}</td>
-                    <td className="px-4 py-3 text-gray-300">{formatDate(lv.loan.endDate, locale)}</td>
+                    <td className="px-4 py-3 text-gray-300">
+                      {formatDate(lv.loan.startDate, locale)}
+                    </td>
+                    <td className="px-4 py-3 text-gray-300">
+                      {formatDate(lv.loan.endDate, locale)}
+                    </td>
                     <td className="px-4 py-3">
                       {isActive ? (
                         <span
@@ -391,7 +433,9 @@ export default function Rentals() {
           onClick={(e) => e.target === e.currentTarget && setShowDetailModal(false)}
         >
           <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-6 w-full max-w-lg shadow-2xl space-y-4">
-            <h2 className="text-xl font-semibold text-white">{isEs ? "Detalle del prestamo" : "Loan Details"}</h2>
+            <h2 className="text-xl font-semibold text-white">
+              {isEs ? "Detalle del prestamo" : "Loan Details"}
+            </h2>
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
                 <p className="text-gray-400 text-xs mb-1">{isEs ? "ID prestamo" : "Loan ID"}</p>
@@ -448,7 +492,9 @@ export default function Rentals() {
           onClick={(e) => e.target === e.currentTarget && setShowExtendModal(false)}
         >
           <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-6 w-full max-w-md shadow-2xl space-y-4">
-            <h2 className="text-xl font-semibold text-white">{isEs ? "Extender prestamo" : "Extend Loan"}</h2>
+            <h2 className="text-xl font-semibold text-white">
+              {isEs ? "Extender prestamo" : "Extend Loan"}
+            </h2>
             <p className="text-zinc-400 text-sm">
               {isEs ? "Extendiendo prestamo" : "Extending loan"}{" "}
               <span className="text-white font-medium">
@@ -461,7 +507,9 @@ export default function Rentals() {
             </p>
             <div className="space-y-3">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">{isEs ? "Nueva fecha fin" : "New End Date"}</label>
+                <label className="block text-sm text-gray-400 mb-1">
+                  {isEs ? "Nueva fecha fin" : "New End Date"}
+                </label>
                 <input
                   type="date"
                   value={newEndDate}
@@ -472,7 +520,10 @@ export default function Rentals() {
               </div>
               <div>
                 <label className="block text-sm text-gray-400 mb-1">
-                  {isEs ? "Notas" : "Notes"} <span className="text-gray-600 text-xs">{isEs ? "(opcional)" : "(optional)"}</span>
+                  {isEs ? "Notas" : "Notes"}{" "}
+                  <span className="text-gray-600 text-xs">
+                    {isEs ? "(opcional)" : "(optional)"}
+                  </span>
                 </label>
                 <textarea
                   value={extendNotes}
@@ -500,7 +551,13 @@ export default function Rentals() {
                 disabled={submitting || !newEndDate}
                 className="bg-blue-500 hover:bg-blue-600 text-white border-transparent"
               >
-                {submitting ? (isEs ? "Extendiendo..." : "Extending...") : isEs ? "Extender prestamo" : "Extend Loan"}
+                {submitting
+                  ? isEs
+                    ? "Extendiendo..."
+                    : "Extending..."
+                  : isEs
+                    ? "Extender prestamo"
+                    : "Extend Loan"}
               </Button>
             </div>
           </div>
@@ -514,7 +571,9 @@ export default function Rentals() {
           onClick={(e) => e.target === e.currentTarget && setShowReturnModal(false)}
         >
           <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-6 w-full max-w-md shadow-2xl space-y-4">
-            <h2 className="text-xl font-semibold text-white">{isEs ? "Confirmar devolucion" : "Confirm Return"}</h2>
+            <h2 className="text-xl font-semibold text-white">
+              {isEs ? "Confirmar devolucion" : "Confirm Return"}
+            </h2>
             <p className="text-zinc-400 text-sm">
               {isEs ? "Marcar prestamo" : "Mark loan"}{" "}
               <span className="text-white font-medium">
@@ -539,7 +598,13 @@ export default function Rentals() {
                 disabled={submitting}
                 className="bg-green-500 hover:bg-green-600 text-white border-transparent"
               >
-                {submitting ? (isEs ? "Procesando..." : "Processing...") : isEs ? "Marcar como devuelto" : "Mark as Returned"}
+                {submitting
+                  ? isEs
+                    ? "Procesando..."
+                    : "Processing..."
+                  : isEs
+                    ? "Marcar como devuelto"
+                    : "Mark as Returned"}
               </Button>
             </div>
           </div>
