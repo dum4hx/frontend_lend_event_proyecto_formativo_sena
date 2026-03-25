@@ -3,6 +3,7 @@ import { Cpu, MessageSquare, Clock, DollarSign, AlertCircle } from "lucide-react
 import { SuperAdminStatCard } from "../components";
 import { fetchDashboard } from "../../../services/superAdminService";
 import { LoadingSpinner, ErrorDisplay } from "../../../components/ui";
+import { useLanguage } from "../../../contexts/useLanguage";
 import { normalizeError, logError } from "../../../utils/errorHandling";
 import type { AdminDashboardData } from "../../../types/api";
 
@@ -106,6 +107,8 @@ function generateClientUsage(): ClientUsageRow[] {
 // ---------------------------------------------------------------------------
 
 export default function AIChatbotMonitor() {
+  const { language } = useLanguage();
+  const isEs = language === "es";
   const [, setDashboard] = useState<AdminDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -135,7 +138,7 @@ export default function AIChatbotMonitor() {
   }, [fetchData]);
 
   if (loading) {
-    return <LoadingSpinner fullScreen message="Loading AI metrics…" />;
+    return <LoadingSpinner fullScreen message={isEs ? "Cargando metricas de IA..." : "Loading AI metrics..."} />;
   }
 
   if (error) {
@@ -150,40 +153,42 @@ export default function AIChatbotMonitor() {
     <div>
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white">AI Chatbot Monitor</h1>
+        <h1 className="text-3xl font-bold text-white">{isEs ? "Monitor de chatbot IA" : "AI Chatbot Monitor"}</h1>
         <p className="text-gray-400 mt-1">
-          Track AI token usage, performance metrics, and chatbot analytics
+          {isEs
+            ? "Monitorea uso de tokens IA, rendimiento y analitica del chatbot"
+            : "Track AI token usage, performance metrics, and chatbot analytics"}
         </p>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <SuperAdminStatCard
-          label="Total Tokens Used"
+          label={isEs ? "Tokens usados" : "Total Tokens Used"}
           value={`${(totalTokens / 1_000_000).toFixed(2)}M`}
           icon={<Cpu size={20} className="text-black" />}
-          trend="Last 7 days"
+          trend={isEs ? "Ultimos 7 dias" : "Last 7 days"}
           trendUp
         />
         <SuperAdminStatCard
-          label="Total Queries"
+          label={isEs ? "Consultas totales" : "Total Queries"}
           value={totalQueries.toLocaleString()}
           icon={<MessageSquare size={20} className="text-black" />}
-          trend="Across all clients"
+          trend={isEs ? "Todos los clientes" : "Across all clients"}
           trendUp
         />
         <SuperAdminStatCard
-          label="Avg Response Time"
+          label={isEs ? "Tiempo promedio de respuesta" : "Avg Response Time"}
           value="1.5s"
           icon={<Clock size={20} className="text-black" />}
-          trend="Below Threshold"
+          trend={isEs ? "Debajo del umbral" : "Below Threshold"}
           trendUp
         />
         <SuperAdminStatCard
-          label="Total API Cost"
+          label={isEs ? "Costo total API" : "Total API Cost"}
           value={`$${totalCost.toFixed(2)}`}
           icon={<DollarSign size={20} className="text-black" />}
-          trend="Last 7 days"
+          trend={isEs ? "Ultimos 7 dias" : "Last 7 days"}
           trendUp={false}
         />
       </div>
@@ -192,8 +197,17 @@ export default function AIChatbotMonitor() {
       <div className="mb-8 bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 flex items-center gap-3">
         <AlertCircle className="w-5 h-5 text-blue-400 flex-shrink-0" />
         <p className="text-sm text-blue-300">
-          AI chatbot metrics shown on this page are <strong>demonstration data</strong>.
-          Connect a real AI provider to display live analytics.
+          {isEs ? (
+            <>
+              Las metricas mostradas en esta pagina son <strong>datos de demostracion</strong>.
+              Conecta un proveedor real de IA para ver analitica en vivo.
+            </>
+          ) : (
+            <>
+              AI chatbot metrics shown on this page are <strong>demonstration data</strong>.
+              Connect a real AI provider to display live analytics.
+            </>
+          )}
         </p>
       </div>
 
@@ -204,7 +218,7 @@ export default function AIChatbotMonitor() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-lg font-bold text-white">Token Usage Trend</h2>
-              <p className="text-xs text-gray-500">Daily token consumption</p>
+              <p className="text-xs text-gray-500">{isEs ? "Consumo diario de tokens" : "Daily token consumption"}</p>
             </div>
           </div>
           <AreaChart data={tokenTrend} />
@@ -214,8 +228,8 @@ export default function AIChatbotMonitor() {
         <div className="bg-[#121212] border border-[#333] rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-lg font-bold text-white">Response Time Analysis</h2>
-              <p className="text-xs text-gray-500">Average response time by hour</p>
+              <h2 className="text-lg font-bold text-white">{isEs ? "Analisis de tiempos de respuesta" : "Response Time Analysis"}</h2>
+              <p className="text-xs text-gray-500">{isEs ? "Tiempo promedio de respuesta por hora" : "Average response time by hour"}</p>
             </div>
           </div>
           <ResponseTimeChart data={responseTrend} />
@@ -224,8 +238,8 @@ export default function AIChatbotMonitor() {
 
       {/* Top Clients by Token Usage */}
       <div className="bg-[#121212] border border-[#333] rounded-xl p-6 mb-8">
-        <h2 className="text-lg font-bold text-white mb-1">Top Clients by Token Usage</h2>
-        <p className="text-xs text-gray-500 mb-6">Breakdown of AI usage by corporate client</p>
+        <h2 className="text-lg font-bold text-white mb-1">{isEs ? "Top clientes por uso de tokens" : "Top Clients by Token Usage"}</h2>
+        <p className="text-xs text-gray-500 mb-6">{isEs ? "Distribucion de uso de IA por cliente" : "Breakdown of AI usage by corporate client"}</p>
 
         <div className="flex items-end justify-around h-40 gap-3 mb-4">
           {clientUsage.map((c) => {
@@ -267,11 +281,11 @@ export default function AIChatbotMonitor() {
             <thead>
               <tr className="border-b border-[#333] text-gray-400 text-xs uppercase">
                 <th className="text-left py-3 px-6">Client</th>
-                <th className="text-left py-3 px-6">Tokens Used</th>
-                <th className="text-left py-3 px-6">Total Queries</th>
-                <th className="text-left py-3 px-6">Avg Tokens/Query</th>
-                <th className="text-left py-3 px-6">Cost</th>
-                <th className="text-left py-3 px-6">Status</th>
+                <th className="text-left py-3 px-6">{isEs ? "Tokens" : "Tokens Used"}</th>
+                <th className="text-left py-3 px-6">{isEs ? "Consultas" : "Total Queries"}</th>
+                <th className="text-left py-3 px-6">{isEs ? "Promedio tokens/consulta" : "Avg Tokens/Query"}</th>
+                <th className="text-left py-3 px-6">{isEs ? "Costo" : "Cost"}</th>
+                <th className="text-left py-3 px-6">{isEs ? "Estado" : "Status"}</th>
               </tr>
             </thead>
             <tbody>

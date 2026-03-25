@@ -19,15 +19,16 @@ import { ApiError } from "../lib/api";
 import type { AvailablePlan } from "../types/api";
 import styles from "./Packages.module.css";
 import { useAuth } from "../contexts/useAuth";
+import { useLanguage } from "../contexts/useLanguage";
 import LoginModal from "../components/LoginModal";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
 /** Format a monthly price in dollars. */
-function formatPrice(amount: number | null | undefined): string {
+function formatPrice(amount: number | null | undefined, locale: string): string {
   if (amount === null || amount === undefined) return "No price";
   const value = Number(amount);
-  return value.toLocaleString("en-US", {
+  return value.toLocaleString(locale, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -47,6 +48,7 @@ interface ActivationInfoModalProps {
 }
 
 function ActivationInfoModal({ onViewPlans, onClose }: ActivationInfoModalProps) {
+  const { t } = useLanguage();
   return (
     <div
       className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4"
@@ -64,30 +66,29 @@ function ActivationInfoModal({ onViewPlans, onClose }: ActivationInfoModalProps)
 
           <div className="text-center mb-6">
             <span className="inline-flex items-center rounded-full border border-yellow-400/20 bg-yellow-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-yellow-300 mb-3">
-              Final activation step
+              {t("publicSite.packages.activation.badge")}
             </span>
             <h2 className="text-2xl md:text-3xl font-extrabold text-white leading-tight mb-3">
-              Activate your account
+              {t("publicSite.packages.activation.title")}
             </h2>
             <p className="text-gray-300 text-sm md:text-base leading-relaxed">
-              To access your account and use all platform features, you need to purchase one of
-              our available plans.
+              {t("publicSite.packages.activation.description")}
             </p>
           </div>
 
           <div className="rounded-2xl border border-zinc-700 bg-zinc-950/60 p-4 mb-7">
             <p className="text-gray-200 text-sm md:text-[15px] leading-relaxed text-center">
-              Choose a package and activate your system access immediately.
+              {t("publicSite.packages.activation.summary")}
             </p>
             <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
               <span className="rounded-full bg-zinc-800 px-3 py-1 text-xs text-gray-300">
-                Full access
+                {t("publicSite.packages.activation.tag.fullAccess")}
               </span>
               <span className="rounded-full bg-zinc-800 px-3 py-1 text-xs text-gray-300">
-                All features enabled
+                {t("publicSite.packages.activation.tag.allFeatures")}
               </span>
               <span className="rounded-full bg-zinc-800 px-3 py-1 text-xs text-gray-300">
-                Instant activation
+                {t("publicSite.packages.activation.tag.instant")}
               </span>
             </div>
           </div>
@@ -97,13 +98,13 @@ function ActivationInfoModal({ onViewPlans, onClose }: ActivationInfoModalProps)
               onClick={onViewPlans}
               className="flex-1 bg-yellow-400 hover:bg-yellow-300 text-black font-extrabold py-3 rounded-xl transition-colors text-sm"
             >
-              View plans and activate account
+              {t("publicSite.packages.activation.viewPlans")}
             </button>
             <button
               onClick={onClose}
               className="flex-1 border border-zinc-600 hover:border-zinc-400 text-gray-300 hover:text-white font-medium py-3 rounded-xl transition-colors text-sm"
             >
-              Not now
+              {t("publicSite.packages.activation.notNow")}
             </button>
           </div>
         </div>
@@ -113,6 +114,7 @@ function ActivationInfoModal({ onViewPlans, onClose }: ActivationInfoModalProps)
 }
 
 function ActiveSubscriptionModal({ plan, onManage, onClose }: ActiveSubscriptionModalProps) {
+  const { t } = useLanguage();
   return (
     <div
       className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
@@ -124,27 +126,25 @@ function ActiveSubscriptionModal({ plan, onManage, onClose }: ActiveSubscription
         <div className="mb-4 rounded-full bg-yellow-400/10 p-4">
           <ShieldCheck className="w-10 h-10 text-yellow-400" />
         </div>
-        <h2 className="text-xl font-bold text-white mb-2">Active Subscription</h2>
+        <h2 className="text-xl font-bold text-white mb-2">{t("publicSite.packages.activeSubscription.title")}</h2>
         <p className="text-gray-400 text-sm mb-2">
-          You already have an active{" "}
-          <span className="text-yellow-400 font-semibold capitalize">{plan}</span> subscription.
+          {t("publicSite.packages.activeSubscription.description", { plan })}
         </p>
         <p className="text-gray-500 text-sm mb-8">
-          You cannot purchase a new plan while your current subscription is active. To upgrade,
-          downgrade, or manage billing, visit the Subscription Management page.
+          {t("publicSite.packages.activeSubscription.note")}
         </p>
         <div className="flex flex-col sm:flex-row gap-3 w-full">
           <button
             onClick={onManage}
             className="flex-1 bg-yellow-400 hover:bg-yellow-300 text-black font-bold py-2.5 rounded-xl transition-colors text-sm"
           >
-            Manage Subscription
+            {t("publicSite.packages.activeSubscription.manage")}
           </button>
           <button
             onClick={onClose}
             className="flex-1 border border-zinc-600 hover:border-zinc-400 text-gray-300 hover:text-white font-medium py-2.5 rounded-xl transition-colors text-sm"
           >
-            Close
+            {t("common.close")}
           </button>
         </div>
       </div>
@@ -167,6 +167,7 @@ interface PlanCardProps {
 }
 
 function PlanCard({ plan, featured, onSelect }: PlanCardProps) {
+  const { locale, t } = useLanguage();
   const isUnlimited = (n: number) => n === -1;
   const isFreePlan = plan.basePriceMonthly === 0 && (plan.pricePerSeat ?? 0) <= 0;
 
@@ -180,7 +181,7 @@ function PlanCard({ plan, featured, onSelect }: PlanCardProps) {
     >
       {featured && (
         <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-yellow-400 text-black text-[10px] font-bold px-4 py-1 rounded-full uppercase tracking-wider">
-          Most Popular
+          {t("publicSite.packages.card.mostPopular")}
         </div>
       )}
 
@@ -193,20 +194,20 @@ function PlanCard({ plan, featured, onSelect }: PlanCardProps) {
       {/* Price */}
       <div className="text-left mb-6">
         <span className={`font-extrabold ${featured ? "text-5xl" : "text-4xl"}`}>
-          {isFreePlan ? "Free" : `$${formatPrice(plan.basePriceMonthly)}`}
+          {isFreePlan ? t("publicSite.packages.card.free") : `$${formatPrice(plan.basePriceMonthly, locale)}`}
         </span>
         {plan.durationDays != null && (
           <span className="text-gray-500 ml-2 text-base font-normal">
             /{" "}
             {plan.durationDays === 30
-              ? "month"
+              ? t("publicSite.packages.card.interval.month")
               : plan.durationDays === 365
-                ? "year"
-                : `${plan.durationDays} days`}
+                ? t("publicSite.packages.card.interval.year")
+                : t("publicSite.packages.card.interval.days", { days: plan.durationDays })}
           </span>
         )}
         {plan.billingModel === "dynamic" && plan.pricePerSeat > 0 && (
-          <p className="text-gray-500 text-sm mt-1">+ ${formatPrice(plan.pricePerSeat)} / seat</p>
+          <p className="text-gray-500 text-sm mt-1">+ ${formatPrice(plan.pricePerSeat, locale)} {t("publicSite.packages.card.perSeat")}</p>
         )}
       </div>
 
@@ -214,11 +215,15 @@ function PlanCard({ plan, featured, onSelect }: PlanCardProps) {
       <div className="flex gap-4 mb-6 text-left">
         <div className="flex items-center text-gray-400 text-xs">
           <Users className="w-4 h-4 mr-1.5 text-yellow-400/70" />
-          {isUnlimited(plan.maxSeats) ? "Unlimited" : `Up to ${plan.maxSeats}`} seats
+          {isUnlimited(plan.maxSeats)
+            ? t("publicSite.packages.card.limits.unlimited")
+            : t("publicSite.packages.card.limits.upToSeats", { seats: plan.maxSeats })}
         </div>
         <div className="flex items-center text-gray-400 text-xs">
           <LayoutGrid className="w-4 h-4 mr-1.5 text-yellow-400/70" />
-          {isUnlimited(plan.maxCatalogItems) ? "Unlimited" : plan.maxCatalogItems} items
+          {isUnlimited(plan.maxCatalogItems)
+            ? t("publicSite.packages.card.limits.unlimited")
+            : t("publicSite.packages.card.limits.items", { items: plan.maxCatalogItems })}
         </div>
       </div>
 
@@ -239,7 +244,7 @@ function PlanCard({ plan, featured, onSelect }: PlanCardProps) {
           featured ? "py-4" : "py-3"
         } ${styles.glowButton}`}
       >
-        Get Started
+        {t("publicSite.packages.card.getStarted")}
       </button>
     </div>
   );
@@ -248,6 +253,7 @@ function PlanCard({ plan, featured, onSelect }: PlanCardProps) {
 // ─── Page ──────────────────────────────────────────────────────────────────
 
 export default function Packages() {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
   const plansSectionRef = useRef<HTMLElement | null>(null);
@@ -316,7 +322,6 @@ export default function Packages() {
     async function load() {
       try {
         const res = await getAvailablePlans();
-        console.log("API RESPONSE:", res.data);
         if (cancelled) return;
         setPlans(res.data.plans);
       } catch {
@@ -345,7 +350,7 @@ export default function Packages() {
           setError(
             err2 instanceof ApiError
               ? err2.message
-              : "Failed to load plans. Please try again later.",
+              : t("publicSite.packages.error.loadFailed"),
           );
         }
       } finally {
@@ -357,7 +362,7 @@ export default function Packages() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [t]);
 
   const handleSelect = (plan: PublicPlan) => {
     // If unauthenticated, open login/register modal and remember selection
@@ -442,15 +447,15 @@ export default function Packages() {
             }}
           />
           <h2 className="text-4xl md:text-5xl font-extrabold mb-4">
-            Simple <span className="text-yellow-400">Pricing</span>
+            {t("publicSite.packages.hero.titlePrefix")} <span className="text-yellow-400">{t("publicSite.packages.hero.titleHighlight")}</span>
           </h2>
-          <p className="text-gray-400 mb-12 text-lg">Choose the perfect plan for your business</p>
+          <p className="text-gray-400 mb-12 text-lg">{t("publicSite.packages.hero.subtitle")}</p>
 
           {/* Loading */}
           {loading && (
             <div className="flex items-center justify-center py-20">
               <Loader2 className="w-8 h-8 text-yellow-400 animate-spin" />
-              <span className="ml-3 text-gray-400">Loading plans…</span>
+              <span className="ml-3 text-gray-400">{t("publicSite.packages.loading")}</span>
             </div>
           )}
 
@@ -463,7 +468,7 @@ export default function Packages() {
                 onClick={() => window.location.reload()}
                 className="text-sm text-yellow-400 underline hover:text-yellow-300"
               >
-                Retry
+                {t("publicSite.packages.retry")}
               </button>
             </div>
           )}
@@ -472,7 +477,7 @@ export default function Packages() {
           {!loading && !error && plans.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 text-gray-500">
               <Package className="w-12 h-12 mb-4 opacity-50" />
-              <p>No plans available at this time. Check back soon!</p>
+              <p>{t("publicSite.packages.empty")}</p>
             </div>
           )}
 

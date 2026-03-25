@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { AlertCircle, XCircle, CheckCircle, Clock, Filter } from "lucide-react";
+import { useLanguage } from "../../../contexts/useLanguage";
 
 interface Alert {
   id: string;
@@ -102,8 +103,21 @@ const getStatusBadge = (status: string) => {
 };
 
 export default function AlertsPage() {
+  const { language } = useLanguage();
+  const isEs = language === "es";
   const [alerts, setAlerts] = useState<Alert[]>(SAMPLE_ALERTS);
   const [filterStatus, setFilterStatus] = useState<string>("all");
+
+  const statusLabel = (status: Alert["status"]) => {
+    if (isEs) {
+      if (status === "active") return "Activo";
+      if (status === "acknowledged") return "Reconocido";
+      return "Resuelto";
+    }
+    if (status === "active") return "Active";
+    if (status === "acknowledged") return "Acknowledged";
+    return "Resolved";
+  };
 
   const filteredAlerts = alerts.filter((alert) => {
     if (filterStatus === "all") return true;
@@ -133,8 +147,14 @@ export default function AlertsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-white">Warehouse Alerts</h1>
-        <p className="text-gray-400">Monitor and manage warehouse alerts and notifications</p>
+        <h1 className="text-3xl font-bold text-white">
+          {isEs ? "Alertas de bodega" : "Warehouse Alerts"}
+        </h1>
+        <p className="text-gray-400">
+          {isEs
+            ? "Monitorea y gestiona alertas y notificaciones de bodega"
+            : "Monitor and manage warehouse alerts and notifications"}
+        </p>
       </div>
 
       {/* Alert Summary */}
@@ -142,7 +162,7 @@ export default function AlertsPage() {
         <div className="bg-[#121212] border border-red-500/30 rounded-[12px] p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm">Critical Alerts</p>
+              <p className="text-gray-400 text-sm">{isEs ? "Alertas criticas" : "Critical Alerts"}</p>
               <h3 className="text-3xl font-bold text-red-400 mt-2">{criticalAlertsCount}</h3>
             </div>
             <XCircle size={40} className="text-red-400 opacity-40" />
@@ -152,7 +172,7 @@ export default function AlertsPage() {
         <div className="bg-[#121212] border border-yellow-500/30 rounded-[12px] p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm">Active Alerts</p>
+              <p className="text-gray-400 text-sm">{isEs ? "Alertas activas" : "Active Alerts"}</p>
               <h3 className="text-3xl font-bold text-yellow-400 mt-2">{activeAlertsCount}</h3>
             </div>
             <AlertCircle size={40} className="text-yellow-400 opacity-40" />
@@ -162,7 +182,7 @@ export default function AlertsPage() {
         <div className="bg-[#121212] border border-green-500/30 rounded-[12px] p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm">Resolved</p>
+              <p className="text-gray-400 text-sm">{isEs ? "Resueltas" : "Resolved"}</p>
               <h3 className="text-3xl font-bold text-green-400 mt-2">
                 {alerts.filter((a) => a.status === "resolved").length}
               </h3>
@@ -180,10 +200,10 @@ export default function AlertsPage() {
           onChange={(e) => setFilterStatus(e.target.value)}
           className="bg-transparent text-white focus:outline-none cursor-pointer"
         >
-          <option value="all">All Status</option>
-          <option value="active">Active</option>
-          <option value="acknowledged">Acknowledged</option>
-          <option value="resolved">Resolved</option>
+          <option value="all">{isEs ? "Todos los estados" : "All Status"}</option>
+          <option value="active">{isEs ? "Activos" : "Active"}</option>
+          <option value="acknowledged">{isEs ? "Reconocidos" : "Acknowledged"}</option>
+          <option value="resolved">{isEs ? "Resueltos" : "Resolved"}</option>
         </select>
       </div>
 
@@ -207,7 +227,7 @@ export default function AlertsPage() {
                     <div className="flex items-center gap-4 mt-3">
                       {alert.location && (
                         <span className="text-xs opacity-75 font-mono">
-                          Location: {alert.location}
+                          {isEs ? "Ubicacion" : "Location"}: {alert.location}
                         </span>
                       )}
                       {alert.itemSku && (
@@ -221,7 +241,7 @@ export default function AlertsPage() {
 
                   {/* Status Badge */}
                   <span className={`px-3 py-1 rounded text-xs font-semibold whitespace-nowrap ${getStatusBadge(alert.status)}`}>
-                    {alert.status.charAt(0).toUpperCase() + alert.status.slice(1)}
+                    {statusLabel(alert.status)}
                   </span>
                 </div>
 
@@ -233,13 +253,13 @@ export default function AlertsPage() {
                         onClick={() => handleAcknowledge(alert.id)}
                         className="text-xs font-semibold px-3 py-1 rounded btn-secondary opacity-70 hover:opacity-100 transition-opacity"
                       >
-                        Acknowledge
+                        {isEs ? "Reconocer" : "Acknowledge"}
                       </button>
                       <button
                         onClick={() => handleResolve(alert.id)}
                         className="text-xs font-semibold px-3 py-1 rounded btn-secondary opacity-70 hover:opacity-100 transition-opacity"
                       >
-                        Resolve
+                        {isEs ? "Resolver" : "Resolve"}
                       </button>
                     </>
                   )}
@@ -248,7 +268,7 @@ export default function AlertsPage() {
                       onClick={() => handleResolve(alert.id)}
                       className="text-xs font-semibold px-3 py-1 rounded btn-secondary opacity-70 hover:opacity-100 transition-opacity"
                     >
-                      Resolve
+                      {isEs ? "Resolver" : "Resolve"}
                     </button>
                   )}
                 </div>
@@ -261,8 +281,10 @@ export default function AlertsPage() {
       {filteredAlerts.length === 0 && (
         <div className="text-center py-12">
           <CheckCircle size={48} className="text-green-400 mx-auto mb-4 opacity-50" />
-          <p className="text-gray-400 text-lg font-semibold">All good!</p>
-          <p className="text-gray-500 text-sm">No alerts matching your filter</p>
+          <p className="text-gray-400 text-lg font-semibold">{isEs ? "Todo bien" : "All good!"}</p>
+          <p className="text-gray-500 text-sm">
+            {isEs ? "No hay alertas para el filtro actual" : "No alerts matching your filter"}
+          </p>
         </div>
       )}
     </div>

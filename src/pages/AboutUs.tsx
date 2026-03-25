@@ -1,8 +1,11 @@
 import Header from '../components/Header'
 import Footer from '../components/Footer'
+import { useLanguage } from "../contexts/useLanguage";
 import styles from './AboutUs.module.css'
 
 export default function AboutUs() {
+  const { t } = useLanguage();
+
   return (
     <div className="bg-black text-white min-h-screen flex flex-col">
       <Header />
@@ -12,24 +15,21 @@ export default function AboutUs() {
           {/* Contenido de texto */}
           <div className="space-y-8">
             <h2 className="text-5xl font-extrabold tracking-tight">
-              About <span className="text-yellow-400">Lend Event</span>
+              {t("publicSite.about.title")}
             </h2>
 
             <div className="space-y-6 text-gray-400 text-lg leading-relaxed">
               <p>
-                Our mission is to transform how companies plan and execute corporate events.
-                Founded in 2024, Lend Event combines cutting-edge technology with deep industry
-                expertise to deliver a platform that truly understands your needs.
+                {t("publicSite.about.paragraph1")}
               </p>
               <p>
-                Our team of event professionals and software engineers works tirelessly to ensure
-                every feature we build solves real problems and delivers measurable value to our clients.
+                {t("publicSite.about.paragraph2")}
               </p>
             </div>
 
             <a href="/packages">
               <button className={`bg-yellow-400 text-black font-bold py-4 px-10 rounded-xl text-lg ${styles.glowButton}`}>
-                Join Us Today
+                {t("publicSite.about.cta")}
               </button>
             </a>
           </div>
@@ -54,8 +54,7 @@ export default function AboutUs() {
             </div>
 
             <p className="text-2xl md:text-3xl font-medium text-gray-300">
-              Powering <span className="text-yellow-400 font-bold">10,000+</span> events
-              worldwide
+              {t("publicSite.about.powering", { count: "10,000+" })}
             </p>
           </div>
         </div>

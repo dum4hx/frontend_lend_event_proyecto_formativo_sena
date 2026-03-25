@@ -34,6 +34,7 @@ import {
 import { useAlertModal } from "../../../hooks/useAlertModal";
 import { useConfirmModal } from "../../../hooks/useConfirmModal";
 import { AdminPagination, AdminTable } from "../components";
+import { useLanguage } from "../../../contexts/useLanguage";
 
 // --- Colombia API types & fetcher -------------------------------------------
 interface ColombiaDepartment {
@@ -117,6 +118,8 @@ function asTrimmedString(value: unknown): string {
 }
 
 export default function Customers() {
+  const { language } = useLanguage();
+  const isEs = language === "es";
   const { showError, AlertModal } = useAlertModal();
   const { showConfirm, ConfirmModal } = useConfirmModal();
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -522,12 +525,12 @@ export default function Customers() {
       setTotal(response.data.total);
       setTotalPages(response.data.totalPages);
     } catch (err) {
-      const message = err instanceof ApiError ? err.message : "Error loading customers";
+      const message = err instanceof ApiError ? err.message : isEs ? "Error al cargar clientes" : "Error loading customers";
       setError(message);
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearch, statusFilter, currentPage]);
+  }, [debouncedSearch, statusFilter, currentPage, isEs]);
 
   useEffect(() => {
     void fetchCustomers();
@@ -590,7 +593,7 @@ export default function Customers() {
       resetForm();
       await fetchCustomers();
     } catch (err) {
-      const message = err instanceof ApiError ? err.message : "Failed to create customer";
+      const message = err instanceof ApiError ? err.message : isEs ? "No se pudo crear el cliente" : "Failed to create customer";
       setModalError(message);
     } finally {
       setSubmitting(false);
@@ -623,7 +626,7 @@ export default function Customers() {
       resetForm();
       await fetchCustomers();
     } catch (err) {
-      const message = err instanceof ApiError ? err.message : "Failed to update customer";
+      const message = err instanceof ApiError ? err.message : isEs ? "No se pudo actualizar el cliente" : "Failed to update customer";
       setModalError(message);
     } finally {
       setSubmitting(false);
@@ -634,9 +637,11 @@ export default function Customers() {
   const handleBlacklist = async (customer: Customer) => {
     const fullName = `${customer.name.firstName} ${customer.name.firstSurname}`;
     const confirmed = await showConfirm({
-      title: `Block ${fullName}?`,
-      message: 'This will prevent the customer from being used in new rentals.',
-      confirmText: 'Block',
+      title: isEs ? `¿Bloquear a ${fullName}?` : `Block ${fullName}?`,
+      message: isEs
+        ? "Esto impedirá usar este cliente en nuevos alquileres."
+        : "This will prevent the customer from being used in new rentals.",
+      confirmText: isEs ? "Bloquear" : "Block",
       variant: 'danger',
     });
     
@@ -646,7 +651,7 @@ export default function Customers() {
       await blacklistCustomer(customer._id);
       await fetchCustomers();
     } catch (err) {
-      const message = err instanceof ApiError ? err.message : "Failed to blacklist customer";
+      const message = err instanceof ApiError ? err.message : isEs ? "No se pudo bloquear el cliente" : "Failed to blacklist customer";
       showError(message);
     }
   };
@@ -655,9 +660,11 @@ export default function Customers() {
   const handleDeactivate = async (customer: Customer) => {
     const fullName = `${customer.name.firstName} ${customer.name.firstSurname}`;
     const confirmed = await showConfirm({
-      title: `Deactivate ${fullName}?`,
-      message: 'This will temporarily deactivate the customer.',
-      confirmText: 'Deactivate',
+      title: isEs ? `¿Desactivar a ${fullName}?` : `Deactivate ${fullName}?`,
+      message: isEs
+        ? "Esto desactivará temporalmente al cliente."
+        : "This will temporarily deactivate the customer.",
+      confirmText: isEs ? "Desactivar" : "Deactivate",
       variant: 'warning',
     });
     
@@ -667,7 +674,7 @@ export default function Customers() {
       await deactivateCustomer(customer._id);
       await fetchCustomers();
     } catch (err) {
-      const message = err instanceof ApiError ? err.message : "Failed to deactivate customer";
+      const message = err instanceof ApiError ? err.message : isEs ? "No se pudo desactivar el cliente" : "Failed to deactivate customer";
       showError(message);
     }
   };
@@ -676,9 +683,11 @@ export default function Customers() {
   const handleReactivate = async (customer: Customer) => {
     const fullName = `${customer.name.firstName} ${customer.name.firstSurname}`;
     const confirmed = await showConfirm({
-      title: `Activate ${fullName}?`,
-      message: 'This will restore the customer to active status.',
-      confirmText: 'Activate',
+      title: isEs ? `¿Activar a ${fullName}?` : `Activate ${fullName}?`,
+      message: isEs
+        ? "Esto restaurará al cliente a estado activo."
+        : "This will restore the customer to active status.",
+      confirmText: isEs ? "Activar" : "Activate",
       variant: 'info',
     });
     
@@ -688,7 +697,7 @@ export default function Customers() {
       await activateCustomer(customer._id);
       await fetchCustomers();
     } catch (err) {
-      const message = err instanceof ApiError ? err.message : "Failed to activate customer";
+      const message = err instanceof ApiError ? err.message : isEs ? "No se pudo activar el cliente" : "Failed to activate customer";
       showError(message);
     }
   };
@@ -697,10 +706,11 @@ export default function Customers() {
   const handleDeleteCustomer = async (customer: Customer) => {
     const fullName = `${customer.name.firstName} ${customer.name.firstSurname}`;
     const confirmed = await showConfirm({
-      title: `Delete ${fullName}?`,
-      message:
-        "This action is destructive and cannot be undone from the UI. The customer will be removed from active operations.",
-      confirmText: "Delete permanently",
+      title: isEs ? `¿Eliminar a ${fullName}?` : `Delete ${fullName}?`,
+      message: isEs
+        ? "Esta acción es destructiva y no se puede deshacer desde la interfaz. El cliente se eliminará de las operaciones activas."
+        : "This action is destructive and cannot be undone from the UI. The customer will be removed from active operations.",
+      confirmText: isEs ? "Eliminar permanentemente" : "Delete permanently",
       variant: "danger",
     });
 
@@ -710,7 +720,7 @@ export default function Customers() {
       await deleteCustomer(customer._id);
       await fetchCustomers();
     } catch (err) {
-      const message = err instanceof ApiError ? err.message : "Failed to delete customer";
+      const message = err instanceof ApiError ? err.message : isEs ? "No se pudo eliminar el cliente" : "Failed to delete customer";
       showError(message);
     }
   };
@@ -880,11 +890,11 @@ export default function Customers() {
   const getStatusBadge = (status: CustomerStatus) => {
     switch (status) {
       case "active":
-        return <span className="badge badge-success">Active</span>;
+        return <span className="badge badge-success">{isEs ? "Activo" : "Active"}</span>;
       case "inactive":
-        return <span className="badge badge-warning">Inactive</span>;
+        return <span className="badge badge-warning">{isEs ? "Inactivo" : "Inactive"}</span>;
       case "blacklisted":
-        return <span className="badge badge-danger">Blocked</span>;
+        return <span className="badge badge-danger">{isEs ? "Bloqueado" : "Blocked"}</span>;
     }
   };
 
@@ -903,8 +913,10 @@ export default function Customers() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Customers</h1>
-          <p className="text-gray-400">Manage your organization's customers</p>
+          <h1 className="text-3xl font-bold mb-2">{isEs ? "Clientes" : "Customers"}</h1>
+          <p className="text-gray-400">
+            {isEs ? "Gestiona los clientes de tu organización" : "Manage your organization's customers"}
+          </p>
         </div>
 
         {/* Global Error */}
@@ -925,7 +937,7 @@ export default function Customers() {
               />
               <input
                 type="text"
-                placeholder="Search by name, email, or document..."
+                placeholder={isEs ? "Buscar por nombre, correo o documento..." : "Search by name, email, or document..."}
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -937,8 +949,8 @@ export default function Customers() {
 
             {/* Status Filter */}
             <select
-              title="Filter by status"
-              aria-label="Filter by status"
+              title={isEs ? "Filtrar por estado" : "Filter by status"}
+              aria-label={isEs ? "Filtrar por estado" : "Filter by status"}
               value={statusFilter}
               onChange={(e) => {
                 setStatusFilter(e.target.value as CustomerStatus | "");
@@ -946,10 +958,10 @@ export default function Customers() {
               }}
               className="input md:w-48"
             >
-              <option value="">All statuses</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="blacklisted">Blocked</option>
+              <option value="">{isEs ? "Todos los estados" : "All statuses"}</option>
+              <option value="active">{isEs ? "Activo" : "Active"}</option>
+              <option value="inactive">{isEs ? "Inactivo" : "Inactive"}</option>
+              <option value="blacklisted">{isEs ? "Bloqueado" : "Blocked"}</option>
             </select>
 
             {/* Create Button */}
@@ -963,7 +975,7 @@ export default function Customers() {
               className="flex items-center gap-2 px-4 py-2 font-bold rounded-lg transition gold-action-btn"
             >
               <Plus size={20} />
-              New Customer
+              {isEs ? "Nuevo Cliente" : "New Customer"}
             </button>
           </div>
         </div>
@@ -972,25 +984,25 @@ export default function Customers() {
         {loading || loadingDocTypes ? (
           <div className="card flex items-center justify-center py-12">
             <div className="spinner w-8 h-8"></div>
-            <p className="mt-4 text-gray-400">Loading customers...</p>
+            <p className="mt-4 text-gray-400">{isEs ? "Cargando clientes..." : "Loading customers..."}</p>
           </div>
         ) : customers.length === 0 ? (
           <div className="card text-center py-12">
-            <p className="text-gray-400">No customers found</p>
+            <p className="text-gray-400">{isEs ? "No se encontraron clientes" : "No customers found"}</p>
           </div>
         ) : (
           <>
             <AdminTable>
               <thead className="bg-[#0f0f0f] border-b border-[#333]">
                 <tr>
-                  <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">Name</th>
-                  <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">Email</th>
-                  <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">Phone</th>
+                  <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">{isEs ? "Nombre" : "Name"}</th>
+                  <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">{isEs ? "Correo" : "Email"}</th>
+                  <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">{isEs ? "Teléfono" : "Phone"}</th>
                   <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">
-                    Document
+                    {isEs ? "Documento" : "Document"}
                   </th>
-                  <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">Status</th>
-                  <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">Actions</th>
+                  <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">{isEs ? "Estado" : "Status"}</th>
+                  <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">{isEs ? "Acciones" : "Actions"}</th>
                 </tr>
               </thead>
               <tbody>
@@ -1013,8 +1025,8 @@ export default function Customers() {
                           <button
                             onClick={() => openEditModal(customer)}
                             className="btn-icon text-blue-400 hover:text-blue-300"
-                            title="Edit customer"
-                            aria-label="Edit customer"
+                            title={isEs ? "Editar cliente" : "Edit customer"}
+                            aria-label={isEs ? "Editar cliente" : "Edit customer"}
                           >
                             <Edit2 size={18} />
                           </button>
@@ -1025,16 +1037,16 @@ export default function Customers() {
                               <button
                                 onClick={() => void handleDeactivate(customer)}
                                 className="btn-icon text-orange-500 hover:text-orange-400"
-                                title="Deactivate customer"
-                                aria-label="Deactivate customer"
+                                title={isEs ? "Desactivar cliente" : "Deactivate customer"}
+                                aria-label={isEs ? "Desactivar cliente" : "Deactivate customer"}
                               >
                                 <UserX size={18} />
                               </button>
                               <button
                                 onClick={() => void handleBlacklist(customer)}
                                 className="btn-icon text-amber-500 hover:text-amber-400"
-                                title="Block customer"
-                                aria-label="Block customer"
+                                title={isEs ? "Bloquear cliente" : "Block customer"}
+                                aria-label={isEs ? "Bloquear cliente" : "Block customer"}
                               >
                                 <Ban size={18} />
                               </button>
@@ -1046,8 +1058,20 @@ export default function Customers() {
                             <button
                               onClick={() => void handleReactivate(customer)}
                               className="btn-icon text-emerald-500 hover:text-emerald-400"
-                              title={customer.status === "blacklisted" ? "Unblock & reactivate" : "Reactivate customer"}
-                              aria-label={customer.status === "blacklisted" ? "Unblock & reactivate" : "Reactivate customer"}
+                              title={customer.status === "blacklisted"
+                                ? isEs
+                                  ? "Desbloquear y reactivar"
+                                  : "Unblock & reactivate"
+                                : isEs
+                                  ? "Reactivar cliente"
+                                  : "Reactivate customer"}
+                              aria-label={customer.status === "blacklisted"
+                                ? isEs
+                                  ? "Desbloquear y reactivar"
+                                  : "Unblock & reactivate"
+                                : isEs
+                                  ? "Reactivar cliente"
+                                  : "Reactivate customer"}
                             >
                               <RotateCcw size={18} />
                             </button>
@@ -1056,8 +1080,8 @@ export default function Customers() {
                           <button
                             onClick={() => void handleDeleteCustomer(customer)}
                             className="btn-icon text-red-500 hover:text-red-300 hover:bg-red-500/10 border border-transparent hover:border-red-500/40"
-                            title="Delete customer"
-                            aria-label="Delete customer"
+                            title={isEs ? "Eliminar cliente" : "Delete customer"}
+                            aria-label={isEs ? "Eliminar cliente" : "Delete customer"}
                           >
                             <Trash2 size={18} />
                           </button>
@@ -1073,7 +1097,7 @@ export default function Customers() {
               totalPages={totalPages}
               totalItems={total}
               pageSize={10}
-              itemLabel="customers"
+              itemLabel={isEs ? "clientes" : "customers"}
               onPageChange={setCurrentPage}
               className="card mt-6"
             />
@@ -1090,13 +1114,13 @@ export default function Customers() {
           >
             <div className="modal-content">
               <div className="modal-header">
-                <h2 className="text-xl font-bold">Create New Customer</h2>
+                <h2 className="text-xl font-bold">{isEs ? "Crear Nuevo Cliente" : "Create New Customer"}</h2>
                 <IconButton
                   onClick={() => setShowCreateModal(false)}
                   icon={X}
                   intent="close"
-                  ariaLabel="Close create customer modal"
-                  title="Close create customer modal"
+                  ariaLabel={isEs ? "Cerrar modal de creación de cliente" : "Close create customer modal"}
+                  title={isEs ? "Cerrar modal de creación de cliente" : "Close create customer modal"}
                 />
               </div>
               <form onSubmit={handleCreate}>
@@ -1582,13 +1606,13 @@ export default function Customers() {
                       onClick={() => setShowCreateModal(false)}
                       disabled={submitting}
                     >
-                      Cancel
+                      {isEs ? "Cancelar" : "Cancel"}
                     </Button>
                     {modalError && (
                       <p className="text-red-400 text-sm flex-1 text-left">{modalError}</p>
                     )}
                     <Button type="submit" loading={submitting}>
-                      {submitting ? "Creating..." : "Create Customer"}
+                      {submitting ? (isEs ? "Creando..." : "Creating...") : (isEs ? "Crear Cliente" : "Create Customer")}
                     </Button>
                   </div>
                 </form>
@@ -1607,8 +1631,8 @@ export default function Customers() {
           >
             <div className="modal-content">
               <div className="modal-header">
-                <h2 className="text-xl font-bold">Edit Customer</h2>
-                <button onClick={closeEditModal} className="btn-icon" title="Close edit customer modal" aria-label="Close edit customer modal">
+                <h2 className="text-xl font-bold">{isEs ? "Editar Cliente" : "Edit Customer"}</h2>
+                <button onClick={closeEditModal} className="btn-icon" title={isEs ? "Cerrar modal de edición de cliente" : "Close edit customer modal"} aria-label={isEs ? "Cerrar modal de edición de cliente" : "Close edit customer modal"}>
                   <X size={20} />
                 </button>
               </div>
@@ -2058,13 +2082,13 @@ export default function Customers() {
                 </div>
                 <div className="modal-footer">
                   <button type="button" onClick={closeEditModal} className="btn-secondary" disabled={submitting}>
-                    Cancel
+                    {isEs ? "Cancelar" : "Cancel"}
                   </button>
                   {modalError && (
                     <p className="text-red-400 text-sm flex-1 text-left">{modalError}</p>
                   )}
                   <Button type="submit" loading={submitting}>
-                    {submitting ? "Saving..." : "Save Changes"}
+                    {submitting ? (isEs ? "Guardando..." : "Saving...") : (isEs ? "Guardar Cambios" : "Save Changes")}
                   </Button>
                 </div>
               </form>

@@ -1,0 +1,22 @@
+{
+  "dashboard.newFeature": {
+    "en": "New Feature Released",
+    "es": "[TRANSLATE_ME]"
+  },
+  "button.exportReport": {
+    "en": "Export Report",
+    "es": "[TRANSLATE_ME]"
+  },
+  "modal.confirmDelete": {
+    "en": "Are you sure you want to delete this item?",
+    "es": "[TRANSLATE_ME]"
+  },
+  "error.networkError": {
+    "en": "Network connection failed",
+    "es": "[TRANSLATE_ME]"
+  },
+  "success.itemCreated": {
+    "en": "Item created successfully",
+    "es": "[TRANSLATE_ME]"
+  }
+}

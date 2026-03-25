@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import Footer from "../Footer";
+import { LanguageProvider } from "../../contexts/LanguageContext";
 
 interface FooterLinkCase {
   linkText: string;
@@ -24,21 +25,23 @@ const footerLinks: FooterLinkCase[] = [
 
 function renderFooterRouter(): void {
   render(
-    <MemoryRouter initialEntries={["/"]}>
-      <Routes>
-        <Route path="/" element={<Footer />} />
-        <Route path="/contact" element={<h1>Contact Page</h1>} />
-        <Route path="/billing" element={<h1>Billing Page</h1>} />
-        <Route path="/about" element={<h1>About Page</h1>} />
-        <Route path="/business" element={<h1>Business Page</h1>} />
-        <Route path="/pricing" element={<h1>Pricing Page</h1>} />
-        <Route path="/blog" element={<h1>Blog Page</h1>} />
-        <Route path="/whats-new" element={<h1>Whats New Page</h1>} />
-        <Route path="/help-center" element={<h1>Help Center Page</h1>} />
-        <Route path="/terms-of-service" element={<h1>Terms Of Service Page</h1>} />
-        <Route path="/cookie-policy" element={<h1>Cookie Policy Page</h1>} />
-      </Routes>
-    </MemoryRouter>,
+    <LanguageProvider>
+      <MemoryRouter initialEntries={["/"]}>
+        <Routes>
+          <Route path="/" element={<Footer />} />
+          <Route path="/contact" element={<h1>Contact Page</h1>} />
+          <Route path="/billing" element={<h1>Billing Page</h1>} />
+          <Route path="/about" element={<h1>About Page</h1>} />
+          <Route path="/business" element={<h1>Business Page</h1>} />
+          <Route path="/pricing" element={<h1>Pricing Page</h1>} />
+          <Route path="/blog" element={<h1>Blog Page</h1>} />
+          <Route path="/whats-new" element={<h1>Whats New Page</h1>} />
+          <Route path="/help-center" element={<h1>Help Center Page</h1>} />
+          <Route path="/terms-of-service" element={<h1>Terms Of Service Page</h1>} />
+          <Route path="/cookie-policy" element={<h1>Cookie Policy Page</h1>} />
+        </Routes>
+      </MemoryRouter>
+    </LanguageProvider>,
   );
 }
 

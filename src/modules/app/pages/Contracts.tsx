@@ -7,6 +7,7 @@ import {
   Search,
   FileText,
 } from "lucide-react";
+import { useLanguage } from "../../../contexts/useLanguage";
 
 interface Contract {
   id: string;
@@ -79,6 +80,8 @@ const SAMPLE_CONTRACTS: Contract[] = [
 ];
 
 export default function Contracts() {
+  const { language, locale } = useLanguage();
+  const isEs = language === "es";
   const [contracts] = useState<Contract[]>(SAMPLE_CONTRACTS);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -103,17 +106,27 @@ export default function Contracts() {
     }
   };
 
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "active":    return isEs ? "Activo"    : "Active";
+      case "draft":     return isEs ? "Borrador"  : "Draft";
+      case "completed": return isEs ? "Completado": "Completed";
+      case "cancelled": return isEs ? "Cancelado" : "Cancelled";
+      default:          return status;
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">Contracts</h1>
-          <p className="text-gray-400 mt-1">Create and manage rental contracts</p>
+          <h1 className="text-3xl font-bold text-white">{isEs ? "Contratos" : "Contracts"}</h1>
+          <p className="text-gray-400 mt-1">{isEs ? "Crea y gestiona contratos de alquiler" : "Create and manage rental contracts"}</p>
         </div>
         <button className="flex items-center gap-2 px-4 py-2 rounded-[8px] font-semibold transition-all gold-action-btn">
           <Plus size={20} />
-          New Contract
+          {isEs ? "Nuevo contrato" : "New Contract"}
         </button>
       </div>
 
@@ -122,7 +135,7 @@ export default function Contracts() {
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" size={20} />
         <input
           type="text"
-          placeholder="Search contracts..."
+          placeholder={isEs ? "Buscar contratos..." : "Search contracts..."}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full pl-10 pr-4 py-2 bg-[#1a1a1a] border border-[#333] rounded-[8px] text-white placeholder-gray-600 focus:outline-none focus:border-[#FFD700] transition-all"
@@ -160,26 +173,26 @@ export default function Contracts() {
             {/* Contract Details */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 pb-4 border-b border-[#333]">
               <div>
-                <p className="text-gray-400 text-xs mb-1">Sign Date</p>
+                <p className="text-gray-400 text-xs mb-1">{isEs ? "Fecha de firma" : "Sign Date"}</p>
                 <p className="text-white font-semibold">{contract.signDate}</p>
               </div>
               <div>
-                <p className="text-gray-400 text-xs mb-1">Period</p>
-                <p className="text-white font-semibold text-sm">{contract.startDate} to {contract.endDate}</p>
+                <p className="text-gray-400 text-xs mb-1">{isEs ? "Periodo" : "Period"}</p>
+                <p className="text-white font-semibold text-sm">{contract.startDate} {isEs ? "a" : "to"} {contract.endDate}</p>
               </div>
               <div>
-                <p className="text-gray-400 text-xs mb-1">Items</p>
+                <p className="text-gray-400 text-xs mb-1">{isEs ? "Artículos" : "Items"}</p>
                 <p className="text-[#FFD700] font-bold">{contract.items}</p>
               </div>
               <div>
-                <p className="text-gray-400 text-xs mb-1">Value</p>
-                <p className="text-white font-bold">${contract.totalValue.toLocaleString()}</p>
+                <p className="text-gray-400 text-xs mb-1">{isEs ? "Valor" : "Value"}</p>
+                <p className="text-white font-bold">{new Intl.NumberFormat(locale, { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(contract.totalValue)}</p>
               </div>
             </div>
 
             {/* Status */}
             <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(contract.status)}`}>
-              {contract.status}
+              {getStatusLabel(contract.status)}
             </span>
           </div>
         ))}
@@ -188,7 +201,7 @@ export default function Contracts() {
       {/* Empty State */}
       {filtered.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-gray-400">No contracts found</p>
+          <p className="text-gray-400">{isEs ? "No se encontraron contratos" : "No contracts found"}</p>
         </div>
       )}
     </div>

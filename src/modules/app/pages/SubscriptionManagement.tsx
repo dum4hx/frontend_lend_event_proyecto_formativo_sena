@@ -38,6 +38,7 @@ import { normalizeError, logError } from "../../../utils/errorHandling";
 import { ApiError } from "../../../lib/api";
 import { useAlerts } from "../../../hooks/useAlerts";
 import { useAuth } from "../../../contexts/useAuth";
+import { useLanguage } from "../../../contexts/useLanguage";
 import { ExportSettingsModal } from "../../../components/export/ExportSettingsModal";
 import { exportService, BILLING_HISTORY_POLICY } from "../../../services/export";
 import type { ExportConfig, ExportProgress } from "../../../types/export";
@@ -69,16 +70,16 @@ function formatEventType(eventType: string): string {
   return eventType.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function formatCurrency(amount: number, currency: string): string {
-  return new Intl.NumberFormat("en-US", {
+function formatCurrency(amount: number, currency: string, locale: string): string {
+  return new Intl.NumberFormat(locale, {
     style: "currency",
     currency: currency.toUpperCase(),
     minimumFractionDigits: 2,
   }).format(amount / 100);
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
+function formatDate(iso: string, locale: string): string {
+  return new Date(iso).toLocaleDateString(locale, {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -88,6 +89,8 @@ function formatDate(iso: string): string {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function SubscriptionManagement() {
+  const { language, locale } = useLanguage();
+  const isEs = language === "es";
   type HistorySortField = "date" | "event" | "amount";
   type HistorySortDirection = "asc" | "desc";
   const HISTORY_PREFS_KEY = "subscriptionManagement.historyPrefs";
@@ -271,14 +274,19 @@ export default function SubscriptionManagement() {
     try {
       setUpdatingSeats(true);
       await updateSeats({ seatCount });
-      showAlert("success", `Seat count updated to ${seatCount}.`);
+      showAlert(
+        "success",
+        isEs
+          ? `Cantidad de asientos actualizada a ${seatCount}.`
+          : `Seat count updated to ${seatCount}.`,
+      );
       await fetchData();
     } catch (err: unknown) {
       showAlert("error", normalizeError(err).message);
     } finally {
       setUpdatingSeats(false);
     }
-  }, [seatCount, usage, showAlert, fetchData]);
+  }, [seatCount, usage, showAlert, fetchData, isEs]);
 
   const handleCancelSubscription = useCallback(async () => {
     try {
@@ -287,7 +295,9 @@ export default function SubscriptionManagement() {
       setCancelDialogOpen(false);
       showAlert(
         "success",
-        "Subscription will be cancelled at the end of the current billing period.",
+        isEs
+          ? "La suscripcion se cancelara al final del periodo de facturacion actual."
+          : "Subscription will be cancelled at the end of the current billing period.",
       );
       await fetchData();
     } catch (err: unknown) {
@@ -295,7 +305,7 @@ export default function SubscriptionManagement() {
     } finally {
       setCancelling(false);
     }
-  }, [showAlert, fetchData]);
+  }, [showAlert, fetchData, isEs]);
 
   // ─── Plan Upgrade / Change ───────────────────────────────────────────────
 
@@ -330,10 +340,10 @@ export default function SubscriptionManagement() {
         seatChange: e.seatChange ?? "",
         amount: e.amount != null ? e.amount / 100 : "",
         currency: e.currency.toUpperCase(),
-        processed: e.processed ? "Yes" : "No",
+        processed: e.processed ? (isEs ? "Si" : "Yes") : isEs ? "No" : "No",
         createdAt: e.createdAt,
       })),
-    [],
+    [isEs],
   );
 
   const handleExport = useCallback(
@@ -348,7 +358,10 @@ export default function SubscriptionManagement() {
         const rawData = buildExportRows(freshRes.data.history ?? []);
 
         if (rawData.length === 0) {
-          showAlert("warning", "No billing history to export.");
+          showAlert(
+            "warning",
+            isEs ? "No hay historial de facturacion para exportar." : "No billing history to export.",
+          );
           return;
         }
 
@@ -363,7 +376,9 @@ export default function SubscriptionManagement() {
         if (result.status === "success") {
           showAlert(
             "success",
-            `Exported ${result.metadata.recordCount} records as ${result.filename}`,
+            isEs
+              ? `Se exportaron ${result.metadata.recordCount} registros como ${result.filename}`
+              : `Exported ${result.metadata.recordCount} records as ${result.filename}`,
           );
           setExportOpen(false);
         } else if (result.status === "cancelled") {
@@ -379,7 +394,7 @@ export default function SubscriptionManagement() {
         exportAbort.current = null;
       }
     },
-    [buildExportRows, user?.id, showAlert],
+    [buildExportRows, user?.id, showAlert, isEs],
   );
 
   const handleExportPreview = useCallback(
@@ -473,7 +488,7 @@ export default function SubscriptionManagement() {
       const searchable = [
         formatEventType(entry.eventType),
         entry.newPlan ?? "",
-        formatDate(entry.createdAt),
+        formatDate(entry.createdAt, locale),
       ]
         .join(" ")
         .toLowerCase();
@@ -552,12 +567,14 @@ export default function SubscriptionManagement() {
       {/* Session expired banner (non-blocking) */}
       {sessionExpired && (
         <div className="mb-4 bg-red-900/30 border border-red-700 text-red-300 rounded-xl px-4 py-3">
-          Your session appears to have expired. Some data could not be loaded.
+          {isEs
+            ? "Tu sesion parece haber expirado. Algunos datos no pudieron cargarse."
+            : "Your session appears to have expired. Some data could not be loaded."}
           <button
             onClick={() => (window.location.href = "/login")}
             className="ml-3 inline-flex items-center px-3 py-1 rounded-lg bg-red-700/50 hover:bg-red-700 text-white text-xs"
           >
-            Log in again
+            {isEs ? "Iniciar sesion de nuevo" : "Log in again"}
           </button>
         </div>
       )}
@@ -565,10 +582,14 @@ export default function SubscriptionManagement() {
       {/* Cancel confirm dialog */}
       <ConfirmDialog
         isOpen={cancelDialogOpen}
-        title="Cancel Subscription"
-        message="Your subscription will remain active until the end of the current billing period. After that, access to premium features will be revoked. Are you sure you want to cancel?"
-        confirmText={cancelling ? "Cancelling…" : "Yes, Cancel"}
-        cancelText="Keep Subscription"
+        title={isEs ? "Cancelar suscripcion" : "Cancel Subscription"}
+        message={
+          isEs
+            ? "Tu suscripcion seguira activa hasta el final del periodo de facturacion actual. Luego, se revocara el acceso a funciones premium. Seguro que deseas cancelar?"
+            : "Your subscription will remain active until the end of the current billing period. After that, access to premium features will be revoked. Are you sure you want to cancel?"
+        }
+        confirmText={cancelling ? (isEs ? "Cancelando..." : "Cancelling...") : isEs ? "Si, cancelar" : "Yes, Cancel"}
+        cancelText={isEs ? "Mantener suscripcion" : "Keep Subscription"}
         variant="danger"
         onConfirm={() => void handleCancelSubscription()}
         onClose={() => setCancelDialogOpen(false)}
@@ -592,8 +613,10 @@ export default function SubscriptionManagement() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white">Subscription Management</h1>
-          <p className="text-gray-400 mt-1">Manage your plan, seats, and billing history</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white">{isEs ? "Gestion de suscripcion" : "Subscription Management"}</h1>
+          <p className="text-gray-400 mt-1">
+            {isEs ? "Gestiona tu plan, asientos e historial de facturacion" : "Manage your plan, seats, and billing history"}
+          </p>
         </div>
         <button
           onClick={() => setExportOpen(true)}
@@ -601,7 +624,7 @@ export default function SubscriptionManagement() {
           disabled={history.length === 0}
         >
           <Download size={18} />
-          Export History
+          {isEs ? "Exportar historial" : "Export History"}
         </button>
       </div>
 
@@ -626,20 +649,20 @@ export default function SubscriptionManagement() {
           {/* Stat Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
             <StatCard
-              label="Current Plan"
+              label={isEs ? "Plan actual" : "Current Plan"}
               value={currentPlan ? currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1) : "—"}
               icon={<CreditCard size={20} />}
             />
             <StatCard
-              label="Seats"
+              label={isEs ? "Asientos" : "Seats"}
               value={
                 usage ? `${usage.currentSeats} / ${usage.maxSeats < 0 ? "∞" : usage.maxSeats}` : "—"
               }
               icon={<Users size={20} />}
             />
             <StatCard
-              label="Total Paid"
-              value={totalSpend > 0 ? formatCurrency(totalSpend, currency) : "$0.00"}
+              label={isEs ? "Total pagado" : "Total Paid"}
+              value={totalSpend > 0 ? formatCurrency(totalSpend, currency, locale) : "$0.00"}
               icon={<CreditCard size={20} />}
             />
           </div>
@@ -649,25 +672,26 @@ export default function SubscriptionManagement() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* Manage via Stripe Portal */}
           <div className="bg-[#121212] border border-[#333] rounded-xl p-6">
-            <h2 className="text-lg font-bold text-white mb-2">Billing Portal</h2>
+            <h2 className="text-lg font-bold text-white mb-2">{isEs ? "Portal de facturacion" : "Billing Portal"}</h2>
             <p className="text-gray-400 text-sm mb-4">
-              Update your payment method, download invoices, and manage billing details through
-              Stripe.
+              {isEs
+                ? "Actualiza tu metodo de pago, descarga facturas y gestiona el cobro desde Stripe."
+                : "Update your payment method, download invoices, and manage billing details through Stripe."}
             </p>
             <button
               onClick={() => void handleOpenPortal()}
               className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-semibold gold-action-btn"
             >
               <ExternalLink size={16} />
-              Open Billing Portal
+              {isEs ? "Abrir portal de facturacion" : "Open Billing Portal"}
             </button>
           </div>
 
           {/* Seat Management */}
           <div className="bg-[#121212] border border-[#333] rounded-xl p-6">
-            <h2 className="text-lg font-bold text-white mb-2">Seat Management</h2>
+            <h2 className="text-lg font-bold text-white mb-2">{isEs ? "Gestion de asientos" : "Seat Management"}</h2>
             <p className="text-gray-400 text-sm mb-4">
-              Adjust the number of seats on your current plan.
+              {isEs ? "Ajusta el numero de asientos de tu plan actual." : "Adjust the number of seats on your current plan."}
             </p>
             <div className="flex flex-col sm:flex-row sm:items-center gap-3">
               <input
@@ -683,7 +707,7 @@ export default function SubscriptionManagement() {
                 disabled={updatingSeats || seatCount === (usage?.currentSeats ?? 0)}
                 className="w-full sm:w-auto px-4 py-2 rounded-lg transition-colors text-sm font-semibold gold-action-btn disabled:opacity-40"
               >
-                {updatingSeats ? "Updating…" : "Update Seats"}
+                {updatingSeats ? (isEs ? "Actualizando..." : "Updating...") : isEs ? "Actualizar asientos" : "Update Seats"}
               </button>
             </div>
           </div>
@@ -693,10 +717,12 @@ export default function SubscriptionManagement() {
           {/* Available Plans — owner only */}
           {isOwner && (
             <div className="bg-[#121212] border border-[#333] rounded-xl p-6 mb-8">
-          <h2 className="text-lg font-bold text-white mb-4">Available Plans</h2>
+          <h2 className="text-lg font-bold text-white mb-4">{isEs ? "Planes disponibles" : "Available Plans"}</h2>
           {plans.length === 0 ? (
             <div className="text-gray-400 text-sm">
-              No available plans found. Please contact support or try again later.
+              {isEs
+                ? "No se encontraron planes disponibles. Contacta soporte o intenta de nuevo mas tarde."
+                : "No available plans found. Please contact support or try again later."}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -716,12 +742,18 @@ export default function SubscriptionManagement() {
                       <div>
                         <div className="text-white font-semibold text-lg">{p.displayName}</div>
                         <div className="text-xs text-gray-500 capitalize">
-                          {p.billingModel === "fixed" ? "Fixed monthly" : "Per-seat"}
+                          {p.billingModel === "fixed"
+                            ? isEs
+                              ? "Fijo mensual"
+                              : "Fixed monthly"
+                            : isEs
+                              ? "Por asiento"
+                              : "Per-seat"}
                         </div>
                       </div>
                       {isActive && (
                         <span className="text-xs px-2 py-1 rounded-full bg-yellow-700/30 text-yellow-400 border border-yellow-700">
-                          Active
+                          {isEs ? "Activo" : "Active"}
                         </span>
                       )}
                     </div>
@@ -730,12 +762,12 @@ export default function SubscriptionManagement() {
                     </div>
                     {p.pricePerSeat > 0 && (
                       <div className="text-gray-400 text-sm mb-2">
-                        + ${p.pricePerSeat.toLocaleString()} per seat
+                        + ${p.pricePerSeat.toLocaleString(locale)} {isEs ? "por asiento" : "per seat"}
                       </div>
                     )}
                     <div className="text-gray-400 text-sm mb-3">
-                      Limits: {p.maxSeats < 0 ? "Unlimited" : `${p.maxSeats} seats`} ·{" "}
-                      {p.maxCatalogItems < 0 ? "Unlimited" : `${p.maxCatalogItems} items`}
+                      {isEs ? "Limites" : "Limits"}: {p.maxSeats < 0 ? (isEs ? "Ilimitado" : "Unlimited") : `${p.maxSeats} ${isEs ? "asientos" : "seats"}`} ·{" "}
+                      {p.maxCatalogItems < 0 ? (isEs ? "Ilimitado" : "Unlimited") : `${p.maxCatalogItems} ${isEs ? "items" : "items"}`}
                     </div>
                     <ul className="text-gray-300 text-sm space-y-1 mb-4">
                       {p.features.slice(0, 6).map((f, idx) => (
@@ -755,12 +787,20 @@ export default function SubscriptionManagement() {
                       }`}
                     >
                       {isActive
-                        ? "Current Plan"
+                        ? isEs
+                          ? "Plan actual"
+                          : "Current Plan"
                         : currentPlan
                           ? p.basePriceMonthly > 0
-                            ? "Upgrade / Change"
-                            : "Change Plan"
-                          : "Choose Plan"}
+                            ? isEs
+                              ? "Mejorar / Cambiar"
+                              : "Upgrade / Change"
+                            : isEs
+                              ? "Cambiar plan"
+                              : "Change Plan"
+                          : isEs
+                            ? "Elegir plan"
+                            : "Choose Plan"}
                     </button>
                   </div>
                 );
@@ -768,7 +808,9 @@ export default function SubscriptionManagement() {
             </div>
           )}
           <p className="text-xs text-gray-500 mt-3">
-            Plan changes use the existing payment gateway and require valid authentication.
+            {isEs
+              ? "Los cambios de plan usan la pasarela de pago existente y requieren autenticacion valida."
+              : "Plan changes use the existing payment gateway and require valid authentication."}
           </p>
             </div>
           )}
@@ -778,10 +820,11 @@ export default function SubscriptionManagement() {
             <div className="bg-[#121212] border border-red-900/40 rounded-xl p-6 mb-8">
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="text-lg font-bold text-white mb-1">Danger Zone</h2>
+              <h2 className="text-lg font-bold text-white mb-1">{isEs ? "Zona de riesgo" : "Danger Zone"}</h2>
               <p className="text-gray-400 text-sm">
-                Cancelling your subscription will revoke access to premium features at the end of
-                your billing period.
+                {isEs
+                  ? "Cancelar tu suscripcion revocara el acceso a funciones premium al final del periodo de facturacion."
+                  : "Cancelling your subscription will revoke access to premium features at the end of your billing period."}
               </p>
             </div>
             <button
@@ -789,7 +832,7 @@ export default function SubscriptionManagement() {
               className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-medium shrink-0 danger-action-btn"
             >
               <XCircle size={16} />
-              Cancel Subscription
+              {isEs ? "Cancelar suscripcion" : "Cancel Subscription"}
             </button>
           </div>
             </div>
@@ -798,9 +841,9 @@ export default function SubscriptionManagement() {
           {/* Billing History */}
           <div className="bg-[#121212] border border-[#333] rounded-xl p-4 sm:p-6">
         <div className="mb-4 pb-4 border-b border-[#333] flex items-center justify-between">
-          <h2 className="text-lg font-bold text-white">Billing History</h2>
+          <h2 className="text-lg font-bold text-white">{isEs ? "Historial de facturacion" : "Billing History"}</h2>
           <span className="badge badge-info">
-            {filteredHistory.length} of {history.length} records
+            {filteredHistory.length} {isEs ? "de" : "of"} {history.length} {isEs ? "registros" : "records"}
           </span>
         </div>
 
@@ -812,7 +855,7 @@ export default function SubscriptionManagement() {
                 type="text"
                 value={historySearch}
                 onChange={(e) => setHistorySearch(e.target.value)}
-                placeholder="Search event, plan, or date..."
+                placeholder={isEs ? "Buscar evento, plan o fecha..." : "Search event, plan, or date..."}
                 className="input pl-10"
               />
             </div>
@@ -820,10 +863,10 @@ export default function SubscriptionManagement() {
               value={historyEventFilter}
               onChange={(e) => setHistoryEventFilter(e.target.value)}
               className="input"
-              title="Filter by event type"
-              aria-label="Filter billing history by event type"
+              title={isEs ? "Filtrar por tipo de evento" : "Filter by event type"}
+              aria-label={isEs ? "Filtrar historial de facturacion por tipo de evento" : "Filter billing history by event type"}
             >
-              <option value="">All events</option>
+              <option value="">{isEs ? "Todos los eventos" : "All events"}</option>
               {historyEventOptions.map((eventType) => (
                 <option key={eventType} value={eventType}>
                   {formatEventType(eventType)}
@@ -843,7 +886,7 @@ export default function SubscriptionManagement() {
                     onClick={() => handleHistorySort("date")}
                     className="inline-flex items-center gap-1 hover:text-white transition-colors"
                   >
-                    Date
+                    {isEs ? "Fecha" : "Date"}
                     {renderSortIcon("date")}
                   </button>
                 </th>
@@ -853,18 +896,18 @@ export default function SubscriptionManagement() {
                     onClick={() => handleHistorySort("event")}
                     className="inline-flex items-center gap-1 hover:text-white transition-colors"
                   >
-                    Event
+                    {isEs ? "Evento" : "Event"}
                     {renderSortIcon("event")}
                   </button>
                 </th>
-                <th className="px-6 py-3 text-gray-400 font-medium">Plan / Seats</th>
+                <th className="px-6 py-3 text-gray-400 font-medium">{isEs ? "Plan / Asientos" : "Plan / Seats"}</th>
                 <th className="px-6 py-3 text-gray-400 font-medium text-right">
                   <button
                     type="button"
                     onClick={() => handleHistorySort("amount")}
                     className="inline-flex items-center gap-1 hover:text-white transition-colors"
                   >
-                    Amount
+                    {isEs ? "Monto" : "Amount"}
                     {renderSortIcon("amount")}
                   </button>
                 </th>
@@ -874,7 +917,9 @@ export default function SubscriptionManagement() {
               {filteredHistory.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-6 py-10 text-center text-gray-500">
-                    No billing history available for the selected filters.
+                    {isEs
+                      ? "No hay historial de facturacion disponible para los filtros seleccionados."
+                      : "No billing history available for the selected filters."}
                   </td>
                 </tr>
               ) : (
@@ -884,7 +929,7 @@ export default function SubscriptionManagement() {
                     className="border-b border-[#222] hover:bg-[#1a1a1a] transition-colors"
                   >
                     <td className="px-6 py-3 text-gray-400 whitespace-nowrap">
-                      {formatDate(entry.createdAt)}
+                      {formatDate(entry.createdAt, locale)}
                     </td>
                     <td className="px-6 py-3">
                       <span
@@ -902,7 +947,8 @@ export default function SubscriptionManagement() {
                       {entry.newPlan && entry.seatChange != null ? " · " : null}
                       {entry.seatChange != null ? (
                         <span className="text-gray-400">
-                          {entry.seatChange} seat{entry.seatChange !== 1 ? "s" : ""}
+                          {entry.seatChange} {isEs ? "asiento" : "seat"}
+                          {entry.seatChange !== 1 ? (isEs ? "s" : "s") : ""}
                         </span>
                       ) : null}
                       {!entry.newPlan && entry.seatChange == null ? (
@@ -911,7 +957,7 @@ export default function SubscriptionManagement() {
                     </td>
                     <td className="px-6 py-3 text-white font-medium text-right whitespace-nowrap">
                       {entry.amount != null && entry.amount > 0 ? (
-                        formatCurrency(entry.amount, entry.currency)
+                        formatCurrency(entry.amount, entry.currency, locale)
                       ) : (
                         <span className="text-gray-500">—</span>
                       )}
@@ -926,13 +972,15 @@ export default function SubscriptionManagement() {
         <div className="grid gap-3 md:hidden">
           {filteredHistory.length === 0 ? (
             <div className="card p-5 text-center text-gray-500">
-              No billing history available for the selected filters.
+              {isEs
+                ? "No hay historial de facturacion disponible para los filtros seleccionados."
+                : "No billing history available for the selected filters."}
             </div>
           ) : (
             pagedHistory.map((entry) => (
               <div key={entry._id} className="card-compact">
                 <div className="flex items-center justify-between gap-2 mb-2">
-                  <span className="text-xs text-gray-500">{formatDate(entry.createdAt)}</span>
+                  <span className="text-xs text-gray-500">{formatDate(entry.createdAt, locale)}</span>
                   <span
                     className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
                       EVENT_TYPE_BADGE[entry.eventType] ??
@@ -946,12 +994,15 @@ export default function SubscriptionManagement() {
                 <p className="text-sm text-gray-300 mb-1">
                   {entry.newPlan ? <span className="capitalize">{entry.newPlan}</span> : "—"}
                   {entry.seatChange != null ? (
-                    <span className="text-gray-500"> · {entry.seatChange} seats</span>
+                    <span className="text-gray-500">
+                      {" "}
+                      · {entry.seatChange} {isEs ? "asientos" : "seats"}
+                    </span>
                   ) : null}
                 </p>
                 <p className="text-sm font-semibold text-white">
                   {entry.amount != null && entry.amount > 0
-                    ? formatCurrency(entry.amount, entry.currency)
+                    ? formatCurrency(entry.amount, entry.currency, locale)
                     : "—"}
                 </p>
               </div>
@@ -964,7 +1015,7 @@ export default function SubscriptionManagement() {
           totalPages={historyTotalPages}
           totalItems={sortedHistory.length}
           pageSize={historyPageSize}
-          itemLabel="records"
+          itemLabel={isEs ? "registros" : "records"}
           onPageChange={setHistoryPage}
         />
           </div>
