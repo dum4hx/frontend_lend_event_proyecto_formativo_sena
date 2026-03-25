@@ -44,6 +44,7 @@ export const MaterialInstanceList: React.FC<MaterialInstanceListProps> = ({
       <thead className="bg-[#0f0f0f] border-b border-[#333]">
         <tr>
           <th className="text-left py-4 px-4 text-gray-400 font-semibold">Serial Number</th>
+          <th className="text-left py-4 px-4 text-gray-400 font-semibold">Barcode</th>
           <th className="text-left py-4 px-4 text-gray-400 font-semibold">Material Type</th>
           <th className="text-left py-4 px-4 text-gray-400 font-semibold">Location</th>
           <th className="text-left py-4 px-4 text-gray-400 font-semibold">Status</th>
@@ -57,6 +58,9 @@ export const MaterialInstanceList: React.FC<MaterialInstanceListProps> = ({
             className="border-b border-[#222] hover:bg-[#1a1a1a] transition-colors"
           >
             <td className="py-4 px-4 text-white font-mono font-medium">{instance.serialNumber}</td>
+            <td className="py-4 px-4 text-gray-300 font-mono">
+              {instance.barcode || <span className="text-gray-600">-</span>}
+            </td>
             <td className="py-4 px-4 text-gray-400">{instance.modelId?.name || "Unknown"}</td>
             <td className="py-4 px-4 text-gray-400">{instance.locationId?.name || "Unknown"}</td>
             <td className="py-4 px-4">

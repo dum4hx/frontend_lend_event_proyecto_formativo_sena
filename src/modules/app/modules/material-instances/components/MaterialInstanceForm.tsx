@@ -25,6 +25,7 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
   const [formData, setFormData] = useState<CreateMaterialInstancePayload>({
     modelId: "",
     serialNumber: "",
+    barcode: "",
     locationId: "",
   });
   const [locations, setLocations] = useState<WarehouseLocation[]>([]);
@@ -64,6 +65,7 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
       setFormData({
         modelId: initialData.modelId || "",
         serialNumber: initialData.serialNumber || "",
+        barcode: initialData.barcode || "",
         locationId: initialData.locationId || "",
       });
     }
@@ -76,6 +78,9 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
       newErrors.serialNumber = "Serial number is required";
     } else if (data.serialNumber.length > 100) {
       newErrors.serialNumber = "Serial number must be under 100 characters";
+    }
+    if (data.barcode && data.barcode.length > 120) {
+      newErrors.barcode = "Barcode must be under 120 characters";
     }
     if (!data.locationId) newErrors.locationId = "Location is required";
     return newErrors;
@@ -168,6 +173,29 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
         )}
         <p className="text-xs text-gray-500 mt-1">
           Unique identifier for this specific item (max 100 characters)
+        </p>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-300 mb-2">
+          Barcode / Scan Code
+        </label>
+        <input
+          type="text"
+          value={formData.barcode ?? ""}
+          onChange={(e) => handleChange("barcode", e.target.value)}
+          onBlur={() => setTouched((prev) => ({ ...prev, barcode: true }))}
+          className={`w-full px-4 py-3 bg-[#1a1a1a] border ${
+            touched.barcode && errors.barcode ? "border-red-500" : "border-[#333]"
+          } rounded-lg text-white focus:outline-none focus:border-[#FFD700]`}
+          placeholder="e.g., 7701234567890"
+          maxLength={120}
+        />
+        {touched.barcode && errors.barcode && (
+          <p className="text-xs text-red-500 mt-1">{errors.barcode}</p>
+        )}
+        <p className="text-xs text-gray-500 mt-1">
+          Recommended for scanner workflows. Must be unique when backend validation is enabled.
         </p>
       </div>
 

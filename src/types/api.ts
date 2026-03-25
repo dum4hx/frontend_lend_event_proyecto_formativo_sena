@@ -333,6 +333,10 @@ export interface MaterialInstance {
    * Unique identifier for this specific instance (e.g., serial number).
    */
   serialNumber: string;
+  /**
+   * Unique scannable code associated with the physical unit.
+   */
+  barcode?: string;
   status: MaterialInstanceStatus;
   /**
    * Location where this instance is currently stored - comes as locationId from API.
@@ -357,6 +361,7 @@ export interface MaterialInstance {
 export interface CreateMaterialInstancePayload {
   modelId: string;
   serialNumber: string;
+  barcode?: string;
   locationId: string;
   purchaseDate?: string;
   purchaseCost?: number;

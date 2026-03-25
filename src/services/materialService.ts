@@ -43,6 +43,7 @@ interface MaterialInstanceApiLocation {
 interface MaterialInstanceApiPayload {
   _id: string;
   serialNumber?: string;
+  barcode?: string;
   status: MaterialInstance["status"];
   model?: MaterialInstanceApiModel | string;
   modelId?: MaterialInstanceApiModel | string;
@@ -127,6 +128,7 @@ function normalizeMaterialInstance(
   return {
     _id: instance._id,
     serialNumber: instance.serialNumber ?? "",
+    barcode: instance.barcode,
     status: instance.status,
     modelId: normalizeMaterialModel(instance.modelId ?? instance.model),
     locationId: normalizeMaterialLocation(instance.locationId ?? instance.location ?? fallbackLocation),
