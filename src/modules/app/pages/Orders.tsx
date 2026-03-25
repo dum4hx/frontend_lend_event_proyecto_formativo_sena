@@ -44,6 +44,7 @@ import {
 } from "../../../services/materialService";
 import { useAlertModal } from "../../../hooks/useAlertModal";
 import { usePermissions } from "../../../contexts/usePermissions";
+import { useLanguage } from "../../../contexts/useLanguage";
 import PrepareOrderModal from "./PrepareOrderModal";
 import {
   applySelectedMaterialToDraftRows,
@@ -97,17 +98,6 @@ const WORKFLOW_STEPS: Array<{ status: WorkflowStatus; label: string }> = [
   { status: "order_shipped", label: "Order Shipped" },
   { status: "order_in_use", label: "Order In Use / Loaned" },
   { status: "order_completed", label: "Order Completed / Delivered" },
-];
-
-const FILTER_OPTIONS: Array<{ value: WorkflowFilter; label: string }> = [
-  { value: "all", label: "All Status" },
-  { value: "order_created", label: "Order Created" },
-  { value: "order_approved", label: "Order Approved" },
-  { value: "order_shipped", label: "Order Shipped" },
-  { value: "order_in_use", label: "Order In Use / Loaned" },
-  { value: "order_completed", label: "Order Completed / Delivered" },
-  { value: "order_rejected", label: "Rejected" },
-  { value: "order_cancelled", label: "Cancelled" },
 ];
 
 const EMPTY_FORM = {
@@ -394,6 +384,33 @@ function toBackendRequestStatusFilter(selectedStatus: WorkflowFilter): BackendRe
 export default function Orders() {
   const { showError, showSuccess, AlertModal } = useAlertModal();
   const { hasPermission, hasAnyPermission } = usePermissions();
+  const { language } = useLanguage();
+  const isEs = language === "es";
+
+  const tWorkflow = (status: WorkflowStatus): string => {
+    const labels: Record<WorkflowStatus, [string, string]> = {
+      order_created: ["Order Created", "Pedido Creado"],
+      order_approved: ["Order Approved", "Pedido Aprobado"],
+      order_shipped: ["Order Shipped", "Pedido Enviado"],
+      order_in_use: ["Order In Use / Loaned", "En Uso / Prestado"],
+      order_completed: ["Order Completed / Delivered", "Completado / Entregado"],
+      order_rejected: ["Rejected", "Rechazado"],
+      order_cancelled: ["Cancelled", "Cancelado"],
+    };
+    const [en, es] = labels[status];
+    return isEs ? es : en;
+  };
+
+  const localFilterOptions: Array<{ value: WorkflowFilter; label: string }> = [
+    { value: "all", label: isEs ? "Todos los estados" : "All Status" },
+    { value: "order_created", label: isEs ? "Pedido Creado" : "Order Created" },
+    { value: "order_approved", label: isEs ? "Pedido Aprobado" : "Order Approved" },
+    { value: "order_shipped", label: isEs ? "Pedido Enviado" : "Order Shipped" },
+    { value: "order_in_use", label: isEs ? "En Uso / Prestado" : "Order In Use / Loaned" },
+    { value: "order_completed", label: isEs ? "Completado / Entregado" : "Order Completed / Delivered" },
+    { value: "order_rejected", label: isEs ? "Rechazado" : "Rejected" },
+    { value: "order_cancelled", label: isEs ? "Cancelado" : "Cancelled" },
+  ];
   const [requests, setRequests] = useState<LoanRequest[]>([]);
   const [loans, setLoans] = useState<Loan[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -905,19 +922,19 @@ export default function Orders() {
   const getMaterialAvailabilityLabel = useCallback(
     (materialId: string): { text: string; tone: "neutral" | "success" | "warning" | "danger" } => {
       if (!inventoryDataAvailable) {
-        return { text: "Stock unknown", tone: "neutral" };
+        return { text: isEs ? "Existencias desconocidas" : "Stock unknown", tone: "neutral" };
       }
 
       const availability = materialAvailabilityByType.get(materialId);
       const available = availability?.available ?? 0;
       const total = availability?.total ?? 0;
 
-      if (available <= 0) return { text: "Out of stock", tone: "danger" };
+      if (available <= 0) return { text: isEs ? "Sin existencias" : "Out of stock", tone: "danger" };
       if (available <= LOW_STOCK_THRESHOLD)
-        return { text: `Low stock (${available}/${total})`, tone: "warning" };
-      return { text: `Available (${available}/${total})`, tone: "success" };
+        return { text: isEs ? `Bajo stock (${available}/${total})` : `Low stock (${available}/${total})`, tone: "warning" };
+      return { text: isEs ? `Disponible (${available}/${total})` : `Available (${available}/${total})`, tone: "success" };
     },
-    [inventoryDataAvailable, materialAvailabilityByType],
+    [inventoryDataAvailable, materialAvailabilityByType, isEs],
   );
 
   const getAvailabilityBadgeClass = useCallback(
@@ -987,8 +1004,8 @@ export default function Orders() {
         if (selectedMaterial) {
           if (!isMaterialSelectable(selectedMaterial._id)) {
             showError(
-              `${selectedMaterial.name} is currently out of stock.`,
-              "Material Unavailable",
+              isEs ? `${selectedMaterial.name} no tiene existencias disponibles.` : `${selectedMaterial.name} is currently out of stock.`,
+              isEs ? "Material no disponible" : "Material Unavailable",
             );
             return prev;
           }
@@ -1039,7 +1056,7 @@ export default function Orders() {
 
   const addMaterialAsRow = (material: MaterialType) => {
     if (!isMaterialSelectable(material._id)) {
-      showError(`${material.name} is currently out of stock.`, "Material Unavailable");
+      showError(isEs ? `${material.name} no tiene existencias disponibles.` : `${material.name} is currently out of stock.`, isEs ? "Material no disponible" : "Material Unavailable");
       return;
     }
     insertMaterialsIntoDraft([{ material, quantity: 1 }]);
@@ -1065,8 +1082,8 @@ export default function Orders() {
 
     if (skippedCount > 0) {
       showError(
-        `${skippedCount} selected item${skippedCount === 1 ? "" : "s"} could not be added because stock is not available.`,
-        "Some Materials Unavailable",
+        isEs ? `${skippedCount} ítem${skippedCount === 1 ? "" : "s"} no pudo agregarse por falta de existencias.` : `${skippedCount} selected item${skippedCount === 1 ? "" : "s"} could not be added because stock is not available.`,
+        isEs ? "Materiales no disponibles" : "Some Materials Unavailable",
       );
     }
 
@@ -1075,14 +1092,14 @@ export default function Orders() {
 
   const handleAddPlanToDraft = () => {
     if (!selectedPlan) {
-      showError("Select a material plan first.", "Material Plan");
+      showError(isEs ? "Selecciona primero un plan de materiales." : "Select a material plan first.", isEs ? "Plan de materiales" : "Material Plan");
       return;
     }
 
     const planEntries =
       (selectedPlan.items?.length ? selectedPlan.items : selectedPlan.materialTypes) ?? [];
     if (planEntries.length === 0) {
-      showError("The selected plan does not contain material types.", "Material Plan");
+      showError(isEs ? "El plan seleccionado no contiene tipos de material." : "The selected plan does not contain material types.", isEs ? "Plan de materiales" : "Material Plan");
       return;
     }
 
@@ -1116,24 +1133,22 @@ export default function Orders() {
 
     if (selections.length === 0) {
       showError(
-        "No materials from this plan can be added right now. Check stock and plan configuration.",
-        "Material Plan",
+        isEs ? "Ningún material del plan está disponible ahora. Verifica el stock y la configuración." : "No materials from this plan can be added right now. Check stock and plan configuration.",
+        isEs ? "Plan de materiales" : "Material Plan",
       );
       return;
     }
 
     insertMaterialsIntoDraft(selections);
     showSuccess(
-      `Added ${selections.length} material row${selections.length === 1 ? "" : "s"} from ${selectedPlan.name}.`,
-      "Material Plan Added",
+      isEs ? `Se agregaron ${selections.length} fila${selections.length === 1 ? "" : "s"} del plan ${selectedPlan.name}.` : `Added ${selections.length} material row${selections.length === 1 ? "" : "s"} from ${selectedPlan.name}.`,
+      isEs ? "Plan agregado" : "Material Plan Added",
     );
 
     if (missingCatalogCount > 0 || outOfStockCount > 0) {
       showError(
-        `${missingCatalogCount > 0 ? `${missingCatalogCount} not found in catalog` : ""}${
-          missingCatalogCount > 0 && outOfStockCount > 0 ? " and " : ""
-        }${outOfStockCount > 0 ? `${outOfStockCount} out of stock` : ""}.`,
-        "Plan Added with Warnings",
+        isEs ? `${missingCatalogCount > 0 ? `${missingCatalogCount} no encontrado(s) en catálogo` : ""}${missingCatalogCount > 0 && outOfStockCount > 0 ? " y " : ""}${outOfStockCount > 0 ? `${outOfStockCount} sin existencias` : ""}.` : `${missingCatalogCount > 0 ? `${missingCatalogCount} not found in catalog` : ""}${missingCatalogCount > 0 && outOfStockCount > 0 ? " and " : ""}${outOfStockCount > 0 ? `${outOfStockCount} out of stock` : ""}.`,
+        isEs ? "Plan agregado con advertencias" : "Plan Added with Warnings",
       );
     }
   };
@@ -1142,27 +1157,27 @@ export default function Orders() {
     const nextErrors: CreateOrderValidationErrors = { rows: {} };
 
     if (!formData.customerId) {
-      nextErrors.customerId = "Select the customer for this order.";
+      nextErrors.customerId = isEs ? "Selecciona el cliente para este pedido." : "Select the customer for this order.";
     }
 
     const isDatetimeIncomplete = (val: string) => val && val.length < 16 && val.includes("T");
 
     if (!formData.startDate) {
-      nextErrors.startDate = "Select a start date.";
+      nextErrors.startDate = isEs ? "Selecciona una fecha de inicio." : "Select a start date.";
     } else if (isDatetimeIncomplete(formData.startDate)) {
-      nextErrors.startDate = "Please set both date and hour for the start time.";
+      nextErrors.startDate = isEs ? "Indica fecha y hora de inicio." : "Please set both date and hour for the start time.";
     } else if (formData.startDate < getTodayLocalDatetimeString()) {
-      nextErrors.startDate = "Start date and time cannot be in the past.";
+      nextErrors.startDate = isEs ? "La fecha y hora de inicio no puede ser en el pasado." : "Start date and time cannot be in the past.";
     }
 
     if (!formData.endDate) {
-      nextErrors.endDate = "Select an end date.";
+      nextErrors.endDate = isEs ? "Selecciona una fecha de fin." : "Select an end date.";
     } else if (isDatetimeIncomplete(formData.endDate)) {
-      nextErrors.endDate = "Please set both date and hour for the end time.";
+      nextErrors.endDate = isEs ? "Indica fecha y hora de fin." : "Please set both date and hour for the end time.";
     } else if (!formData.startDate) {
-      nextErrors.endDate = "Please select a start date before choosing an end date.";
+      nextErrors.endDate = isEs ? "Primero selecciona una fecha de inicio." : "Please select a start date before choosing an end date.";
     } else if (formData.endDate < formData.startDate) {
-      nextErrors.endDate = "End date and time must be after the start date and time.";
+      nextErrors.endDate = isEs ? "La fecha de fin debe ser posterior a la de inicio." : "End date and time must be after the start date and time.";
     }
 
     const draftRowsToValidate = formItems.filter((item) => !isDraftRowEmpty(item));
@@ -1170,17 +1185,17 @@ export default function Orders() {
     draftRowsToValidate.forEach((item) => {
       const rowErrors: DraftItemValidationErrors = {};
       if (!item.categoryId) {
-        rowErrors.categoryId = "Select a category.";
+        rowErrors.categoryId = isEs ? "Selecciona una categoría." : "Select a category.";
       }
       if (!item.materialTypeId) {
-        rowErrors.materialTypeId = "Select a material type.";
+        rowErrors.materialTypeId = isEs ? "Selecciona un tipo de material." : "Select a material type.";
       } else if (!isMaterialSelectable(item.materialTypeId)) {
-        rowErrors.materialTypeId = "This material is currently out of stock.";
+        rowErrors.materialTypeId = isEs ? "Este material no tiene existencias disponibles." : "This material is currently out of stock.";
       }
 
       const quantityValue = Number(item.quantity);
       if (!Number.isFinite(quantityValue) || quantityValue <= 0) {
-        rowErrors.quantity = "Quantity must be greater than 0.";
+        rowErrors.quantity = isEs ? "La cantidad debe ser mayor a 0." : "Quantity must be greater than 0.";
       }
 
       if (Object.keys(rowErrors).length > 0) {
@@ -1192,11 +1207,11 @@ export default function Orders() {
     const hasPackageItem = Boolean(selectedPlanId);
 
     if (!hasMaterialItems && !hasPackageItem) {
-      nextErrors.items = "Add at least one product or service item.";
+      nextErrors.items = isEs ? "Agrega al menos un ítem de producto o servicio." : "Add at least one product or service item.";
     }
 
     return nextErrors;
-  }, [formData, formItems, isMaterialSelectable, isDraftRowEmpty, selectedPlanId]);
+  }, [formData, formItems, isMaterialSelectable, isDraftRowEmpty, selectedPlanId, isEs]);
 
   useEffect(() => {
     if (!showValidationErrors) return;
@@ -1259,12 +1274,12 @@ export default function Orders() {
           return exists ? prev : [createdRequest, ...prev];
         });
       }
-      showSuccess("Order created successfully.", "Order Registered");
+      showSuccess(isEs ? "Pedido creado correctamente." : "Order created successfully.", isEs ? "Pedido registrado" : "Order Registered");
       closeCreateModal();
       await refreshData();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to create order";
-      showError(message, "Order Creation Error");
+      const message = error instanceof Error ? error.message : (isEs ? "Error al crear el pedido" : "Failed to create order");
+      showError(message, isEs ? "Error al crear pedido" : "Order Creation Error");
     } finally {
       setSubmitting(false);
     }
@@ -1273,12 +1288,12 @@ export default function Orders() {
   const handleApproveOrder = async (requestId: string) => {
     setSubmitting(true);
     try {
-      await approveRequest(requestId, "Approved from Orders module");
-      showSuccess("Order approved.", "Order Updated");
+      await approveRequest(requestId, isEs ? "Aprobado desde el módulo de Pedidos" : "Approved from Orders module");
+      showSuccess(isEs ? "Pedido aprobado." : "Order approved.", isEs ? "Pedido actualizado" : "Order Updated");
       await refreshData();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to approve order";
-      showError(message, "Approval Error");
+      const message = error instanceof Error ? error.message : (isEs ? "Error al aprobar el pedido" : "Failed to approve order");
+      showError(message, isEs ? "Error de aprobación" : "Approval Error");
     } finally {
       setSubmitting(false);
     }
@@ -1299,21 +1314,21 @@ export default function Orders() {
   const handleRejectOrder = async () => {
     if (!rejectTarget) return;
     if (!rejectReason.trim()) {
-      showError("Rejection reason is required.", "Validation Error");
+      showError(isEs ? "El motivo de rechazo es obligatorio." : "Rejection reason is required.", isEs ? "Error de validación" : "Validation Error");
       return;
     }
 
     setSubmitting(true);
     try {
       await rejectRequest(rejectTarget.request._id, rejectReason.trim());
-      showSuccess("Order rejected.", "Order Updated");
+      showSuccess(isEs ? "Pedido rechazado." : "Order rejected.", isEs ? "Pedido actualizado" : "Order Updated");
       setShowRejectModal(false);
       setRejectTarget(null);
       setRejectReason("");
       await refreshData();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to reject order";
-      showError(message, "Rejection Error");
+      const message = error instanceof Error ? error.message : (isEs ? "Error al rechazar el pedido" : "Failed to reject order");
+      showError(message, isEs ? "Error de rechazo" : "Rejection Error");
     } finally {
       setSubmitting(false);
     }
@@ -1324,7 +1339,7 @@ export default function Orders() {
 
     const reason = reactivateReason.trim();
     if (!reason) {
-      showError("Reactivation reason is required.", "Validation Error");
+      showError(isEs ? "El motivo de reactivación es obligatorio." : "Reactivation reason is required.", isEs ? "Error de validación" : "Validation Error");
       return;
     }
 
@@ -1334,7 +1349,7 @@ export default function Orders() {
         status: "pending",
         notes: `Reactivated from rejected state. Reason: ${reason}`,
       });
-      showSuccess("Order reactivated and moved back to pending.", "Order Reactivated");
+      showSuccess(isEs ? "Pedido reactivado y movido a pendiente." : "Order reactivated and moved back to pending.", isEs ? "Pedido reactivado" : "Order Reactivated");
       setShowReactivateModal(false);
       setReactivateTarget(null);
       setReactivateReason("");
@@ -1354,11 +1369,11 @@ export default function Orders() {
     setSubmitting(true);
     try {
       await createLoanFromRequest(requestId);
-      showSuccess("Loan started successfully.", "Loan Created");
+      showSuccess(isEs ? "Préstamo iniciado correctamente." : "Loan started successfully.", isEs ? "Préstamo creado" : "Loan Created");
       await refreshData();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to start loan";
-      showError(message, "Loan Error");
+      const message = error instanceof Error ? error.message : (isEs ? "Error al iniciar el préstamo" : "Failed to start loan");
+      showError(message, isEs ? "Error de préstamo" : "Loan Error");
     } finally {
       setSubmitting(false);
     }
@@ -1368,11 +1383,11 @@ export default function Orders() {
     setSubmitting(true);
     try {
       await returnLoan(loanId);
-      showSuccess("Order marked as completed.", "Loan Returned");
+      showSuccess(isEs ? "Pedido marcado como completado." : "Order marked as completed.", isEs ? "Préstamo devuelto" : "Loan Returned");
       await refreshData();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to complete loan";
-      showError(message, "Completion Error");
+      const message = error instanceof Error ? error.message : (isEs ? "Error al completar el préstamo" : "Failed to complete loan");
+      showError(message, isEs ? "Error de finalización" : "Completion Error");
     } finally {
       setSubmitting(false);
     }
@@ -1381,8 +1396,8 @@ export default function Orders() {
   const handlePrepareOrder = (order: OrderView) => {
     if (!canAssignRequest) {
       showError(
-        "You need the requests:assign permission to prepare orders.",
-        "Permission Required",
+        isEs ? "Necesitas el permiso requests:assign para preparar pedidos." : "You need the requests:assign permission to prepare orders.",
+        isEs ? "Permiso requerido" : "Permission Required",
       );
       return;
     }
@@ -1436,9 +1451,9 @@ export default function Orders() {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-3xl font-bold text-white">Orders</h1>
+          <h1 className="text-3xl font-bold text-white">{isEs ? "Pedidos" : "Orders"}</h1>
           <p className="text-gray-400 mt-1">
-            Create, approve, and track order lifecycle from one place
+            {isEs ? "Crea, aprueba y gestiona el ciclo de vida de pedidos desde un solo lugar" : "Create, approve, and track order lifecycle from one place"}
           </p>
         </div>
         <Button
@@ -1446,7 +1461,7 @@ export default function Orders() {
           onClick={() => setShowCreateModal(true)}
           disabled={!canCreateRequest}
         >
-          New Order
+          {isEs ? "Nuevo pedido" : "New Order"}
         </Button>
       </div>
 
@@ -1464,7 +1479,7 @@ export default function Orders() {
           />
           <input
             type="text"
-            placeholder="Search by request ID or customer..."
+            placeholder={isEs ? "Buscar por ID de solicitud o cliente..." : "Search by request ID or customer..."}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 bg-[#1a1a1a] border border-[#333] rounded-[8px] text-white placeholder-gray-600 focus:outline-none focus:border-[#FFD700] transition-all"
@@ -1477,7 +1492,7 @@ export default function Orders() {
             onChange={(e) => setSelectedStatus(e.target.value as WorkflowFilter)}
             className="appearance-none px-4 py-2 bg-[#1a1a1a] border border-[#333] rounded-[8px] text-white focus:outline-none focus:border-[#FFD700] transition-all cursor-pointer pr-10"
           >
-            {FILTER_OPTIONS.map((status) => (
+            {localFilterOptions.map((status) => (
               <option key={status.value} value={status.value}>
                 {status.label}
               </option>
@@ -1496,19 +1511,19 @@ export default function Orders() {
             <thead>
               <tr className="bg-[#121212] border-b border-[#333]">
                 <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">
-                  Request ID
+                  {isEs ? "ID de solicitud" : "Request ID"}
                 </th>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">
-                  Customer
+                  {isEs ? "Cliente" : "Customer"}
                 </th>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">
-                  Date Range
+                  {isEs ? "Rango de fechas" : "Date Range"}
                 </th>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">
-                  Products / Services
+                  {isEs ? "Productos / Servicios" : "Products / Services"}
                 </th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Status</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Actions</th>
+                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">{isEs ? "Estado" : "Status"}</th>
+                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">{isEs ? "Acciones" : "Actions"}</th>
               </tr>
             </thead>
             <tbody>
@@ -1524,7 +1539,7 @@ export default function Orders() {
               ) : filteredOrders.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-10 text-center text-gray-400">
-                    No orders found
+                    {isEs ? "No se encontraron pedidos" : "No orders found"}
                   </td>
                 </tr>
               ) : (
@@ -1536,19 +1551,19 @@ export default function Orders() {
                     <td className="px-6 py-4 text-white font-semibold">{order.request._id}</td>
                     <td className="px-6 py-4 text-gray-300">{order.customerName}</td>
                     <td className="px-6 py-4 text-gray-400 text-sm">
-                      {formatDate(order.request.startDate)} to {formatDate(order.request.endDate)}
+                      {formatDate(order.request.startDate)}{isEs ? " al " : " to "}{formatDate(order.request.endDate)}
                     </td>
                     <td className="px-6 py-4 text-gray-300 text-sm">
                       <span className="bg-[#FFD700]/20 text-[#FFD700] px-3 py-1 rounded-full text-xs font-semibold mr-2">
                         {order.itemCount}
                       </span>
-                      items
+                      {isEs ? "ítems" : "items"}
                     </td>
                     <td className="px-6 py-4">
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadgeStyle(order.workflowStatus)}`}
                       >
-                        {order.workflowLabel}
+                        {tWorkflow(order.workflowStatus)}
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -1572,7 +1587,7 @@ export default function Orders() {
                             disabled={submitting || !canApproveRequest}
                             className="bg-emerald-500/15 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/25"
                           >
-                            Approve
+                            {isEs ? "Aprobar" : "Approve"}
                           </Button>
                         )}
 
@@ -1585,7 +1600,7 @@ export default function Orders() {
                             variant="danger"
                             className="bg-red-500/15 text-red-300 border-red-500/40 hover:bg-red-500/25"
                           >
-                            Reject
+                            {isEs ? "Rechazar" : "Reject"}
                           </Button>
                         )}
 
@@ -1597,7 +1612,7 @@ export default function Orders() {
                             disabled={submitting || !canUpdateRequest}
                             className="bg-[#FFD700]/10 text-[#FFD700] border-[#FFD700]/40 hover:bg-[#FFD700]/20"
                           >
-                            Reactivate
+                            {isEs ? "Reactivar" : "Reactivate"}
                           </Button>
                         )}
 
@@ -1609,7 +1624,7 @@ export default function Orders() {
                             disabled={submitting || !canAssignRequest}
                             className="bg-violet-500/15 text-violet-300 border-violet-500/40 hover:bg-violet-500/25"
                           >
-                            Prepare
+                            {isEs ? "Preparar" : "Prepare"}
                           </Button>
                         )}
 
@@ -1621,7 +1636,7 @@ export default function Orders() {
                             disabled={submitting || !canCreateLoan}
                             className="bg-blue-500/15 text-blue-300 border-blue-500/40 hover:bg-blue-500/25"
                           >
-                            Start Loan
+                            {isEs ? "Iniciar préstamo" : "Start Loan"}
                           </Button>
                         )}
 
@@ -1634,7 +1649,7 @@ export default function Orders() {
                               disabled={submitting || !canReturnLoan}
                               className="bg-cyan-500/15 text-cyan-300 border-cyan-500/40 hover:bg-cyan-500/25"
                             >
-                              Complete
+                              {isEs ? "Completar" : "Complete"}
                             </Button>
                           )}
                       </div>
@@ -1647,9 +1662,9 @@ export default function Orders() {
         </div>
         <div className="border-t border-[#333] bg-[#121212] px-4 py-3 flex items-center justify-between text-sm">
           <p className="text-gray-400">
-            Showing page <span className="text-white font-semibold">{requestsPage}</span> of{" "}
+            {isEs ? "Página" : "Showing page"} <span className="text-white font-semibold">{requestsPage}</span> {isEs ? "de" : "of"}{" "}
             <span className="text-white font-semibold">{requestsTotalPages}</span>
-            <span className="ml-2 text-gray-500">({requestsTotal} total requests)</span>
+            <span className="ml-2 text-gray-500">({requestsTotal} {isEs ? "solicitudes en total" : "total requests"})</span>
           </p>
           <div className="flex items-center gap-2">
             <Button
@@ -1658,7 +1673,7 @@ export default function Orders() {
               onClick={() => setRequestsPage((prev) => Math.max(1, prev - 1))}
               disabled={loading || requestsPage <= 1}
             >
-              Previous
+              {isEs ? "Anterior" : "Previous"}
             </Button>
             <Button
               variant="secondary"
@@ -1666,7 +1681,7 @@ export default function Orders() {
               onClick={() => setRequestsPage((prev) => Math.min(requestsTotalPages, prev + 1))}
               disabled={loading || requestsPage >= requestsTotalPages}
             >
-              Next
+              {isEs ? "Siguiente" : "Next"}
             </Button>
           </div>
         </div>
@@ -1680,9 +1695,9 @@ export default function Orders() {
           <div className="modal-content max-w-6xl w-full max-h-[calc(100vh-1rem)] md:max-h-[94vh] overflow-y-auto my-2 md:my-0">
             <div className="modal-header">
               <div>
-                <h2 className="text-2xl font-bold text-white">Register New Order</h2>
+                <h2 className="text-2xl font-bold text-white">{isEs ? "Registrar nuevo pedido" : "Register New Order"}</h2>
                 <p className="text-sm text-gray-400 mt-1">
-                  Register walk-in orders and review all details before creating the request.
+                  {isEs ? "Registra pedidos presenciales y revisa todos los detalles antes de crear la solicitud." : "Register walk-in orders and review all details before creating the request."}
                 </p>
               </div>
               <IconButton
@@ -1699,13 +1714,13 @@ export default function Orders() {
                 <div className="p-6 md:p-7 space-y-6">
                   {showValidationErrors && (
                     <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
-                      Review the highlighted fields below to continue.
+                      {isEs ? "Revisa los campos resaltados a continuación para continuar." : "Review the highlighted fields below to continue."}
                     </div>
                   )}
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="form-group md:col-span-2">
-                      <label className="form-label">Customer *</label>
+                      <label className="form-label">{isEs ? "Cliente *" : "Customer *"}</label>
                       <select
                         value={formData.customerId}
                         onChange={(e) =>
@@ -1713,7 +1728,7 @@ export default function Orders() {
                         }
                         className={`input ${createErrors.customerId ? "input-error" : ""}`}
                       >
-                        <option value="">Select customer</option>
+                        <option value="">{isEs ? "Seleccionar cliente" : "Select customer"}</option>
                         {customers.map((customer) => (
                           <option key={customer._id} value={customer._id}>
                             {formatCustomerName(customer)} - {customer.email}
@@ -1726,7 +1741,7 @@ export default function Orders() {
                     </div>
 
                     <div className="form-group">
-                      <label className="form-label">Start Date *</label>
+                      <label className="form-label">{isEs ? "Fecha de inicio *" : "Start Date *"}</label>
                       <input
                         type="datetime-local"
                         value={formData.startDate}
@@ -1753,7 +1768,7 @@ export default function Orders() {
                     </div>
 
                     <div className="form-group">
-                      <label className="form-label">End Date *</label>
+                      <label className="form-label">{isEs ? "Fecha de fin *" : "End Date *"}</label>
                       <input
                         type="datetime-local"
                         value={formData.endDate}
@@ -1767,21 +1782,21 @@ export default function Orders() {
                     </div>
 
                     <div className="form-group md:col-span-2">
-                      <label className="form-label">Notes</label>
+                      <label className="form-label">{isEs ? "Notas" : "Notes"}</label>
                       <textarea
                         value={formData.notes}
                         onChange={(e) =>
                           setFormData((prev) => ({ ...prev, notes: e.target.value }))
                         }
                         className="input min-h-[96px]"
-                        placeholder="Optional notes for this order"
+                        placeholder={isEs ? "Notas opcionales para este pedido" : "Optional notes for this order"}
                       />
                     </div>
                   </div>
 
                   <div className="border border-[#333] rounded-lg p-4 space-y-4 bg-[#161616]">
                     <div className="flex items-center justify-between gap-4 flex-wrap">
-                      <h3 className="text-white font-semibold">Products and Services *</h3>
+                      <h3 className="text-white font-semibold">{isEs ? "Productos y servicios *" : "Products and Services *"}</h3>
                     </div>
 
                     <div className="rounded-lg border border-[#333] bg-[#131313] p-3">
@@ -1797,8 +1812,8 @@ export default function Orders() {
                         >
                           <option value="">
                             {packages.length > 0
-                              ? "Select an existing plan"
-                              : "No material plans available"}
+                              ? (isEs ? "Seleccionar un plan existente" : "Select an existing plan")
+                              : (isEs ? "Sin planes de materiales disponibles" : "No material plans available")}
                           </option>
                           {packages.map((pkg) => {
                             const planItemCount =
@@ -1815,7 +1830,7 @@ export default function Orders() {
                           onClick={handleAddPlanToDraft}
                           disabled={!selectedPlanId || packages.length === 0}
                         >
-                          Import Plan Materials
+                          {isEs ? "Importar materiales del plan" : "Import Plan Materials"}
                         </Button>
                       </div>
                       {selectedPlan && (
@@ -1823,12 +1838,12 @@ export default function Orders() {
                           <p className="text-xs text-gray-400">
                             {selectedPlan.description?.trim()
                               ? selectedPlan.description
-                              : "This plan is already included in the order as a package item. You can optionally import its materials as editable rows."}
+                              : (isEs ? "Este plan ya está incluido en el pedido como paquete. Opcionalmente puedes importar los materiales como filas editables." : "This plan is already included in the order as a package item. You can optionally import its materials as editable rows.")}
                           </p>
                           <div className="flex flex-wrap gap-1.5">
                             {selectedPlanMaterialDetails.length === 0 ? (
                               <span className="text-[11px] px-2 py-1 rounded bg-[#1f1f1f] text-gray-300 border border-[#333]">
-                                No configured materials
+                                {isEs ? "Sin materiales configurados" : "No configured materials"}
                               </span>
                             ) : (
                               selectedPlanMaterialDetails.map((entry) => (
@@ -1854,7 +1869,7 @@ export default function Orders() {
                           className="grid grid-cols-1 md:grid-cols-[220px_1fr_120px_44px_44px] gap-3 items-end"
                         >
                           <div className="form-group">
-                            <label className="form-label">Category</label>
+                            <label className="form-label">{isEs ? "Categoría" : "Category"}</label>
                             <select
                               value={item.categoryId}
                               onChange={(e) =>
@@ -1862,7 +1877,7 @@ export default function Orders() {
                               }
                               className={`input ${createErrors.rows[item.localId]?.categoryId ? "input-error" : ""}`}
                             >
-                              <option value="">Select category</option>
+                              <option value="">{isEs ? "Seleccionar categoría" : "Select category"}</option>
                               {materialCategories.map((category) => (
                                 <option key={category._id} value={category._id}>
                                   {category.name}
@@ -1877,7 +1892,7 @@ export default function Orders() {
                           </div>
 
                           <div className="form-group">
-                            <label className="form-label">Material Type</label>
+                            <label className="form-label">{isEs ? "Tipo de material" : "Material Type"}</label>
                             {(() => {
                               const rowSuggestions = getRowMaterialSuggestions(item);
                               const hasQuery = item.materialSearchTerm.trim().length > 0;
@@ -1939,8 +1954,8 @@ export default function Orders() {
                                     }}
                                     placeholder={
                                       item.categoryId
-                                        ? "Search material..."
-                                        : "Select category first"
+                                        ? (isEs ? "Buscar material..." : "Search material...")
+                                        : (isEs ? "Selecciona categoría primero" : "Select category first")
                                     }
                                     disabled={!item.categoryId}
                                     className={`input ${createErrors.rows[item.localId]?.materialTypeId ? "input-error" : ""}`}
@@ -1950,20 +1965,19 @@ export default function Orders() {
                                     <div className="absolute z-20 left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg border border-[#333] bg-[#111] shadow-2xl">
                                       {hasQuery && (
                                         <p className="px-3 py-2 text-[11px] uppercase tracking-wide text-gray-500 border-b border-[#222]">
-                                          {rowSuggestions.length} result
-                                          {rowSuggestions.length === 1 ? "" : "s"}
+                                          {rowSuggestions.length} {isEs ? `resultado${rowSuggestions.length === 1 ? "" : "s"}` : `result${rowSuggestions.length === 1 ? "" : "s"}`}
                                         </p>
                                       )}
 
                                       {!hasQuery && (
                                         <p className="px-3 py-2 text-xs text-gray-500">
-                                          Type to search materials in real time.
+                                          {isEs ? "Escribe para buscar materiales en tiempo real." : "Type to search materials in real time."}
                                         </p>
                                       )}
 
                                       {hasQuery && rowSuggestions.length === 0 && (
                                         <p className="px-3 py-2 text-xs text-gray-500">
-                                          No materials found for this category.
+                                          {isEs ? "No se encontraron materiales para esta categoría." : "No materials found for this category."}
                                         </p>
                                       )}
 
@@ -1991,7 +2005,7 @@ export default function Orders() {
                                               {material.name}
                                             </span>
                                             <span className="block text-xs text-gray-400 truncate">
-                                              {formatMoney(material.pricePerDay)} / day
+                                              {formatMoney(material.pricePerDay)}{isEs ? " / día" : " / day"}
                                             </span>
                                             {(() => {
                                               const availability = getMaterialAvailabilityLabel(
@@ -2023,7 +2037,7 @@ export default function Orders() {
                           </div>
 
                           <div className="form-group">
-                            <label className="form-label">Quantity</label>
+                            <label className="form-label">{isEs ? "Cantidad" : "Quantity"}</label>
                             <input
                               type="number"
                               min={1}
@@ -2046,7 +2060,7 @@ export default function Orders() {
                             onClick={handleAddDraftItem}
                             intent="secondary"
                             className="bg-transparent text-[#FFD700] border-none hover:bg-[#FFD700]/10"
-                            ariaLabel="Add new item"
+                            ariaLabel={isEs ? "Agregar nuevo ítem" : "Add new item"}
                           />
 
                           <IconButton
@@ -2054,7 +2068,7 @@ export default function Orders() {
                             title="Remove item"
                             onClick={() => handleDraftItemRemove(item.localId)}
                             intent="delete"
-                            ariaLabel="Remove item"
+                            ariaLabel={isEs ? "Eliminar ítem" : "Remove item"}
                           />
 
                           {item.materialTypeId && selectedDraftById.get(item.localId)?.name && (
@@ -2065,11 +2079,10 @@ export default function Orders() {
                                 </p>
                                 <div className="flex items-center gap-2 text-xs">
                                   <span className="px-2 py-1 rounded-full bg-[#FFD700]/20 text-[#FFD700] border border-[#FFD700]/30">
-                                    {formatMoney(selectedDraftById.get(item.localId)?.unitPrice)} /
-                                    day
+                                    {formatMoney(selectedDraftById.get(item.localId)?.unitPrice)}{isEs ? " / día" : " / day"}
                                   </span>
                                   <span className="px-2 py-1 rounded-full bg-blue-500/15 text-blue-300 border border-blue-500/30">
-                                    Qty: {selectedDraftById.get(item.localId)?.quantity ?? 1}
+                                    {isEs ? "Cant:" : "Qty:"} {selectedDraftById.get(item.localId)?.quantity ?? 1}
                                   </span>
                                 </div>
                               </div>
@@ -2082,7 +2095,7 @@ export default function Orders() {
 
                               {(selectedDraftById.get(item.localId)?.includes.length ?? 0) > 0 && (
                                 <div>
-                                  <p className="text-xs text-gray-500 mb-1">Category</p>
+                                  <p className="text-xs text-gray-500 mb-1">{isEs ? "Categoría" : "Category"}</p>
                                   <div className="flex flex-wrap gap-1.5">
                                     {selectedDraftById.get(item.localId)?.includes.map((entry) => (
                                       <span
@@ -2105,29 +2118,29 @@ export default function Orders() {
 
                 <aside className="border-t xl:border-t-0 xl:border-l border-[#333] bg-[#151515] p-6 space-y-5">
                   <div className="rounded-lg border border-[#333] bg-[#1a1a1a] p-4">
-                    <p className="text-xs uppercase tracking-wide text-gray-500">Current Draft</p>
+                    <p className="text-xs uppercase tracking-wide text-gray-500">{isEs ? "Borrador actual" : "Current Draft"}</p>
                     <div className="mt-3 space-y-2 text-sm">
                       <p className="text-gray-300">
-                        Rows: <span className="text-white font-semibold">{formItems.length}</span>
+                        {isEs ? "Filas:" : "Rows:"} <span className="text-white font-semibold">{formItems.length}</span>
                       </p>
                       <p className="text-gray-300">
-                        Selected Items:{" "}
+                        {isEs ? "Elementos seleccionados:" : "Selected Items:"}{" "}
                         <span className="text-white font-semibold">{selectedDraftRows.length}</span>
                       </p>
                       <p className="text-gray-300">
-                        Rental period:{" "}
+                        {isEs ? "Período de alquiler:" : "Rental period:"}{" "}
                         <span className="text-white font-semibold">
-                          {rentalDays} day{rentalDays === 1 ? "" : "s"}
+                          {rentalDays} {isEs ? `día${rentalDays === 1 ? "" : "s"}` : `day${rentalDays === 1 ? "" : "s"}`}
                         </span>
                       </p>
                       <p className="text-gray-300">
-                        Daily subtotal:{" "}
+                        {isEs ? "Subtotal diario:" : "Daily subtotal:"}{" "}
                         <span className="text-white font-semibold">
                           {formatMoney(estimatedDailyTotal)}
                         </span>
                       </p>
                       <p className="text-gray-300">
-                        Estimated total:{" "}
+                        {isEs ? "Total estimado:" : "Estimated total:"}{" "}
                         <span className="text-white font-semibold">
                           {formatMoney(estimatedOrderTotal)}
                         </span>
@@ -2136,10 +2149,10 @@ export default function Orders() {
                   </div>
 
                   <div className="rounded-lg border border-[#333] bg-[#1a1a1a] p-4 space-y-3">
-                    <p className="text-sm font-semibold text-white">Recent Materials</p>
+                    <p className="text-sm font-semibold text-white">{isEs ? "Materiales recientes" : "Recent Materials"}</p>
                     {recentMaterials.length === 0 ? (
                       <p className="text-xs text-gray-500">
-                        Your most recent selections will appear here.
+                        {isEs ? "Tus selecciones más recientes aparecerán aquí." : "Your most recent selections will appear here."}
                       </p>
                     ) : (
                       <div className="flex flex-wrap gap-2">
@@ -2165,14 +2178,14 @@ export default function Orders() {
                   </div>
 
                   <div className="rounded-lg border border-[#333] bg-[#1a1a1a] p-4 space-y-3">
-                    <p className="text-sm font-semibold text-white">Quick Material Picker</p>
+                    <p className="text-sm font-semibold text-white">{isEs ? "Selector rápido de materiales" : "Quick Material Picker"}</p>
 
                     <select
                       value={quickCategoryId}
                       onChange={(e) => setQuickCategoryId(e.target.value)}
                       className="input"
                     >
-                      <option value="">All categories</option>
+                      <option value="">{isEs ? "Todas las categorías" : "All categories"}</option>
                       {materialCategories.map((category) => (
                         <option key={`quick-category-${category._id}`} value={category._id}>
                           {category.name}
@@ -2194,23 +2207,21 @@ export default function Orders() {
                         e.preventDefault();
                         addMaterialAsRow(firstResult);
                       }}
-                      placeholder="Search material by name or description..."
+                      placeholder={isEs ? "Buscar material por nombre o descripción..." : "Search material by name or description..."}
                       className="input"
                     />
                     <p className="text-[11px] text-gray-500">
-                      Tip: Press Ctrl/Cmd + K to focus this search, then Enter to add the first
-                      result.
+                      {isEs ? "Consejo: Presiona Ctrl/Cmd + K para enfocar esta búsqueda, luego Enter para agregar el primer resultado." : "Tip: Press Ctrl/Cmd + K to focus this search, then Enter to add the first result."}
                     </p>
 
                     <p className="text-[11px] text-gray-500">
-                      {quickFilteredMaterials.length} result
-                      {quickFilteredMaterials.length === 1 ? "" : "s"} in real time
+                      {quickFilteredMaterials.length} {isEs ? `resultado${quickFilteredMaterials.length === 1 ? "" : "s"} en tiempo real` : `result${quickFilteredMaterials.length === 1 ? "" : "s"} in real time`}
                     </p>
 
                     <div className="max-h-44 overflow-y-auto space-y-2 pr-1">
                       {quickFilteredMaterials.length === 0 ? (
                         <p className="text-xs text-gray-500">
-                          No materials found for current filters.
+                          {isEs ? "No se encontraron materiales para los filtros actuales." : "No materials found for current filters."}
                         </p>
                       ) : (
                         quickFilteredMaterials.map((material) => {
@@ -2236,7 +2247,7 @@ export default function Orders() {
                                   {material.name}
                                 </span>
                                 <span className="block text-gray-400 truncate">
-                                  {formatMoney(material.pricePerDay)} / day
+                                  {formatMoney(material.pricePerDay)}{isEs ? " / día" : " / day"}
                                 </span>
                                 {(() => {
                                   const availability = getMaterialAvailabilityLabel(material._id);
@@ -2252,7 +2263,7 @@ export default function Orders() {
                                 })()}
                                 {(materialUsageCounts[material._id] ?? 0) > 0 && (
                                   <span className="block text-[11px] text-[#FFD700] truncate">
-                                    Used {materialUsageCounts[material._id]} times
+                                    {isEs ? `Usado ${materialUsageCounts[material._id]} veces` : `Used ${materialUsageCounts[material._id]} times`}
                                   </span>
                                 )}
                               </span>
@@ -2274,10 +2285,10 @@ export default function Orders() {
                   </div>
 
                   <div className="rounded-lg border border-[#333] bg-[#1a1a1a] p-4 space-y-3">
-                    <p className="text-sm font-semibold text-white">Order Cost Preview</p>
+                    <p className="text-sm font-semibold text-white">{isEs ? "Vista previa del costo" : "Order Cost Preview"}</p>
                     {selectedDraftRows.length === 0 ? (
                       <p className="text-xs text-gray-500">
-                        Select products or services to see real catalog pricing.
+                        {isEs ? "Selecciona productos o servicios para ver los precios del catálogo." : "Select products or services to see real catalog pricing."}
                       </p>
                     ) : (
                       <>
@@ -2292,21 +2303,21 @@ export default function Orders() {
                                 <p className="text-gray-200 font-medium truncate">{detail?.name}</p>
                                 <p className="text-gray-400 mt-1">
                                   {detail?.quantity ?? 1} x {formatMoney(detail?.unitPrice)} ={" "}
-                                  {formatMoney(lineTotal)} / day
+                                  {formatMoney(lineTotal)}{isEs ? " / día" : " / day"}
                                 </p>
                               </div>
                             );
                           })}
                         </div>
                         <div className="pt-2 border-t border-[#333] flex items-center justify-between">
-                          <span className="text-sm text-gray-300">Estimated daily total</span>
+                          <span className="text-sm text-gray-300">{isEs ? "Subtotal diario estimado" : "Estimated daily total"}</span>
                           <span className="text-base font-semibold text-[#FFD700]">
                             {formatMoney(estimatedDailyTotal)}
                           </span>
                         </div>
                         <div className="pt-2 border-t border-[#333] flex items-center justify-between">
                           <span className="text-sm text-gray-300">
-                            Estimated total ({rentalDays} day{rentalDays === 1 ? "" : "s"})
+                            {isEs ? `Total estimado (${rentalDays} día${rentalDays === 1 ? "" : "s"})` : `Estimated total (${rentalDays} day${rentalDays === 1 ? "" : "s"})`}
                           </span>
                           <span className="text-base font-semibold text-[#FFD700]">
                             {formatMoney(estimatedOrderTotal)}
@@ -2319,10 +2330,10 @@ export default function Orders() {
                   {(!hasCustomers || !hasSelectableItems) && (
                     <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-4 space-y-3">
                       <p className="text-sm font-semibold text-red-300">
-                        Missing required setup data
+                        {isEs ? "Datos de configuración requeridos faltantes" : "Missing required setup data"}
                       </p>
                       <p className="text-xs text-red-200/90">
-                        You need at least one customer and one material type to create orders.
+                        {isEs ? "Necesitas al menos un cliente y un tipo de material para crear pedidos." : "You need at least one customer and one material type to create orders."}
                       </p>
                     </div>
                   )}
@@ -2332,14 +2343,14 @@ export default function Orders() {
 
             <div className="modal-footer">
               <Button variant="secondary" onClick={closeCreateModal} disabled={submitting}>
-                Cancel
+                {isEs ? "Cancelar" : "Cancel"}
               </Button>
               <Button
                 onClick={handleCreateOrder}
                 loading={submitting}
                 disabled={!hasCustomers || !hasSelectableItems}
               >
-                {submitting ? "Creating..." : "Create Order"}
+                {submitting ? (isEs ? "Creando..." : "Creating...") : (isEs ? "Crear pedido" : "Create Order")}
               </Button>
             </div>
           </div>
@@ -2354,9 +2365,9 @@ export default function Orders() {
           <div className="modal-content max-w-5xl max-h-[92vh] overflow-hidden">
             <div className="modal-header">
               <div>
-                <h2 className="text-2xl font-bold text-white">Order Details</h2>
+                <h2 className="text-2xl font-bold text-white">{isEs ? "Detalles del pedido" : "Order Details"}</h2>
                 <p className="text-sm text-gray-400 mt-1">
-                  Review full order data and current workflow step.
+                  {isEs ? "Revisa los datos completos del pedido y el paso de flujo actual." : "Review full order data and current workflow step."}
                 </p>
               </div>
               <IconButton
@@ -2373,27 +2384,27 @@ export default function Orders() {
                 <div className="p-6 md:p-7 space-y-5 max-h-[calc(92vh-84px)] overflow-y-auto">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <p className="text-gray-500 text-sm">Request ID</p>
+                      <p className="text-gray-500 text-sm">{isEs ? "ID de solicitud" : "Request ID"}</p>
                       <p className="text-white font-semibold break-all">
                         {activeOrder.request._id}
                       </p>
                     </div>
                     <div>
-                      <p className="text-gray-500 text-sm">Customer</p>
+                      <p className="text-gray-500 text-sm">{isEs ? "Cliente" : "Customer"}</p>
                       <p className="text-white font-semibold">{activeOrder.customerName}</p>
                     </div>
                     <div>
-                      <p className="text-gray-500 text-sm">Start Date</p>
+                      <p className="text-gray-500 text-sm">{isEs ? "Fecha de inicio" : "Start Date"}</p>
                       <p className="text-gray-300">{formatDate(activeOrder.request.startDate)}</p>
                     </div>
                     <div>
-                      <p className="text-gray-500 text-sm">End Date</p>
+                      <p className="text-gray-500 text-sm">{isEs ? "Fecha de fin" : "End Date"}</p>
                       <p className="text-gray-300">{formatDate(activeOrder.request.endDate)}</p>
                     </div>
                   </div>
 
                   <div>
-                    <p className="text-gray-500 text-sm mb-2">Products / Services</p>
+                    <p className="text-gray-500 text-sm mb-2">{isEs ? "Productos / Servicios" : "Products / Services"}</p>
                     <div className="space-y-2">
                       {activeOrder.displayItems.map((itemLabel) => (
                         <div
@@ -2408,7 +2419,7 @@ export default function Orders() {
 
                   {activeOrder.request.notes && (
                     <div>
-                      <p className="text-gray-500 text-sm">Notes</p>
+                      <p className="text-gray-500 text-sm">{isEs ? "Notas" : "Notes"}</p>
                       <p className="text-gray-300 text-sm whitespace-pre-wrap">
                         {activeOrder.request.notes}
                       </p>
@@ -2418,7 +2429,7 @@ export default function Orders() {
 
                 <aside className="border-t lg:border-t-0 lg:border-l border-[#333] bg-[#151515] p-6 space-y-4">
                   <div>
-                    <p className="text-gray-500 text-sm mb-2">Workflow Tracking</p>
+                    <p className="text-gray-500 text-sm mb-2">{isEs ? "Seguimiento del flujo" : "Workflow Tracking"}</p>
                     <div className="space-y-2">
                       {WORKFLOW_STEPS.map((step, index) => {
                         const activeStepIndex = getStepIndex(activeOrder.workflowStatus);
@@ -2432,7 +2443,7 @@ export default function Orders() {
                                 : "border-[#333] text-gray-500"
                             }`}
                           >
-                            {step.label}
+                            {tWorkflow(step.status)}
                           </div>
                         );
                       })}
@@ -2440,18 +2451,18 @@ export default function Orders() {
                   </div>
 
                   <div className="border border-[#333] rounded-lg p-3 bg-[#1a1a1a]">
-                    <p className="text-xs uppercase tracking-wide text-gray-500">Current Status</p>
+                    <p className="text-xs uppercase tracking-wide text-gray-500">{isEs ? "Estado actual" : "Current Status"}</p>
                     <span
                       className={`inline-flex mt-2 px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadgeStyle(activeOrder.workflowStatus)}`}
                     >
-                      {activeOrder.workflowLabel}
+                      {tWorkflow(activeOrder.workflowStatus)}
                     </span>
                   </div>
 
                   {(activeOrder.workflowStatus === "order_rejected" ||
                     activeOrder.workflowStatus === "order_cancelled") && (
                     <p className="text-red-300 text-sm">
-                      This order is in a terminal state: {activeOrder.workflowLabel}
+                      {isEs ? `Este pedido está en estado terminal: ${tWorkflow(activeOrder.workflowStatus)}` : `This order is in a terminal state: ${tWorkflow(activeOrder.workflowStatus)}`}
                     </p>
                   )}
                 </aside>
@@ -2469,9 +2480,9 @@ export default function Orders() {
           <div className="modal-content max-w-2xl overflow-hidden">
             <div className="modal-header">
               <div>
-                <h2 className="text-xl font-bold text-white">Reject Order</h2>
+                <h2 className="text-xl font-bold text-white">{isEs ? "Rechazar pedido" : "Reject Order"}</h2>
                 <p className="text-sm text-gray-400 mt-1">
-                  Provide a clear reason that can be shared with the customer.
+                  {isEs ? "Proporciona un motivo claro que pueda compartirse con el cliente." : "Provide a clear reason that can be shared with the customer."}
                 </p>
               </div>
               <IconButton
@@ -2485,16 +2496,16 @@ export default function Orders() {
 
             <div className="modal-body space-y-4">
               <p className="text-gray-300 text-sm">
-                Provide a rejection reason for request{" "}
+                {isEs ? "Proporciona un motivo de rechazo para la solicitud" : "Provide a rejection reason for request"}{" "}
                 <span className="text-white font-semibold">{rejectTarget.request._id}</span>.
               </p>
               <div className="form-group">
-                <label className="form-label">Reason *</label>
+                <label className="form-label">{isEs ? "Motivo *" : "Reason *"}</label>
                 <textarea
                   value={rejectReason}
                   onChange={(e) => setRejectReason(e.target.value)}
                   className="input min-h-[130px]"
-                  placeholder="Example: Required items are not available in stock"
+                  placeholder={isEs ? "Ejemplo: Los ítems requeridos no están disponibles en stock" : "Example: Required items are not available in stock"}
                 />
               </div>
             </div>
@@ -2505,10 +2516,10 @@ export default function Orders() {
                 onClick={() => setShowRejectModal(false)}
                 disabled={submitting}
               >
-                Cancel
+                {isEs ? "Cancelar" : "Cancel"}
               </Button>
               <Button variant="danger" onClick={handleRejectOrder} loading={submitting}>
-                Reject Order
+                {isEs ? "Rechazar pedido" : "Reject Order"}
               </Button>
             </div>
           </div>
@@ -2523,9 +2534,9 @@ export default function Orders() {
           <div className="modal-content max-w-2xl overflow-hidden">
             <div className="modal-header">
               <div>
-                <h2 className="text-xl font-bold text-white">Reactivate Order</h2>
+                <h2 className="text-xl font-bold text-white">{isEs ? "Reactivar pedido" : "Reactivate Order"}</h2>
                 <p className="text-sm text-gray-400 mt-1">
-                  Explain why this rejected request should be moved back to pending.
+                  {isEs ? "Explica por qué esta solicitud rechazada debe volver a pendiente." : "Explain why this rejected request should be moved back to pending."}
                 </p>
               </div>
               <IconButton
@@ -2539,16 +2550,16 @@ export default function Orders() {
 
             <div className="modal-body space-y-4">
               <p className="text-gray-300 text-sm">
-                Provide a reactivation reason for request{" "}
+                {isEs ? "Proporciona un motivo de reactivación para la solicitud" : "Provide a reactivation reason for request"}{" "}
                 <span className="text-white font-semibold">{reactivateTarget.request._id}</span>.
               </p>
               <div className="form-group">
-                <label className="form-label">Reason *</label>
+                <label className="form-label">{isEs ? "Motivo *" : "Reason *"}</label>
                 <textarea
                   value={reactivateReason}
                   onChange={(e) => setReactivateReason(e.target.value)}
                   className="input min-h-[130px]"
-                  placeholder="Example: Customer confirmed updated dates and stock is now available"
+                  placeholder={isEs ? "Ejemplo: El cliente confirmó las fechas actualizadas y el stock ya está disponible" : "Example: Customer confirmed updated dates and stock is now available"}
                 />
               </div>
             </div>
@@ -2559,14 +2570,14 @@ export default function Orders() {
                 onClick={() => setShowReactivateModal(false)}
                 disabled={submitting}
               >
-                Cancel
+                {isEs ? "Cancelar" : "Cancel"}
               </Button>
               <Button
                 onClick={handleReactivateOrder}
                 loading={submitting}
                 className="bg-[#FFD700]/10 text-[#FFD700] border-[#FFD700]/45 hover:bg-[#FFD700]/20"
               >
-                {submitting ? "Reactivating..." : "Reactivate Order"}
+                {submitting ? (isEs ? "Reactivando..." : "Reactivating...") : (isEs ? "Reactivar pedido" : "Reactivate Order")}
               </Button>
             </div>
           </div>
