@@ -1306,8 +1306,7 @@ const TransferRequests: React.FC = () => {
                 <table className="w-full text-left text-sm">
                   <thead>
                     <tr className="border-b border-[#1a1a1a] text-xs text-gray-500 uppercase tracking-wider">
-                      <th className="px-4 py-3">{isEs ? "Desde" : "From"}</th>
-                      <th className="px-4 py-3">{isEs ? "Hacia" : "To"}</th>
+                      <th className="px-4 py-3">{isEs ? "Ruta" : "Route"}</th>
                       <th className="px-4 py-3">{isEs ? "Artículos" : "Items"}</th>
                       <th className="px-4 py-3">{isEs ? "Estado" : "Status"}</th>
                       <th className="px-4 py-3">{isEs ? "Notas" : "Notes"}</th>
@@ -1318,11 +1317,12 @@ const TransferRequests: React.FC = () => {
                   <tbody className="divide-y divide-[#1a1a1a]">
                     {requests.map((req) => (
                       <tr key={req._id} className="hover:bg-white/3 transition-colors group">
-                        <td className="px-4 py-3 text-gray-200 font-medium whitespace-nowrap">
-                          {locationName(req.fromLocationId)}
-                        </td>
-                        <td className="px-4 py-3 text-gray-200 whitespace-nowrap">
-                          {locationName(req.toLocationId)}
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-gray-200 font-medium whitespace-nowrap">{locationName(req.fromLocationId)}</span>
+                            <ArrowLeftRight size={14} className="text-[#FFD700] shrink-0" />
+                            <span className="text-gray-200 whitespace-nowrap">{locationName(req.toLocationId)}</span>
+                          </div>
                         </td>
                         <td className="px-4 py-3 text-gray-400 whitespace-nowrap">
                           {req.items.length} {isEs ? "tipo(s)" : "type(s)"}
@@ -1403,8 +1403,7 @@ const TransferRequests: React.FC = () => {
                 <table className="w-full text-left text-sm">
                   <thead>
                     <tr className="border-b border-[#1a1a1a] text-xs text-gray-500 uppercase tracking-wider">
-                      <th className="px-4 py-3">{isEs ? "Desde" : "From"}</th>
-                      <th className="px-4 py-3">{isEs ? "Hacia" : "To"}</th>
+                      <th className="px-4 py-3">{isEs ? "Ruta" : "Route"}</th>
                       <th className="px-4 py-3">{isEs ? "Artículos" : "Items"}</th>
                       <th className="px-4 py-3">{isEs ? "Estado" : "Status"}</th>
                       <th className="px-4 py-3">{isEs ? "Notas del Remitente" : "Sender Notes"}</th>
@@ -1415,11 +1414,12 @@ const TransferRequests: React.FC = () => {
                   <tbody className="divide-y divide-[#1a1a1a]">
                     {transfers.map((tr) => (
                       <tr key={tr._id} className="hover:bg-white/3 transition-colors">
-                        <td className="px-4 py-3 text-gray-200 font-medium whitespace-nowrap">
-                          {locationName(tr.fromLocationId)}
-                        </td>
-                        <td className="px-4 py-3 text-gray-200 whitespace-nowrap">
-                          {locationName(tr.toLocationId)}
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-gray-200 font-medium whitespace-nowrap">{locationName(tr.fromLocationId)}</span>
+                            <ArrowLeftRight size={14} className="text-[#FFD700] shrink-0" />
+                            <span className="text-gray-200 whitespace-nowrap">{locationName(tr.toLocationId)}</span>
+                          </div>
                         </td>
                         <td className="px-4 py-3 text-gray-400">
                           {tr.items.length} {isEs ? "artículo(s)" : "item(s)"}
