@@ -25,7 +25,9 @@ export const InspectionsCatalog: React.FC = () => {
   const filteredPending = pendingLoans.filter(
     (l) =>
       l._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      l.customerId.name.toLowerCase().includes(searchTerm.toLowerCase()),
+      (l.customerId.name.firstName + " " + l.customerId.name.firstSurname)
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()),
   );
 
   const filteredHistory = inspections.filter((i) => {
@@ -137,11 +139,12 @@ export const InspectionsCatalog: React.FC = () => {
             />
           )}
 
-          {(activeTab === "pending" ? filteredPending : filteredHistory).length === 0 && (
-            <div className="p-20 text-center border-t border-[#222]">
-              <p className="text-gray-500 text-sm">No results matching your filters.</p>
-            </div>
-          )}
+          {searchTerm &&
+            (activeTab === "pending" ? filteredPending : filteredHistory).length === 0 && (
+              <div className="p-20 text-center border-t border-[#222]">
+                <p className="text-gray-500 text-sm">No results matching your filters.</p>
+              </div>
+            )}
         </div>
       </div>
 

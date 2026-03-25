@@ -511,11 +511,18 @@ export interface PendingLoan {
   customerId: {
     _id: string;
     email: string;
-    name: string;
+    name: {
+      firstName: string;
+      firstSurname: string;
+      secondName?: string;
+      secondSurname?: string;
+    };
   };
   materialInstances: {
-    _id: string;
-    serialNumber: string;
+    materialInstanceId: {
+      _id: string;
+      serialNumber: string;
+    };
     materialTypeId: {
       _id: string;
       name: string;

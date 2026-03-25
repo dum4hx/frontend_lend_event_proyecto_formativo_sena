@@ -25,7 +25,7 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
 }) => {
   const [items, setItems] = useState<InspectionItem[]>(
     loan.materialInstances.map((mi) => ({
-      materialInstanceId: mi._id,
+      materialInstanceId: mi.materialInstanceId._id,
       condition: "good" as InspectionCondition,
       notes: "",
       damageDescription: "",
@@ -74,7 +74,9 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
             <h2 className="text-xl font-bold text-white">Perform Inspection</h2>
             <p className="text-sm text-gray-400 mt-1">
               Loan ID: <span className="text-gray-300 font-mono">{loan._id}</span> • Customer:{" "}
-              <span className="text-gray-300">{loan.customerId.name}</span>
+              <span className="text-gray-300">
+                {loan.customerId.name.firstName} {loan.customerId.name.firstSurname}
+              </span>
             </p>
           </div>
           <button
@@ -101,13 +103,15 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
 
             {loan.materialInstances.map((mi, index) => (
               <div
-                key={mi._id}
+                key={mi.materialInstanceId._id}
                 className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-5 space-y-4 hover:border-[#333] transition-colors"
               >
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#2a2a2a] pb-4">
                   <div>
                     <p className="text-white font-medium">{mi.materialTypeId.name}</p>
-                    <p className="text-xs text-gray-500 font-mono mt-0.5">S/N: {mi.serialNumber}</p>
+                    <p className="text-xs text-gray-500 font-mono mt-0.5">
+                      Serial Number: {mi.materialInstanceId.serialNumber}
+                    </p>
                   </div>
                   <ConditionPicker
                     value={items[index].condition}

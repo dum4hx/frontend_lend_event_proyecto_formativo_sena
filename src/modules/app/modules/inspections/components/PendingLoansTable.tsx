@@ -60,7 +60,7 @@ export const PendingLoansTable: React.FC<PendingLoansTableProps> = ({ loans, onI
                   <User className="w-3.5 h-3.5 text-gray-500 mr-2" />
                   <div className="flex flex-col">
                     <span className="text-gray-200 text-sm font-medium">
-                      {loan.customerId.name}
+                      {loan.customerId.name.firstName} {loan.customerId.name.firstSurname}
                     </span>
                     <span className="text-xs text-gray-500">{loan.customerId.email}</span>
                   </div>

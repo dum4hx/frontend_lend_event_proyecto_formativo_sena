@@ -64,12 +64,9 @@ export const InspectionDetailModal: React.FC<InspectionDetailModalProps> = ({
           </div>
 
           <div>
-            <h3 className="text-xs font-semibold text-[#FFD700] uppercase tracking-widest mb-4">
-              Inspected Items ({inspection.items.length})
-            </h3>
             <div className="space-y-4">
               {inspection.items.map((item, idx) => {
-                const status = statusIcons[item.condition];
+                const status = statusIcons[item.condition] || statusIcons.good;
                 const StatusIcon = status.icon;
 
                 return (
