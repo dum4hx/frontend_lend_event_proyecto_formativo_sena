@@ -1130,7 +1130,7 @@ const TransferRequests: React.FC = () => {
   const renderRequestActions = (req: TransferRequest) => {
     if (req.status === "requested" && canUpdate) {
       return (
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center justify-end gap-1.5">
           <button
             onClick={() => void handleRespond(req._id, "approved")}
             title={isEs ? "Aprobar" : "Approve"}
@@ -1153,17 +1153,23 @@ const TransferRequests: React.FC = () => {
 
     if (req.status === "approved" && canCreate) {
       return (
-        <button
-          onClick={() => setShipmentTarget(req)}
-          className="flex items-center gap-1 px-2.5 h-7 bg-[#FFD700]/15 hover:bg-[#FFD700]/25 text-[#FFD700] border border-[#FFD700]/30 rounded text-xs font-medium transition-all"
-        >
-          <Truck size={12} />
-          {isEs ? "Iniciar Envío" : "Initiate Shipment"}
-        </button>
+        <div className="flex items-center justify-end">
+          <button
+            onClick={() => setShipmentTarget(req)}
+            className="flex items-center gap-1 px-2.5 h-7 bg-[#FFD700]/15 hover:bg-[#FFD700]/25 text-[#FFD700] border border-[#FFD700]/30 rounded text-xs font-medium transition-all"
+          >
+            <Truck size={12} />
+            {isEs ? "Iniciar Envío" : "Initiate Shipment"}
+          </button>
+        </div>
       );
     }
 
-    return <span className="text-xs text-gray-600 italic">{isEs ? "Sin acciones" : "No actions"}</span>;
+    return (
+      <div className="flex items-center justify-end">
+        <span className="text-xs text-gray-600 italic">{isEs ? "Sin acciones" : "No actions"}</span>
+      </div>
+    );
   };
 
   // ── Render ──
@@ -1438,15 +1444,19 @@ const TransferRequests: React.FC = () => {
                         </td>
                         <td className="px-4 py-3 text-right">
                           {tr.status === "in_transit" && canUpdate ? (
-                            <button
-                              onClick={() => setReceiveTarget(tr)}
-                              className="flex items-center gap-1 px-2.5 h-7 bg-green-700/20 hover:bg-green-600/30 text-green-400 hover:text-green-300 border border-green-700/30 rounded text-xs font-medium transition-all"
-                            >
-                              <CheckCircle size={12} />
-                              {isEs ? "Recibir" : "Receive"}
-                            </button>
+                            <div className="flex items-center justify-end">
+                              <button
+                                onClick={() => setReceiveTarget(tr)}
+                                className="flex items-center gap-1 px-2.5 h-7 bg-green-700/20 hover:bg-green-600/30 text-green-400 hover:text-green-300 border border-green-700/30 rounded text-xs font-medium transition-all"
+                              >
+                                <CheckCircle size={12} />
+                                {isEs ? "Recibir" : "Receive"}
+                              </button>
+                            </div>
                           ) : (
-                            <span className="text-xs text-gray-600 italic">—</span>
+                            <div className="flex items-center justify-end">
+                              <span className="text-xs text-gray-600 italic">—</span>
+                            </div>
                           )}
                         </td>
                       </tr>
