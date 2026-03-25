@@ -80,7 +80,8 @@ function getKeyModule(key) {
     common: "common.json",
     alert: "common.json",
     nav: "nav.json",
-    superAdmin: "nav.json",
+    publicSite: "publicSite.json",
+    superAdmin: "superAdmin.json",
     settings: "settings.json",
     systemSettings: "systemSettings.json",
   };

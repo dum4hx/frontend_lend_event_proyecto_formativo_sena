@@ -2,25 +2,29 @@ import { Link } from "react-router-dom";
 import FooterPageLayout from "./FooterPageLayout";
 import { useApiQuery } from "../../hooks/useApiQuery";
 import { getFooterContentSummary } from "../../services/footerContentService";
+import { useLanguage } from "../../contexts/useLanguage";
 
-function formatAmount(value: number): string {
-  return value.toLocaleString("en-US", {
+function formatAmount(value: number, locale: string): string {
+  return value.toLocaleString(locale, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
 }
 
 export default function PricingPage() {
+  const { t, language } = useLanguage();
+  const numberLocale = language === "es" ? "es-CO" : "en-US";
+
   const { data, isLoading, error } = useApiQuery(getFooterContentSummary, {
     context: "PricingPage",
   });
 
   return (
     <FooterPageLayout
-      title="Pricing"
-      subtitle="Choose the plan that best fits your operation and unlock tools to improve fulfillment speed and visibility."
+      title={t("publicSite.pricing.title")}
+      subtitle={t("publicSite.pricing.subtitle")}
     >
-      {isLoading && <p className="text-sm text-gray-400">Loading plans...</p>}
+      {isLoading && <p className="text-sm text-gray-400">{t("publicSite.pricing.loading")}</p>}
       {error && <p className="text-sm text-red-400">{error.message}</p>}
 
       {data && (
@@ -32,10 +36,10 @@ export default function PricingPage() {
             >
               <h2 className="text-lg font-bold">{plan.displayName}</h2>
               <p className="text-3xl font-extrabold text-yellow-400">
-                ${formatAmount(plan.basePriceMonthly)}
+                ${formatAmount(plan.basePriceMonthly, numberLocale)}
               </p>
               <p className="text-sm text-gray-400">
-                {plan.description ?? "Flexible pricing for growing operations."}
+                {plan.description ?? t("publicSite.pricing.defaultDescription")}
               </p>
             </article>
           ))}
@@ -47,7 +51,7 @@ export default function PricingPage() {
           to="/packages"
           className="inline-flex mt-2 bg-[rgba(255,215,0,0.1)] text-[#FFD700] font-semibold px-4 py-2 rounded-lg border border-[rgba(255,215,0,0.35)] hover:bg-[rgba(255,215,0,0.18)] hover:border-[rgba(255,215,0,0.55)] transition-colors"
         >
-          Explore Full Plans
+          {t("publicSite.pricing.explorePlans")}
         </Link>
       </div>
     </FooterPageLayout>

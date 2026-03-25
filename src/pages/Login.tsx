@@ -81,13 +81,13 @@ export default function Login() {
 
       if (!loggedUser) {
         console.error("❌ [Login] checkAuth() returned null after login");
-        setError("Authentication failed. Please try again.");
+        setError(isEs ? "Fallo la autenticacion. Intenta de nuevo." : "Authentication failed. Please try again.");
         return;
       }
 
       if (permissions.length === 0) {
         console.error("❌ [Login] User has no permissions assigned:", loggedUser);
-        setError("No permissions assigned. Please contact your administrator.");
+        setError(isEs ? "No tienes permisos asignados. Contacta a tu administrador." : "No permissions assigned. Please contact your administrator.");
         return;
       }
 
@@ -135,13 +135,13 @@ export default function Login() {
           );
 
           if (!refreshedUser) {
-            setError("Authentication failed after token refresh. Please try again.");
+            setError(isEs ? "Fallo la autenticacion tras refrescar el token. Intenta de nuevo." : "Authentication failed after token refresh. Please try again.");
             return;
           }
 
           if (refreshedPermissions.length === 0) {
             console.error("❌ [Login] Refreshed user has no permissions:", refreshedUser);
-            setError("No permissions assigned. Please contact your administrator.");
+            setError(isEs ? "No tienes permisos asignados. Contacta a tu administrador." : "No permissions assigned. Please contact your administrator.");
             return;
           }
 
@@ -209,9 +209,9 @@ export default function Login() {
               {isEs ? "Suscripcion requerida" : "Subscription Required"}
             </h2>
             <p className="text-gray-400 text-center text-sm mb-8 leading-relaxed">
-              Your account does not have an active subscription. You need to purchase a plan before
-              you can access your dashboard. Choose a plan that fits your needs and get started
-              right away.
+              {isEs
+                ? "Tu cuenta no tiene una suscripcion activa. Necesitas comprar un plan antes de acceder a tu panel. Elige el plan que mejor se ajuste a tus necesidades y comienza de inmediato."
+                : "Your account does not have an active subscription. You need to purchase a plan before you can access your dashboard. Choose a plan that fits your needs and get started right away."}
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
               <button
@@ -270,8 +270,9 @@ export default function Login() {
 
             {/* Description */}
             <p className="text-gray-300 text-lg max-w-md mb-12 leading-relaxed">
-              Access your personalized platform to manage events, team licenses, and real-time
-              analytics.
+              {isEs
+                ? "Accede a tu plataforma personalizada para gestionar eventos, licencias de equipo y analitica en tiempo real."
+                : "Access your personalized platform to manage events, team licenses, and real-time analytics."}
             </p>
 
             {/* Features */}
@@ -281,8 +282,8 @@ export default function Login() {
                   <span className="text-yellow-400 text-xl font-bold">✓</span>
                 </div>
                 <div>
-                  <p className="font-bold text-white">Business Security</p>
-                  <p className="text-sm text-gray-400">End-to-end encrypted data protection.</p>
+                  <p className="font-bold text-white">{isEs ? "Seguridad empresarial" : "Business Security"}</p>
+                  <p className="text-sm text-gray-400">{isEs ? "Proteccion de datos cifrada de extremo a extremo." : "End-to-end encrypted data protection."}</p>
                 </div>
               </div>
               <div className="flex items-center space-x-4 bg-white/5 p-4 rounded-xl border border-white/10">
@@ -290,9 +291,9 @@ export default function Login() {
                   <span className="text-yellow-400 text-xl font-bold">✓</span>
                 </div>
                 <div>
-                  <p className="font-bold text-white">Multi-level Access</p>
+                  <p className="font-bold text-white">{isEs ? "Acceso multinivel" : "Multi-level Access"}</p>
                   <p className="text-sm text-gray-400">
-                    Single portal for administrators and customers.
+                    {isEs ? "Portal unico para administradores y clientes." : "Single portal for administrators and customers."}
                   </p>
                 </div>
               </div>
@@ -303,7 +304,7 @@ export default function Login() {
         {/* Right Section - Form */}
         <div className="flex-grow md:w-1/2 flex items-center justify-center p-8 bg-black">
           <div className="w-full max-w-md">
-            <h2 className="text-4xl font-extrabold mb-2">Welcome</h2>
+            <h2 className="text-4xl font-extrabold mb-2">{isEs ? "Bienvenido" : "Welcome"}</h2>
             <p className="text-gray-400 mb-10">{isEs ? "Ingresa tus credenciales corporativas para continuar" : "Enter your corporate credentials to continue"}</p>
 
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -381,7 +382,7 @@ export default function Login() {
                         const v = e.target.value.replace(/^\s+|\s+$/g, ""); // trim both ends
                         setPassword(v);
                         if (!v) {
-                          setErrorFor("password", "Password is required");
+                          setErrorFor("password", isEs ? "La contrasena es obligatoria" : "Password is required");
                         } else {
                           setErrorFor("password", undefined);
                         }
@@ -448,7 +449,7 @@ export default function Login() {
                     disabled={loading}
                     className="w-4 h-4 accent-yellow-400 bg-zinc-800 border-zinc-700 rounded disabled:opacity-50"
                   />
-                  <span className="text-gray-400 hover:text-white transition">Remember me</span>
+                  <span className="text-gray-400 hover:text-white transition">{isEs ? "Recordarme" : "Remember me"}</span>
                 </label>
                 <Link
                   to="/password-recovery"

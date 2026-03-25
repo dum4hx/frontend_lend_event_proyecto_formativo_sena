@@ -1,17 +1,19 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
+import { useLanguage } from '../contexts/useLanguage'
 import styles from './Header.module.css'
 
 const navItems = [
-  { to: '/', label: 'Home', end: true },
-  { to: '/packages', label: 'Packages' },
-  { to: '/about', label: 'About' },
-  { to: '/help-center', label: 'Help Center' },
+  { to: '/', key: 'publicSite.nav.home', end: true },
+  { to: '/packages', key: 'publicSite.nav.packages' },
+  { to: '/about', key: 'publicSite.nav.about' },
+  { to: '/help-center', key: 'publicSite.nav.helpCenter' },
 ]
 
 export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const location = useLocation()
+  const { t } = useLanguage()
 
   useEffect(() => {
     setIsMobileMenuOpen(false)
@@ -53,7 +55,7 @@ export default function Header() {
                   `${styles.nav_link} ${isActive ? styles.nav_link_active : ''}`
                 }
               >
-                {item.label}
+                {t(item.key)}
               </NavLink>
             </li>
           ))}
@@ -65,25 +67,25 @@ export default function Header() {
             to="/book-demo"
             className="hidden lg:inline-flex items-center rounded-lg px-4 py-2 text-sm font-semibold text-zinc-300 transition-colors hover:text-white"
           >
-            Book Demo
+            {t('publicSite.nav.bookDemo')}
           </Link>
           <Link
             to="/login"
             className="hidden sm:block text-sm font-semibold text-white hover:text-gray-300 transition-colors"
           >
-            Login
+            {t('publicSite.nav.login')}
           </Link>
           <Link
             to="/sign-up"
             className={`px-4 py-2 md:px-5 md:py-2.5 rounded-lg text-sm font-bold ${styles.cta_button}`}
           >
-            Sign Up
+            {t('publicSite.nav.signUp')}
           </Link>
 
           <button
             type="button"
             className="md:hidden inline-flex h-10 w-10 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-950/70 text-zinc-100 transition-colors hover:border-zinc-500 hover:text-white"
-            aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+            aria-label={isMobileMenuOpen ? t('publicSite.nav.closeMenu') : t('publicSite.nav.openMenu')}
             aria-expanded={isMobileMenuOpen}
             aria-controls="mobile-navigation"
             onClick={() => setIsMobileMenuOpen((prev) => !prev)}
@@ -101,12 +103,12 @@ export default function Header() {
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-6 flex items-center justify-between">
-              <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">Navigation</p>
+              <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">{t('publicSite.nav.navigation')}</p>
               <button
                 type="button"
                 className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-700 text-zinc-200"
                 onClick={() => setIsMobileMenuOpen(false)}
-                aria-label="Close menu"
+                aria-label={t('publicSite.nav.closeMenu')}
               >
                 X
               </button>
@@ -122,7 +124,7 @@ export default function Header() {
                       `${styles.mobile_nav_link} ${isActive ? styles.mobile_nav_link_active : ''}`
                     }
                   >
-                    {item.label}
+                    {t(item.key)}
                   </NavLink>
                 </li>
               ))}
@@ -133,19 +135,19 @@ export default function Header() {
                 to="/book-demo"
                 className="inline-flex w-full items-center justify-center rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm font-semibold text-zinc-200 transition-colors hover:border-zinc-500 hover:text-white"
               >
-                Book Demo
+                {t('publicSite.nav.bookDemo')}
               </Link>
               <Link
                 to="/login"
                 className="inline-flex w-full items-center justify-center rounded-xl border border-zinc-700 bg-transparent px-4 py-3 text-sm font-semibold text-zinc-200 transition-colors hover:border-zinc-500 hover:text-white"
               >
-                Login
+                {t('publicSite.nav.login')}
               </Link>
               <Link
                 to="/sign-up"
                 className={`inline-flex w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-bold ${styles.cta_button}`}
               >
-                Sign Up
+                {t('publicSite.nav.signUp')}
               </Link>
             </div>
           </aside>

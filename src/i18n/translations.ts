@@ -1,11 +1,15 @@
 import commonEn from "./locales/en/common.json";
 import navEn from "./locales/en/nav.json";
+import publicSiteEn from "./locales/en/publicSite.json";
 import settingsEn from "./locales/en/settings.json";
+import superAdminEn from "./locales/en/superAdmin.json";
 import systemSettingsEn from "./locales/en/systemSettings.json";
 
 import commonEs from "./locales/es/common.json";
 import navEs from "./locales/es/nav.json";
+import publicSiteEs from "./locales/es/publicSite.json";
 import settingsEs from "./locales/es/settings.json";
+import superAdminEs from "./locales/es/superAdmin.json";
 import systemSettingsEs from "./locales/es/systemSettings.json";
 
 export type SupportedLanguage = "en" | "es";
@@ -20,14 +24,18 @@ function mergeTranslations(...modules: Record<string, string>[]): Record<string,
 export const EN_TRANSLATIONS = mergeTranslations(
   commonEn,
   navEn,
+  publicSiteEn,
   settingsEn,
+  superAdminEn,
   systemSettingsEn,
 );
 
 export const ES_TRANSLATIONS: Record<keyof typeof EN_TRANSLATIONS, string> = mergeTranslations(
   commonEs,
   navEs,
+  publicSiteEs,
   settingsEs,
+  superAdminEs,
   systemSettingsEs,
 );
 

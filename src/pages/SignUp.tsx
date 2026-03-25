@@ -611,7 +611,9 @@ export default function SignUp() {
         data.ownerEmail.trim().toLowerCase() === data.organizationEmail.trim().toLowerCase()
       ) {
         validationErrors.organizationEmail =
-          "Organization email must be different from owner email";
+          isEs
+            ? "El correo de la organizacion debe ser diferente al correo del propietario"
+            : "Organization email must be different from owner email";
       }
 
       if (data.organizationPhone) {
@@ -622,7 +624,7 @@ export default function SignUp() {
       }
 
       if (!data.streetType) {
-        validationErrors.streetType = "Street type is required";
+        validationErrors.streetType = isEs ? "El tipo de via es obligatorio" : "Street type is required";
       }
 
       const mainValidation = validateAddressSegmentField(data.mainNumber, "Primary number");
@@ -652,11 +654,13 @@ export default function SignUp() {
         !!data.secondaryNumber &&
         !!data.complementaryNumber;
       if (!hasStreetBase) {
-        validationErrors.street = "Address is required";
+        validationErrors.street = isEs ? "La direccion es obligatoria" : "Address is required";
       }
 
       if (data.additionalDetails.length > ADDRESS_DETAILS_MAX_LENGTH) {
-        validationErrors.additionalDetails = `Additional business location details must not exceed ${ADDRESS_DETAILS_MAX_LENGTH} characters`;
+        validationErrors.additionalDetails = isEs
+          ? `Los detalles adicionales de la ubicacion no deben superar ${ADDRESS_DETAILS_MAX_LENGTH} caracteres`
+          : `Additional business location details must not exceed ${ADDRESS_DETAILS_MAX_LENGTH} characters`;
       }
 
       const isStateSelected =
@@ -667,13 +671,15 @@ export default function SignUp() {
       }
 
       if (!data.cityQuery.trim()) {
-        validationErrors.cityQuery = "City is required";
+        validationErrors.cityQuery = isEs ? "La ciudad es obligatoria" : "City is required";
       } else if (!selectedCity || !isNormalizedEqual(data.cityQuery, selectedCity.name)) {
-        validationErrors.cityQuery = "Please select a valid city from the list";
+        validationErrors.cityQuery = isEs
+          ? "Selecciona una ciudad valida de la lista"
+          : "Please select a valid city from the list";
       }
 
       if (selectedCity && !selectedCity.postalCode && !data.postalCode.trim()) {
-        validationErrors.postalCode = "Postal code is required";
+        validationErrors.postalCode = isEs ? "El codigo postal es obligatorio" : "Postal code is required";
       } else {
         const postalValidation = validatePostalCode(data.postalCode);
         if (!postalValidation.isValid && postalValidation.message) {
@@ -700,7 +706,7 @@ export default function SignUp() {
 
       return validationErrors;
     },
-    [touched, submitted, selectedState, selectedCity, isNormalizedEqual],
+    [touched, submitted, selectedState, selectedCity, isNormalizedEqual, isEs],
   );
 
   const runValidation = useCallback(
@@ -935,32 +941,39 @@ export default function SignUp() {
         const REGISTER_CODE_MAP: Record<string, { field: string; message: string }> = {
           PENDING_EMAIL_VERIFICATION: {
             field: "ownerEmail",
-            message:
-              "A registration with this email is already pending verification. Please check your email or try again in 5 minutes.",
+            message: isEs
+              ? "Ya existe un registro con este correo pendiente de verificacion. Revisa tu correo o intenta de nuevo en 5 minutos."
+              : "A registration with this email is already pending verification. Please check your email or try again in 5 minutes.",
           },
           USER_EMAIL_ALREADY_EXISTS: {
             field: "ownerEmail",
-            message:
-              "This owner email is already registered. Please use a different email or sign in.",
+            message: isEs
+              ? "Este correo del propietario ya esta registrado. Usa un correo diferente o inicia sesion."
+              : "This owner email is already registered. Please use a different email or sign in.",
           },
           ORG_EMAIL_ALREADY_EXISTS: {
             field: "organizationEmail",
-            message:
-              "An organization with this email already exists. Please use a different organization email.",
+            message: isEs
+              ? "Ya existe una organizacion con este correo. Usa un correo de organizacion diferente."
+              : "An organization with this email already exists. Please use a different organization email.",
           },
           TAX_ID_ALREADY_EXISTS: {
             field: "taxId",
-            message: "This Tax ID (NIT) is already associated with another organization.",
+            message: isEs
+              ? "Este ID fiscal (NIT) ya esta asociado a otra organizacion."
+              : "This Tax ID (NIT) is already associated with another organization.",
           },
           USER_PHONE_ALREADY_EXISTS: {
             field: "ownerPhone",
-            message:
-              "This owner phone number is already in use. Please provide a different phone number.",
+            message: isEs
+              ? "Este telefono del propietario ya esta en uso. Proporciona un telefono diferente."
+              : "This owner phone number is already in use. Please provide a different phone number.",
           },
           ORG_PHONE_ALREADY_EXISTS: {
             field: "organizationPhone",
-            message:
-              "This organization phone number is already in use. Please provide a different one.",
+            message: isEs
+              ? "Este telefono de la organizacion ya esta en uso. Proporciona otro diferente."
+              : "This organization phone number is already in use. Please provide a different one.",
           },
         };
 
@@ -981,7 +994,7 @@ export default function SignUp() {
           const otherMessages: string[] = [];
           for (const e of apiErrors) {
             const fieldPath = e.field ?? "";
-            const msg = e.message ?? "Validation error";
+            const msg = e.message ?? (isEs ? "Error de validacion" : "Validation error");
             // Map API field paths to local FormField keys
             let mappedField: FormField | null = null;
 
@@ -1071,14 +1084,16 @@ export default function SignUp() {
 
             {/* Title */}
             <h1 className="text-5xl text-white lg:text-6xl font-extrabold mb-6 leading-tight">
-              Create your account
+              {isEs ? "Crea tu cuenta" : "Create your account"}
               <br />
-              <span className="text-yellow-400">for Business</span>
+              <span className="text-yellow-400">{isEs ? "para empresas" : "for Business"}</span>
             </h1>
 
             {/* Description */}
             <p className="text-gray-300 text-lg max-w-md mb-12 leading-relaxed">
-              Join the companies already transforming their events with our cutting-edge technology.
+              {isEs
+                ? "Unete a las empresas que ya estan transformando sus eventos con nuestra tecnologia de ultima generacion."
+                : "Join the companies already transforming their events with our cutting-edge technology."}
             </p>
 
             {/* Features */}
@@ -1088,9 +1103,9 @@ export default function SignUp() {
                   <span className="text-yellow-400 text-xl font-bold">✓</span>
                 </div>
                 <div>
-                  <p className="font-bold text-white">Instant Setup</p>
+                  <p className="font-bold text-white">{isEs ? "Configuracion inmediata" : "Instant Setup"}</p>
                   <p className="text-sm text-gray-400">
-                    Access your dashboard in less than 2 minutes.
+                    {isEs ? "Accede a tu panel en menos de 2 minutos." : "Access your dashboard in less than 2 minutes."}
                   </p>
                 </div>
               </div>
@@ -1101,7 +1116,7 @@ export default function SignUp() {
         {/* Right Section - Form */}
         <div className="flex-grow md:w-1/2 flex items-center justify-center p-6 bg-black relative z-10 overflow-y-auto">
           <div className="w-full max-w-2xl py-4">
-            <h2 className="text-4xl font-extrabold mb-2">Get Started</h2>
+            <h2 className="text-4xl font-extrabold mb-2">{isEs ? "Comienza ahora" : "Get Started"}</h2>
             <p className="text-gray-400 mb-10">
               {isEs ? "Crea tu cuenta de Lend Event hoy" : "Create your Lend Event account today"}
             </p>
@@ -1141,7 +1156,7 @@ export default function SignUp() {
                     </label>
                     <input
                       type="text"
-                      placeholder="John"
+                      placeholder={isEs ? "Nombre" : "John"}
                       value={firstName}
                       ref={firstNameRef}
                       onChange={(e) => {
@@ -1168,7 +1183,7 @@ export default function SignUp() {
                     </label>
                     <input
                       type="text"
-                      placeholder="Doe"
+                      placeholder={isEs ? "Apellido" : "Doe"}
                       value={lastName}
                       ref={lastNameRef}
                       onChange={(e) => {
@@ -1195,7 +1210,7 @@ export default function SignUp() {
                     </label>
                     <input
                       type="email"
-                      placeholder="owner.personal@example.com"
+                      placeholder={isEs ? "propietario.personal@ejemplo.com" : "owner.personal@example.com"}
                       value={ownerEmail}
                       ref={ownerEmailRef}
                       autoCapitalize="none"
@@ -1268,7 +1283,7 @@ export default function SignUp() {
                     </label>
                     <input
                       type="text"
-                      placeholder="Your Company Inc."
+                      placeholder={isEs ? "Tu Empresa S.A.S." : "Your Company Inc."}
                       value={organizationName}
                       ref={organizationNameRef}
                       onChange={(e) => {
@@ -1295,7 +1310,7 @@ export default function SignUp() {
                     </label>
                     <input
                       type="text"
-                      placeholder="Your Company S.A."
+                      placeholder={isEs ? "Tu Empresa S.A." : "Your Company S.A."}
                       value={legalName}
                       ref={legalNameRef}
                       onChange={(e) => {
@@ -1318,7 +1333,7 @@ export default function SignUp() {
 
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                      NIT / Tax ID
+                      {isEs ? "NIT / ID fiscal" : "NIT / Tax ID"}
                     </label>
                     <input
                       type="text"
@@ -1424,10 +1439,10 @@ export default function SignUp() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="md:col-span-2">
                       <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                        Street Type
+                        {isEs ? "Tipo de via" : "Street Type"}
                       </label>
                       <select
-                        title="Street Type"
+                          title={isEs ? "Tipo de via" : "Street Type"}
                         value={streetType}
                         ref={streetTypeRef}
                         onChange={(e) => {
@@ -1444,7 +1459,7 @@ export default function SignUp() {
                         className={inputClass(!!fieldErrors.streetType)}
                       >
                         <option disabled value="">
-                          Select street type
+                          {isEs ? "Selecciona un tipo de via" : "Select street type"}
                         </option>
                         {COLOMBIA_STREET_TYPES.map((type) => (
                           <option key={type} value={type}>
@@ -1459,7 +1474,7 @@ export default function SignUp() {
 
                     <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                        Primary Number
+                        {isEs ? "Numero principal" : "Primary Number"}
                       </label>
                       <input
                         type="text"
@@ -1489,7 +1504,7 @@ export default function SignUp() {
 
                     <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                        Secondary Number
+                        {isEs ? "Numero secundario" : "Secondary Number"}
                       </label>
                       <input
                         type="text"
@@ -1519,7 +1534,7 @@ export default function SignUp() {
 
                     <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                        Complementary Number
+                        {isEs ? "Numero complementario" : "Complementary Number"}
                       </label>
                       <input
                         type="text"
@@ -1551,11 +1566,11 @@ export default function SignUp() {
 
                     <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                        State (Departamento)
+                        {isEs ? "Departamento" : "State (Department)"}
                       </label>
                       <input
                         type="text"
-                        placeholder="Search department..."
+                        placeholder={isEs ? "Buscar departamento..." : "Search department..."}
                         value={stateQuery}
                         ref={stateRef}
                         autoComplete="off"
@@ -1589,7 +1604,7 @@ export default function SignUp() {
                       {showStateSuggestions && stateQuery && !selectedState && (
                         <div className="absolute z-50 w-full mt-1 bg-zinc-900 border border-zinc-700 rounded-xl max-h-48 overflow-y-auto shadow-lg">
                           {deptLoading || stateQuery !== debouncedStateQuery ? (
-                            <div className="p-3 text-gray-400 text-sm">Searching...</div>
+                            <div className="p-3 text-gray-400 text-sm">{isEs ? "Buscando..." : "Searching..."}</div>
                           ) : filteredDepartments.length ? (
                             filteredDepartments.map((dept) => (
                               <button
@@ -1613,7 +1628,7 @@ export default function SignUp() {
                               </button>
                             ))
                           ) : (
-                            <div className="p-3 text-gray-400 text-sm">No departments found</div>
+                            <div className="p-3 text-gray-400 text-sm">{isEs ? "No se encontraron departamentos" : "No departments found"}</div>
                           )}
                         </div>
                       )}
@@ -1628,7 +1643,7 @@ export default function SignUp() {
                       </label>
                       <input
                         type="text"
-                        placeholder={selectedState ? "Search city..." : "Select a state first"}
+                        placeholder={selectedState ? (isEs ? "Buscar ciudad..." : "Search city...") : (isEs ? "Primero selecciona un departamento" : "Select a state first")}
                         value={cityQuery}
                         ref={cityRef}
                         autoComplete="off"
@@ -1660,7 +1675,7 @@ export default function SignUp() {
                       {showCitySuggestions && selectedState && !selectedCity && (
                         <div className="absolute z-50 w-full mt-1 bg-zinc-900 border border-zinc-700 rounded-xl max-h-48 overflow-y-auto shadow-lg">
                           {citiesLoading ? (
-                            <div className="p-3 text-gray-400 text-sm">Loading cities...</div>
+                            <div className="p-3 text-gray-400 text-sm">{isEs ? "Cargando ciudades..." : "Loading cities..."}</div>
                           ) : filteredCities.length ? (
                             filteredCities.map((c) => (
                               <button
@@ -1681,7 +1696,7 @@ export default function SignUp() {
                               </button>
                             ))
                           ) : (
-                            <div className="p-3 text-gray-400 text-sm">No cities found</div>
+                            <div className="p-3 text-gray-400 text-sm">{isEs ? "No se encontraron ciudades" : "No cities found"}</div>
                           )}
                         </div>
                       )}
@@ -1692,12 +1707,12 @@ export default function SignUp() {
 
                     <div className="md:col-span-2">
                       <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                        Additional Business Location Details{" "}
-                        <span className="text-gray-600">(Optional)</span>
+                        {isEs ? "Detalles adicionales de la ubicacion" : "Additional Business Location Details"}{" "}
+                        <span className="text-gray-600">({isEs ? "Opcional" : "Optional"})</span>
                       </label>
                       <input
                         type="text"
-                        placeholder="Centro Empresarial Altos, Office 602"
+                        placeholder={isEs ? "Centro Empresarial Altos, Oficina 602" : "Centro Empresarial Altos, Office 602"}
                         value={additionalDetails}
                         ref={additionalDetailsRef}
                         onChange={(e) => {
@@ -1727,9 +1742,9 @@ export default function SignUp() {
                         placeholder={
                           selectedCity
                             ? canEditPostalCode
-                              ? "Enter postal code"
-                              : "Auto-filled from city"
-                            : "Select a city first"
+                              ? (isEs ? "Ingresa el codigo postal" : "Enter postal code")
+                              : (isEs ? "Completado automaticamente desde la ciudad" : "Auto-filled from city")
+                            : (isEs ? "Primero selecciona una ciudad" : "Select a city first")
                         }
                         value={postalCode}
                         ref={postalCodeRef}
@@ -1756,7 +1771,7 @@ export default function SignUp() {
 
                     <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                        Formatted Address Preview
+                        {isEs ? "Vista previa de direccion" : "Formatted Address Preview"}
                       </label>
                       <input
                         type="text"
@@ -1777,8 +1792,9 @@ export default function SignUp() {
               {currentStep === 4 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-2 text-xs text-gray-400">
-                    Password must include at least 8 characters, 1 uppercase letter, 1 number and 1
-                    special character (!@#$%^&*).
+                    {isEs
+                      ? "La contrasena debe incluir al menos 8 caracteres, 1 letra mayuscula, 1 numero y 1 caracter especial (!@#$%^&*)."
+                      : "Password must include at least 8 characters, 1 uppercase letter, 1 number and 1 special character (!@#$%^&*)."}
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
@@ -1821,7 +1837,7 @@ export default function SignUp() {
                     </label>
                     <input
                       type="password"
-                      placeholder="Repeat your password"
+                      placeholder={isEs ? "Repite tu contrasena" : "Repeat your password"}
                       value={confirmPassword}
                       ref={confirmPasswordRef}
                       onChange={(e) => {

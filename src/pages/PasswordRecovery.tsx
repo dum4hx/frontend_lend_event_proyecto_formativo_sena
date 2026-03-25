@@ -10,10 +10,13 @@ import {
   validateCode,
   validatePassword,
 } from "../utils/validators";
+import { useLanguage } from "../contexts/useLanguage";
 import styles from "./PasswordRecovery.module.css";
 
 export default function PasswordRecovery() {
   const navigate = useNavigate();
+  const { language } = useLanguage();
+  const isEs = language === "es";
   const { showSuccess, AlertModal } = useAlertModal();
   const [paso, setPaso] = useState(1);
   const [email, setEmail] = useState("");
@@ -25,11 +28,30 @@ export default function PasswordRecovery() {
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const mapValidationMessage = (message?: string) => {
+    if (!isEs || !message) return message;
+
+    const validationMap: Record<string, string> = {
+      "Email is required": "El correo es obligatorio",
+      "Enter a valid email address": "Ingresa un correo valido",
+      "Code is required": "El codigo es obligatorio",
+      "Code must be exactly 6 digits": "El codigo debe tener exactamente 6 digitos",
+      "Password is required": "La contrasena es obligatoria",
+      "Password must be at least 8 characters": "La contrasena debe tener al menos 8 caracteres",
+      "Password must contain at least one uppercase letter": "La contrasena debe incluir al menos una letra mayuscula",
+      "Password must contain at least one lowercase letter": "La contrasena debe incluir al menos una letra minuscula",
+      "Password must contain at least one number": "La contrasena debe incluir al menos un numero",
+      "Password must contain at least one special character (!@#$%^&*.)": "La contrasena debe incluir al menos un caracter especial (!@#$%^&*.)",
+    };
+
+    return validationMap[message] ?? message;
+  };
+
   // Step 1: POST /auth/forgot-password
   const handleSendCode = async () => {
     const emailValidation = validateEmail(email);
     if (!emailValidation.isValid) {
-      setError(emailValidation.message || "Validation failed");
+      setError(mapValidationMessage(emailValidation.message) || (isEs ? "Validacion fallida" : "Validation failed"));
       return;
     }
 
@@ -38,13 +60,19 @@ export default function PasswordRecovery() {
 
     try {
       await forgotPassword({ email });
-      setSuccess("If the account exists, a verification code has been sent.");
+      setSuccess(
+        isEs
+          ? "Si la cuenta existe, se envio un codigo de verificacion."
+          : "If the account exists, a verification code has been sent.",
+      );
       setPaso(2);
     } catch (err: unknown) {
       const message =
         err instanceof ApiError
           ? err.message
-          : "Network error. Please try again.";
+          : isEs
+            ? "Error de red. Intenta de nuevo."
+            : "Network error. Please try again.";
       setError(message);
     } finally {
       setLoading(false);
@@ -55,7 +83,7 @@ export default function PasswordRecovery() {
   const handleVerifyCode = async () => {
     const codeValidation = validateCode(codigo);
     if (!codeValidation.isValid) {
-      setError(codeValidation.message || "Validation failed");
+      setError(mapValidationMessage(codeValidation.message) || (isEs ? "Validacion fallida" : "Validation failed"));
       return;
     }
 
@@ -71,7 +99,9 @@ export default function PasswordRecovery() {
       const message =
         err instanceof ApiError
           ? err.message
-          : "Network error. Please try again.";
+          : isEs
+            ? "Error de red. Intenta de nuevo."
+            : "Network error. Please try again.";
       setError(message);
     } finally {
       setLoading(false);
@@ -82,12 +112,12 @@ export default function PasswordRecovery() {
   const handleResetPassword = async () => {
     const passwordValidation = validatePassword(newPassword);
     if (!passwordValidation.isValid) {
-      setError(passwordValidation.message || "Validation failed");
+      setError(mapValidationMessage(passwordValidation.message) || (isEs ? "Validacion fallida" : "Validation failed"));
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setError("Passwords do not match.");
+      setError(isEs ? "Las contrasenas no coinciden." : "Passwords do not match.");
       return;
     }
 
@@ -96,13 +126,19 @@ export default function PasswordRecovery() {
 
     try {
       await resetPassword({ email, resetToken, newPassword });
-      showSuccess("Password reset successfully. Redirecting to login...");
+      showSuccess(
+        isEs
+          ? "Contrasena actualizada correctamente. Redirigiendo al inicio de sesion..."
+          : "Password reset successfully. Redirecting to login...",
+      );
       setTimeout(() => navigate("/login"), 1500);
     } catch (err: unknown) {
       const message =
         err instanceof ApiError
           ? err.message
-          : "Network error. Please try again.";
+          : isEs
+            ? "Error de red. Intenta de nuevo."
+            : "Network error. Please try again.";
       setError(message);
     } finally {
       setLoading(false);
@@ -117,13 +153,15 @@ export default function PasswordRecovery() {
 
     try {
       await forgotPassword({ email });
-      setSuccess("Code resent. Check your inbox.");
+      setSuccess(isEs ? "Codigo reenviado. Revisa tu bandeja de entrada." : "Code resent. Check your inbox.");
       setCodigo("");
     } catch (err: unknown) {
       const message =
         err instanceof ApiError
           ? err.message
-          : "Failed to resend code.";
+          : isEs
+            ? "No se pudo reenviar el codigo."
+            : "Failed to resend code.";
       setError(message);
     } finally {
       setLoading(false);
@@ -164,18 +202,24 @@ export default function PasswordRecovery() {
 
             {/* Title */}
             <h1 className="text-5xl text-white lg:text-6xl font-extrabold mb-6 leading-tight">
-              Recover your
+              {isEs ? "Recupera tu" : "Recover your"}
               <br />
-              <span className="text-yellow-400">Secure Access</span>
+              <span className="text-yellow-400">{isEs ? "acceso seguro" : "Secure Access"}</span>
             </h1>
 
             {/* Dynamic description */}
             <p className="text-gray-300 text-lg max-w-md mb-12 leading-relaxed">
               {paso === 1
-                ? "Begin the verification process to reset your corporate credentials."
+                ? isEs
+                  ? "Inicia el proceso de verificacion para restablecer tus credenciales corporativas."
+                  : "Begin the verification process to reset your corporate credentials."
                 : paso === 2
-                  ? "Almost there. Enter the code we just sent to your inbox."
-                  : "Create a strong, secure password for your account."}
+                  ? isEs
+                    ? "Casi listo. Ingresa el codigo que acabamos de enviar a tu correo."
+                    : "Almost there. Enter the code we just sent to your inbox."
+                  : isEs
+                    ? "Crea una contrasena segura para tu cuenta."
+                    : "Create a strong, secure password for your account."}
             </p>
           </div>
         </div>
@@ -200,15 +244,15 @@ export default function PasswordRecovery() {
                   d="M10 19l-7-7m0 0l7-7m-7 7h18"
                 />
               </svg>
-              Back
+              {isEs ? "Atras" : "Back"}
             </button>
 
             {/* PASO 1 */}
             {paso === 1 && (
               <div>
-                <h2 className="text-4xl font-extrabold mb-2">Step 1</h2>
+                <h2 className="text-4xl font-extrabold mb-2">{isEs ? "Paso 1" : "Step 1"}</h2>
                 <p className="text-gray-400 mb-10">
-                  Enter your email to receive a security code.
+                  {isEs ? "Ingresa tu correo para recibir un codigo de seguridad." : "Enter your email to receive a security code."}
                 </p>
 
                 <div className="space-y-6">
@@ -223,7 +267,7 @@ export default function PasswordRecovery() {
 
                   <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                      Corporate Email
+                      {isEs ? "Correo corporativo" : "Corporate Email"}
                     </label>
                     <div className="relative group">
                       <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 group-focus-within:text-yellow-400 transition-colors">
@@ -257,7 +301,7 @@ export default function PasswordRecovery() {
                     disabled={loading}
                     className={`w-full bg-yellow-400 text-black font-extrabold py-4 rounded-xl text-lg ${styles.glowButton} shadow-xl hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed transition`}
                   >
-                    {loading ? "Sending code..." : "Send Code"}
+                    {loading ? (isEs ? "Enviando codigo..." : "Sending code...") : (isEs ? "Enviar codigo" : "Send Code")}
                   </button>
                 </div>
               </div>
@@ -266,9 +310,9 @@ export default function PasswordRecovery() {
             {/* PASO 2 */}
             {paso === 2 && (
               <div>
-                <h2 className="text-4xl font-extrabold mb-2">Step 2</h2>
+                <h2 className="text-4xl font-extrabold mb-2">{isEs ? "Paso 2" : "Step 2"}</h2>
                 <p className="text-gray-400 mb-10">
-                  We've sent a code to{" "}
+                  {isEs ? "Enviamos un codigo a " : "We've sent a code to "}
                   <span className="text-yellow-400 font-bold">{email}</span>
                 </p>
 
@@ -291,10 +335,10 @@ export default function PasswordRecovery() {
 
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                      6-digit code
+                      {isEs ? "Codigo de 6 digitos" : "6-digit code"}
                     </label>
                     <p className="text-xs text-gray-500 mb-2">
-                      The code expires in 10 minutes. Maximum 5 attempts.
+                      {isEs ? "El codigo vence en 10 minutos. Maximo 5 intentos." : "The code expires in 10 minutes. Maximum 5 attempts."}
                     </p>
                     <div className="relative group">
                       <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 group-focus-within:text-yellow-400 transition-colors">
@@ -331,17 +375,17 @@ export default function PasswordRecovery() {
                     disabled={loading}
                     className={`w-full bg-yellow-400 text-black font-extrabold py-4 rounded-xl text-lg ${styles.glowButton} shadow-xl hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed transition`}
                   >
-                    {loading ? "Validating..." : "Validate and Continue"}
+                    {loading ? (isEs ? "Validando..." : "Validating...") : (isEs ? "Validar y continuar" : "Validate and Continue")}
                   </button>
 
                     <p className="text-center text-sm text-gray-500">
-                    Didn't receive the code?{" "}
+                    {isEs ? "No recibiste el codigo? " : "Didn't receive the code? "}
                     <button
                       onClick={handleResendCode}
                       disabled={loading}
                       className="text-yellow-400 font-bold hover:underline disabled:opacity-50"
                     >
-                      Resend
+                      {isEs ? "Reenviar" : "Resend"}
                     </button>
                   </p>
                 </div>
@@ -351,9 +395,9 @@ export default function PasswordRecovery() {
             {/* PASO 3 */}
             {paso === 3 && (
               <div>
-                <h2 className="text-4xl font-extrabold mb-2">Step 3</h2>
+                <h2 className="text-4xl font-extrabold mb-2">{isEs ? "Paso 3" : "Step 3"}</h2>
                 <p className="text-gray-400 mb-10">
-                  Create your new corporate password.
+                  {isEs ? "Crea tu nueva contrasena corporativa." : "Create your new corporate password."}
                 </p>
 
                 <div className="space-y-6">
@@ -368,11 +412,12 @@ export default function PasswordRecovery() {
 
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                      New Password
+                      {isEs ? "Nueva contrasena" : "New Password"}
                     </label>
                     <div className="text-xs text-gray-400 mb-2">
-                      Minimum 8 characters, 1 uppercase, 1 lowercase, 1 number and 1 special
-                      character (!@#$%^&*)
+                      {isEs
+                        ? "Minimo 8 caracteres, 1 mayuscula, 1 minuscula, 1 numero y 1 caracter especial (!@#$%^&*)"
+                        : "Minimum 8 characters, 1 uppercase, 1 lowercase, 1 number and 1 special character (!@#$%^&*)"}
                     </div>
                     <div className="relative group">
                       <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 group-focus-within:text-yellow-400 transition-colors">
@@ -392,7 +437,7 @@ export default function PasswordRecovery() {
                       </span>
                       <input
                         type="password"
-                        placeholder="Your new password"
+                        placeholder={isEs ? "Tu nueva contrasena" : "Your new password"}
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
                         disabled={loading}
@@ -403,7 +448,7 @@ export default function PasswordRecovery() {
 
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                      Confirm Password
+                      {isEs ? "Confirmar contrasena" : "Confirm Password"}
                     </label>
                     <div className="relative group">
                       <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 group-focus-within:text-yellow-400 transition-colors">
@@ -423,7 +468,7 @@ export default function PasswordRecovery() {
                       </span>
                       <input
                         type="password"
-                        placeholder="Repeat your password"
+                        placeholder={isEs ? "Repite tu contrasena" : "Repeat your password"}
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         disabled={loading}
@@ -437,12 +482,13 @@ export default function PasswordRecovery() {
                     disabled={loading}
                     className={`w-full bg-yellow-400 text-black font-extrabold py-4 rounded-xl text-lg ${styles.glowButton} shadow-xl hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed transition`}
                   >
-                    {loading ? "Resetting..." : "Reset Password"}
+                    {loading ? (isEs ? "Restableciendo..." : "Resetting...") : (isEs ? "Restablecer contrasena" : "Reset Password")}
                   </button>
 
                   <p className="text-center text-xs text-gray-500">
-                    Password must be at least 8 characters, include an uppercase letter,
-                    a lowercase letter, a number and a special character.
+                    {isEs
+                      ? "La contrasena debe tener al menos 8 caracteres e incluir una letra mayuscula, una minuscula, un numero y un caracter especial."
+                      : "Password must be at least 8 characters, include an uppercase letter, a lowercase letter, a number and a special character."}
                   </p>
                 </div>
               </div>

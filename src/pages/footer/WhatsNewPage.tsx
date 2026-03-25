@@ -1,22 +1,24 @@
 import FooterPageLayout from "./FooterPageLayout";
 import { useApiQuery } from "../../hooks/useApiQuery";
 import { getFooterContentSummary } from "../../services/footerContentService";
+import { useLanguage } from "../../contexts/useLanguage";
 
 export default function WhatsNewPage() {
+  const { t } = useLanguage();
   const { data, isLoading, error } = useApiQuery(getFooterContentSummary, {
     context: "WhatsNewPage",
   });
 
   const updates = (data?.highlightedFeatures ?? []).map(
-    (feature) => `New update: expanded support for ${feature.toLowerCase()}.`,
+    (feature) => t("publicSite.whatsNew.update", { feature: feature.toLowerCase() }),
   );
 
   return (
     <FooterPageLayout
-      title="What's New"
-      subtitle="Stay up to date with the latest platform enhancements and product releases."
+      title={t("publicSite.whatsNew.title")}
+      subtitle={t("publicSite.whatsNew.subtitle")}
     >
-      {isLoading && <p className="text-sm text-gray-400">Loading product updates...</p>}
+      {isLoading && <p className="text-sm text-gray-400">{t("publicSite.whatsNew.loading")}</p>}
       {error && <p className="text-sm text-red-400">{error.message}</p>}
 
       <ul className="space-y-3">
@@ -28,7 +30,7 @@ export default function WhatsNewPage() {
         ))}
         {!isLoading && updates.length === 0 && (
           <li className="card">
-            <p className="text-gray-300">No published updates yet.</p>
+            <p className="text-gray-300">{t("publicSite.whatsNew.empty")}</p>
           </li>
         )}
       </ul>
