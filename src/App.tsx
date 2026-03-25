@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
+import { LanguageProvider } from "./contexts/LanguageContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { RequirePermission } from "./utils/permissionGuard";
 import { RequireActiveSubscription } from "./utils/subscriptionGuard";
@@ -63,6 +64,7 @@ import PricingConfigs from "./modules/app/pages/PricingConfigs";
 import { CategoryCatalog, CreateCategory } from "./modules/app/modules/material-categories";
 import { MaterialTypeCatalog, CreateMaterialType } from "./modules/app/modules/material-types";
 import { MaterialInstanceCatalog } from "./modules/app/modules/material-instances";
+import { InspectionsCatalog } from "./modules/app/modules/inspections";
 import TransferRequests from "./modules/app/pages/TransferRequests";
 
 // Super Admin — lazy-loaded for code-splitting
@@ -81,10 +83,11 @@ const OrganizationManagement = lazy(
 function App() {
   return (
     <AuthProvider>
-      <ThemeProvider>
-        <BrowserRouter>
-          <ScrollToTop />
-          <Routes>
+      <LanguageProvider>
+        <ThemeProvider>
+          <BrowserRouter>
+            <ScrollToTop />
+            <Routes>
             {/* Public Routes */}
             <Route path="/" element={<Dashboard />} />
             <Route path="/packages" element={<Paquetes />} />
@@ -138,6 +141,7 @@ function App() {
               <Route path="material-types" element={<MaterialTypeCatalog />} />
               <Route path="material-types/create" element={<CreateMaterialType />} />
               <Route path="material-instances" element={<MaterialInstanceCatalog />} />
+              <Route path="inspections" element={<InspectionsCatalog />} />
               <Route path="transfer-requests" element={<TransferRequests />} />
               <Route path="attributes" element={<Attributes />} />
               <Route path="plans" element={<Plans />} />
@@ -183,9 +187,10 @@ function App() {
             {/* Fallback routes */}
             <Route path="/unauthorized" element={<Unauthorized />} />
             <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </ThemeProvider>
+            </Routes>
+          </BrowserRouter>
+        </ThemeProvider>
+      </LanguageProvider>
     </AuthProvider>
   );
 }

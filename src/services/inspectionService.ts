@@ -5,15 +5,32 @@
  */
 
 import { get, post, type ApiSuccessResponse } from "../lib/api";
-import type { Inspection, CreateInspectionPayload } from "../types/api";
+import type { Inspection, CreateInspectionPayload, PendingLoan } from "../types/api";
 
 // ─── List ──────────────────────────────────────────────────────────────────
 
 /** List all inspections. */
 export async function getInspections(): Promise<
-  ApiSuccessResponse<{ inspections: Inspection[] }>
+  ApiSuccessResponse<{
+    inspections: Inspection[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }>
 > {
-  return get<{ inspections: Inspection[] }>("/inspections");
+  return get<{
+    inspections: Inspection[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }>("/inspections");
+}
+
+/** List all loans that have been returned but not yet inspected. */
+export async function getPendingLoans(): Promise<
+  ApiSuccessResponse<{ pendingLoans: PendingLoan[] }>
+> {
+  return get<{ pendingLoans: PendingLoan[] }>("/inspections/pending-loans");
 }
 
 // ─── Single ────────────────────────────────────────────────────────────────
@@ -31,8 +48,5 @@ export async function getInspection(
 export async function createInspection(
   payload: CreateInspectionPayload,
 ): Promise<ApiSuccessResponse<{ inspection: Inspection }>> {
-  return post<{ inspection: Inspection }, CreateInspectionPayload>(
-    "/inspections",
-    payload,
-  );
+  return post<{ inspection: Inspection }, CreateInspectionPayload>("/inspections", payload);
 }

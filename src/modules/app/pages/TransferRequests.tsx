@@ -1,11 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
+import { useLanguage } from "../../../contexts/useLanguage";
 import {
   ArrowLeftRight,
   CheckCircle,
   ChevronDown,
   CircleDashed,
-  Eye,
-  Package,
   Plus,
   RefreshCw,
   Send,
@@ -50,6 +49,16 @@ const REQUEST_STATUS_LABEL: Record<TransferRequestStatus, string> = {
   fulfilled: "Fulfilled",
 };
 
+const getRequestStatusLabel = (status: TransferRequestStatus, isEs: boolean): string => {
+  const labels: Record<TransferRequestStatus, string> = {
+    requested: isEs ? "Solicitado" : "Requested",
+    approved: isEs ? "Aprobado" : "Approved",
+    rejected: isEs ? "Rechazado" : "Rejected",
+    fulfilled: isEs ? "Cumplido" : "Fulfilled",
+  };
+  return labels[status];
+};
+
 const REQUEST_STATUS_CLASSES: Record<TransferRequestStatus, string> = {
   requested: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
   approved: "bg-green-500/15 text-green-400 border-green-500/30",
@@ -66,11 +75,33 @@ const CONDITION_LABEL: Record<TransferCondition, string> = {
   LOST: "Lost",
 };
 
+const getConditionLabel = (condition: TransferCondition, isEs: boolean): string => {
+  const labels: Record<TransferCondition, string> = {
+    OK: "OK",
+    DAMAGED: isEs ? "Dañado" : "Damaged",
+    MISSING_PARTS: isEs ? "Piezas Faltantes" : "Missing Parts",
+    DIRTY: isEs ? "Sucio" : "Dirty",
+    REPAIR_REQUIRED: isEs ? "Reparación Requerida" : "Repair Required",
+    LOST: isEs ? "Perdido" : "Lost",
+  };
+  return labels[condition];
+};
+
 const TRANSFER_STATUS_LABEL: Record<TransferStatus, string> = {
   in_transit: "In Transit",
   completed: "Completed",
   cancelled: "Cancelled",
   received: "Received",
+};
+
+const getTransferStatusLabel = (status: TransferStatus, isEs: boolean): string => {
+  const labels: Record<TransferStatus, string> = {
+    in_transit: isEs ? "En Tránsito" : "In Transit",
+    completed: isEs ? "Completado" : "Completed",
+    cancelled: isEs ? "Cancelado" : "Cancelled",
+    received: isEs ? "Recibido" : "Received",
+  };
+  return labels[status];
 };
 
 const TRANSFER_STATUS_CLASSES: Record<TransferStatus, string> = {
@@ -80,8 +111,8 @@ const TRANSFER_STATUS_CLASSES: Record<TransferStatus, string> = {
   received: "bg-green-500/15 text-green-400 border-green-500/30",
 };
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
+function formatDate(iso: string, isEs: boolean): string {
+  return new Date(iso).toLocaleDateString(isEs ? "es-CO" : "en-US", {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -107,7 +138,7 @@ function extractInstanceLocationId(instance: MaterialInstance): string | undefin
   return fallback?._id ?? fallback?.id;
 }
 
-function getInstanceModelName(instance: MaterialInstance): string {
+function getInstanceModelName(instance: MaterialInstance, isEs: boolean): string {
   const raw = instance as MaterialInstance & {
     model?: string | { _id?: string; name?: string };
     modelId?: string | { _id?: string; name?: string };
@@ -119,7 +150,7 @@ function getInstanceModelName(instance: MaterialInstance): string {
   if (raw.modelId && typeof raw.modelId === "object" && raw.modelId.name) {
     return raw.modelId.name;
   }
-  return "Unknown material";
+  return isEs ? "Material desconocido" : "Unknown material";
 }
 
 // ─── Sub-components ────────────────────────────────────────────────────────
@@ -136,235 +167,6 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ label, className }) => (
   </span>
 );
 
-/** 
- * Enhanced transfer route component with professional styling 
- */
-interface TransferRouteProps {
-  fromLocation: string;
-  toLocation: string;
-  className?: string;
-  size?: 'sm' | 'md' | 'lg';
-}
-const TransferRoute: React.FC<TransferRouteProps> = ({ 
-  fromLocation, 
-  toLocation, 
-  className = "",
-  size = 'md'
-}) => {
-  const sizeClasses = {
-    sm: 'text-xs gap-1.5',
-    md: 'text-sm gap-2',
-    lg: 'text-base gap-3'
-  };
-
-  const locationClasses = {
-    sm: 'px-2 py-0.5 text-xs',
-    md: 'px-2.5 py-1 text-sm',
-    lg: 'px-3 py-1.5 text-base'
-  };
-
-  const iconSizes = {
-    sm: 12,
-    md: 14,
-    lg: 16
-  };
-
-  return (
-    <div className={`flex items-center ${sizeClasses[size]} ${className}`}>
-      <div className={`${locationClasses[size]} bg-gray-800/60 backdrop-blur-sm border border-gray-600/30 rounded-lg text-gray-200 font-medium whitespace-nowrap transition-colors relative overflow-hidden group`}>
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-        <span className="relative z-10">{fromLocation}</span>
-      </div>
-      
-      <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[#FFD700]/10 border border-[#FFD700]/20">
-        <ArrowLeftRight size={iconSizes[size]} className="text-[#FFD700] transform transition-transform group-hover:scale-110" />
-      </div>
-      
-      <div className={`${locationClasses[size]} bg-gray-800/60 backdrop-blur-sm border border-gray-600/30 rounded-lg text-gray-200 font-medium whitespace-nowrap transition-colors relative overflow-hidden group`}>
-        <div className="absolute inset-0 bg-gradient-to-r from-green-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-        <span className="relative z-10">{toLocation}</span>
-      </div>
-    </div>
-  );
-};
-
-/**
- * Professional transfer request card with sophisticated design
- */
-interface TransferRequestCardProps {
-  request: TransferRequest;
-  locationName: (id: string) => string;
-  onAction?: (request: TransferRequest, action: string) => void;
-  actions?: React.ReactNode;
-}
-const TransferRequestCard: React.FC<TransferRequestCardProps> = ({ 
-  request, 
-  locationName, 
-  actions 
-}) => {
-  const statusConfig = {
-    requested: { icon: CircleDashed, color: 'amber' },
-    approved: { icon: CheckCircle, color: 'emerald' },
-    rejected: { icon: XCircle, color: 'red' },
-    fulfilled: { icon: CheckCircle, color: 'blue' }
-  };
-
-  const StatusIcon = statusConfig[request.status]?.icon || CircleDashed;
-
-  return (
-    <div className="group relative bg-gradient-to-br from-[#1a1a1a] to-[#161616] border border-[#2a2a2a]/50 rounded-xl p-5 transition-all duration-300 hover:border-[#3a3a3a]/70 hover:shadow-lg hover:shadow-black/10 hover:-translate-y-0.5">
-      {/* Subtle background gradient on hover */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#FFD700]/[0.01] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-xl pointer-events-none" />
-      
-      <div className="relative z-10">
-        {/* Header with route and metadata */}
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex-1 min-w-0">
-            <TransferRoute 
-              fromLocation={locationName(request.fromLocationId)}
-              toLocation={locationName(request.toLocationId)}
-              className="mb-3"
-              size="md"
-            />
-            
-            {/* Metadata row */}
-            <div className="flex items-center gap-4 text-xs">
-              <div className="flex items-center gap-1.5 text-gray-500">
-                <div className="w-1 h-1 bg-gray-500 rounded-full" />
-                <span className="font-medium">{request.items.length}</span>
-                <span>{request.items.length === 1 ? 'type' : 'types'}</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-gray-500">
-                <div className="w-1 h-1 bg-gray-500 rounded-full" />
-                <span>{formatDate(request.createdAt)}</span>
-              </div>
-            </div>
-          </div>
-          
-          {/* Status and actions */}
-          <div className="flex flex-col items-end gap-3 ml-4">
-            <div className="flex items-center gap-1.5">
-              <StatusIcon size={14} className={`text-${statusConfig[request.status]?.color || 'gray'}-400`} />
-              <StatusBadge
-                label={REQUEST_STATUS_LABEL[request.status]}
-                className={REQUEST_STATUS_CLASSES[request.status]}
-              />
-            </div>
-            {actions && (
-              <div className="transition-all duration-200 opacity-60 group-hover:opacity-100">
-                {actions}
-              </div>
-            )}
-          </div>
-        </div>
-        
-        {/* Notes section with enhanced styling */}
-        {request.notes && (
-          <div className="mt-4 pt-4 border-t border-[#2a2a2a]/50">
-            <div className="flex items-start gap-2">
-              <div className="w-1.5 h-1.5 bg-gray-600 rounded-full mt-2 flex-shrink-0" />
-              <p className="text-xs text-gray-400 leading-relaxed italic">
-                "{request.notes}"
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-/**
- * Professional transfer/shipment card with enhanced UX
- */
-interface TransferCardProps {
-  transfer: Transfer;
-  locationName: (id: string) => string;
-  actions?: React.ReactNode;
-}
-const TransferCard: React.FC<TransferCardProps> = ({ 
-  transfer, 
-  locationName, 
-  actions 
-}) => {
-  const statusConfig = {
-    in_transit: { icon: Truck, color: 'blue', bgGradient: 'from-blue-500/5 to-blue-600/10' },
-    completed: { icon: CheckCircle, color: 'emerald', bgGradient: 'from-emerald-500/5 to-emerald-600/10' },
-    cancelled: { icon: XCircle, color: 'gray', bgGradient: 'from-gray-500/5 to-gray-600/10' },
-    received: { icon: CheckCircle, color: 'green', bgGradient: 'from-green-500/5 to-green-600/10' }
-  };
-
-  const StatusIcon = statusConfig[transfer.status]?.icon || Truck;
-  const bgGradient = statusConfig[transfer.status]?.bgGradient;
-
-  return (
-    <div className="group relative bg-gradient-to-br from-[#1a1a1a] to-[#161616] border border-[#2a2a2a]/50 rounded-xl p-5 transition-all duration-300 hover:border-[#3a3a3a]/70 hover:shadow-lg hover:shadow-black/10 hover:-translate-y-0.5">
-      {/* Dynamic background based on status */}
-      <div className={`absolute inset-0 bg-gradient-to-br ${bgGradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-xl pointer-events-none`} />
-      
-      <div className="relative z-10">
-        {/* Header section */}
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-2 h-2 bg-[#FFD700] rounded-full animate-pulse" />
-              <span className="text-xs font-medium text-[#FFD700] uppercase tracking-wider">Shipment</span>
-            </div>
-            
-            <TransferRoute 
-              fromLocation={locationName(transfer.fromLocationId)}
-              toLocation={locationName(transfer.toLocationId)}
-              className="mb-3"
-              size="md"
-            />
-            
-            {/* Enhanced metadata */}
-            <div className="flex items-center gap-4 text-xs">
-              <div className="flex items-center gap-1.5 text-gray-500">
-                <StatusIcon size={12} className={`text-${statusConfig[transfer.status]?.color || 'gray'}-400`} />
-                <span className="font-medium">{transfer.items.length}</span>
-                <span>{transfer.items.length === 1 ? 'item' : 'items'}</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-gray-500">
-                <div className="w-1 h-1 bg-gray-500 rounded-full" />
-                <span>{formatDate(transfer.createdAt)}</span>
-              </div>
-            </div>
-          </div>
-          
-          {/* Status and actions */}
-          <div className="flex flex-col items-end gap-3 ml-4">
-            <StatusBadge
-              label={TRANSFER_STATUS_LABEL[transfer.status]}
-              className={TRANSFER_STATUS_CLASSES[transfer.status]}
-            />
-            {actions && (
-              <div className="transition-all duration-200 opacity-60 group-hover:opacity-100">
-                {actions}
-              </div>
-            )}
-          </div>
-        </div>
-        
-        {/* Enhanced notes section */}
-        {transfer.senderNotes && (
-          <div className="mt-4 pt-4 border-t border-[#2a2a2a]/50">
-            <div className="flex items-start gap-2">
-              <div className="w-1.5 h-1.5 bg-gray-600 rounded-full mt-2 flex-shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-gray-500 uppercase tracking-wider font-medium mb-1">Sender Note</p>
-                <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed italic">
-                  "{transfer.senderNotes}"
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
 // ─── Create Request Modal ──────────────────────────────────────────────────
 
 interface CreateRequestModalProps {
@@ -379,6 +181,8 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
   onCreated,
 }) => {
   const { showToast } = useToast();
+  const { language } = useLanguage();
+  const isEs = language === "es";
   const [fromLocationId, setFromLocationId] = useState("");
   const [toLocationId, setToLocationId] = useState("");
   const [notes, setNotes] = useState("");
@@ -408,12 +212,12 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
     e.preventDefault();
     if (!fromLocationId || !toLocationId) return;
     if (fromLocationId === toLocationId) {
-      showToast("error", "Origin and destination must be different", "Validation Error");
+      showToast("error", isEs ? "El origen y el destino deben ser diferentes" : "Origin and destination must be different", isEs ? "Error de Validación" : "Validation Error");
       return;
     }
     const filledItems = requestItems.filter((it) => it.modelId.trim() !== "");
     if (filledItems.length === 0) {
-      showToast("error", "Add at least one material item to the request", "Validation Error");
+      showToast("error", isEs ? "Agrega al menos un artículo a la solicitud" : "Add at least one material item to the request", isEs ? "Error de Validación" : "Validation Error");
       return;
     }
     setLoading(true);
@@ -425,12 +229,12 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
         ...(notes.trim() ? { notes: notes.trim() } : {}),
       };
       await createTransferRequest(payload);
-      showToast("success", "Transfer request created successfully", "Success");
+      showToast("success", isEs ? "Solicitud de transferencia creada exitosamente" : "Transfer request created successfully", isEs ? "Éxito" : "Success");
       onCreated();
     } catch (err: unknown) {
       showToast(
         "error",
-        err instanceof Error ? err.message : "Failed to create transfer request",
+        err instanceof Error ? err.message : (isEs ? "Error al crear la solicitud de transferencia" : "Failed to create transfer request"),
         "Error",
       );
     } finally {
@@ -446,12 +250,12 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
         <div className="flex items-center justify-between p-5 border-b border-[#222]">
           <h2 className="text-base font-bold text-white flex items-center gap-2">
             <ArrowLeftRight size={18} className="text-[#FFD700]" />
-            New Transfer Request
+            {isEs ? "Nueva Solicitud de Transferencia" : "New Transfer Request"}
           </h2>
           <button
             onClick={onClose}
             className="text-gray-500 hover:text-white transition-colors"
-            aria-label="Close"
+            aria-label={isEs ? "Cerrar" : "Close"}
           >
             <X size={20} />
           </button>
@@ -460,7 +264,7 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
           {/* From location */}
           <div>
             <label className="block text-xs font-medium text-gray-400 mb-1.5">
-              From Location <span className="text-red-400">*</span>
+              {isEs ? "Ubicación de Origen" : "From Location"} <span className="text-red-400">*</span>
             </label>
             <select
               value={fromLocationId}
@@ -471,7 +275,7 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
               required
               className="w-full h-10 px-3 bg-[#0a0a0a] border border-[#222] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all"
             >
-              <option value="">Select origin location</option>
+              <option value="">{isEs ? "Seleccionar ubicación de origen" : "Select origin location"}</option>
               {locations.map((loc) => (
                 <option key={loc._id} value={loc._id}>
                   {loc.name}
@@ -483,7 +287,7 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
           {/* To location */}
           <div>
             <label className="block text-xs font-medium text-gray-400 mb-1.5">
-              To Location <span className="text-red-400">*</span>
+              {isEs ? "Ubicación de Destino" : "To Location"} <span className="text-red-400">*</span>
             </label>
             <select
               value={toLocationId}
@@ -492,7 +296,7 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
               disabled={!fromLocationId}
               className="w-full h-10 px-3 bg-[#0a0a0a] border border-[#222] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all disabled:opacity-40"
             >
-              <option value="">Select destination location</option>
+              <option value="">{isEs ? "Seleccionar ubicación de destino" : "Select destination location"}</option>
               {availableDestinations.map((loc) => (
                 <option key={loc._id} value={loc._id}>
                   {loc.name}
@@ -505,7 +309,7 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="block text-xs font-medium text-gray-400">
-                Items <span className="text-red-400">*</span>
+                {isEs ? "Artículos" : "Items"} <span className="text-red-400">*</span>
               </label>
               <button
                 type="button"
@@ -513,7 +317,7 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                 className="flex items-center gap-1 text-xs text-[#FFD700] hover:text-[#FFD700]/80 transition-colors"
               >
                 <Plus size={12} />
-                Add item
+                {isEs ? "Agregar artículo" : "Add item"}
               </button>
             </div>
             <div className="space-y-2">
@@ -524,7 +328,7 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                     onChange={(e) => updateItem(idx, { modelId: e.target.value })}
                     className="flex-1 h-9 px-2 bg-[#0a0a0a] border border-[#222] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all"
                   >
-                    <option value="">Select material type</option>
+                    <option value="">{isEs ? "Seleccionar tipo de material" : "Select material type"}</option>
                     {materialTypes.map((mt) => (
                       <option key={mt._id} value={mt._id}>
                         {mt.name}
@@ -539,14 +343,14 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                       updateItem(idx, { quantity: Math.max(1, Number(e.target.value)) })
                     }
                     className="w-20 h-9 px-2 bg-[#0a0a0a] border border-[#222] rounded text-sm text-white text-center focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all"
-                    aria-label={`Quantity for item ${idx + 1}`}
+                    aria-label={isEs ? `Cantidad para artículo ${idx + 1}` : `Quantity for item ${idx + 1}`}
                   />
                   {requestItems.length > 1 && (
                     <button
                       type="button"
                       onClick={() => removeItem(idx)}
                       className="text-gray-600 hover:text-red-400 transition-colors shrink-0"
-                      aria-label="Remove item"
+                      aria-label={isEs ? "Eliminar artículo" : "Remove item"}
                     >
                       <X size={16} />
                     </button>
@@ -558,12 +362,12 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
 
           {/* Notes */}
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1.5">Notes</label>
+            <label className="block text-xs font-medium text-gray-400 mb-1.5">{isEs ? "Notas" : "Notes"}</label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
-              placeholder="Optional request notes…"
+              placeholder={isEs ? "Notas opcionales de la solicitud…" : "Optional request notes…"}
               className="w-full px-3 py-2 bg-[#0a0a0a] border border-[#222] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all resize-none"
             />
           </div>
@@ -575,14 +379,14 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
               disabled={loading}
               className="px-4 h-9 rounded text-sm text-gray-400 hover:text-white border border-[#333] hover:border-[#555] transition-all"
             >
-              Cancel
+              {isEs ? "Cancelar" : "Cancel"}
             </button>
             <button
               type="submit"
               disabled={loading || !fromLocationId || !toLocationId}
               className="px-5 h-9 bg-[#FFD700] hover:bg-[#FFD700]/90 text-black font-semibold rounded text-sm transition-all disabled:opacity-50"
             >
-              {loading ? "Creating…" : "Create Request"}
+              {loading ? (isEs ? "Creando…" : "Creating…") : (isEs ? "Crear Solicitud" : "Create Request")}
             </button>
           </div>
         </form>
@@ -592,12 +396,6 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
 };
 
 // ─── Initiate Shipment Modal ───────────────────────────────────────────────
-
-interface InstancesByType {
-  materialTypeId: string;
-  materialTypeName: string;
-  instances: MaterialInstance[];
-}
 
 interface InitiateShipmentModalProps {
   request: TransferRequest;
@@ -613,44 +411,31 @@ const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
   onCreated,
 }) => {
   const { showToast } = useToast();
+  const { language } = useLanguage();
+  const isEs = language === "es";
   const [instances, setInstances] = useState<MaterialInstance[]>([]);
-  const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
   const [selectedItems, setSelectedItems] = useState<TransferItem[]>([]);
   const [senderNotes, setSenderNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
-  const [showPreview, setShowPreview] = useState(false);
-  const [openTypeIds, setOpenTypeIds] = useState<Set<string>>(new Set());
-  const [previewFilterType, setPreviewFilterType] = useState<string>("");
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchInstances = async () => {
       try {
-        const [instancesRes, typesRes] = await Promise.all([
-          getMaterialInstances({ status: "available" }),
-          getMaterialTypes({ limit: 200 }),
-        ]);
-        const items = instancesRes.data.instances ?? [];
-        const filteredInstances = items.filter(
-          (instance) => extractInstanceLocationId(instance) === request.fromLocationId,
+        const res = await getMaterialInstances({ status: "available" });
+        const items = res.data.instances ?? [];
+        setInstances(
+          items.filter(
+            (instance) => extractInstanceLocationId(instance) === request.fromLocationId,
+          ),
         );
-        setInstances(filteredInstances);
-        setMaterialTypes(typesRes.data.materialTypes ?? []);
-        
-        // Auto-expand all types by default
-        const typeIds = new Set<string>();
-        filteredInstances.forEach((inst) => {
-          const typeId = getInstanceModelId(inst);
-          if (typeId) typeIds.add(typeId);
-        });
-        setOpenTypeIds(typeIds);
       } catch {
         // silently fall through — user sees empty list
       } finally {
         setFetching(false);
       }
     };
-    void fetchData();
+    void fetchInstances();
   }, [request.fromLocationId]);
 
   const toggleItem = (instanceId: string) => {
@@ -672,57 +457,10 @@ const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
   const getItemCondition = (instanceId: string): TransferCondition | "" =>
     selectedItems.find((i) => i.instanceId === instanceId)?.sentCondition ?? "";
 
-  // Helper to extract material type ID from instance
-  const getInstanceModelId = (instance: MaterialInstance): string | undefined => {
-    const raw = instance as MaterialInstance & {
-      model?: string | { _id?: string; id?: string };
-      modelId?: string | { _id?: string; id?: string };
-    };
-    if (raw.model && typeof raw.model === "object") return raw.model._id ?? raw.model.id;
-    if (raw.modelId && typeof raw.modelId === "object") return raw.modelId._id ?? raw.modelId.id;
-    if (typeof raw.model === "string") return raw.model;
-    if (typeof raw.modelId === "string") return raw.modelId;
-    return undefined;
-  };
-
-  // Group instances by material type
-  const instancesByType = useMemo<InstancesByType[]>(() => {
-    const groups = new Map<string, MaterialInstance[]>();
-    instances.forEach((inst) => {
-      const typeId = getInstanceModelId(inst);
-      if (!typeId) return;
-      if (!groups.has(typeId)) groups.set(typeId, []);
-      groups.get(typeId)!.push(inst);
-    });
-
-    const result: InstancesByType[] = [];
-    groups.forEach((instances, typeId) => {
-      const type = materialTypes.find(
-        (t) => t._id === typeId || (t as MaterialType & { id?: string }).id === typeId,
-      );
-      result.push({
-        materialTypeId: typeId,
-        materialTypeName: type?.name ?? "Unknown Type",
-        instances,
-      });
-    });
-
-    return result.sort((a, b) => a.materialTypeName.localeCompare(b.materialTypeName));
-  }, [instances, materialTypes]);
-
-  const toggleTypeExpanded = (typeId: string) => {
-    setOpenTypeIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(typeId)) next.delete(typeId);
-      else next.add(typeId);
-      return next;
-    });
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedItems.length === 0) {
-      showToast("error", "Select at least one item to transfer", "Validation");
+      showToast("error", isEs ? "Selecciona al menos un artículo para transferir" : "Select at least one item to transfer", isEs ? "Validación" : "Validation");
       return;
     }
     setLoading(true);
@@ -734,12 +472,12 @@ const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
         items: selectedItems,
         ...(senderNotes.trim() ? { senderNotes: senderNotes.trim() } : {}),
       });
-      showToast("success", "Shipment initiated successfully", "Success");
+      showToast("success", isEs ? "Envío iniciado exitosamente" : "Shipment initiated successfully", isEs ? "Éxito" : "Success");
       onCreated();
     } catch (err: unknown) {
       showToast(
         "error",
-        err instanceof Error ? err.message : "Failed to initiate shipment",
+        err instanceof Error ? err.message : (isEs ? "Error al iniciar el envío" : "Failed to initiate shipment"),
         "Error",
       );
     } finally {
@@ -753,12 +491,12 @@ const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
         <div className="flex items-center justify-between p-5 border-b border-[#222]">
           <h2 className="text-base font-bold text-white flex items-center gap-2">
             <Truck size={18} className="text-[#FFD700]" />
-            Initiate Shipment
+            {isEs ? "Iniciar Envío" : "Initiate Shipment"}
           </h2>
           <button
             onClick={onClose}
             className="text-gray-500 hover:text-white transition-colors"
-            aria-label="Close"
+            aria-label={isEs ? "Cerrar" : "Close"}
           >
             <X size={20} />
           </button>
@@ -766,131 +504,91 @@ const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4 overflow-y-auto custom-scrollbar">
           {/* Route summary */}
-          <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4">
-            <TransferRoute 
-              fromLocation={locationName(request.fromLocationId)}
-              toLocation={locationName(request.toLocationId)}
-            />
+          <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-4 py-3 flex items-center gap-3 text-sm">
+            <span className="text-white font-medium">{locationName(request.fromLocationId)}</span>
+            <ArrowLeftRight size={14} className="text-[#FFD700] shrink-0" />
+            <span className="text-white font-medium">{locationName(request.toLocationId)}</span>
           </div>
 
-          {/* Item selection grouped by material type */}
+          {/* Item selection */}
           <div>
             <label className="block text-xs font-medium text-gray-400 mb-2">
-              Available Items at Origin{" "}
-              <span className="text-[#FFD700]">({selectedItems.length} selected)</span>
+              {isEs ? "Artículos Disponibles en Origen" : "Available Items at Origin"}{" "}
+              <span className="text-gray-500">
+                ({selectedItems.length} {isEs ? "seleccionado(s)" : "selected"})
+              </span>
             </label>
-            <div className="max-h-64 overflow-y-auto rounded-lg border border-[#222] custom-scrollbar">
+            <div className="max-h-56 overflow-y-auto rounded-lg border border-[#222] divide-y divide-[#1a1a1a] custom-scrollbar">
               {fetching && (
                 <div className="flex items-center justify-center py-8 text-gray-500 text-sm">
-                  Loading…
+                  {isEs ? "Cargando…" : "Loading…"}
                 </div>
               )}
               {!fetching && instances.length === 0 && (
                 <div className="flex items-center justify-center py-8 text-gray-500 text-sm">
-                  No available items at this location.
+                  {isEs
+                    ? "No hay artículos disponibles en esta ubicación."
+                    : "No available items at this location."}
                 </div>
               )}
-              {!fetching && instancesByType.length > 0 && (
-                <div className="divide-y divide-[#1a1a1a]">
-                  {instancesByType.map((group) => {
-                    const isOpen = openTypeIds.has(group.materialTypeId);
-                    const selectedInGroup = group.instances.filter((inst) =>
-                      isSelected(inst._id),
-                    ).length;
-                    return (
-                      <div key={group.materialTypeId} className="bg-[#0a0a0a]/50">
-                        {/* Material Type Header */}
-                        <button
-                          type="button"
-                          onClick={() => toggleTypeExpanded(group.materialTypeId)}
-                          className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-white/5 transition-colors"
-                        >
-                          <div className="flex items-center gap-2">
-                            <Package size={14} className="text-[#FFD700]" />
-                            <span className="text-sm font-semibold text-white">
-                              {group.materialTypeName}
-                            </span>
-                            <span className="text-xs text-gray-500">
-                              ({group.instances.length} available{selectedInGroup > 0 ? `, ${selectedInGroup} selected` : ""})
-                            </span>
-                          </div>
-                          <ChevronDown
-                            size={16}
-                            className={`text-gray-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
-                          />
-                        </button>
-
-                        {/* Instances List */}
-                        {isOpen && (
-                          <div className="divide-y divide-[#1a1a1a]/50">
-                            {group.instances.map((inst) => {
-                              const selected = isSelected(inst._id);
-                              return (
-                                <div
-                                  key={inst._id}
-                                  className="px-3 py-2.5 pl-9 hover:bg-white/5 transition-colors"
-                                >
-                                  <label className="flex items-center gap-3 cursor-pointer">
-                                    <input
-                                      type="checkbox"
-                                      checked={selected}
-                                      onChange={() => toggleItem(inst._id)}
-                                      className="accent-[#FFD700] w-4 h-4 shrink-0"
-                                    />
-                                    <div className="flex flex-col min-w-0">
-                                      <span className="text-sm text-gray-200 font-medium truncate">
-                                        {inst.serialNumber}
-                                      </span>
-                                      <span className="text-xs text-gray-500">
-                                        {getInstanceModelName(inst)}
-                                      </span>
-                                    </div>
-                                  </label>
-                                  {selected && (
-                                    <div className="mt-2 ml-7">
-                                      <select
-                                        value={getItemCondition(inst._id)}
-                                        onChange={(e) =>
-                                          setItemCondition(
-                                            inst._id,
-                                            e.target.value as TransferCondition,
-                                          )
-                                        }
-                                        className="h-8 px-2 bg-[#0a0a0a] border border-[#222] rounded text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all"
-                                        aria-label={`Sent condition for ${inst.serialNumber}`}
-                                      >
-                                        <option value="">Sent condition (optional)</option>
-                                        {(Object.keys(CONDITION_LABEL) as TransferCondition[]).map(
-                                          (c) => (
-                                            <option key={c} value={c}>
-                                              {CONDITION_LABEL[c]}
-                                            </option>
-                                          ),
-                                        )}
-                                      </select>
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+              {!fetching &&
+                instances.map((inst) => {
+                  const selected = isSelected(inst._id);
+                  return (
+                    <div key={inst._id} className="px-3 py-2.5 hover:bg-white/5 transition-colors">
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          onChange={() => toggleItem(inst._id)}
+                          className="accent-[#FFD700] w-4 h-4 shrink-0"
+                        />
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-sm text-gray-200 font-medium truncate">
+                            {inst.serialNumber}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {getInstanceModelName(inst, isEs)}
+                          </span>
+                        </div>
+                      </label>
+                      {selected && (
+                        <div className="mt-2 ml-7">
+                          <select
+                            value={getItemCondition(inst._id)}
+                            onChange={(e) =>
+                              setItemCondition(inst._id, e.target.value as TransferCondition)
+                            }
+                            className="h-8 px-2 bg-[#0a0a0a] border border-[#222] rounded text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all"
+                            aria-label={isEs ? `Condición de envío para ${inst.serialNumber}` : `Sent condition for ${inst.serialNumber}`}
+                          >
+                            <option value="">
+                              {isEs ? "Condición de envío (opcional)" : "Sent condition (optional)"}
+                            </option>
+                            {(Object.keys(CONDITION_LABEL) as TransferCondition[]).map((c) => (
+                              <option key={c} value={c}>
+                                {getConditionLabel(c, isEs)}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
             </div>
           </div>
 
           {/* Sender notes */}
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1.5">Sender Notes</label>
+            <label className="block text-xs font-medium text-gray-400 mb-1.5">
+              {isEs ? "Notas del Remitente" : "Sender Notes"}
+            </label>
             <textarea
               value={senderNotes}
               onChange={(e) => setSenderNotes(e.target.value)}
               rows={2}
-              placeholder="Optional notes from the sender…"
+              placeholder={isEs ? "Notas opcionales del remitente…" : "Optional notes from the sender…"}
               className="w-full px-3 py-2 bg-[#0a0a0a] border border-[#222] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all resize-none"
             />
           </div>
@@ -902,183 +600,19 @@ const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
               disabled={loading}
               className="px-4 h-9 rounded text-sm text-gray-400 hover:text-white border border-[#333] hover:border-[#555] transition-all"
             >
-              Cancel
+              {isEs ? "Cancelar" : "Cancel"}
             </button>
             <button
-              type="button"
-              onClick={() => {
-                setPreviewFilterType("");
-                setShowPreview(true);
-              }}
+              type="submit"
               disabled={loading || selectedItems.length === 0}
               className="px-5 h-9 bg-[#FFD700] hover:bg-[#FFD700]/90 text-black font-semibold rounded text-sm transition-all disabled:opacity-50 flex items-center gap-2"
             >
-              <Eye size={14} />
-              Preview & Confirm
+              <Send size={14} />
+              {loading ? (isEs ? "Enviando…" : "Sending…") : (isEs ? "Enviar Envío" : "Send Shipment")}
             </button>
           </div>
         </form>
       </div>
-
-      {/* Preview Modal */}
-      {showPreview && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-[#111] border border-[#2a2a2a] rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between p-5 border-b border-[#222]">
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <Eye size={18} className="text-[#FFD700]" />
-                Preview Shipment
-              </h2>
-              <button
-                onClick={() => setShowPreview(false)}
-                className="text-gray-500 hover:text-white transition-colors"
-                aria-label="Close preview"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="p-5 space-y-4 overflow-y-auto custom-scrollbar">
-              {/* Route Summary */}
-              <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4">
-                <TransferRoute
-                  fromLocation={locationName(request.fromLocationId)}
-                  toLocation={locationName(request.toLocationId)}
-                />
-              </div>
-
-              {/* Filter by Material Type */}
-              <div className="flex items-center gap-3">
-                <label className="text-xs font-medium text-gray-400 whitespace-nowrap">
-                  Filter by Type:
-                </label>
-                <select
-                  value={previewFilterType}
-                  onChange={(e) => setPreviewFilterType(e.target.value)}
-                  className="flex-1 h-9 px-3 bg-[#0a0a0a] border border-[#222] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all"
-                >
-                  <option value="">All Types ({selectedItems.length} items)</option>
-                  {instancesByType
-                    .filter((group) =>
-                      group.instances.some((inst) => isSelected(inst._id)),
-                    )
-                    .map((group) => {
-                      const count = group.instances.filter((inst) =>
-                        isSelected(inst._id),
-                      ).length;
-                      return (
-                        <option key={group.materialTypeId} value={group.materialTypeId}>
-                          {group.materialTypeName} ({count})
-                        </option>
-                      );
-                    })}
-                </select>
-              </div>
-
-              {/* Items Summary by Type */}
-              <div>
-                <h3 className="text-xs font-semibold text-gray-400 mb-3 uppercase tracking-wide">
-                  {previewFilterType
-                    ? `${
-                        instancesByType.find((g) => g.materialTypeId === previewFilterType)
-                          ?.materialTypeName ?? "Selected Type"
-                      } Items`
-                    : `All Items to Transfer (${selectedItems.length})`}
-                </h3>
-                <div className="space-y-3">
-                  {instancesByType
-                    .filter((group) =>
-                      group.instances.some((inst) => isSelected(inst._id)),
-                    )
-                    .filter((group) =>
-                      previewFilterType ? group.materialTypeId === previewFilterType : true,
-                    )
-                    .map((group) => {
-                      const selectedInGroup = group.instances.filter((inst) =>
-                        isSelected(inst._id),
-                      );
-                      return (
-                        <div
-                          key={group.materialTypeId}
-                          className="bg-[#0a0a0a]/80 border border-[#222] rounded-lg p-3"
-                        >
-                          <div className="flex items-center gap-2 mb-2">
-                            <Package size={14} className="text-[#FFD700]" />
-                            <span className="text-sm font-semibold text-white">
-                              {group.materialTypeName}
-                            </span>
-                            <span className="text-xs text-gray-500">
-                              ({selectedInGroup.length} {selectedInGroup.length === 1 ? "item" : "items"})
-                            </span>
-                          </div>
-                          <div className="space-y-1.5 ml-5">
-                            {selectedInGroup.map((inst) => {
-                              const condition = getItemCondition(inst._id);
-                              return (
-                                <div
-                                  key={inst._id}
-                                  className="flex items-center justify-between text-xs"
-                                >
-                                  <span className="text-gray-300">{inst.serialNumber}</span>
-                                  {condition && (
-                                    <span className="text-gray-500">
-                                      {CONDITION_LABEL[condition]}
-                                    </span>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      );
-                    })}
-                </div>
-                {previewFilterType &&
-                  !instancesByType
-                    .filter((group) =>
-                      group.instances.some((inst) => isSelected(inst._id)),
-                    )
-                    .some((group) => group.materialTypeId === previewFilterType) && (
-                    <div className="flex items-center justify-center py-8 text-gray-500 text-sm">
-                      No items selected for this type.
-                    </div>
-                  )}
-              </div>
-
-              {/* Sender Notes */}
-              {senderNotes.trim() && (
-                <div className="bg-[#0a0a0a]/80 border border-[#222] rounded-lg p-3">
-                  <h3 className="text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wide">
-                    Sender Notes
-                  </h3>
-                  <p className="text-sm text-gray-300 whitespace-pre-wrap">{senderNotes}</p>
-                </div>
-              )}
-            </div>
-
-            {/* Confirm Actions */}
-            <div className="flex justify-end gap-3 p-5 border-t border-[#222]">
-              <button
-                type="button"
-                onClick={() => setShowPreview(false)}
-                disabled={loading}
-                className="px-4 h-9 rounded text-sm text-gray-400 hover:text-white border border-[#333] hover:border-[#555] transition-all"
-              >
-                Back to Edit
-              </button>
-              <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={loading}
-                className="px-5 h-9 bg-[#FFD700] hover:bg-[#FFD700]/90 text-black font-semibold rounded text-sm transition-all disabled:opacity-50 flex items-center gap-2"
-              >
-                <Send size={14} />
-                {loading ? "Sending…" : "Confirm & Send"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
@@ -1099,6 +633,8 @@ const ReceiveTransferModal: React.FC<ReceiveTransferModalProps> = ({
   onReceived,
 }) => {
   const { showToast } = useToast();
+  const { language } = useLanguage();
+  const isEs = language === "es";
   const [receiverNotes, setReceiverNotes] = useState("");
   const [itemConditions, setItemConditions] = useState<Record<string, TransferCondition | "">>(() =>
     Object.fromEntries(transfer.items.map((i) => [i.instanceId, ""])),
@@ -1124,13 +660,21 @@ const ReceiveTransferModal: React.FC<ReceiveTransferModalProps> = ({
         ...(receiverNotes.trim() ? { receiverNotes } : {}),
         ...(items.length > 0 ? { items } : {}),
       });
-      showToast("success", "Transfer marked as received", "Success");
+      showToast(
+        "success",
+        isEs ? "Transferencia marcada como recibida" : "Transfer marked as received",
+        isEs ? "Éxito" : "Success",
+      );
       onReceived();
     } catch (err: unknown) {
       showToast(
         "error",
-        err instanceof Error ? err.message : "Failed to mark transfer as received",
-        "Error",
+        err instanceof Error
+          ? err.message
+          : isEs
+            ? "No se pudo marcar la transferencia como recibida"
+            : "Failed to mark transfer as received",
+        isEs ? "Error" : "Error",
       );
     } finally {
       setLoading(false);
@@ -1143,34 +687,33 @@ const ReceiveTransferModal: React.FC<ReceiveTransferModalProps> = ({
         <div className="flex items-center justify-between p-5 border-b border-[#222]">
           <h2 className="text-base font-bold text-white flex items-center gap-2">
             <CheckCircle size={18} className="text-green-400" />
-            Confirm Receipt
+            {isEs ? "Confirmar Recepción" : "Confirm Receipt"}
           </h2>
           <button
             onClick={onClose}
             className="text-gray-500 hover:text-white transition-colors"
-            aria-label="Close"
+            aria-label={isEs ? "Cerrar" : "Close"}
           >
             <X size={20} />
           </button>
         </div>
         <form onSubmit={handleSubmit} className="p-5 space-y-4 overflow-y-auto custom-scrollbar">
-<div className="space-y-3">
-              <p className="text-sm text-gray-300">
-                Confirm receipt of this shipment. All items will be set to{" "}
-                <span className="text-green-400 font-medium">available</span> at the destination.
-              </p>
-              <TransferRoute 
-                fromLocation={locationName(transfer.fromLocationId)}
-                toLocation={locationName(transfer.toLocationId)}
-                className="justify-center"
-              />
-            </div>
+          <p className="text-sm text-gray-300">
+            {isEs ? "Confirma la recepción del envío desde" : "Confirm receipt of shipment from"}{" "}
+            <span className="text-white font-medium">{locationName(transfer.fromLocationId)}</span>{" "}
+            {isEs ? "hacia" : "to"}{" "}
+            <span className="text-white font-medium">{locationName(transfer.toLocationId)}</span>
+            .{" "}
+            {isEs ? "Todos los artículos quedarán como" : "All items will be set to"}{" "}
+            <span className="text-green-400 font-medium">{isEs ? "disponible" : "available"}</span>{" "}
+            {isEs ? "en el destino." : "at the destination."}
+          </p>
 
           {/* Per-item condition */}
           {transfer.items.length > 0 && (
             <div>
               <label className="block text-xs font-medium text-gray-400 mb-2">
-                Received Condition per Item
+                {isEs ? "Condición Recibida por Artículo" : "Received Condition per Item"}
               </label>
               <div className="rounded-lg border border-[#222] divide-y divide-[#1a1a1a]">
                 {transfer.items.map((item) => (
@@ -1184,12 +727,12 @@ const ReceiveTransferModal: React.FC<ReceiveTransferModalProps> = ({
                         setCondition(item.instanceId, e.target.value as TransferCondition | "")
                       }
                       className="h-8 px-2 bg-[#0a0a0a] border border-[#222] rounded text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all"
-                      aria-label={`Received condition for ${item.instanceId}`}
+                      aria-label={isEs ? `Condición recibida para ${item.instanceId}` : `Received condition for ${item.instanceId}`}
                     >
-                      <option value="">Condition (optional)</option>
+                      <option value="">{isEs ? "Condición (opcional)" : "Condition (optional)"}</option>
                       {(Object.keys(CONDITION_LABEL) as TransferCondition[]).map((c) => (
                         <option key={c} value={c}>
-                          {CONDITION_LABEL[c]}
+                          {getConditionLabel(c, isEs)}
                         </option>
                       ))}
                     </select>
@@ -1200,12 +743,14 @@ const ReceiveTransferModal: React.FC<ReceiveTransferModalProps> = ({
           )}
 
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1.5">Receiver Notes</label>
+            <label className="block text-xs font-medium text-gray-400 mb-1.5">
+              {isEs ? "Notas del Receptor" : "Receiver Notes"}
+            </label>
             <textarea
               value={receiverNotes}
               onChange={(e) => setReceiverNotes(e.target.value)}
               rows={3}
-              placeholder="Optional notes from the receiver…"
+              placeholder={isEs ? "Notas opcionales del receptor…" : "Optional notes from the receiver…"}
               className="w-full px-3 py-2 bg-[#0a0a0a] border border-[#222] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all resize-none"
             />
           </div>
@@ -1216,7 +761,7 @@ const ReceiveTransferModal: React.FC<ReceiveTransferModalProps> = ({
               disabled={loading}
               className="px-4 h-9 rounded text-sm text-gray-400 hover:text-white border border-[#333] hover:border-[#555] transition-all"
             >
-              Cancel
+              {isEs ? "Cancelar" : "Cancel"}
             </button>
             <button
               type="submit"
@@ -1224,7 +769,7 @@ const ReceiveTransferModal: React.FC<ReceiveTransferModalProps> = ({
               className="px-5 h-9 bg-green-600 hover:bg-green-500 text-white font-semibold rounded text-sm transition-all disabled:opacity-50 flex items-center gap-2"
             >
               <CheckCircle size={14} />
-              {loading ? "Confirming…" : "Mark as Received"}
+              {loading ? (isEs ? "Confirmando…" : "Confirming…") : (isEs ? "Marcar como Recibido" : "Mark as Received")}
             </button>
           </div>
         </form>
@@ -1236,6 +781,8 @@ const ReceiveTransferModal: React.FC<ReceiveTransferModalProps> = ({
 // ─── Main Page ─────────────────────────────────────────────────────────────
 
 const TransferRequests: React.FC = () => {
+  const { language } = useLanguage();
+  const isEs = language === "es";
   const { hasPermission } = usePermissions();
   const { showToast } = useToast();
 
@@ -1290,13 +837,17 @@ const TransferRequests: React.FC = () => {
     } catch (err: unknown) {
       showToast(
         "error",
-        err instanceof Error ? err.message : "Failed to load transfer requests",
-        "Error",
+        err instanceof Error
+          ? err.message
+          : isEs
+            ? "No se pudieron cargar las solicitudes de transferencia"
+            : "Failed to load transfer requests",
+        isEs ? "Error" : "Error",
       );
     } finally {
       setRequestsLoading(false);
     }
-  }, [requestStatusFilter, showFulfilled, showToast]);
+  }, [isEs, requestStatusFilter, showFulfilled, showToast]);
 
   const loadTransfers = useCallback(async () => {
     setTransfersLoading(true);
@@ -1308,11 +859,19 @@ const TransferRequests: React.FC = () => {
         : all;
       setTransfers(filtered);
     } catch (err: unknown) {
-      showToast("error", err instanceof Error ? err.message : "Failed to load shipments", "Error");
+      showToast(
+        "error",
+        err instanceof Error
+          ? err.message
+          : isEs
+            ? "No se pudieron cargar los envíos"
+            : "Failed to load shipments",
+        isEs ? "Error" : "Error",
+      );
     } finally {
       setTransfersLoading(false);
     }
-  }, [transferStatusFilter, showToast]);
+  }, [isEs, transferStatusFilter, showToast]);
 
   useEffect(() => {
     void loadLocations();
@@ -1330,38 +889,55 @@ const TransferRequests: React.FC = () => {
   const handleRespond = async (requestId: string, status: "approved" | "rejected") => {
     try {
       await respondToTransferRequest(requestId, { status });
-      showToast("success", `Request ${status} successfully`, "Success");
+      const statusLabel = status === "approved"
+        ? isEs
+          ? "aprobada"
+          : "approved"
+        : isEs
+          ? "rechazada"
+          : "rejected";
+
+      showToast(
+        "success",
+        isEs
+          ? `Solicitud ${statusLabel} exitosamente`
+          : `Request ${statusLabel} successfully`,
+        isEs ? "Éxito" : "Success",
+      );
       void loadRequests();
     } catch (err: unknown) {
       showToast(
         "error",
-        err instanceof Error ? err.message : `Failed to ${status} request`,
-        "Error",
+        err instanceof Error
+          ? err.message
+          : isEs
+            ? `No se pudo ${status === "approved" ? "aprobar" : "rechazar"} la solicitud`
+            : `Failed to ${status} request`,
+        isEs ? "Error" : "Error",
       );
     }
   };
 
+  // ── Render helpers ──
   const renderRequestActions = (req: TransferRequest) => {
     if (req.status === "requested" && canUpdate) {
       return (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <button
             onClick={() => void handleRespond(req._id, "approved")}
-            title="Approve Request"
-            className="group relative flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 border border-emerald-500/30 hover:border-emerald-500/50 rounded-lg text-xs font-medium transition-all duration-200 overflow-hidden"
+            title={isEs ? "Aprobar" : "Approve"}
+            className="flex items-center gap-1 px-2.5 h-7 bg-green-700/20 hover:bg-green-600/30 text-green-400 hover:text-green-300 border border-green-700/30 rounded text-xs font-medium transition-all"
           >
-            <div className="absolute inset-0 bg-emerald-500/5 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500" />
-            <CheckCircle size={12} className="relative z-10 transition-transform group-hover:scale-110" />
-            <span className="relative z-10">Approve</span>
+            <CheckCircle size={12} />
+            {isEs ? "Aprobar" : "Approve"}
           </button>
           <button
             onClick={() => void handleRespond(req._id, "rejected")}
-            title="Reject Request"
-            className="group relative flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/30 hover:border-red-500/50 rounded-lg text-xs font-medium transition-all duration-200 overflow-hidden"
+            title={isEs ? "Rechazar" : "Reject"}
+            className="flex items-center gap-1 px-2.5 h-7 bg-red-700/20 hover:bg-red-600/30 text-red-400 hover:text-red-300 border border-red-700/30 rounded text-xs font-medium transition-all"
           >
-            <div className="absolute inset-0 bg-red-500/5 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500" />
-            <XCircle size={12} className="relative z-10 transition-transform group-hover:scale-110" />
-            <span className="relative z-10">Reject</span>
+            <XCircle size={12} />
+            {isEs ? "Rechazar" : "Reject"}
           </button>
         </div>
       );
@@ -1371,255 +947,195 @@ const TransferRequests: React.FC = () => {
       return (
         <button
           onClick={() => setShipmentTarget(req)}
-          className="group relative flex items-center gap-1.5 px-3 py-1.5 bg-[#FFD700]/10 hover:bg-[#FFD700]/20 text-[#FFD700] hover:text-[#FFD700]/90 border border-[#FFD700]/30 hover:border-[#FFD700]/50 rounded-lg text-xs font-medium transition-all duration-200 overflow-hidden"
+          className="flex items-center gap-1 px-2.5 h-7 bg-[#FFD700]/15 hover:bg-[#FFD700]/25 text-[#FFD700] border border-[#FFD700]/30 rounded text-xs font-medium transition-all"
         >
-          <div className="absolute inset-0 bg-[#FFD700]/5 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500" />
-          <Truck size={12} className="relative z-10 transition-transform group-hover:scale-110" />
-          <span className="relative z-10">Start Shipment</span>
+          <Truck size={12} />
+          {isEs ? "Iniciar Envío" : "Initiate Shipment"}
         </button>
       );
     }
 
-    return (
-      <div className="text-xs text-gray-600 italic flex items-center gap-1">
-        <div className="w-1 h-1 bg-gray-600 rounded-full" />
-        <span>No actions available</span>
-      </div>
-    );
+    return <span className="text-xs text-gray-600 italic">{isEs ? "Sin acciones" : "No actions"}</span>;
   };
 
   // ── Render ──
   return (
     <div className="p-6 space-y-6">
-{/* Enhanced page header */}
-        <div className="flex items-start justify-between gap-6">
-          <div className="flex-1">
-            <div className="flex items-center gap-4 mb-2">
-              <div className="relative">
-                <div className="absolute inset-0 bg-[#FFD700]/20 blur-xl rounded-full" />
-                <div className="relative bg-[#FFD700]/10 p-3 rounded-xl border border-[#FFD700]/20">
-                  <ArrowLeftRight size={24} className="text-[#FFD700]" />
-                </div>
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-white">
-                  Transfer Management
-                </h1>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <div className="w-1 h-1 bg-[#FFD700] rounded-full" />
-                  <p className="text-sm text-gray-400">Coordinate material movements across locations</p>
-                </div>
-              </div>
-            </div>
-            
-            {/* Stats summary */}
-            <div className="flex items-center gap-4 mt-3">
-              <div className="flex items-center gap-2 text-xs text-gray-500">
-                <div className="w-2 h-2 bg-yellow-500 rounded-full" />
-                <span>Requests: {requests.length}</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-gray-500">
-                <div className="w-2 h-2 bg-blue-500 rounded-full" />
-                <span>Transfers: {transfers.length}</span>
-              </div>
-            </div>
-          </div>
-          
-          {canCreate && (
-            <div className="flex-shrink-0">
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="group relative h-11 px-6 bg-gradient-to-r from-[#FFD700] to-[#FFC700] hover:from-[#FFD700]/90 hover:to-[#FFC700]/90 text-black font-semibold rounded-xl text-sm transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-98 overflow-hidden"
-              >
-                <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500 skew-x-12" />
-                <div className="relative flex items-center gap-2">
-                  <Plus size={16} className="transition-transform group-hover:rotate-90" />
-                  <span>New Request</span>
-                </div>
-              </button>
-            </div>
+      {/* Page header */}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-white flex items-center gap-3">
+            <ArrowLeftRight size={26} className="text-[#FFD700]" />
+            {isEs ? "Solicitudes de Transferencia" : "Transfer Requests"}
+          </h1>
+          <p className="text-sm text-gray-400 mt-1">
+            {isEs
+              ? "Gestiona transferencias de material entre ubicaciones"
+              : "Manage material transfers between locations"}
+          </p>
+        </div>
+        {canCreate && (
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 h-10 px-5 bg-[#FFD700] hover:bg-[#FFD700]/90 text-black font-semibold rounded text-sm transition-all shadow-md hover:shadow-lg active:scale-95 shrink-0"
+          >
+            <Plus size={16} />
+            {isEs ? "Nueva Solicitud" : "New Request"}
+          </button>
         )}
       </div>
 
-{/* Enhanced tabs with better UX */}
-        <div className="relative bg-[#0f0f0f] border border-[#2a2a2a]/50 rounded-xl p-1.5 w-fit backdrop-blur-sm">
-          <div className="absolute inset-0 bg-gradient-to-r from-[#FFD700]/5 via-transparent to-[#FFD700]/5 rounded-xl" />
-          
-          <div className="relative flex gap-1">
-            {(["requests", "shipments"] as ActiveTab[]).map((tab) => {
-              const isActive = activeTab === tab;
-              const labels = {
-                requests: { label: "Requests", icon: Send, count: requests.length },
-                shipments: { label: "Shipments", icon: Truck, count: transfers.length }
-              };
-              
-              const { label, icon: Icon, count } = labels[tab];
-              
-              return (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`relative group px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
-                    isActive
-                      ? "bg-[#FFD700] text-black shadow-lg"
-                      : "text-gray-400 hover:text-white hover:bg-[#1a1a1a]/50"
-                  }`}
-                >
-                  <Icon size={14} className={`transition-transform ${
-                    isActive ? "scale-110" : "group-hover:scale-105"
-                  }`} />
-                  <span>{label}</span>
-                  <div className={`px-1.5 py-0.5 text-xs rounded-full font-semibold ${
-                    isActive 
-                      ? "bg-black/20 text-black" 
-                      : "bg-gray-700/50 text-gray-500 group-hover:bg-gray-600/50"
-                  }`}>
-                    {count}
-                  </div>
-                  
-                  {isActive && (
-                    <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent rounded-lg pointer-events-none" />
-                  )}
-                </button>
-              );
-            })}
-          </div>
+      {/* Tabs */}
+      <div className="flex gap-1 bg-[#111] border border-[#222] rounded-lg p-1 w-fit">
+        {(["requests", "shipments"] as ActiveTab[]).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`px-5 py-2 rounded text-sm font-medium transition-all capitalize ${
+              activeTab === tab
+                ? "bg-[#FFD700] text-black shadow"
+                : "text-gray-400 hover:text-white"
+            }`}
+          >
+            {tab === "requests"
+              ? isEs
+                ? "Solicitudes de Transferencia"
+                : "Transfer Requests"
+              : isEs
+                ? "Envíos"
+                : "Shipments"}
+          </button>
+        ))}
       </div>
 
       {/* ── Requests tab ── */}
       {activeTab === "requests" && (
         <div className="space-y-4">
-{/* Enhanced filters row */}
-            <div className="flex items-center justify-between gap-4 p-4 bg-[#0f0f0f]/50 backdrop-blur-sm border border-[#2a2a2a]/30 rounded-xl">
-              <div className="flex items-center gap-3 flex-wrap">
-                {/* Status filter with enhanced styling */}
-                <div className="relative group">
-                  <select
-                    value={requestStatusFilter}
-                    onChange={(e) =>
-                      setRequestStatusFilter(e.target.value as TransferRequestStatus | "")
-                    }
-                    className="h-9 pl-3 pr-10 bg-[#1a1a1a]/80 backdrop-blur-sm border border-[#333]/50 rounded-lg text-sm text-gray-300 focus:outline-none focus:ring-2 focus:ring-[#FFD700]/50 focus:border-[#FFD700] appearance-none transition-all duration-200 hover:border-[#444] min-w-[140px]"
-                  >
-                    <option value="">All statuses</option>
-                    {(Object.keys(REQUEST_STATUS_LABEL) as TransferRequestStatus[]).map((s) => (
-                      <option key={s} value={s}>
-                        {REQUEST_STATUS_LABEL[s]}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown
-                    size={14}
-                    className="absolute right-3 top-2.5 text-gray-500 pointer-events-none group-hover:text-gray-400 transition-colors"
-                  />
-                </div>
+          {/* Filters row */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="relative">
+              <select
+                value={requestStatusFilter}
+                onChange={(e) =>
+                  setRequestStatusFilter(e.target.value as TransferRequestStatus | "")
+                }
+                className="h-9 pl-3 pr-8 bg-[#111] border border-[#2a2a2a] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] appearance-none"
+              >
+                <option value="">{isEs ? "Todos los estados" : "All statuses"}</option>
+                {(Object.keys(REQUEST_STATUS_LABEL) as TransferRequestStatus[]).map((s) => (
+                  <option key={s} value={s}>
+                    {getRequestStatusLabel(s, isEs)}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                size={14}
+                className="absolute right-2.5 top-2.5 text-gray-500 pointer-events-none"
+              />
+            </div>
 
-                {/* Enhanced toggle switch */}
-                <div className="flex items-center gap-3">
-                  <label className="flex items-center gap-3 cursor-pointer group">
-                    <div className="relative">
-                      <input
-                        type="checkbox"
-                        checked={showFulfilled}
-                        onChange={(e) => setShowFulfilled(e.target.checked)}
-                        className="sr-only"
-                      />
-                      <div className={`relative w-11 h-6 rounded-full transition-all duration-300 ${
-                        showFulfilled 
-                          ? "bg-[#FFD700] shadow-lg shadow-[#FFD700]/25" 
-                          : "bg-gray-600/50 border border-gray-500/30"
-                      }`}>
-                        <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-all duration-300 shadow-lg ${
-                          showFulfilled ? "translate-x-5" : "translate-x-0"
-                        }`} />
-                      </div>
-                    </div>
-                    <span className="text-xs text-gray-400 group-hover:text-gray-300 transition-colors font-medium">
-                      Include fulfilled
-                    </span>
-                  </label>
-                </div>
+            <label className="flex items-center gap-2 cursor-pointer group">
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={showFulfilled}
+                  onChange={(e) => setShowFulfilled(e.target.checked)}
+                  className="sr-only"
+                />
+                <div
+                  className={`w-8 h-4 rounded-full transition-colors ${
+                    showFulfilled ? "bg-[#FFD700]" : "bg-gray-600"
+                  }`}
+                ></div>
+                <div
+                  className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform ${
+                    showFulfilled ? "translate-x-4" : ""
+                  }`}
+                ></div>
+              </div>
+              <span className="text-xs text-gray-400 group-hover:text-gray-300 transition-colors">
+                {isEs ? "Mostrar cumplidas" : "Show fulfilled"}
+              </span>
+            </label>
 
-                {/* Enhanced refresh button */}
-                <button
-                  onClick={() => void loadRequests()}
-                  disabled={requestsLoading}
-                  className="group flex items-center gap-2 h-9 px-4 bg-[#1a1a1a]/80 backdrop-blur-sm border border-[#333]/50 rounded-lg text-sm text-gray-400 hover:text-white hover:border-[#444] transition-all duration-200 disabled:opacity-40 hover:bg-[#222]/50"
-                >
-                  <RefreshCw size={14} className={`${requestsLoading ? "animate-spin" : "group-hover:rotate-180"} transition-transform duration-500`} />
-                  <span className="font-medium">Refresh</span>
-                </button>
-              </div>
-              
-              {/* Results counter with enhanced styling */}
-              <div className="flex items-center gap-2 text-xs">
-                <div className="w-2 h-2 bg-[#FFD700] rounded-full animate-pulse" />
-                <span className="text-gray-400">
-                  <span className="font-semibold text-white">{requests.length}</span> 
-                  {requests.length === 1 ? ' result' : ' results'}
-                </span>
-              </div>
+            <button
+              onClick={() => void loadRequests()}
+              disabled={requestsLoading}
+              className="flex items-center gap-1.5 h-9 px-3 bg-[#111] border border-[#2a2a2a] rounded text-sm text-gray-400 hover:text-white transition-all disabled:opacity-40"
+            >
+              <RefreshCw size={14} className={requestsLoading ? "animate-spin" : ""} />
+              {isEs ? "Actualizar" : "Refresh"}
+            </button>
+            <span className="ml-auto text-xs text-gray-500">
+              {requests.length} {isEs ? "resultado(s)" : "result(s)"}
+            </span>
           </div>
 
-          {/* Professional empty state */}
-          <div className="space-y-6">
+          {/* Table */}
+          <div className="bg-[#111] border border-[#222] rounded-xl overflow-hidden">
             {requestsLoading ? (
-              <div className="flex flex-col items-center justify-center py-24 gap-4">
-                <div className="relative">
-                  <div className="w-12 h-12 border-4 border-gray-700 border-t-[#FFD700] rounded-full animate-spin" />
-                  <div className="absolute inset-0 w-12 h-12 border-4 border-transparent border-t-[#FFD700]/30 rounded-full animate-pulse" />
-                </div>
-                <div className="text-center">
-                  <p className="text-gray-400 font-medium">Loading transfer requests</p>
-                  <p className="text-xs text-gray-600 mt-1">Please wait while we fetch the latest data</p>
-                </div>
+              <div className="flex items-center justify-center py-16 text-gray-500">
+                <RefreshCw size={20} className="animate-spin mr-2" />
+                {isEs ? "Cargando solicitudes…" : "Loading requests…"}
               </div>
             ) : requests.length === 0 ? (
-              <div className="relative bg-gradient-to-br from-[#0f0f0f] to-[#1a1a1a] border border-[#2a2a2a]/50 rounded-2xl overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-[#FFD700]/[0.02] via-transparent to-[#FFD700]/[0.01]" />
-                
-                <div className="relative p-12">
-                  <div className="flex flex-col items-center text-center max-w-md mx-auto">
-                    {/* Enhanced empty state icon */}
-                    <div className="relative mb-6">
-                      <div className="absolute inset-0 bg-[#FFD700]/10 blur-2xl rounded-full" />
-                      <div className="relative bg-[#1a1a1a] p-6 rounded-2xl border border-[#333]/50">
-                        <ArrowLeftRight size={48} className="text-[#FFD700]/60" />
-                      </div>
-                    </div>
-                    
-                    {/* Content */}
-                    <h3 className="text-lg font-semibold text-white mb-3">
-                      No Transfer Requests Yet
-                    </h3>
-                    <p className="text-sm text-gray-400 leading-relaxed mb-6">
-                      Transfer requests help you coordinate material movements between warehouse locations. 
-                      Create your first request to get started with inventory transfers.
-                    </p>
-                    
-                    {canCreate && (
-                      <button
-                        onClick={() => setShowCreateModal(true)}
-                        className="group relative flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-[#FFD700] to-[#FFC700] hover:from-[#FFD700]/95 hover:to-[#FFC700]/95 text-black font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-1 active:scale-98"
-                      >
-                        <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 skew-x-12 rounded-xl" />
-                        <Plus size={18} className="relative z-10 transition-transform group-hover:rotate-90" />
-                        <span className="relative z-10">Create First Request</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
+              <div className="flex flex-col items-center justify-center py-16 gap-3 text-gray-500">
+                <CircleDashed size={32} />
+                <p className="text-sm">
+                  {isEs ? "No se encontraron solicitudes de transferencia" : "No transfer requests found"}
+                </p>
+                {canCreate && (
+                  <button
+                    onClick={() => setShowCreateModal(true)}
+                    className="text-[#FFD700] hover:underline text-sm"
+                  >
+                    {isEs ? "Crear la primera solicitud" : "Create the first request"}
+                  </button>
+                )}
               </div>
             ) : (
-              <div className="space-y-4">
-                {requests.map((req) => (
-                  <TransferRequestCard
-                    key={req._id}
-                    request={req}
-                    locationName={locationName}
-                    actions={renderRequestActions(req)}
-                  />
-                ))}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-[#1a1a1a] text-xs text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 py-3">{isEs ? "Desde" : "From"}</th>
+                      <th className="px-4 py-3">{isEs ? "Hacia" : "To"}</th>
+                      <th className="px-4 py-3">{isEs ? "Artículos" : "Items"}</th>
+                      <th className="px-4 py-3">{isEs ? "Estado" : "Status"}</th>
+                      <th className="px-4 py-3">{isEs ? "Notas" : "Notes"}</th>
+                      <th className="px-4 py-3">{isEs ? "Creado" : "Created"}</th>
+                      <th className="px-4 py-3 text-right">{isEs ? "Acciones" : "Actions"}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#1a1a1a]">
+                    {requests.map((req) => (
+                      <tr key={req._id} className="hover:bg-white/3 transition-colors group">
+                        <td className="px-4 py-3 text-gray-200 font-medium whitespace-nowrap">
+                          {locationName(req.fromLocationId)}
+                        </td>
+                        <td className="px-4 py-3 text-gray-200 whitespace-nowrap">
+                          {locationName(req.toLocationId)}
+                        </td>
+                        <td className="px-4 py-3 text-gray-400 whitespace-nowrap">
+                          {req.items.length} {isEs ? "tipo(s)" : "type(s)"}
+                        </td>
+                        <td className="px-4 py-3">
+                          <StatusBadge
+                            label={getRequestStatusLabel(req.status, isEs)}
+                            className={REQUEST_STATUS_CLASSES[req.status]}
+                          />
+                        </td>
+                        <td className="px-4 py-3 text-gray-400 max-w-[200px] truncate">
+                          {req.notes ?? <span className="text-gray-600 italic">—</span>}
+                        </td>
+                        <td className="px-4 py-3 text-gray-400 whitespace-nowrap">
+                          {formatDate(req.createdAt, isEs)}
+                        </td>
+                        <td className="px-4 py-3 text-right">{renderRequestActions(req)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
@@ -1629,87 +1145,106 @@ const TransferRequests: React.FC = () => {
       {/* ── Shipments tab ── */}
       {activeTab === "shipments" && (
         <div className="space-y-4">
-{/* Enhanced filters for shipments */}
-            <div className="flex items-center justify-between gap-4 p-4 bg-[#0f0f0f]/50 backdrop-blur-sm border border-[#2a2a2a]/30 rounded-xl">
-              <div className="flex items-center gap-3">
-                <div className="relative group">
-                  <select
-                    value={transferStatusFilter}
-                    onChange={(e) => setTransferStatusFilter(e.target.value as TransferStatus | "")}
-                    className="h-9 pl-3 pr-10 bg-[#1a1a1a]/80 backdrop-blur-sm border border-[#333]/50 rounded-lg text-sm text-gray-300 focus:outline-none focus:ring-2 focus:ring-[#FFD700]/50 focus:border-[#FFD700] appearance-none transition-all duration-200 hover:border-[#444] min-w-[140px]"
-                  >
-                    <option value="">All statuses</option>
-                    {(Object.keys(TRANSFER_STATUS_LABEL) as TransferStatus[]).map((s) => (
-                      <option key={s} value={s}>
-                        {TRANSFER_STATUS_LABEL[s]}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown
-                    size={14}
-                    className="absolute right-3 top-2.5 text-gray-500 pointer-events-none group-hover:text-gray-400 transition-colors"
-                  />
-                </div>
-                
-                <button
-                  onClick={() => void loadTransfers()}
-                  disabled={transfersLoading}
-                  className="group flex items-center gap-2 h-9 px-4 bg-[#1a1a1a]/80 backdrop-blur-sm border border-[#333]/50 rounded-lg text-sm text-gray-400 hover:text-white hover:border-[#444] transition-all duration-200 disabled:opacity-40 hover:bg-[#222]/50"
-                >
-                  <RefreshCw size={14} className={`${transfersLoading ? "animate-spin" : "group-hover:rotate-180"} transition-transform duration-500`} />
-                  <span className="font-medium">Refresh</span>
-                </button>
-              </div>
-              
-              <div className="flex items-center gap-2 text-xs">
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
-                <span className="text-gray-400">
-                  <span className="font-semibold text-white">{transfers.length}</span> 
-                  {transfers.length === 1 ? ' transfer' : ' transfers'}
-                </span>
-              </div>
+          {/* Filters row */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="relative">
+              <select
+                value={transferStatusFilter}
+                onChange={(e) => setTransferStatusFilter(e.target.value as TransferStatus | "")}
+                className="h-9 pl-3 pr-8 bg-[#111] border border-[#2a2a2a] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] appearance-none"
+              >
+                <option value="">{isEs ? "Todos los estados" : "All statuses"}</option>
+                {(Object.keys(TRANSFER_STATUS_LABEL) as TransferStatus[]).map((s) => (
+                  <option key={s} value={s}>
+                    {getTransferStatusLabel(s, isEs)}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                size={14}
+                className="absolute right-2.5 top-2.5 text-gray-500 pointer-events-none"
+              />
+            </div>
+            <button
+              onClick={() => void loadTransfers()}
+              disabled={transfersLoading}
+              className="flex items-center gap-1.5 h-9 px-3 bg-[#111] border border-[#2a2a2a] rounded text-sm text-gray-400 hover:text-white transition-all disabled:opacity-40"
+            >
+              <RefreshCw size={14} className={transfersLoading ? "animate-spin" : ""} />
+              {isEs ? "Actualizar" : "Refresh"}
+            </button>
+            <span className="ml-auto text-xs text-gray-500">
+              {transfers.length} {isEs ? "resultado(s)" : "result(s)"}
+            </span>
           </div>
 
-          {/* Cards Grid */}
-          <div className="space-y-4">
+          {/* Table */}
+          <div className="bg-[#111] border border-[#222] rounded-xl overflow-hidden">
             {transfersLoading ? (
               <div className="flex items-center justify-center py-16 text-gray-500">
                 <RefreshCw size={20} className="animate-spin mr-2" />
-                Loading shipments…
+                {isEs ? "Cargando envíos…" : "Loading shipments…"}
               </div>
             ) : transfers.length === 0 ? (
-              <div className="bg-[#111] border border-[#222] rounded-xl">
-                <div className="flex flex-col items-center justify-center py-16 gap-3 text-gray-500">
-                  <Truck size={32} />
-                  <p className="text-sm">No shipments found</p>
-                  <p className="text-xs text-gray-600 max-w-md text-center">
-                    Shipments represent the actual transportation of materials between locations.
-                    They are created from approved transfer requests.
-                  </p>
-                </div>
+              <div className="flex flex-col items-center justify-center py-16 gap-3 text-gray-500">
+                <Truck size={32} />
+                <p className="text-sm">{isEs ? "No se encontraron envíos" : "No shipments found"}</p>
               </div>
             ) : (
-              <div className="grid gap-4">
-                {transfers.map((tr) => (
-                  <TransferCard
-                    key={tr._id}
-                    transfer={tr}
-                    locationName={locationName}
-                    actions={
-                      tr.status === "in_transit" && canUpdate ? (
-                        <button
-                          onClick={() => setReceiveTarget(tr)}
-                          className="flex items-center gap-1 px-3 py-1.5 bg-green-700/20 hover:bg-green-600/30 text-green-400 hover:text-green-300 border border-green-700/30 rounded-md text-xs font-medium transition-all"
-                        >
-                          <CheckCircle size={12} />
-                          Receive
-                        </button>
-                      ) : (
-                        <span className="text-xs text-gray-600 italic">—</span>
-                      )
-                    }
-                  />
-                ))}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-[#1a1a1a] text-xs text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 py-3">{isEs ? "Desde" : "From"}</th>
+                      <th className="px-4 py-3">{isEs ? "Hacia" : "To"}</th>
+                      <th className="px-4 py-3">{isEs ? "Artículos" : "Items"}</th>
+                      <th className="px-4 py-3">{isEs ? "Estado" : "Status"}</th>
+                      <th className="px-4 py-3">{isEs ? "Notas del Remitente" : "Sender Notes"}</th>
+                      <th className="px-4 py-3">{isEs ? "Creado" : "Created"}</th>
+                      <th className="px-4 py-3 text-right">{isEs ? "Acciones" : "Actions"}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#1a1a1a]">
+                    {transfers.map((tr) => (
+                      <tr key={tr._id} className="hover:bg-white/3 transition-colors">
+                        <td className="px-4 py-3 text-gray-200 font-medium whitespace-nowrap">
+                          {locationName(tr.fromLocationId)}
+                        </td>
+                        <td className="px-4 py-3 text-gray-200 whitespace-nowrap">
+                          {locationName(tr.toLocationId)}
+                        </td>
+                        <td className="px-4 py-3 text-gray-400">
+                          {tr.items.length} {isEs ? "artículo(s)" : "item(s)"}
+                        </td>
+                        <td className="px-4 py-3">
+                          <StatusBadge
+                            label={getTransferStatusLabel(tr.status, isEs)}
+                            className={TRANSFER_STATUS_CLASSES[tr.status]}
+                          />
+                        </td>
+                        <td className="px-4 py-3 text-gray-400 max-w-[180px] truncate">
+                          {tr.senderNotes ?? <span className="text-gray-600 italic">—</span>}
+                        </td>
+                        <td className="px-4 py-3 text-gray-400 whitespace-nowrap">
+                          {formatDate(tr.createdAt, isEs)}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          {tr.status === "in_transit" && canUpdate ? (
+                            <button
+                              onClick={() => setReceiveTarget(tr)}
+                              className="flex items-center gap-1 px-2.5 h-7 bg-green-700/20 hover:bg-green-600/30 text-green-400 hover:text-green-300 border border-green-700/30 rounded text-xs font-medium transition-all"
+                            >
+                              <CheckCircle size={12} />
+                              {isEs ? "Recibir" : "Receive"}
+                            </button>
+                          ) : (
+                            <span className="text-xs text-gray-600 italic">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>

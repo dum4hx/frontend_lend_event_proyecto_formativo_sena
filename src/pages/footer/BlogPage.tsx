@@ -1,23 +1,25 @@
 import FooterPageLayout from "./FooterPageLayout";
 import { useApiQuery } from "../../hooks/useApiQuery";
 import { getFooterContentSummary } from "../../services/footerContentService";
+import { useLanguage } from "../../contexts/useLanguage";
 
 export default function BlogPage() {
+  const { t } = useLanguage();
   const { data, isLoading, error } = useApiQuery(getFooterContentSummary, {
     context: "BlogPage",
   });
 
   const posts = (data?.highlightedFeatures ?? []).map((feature, index) => ({
-    title: `Operational Insight ${index + 1}`,
-    excerpt: `How teams are using ${feature.toLowerCase()} to improve delivery performance and customer trust.`,
+    title: t("publicSite.blog.postTitle", { number: String(index + 1) }),
+    excerpt: t("publicSite.blog.postExcerpt", { feature: feature.toLowerCase() }),
   }));
 
   return (
     <FooterPageLayout
-      title="Blog"
-      subtitle="Insights, templates, and lessons learned from teams modernizing their event operations."
+      title={t("publicSite.blog.title")}
+      subtitle={t("publicSite.blog.subtitle")}
     >
-      {isLoading && <p className="text-sm text-gray-400">Loading latest insights...</p>}
+      {isLoading && <p className="text-sm text-gray-400">{t("publicSite.blog.loading")}</p>}
       {error && <p className="text-sm text-red-400">{error.message}</p>}
 
       <div className="space-y-4">
@@ -29,7 +31,7 @@ export default function BlogPage() {
         ))}
         {!isLoading && posts.length === 0 && (
           <article className="card">
-            <p className="text-gray-300">No insights available right now. Check back soon for new updates.</p>
+            <p className="text-gray-300">{t("publicSite.blog.empty")}</p>
           </article>
         )}
       </div>

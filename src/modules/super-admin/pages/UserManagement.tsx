@@ -5,6 +5,7 @@ import { fetchUserStats } from "../../../services/superAdminService";
 import { LoadingSpinner, ErrorDisplay, AlertContainer } from "../../../components/ui";
 import { normalizeError, logError } from "../../../utils/errorHandling";
 import { useAuth } from "../../../contexts/useAuth";
+import { useLanguage } from "../../../contexts/useLanguage";
 import { useAlerts } from "../../../hooks/useAlerts";
 import { ExportSettingsModal } from "../../../components/export/ExportSettingsModal";
 import { exportService, USER_MANAGEMENT_POLICY } from "../../../services/export";
@@ -21,10 +22,28 @@ const ROLE_COLORS: Record<string, string> = {
 const STATUS_COLORS: Record<string, string> = {
   active: "bg-green-500",
   pending_activation: "bg-yellow-500",
+  invited: "bg-yellow-500",
   inactive: "bg-red-500",
+  suspended: "bg-red-500",
 };
 
+const ROLE_LABEL_KEYS = {
+  owner: "superAdmin.userManagement.role.owner",
+  manager: "superAdmin.userManagement.role.manager",
+  commercial_advisor: "superAdmin.userManagement.role.commercialAdvisor",
+  warehouse_operator: "superAdmin.userManagement.role.warehouseOperator",
+} as const;
+
+const STATUS_LABEL_KEYS = {
+  active: "superAdmin.userManagement.status.active",
+  pending_activation: "superAdmin.userManagement.status.pendingActivation",
+  invited: "superAdmin.userManagement.status.invited",
+  inactive: "superAdmin.userManagement.status.inactive",
+  suspended: "superAdmin.userManagement.status.suspended",
+} as const;
+
 export default function UserManagement() {
+  const { t } = useLanguage();
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -55,6 +74,22 @@ export default function UserManagement() {
   useEffect(() => {
     void fetchData();
   }, [fetchData]);
+
+  const getRoleLabel = useCallback(
+    (role: string) => {
+      const key = ROLE_LABEL_KEYS[role as keyof typeof ROLE_LABEL_KEYS];
+      return key ? t(key) : role.replace(/_/g, " ");
+    },
+    [t],
+  );
+
+  const getStatusLabel = useCallback(
+    (status: string) => {
+      const key = STATUS_LABEL_KEYS[status as keyof typeof STATUS_LABEL_KEYS];
+      return key ? t(key) : status.replace(/_/g, " ");
+    },
+    [t],
+  );
 
   /** Build flat export rows from user analytics data (fetched fresh). */
   const buildExportRows = useCallback(
@@ -99,7 +134,7 @@ export default function UserManagement() {
         const rawData = buildExportRows(freshStats);
 
         if (rawData.length === 0) {
-          showAlert("warning", "No data available to export.");
+          showAlert("warning", t("superAdmin.userManagement.noDataExport"));
           return;
         }
 
@@ -114,7 +149,10 @@ export default function UserManagement() {
         if (result.status === "success") {
           showAlert(
             "success",
-            `Exported ${result.metadata.recordCount} records as ${result.filename}`,
+            t("superAdmin.userManagement.exportSuccess", {
+              count: result.metadata.recordCount,
+              filename: result.filename,
+            }),
           );
           setExportOpen(false);
         } else if (result.status === "cancelled") {
@@ -130,7 +168,7 @@ export default function UserManagement() {
         exportAbort.current = null;
       }
     },
-    [buildExportRows, user?.id, showAlert],
+      [buildExportRows, showAlert, t, user?.id],
   );
 
   const handleExportPreview = useCallback(
@@ -149,7 +187,7 @@ export default function UserManagement() {
   }, []);
 
   if (loading) {
-    return <LoadingSpinner fullScreen message="Loading user data…" />;
+    return <LoadingSpinner fullScreen message={t("superAdmin.userManagement.loading")} />;
   }
 
   if (error) {
@@ -162,8 +200,8 @@ export default function UserManagement() {
   const activeUsers =
     userStats.byStatus.find((s) => s.status === "active")?.count ?? 0;
   const pendingUsers =
-    userStats.byStatus.find((s) => s.status === "pending_activation")?.count ??
-    0;
+    (userStats.byStatus.find((s) => s.status === "pending_activation")?.count ?? 0) +
+    (userStats.byStatus.find((s) => s.status === "invited")?.count ?? 0);
 
   return (
     <div>
@@ -191,39 +229,37 @@ export default function UserManagement() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-white">User Management</h1>
-          <p className="text-gray-400 mt-1">
-            Platform user analytics &amp; distribution
-          </p>
+          <h1 className="text-3xl font-bold text-white">{t("superAdmin.userManagement.title")}</h1>
+          <p className="text-gray-400 mt-1">{t("superAdmin.userManagement.description")}</p>
         </div>
         <button
           onClick={() => setExportOpen(true)}
           className="export-btn flex items-center gap-2"
         >
           <Download size={18} />
-          Export
+          {t("superAdmin.userManagement.export")}
         </button>
       </div>
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <SuperAdminStatCard
-          label="Total Users"
+          label={t("superAdmin.userManagement.stats.totalUsers")}
           value={totalUsers}
           icon={<Users size={20} className="text-black" />}
         />
         <SuperAdminStatCard
-          label="Active"
+          label={t("superAdmin.userManagement.stats.activeUsers")}
           value={activeUsers}
           icon={<UserCheck size={20} className="text-black" />}
         />
         <SuperAdminStatCard
-          label="Pending Activation"
+          label={t("superAdmin.userManagement.stats.pendingUsers")}
           value={pendingUsers}
           icon={<ShieldCheck size={20} className="text-black" />}
         />
         <SuperAdminStatCard
-          label="Avg Users / Org"
+          label={t("superAdmin.userManagement.stats.avgUsersPerOrganization")}
           value={userStats.averageUsersPerOrganization.toFixed(1)}
           icon={<TrendingUp size={20} className="text-black" />}
         />
@@ -233,7 +269,7 @@ export default function UserManagement() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         {/* Users by Role */}
         <div className="bg-[#121212] border border-[#333] rounded-xl p-6">
-          <h2 className="text-lg font-bold text-white mb-4">Users by Role</h2>
+          <h2 className="text-lg font-bold text-white mb-4">{t("superAdmin.userManagement.sections.usersByRole")}</h2>
           <div className="space-y-3">
             {userStats.byRole.map((entry) => {
               const pct =
@@ -244,7 +280,7 @@ export default function UserManagement() {
                 <div key={entry.role}>
                   <div className="flex items-center justify-between text-sm mb-1">
                     <span className="text-gray-300 capitalize">
-                      {entry.role.replace(/_/g, " ")}
+                      {getRoleLabel(entry.role)}
                     </span>
                     <span className="text-white font-medium">
                       {entry.count} ({pct}%)
@@ -265,7 +301,7 @@ export default function UserManagement() {
         {/* Users by Status */}
         <div className="bg-[#121212] border border-[#333] rounded-xl p-6">
           <h2 className="text-lg font-bold text-white mb-4">
-            Users by Status
+            {t("superAdmin.userManagement.sections.usersByStatus")}
           </h2>
           <div className="space-y-3">
             {userStats.byStatus.map((entry) => {
@@ -277,7 +313,7 @@ export default function UserManagement() {
                 <div key={entry.status}>
                   <div className="flex items-center justify-between text-sm mb-1">
                     <span className="text-gray-300 capitalize">
-                      {entry.status.replace(/_/g, " ")}
+                      {getStatusLabel(entry.status)}
                     </span>
                     <span className="text-white font-medium">
                       {entry.count} ({pct}%)
@@ -295,7 +331,7 @@ export default function UserManagement() {
           </div>
           <div className="mt-6 pt-4 border-t border-[#333] text-sm text-gray-400">
             <p>
-              Avg users per organization:{" "}
+              {t("superAdmin.userManagement.sections.averageUsersPerOrganization")}{" "}
               <span className="text-white font-medium">
                 {userStats.averageUsersPerOrganization.toFixed(1)}
               </span>
@@ -307,7 +343,7 @@ export default function UserManagement() {
       {/* User Growth Trend */}
       {userStats.growthTrend.length > 0 && (
         <div className="bg-[#121212] border border-[#333] rounded-xl p-6 mb-8">
-          <h2 className="text-lg font-bold text-white mb-4">User Growth</h2>
+          <h2 className="text-lg font-bold text-white mb-4">{t("superAdmin.userManagement.sections.userGrowth")}</h2>
           <div className="flex items-end gap-1 h-32">
             {userStats.growthTrend.map((point) => {
               const newUsers = point.newUsers ?? 0;

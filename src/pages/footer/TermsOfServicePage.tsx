@@ -1,56 +1,53 @@
 import FooterPageLayout from "./FooterPageLayout";
-
-const sections = [
-  {
-    title: "Service Scope",
-    content:
-      "LendEvent provides software services designed to support event rental operations, inventory oversight, team coordination, and billing-related workflows. Access to specific features, usage thresholds, and service levels may vary according to the subscription selected by the customer organization.",
-  },
-  {
-    title: "Account Responsibilities",
-    content:
-      "Each customer is responsible for maintaining complete and accurate account information, safeguarding credentials, managing user permissions appropriately, and ensuring that all authorized users comply with applicable internal policies and these terms.",
-  },
-  {
-    title: "Subscription and Payments",
-    content:
-      "Paid subscriptions renew in accordance with the active billing cycle unless cancelled under the applicable terms. Taxes, seat adjustments, plan upgrades, downgrades, and other commercial changes may affect the invoiced amount. Non-payment, charge disputes, or repeated billing failures may result in suspension of access to protected services.",
-  },
-  {
-    title: "Acceptable Use",
-    content:
-      "Customers may not use the platform to store or transmit unlawful material, infringe third-party rights, attempt unauthorized access, disrupt service availability, reverse engineer protected functionality where prohibited, or interfere with the security, stability, or integrity of the platform or other customer environments.",
-  },
-  {
-    title: "Data and Availability",
-    content:
-      "LendEvent applies commercially reasonable technical and organizational safeguards to protect customer data and support service continuity. However, the customer acknowledges that scheduled maintenance, dependency failures, internet disruptions, force majeure events, or third-party outages may temporarily affect service performance or availability.",
-  },
-  {
-    title: "Termination",
-    content:
-      "LendEvent may suspend or terminate access where necessary to address material breach, security risk, unlawful use, or persistent non-payment. Customers may request cancellation subject to the applicable subscription commitments, notice periods, and any outstanding payment obligations accrued before the effective termination date.",
-  },
-];
+import { useLanguage } from "../../contexts/useLanguage";
 
 export default function TermsOfServicePage() {
+  const { t } = useLanguage();
+
+  const sections = [
+    {
+      title: t("publicSite.terms.section.serviceScope.title"),
+      content: t("publicSite.terms.section.serviceScope.content"),
+    },
+    {
+      title: t("publicSite.terms.section.accountResponsibilities.title"),
+      content: t("publicSite.terms.section.accountResponsibilities.content"),
+    },
+    {
+      title: t("publicSite.terms.section.subscriptionPayments.title"),
+      content: t("publicSite.terms.section.subscriptionPayments.content"),
+    },
+    {
+      title: t("publicSite.terms.section.acceptableUse.title"),
+      content: t("publicSite.terms.section.acceptableUse.content"),
+    },
+    {
+      title: t("publicSite.terms.section.dataAvailability.title"),
+      content: t("publicSite.terms.section.dataAvailability.content"),
+    },
+    {
+      title: t("publicSite.terms.section.termination.title"),
+      content: t("publicSite.terms.section.termination.content"),
+    },
+  ];
+
   return (
     <FooterPageLayout
-      title="Terms of Service"
-      subtitle="These terms describe the conditions under which organizations access and use the LendEvent platform."
+      title={t("publicSite.terms.title")}
+      subtitle={t("publicSite.terms.subtitle")}
     >
       <section className="card space-y-3">
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-yellow-400">
-              Legal Notice
+              {t("publicSite.terms.legalNotice")}
             </p>
-            <h2 className="text-xl font-bold text-white">Platform Terms</h2>
+            <h2 className="text-xl font-bold text-white">{t("publicSite.terms.platformTerms")}</h2>
           </div>
-          <p className="text-sm text-gray-400">Last updated: March 16, 2026</p>
+          <p className="text-sm text-gray-400">{t("publicSite.terms.lastUpdated")}</p>
         </div>
         <p className="text-gray-300 leading-relaxed">
-          These Terms of Service govern access to and use of the LendEvent platform by customer organizations and their authorized users. By accessing the service, the customer agrees to comply with these terms and all applicable laws and regulations.
+          {t("publicSite.terms.intro")}
         </p>
       </section>
 
@@ -64,14 +61,14 @@ export default function TermsOfServicePage() {
       </div>
 
       <section className="card space-y-3">
-        <h2 className="text-xl font-bold text-yellow-400">Legal and Compliance Contact</h2>
+        <h2 className="text-xl font-bold text-yellow-400">{t("publicSite.terms.contactTitle")}</h2>
         <p className="text-gray-300 leading-relaxed">
-          Questions regarding contractual terms, compliance matters, or formal legal notices may be directed to our legal team.
+          {t("publicSite.terms.contactDescription")}
         </p>
         <div className="space-y-1 text-sm text-gray-400">
           <p>Email: legal@lendevent.com</p>
           <p>Compliance: compliance@lendevent.com</p>
-          <p>Response window: 3 to 5 business days</p>
+          <p>{t("publicSite.terms.responseWindow")}</p>
         </div>
       </section>
     </FooterPageLayout>

@@ -3,6 +3,8 @@
  * Provides consistent loading states across the application.
  */
 
+import { useLanguage } from "../../contexts/useLanguage";
+
 export interface LoadingSpinnerProps {
   size?: 'sm' | 'md' | 'lg';
   message?: string;
@@ -20,12 +22,13 @@ export function LoadingSpinner({
   message, 
   fullScreen = false 
 }: LoadingSpinnerProps) {
+  const { t } = useLanguage();
   const spinner = (
     <div className="text-center">
       <div
         className={`animate-spin rounded-full border-gray-700 border-t-[#FFD700] mx-auto mb-4 ${sizeClasses[size]}`}
         role="status"
-        aria-label="Loading"
+        aria-label={t("common.loading")}
       />
       {message && <p className="text-gray-400">{message}</p>}
     </div>

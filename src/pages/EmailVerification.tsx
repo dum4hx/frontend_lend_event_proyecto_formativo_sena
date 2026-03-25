@@ -7,6 +7,7 @@ import { ApiError } from "../lib/api";
 import { useAuth } from "../contexts/useAuth";
 import { getDashboardUrlByPermissions } from "../utils/roleRouting";
 import { validateCode } from "../utils/validators";
+import { useLanguage } from "../contexts/useLanguage";
 import styles from "./SignUp.module.css";
 
 const OTP_LENGTH = 6;
@@ -15,6 +16,8 @@ const EXPIRY_SECONDS = 5 * 60; // 5 minutes
 export default function EmailVerification() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { language } = useLanguage();
+  const isEs = language === "es";
   const { checkAuth } = useAuth();
 
   // Email passed via navigation state from SignUp
@@ -26,6 +29,16 @@ export default function EmailVerification() {
   const [loading, setLoading] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(EXPIRY_SECONDS);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  const mapValidationMessage = (message?: string) => {
+    if (!isEs || !message) return message;
+    const validationMap: Record<string, string> = {
+      "Code is required": "El codigo es obligatorio",
+      "Code must be exactly 6 digits": "El codigo debe tener exactamente 6 digitos",
+    };
+
+    return validationMap[message] ?? message;
+  };
 
   // Redirect to sign-up if no email in state
   useEffect(() => {
@@ -96,7 +109,10 @@ export default function EmailVerification() {
   const handleVerify = async () => {
     const validation = validateCode(code);
     if (!validation.isValid) {
-      setError(validation.message || "Please enter a valid 6-digit code");
+      setError(
+        mapValidationMessage(validation.message) ||
+          (isEs ? "Ingresa un codigo valido de 6 digitos" : "Please enter a valid 6-digit code"),
+      );
       return;
     }
 
@@ -126,7 +142,7 @@ export default function EmailVerification() {
       if (err instanceof ApiError) {
         setError(err.message);
       } else {
-        setError("Network error. Please try again.");
+        setError(isEs ? "Error de red. Intenta de nuevo." : "Network error. Please try again.");
       }
     } finally {
       setLoading(false);
@@ -170,15 +186,16 @@ export default function EmailVerification() {
 
             {/* Title */}
             <h1 className="text-5xl text-white lg:text-6xl font-extrabold mb-6 leading-tight">
-              Verify your
+              {isEs ? "Verifica tu" : "Verify your"}
               <br />
-              <span className="text-yellow-400">Email Address</span>
+              <span className="text-yellow-400">{isEs ? "correo electronico" : "Email Address"}</span>
             </h1>
 
             {/* Description */}
             <p className="text-gray-300 text-lg max-w-md mb-12 leading-relaxed">
-              We sent a 6-digit verification code to your email. Enter it below to activate your
-              account.
+              {isEs
+                ? "Enviamos un codigo de verificacion de 6 digitos a tu correo. Ingresalo abajo para activar tu cuenta."
+                : "We sent a 6-digit verification code to your email. Enter it below to activate your account."}
             </p>
 
             {/* Feature card */}
@@ -188,8 +205,8 @@ export default function EmailVerification() {
                   <span className="text-yellow-400 text-xl font-bold">✓</span>
                 </div>
                 <div>
-                  <p className="font-bold text-white">Almost There</p>
-                  <p className="text-sm text-gray-400">One quick step to activate your account.</p>
+                  <p className="font-bold text-white">{isEs ? "Casi listo" : "Almost There"}</p>
+                  <p className="text-sm text-gray-400">{isEs ? "Un ultimo paso para activar tu cuenta." : "One quick step to activate your account."}</p>
                 </div>
               </div>
             </div>
@@ -211,16 +228,18 @@ export default function EmailVerification() {
                   d="M10 19l-7-7m0 0l7-7m-7 7h18"
                 />
               </svg>
-              Back to Sign Up
+              {isEs ? "Volver a registrarse" : "Back to Sign Up"}
             </button>
 
-            <h2 className="text-4xl font-extrabold mb-2">Email Verification</h2>
+            <h2 className="text-4xl font-extrabold mb-2">{isEs ? "Verificacion de correo" : "Email Verification"}</h2>
             <p className="text-gray-400 mb-2">
-              We've sent a code to <span className="text-yellow-400 font-bold">{email}</span>
+              {isEs ? "Enviamos un codigo a " : "We've sent a code to "}
+              <span className="text-yellow-400 font-bold">{email}</span>
             </p>
             <p className="text-xs text-gray-500 mb-8">
-              The code expires in 5 minutes. If not verified in time, your registration will be
-              removed and you'll need to sign up again.
+              {isEs
+                ? "El codigo vence en 5 minutos. Si no verificas a tiempo, tu registro se eliminara y deberas registrarte de nuevo."
+                : "The code expires in 5 minutes. If not verified in time, your registration will be removed and you'll need to sign up again."}
             </p>
 
             <div className="space-y-6">
@@ -263,7 +282,7 @@ export default function EmailVerification() {
                           : "text-gray-300"
                     }`}
                   >
-                    {isExpired ? "Code expired" : formatTime(secondsLeft)}
+                    {isExpired ? (isEs ? "Codigo expirado" : "Code expired") : formatTime(secondsLeft)}
                   </span>
                 </div>
               </div>
@@ -279,7 +298,9 @@ export default function EmailVerification() {
               {isExpired && (
                 <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
                   <p className="text-red-400 text-sm font-medium">
-                    Your verification code has expired. Please go back and register again.
+                    {isEs
+                      ? "Tu codigo de verificacion ha expirado. Vuelve atras y registrate nuevamente."
+                      : "Your verification code has expired. Please go back and register again."}
                   </p>
                 </div>
               )}
@@ -287,7 +308,7 @@ export default function EmailVerification() {
               {/* OTP Input */}
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">
-                  Verification Code
+                  {isEs ? "Codigo de verificacion" : "Verification Code"}
                 </label>
                 <div className="flex justify-center gap-3" onPaste={handlePaste}>
                   {digits.map((digit, i) => (
@@ -308,7 +329,7 @@ export default function EmailVerification() {
                           ? "border-yellow-400 ring-1 ring-yellow-400"
                           : "border-zinc-700 focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400"
                       }`}
-                      aria-label={`Digit ${i + 1}`}
+                      aria-label={isEs ? `Digito ${i + 1}` : `Digit ${i + 1}`}
                     />
                   ))}
                 </div>
@@ -320,18 +341,20 @@ export default function EmailVerification() {
                 disabled={loading || !isCodeComplete || isExpired}
                 className={`w-full bg-yellow-400 text-black font-extrabold py-4 rounded-xl text-lg ${styles.glowButton} shadow-xl hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed transition`}
               >
-                {loading ? "Verifying..." : "Verify Email"}
+                {loading ? (isEs ? "Verificando..." : "Verifying...") : (isEs ? "Verificar correo" : "Verify Email")}
               </button>
 
               {/* Help text */}
               <p className="text-center text-gray-500 text-sm">
-                Didn't receive the code? Check your spam folder or{" "}
+                {isEs
+                  ? "No recibiste el codigo? Revisa tu carpeta de spam o "
+                  : "Didn't receive the code? Check your spam folder or "}
                 <button
                   type="button"
                   onClick={() => navigate("/sign-up")}
                   className="text-yellow-400 hover:text-yellow-300 font-semibold transition-colors"
                 >
-                  register again
+                  {isEs ? "registrate de nuevo" : "register again"}
                 </button>
                 .
               </p>

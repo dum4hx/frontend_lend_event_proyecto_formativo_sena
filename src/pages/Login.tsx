@@ -10,9 +10,12 @@ import {
   requiresActiveSubscriptionByPermissions,
 } from "../utils/roleRouting";
 import { useAuth } from "../contexts/useAuth";
+import { useLanguage } from "../contexts/useLanguage";
 import styles from "./Login.module.css";
 
 export default function Login() {
+  const { language } = useLanguage();
+  const isEs = language === "es";
   const navigate = useNavigate();
   const { checkAuth } = useAuth();
   const [email, setEmail] = useState("");
@@ -47,13 +50,13 @@ export default function Login() {
     // Frontend validation
     const validation = validateLoginForm({ email: normalisedEmail, password: normalisedPassword });
     if (!validation.isValid) {
-      setError(validation.message || "Validation failed");
+      setError(validation.message || (isEs ? "Validacion fallida" : "Validation failed"));
       return;
     }
 
     // Prevent submit if field errors exist
     if (Object.keys(fieldErrors).length > 0) {
-      setError("Please fix the highlighted fields");
+      setError(isEs ? "Corrige los campos marcados" : "Please fix the highlighted fields");
       return;
     }
 
@@ -78,13 +81,13 @@ export default function Login() {
 
       if (!loggedUser) {
         console.error("❌ [Login] checkAuth() returned null after login");
-        setError("Authentication failed. Please try again.");
+        setError(isEs ? "Fallo la autenticacion. Intenta de nuevo." : "Authentication failed. Please try again.");
         return;
       }
 
       if (permissions.length === 0) {
         console.error("❌ [Login] User has no permissions assigned:", loggedUser);
-        setError("No permissions assigned. Please contact your administrator.");
+        setError(isEs ? "No tienes permisos asignados. Contacta a tu administrador." : "No permissions assigned. Please contact your administrator.");
         return;
       }
 
@@ -132,13 +135,13 @@ export default function Login() {
           );
 
           if (!refreshedUser) {
-            setError("Authentication failed after token refresh. Please try again.");
+            setError(isEs ? "Fallo la autenticacion tras refrescar el token. Intenta de nuevo." : "Authentication failed after token refresh. Please try again.");
             return;
           }
 
           if (refreshedPermissions.length === 0) {
             console.error("❌ [Login] Refreshed user has no permissions:", refreshedUser);
-            setError("No permissions assigned. Please contact your administrator.");
+            setError(isEs ? "No tienes permisos asignados. Contacta a tu administrador." : "No permissions assigned. Please contact your administrator.");
             return;
           }
 
@@ -166,11 +169,15 @@ export default function Login() {
           navigate(dashboardUrl);
           return;
         } catch {
-          setError("Invalid credentials");
+          setError(isEs ? "Credenciales invalidas" : "Invalid credentials");
           return;
         }
       }
-      const message = err instanceof ApiError ? err.message : "Connection error. Please try again.";
+      const message = err instanceof ApiError
+        ? err.message
+        : isEs
+          ? "Error de conexion. Intenta de nuevo."
+          : "Connection error. Please try again.";
       setError(message);
     } finally {
       setLoading(false);
@@ -199,25 +206,25 @@ export default function Login() {
               </svg>
             </div>
             <h2 className="text-2xl font-extrabold text-white text-center mb-3">
-              Subscription Required
+              {isEs ? "Suscripcion requerida" : "Subscription Required"}
             </h2>
             <p className="text-gray-400 text-center text-sm mb-8 leading-relaxed">
-              Your account does not have an active subscription. You need to purchase a plan before
-              you can access your dashboard. Choose a plan that fits your needs and get started
-              right away.
+              {isEs
+                ? "Tu cuenta no tiene una suscripcion activa. Necesitas comprar un plan antes de acceder a tu panel. Elige el plan que mejor se ajuste a tus necesidades y comienza de inmediato."
+                : "Your account does not have an active subscription. You need to purchase a plan before you can access your dashboard. Choose a plan that fits your needs and get started right away."}
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={() => setShowNoSubModal(false)}
                 className="flex-1 py-3 rounded-xl border border-zinc-700 text-gray-300 font-semibold hover:bg-zinc-800 hover:text-white transition"
               >
-                Close
+                {isEs ? "Cerrar" : "Close"}
               </button>
               <button
                 onClick={() => navigate("/packages")}
                 className="flex-1 py-3 rounded-xl bg-yellow-400 text-black font-extrabold hover:bg-yellow-300 transition"
               >
-                Buy Subscription
+                {isEs ? "Comprar suscripcion" : "Buy Subscription"}
               </button>
             </div>
           </div>
@@ -256,15 +263,16 @@ export default function Login() {
 
             {/* Title */}
             <h1 className="text-5xl text-white lg:text-6xl font-extrabold mb-6 leading-tight">
-              Global Management
+              {isEs ? "Gestion global" : "Global Management"}
               <br />
-              <span className="text-yellow-400">Command Center</span>
+              <span className="text-yellow-400">{isEs ? "Centro de control" : "Command Center"}</span>
             </h1>
 
             {/* Description */}
             <p className="text-gray-300 text-lg max-w-md mb-12 leading-relaxed">
-              Access your personalized platform to manage events, team licenses, and real-time
-              analytics.
+              {isEs
+                ? "Accede a tu plataforma personalizada para gestionar eventos, licencias de equipo y analitica en tiempo real."
+                : "Access your personalized platform to manage events, team licenses, and real-time analytics."}
             </p>
 
             {/* Features */}
@@ -274,8 +282,8 @@ export default function Login() {
                   <span className="text-yellow-400 text-xl font-bold">✓</span>
                 </div>
                 <div>
-                  <p className="font-bold text-white">Business Security</p>
-                  <p className="text-sm text-gray-400">End-to-end encrypted data protection.</p>
+                  <p className="font-bold text-white">{isEs ? "Seguridad empresarial" : "Business Security"}</p>
+                  <p className="text-sm text-gray-400">{isEs ? "Proteccion de datos cifrada de extremo a extremo." : "End-to-end encrypted data protection."}</p>
                 </div>
               </div>
               <div className="flex items-center space-x-4 bg-white/5 p-4 rounded-xl border border-white/10">
@@ -283,9 +291,9 @@ export default function Login() {
                   <span className="text-yellow-400 text-xl font-bold">✓</span>
                 </div>
                 <div>
-                  <p className="font-bold text-white">Multi-level Access</p>
+                  <p className="font-bold text-white">{isEs ? "Acceso multinivel" : "Multi-level Access"}</p>
                   <p className="text-sm text-gray-400">
-                    Single portal for administrators and customers.
+                    {isEs ? "Portal unico para administradores y clientes." : "Single portal for administrators and customers."}
                   </p>
                 </div>
               </div>
@@ -296,8 +304,8 @@ export default function Login() {
         {/* Right Section - Form */}
         <div className="flex-grow md:w-1/2 flex items-center justify-center p-8 bg-black">
           <div className="w-full max-w-md">
-            <h2 className="text-4xl font-extrabold mb-2">Welcome</h2>
-            <p className="text-gray-400 mb-10">Enter your corporate credentials to continue</p>
+            <h2 className="text-4xl font-extrabold mb-2">{isEs ? "Bienvenido" : "Welcome"}</h2>
+            <p className="text-gray-400 mb-10">{isEs ? "Ingresa tus credenciales corporativas para continuar" : "Enter your corporate credentials to continue"}</p>
 
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Error Message */}
@@ -310,7 +318,7 @@ export default function Login() {
               {/* Email */}
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                  Corporate Email
+                  {isEs ? "Correo corporativo" : "Corporate Email"}
                 </label>
                 <div className="relative group">
                   <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 group-focus-within:text-yellow-400 transition-colors">
@@ -351,7 +359,7 @@ export default function Login() {
               {/* Password */}
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                  Password
+                  {isEs ? "Contrasena" : "Password"}
                 </label>
                 <div className="relative group">
                   <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 group-focus-within:text-yellow-400 transition-colors">
@@ -374,7 +382,7 @@ export default function Login() {
                         const v = e.target.value.replace(/^\s+|\s+$/g, ""); // trim both ends
                         setPassword(v);
                         if (!v) {
-                          setErrorFor("password", "Password is required");
+                          setErrorFor("password", isEs ? "La contrasena es obligatoria" : "Password is required");
                         } else {
                           setErrorFor("password", undefined);
                         }
@@ -386,7 +394,7 @@ export default function Login() {
                       type="button"
                       onClick={() => setShowPassword((s) => !s)}
                       className="absolute inset-y-0 right-0 mr-3 my-auto text-gray-400 hover:text-white"
-                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      aria-label={showPassword ? (isEs ? "Ocultar contrasena" : "Hide password") : (isEs ? "Mostrar contrasena" : "Show password")}
                     >
                       {showPassword ? (
                         <svg
@@ -441,13 +449,13 @@ export default function Login() {
                     disabled={loading}
                     className="w-4 h-4 accent-yellow-400 bg-zinc-800 border-zinc-700 rounded disabled:opacity-50"
                   />
-                  <span className="text-gray-400 hover:text-white transition">Remember me</span>
+                  <span className="text-gray-400 hover:text-white transition">{isEs ? "Recordarme" : "Remember me"}</span>
                 </label>
                 <Link
                   to="/password-recovery"
                   className="text-yellow-400 hover:text-yellow-300 font-bold transition"
                 >
-                  Forgot your password?
+                  {isEs ? "Olvidaste tu contrasena?" : "Forgot your password?"}
                 </Link>
               </div>
 
@@ -457,15 +465,15 @@ export default function Login() {
                 disabled={loading || Object.keys(fieldErrors).length > 0}
                 className={`w-full bg-yellow-400 text-black font-extrabold py-4 rounded-xl text-lg ${styles.glowButton} mt-4 shadow-xl hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed transition`}
               >
-                {loading ? "Signing in..." : "Sign In"}
+                {loading ? (isEs ? "Iniciando sesion..." : "Signing in...") : (isEs ? "Ingresar" : "Sign In")}
               </button>
             </form>
 
             {/* Link to Plans */}
             <p className="text-center text-sm text-gray-500 mt-8">
-              Don't have a license?{" "}
+              {isEs ? "No tienes licencia?" : "Don't have a license?"}{" "}
               <Link to="/packages" className="text-yellow-400 font-bold hover:underline">
-                View plans
+                {isEs ? "Ver planes" : "View plans"}
               </Link>
             </p>
           </div>

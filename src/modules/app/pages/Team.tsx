@@ -22,6 +22,7 @@ import {
 import { AlertModal, type AlertModalType } from "../../../components/ui/AlertModal";
 import { useConfirmModal } from "../../../hooks/useConfirmModal";
 import type { Role } from "../../../types/api";
+import { useLanguage } from "../../../contexts/useLanguage";
 
 const COLOMBIA_PHONE_PREFIX = "+57";
 
@@ -115,6 +116,9 @@ export default function Team() {
   }>({ open: false, type: "error", message: "" });
   const { showConfirm, ConfirmModal } = useConfirmModal();
 
+  const { language } = useLanguage();
+  const isEs = language === "es";
+
   const showAlert = (type: AlertModalType, message: string, title?: string) =>
     setAlertModal({ open: true, type, message, title });
   const closeAlert = () => setAlertModal((prev) => ({ ...prev, open: false }));
@@ -166,29 +170,41 @@ export default function Team() {
     const nextErrors: Partial<Record<OwnerSecurityField, string>> = {};
 
     if (!ownerSecurity.acceptedCritical) {
-      nextErrors.acceptedCritical = "You must acknowledge full administrative access.";
+      nextErrors.acceptedCritical = isEs
+        ? "Debes reconocer el acceso administrativo completo."
+        : "You must acknowledge full administrative access.";
     }
     if (!ownerSecurity.acceptedIrreversible) {
-      nextErrors.acceptedIrreversible = "You must acknowledge this sensitive ownership change.";
+      nextErrors.acceptedIrreversible = isEs
+        ? "Debes reconocer este cambio de propietario sensible."
+        : "You must acknowledge this sensitive ownership change.";
     }
 
     const normalizedConfirmationEmail = ownerSecurity.confirmEmail.trim().toLowerCase();
     const normalizedTargetEmail = formData.email.trim().toLowerCase();
     if (!normalizedConfirmationEmail) {
-      nextErrors.confirmEmail = "Confirm the member email to continue.";
+      nextErrors.confirmEmail = isEs
+        ? "Confirma el correo del miembro para continuar."
+        : "Confirm the member email to continue.";
     } else if (normalizedConfirmationEmail !== normalizedTargetEmail) {
-      nextErrors.confirmEmail = "The confirmation email does not match this member.";
+      nextErrors.confirmEmail = isEs
+        ? "El correo de confirmación no coincide con este miembro."
+        : "The confirmation email does not match this member.";
     }
 
     const requiredPhrase = "TRANSFER OWNER";
     if (!ownerSecurity.confirmPhrase.trim()) {
-      nextErrors.confirmPhrase = `Type "${requiredPhrase}" to authorize ownership transfer.`;
+      nextErrors.confirmPhrase = isEs
+        ? `Escribe "${requiredPhrase}" para autorizar la transferencia.`
+        : `Type "${requiredPhrase}" to authorize ownership transfer.`;
     } else if (ownerSecurity.confirmPhrase.trim().toUpperCase() !== requiredPhrase) {
-      nextErrors.confirmPhrase = `The phrase must be exactly: ${requiredPhrase}`;
+      nextErrors.confirmPhrase = isEs
+        ? `La frase debe ser exactamente: ${requiredPhrase}`
+        : `The phrase must be exactly: ${requiredPhrase}`;
     }
 
     return nextErrors;
-  }, [ownerSecurity, formData.email]);
+  }, [ownerSecurity, formData.email, isEs]);
 
   const validateOwnerSecurity = () => {
     const nextErrors = getOwnerSecurityErrors();
@@ -206,12 +222,15 @@ export default function Team() {
         id?: string;
         email?: string;
         phone?: string;
-        name?: { firstName: string; firstSurname: string };
         roleName?: string;
         status?: string;
         profile?: {
           firstName?: string;
           lastName?: string;
+          firstSurname?: string;
+        };
+        name?: {
+          firstName?: string;
           firstSurname?: string;
         };
       }
@@ -240,7 +259,7 @@ export default function Team() {
       setTeamMembers(members);
       setError(null);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to load team members";
+      const message = err instanceof Error ? err.message : (isEs ? "Error al cargar miembros del equipo" : "Failed to load team members");
       setError(message);
     } finally {
       setLoading(false);
@@ -423,7 +442,9 @@ export default function Team() {
       if (!editingId && formData.locations.length === 0) {
         setFormError({
           type: "warning",
-          message: "Please select at least one location for this team member."
+          message: isEs
+            ? "Por favor selecciona al menos una ubicación para este miembro del equipo."
+            : "Please select at least one location for this team member."
         });
         return;
       }
@@ -434,7 +455,9 @@ export default function Team() {
         if (!securityValid) {
           setFormError({
             type: "warning",
-            message: "Complete all ownership transfer security checks before saving this role change."
+            message: isEs
+              ? "Completa todas las verificaciones de seguridad de transferencia de propiedad antes de guardar."
+              : "Complete all ownership transfer security checks before saving this role change."
           });
           return;
         }
@@ -515,9 +538,9 @@ export default function Team() {
 
   const handleDeleteUser = async (userId: string, memberName: string) => {
     const confirmed = await showConfirm({
-      title: `Deactivate ${memberName}?`,
-      message: "The member will lose access to the platform.",
-      confirmText: "Deactivate",
+      title: isEs ? `¿Desactivar a ${memberName}?` : `Deactivate ${memberName}?`,
+      message: isEs ? "El miembro perderá el acceso a la plataforma." : "The member will lose access to the platform.",
+      confirmText: isEs ? "Desactivar" : "Deactivate",
       variant: "warning",
     });
     if (!confirmed) return;
@@ -527,18 +550,18 @@ export default function Team() {
       await fetchTeamMembers();
     } catch (err: unknown) {
       if (err instanceof ApiError) {
-        showAlert("error", err.message, "Deactivation Failed");
+        showAlert("error", err.message, isEs ? "Desactivación Fallida" : "Deactivation Failed");
       } else {
-        showAlert("error", "An unexpected error occurred while deactivating the user.");
+        showAlert("error", isEs ? "Ocurrió un error inesperado al desactivar al usuario." : "An unexpected error occurred while deactivating the user.");
       }
     }
   };
 
   const handleReactivateUser = async (userId: string, memberName: string) => {
     const confirmed = await showConfirm({
-      title: `Reactivate ${memberName}?`,
-      message: "This will restore the member's access to the platform.",
-      confirmText: "Reactivate",
+      title: isEs ? `¿Reactivar a ${memberName}?` : `Reactivate ${memberName}?`,
+      message: isEs ? "Esto restaurará el acceso del miembro a la plataforma." : "This will restore the member's access to the platform.",
+      confirmText: isEs ? "Reactivar" : "Reactivate",
       variant: "info",
     });
     if (!confirmed) return;
@@ -548,9 +571,9 @@ export default function Team() {
       await fetchTeamMembers();
     } catch (err: unknown) {
       if (err instanceof ApiError) {
-        showAlert("error", err.message, "Reactivation Failed");
+        showAlert("error", err.message, isEs ? "Reactivación Fallida" : "Reactivation Failed");
       } else {
-        showAlert("error", "An unexpected error occurred while reactivating the user.");
+        showAlert("error", isEs ? "Ocurrió un error inesperado al reactivar al usuario." : "An unexpected error occurred while reactivating the user.");
       }
     }
   };
@@ -563,11 +586,11 @@ export default function Team() {
   const getStatusBadge = (status: TeamMember["status"]) => {
     switch (status) {
       case "active":
-        return <span className="badge badge-success">Active</span>;
+        return <span className="badge badge-success">{isEs ? "Activo" : "Active"}</span>;
       case "inactive":
-        return <span className="badge badge-warning">Inactive</span>;
+        return <span className="badge badge-warning">{isEs ? "Inactivo" : "Inactive"}</span>;
       case "invited":
-        return <span className="badge badge-info">Invited</span>;
+        return <span className="badge badge-info">{isEs ? "Invitado" : "Invited"}</span>;
       default:
         return <span className="badge">{status}</span>;
     }
@@ -577,28 +600,28 @@ export default function Team() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">Team Members</h1>
-          <p className="text-gray-400">Manage your team and permissions</p>
+          <h1 className="text-3xl font-bold text-white">{isEs ? "Miembros del Equipo" : "Team Members"}</h1>
+          <p className="text-gray-400">{isEs ? "Gestiona tu equipo y permisos" : "Manage your team and permissions"}</p>
         </div>
         <button
           onClick={() => handleOpenModal()}
           className="flex items-center gap-2 px-4 py-2 font-bold rounded-lg transition gold-action-btn"
         >
           <Plus size={20} />
-          Invite Member
+          {isEs ? "Invitar Miembro" : "Invite Member"}
         </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-        <StatCard label="Total Members" value={teamMembers.length} icon={<Users size={28} />} />
-        <StatCard label="Active Members" value={activeCount} icon={<Shield size={28} />} />
-        <StatCard label="Invited" value={invitedCount} icon={<Users size={28} />} />
-        <StatCard label="Inactive" value={inactiveCount} icon={<Shield size={28} />} />
-        <StatCard label="Roles" value={rolesCount} icon={<Users size={28} />} />
+        <StatCard label={isEs ? "Total Miembros" : "Total Members"} value={teamMembers.length} icon={<Users size={28} />} />
+        <StatCard label={isEs ? "Miembros Activos" : "Active Members"} value={activeCount} icon={<Shield size={28} />} />
+        <StatCard label={isEs ? "Invitados" : "Invited"} value={invitedCount} icon={<Users size={28} />} />
+        <StatCard label={isEs ? "Inactivos" : "Inactive"} value={inactiveCount} icon={<Shield size={28} />} />
+        <StatCard label={isEs ? "Roles" : "Roles"} value={rolesCount} icon={<Users size={28} />} />
       </div>
 
       <div>
-        <h2 className="text-xl font-semibold text-white mb-4">Team List</h2>
+        <h2 className="text-xl font-semibold text-white mb-4">{isEs ? "Lista del Equipo" : "Team List"}</h2>
 
         <div className="card mb-6">
           <div className="flex flex-col md:flex-row gap-4">
@@ -607,7 +630,7 @@ export default function Team() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={20} />
               <input
                 type="text"
-                placeholder="Search by name or email..."
+                placeholder={isEs ? "Buscar por nombre o correo..." : "Search by name or email..."}
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -628,7 +651,7 @@ export default function Team() {
               }}
               className="input md:w-48"
             >
-              <option value="">All roles</option>
+              <option value="">{isEs ? "Todos los roles" : "All roles"}</option>
               {availableRoles.map((r) => (
                 <option key={r._id} value={r.name}>
                   {r.name.charAt(0).toUpperCase() + r.name.slice(1)}
@@ -647,10 +670,10 @@ export default function Team() {
               }}
               className="input md:w-48"
             >
-              <option value="">All statuses</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="invited">Invited</option>
+              <option value="">{isEs ? "Todos los estados" : "All statuses"}</option>
+              <option value="active">{isEs ? "Activo" : "Active"}</option>
+              <option value="inactive">{isEs ? "Inactivo" : "Inactive"}</option>
+              <option value="invited">{isEs ? "Invitado" : "Invited"}</option>
             </select>
           </div>
         </div>
@@ -659,7 +682,7 @@ export default function Team() {
           {loading ? (
             <div className="card flex items-center justify-center py-12">
               <div className="spinner w-8 h-8"></div>
-              <p className="mt-4 text-gray-400">Loading team members...</p>
+              <p className="mt-4 text-gray-400">{isEs ? "Cargando miembros del equipo..." : "Loading team members..."}</p>
             </div>
           ) : error ? (
             <div className="card bg-red-500/10 border-red-500/30 p-6 text-center text-red-400">
@@ -667,18 +690,18 @@ export default function Team() {
             </div>
           ) : filteredMembers.length === 0 ? (
             <div className="card p-6 text-center text-gray-400">
-              {roleFilter || statusFilter ? "No members match the selected filters" : "No team members found"}
+              {roleFilter || statusFilter ? (isEs ? "Ningún miembro coincide con los filtros seleccionados" : "No members match the selected filters") : (isEs ? "No se encontraron miembros del equipo" : "No team members found")}
             </div>
           ) : (
             <AdminTable>
               <thead className="bg-[#0f0f0f] border-b border-[#333]">
                 <tr>
-                  <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">Name</th>
-                  <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">Email</th>
-                  <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">Phone</th>
-                  <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">Role</th>
-                  <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">Status</th>
-                  <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">Actions</th>
+                  <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">{isEs ? "Nombre" : "Name"}</th>
+                  <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">{isEs ? "Correo" : "Email"}</th>
+                  <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">{isEs ? "Teléfono" : "Phone"}</th>
+                  <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">{isEs ? "Rol" : "Role"}</th>
+                  <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">{isEs ? "Estado" : "Status"}</th>
+                  <th className="px-6 py-4 text-left text-gray-400 text-sm font-medium">{isEs ? "Acciones" : "Actions"}</th>
                 </tr>
               </thead>
               <tbody>
@@ -764,7 +787,7 @@ export default function Team() {
           <div className="modal-content">
             <div className="modal-header">
               <h2 className="text-xl font-bold">
-                {editingId ? "Edit Member" : "Invite New Member"}
+                {editingId ? (isEs ? "Editar Miembro" : "Edit Member") : (isEs ? "Invitar Nuevo Miembro" : "Invite New Member")}
               </h2>
               <button
                 onClick={() => handleCloseModal()}
@@ -813,7 +836,7 @@ export default function Team() {
               <div className="modal-body space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="form-group">
-                    <label className="form-label">First Name *</label>
+                    <label className="form-label">{isEs ? "Nombre *" : "First Name *"}</label>
                     <input
                       type="text"
                       value={formData.firstName}
@@ -832,7 +855,7 @@ export default function Team() {
                   </div>
 
                   <div className="form-group">
-                    <label className="form-label">Last Name *</label>
+                    <label className="form-label">{isEs ? "Apellido *" : "Last Name *"}</label>
                     <input
                       type="text"
                       value={formData.firstSurname}
@@ -853,7 +876,7 @@ export default function Team() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="form-group">
-                    <label className="form-label">Email *</label>
+                    <label className="form-label">{isEs ? "Correo *" : "Email *"}</label>
                     <input
                       type="email"
                       value={formData.email}
@@ -873,7 +896,7 @@ export default function Team() {
 
                   {!editingId && (
                     <div className="form-group">
-                      <label className="form-label">Phone *</label>
+                      <label className="form-label">{isEs ? "Teléfono *" : "Phone *"}</label>
                       <div className={phoneInputWrapperClass(!!getFieldError("phone"))}>
                         <div className="flex items-center">
                           <span className="text-white pl-4 pr-2 select-none whitespace-pre">{`${COLOMBIA_PHONE_PREFIX} `}</span>
@@ -901,7 +924,7 @@ export default function Team() {
                 </div>
 
                 <div>
-                  <label className="form-label">Role</label>
+                  <label className="form-label">{isEs ? "Rol" : "Role"}</label>
                   <select
                     title="Role"
                     aria-label="Role"
@@ -926,10 +949,10 @@ export default function Team() {
 
                 {!editingId && (
                   <div>
-                    <label className="form-label">Assigned Locations *</label>
+                    <label className="form-label">{isEs ? "Ubicaciones Asignadas *" : "Assigned Locations *"}</label>
                     <div className="space-y-2 max-h-48 overflow-y-auto bg-zinc-900 border border-zinc-800 rounded-xl p-3">
                       {availableLocations.length === 0 ? (
-                        <p className="text-sm text-gray-400">No locations available. Please create a location first.</p>
+                        <p className="text-sm text-gray-400">{isEs ? "No hay ubicaciones disponibles. Por favor crea una ubicación primero." : "No locations available. Please create a location first."}</p>
                       ) : (
                         availableLocations.map((location) => (
                           <label
@@ -962,7 +985,7 @@ export default function Team() {
                       )}
                     </div>
                     {formData.locations.length === 0 && availableLocations.length > 0 && (
-                      <p className="text-amber-400 text-xs mt-1">Please select at least one location</p>
+                      <p className="text-amber-400 text-xs mt-1">{isEs ? "Por favor selecciona al menos una ubicación" : "Please select at least one location"}</p>
                     )}
                   </div>
                 )}
@@ -970,7 +993,7 @@ export default function Team() {
                 {isOwnerPromotion && (
                   <div className="space-y-4 rounded-xl border border-yellow-500/50 bg-yellow-500/10 p-4">
                     <h3 className="text-sm font-semibold text-yellow-300">
-                      Ownership Transfer Security
+                      {isEs ? "Seguridad de Transferencia de Propiedad" : "Ownership Transfer Security"}
                     </h3>
 
                     <div className="space-y-2">
@@ -987,8 +1010,9 @@ export default function Team() {
                           }}
                           disabled={submitting}
                         />
-                        I understand this user will get full owner permissions over organization
-                        data.
+                        {isEs
+                          ? "Entiendo que este usuario obtendrá permisos completos de propietario sobre los datos de la organización."
+                          : "I understand this user will get full owner permissions over organization data."}
                       </label>
                       {ownerSecurityErrors.acceptedCritical && (
                         <p className="text-red-400 text-xs">
@@ -1009,7 +1033,9 @@ export default function Team() {
                           }}
                           disabled={submitting}
                         />
-                        I confirm this is a deliberate and sensitive ownership transfer decision.
+                        {isEs
+                          ? "Confirmo que esta es una decisión deliberada y sensible de transferencia de propiedad."
+                          : "I confirm this is a deliberate and sensitive ownership transfer decision."}
                       </label>
                       {ownerSecurityErrors.acceptedIrreversible && (
                         <p className="text-red-400 text-xs">
@@ -1019,7 +1045,7 @@ export default function Team() {
                     </div>
 
                     <div className="space-y-1">
-                      <label className="form-label">Confirm target email</label>
+                      <label className="form-label">{isEs ? "Confirmar correo del destinatario" : "Confirm target email"}</label>
                       <input
                         type="email"
                         value={ownerSecurity.confirmEmail}
@@ -1043,7 +1069,7 @@ export default function Team() {
                     </div>
 
                     <div className="space-y-1">
-                      <label className="form-label">Type phrase: TRANSFER OWNER</label>
+                      <label className="form-label">{isEs ? "Escribe la frase: TRANSFER OWNER" : "Type phrase: TRANSFER OWNER"}</label>
                       <input
                         type="text"
                         value={ownerSecurity.confirmPhrase}

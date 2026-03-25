@@ -1,6 +1,7 @@
 ﻿import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/useAuth";
+import { useLanguage } from "../contexts/useLanguage";
 import { LoadingSpinner } from "../components/ui";
 import { getPaymentStatus } from "../services/authService";
 import { ApiError } from "../lib/api";
@@ -24,6 +25,7 @@ export function RequireActiveSubscription({
   redirectTo = "/packages",
 }: RequireActiveSubscriptionProps) {
   const { user, isLoggedIn, isLoading } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [checking, setChecking] = useState(true);
   const [allowed, setAllowed] = useState(false);
@@ -77,7 +79,7 @@ export function RequireActiveSubscription({
   }, [isLoading, isLoggedIn, user, navigate, redirectTo]);
 
   if (checking) {
-    return <LoadingSpinner fullScreen message="Verifying subscription" />;
+    return <LoadingSpinner fullScreen message={t("common.verifyingSubscription")} />;
   }
 
   if (!allowed) {

@@ -26,6 +26,7 @@ import { getMaterialTypes, getMaterialInstances, getMaterialCategories } from ".
 import { getLocations, getInventoryItems, getStockMovements, getAlerts } from "../../../services/warehouseOperatorService";
 import { commercialAdvisorService } from "../../../services/commercialAdvisorService";
 import { ApiError } from "../../../lib/api";
+import { useLanguage } from "../../../contexts/useLanguage";
 import type {
   Customer,
   Loan,
@@ -163,6 +164,23 @@ const MODULE_CONFIG: Record<
 // ─── Main Component ────────────────────────────────────────────────────────
 
 export default function Reports() {
+  const { language } = useLanguage();
+  const isEs = language === "es";
+
+  const moduleConfig = useMemo(() => {
+    if (!isEs) return MODULE_CONFIG;
+    return {
+      customers: { ...MODULE_CONFIG.customers, label: "Clientes", description: "Base de clientes y actividad" },
+      requests: { ...MODULE_CONFIG.requests, label: "Solicitudes", description: "Solicitudes y aprobaciones" },
+      loans: { ...MODULE_CONFIG.loans, label: "Prestamos", description: "Prestamos activos y completados" },
+      invoices: { ...MODULE_CONFIG.invoices, label: "Facturas", description: "Facturacion y pagos" },
+      inventory: { ...MODULE_CONFIG.inventory, label: "Inventario", description: "Categorias, tipos e instancias" },
+      team: { ...MODULE_CONFIG.team, label: "Equipo", description: "Miembros y roles" },
+      locations: { ...MODULE_CONFIG.locations, label: "Ubicaciones", description: "Ubicaciones y capacidad" },
+      orders: { ...MODULE_CONFIG.orders, label: "Pedidos", description: "Pedidos y ventas" },
+    } as typeof MODULE_CONFIG;
+  }, [isEs]);
+
   // ─── State ──────────────────────────────────────────────────────────────
 
   const [activeModule, setActiveModule] = useState<ReportModule>("customers");
@@ -416,12 +434,12 @@ export default function Reports() {
       if (err instanceof ApiError) {
         setError(err.message);
       } else {
-        setError("Failed to load data. Please try again.");
+        setError(isEs ? "No se pudieron cargar los datos. Intenta de nuevo." : "Failed to load data. Please try again.");
       }
     } finally {
       setLoading(false);
     }
-  }, [activeModule, filters]);
+  }, [activeModule, filters, isEs]);
 
   useEffect(() => {
     void fetchData();
@@ -833,8 +851,8 @@ export default function Reports() {
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white">Reports & Analytics</h1>
-          <p className="text-gray-400 mt-1">Explore data across all modules</p>
+          <h1 className="text-3xl font-bold text-white">{isEs ? "Reportes y analitica" : "Reports & Analytics"}</h1>
+          <p className="text-gray-400 mt-1">{isEs ? "Explora datos en todos los modulos" : "Explore data across all modules"}</p>
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -843,7 +861,7 @@ export default function Reports() {
             className="flex items-center gap-2 px-4 py-2 bg-zinc-800 border border-zinc-700 text-gray-300 rounded-lg hover:border-yellow-400 hover:text-white transition disabled:opacity-50"
           >
             <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-            Refresh
+            {isEs ? "Actualizar" : "Refresh"}
           </button>
           <button
             onClick={handleExport}
@@ -851,14 +869,14 @@ export default function Reports() {
             className="flex items-center gap-2 px-4 py-2 gold-action-btn font-semibold rounded-lg transition disabled:opacity-50"
           >
             <Download size={16} />
-            Export CSV
+            {isEs ? "Exportar CSV" : "Export CSV"}
           </button>
         </div>
       </div>
 
       {/* Module Tabs */}
       <div className="flex flex-wrap gap-2">
-        {(Object.entries(MODULE_CONFIG) as [ReportModule, typeof MODULE_CONFIG[ReportModule]][]).map(
+        {(Object.entries(moduleConfig) as [ReportModule, typeof moduleConfig[ReportModule]][]).map(
           ([mod, cfg]) => (
             <button
               key={mod}
@@ -887,12 +905,12 @@ export default function Reports() {
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
         <div className="flex items-center gap-2 mb-4">
           <Filter size={16} className="text-yellow-400" />
-          <span className="text-sm font-semibold text-gray-300">Filters</span>
+          <span className="text-sm font-semibold text-gray-300">{isEs ? "Filtros" : "Filters"}</span>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {/* Date From */}
           <div>
-            <label className="block text-xs text-gray-400 mb-1">From</label>
+            <label className="block text-xs text-gray-400 mb-1">{isEs ? "Desde" : "From"}</label>
             <input
               type="date"
               value={dateRange.from}
@@ -902,7 +920,7 @@ export default function Reports() {
           </div>
           {/* Date To */}
           <div>
-            <label className="block text-xs text-gray-400 mb-1">To</label>
+            <label className="block text-xs text-gray-400 mb-1">{isEs ? "Hasta" : "To"}</label>
             <input
               type="date"
               value={dateRange.to}
@@ -1124,7 +1142,7 @@ export default function Reports() {
                 onClick={() => { setDateRange({ from: "", to: "" }); setPage(1); }}
                 className="text-xs text-yellow-400 hover:text-yellow-300 transition underline"
               >
-                Clear dates
+                {isEs ? "Limpiar fechas" : "Clear dates"}
               </button>
             </div>
           )}
@@ -1137,10 +1155,10 @@ export default function Reports() {
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
           <div>
             <h2 className="text-white font-semibold">
-              {MODULE_CONFIG[activeModule].label} Report
+              {moduleConfig[activeModule].label} {isEs ? "- Reporte" : "Report"}
             </h2>
             <p className="text-gray-400 text-xs mt-0.5">
-              {loading ? "Loading…" : `${rows.length} records found`}
+              {loading ? (isEs ? "Cargando..." : "Loading…") : isEs ? `${rows.length} registros encontrados` : `${rows.length} records found`}
             </p>
           </div>
         </div>
@@ -1154,12 +1172,12 @@ export default function Reports() {
         {loading ? (
           <div className="p-12 text-center text-gray-400">
             <RefreshCw size={32} className="animate-spin mx-auto mb-3 text-yellow-400" />
-            Loading data…
+            {isEs ? "Cargando datos..." : "Loading data…"}
           </div>
         ) : rows.length === 0 ? (
           <div className="p-12 text-center text-gray-400">
             <FileText size={40} className="mx-auto mb-3 opacity-40" />
-            No records for this filter combination.
+            {isEs ? "No hay registros para esta combinacion de filtros." : "No records for this filter combination."}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -1202,7 +1220,9 @@ export default function Reports() {
         {!loading && rows.length > 0 && (
           <div className="flex items-center justify-between px-6 py-4 border-t border-zinc-800">
             <span className="text-xs text-gray-400">
-              Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, rows.length)} of {rows.length}
+              {isEs
+                ? `Mostrando ${(page - 1) * PAGE_SIZE + 1}-${Math.min(page * PAGE_SIZE, rows.length)} de ${rows.length}`
+                : `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, rows.length)} of ${rows.length}`}
             </span>
             <div className="flex items-center gap-1">
               <button

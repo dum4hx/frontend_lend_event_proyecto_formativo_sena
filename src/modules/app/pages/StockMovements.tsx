@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Search, ArrowRight, Filter } from "lucide-react";
+import { useLanguage } from "../../../contexts/useLanguage";
 
 interface StockMovement {
   id: string;
@@ -103,6 +104,8 @@ const getMovementIcon = (type: string) => {
 };
 
 export default function StockMovementsPage() {
+  const { language } = useLanguage();
+  const isEs = language === "es";
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
   const [movements] = useState<StockMovement[]>(SAMPLE_MOVEMENTS);
@@ -122,8 +125,8 @@ export default function StockMovementsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-white">Stock Movements</h1>
-        <p className="text-gray-400">View all inventory movements and transactions</p>
+        <h1 className="text-3xl font-bold text-white">{isEs ? "Movimientos de Stock" : "Stock Movements"}</h1>
+        <p className="text-gray-400">{isEs ? "Ver todos los movimientos y transacciones de inventario" : "View all inventory movements and transactions"}</p>
       </div>
 
       {/* Filters */}
@@ -133,7 +136,7 @@ export default function StockMovementsPage() {
           <Search className="absolute left-4 top-3 text-gray-500" size={20} />
           <input
             type="text"
-            placeholder="Search by SKU, item name, or operator..."
+            placeholder={isEs ? "Buscar por SKU, nombre de artículo u operador..." : "Search by SKU, item name, or operator..."}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full bg-[#1a1a1a] border border-[#333] text-white rounded-lg pl-12 pr-4 py-3 focus:outline-none focus:border-[#FFD700] focus:ring-1 focus:ring-[#FFD700]"
@@ -148,11 +151,11 @@ export default function StockMovementsPage() {
             onChange={(e) => setFilterType(e.target.value)}
             className="bg-transparent text-white focus:outline-none cursor-pointer"
           >
-            <option value="all">All Types</option>
-            <option value="inbound">Inbound</option>
-            <option value="outbound">Outbound</option>
-            <option value="transfer">Transfer</option>
-            <option value="adjustment">Adjustment</option>
+            <option value="all">{isEs ? "Todos los Tipos" : "All Types"}</option>
+            <option value="inbound">{isEs ? "Entrada" : "Inbound"}</option>
+            <option value="outbound">{isEs ? "Salida" : "Outbound"}</option>
+            <option value="transfer">{isEs ? "Transferencia" : "Transfer"}</option>
+            <option value="adjustment">{isEs ? "Ajuste" : "Adjustment"}</option>
           </select>
         </div>
       </div>
@@ -163,13 +166,13 @@ export default function StockMovementsPage() {
           <table className="w-full">
             <thead className="bg-[#1a1a1a] border-b border-[#333]">
               <tr>
-                <th className="px-6 py-4 text-left text-gray-400 font-semibold text-sm">Type</th>
-                <th className="px-6 py-4 text-left text-gray-400 font-semibold text-sm">Item</th>
-                <th className="px-6 py-4 text-left text-gray-400 font-semibold text-sm">Quantity</th>
-                <th className="px-6 py-4 text-left text-gray-400 font-semibold text-sm">Location</th>
-                <th className="px-6 py-4 text-left text-gray-400 font-semibold text-sm">Date & Time</th>
-                <th className="px-6 py-4 text-left text-gray-400 font-semibold text-sm">Operator</th>
-                <th className="px-6 py-4 text-left text-gray-400 font-semibold text-sm">Reason</th>
+                <th className="px-6 py-4 text-left text-gray-400 font-semibold text-sm">{isEs ? "Tipo" : "Type"}</th>
+                <th className="px-6 py-4 text-left text-gray-400 font-semibold text-sm">{isEs ? "Artículo" : "Item"}</th>
+                <th className="px-6 py-4 text-left text-gray-400 font-semibold text-sm">{isEs ? "Cantidad" : "Quantity"}</th>
+                <th className="px-6 py-4 text-left text-gray-400 font-semibold text-sm">{isEs ? "Ubicación" : "Location"}</th>
+                <th className="px-6 py-4 text-left text-gray-400 font-semibold text-sm">{isEs ? "Fecha y Hora" : "Date & Time"}</th>
+                <th className="px-6 py-4 text-left text-gray-400 font-semibold text-sm">{isEs ? "Operador" : "Operator"}</th>
+                <th className="px-6 py-4 text-left text-gray-400 font-semibold text-sm">{isEs ? "Razón" : "Reason"}</th>
               </tr>
             </thead>
             <tbody>
@@ -218,7 +221,7 @@ export default function StockMovementsPage() {
 
       {filteredMovements.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-gray-400">No movements found matching your criteria</p>
+          <p className="text-gray-400">{isEs ? "No se encontraron movimientos con esos criterios" : "No movements found matching your criteria"}</p>
         </div>
       )}
     </div>

@@ -57,8 +57,8 @@ export const MaterialInstanceList: React.FC<MaterialInstanceListProps> = ({
             className="border-b border-[#222] hover:bg-[#1a1a1a] transition-colors"
           >
             <td className="py-4 px-4 text-white font-mono font-medium">{instance.serialNumber}</td>
-            <td className="py-4 px-4 text-gray-400">{instance.model.name}</td>
-            <td className="py-4 px-4 text-gray-400">{instance.location?.name || "Unknown"}</td>
+            <td className="py-4 px-4 text-gray-400">{instance.modelId.name}</td>
+            <td className="py-4 px-4 text-gray-400">{instance.locationId?.name || "Unknown"}</td>
             <td className="py-4 px-4">
               <span className={`font-semibold ${getStatusColor(instance.status)}`}>
                 {MATERIAL_INSTANCE_STATUS_LABELS[instance.status]}

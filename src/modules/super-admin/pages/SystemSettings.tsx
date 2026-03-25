@@ -1,11 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
 import { Save, Shield, Bell, Globe, Database, AlertTriangle, Moon, Palette, Sun } from "lucide-react";
 import { fetchPlatformHealth, fetchOverview } from "../../../services/superAdminService";
+import { useLanguage } from "../../../contexts/useLanguage";
 import { logError, normalizeError } from "../../../utils/errorHandling";
 import { useTheme } from "../../../contexts/useTheme";
 import type { PlatformHealth, PlatformOverview } from "../../../types/api";
+import type { SupportedLanguage } from "../../../i18n/translations";
 
 // --- Validation helpers ----------------------------------------------------
+
+const LANGUAGE_OPTIONS: SupportedLanguage[] = ["es", "en"];
 
 interface SettingsValidationErrors {
   platformName?: string;
@@ -19,23 +23,23 @@ function validateSettings(fields: {
   supportEmail: string;
   maxOrganizations: number;
   sessionTimeout: number;
-}): SettingsValidationErrors {
+}, t: ReturnType<typeof useLanguage>["t"]): SettingsValidationErrors {
   const errors: SettingsValidationErrors = {};
 
   if (!fields.platformName.trim()) {
-    errors.platformName = "Platform name is required.";
+    errors.platformName = t("systemSettings.validation.platformNameRequired");
   } else if (fields.platformName.length > 100) {
-    errors.platformName = "Max 100 characters.";
+    errors.platformName = t("systemSettings.validation.platformNameMax");
   }
 
   if (!fields.supportEmail.trim()) {
-    errors.supportEmail = "Support email is required.";
+    errors.supportEmail = t("systemSettings.validation.supportEmailRequired");
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fields.supportEmail)) {
-    errors.supportEmail = "Invalid email format.";
+    errors.supportEmail = t("systemSettings.validation.supportEmailInvalid");
   }
 
   if (!Number.isInteger(fields.maxOrganizations) || fields.maxOrganizations < 1) {
-    errors.maxOrganizations = "Must be a positive integer.";
+    errors.maxOrganizations = t("systemSettings.validation.maxOrganizations");
   }
 
   if (
@@ -43,7 +47,7 @@ function validateSettings(fields: {
     fields.sessionTimeout < 5 ||
     fields.sessionTimeout > 1440
   ) {
-    errors.sessionTimeout = "Must be between 5 and 1440 minutes.";
+    errors.sessionTimeout = t("systemSettings.validation.sessionTimeout");
   }
 
   return errors;
@@ -57,6 +61,7 @@ function hasErrors(errors: SettingsValidationErrors): boolean {
 
 export default function SystemSettings() {
   const { theme, setTheme } = useTheme();
+  const { language, setLanguage, t } = useLanguage();
 
   // General
   const [platformName, setPlatformName] = useState("Lend Event");
@@ -109,7 +114,7 @@ export default function SystemSettings() {
       supportEmail,
       maxOrganizations,
       sessionTimeout,
-    });
+    }, t);
     setValidationErrors(errors);
 
     if (hasErrors(errors)) return;
@@ -137,8 +142,8 @@ export default function SystemSettings() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-white">System Settings</h1>
-          <p className="text-gray-400 mt-1">Configure platform-wide settings and preferences</p>
+          <h1 className="text-3xl font-bold text-white">{t("systemSettings.title")}</h1>
+          <p className="text-gray-400 mt-1">{t("systemSettings.description")}</p>
         </div>
         <button
           onClick={handleSave}
@@ -146,7 +151,7 @@ export default function SystemSettings() {
           className="flex items-center gap-2 font-semibold px-6 py-2.5 rounded-lg transition disabled:opacity-50 gold-action-btn"
         >
           <Save size={18} />
-          {saving ? "Saving…" : saved ? "Saved ✓" : "Save Changes"}
+          {saving ? t("systemSettings.saving") : saved ? `${t("systemSettings.saved")} ✓` : t("systemSettings.saveChanges")}
         </button>
       </div>
 
@@ -154,11 +159,11 @@ export default function SystemSettings() {
         {/* General Settings */}
         <SettingsSection
           icon={<Globe size={20} className="text-[#FFD700]" />}
-          title="General Settings"
-          description="Basic platform configuration"
+          title={t("systemSettings.general.title")}
+          description={t("systemSettings.general.description")}
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FieldGroup label="Platform Name" error={validationErrors.platformName}>
+            <FieldGroup label={t("systemSettings.general.platformName")} error={validationErrors.platformName}>
               <input
                 value={platformName}
                 onChange={(e) => setPlatformName(e.target.value)}
@@ -166,7 +171,7 @@ export default function SystemSettings() {
                 className="setting-input"
               />
             </FieldGroup>
-            <FieldGroup label="Support Email" error={validationErrors.supportEmail}>
+            <FieldGroup label={t("systemSettings.general.supportEmail")} error={validationErrors.supportEmail}>
               <input
                 type="email"
                 value={supportEmail}
@@ -176,8 +181,8 @@ export default function SystemSettings() {
             </FieldGroup>
           </div>
           <ToggleRow
-            label="Maintenance Mode"
-            description="Temporarily disable access for all non-super-admin users"
+            label={t("systemSettings.general.maintenanceMode")}
+            description={t("systemSettings.general.maintenanceDescription")}
             checked={maintenanceMode}
             onChange={setMaintenanceMode}
           />
@@ -186,17 +191,17 @@ export default function SystemSettings() {
         {/* Security */}
         <SettingsSection
           icon={<Shield size={20} className="text-[#FFD700]" />}
-          title="Security"
-          description="Authentication and access control"
+          title={t("systemSettings.security.title")}
+          description={t("systemSettings.security.description")}
         >
           <ToggleRow
-            label="Require Two-Factor Authentication"
-            description="Enforce 2FA for all organization owners"
+            label={t("systemSettings.security.twoFactor")}
+            description={t("systemSettings.security.twoFactorDescription")}
             checked={twoFactor}
             onChange={setTwoFactor}
           />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            <FieldGroup label="Session Timeout (minutes)" error={validationErrors.sessionTimeout}>
+            <FieldGroup label={t("systemSettings.security.sessionTimeout")} error={validationErrors.sessionTimeout}>
               <input
                 type="number"
                 min={5}
@@ -206,7 +211,7 @@ export default function SystemSettings() {
                 className="setting-input"
               />
             </FieldGroup>
-            <FieldGroup label="Max Organizations" error={validationErrors.maxOrganizations}>
+            <FieldGroup label={t("systemSettings.security.maxOrganizations")} error={validationErrors.maxOrganizations}>
               <input
                 type="number"
                 min={1}
@@ -221,23 +226,23 @@ export default function SystemSettings() {
         {/* Notifications */}
         <SettingsSection
           icon={<Bell size={20} className="text-[#FFD700]" />}
-          title="Notifications"
-          description="Alert and notification preferences"
+          title={t("systemSettings.notifications.title")}
+          description={t("systemSettings.notifications.description")}
         >
           <ToggleRow
-            label="Email Notifications"
-            description="Send email alerts for critical events"
+            label={t("systemSettings.notifications.email")}
+            description={t("systemSettings.notifications.emailDescription")}
             checked={emailNotifications}
             onChange={setEmailNotifications}
           />
           <ToggleRow
-            label="Slack Integration"
-            description="Post alerts to a Slack channel"
+            label={t("systemSettings.notifications.slack")}
+            description={t("systemSettings.notifications.slackDescription")}
             checked={slackIntegration}
             onChange={setSlackIntegration}
           />
           <div className="mt-4 max-w-xs">
-            <FieldGroup label={`Alert Threshold: ${alertThreshold}%`}>
+            <FieldGroup label={t("systemSettings.notifications.alertThreshold", { value: alertThreshold })}>
               <input
                 type="range"
                 min={10}
@@ -253,10 +258,10 @@ export default function SystemSettings() {
         {/* Appearance */}
         <SettingsSection
           icon={<Palette size={20} className="text-[#FFD700]" />}
-          title="Appearance"
-          description="Interface theme for the admin panel"
+          title={t("systemSettings.appearance.title")}
+          description={t("systemSettings.appearance.description")}
         >
-          <p className="text-sm text-gray-400 mb-3">Select the colour scheme applied to all authenticated views.</p>
+          <p className="text-sm text-gray-400 mb-3">{t("systemSettings.appearance.help")}</p>
           <div className="flex gap-3">
             <button
               onClick={() => setTheme("dark")}
@@ -267,7 +272,7 @@ export default function SystemSettings() {
               }`}
             >
               <Moon size={15} />
-              Dark
+                {t("common.dark")}
             </button>
             <button
               onClick={() => setTheme("light")}
@@ -278,52 +283,75 @@ export default function SystemSettings() {
               }`}
             >
               <Sun size={15} />
-              Light
+                {t("common.light")}
             </button>
           </div>
-          <p className="text-gray-500 text-xs mt-2">Applied immediately to all pages. Resets to dark on logout.</p>
+          <p className="text-gray-500 text-xs mt-2">{t("systemSettings.appearance.appliedImmediately")}</p>
+          <div className="mt-5 border-t border-[#222] pt-4">
+            <p className="text-sm font-medium text-white mb-1">{t("systemSettings.appearance.languageTitle")}</p>
+            <p className="text-xs text-gray-500 mb-3">{t("systemSettings.appearance.languageDescription")}</p>
+            <div className="flex gap-3 flex-wrap">
+              {LANGUAGE_OPTIONS.map((option) => {
+                const isActive = language === option;
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => setLanguage(option)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition ${
+                      isActive
+                        ? "border-[#FFD700] bg-[rgba(255,215,0,0.1)] text-[#FFD700]"
+                        : "border-[#333] text-gray-400 hover:border-[#FFD700]/50"
+                    }`}
+                  >
+                    {option === "es" ? t("common.spanish") : t("common.english")}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </SettingsSection>
 
         {/* Database & Platform Health */}
         <SettingsSection
           icon={<Database size={20} className="text-[#FFD700]" />}
-          title="Data Management & Platform Health"
-          description="Live metrics from GET /admin/analytics/health"
+          title={t("systemSettings.health.title")}
+          description={t("systemSettings.health.description")}
         >
           {healthLoading ? (
-            <p className="text-gray-500 text-sm py-4">Loading health data…</p>
+            <p className="text-gray-500 text-sm py-4">{t("systemSettings.health.loading")}</p>
           ) : health ? (
             <>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <InfoCard
-                  label="Overdue Loans"
+                  label={t("systemSettings.health.overdueLoans")}
                   value={String(health.overdueLoans)}
                   ok={health.overdueLoans === 0}
                 />
                 <InfoCard
-                  label="Overdue Invoices"
+                  label={t("systemSettings.health.overdueInvoices")}
                   value={String(health.overdueInvoices)}
                   ok={health.overdueInvoices === 0}
                 />
                 <InfoCard
-                  label="Suspended Organizations"
+                  label={t("systemSettings.health.suspendedOrganizations")}
                   value={String(health.suspendedOrganizations)}
                   ok={health.suspendedOrganizations === 0}
                 />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <InfoCard
-                  label="Recent Errors"
+                  label={t("systemSettings.health.recentErrors")}
                   value={String(health.recentErrors)}
                   ok={health.recentErrors === 0}
                 />
                 <InfoCard
-                  label="Total Organizations"
+                  label={t("systemSettings.health.totalOrganizations")}
                   value={overview ? String(overview.totalOrganizations) : "–"}
                   ok
                 />
                 <InfoCard
-                  label="Active Users"
+                  label={t("systemSettings.health.activeUsers")}
                   value={overview ? String(overview.activeUsers) : "–"}
                   ok
                 />
@@ -331,15 +359,15 @@ export default function SystemSettings() {
               {(health.overdueLoans > 0 || health.overdueInvoices > 0 || health.recentErrors > 0) && (
                 <div className="mt-4 flex items-center gap-2 text-yellow-400 text-sm">
                   <AlertTriangle size={16} />
-                  <span>Platform health issues detected. Review the dashboard for details.</span>
+                  <span>{t("systemSettings.health.issueDetected")}</span>
                 </div>
               )}
             </>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <InfoCard label="Database Status" value="Connected" ok />
-              <InfoCard label="Storage Used" value="–" ok />
-              <InfoCard label="Last Backup" value="–" ok />
+              <InfoCard label={t("systemSettings.health.databaseStatus")} value={t("systemSettings.health.connected")} ok />
+              <InfoCard label={t("systemSettings.health.storageUsed")} value="–" ok />
+              <InfoCard label={t("systemSettings.health.lastBackup")} value="–" ok />
             </div>
           )}
         </SettingsSection>

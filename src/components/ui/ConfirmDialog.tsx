@@ -4,6 +4,7 @@
  */
 
 import { AlertCircle } from "lucide-react";
+import { useLanguage } from "../../contexts/useLanguage";
 import Button, { type ButtonVariant } from "./Button";
 
 export interface ConfirmDialogProps {
@@ -34,6 +35,7 @@ export function ConfirmDialog({
   variant = "danger",
   isLoading = false,
 }: ConfirmDialogProps) {
+  const { t } = useLanguage();
   if (!isOpen) return null;
 
   const variantStyles: Record<string, { icon: string; btnVariant: ButtonVariant }> = {
@@ -52,6 +54,8 @@ export function ConfirmDialog({
   };
 
   const styles = variantStyles[variant];
+  const resolvedCancelText = cancelText ?? t("common.cancel");
+  const resolvedConfirmText = confirmText ?? t("common.confirm");
 
   const handleConfirm = async () => {
     try {
@@ -98,7 +102,7 @@ export function ConfirmDialog({
         {/* Actions */}
         <div className="px-6 py-4 border-t border-[#333] flex items-center justify-end gap-3">
           <Button variant="secondary" onClick={onClose} disabled={isLoading}>
-            {cancelText}
+            {resolvedCancelText}
           </Button>
           {secondaryText && onSecondaryAction && (
             <Button
@@ -113,7 +117,7 @@ export function ConfirmDialog({
             </Button>
           )}
           <Button variant={styles.btnVariant} onClick={handleConfirm} loading={isLoading}>
-            {confirmText}
+            {resolvedConfirmText}
           </Button>
         </div>
       </div>

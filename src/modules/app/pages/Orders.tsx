@@ -45,6 +45,7 @@ import {
 } from "../../../services/materialService";
 import { useAlertModal } from "../../../hooks/useAlertModal";
 import { usePermissions } from "../../../contexts/usePermissions";
+import { useLanguage } from "../../../contexts/useLanguage";
 import PrepareOrderModal from "./PrepareOrderModal";
 import {
   applySelectedMaterialToDraftRows,
@@ -79,6 +80,7 @@ type CreateOrderValidationErrors = {
   customerId?: string;
   startDate?: string;
   endDate?: string;
+  depositDueDate?: string;
   items?: string;
   rows: Record<string, DraftItemValidationErrors>;
 };
@@ -102,22 +104,34 @@ const WORKFLOW_STEPS: Array<{ status: WorkflowStatus; label: string }> = [
   { status: "order_completed", label: "Order Completed / Delivered" },
 ];
 
-const FILTER_OPTIONS: Array<{ value: WorkflowFilter; label: string }> = [
-  { value: "all", label: "All Status" },
-  { value: "order_created", label: "Order Created" },
-  { value: "order_deposit_pending", label: "Deposit Pending" },
-  { value: "order_approved", label: "Order Approved" },
-  { value: "order_shipped", label: "Order Shipped" },
-  { value: "order_in_use", label: "Order In Use / Loaned" },
-  { value: "order_completed", label: "Order Completed / Delivered" },
-  { value: "order_rejected", label: "Rejected" },
-  { value: "order_cancelled", label: "Cancelled" },
-];
+function getFilterOptions(isEs: boolean): Array<{ value: WorkflowFilter; label: string }> {
+  return [
+    { value: "all", label: isEs ? "Todos los estados" : "All Status" },
+    { value: "order_created", label: isEs ? "Pedido creado" : "Order Created" },
+    {
+      value: "order_deposit_pending",
+      label: isEs ? "Deposito pendiente" : "Deposit Pending",
+    },
+    { value: "order_approved", label: isEs ? "Pedido aprobado" : "Order Approved" },
+    { value: "order_shipped", label: isEs ? "Pedido despachado" : "Order Shipped" },
+    {
+      value: "order_in_use",
+      label: isEs ? "Pedido en uso / prestado" : "Order In Use / Loaned",
+    },
+    {
+      value: "order_completed",
+      label: isEs ? "Pedido completado / entregado" : "Order Completed / Delivered",
+    },
+    { value: "order_rejected", label: isEs ? "Rechazado" : "Rejected" },
+    { value: "order_cancelled", label: isEs ? "Cancelado" : "Cancelled" },
+  ];
+}
 
 const EMPTY_FORM = {
   customerId: "",
   startDate: "",
   endDate: "",
+  depositDueDate: "",
   notes: "",
 };
 
@@ -415,6 +429,8 @@ function toBackendRequestStatusFilter(selectedStatus: WorkflowFilter): BackendRe
 export default function Orders() {
   const { showError, showSuccess, AlertModal } = useAlertModal();
   const { hasPermission, hasAnyPermission } = usePermissions();
+  const { language } = useLanguage();
+  const isEs = language === "es";
   const [requests, setRequests] = useState<LoanRequest[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [materialCategories, setMaterialCategories] = useState<MaterialCategory[]>([]);
@@ -1168,6 +1184,14 @@ export default function Orders() {
       nextErrors.endDate = "End date and time must be after the start date and time.";
     }
 
+    if (!formData.depositDueDate) {
+      nextErrors.depositDueDate = "Select a deposit due date.";
+    } else if (isDatetimeIncomplete(formData.depositDueDate)) {
+      nextErrors.depositDueDate = "Please set both date and hour for the deposit due date.";
+    } else if (formData.depositDueDate > formData.startDate) {
+      nextErrors.depositDueDate = "Deposit due date must be before or on the start date.";
+    }
+
     const draftRowsToValidate = formItems.filter((item) => !isDraftRowEmpty(item));
 
     draftRowsToValidate.forEach((item) => {
@@ -1215,6 +1239,7 @@ export default function Orders() {
       Boolean(validationErrors.customerId) ||
       Boolean(validationErrors.startDate) ||
       Boolean(validationErrors.endDate) ||
+      Boolean(validationErrors.depositDueDate) ||
       Boolean(validationErrors.items) ||
       Object.keys(validationErrors.rows).length > 0;
 
@@ -1249,6 +1274,7 @@ export default function Orders() {
       items: parsedItems,
       startDate: toSafeStartDateIso(formData.startDate),
       endDate: toSafeEndDateIso(formData.endDate),
+      depositDueDate: toSafeEndDateIso(formData.depositDueDate),
       notes: formData.notes.trim() || undefined,
     };
 
@@ -1262,7 +1288,10 @@ export default function Orders() {
           return exists ? prev : [createdRequest, ...prev];
         });
       }
-      showSuccess("Order created successfully.", "Order Registered");
+      showSuccess(
+        isEs ? "Pedido creado correctamente." : "Order created successfully.",
+        isEs ? "Pedido registrado" : "Order Registered"
+      );
       closeCreateModal();
       await refreshData();
     } catch (error) {
@@ -1502,7 +1531,7 @@ export default function Orders() {
             onChange={(e) => setSelectedStatus(e.target.value as WorkflowFilter)}
             className="appearance-none px-4 py-2 bg-[#1a1a1a] border border-[#333] rounded-[8px] text-white focus:outline-none focus:border-[#FFD700] transition-all cursor-pointer pr-10"
           >
-            {FILTER_OPTIONS.map((status) => (
+            {getFilterOptions(isEs).map((status) => (
               <option key={status.value} value={status.value}>
                 {status.label}
               </option>
@@ -1803,6 +1832,22 @@ export default function Orders() {
                         className={`input ${createErrors.endDate ? "input-error" : ""}`}
                       />
                       {createErrors.endDate && <p className="form-error">{createErrors.endDate}</p>}
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Deposit Due Date *</label>
+                      <input
+                        type="datetime-local"
+                        value={formData.depositDueDate}
+                        max={formData.startDate || undefined}
+                        onChange={(e) =>
+                          setFormData((prev) => ({ ...prev, depositDueDate: e.target.value }))
+                        }
+                        className={`input ${createErrors.depositDueDate ? "input-error" : ""}`}
+                      />
+                      {createErrors.depositDueDate && (
+                        <p className="form-error">{createErrors.depositDueDate}</p>
+                      )}
                     </div>
 
                     <div className="form-group md:col-span-2">

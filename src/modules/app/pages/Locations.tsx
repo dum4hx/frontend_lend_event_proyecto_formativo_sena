@@ -37,6 +37,7 @@ import type { ExportConfig, ExportProgress } from "../../../types/export";
 import { usePermissions } from "../../../contexts/usePermissions";
 import Unauthorized from "../../../../src/pages/Unauthorized";
 import { useAuth } from "../../../contexts/useAuth";
+import { useLanguage } from "../../../contexts/useLanguage";
 import { validateLocationV2 } from "../../../utils/validators";
 
 // Colombia API types & fetcher
@@ -111,6 +112,8 @@ const getStatusColor = (status: string): string => {
 export default function LocationsPage() {
   const { hasPermission } = usePermissions();
   const { user } = useAuth();
+  const { language } = useLanguage();
+  const isEs = language === "es";
   const [searchTerm, setSearchTerm] = useState("");
   const [locations, setLocations] = useState<WarehouseLocation[]>([]);
   const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
@@ -340,7 +343,7 @@ export default function LocationsPage() {
         const rows = buildExportRows(locations);
 
         if (rows.length === 0) {
-          showToast("warning", "No locations to export");
+        showToast("warning", isEs ? "Sin ubicaciones para exportar" : "No locations to export");
           return;
         }
 
@@ -353,10 +356,7 @@ export default function LocationsPage() {
         );
 
         if (result.status === "success") {
-          showToast(
-            "success",
-            `Exported ${result.metadata.recordCount} locations as ${result.filename}`,
-          );
+          showToast("success", isEs ? `Exportadas ${result.metadata.recordCount} ubicaciones como ${result.filename}` : `Exported ${result.metadata.recordCount} locations as ${result.filename}`);
           setExportOpen(false);
         } else if (result.status === "cancelled") {
           showToast("info", result.reason);
@@ -374,7 +374,7 @@ export default function LocationsPage() {
         exportAbort.current = null;
       }
     },
-    [locations, buildExportRows, showToast, user],
+    [locations, buildExportRows, showToast, user, isEs],
   );
 
   const handleCancelExport = useCallback(() => {
@@ -398,11 +398,11 @@ export default function LocationsPage() {
       await apiDeleteLocation(deleteTargetId);
       setShowDeleteConfirm(false);
       setDeleteTargetId(null);
-      showToast("success", "Location deleted");
+      showToast("success", isEs ? "Ubicación eliminada" : "Location deleted");
       await fetchLocations();
     } catch (err) {
       const error = err as Error;
-      showToast("error", error.message ?? "Error deleting location");
+      showToast("error", error.message ?? (isEs ? "Error al eliminar ubicación" : "Error deleting location"));
     } finally {
       setDeleteLoading(false);
     }
@@ -466,12 +466,12 @@ export default function LocationsPage() {
         return next;
       });
     }
-    showToast("success", "Bulk capacity applied");
+      showToast("success", isEs ? "Capacidad en bloque aplicada" : "Bulk capacity applied");
   };
 
   const applyBulkCapacity = (val: number, categoryId?: string) => {
     if (val < 0 || isNaN(val)) {
-      showToast("warning", "Please provide a valid non-negative number");
+      showToast("warning", isEs ? "Ingresa un número válido no negativo" : "Please provide a valid non-negative number");
       return;
     }
     setBulkConfirmPending({ val, categoryId });
@@ -498,10 +498,10 @@ export default function LocationsPage() {
         if (c.maxQuantity === "") capErrors[`capacity_${c.materialTypeId}`] = "Required";
       });
       const stateError = !form.address.state.trim()
-        ? { "address.state": "Department is required" }
+        ? { "address.state": isEs ? "El departamento es obligatorio" : "Department is required" }
         : {};
       setFieldErrors({ ...validation.errors, ...capErrors, ...stateError });
-      showToast("warning", "Please fill all required fields");
+      showToast("warning", isEs ? "Completa todos los campos requeridos" : "Please fill all required fields");
       return;
     }
 
@@ -525,11 +525,11 @@ export default function LocationsPage() {
         })),
       });
       setShowCreateModal(false);
-      showToast("success", "Location created");
+      showToast("success", isEs ? "Ubicación creada" : "Location created");
       await fetchLocations();
     } catch (err) {
       const error = err as Error;
-      showToast("error", error.message ?? "Error creating location");
+      showToast("error", error.message ?? (isEs ? "Error al crear ubicación" : "Error creating location"));
     }
   };
 
@@ -649,10 +649,10 @@ export default function LocationsPage() {
         if (c.maxQuantity === "") capErrors[`capacity_${c.materialTypeId}`] = "Required";
       });
       const stateError = !form.address.state.trim()
-        ? { "address.state": "Department is required" }
+        ? { "address.state": isEs ? "El departamento es obligatorio" : "Department is required" }
         : {};
       setFieldErrors({ ...validation.errors, ...capErrors, ...stateError });
-      showToast("warning", "Please fill all required fields");
+      showToast("warning", isEs ? "Completa todos los campos requeridos" : "Please fill all required fields");
       return;
     }
 
@@ -676,11 +676,11 @@ export default function LocationsPage() {
       });
       setShowEditModal(false);
       setEditing(null);
-      showToast("success", "Location updated");
+      showToast("success", isEs ? "Ubicación actualizada" : "Location updated");
       await fetchLocations();
     } catch (err) {
       const error = err as Error;
-      showToast("error", error.message ?? "Error updating location");
+      showToast("error", error.message ?? (isEs ? "Error al actualizar ubicación" : "Error updating location"));
     }
   };
 
@@ -701,13 +701,15 @@ export default function LocationsPage() {
   // Import functionality
   const handleImport = async () => {
     if (!importFile) {
-      showToast("warning", "Please select a file to import");
+      showToast("warning", isEs ? "Selecciona un archivo para importar" : "Please select a file to import");
       return;
     }
 
+    const selectedFile = importFile;
+
     setImporting(true);
     try {
-      const fileExtension = importFile.name.toLowerCase().split(".").pop();
+      const fileExtension = selectedFile.name.toLowerCase().split(".").pop();
       const isExcel = fileExtension === "xlsx" || fileExtension === "xls";
 
       let headers: string[] = [];
@@ -715,7 +717,7 @@ export default function LocationsPage() {
 
       if (isExcel) {
         // Handle Excel files
-        const arrayBuffer = await importFile.arrayBuffer();
+        const arrayBuffer = await selectedFile.arrayBuffer();
         const workbook = XLSX.read(arrayBuffer, { type: "array" });
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
@@ -724,7 +726,7 @@ export default function LocationsPage() {
         const data = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as string[][];
 
         if (data.length < 2) {
-          showToast("error", "File is empty or invalid. Please use the template.");
+          showToast("error", isEs ? "El archivo está vacío o es inválido. Usa la plantilla." : "File is empty or invalid. Please use the template.");
           setImporting(false);
           return;
         }
@@ -733,11 +735,11 @@ export default function LocationsPage() {
         rows = data.slice(1).map((row) => headers.map((_, idx) => String(row[idx] || "")));
       } else {
         // Handle CSV files
-        const text = await importFile.text();
+        const text = await selectedFile.text();
         const lines = text.split(/\r?\n/).filter((line) => line.trim());
 
         if (lines.length < 2) {
-          showToast("error", "File is empty or invalid. Please use the template.");
+          showToast("error", isEs ? "El archivo está vacío o es inválido. Usa la plantilla." : "File is empty or invalid. Please use the template.");
           setImporting(false);
           return;
         }
@@ -775,7 +777,7 @@ export default function LocationsPage() {
       const isTemplateFormat = headers[0] === "Name" && headers[1] === "Street Type";
 
       if (!isLegacyFormat && !isTemplateFormat) {
-        showToast("error", "Invalid file format. Headers not recognized.");
+        showToast("error", isEs ? "Formato de archivo inválido. Encabezados no reconocidos." : "Invalid file format. Headers not recognized.");
         setImporting(false);
         return;
       }
@@ -884,16 +886,16 @@ export default function LocationsPage() {
       }
 
       if (successCount > 0) {
-        showToast("success", `Successfully imported ${successCount} location(s)`);
+        showToast("success", isEs ? `Se importaron ${successCount} ubicación/es correctamente` : `Successfully imported ${successCount} location(s)`);
         await fetchLocations();
       }
 
       if (errorCount > 0) {
-        showToast("warning", `Failed to import ${errorCount} location(s)`);
+        showToast("warning", isEs ? `No se pudieron importar ${errorCount} ubicación/es` : `Failed to import ${errorCount} location(s)`);
       }
 
       if (successCount === 0 && errorCount === 0) {
-        showToast("warning", "No valid rows found in file");
+        showToast("warning", isEs ? "No se encontraron filas válidas en el archivo" : "No valid rows found in file");
       }
 
       setShowImportModal(false);
@@ -912,8 +914,8 @@ export default function LocationsPage() {
       {/* Header with Export/Import Actions */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">Warehouse Locations</h1>
-          <p className="text-gray-400">Manage warehouse zones and storage locations</p>
+          <h1 className="text-3xl font-bold text-white">{isEs ? "Ubicaciones del almacén" : "Warehouse Locations"}</h1>
+          <p className="text-gray-400">{isEs ? "Gestiona zonas y ubicaciones de almacén" : "Manage warehouse zones and storage locations"}</p>
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -921,21 +923,21 @@ export default function LocationsPage() {
             className="export-btn flex items-center gap-2"
           >
             <Download size={18} />
-            Export
+            {isEs ? "Exportar" : "Export"}
           </button>
           <button
             onClick={() => setShowImportModal(true)}
             className="flex items-center gap-2 px-4 py-2 bg-[#1a1a1a] border border-[#333] text-gray-300 rounded-lg hover:bg-[#222] hover:border-[#444] hover:text-white transition-all"
           >
             <Upload size={18} />
-            Import
+            {isEs ? "Importar" : "Import"}
           </button>
           <button
             onClick={openCreate}
             className="flex items-center gap-2 bg-[#FFD700] text-black font-semibold px-4 py-2 rounded-lg hover:bg-[#FFC107] transition-all"
           >
             <Plus size={20} />
-            Add Location
+            {isEs ? "Agregar ubicación" : "Add Location"}
           </button>
         </div>
       </div>
@@ -943,23 +945,23 @@ export default function LocationsPage() {
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-[#121212] border border-[#333] rounded-lg p-4">
-          <p className="text-gray-400 text-sm">Total Locations</p>
+          <p className="text-gray-400 text-sm">{isEs ? "Ubicaciones totales" : "Total Locations"}</p>
           <p className="text-white text-2xl font-bold">{locations.length}</p>
         </div>
         <div className="bg-[#121212] border border-[#333] rounded-lg p-4">
-          <p className="text-gray-400 text-sm">Total Capacity</p>
+          <p className="text-gray-400 text-sm">{isEs ? "Capacidad total" : "Total Capacity"}</p>
           <p className="text-white text-2xl font-bold">
             {locations.reduce((s, l) => s + calculateLocationCapacity(l), 0)}
           </p>
         </div>
         <div className="bg-[#121212] border border-[#333] rounded-lg p-4">
-          <p className="text-gray-400 text-sm">Occupied</p>
+          <p className="text-gray-400 text-sm">{isEs ? "Ocupado" : "Occupied"}</p>
           <p className="text-white text-2xl font-bold">
             {locations.reduce((s, l) => s + (l.occupied ?? 0), 0)}
           </p>
         </div>
         <div className="bg-[#121212] border border-[#333] rounded-lg p-4">
-          <p className="text-gray-400 text-sm">Utilization</p>
+          <p className="text-gray-400 text-sm">{isEs ? "Utilización" : "Utilization"}</p>
           <p className="text-white text-2xl font-bold">
             {locations.length > 0
               ? Math.round(
@@ -981,7 +983,7 @@ export default function LocationsPage() {
         <Search className="absolute left-4 top-3 text-gray-500" size={20} />
         <input
           type="text"
-          placeholder="Search by name or address..."
+          placeholder={isEs ? "Buscar por nombre o dirección..." : "Search by name or address..."}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full bg-[#1a1a1a] border border-[#333] text-white rounded-lg pl-12 pr-4 py-3 focus:outline-none focus:border-[#FFD700] focus:ring-1 focus:ring-[#FFD700]"
@@ -990,7 +992,7 @@ export default function LocationsPage() {
 
       {/* Locations Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-        {loading && <div className="text-gray-400">Loading locations...</div>}
+        {loading && <div className="text-gray-400">{isEs ? "Cargando ubicaciones..." : "Loading locations..."}</div>}
         {error && <div className="text-red-400">{error}</div>}
         {!loading &&
           !error &&
@@ -1049,7 +1051,7 @@ export default function LocationsPage() {
                       <div className="w-8 h-8 rounded-lg bg-[#FFD700]/10 flex items-center justify-center">
                         <Zap size={16} className="text-[#FFD700]" />
                       </div>
-                      <span className="text-sm font-medium text-gray-300">Capacity</span>
+                      <span className="text-sm font-medium text-gray-300">{isEs ? "Capacidad" : "Capacity"}</span>
                     </div>
                     <div className="text-right">
                       <p className="text-lg font-bold text-white">
@@ -1057,7 +1059,7 @@ export default function LocationsPage() {
                         <span className="text-gray-500">/{calculatedCapacity}</span>
                       </p>
                       <p className="text-[10px] text-gray-500 uppercase tracking-wider">
-                        {calculatedCapacity - location.occupied} available
+                        {calculatedCapacity - location.occupied} {isEs ? "disponible" : "available"}
                       </p>
                     </div>
                   </div>
@@ -1067,7 +1069,7 @@ export default function LocationsPage() {
                 {((location.address as Record<string, unknown>)?.additionalDetails as string) && (
                   <div className="bg-[#0f0f0f] border border-[#222] rounded-lg p-3 mb-5">
                     <p className="text-[#FFD700] text-xs font-semibold mb-1.5 uppercase tracking-wide">
-                      Additional Info
+                      {isEs ? "Info adicional" : "Additional Info"}
                     </p>
                     <p className="text-gray-400 text-xs leading-relaxed line-clamp-2">
                       {(location.address as Record<string, unknown>)?.additionalDetails as string}
@@ -1080,23 +1082,23 @@ export default function LocationsPage() {
                   <button
                     onClick={() => openPreview(location as WarehouseLocation)}
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#0f0f0f] border border-[#2a2a2a] text-gray-300 hover:bg-[#1a1a1a] hover:border-blue-500/50 hover:text-blue-400 transition-all duration-200 group/btn"
-                    title="View location details"
+                    title={isEs ? "Ver detalles de la ubicación" : "View location details"}
                   >
                     <Eye size={16} className="group-hover/btn:scale-110 transition-transform" />
-                    <span className="text-xs font-semibold">View</span>
+                    <span className="text-xs font-semibold">{isEs ? "Ver" : "View"}</span>
                   </button>
                   <button
                     onClick={() => openEdit(location as WarehouseLocation)}
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#0f0f0f] border border-[#2a2a2a] text-gray-300 hover:bg-[#FFD700]/10 hover:border-[#FFD700] hover:text-[#FFD700] transition-all duration-200 group/btn"
-                    title="Edit location"
+                    title={isEs ? "Editar ubicación" : "Edit location"}
                   >
                     <Edit2 size={16} className="group-hover/btn:scale-110 transition-transform" />
-                    <span className="text-xs font-semibold">Edit</span>
+                    <span className="text-xs font-semibold">{isEs ? "Editar" : "Edit"}</span>
                   </button>
                   <button
                     onClick={() => void handleDelete(location.id)}
                     className="flex items-center justify-center w-10 h-10 rounded-lg bg-red-950/30 border border-red-900/30 text-red-400 hover:bg-red-950/50 hover:border-red-500/50 hover:text-red-300 transition-all duration-200 group/btn"
-                    title="Delete location"
+                    title={isEs ? "Eliminar ubicación" : "Delete location"}
                   >
                     <Trash2 size={16} className="group-hover/btn:scale-110 transition-transform" />
                   </button>
@@ -1109,9 +1111,9 @@ export default function LocationsPage() {
       {filteredLocations.length === 0 && !loading && (
         <div className="text-center py-12">
           <MapPin className="mx-auto w-16 h-16 text-gray-400 mb-4" />
-          <p className="text-gray-400 text-lg mb-2">No locations found</p>
+          <p className="text-gray-400 text-lg mb-2">{isEs ? "No se encontraron ubicaciones" : "No locations found"}</p>
           <p className="text-gray-500 text-sm">
-            Try adjusting your search or create a new location
+            {isEs ? "Intenta ajustar la búsqueda o crea una nueva ubicación" : "Try adjusting your search or create a new location"}
           </p>
         </div>
       )}
@@ -1122,9 +1124,9 @@ export default function LocationsPage() {
           <div className="bg-[#0f0f10] border border-[#2a2a2a] rounded-xl max-w-6xl w-full p-6 shadow-lg max-h-[95vh] flex flex-col">
             <div className="flex items-center justify-between mb-6 shrink-0">
               <div>
-                <h2 className="text-2xl font-bold text-white">Create Location</h2>
+                <h2 className="text-2xl font-bold text-white">{isEs ? "Crear ubicación" : "Create Location"}</h2>
                 <p className="text-gray-400 text-sm">
-                  Add a new warehouse location with specific material capacities
+                  {isEs ? "Agrega una nueva ubicación de almacén con capacidades de material específicas" : "Add a new warehouse location with specific material capacities"}
                 </p>
               </div>
               <button
@@ -1147,11 +1149,11 @@ export default function LocationsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-6">
                   <h3 className="text-lg font-semibold text-white border-l-4 border-[#FFD700] pl-3">
-                    General Information
+                    {isEs ? "Información general" : "General Information"}
                   </h3>
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Location Name <span className="text-red-400">*</span>
+                      {isEs ? "Nombre de ubicación" : "Location Name"} <span className="text-red-400">*</span>
                     </label>
                     <input
                       value={form.name}
@@ -1159,14 +1161,21 @@ export default function LocationsPage() {
                         updateForm("name", e.target.value);
                         setFieldErrors((s) => ({
                           ...s,
-                          name: e.target.value.trim() ? undefined : "Name is required",
+                          name: e.target.value.trim()
+                            ? undefined
+                            : isEs
+                              ? "El nombre es obligatorio"
+                              : "Name is required",
                         }));
                       }}
                       onBlur={(e) => {
                         if (!e.target.value.trim())
-                          setFieldErrors((s) => ({ ...s, name: "Name is required" }));
+                          setFieldErrors((s) => ({
+                            ...s,
+                            name: isEs ? "El nombre es obligatorio" : "Name is required",
+                          }));
                       }}
-                      placeholder="e.g. Main Warehouse A"
+                      placeholder={isEs ? "Ej. Almacén principal A" : "e.g. Main Warehouse A"}
                       className={`w-full h-11 px-3 bg-[#111111] border rounded-md text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FFD700] ${fieldErrors.name ? "border-red-500" : "border-[#262626]"}`}
                     />
                     {fieldErrors.name && (
@@ -1176,7 +1185,7 @@ export default function LocationsPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Status <span className="text-red-400">*</span>
+                      {isEs ? "Estado" : "Status"} <span className="text-red-400">*</span>
                     </label>
                     <select
                       value={form.status}
@@ -1192,15 +1201,15 @@ export default function LocationsPage() {
                       }}
                       className="w-full h-11 px-3 bg-[#111111] border border-[#262626] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#FFD700]"
                     >
-                      <option value="available">Available</option>
-                      <option value="full_capacity">Full Capacity</option>
-                      <option value="maintenance">Maintenance</option>
-                      <option value="inactive">Inactive</option>
+                      <option value="available">{isEs ? "Disponible" : "Available"}</option>
+                      <option value="full_capacity">{isEs ? "Capacidad llena" : "Full Capacity"}</option>
+                      <option value="maintenance">{isEs ? "Mantenimiento" : "Maintenance"}</option>
+                      <option value="inactive">{isEs ? "Inactivo" : "Inactive"}</option>
                     </select>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Country</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">{isEs ? "País" : "Country"}</label>
                     <input
                       value="Colombia"
                       disabled
@@ -1211,7 +1220,7 @@ export default function LocationsPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="relative">
                       <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Department <span className="text-red-400">*</span>
+                        {isEs ? "Departamento" : "Department"} <span className="text-red-400">*</span>
                       </label>
                       <div className="relative">
                         <input
@@ -1228,10 +1237,12 @@ export default function LocationsPage() {
                             if (!form.address.state.trim())
                               setFieldErrors((s) => ({
                                 ...s,
-                                "address.state": "Department is required",
+                                "address.state": isEs
+                                  ? "El departamento es obligatorio"
+                                  : "Department is required",
                               }));
                           }}
-                          placeholder="Search department..."
+                          placeholder={isEs ? "Buscar departamento..." : "Search department..."}
                           className={`w-full h-11 px-3 pr-10 bg-[#111111] border rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#FFD700] ${
                             fieldErrors["address.state"] ? "border-red-500" : "border-[#262626]"
                           }`}
@@ -1244,7 +1255,7 @@ export default function LocationsPage() {
                       {showStateSuggestions && (
                         <div className="absolute z-50 w-full mt-1 bg-[#1a1a1a] border border-[#333] rounded-md shadow-xl max-h-48 overflow-y-auto">
                           {deptLoading ? (
-                            <div className="px-3 py-2 text-sm text-gray-400">Loading...</div>
+                            <div className="px-3 py-2 text-sm text-gray-400">{isEs ? "Cargando..." : "Loading..."}</div>
                           ) : (
                             filteredDepartments.map((dept) => (
                               <button
@@ -1270,7 +1281,7 @@ export default function LocationsPage() {
 
                     <div className="relative">
                       <label className="block text-sm font-medium text-gray-300 mb-2">
-                        City <span className="text-red-400">*</span>
+                        {isEs ? "Ciudad" : "City"} <span className="text-red-400">*</span>
                       </label>
                       <div className="relative">
                         <input
@@ -1283,7 +1294,9 @@ export default function LocationsPage() {
                               ...s,
                               "address.city": e.target.value.trim()
                                 ? undefined
-                                : "City is required",
+                                : isEs
+                                  ? "La ciudad es obligatoria"
+                                  : "City is required",
                             }));
                           }}
                           onFocus={() => setShowCitySuggestions(true)}
@@ -1292,11 +1305,13 @@ export default function LocationsPage() {
                             if (!cityQuery.trim())
                               setFieldErrors((s) => ({
                                 ...s,
-                                "address.city": "City is required",
+                                "address.city": isEs
+                                  ? "La ciudad es obligatoria"
+                                  : "City is required",
                               }));
                           }}
                           disabled={!selectedState}
-                          placeholder={selectedState ? "Search city..." : "Select dept first"}
+                          placeholder={selectedState ? (isEs ? "Buscar ciudad..." : "Search city...") : (isEs ? "Selecciona depto. primero" : "Select dept first")}
                           className={`w-full h-11 px-3 pr-10 bg-[#111111] border rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#FFD700] disabled:opacity-50 ${fieldErrors["address.city"] ? "border-red-500" : "border-[#262626]"}`}
                         />
                         <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
@@ -1307,7 +1322,7 @@ export default function LocationsPage() {
                       {showCitySuggestions && selectedState && (
                         <div className="absolute z-50 w-full mt-1 bg-[#1a1a1a] border border-[#333] rounded-md shadow-xl max-h-48 overflow-y-auto">
                           {citiesLoading ? (
-                            <div className="px-3 py-2 text-sm text-gray-400">Loading...</div>
+                            <div className="px-3 py-2 text-sm text-gray-400">{isEs ? "Cargando..." : "Loading..."}</div>
                           ) : (
                             filteredCities.map((city) => (
                               <button
@@ -1333,7 +1348,7 @@ export default function LocationsPage() {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="col-span-1">
                       <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Street Type <span className="text-red-400">*</span>
+                        {isEs ? "Tipo de calle" : "Street Type"} <span className="text-red-400">*</span>
                       </label>
                       <select
                         value={form.address.streetType}
@@ -1343,7 +1358,7 @@ export default function LocationsPage() {
                         }}
                         className={`w-full h-11 px-2 bg-[#111111] border rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#FFD700] ${fieldErrors["address.street"] ? "border-red-500" : "border-[#262626]"}`}
                       >
-                        <option value="">Select type</option>
+                        <option value="">{isEs ? "Seleccionar tipo" : "Select type"}</option>
                         <option value="Calle">Calle</option>
                         <option value="Carrera">Carrera</option>
                         <option value="Avenida">Avenida</option>
@@ -1353,7 +1368,7 @@ export default function LocationsPage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Number <span className="text-red-400">*</span>
+                        {isEs ? "Número" : "Number"} <span className="text-red-400">*</span>
                       </label>
                       <input
                         value={form.address.primaryNumber}
@@ -1367,7 +1382,7 @@ export default function LocationsPage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Property # <span className="text-red-400">*</span>
+                        {isEs ? "Propiedad #" : "Property #"} <span className="text-red-400">*</span>
                       </label>
                       <input
                         value={form.address.secondaryNumber}
@@ -1400,14 +1415,18 @@ export default function LocationsPage() {
                             ...s,
                             "address.complementaryNumber": e.target.value.trim()
                               ? undefined
-                              : "Complementary number is required",
+                              : isEs
+                                ? "El número complementario es obligatorio"
+                                : "Complementary number is required",
                           }));
                         }}
                         onBlur={(e) => {
                           if (!e.target.value.trim()) {
                             setFieldErrors((s) => ({
                               ...s,
-                              "address.complementaryNumber": "Complementary number is required",
+                              "address.complementaryNumber": isEs
+                                ? "El número complementario es obligatorio"
+                                : "Complementary number is required",
                             }));
                           }
                         }}
@@ -1431,12 +1450,12 @@ export default function LocationsPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Additional Details
+                      {isEs ? "Detalles adicionales" : "Additional Details"}
                     </label>
                     <textarea
                       value={form.address.additionalInfo}
                       onChange={(e) => updateAddressField("additionalInfo", e.target.value)}
-                      placeholder="e.g. Near the main entrance, 2nd floor"
+                      placeholder={isEs ? "Ej. Cerca de la entrada principal, 2do piso" : "e.g. Near the main entrance, 2nd floor"}
                       rows={2}
                       className="w-full px-3 py-2 bg-[#111111] border border-[#262626] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#FFD700] resize-none"
                     />
@@ -1447,14 +1466,14 @@ export default function LocationsPage() {
                 <div className="space-y-6 flex flex-col">
                   <div className="flex items-center justify-between border-l-4 border-[#FFD700] pl-3">
                     <div>
-                      <h3 className="text-lg font-semibold text-white">Material Capacities</h3>
+                      <h3 className="text-lg font-semibold text-white">{isEs ? "Capacidades de material" : "Material Capacities"}</h3>
                       <p className="text-xs text-gray-500 mt-0.5">
-                        {form.materialCapacities.filter((c) => c.maxQuantity !== "").length} of{" "}
-                        {form.materialCapacities.length} configured — all required
+                        {form.materialCapacities.filter((c) => c.maxQuantity !== "").length} {isEs ? "de" : "of"}{" "}
+                        {form.materialCapacities.length} {isEs ? "configuradas - todas requeridas" : "configured - all required"}
                       </p>
                     </div>
                     <span className="text-xs text-gray-500">
-                      Page {materialPage} of {totalMaterialPages}
+                      {isEs ? `Pág. ${materialPage} de ${totalMaterialPages}` : `Page ${materialPage} of ${totalMaterialPages}`}
                     </span>
                   </div>
                   {fieldErrors.materialCapacities && (
@@ -1466,13 +1485,13 @@ export default function LocationsPage() {
                     <div className="flex items-center gap-2 text-[#FFD700] mb-4 pb-3 border-b border-[#2a2a2a]">
                       <Zap size={18} className="animate-pulse" />
                       <span className="text-sm font-bold uppercase tracking-wider">
-                        Bulk Capacity Setting
+                        {isEs ? "Configuración masiva de capacidad" : "Bulk Capacity Setting"}
                       </span>
                     </div>
                     <div className="flex flex-col md:flex-row gap-4 items-end">
                       <div className="flex-1">
                         <label className="block text-xs font-medium text-gray-400 mb-1.5">
-                          Filter by Category (optional)
+                          {isEs ? "Filtrar por categoría (opcional)" : "Filter by Category (optional)"}
                         </label>
                         <select
                           className="w-full h-10 px-3 bg-[#0a0a0a] border border-[#222] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all"
@@ -1482,7 +1501,7 @@ export default function LocationsPage() {
                             if (bulkQtyInput.trim() && !isNaN(qty)) applyBulkCapacity(qty, catId);
                           }}
                         >
-                          <option value="">All Categories</option>
+                          <option value="">{isEs ? "Todas las categorías" : "All Categories"}</option>
                           {categories.map((cat) => (
                             <option key={cat._id} value={cat._id}>
                               {cat.name}
@@ -1492,14 +1511,14 @@ export default function LocationsPage() {
                       </div>
                       <div className="flex-1">
                         <label className="block text-xs font-medium text-gray-400 mb-1.5">
-                          Quantity to Set *
+                          {isEs ? "Cantidad a establecer *" : "Quantity to Set *"}
                         </label>
                         <input
                           type="number"
                           min={0}
                           value={bulkQtyInput}
                           onChange={(e) => setBulkQtyInput(e.target.value)}
-                          placeholder="Enter quantity"
+                          placeholder={isEs ? "Ingresar cantidad" : "Enter quantity"}
                           className="w-full h-10 px-3 bg-[#0a0a0a] border border-[#222] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all"
                         />
                       </div>
@@ -1511,7 +1530,7 @@ export default function LocationsPage() {
                         }}
                         className="h-10 px-6 bg-[#FFD700] hover:bg-[#FFD700]/90 text-black font-semibold rounded text-sm transition-all shadow-md hover:shadow-lg active:scale-95"
                       >
-                        Apply All
+                        {isEs ? "Aplicar a todos" : "Apply All"}
                       </button>
                     </div>
                   </div>
@@ -1561,7 +1580,7 @@ export default function LocationsPage() {
                               min={0}
                               value={capacity?.maxQuantity ?? ""}
                               onChange={(e) => updateCapacity(type._id, e.target.value)}
-                              placeholder="qty required"
+                              placeholder={isEs ? "cant. requerida" : "qty required"}
                               className={`w-full h-9 px-2 bg-[#0a0a0a] border rounded text-right text-sm text-white focus:outline-none focus:ring-1 ${
                                 hasError
                                   ? "border-red-500 focus:ring-red-500"
@@ -1632,7 +1651,7 @@ export default function LocationsPage() {
                   type="submit"
                   className="px-8 py-2.5 bg-[#FFD700] text-black font-bold rounded-lg hover:bg-[#FFC700] transition-transform active:scale-95 shadow-[0_0_20px_rgba(255,215,0,0.2)]"
                 >
-                  Create Location
+                  {isEs ? "Crear ubicación" : "Create Location"}
                 </button>
               </div>
             </form>
@@ -1646,8 +1665,8 @@ export default function LocationsPage() {
           <div className="bg-[#0f0f10] border border-[#2a2a2a] rounded-xl max-w-6xl w-full p-6 shadow-lg max-h-[95vh] flex flex-col">
             <div className="flex items-center justify-between mb-6 shrink-0">
               <div>
-                <h2 className="text-2xl font-bold text-white">Edit Location</h2>
-                <p className="text-gray-400 text-sm">Update location and material capacities</p>
+                <h2 className="text-2xl font-bold text-white">{isEs ? "Editar ubicación" : "Edit Location"}</h2>
+                <p className="text-gray-400 text-sm">{isEs ? "Actualiza la ubicación y las capacidades de material" : "Update location and material capacities"}</p>
               </div>
               <button
                 onClick={closeEditModal}
@@ -1668,13 +1687,13 @@ export default function LocationsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-6">
                   <h3 className="text-lg font-semibold text-white border-l-4 border-[#FFD700] pl-3">
-                    General Information
+                    {isEs ? "Información general" : "General Information"}
                   </h3>
 
                   {/* Location Name */}
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Location Name <span className="text-red-400">*</span>
+                      {isEs ? "Nombre de ubicación" : "Location Name"} <span className="text-red-400">*</span>
                     </label>
                     <input
                       value={form.name}
@@ -1684,9 +1703,12 @@ export default function LocationsPage() {
                       }}
                       onBlur={() => {
                         if (!form.name.trim())
-                          setFieldErrors((s) => ({ ...s, name: "Name is required" }));
+                          setFieldErrors((s) => ({
+                            ...s,
+                            name: isEs ? "El nombre es obligatorio" : "Name is required",
+                          }));
                       }}
-                      placeholder="Warehouse name"
+                      placeholder={isEs ? "Nombre del almacén" : "Warehouse name"}
                       className={`w-full h-11 px-3 bg-[#111111] border rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#FFD700] ${
                         fieldErrors.name ? "border-red-500" : "border-[#262626]"
                       }`}
@@ -1699,7 +1721,7 @@ export default function LocationsPage() {
                   {/* Status */}
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Status <span className="text-red-400">*</span>
+                      {isEs ? "Estado" : "Status"} <span className="text-red-400">*</span>
                     </label>
                     <select
                       value={form.status}
@@ -1715,16 +1737,16 @@ export default function LocationsPage() {
                       }}
                       className="w-full h-11 px-3 bg-[#111111] border border-[#262626] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#FFD700]"
                     >
-                      <option value="available">Available</option>
-                      <option value="full_capacity">Full Capacity</option>
-                      <option value="maintenance">Maintenance</option>
-                      <option value="inactive">Inactive</option>
+                      <option value="available">{isEs ? "Disponible" : "Available"}</option>
+                      <option value="full_capacity">{isEs ? "Capacidad llena" : "Full Capacity"}</option>
+                      <option value="maintenance">{isEs ? "Mantenimiento" : "Maintenance"}</option>
+                      <option value="inactive">{isEs ? "Inactivo" : "Inactive"}</option>
                     </select>
                   </div>
 
                   {/* Country */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Country</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">{isEs ? "País" : "Country"}</label>
                     <input
                       value="Colombia"
                       disabled
@@ -1735,7 +1757,7 @@ export default function LocationsPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="relative">
                       <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Department <span className="text-red-400">*</span>
+                        {isEs ? "Departamento" : "Department"} <span className="text-red-400">*</span>
                       </label>
                       <div className="relative">
                         <input
@@ -1750,10 +1772,12 @@ export default function LocationsPage() {
                             if (!form.address.state.trim())
                               setFieldErrors((s) => ({
                                 ...s,
-                                "address.state": "Department is required",
+                                "address.state": isEs
+                                  ? "El departamento es obligatorio"
+                                  : "Department is required",
                               }));
                           }}
-                          placeholder="e.g. Cundinamarca"
+                          placeholder={isEs ? "Buscar departamento..." : "e.g. Cundinamarca"}
                           className={`w-full h-11 px-3 bg-[#111111] border rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#FFD700] ${
                             fieldErrors["address.state"] ? "border-red-500" : "border-[#262626]"
                           }`}
@@ -1785,7 +1809,7 @@ export default function LocationsPage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-300 mb-2">
-                        City <span className="text-red-400">*</span>
+                        {isEs ? "Ciudad" : "City"} <span className="text-red-400">*</span>
                       </label>
                       <input
                         value={cityQuery}
@@ -1799,10 +1823,12 @@ export default function LocationsPage() {
                           if (!form.address.city.trim())
                             setFieldErrors((s) => ({
                               ...s,
-                              "address.city": "City is required",
+                              "address.city": isEs
+                                ? "La ciudad es obligatoria"
+                                : "City is required",
                             }));
                         }}
-                        placeholder="e.g. Bogotá"
+                        placeholder={isEs ? "Buscar ciudad..." : "e.g. Bogotá"}
                         className={`w-full h-11 px-3 bg-[#111111] border rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#FFD700] ${
                           fieldErrors["address.city"] ? "border-red-500" : "border-[#262626]"
                         }`}
@@ -1816,7 +1842,7 @@ export default function LocationsPage() {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Street Type <span className="text-red-400">*</span>
+                        {isEs ? "Tipo de calle" : "Street Type"} <span className="text-red-400">*</span>
                       </label>
                       <select
                         value={form.address.streetType}
@@ -1828,14 +1854,14 @@ export default function LocationsPage() {
                           fieldErrors["address.street"] ? "border-red-500" : "border-[#262626]"
                         }`}
                       >
-                        <option value="">Type</option>
+                        <option value="">{isEs ? "Tipo" : "Type"}</option>
                         <option value="Calle">Calle</option>
                         <option value="Carrera">Carrera</option>
                       </select>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-300 mb-2">
-                        # <span className="text-red-400">*</span>
+                        {isEs ? "Número" : "#"} <span className="text-red-400">*</span>
                       </label>
                       <input
                         value={form.address.primaryNumber}
@@ -1851,7 +1877,7 @@ export default function LocationsPage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Secondary <span className="text-red-400">*</span>
+                        {isEs ? "Número secundario" : "Secondary"} <span className="text-red-400">*</span>
                       </label>
                       <input
                         value={form.address.secondaryNumber}
@@ -1901,13 +1927,13 @@ export default function LocationsPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Additional Details
+                      {isEs ? "Detalles adicionales" : "Additional Details"}
                     </label>
                     <textarea
                       value={form.address.additionalInfo}
                       onChange={(e) => updateAddressField("additionalInfo", e.target.value)}
                       rows={2}
-                      placeholder="Apartment, suite, floor, references..."
+                      placeholder={isEs ? "Apartamento, piso, referencias..." : "Apartment, suite, floor, references..."}
                       className="w-full px-3 py-2 bg-[#111111] border border-[#262626] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#FFD700] resize-none"
                     />
                   </div>
@@ -1916,14 +1942,14 @@ export default function LocationsPage() {
                 <div className="space-y-6 flex flex-col">
                   <div className="flex items-center justify-between border-l-4 border-[#FFD700] pl-3">
                     <div>
-                      <h3 className="text-lg font-semibold text-white">Material Capacities</h3>
+                      <h3 className="text-lg font-semibold text-white">{isEs ? "Capacidades de material" : "Material Capacities"}</h3>
                       <p className="text-xs text-gray-500 mt-0.5">
-                        {form.materialCapacities.filter((c) => c.maxQuantity !== "").length} of{" "}
-                        {form.materialCapacities.length} configured — all required
+                        {form.materialCapacities.filter((c) => c.maxQuantity !== "").length} {isEs ? "de" : "of"}{" "}
+                        {form.materialCapacities.length} {isEs ? "configuradas — todas requeridas" : "configured — all required"}
                       </p>
                     </div>
                     <span className="text-xs text-gray-500">
-                      Page {materialPage} of {totalMaterialPages}
+                      {isEs ? `Pág. ${materialPage} de ${totalMaterialPages}` : `Page ${materialPage} of ${totalMaterialPages}`}
                     </span>
                   </div>
                   {fieldErrors.materialCapacities && (
@@ -1935,13 +1961,13 @@ export default function LocationsPage() {
                     <div className="flex items-center gap-2 text-[#FFD700] mb-4 pb-3 border-b border-[#2a2a2a]">
                       <Zap size={18} className="animate-pulse" />
                       <span className="text-sm font-bold uppercase tracking-wider">
-                        Bulk Capacity Setting
+                        {isEs ? "Configuración masiva de capacidad" : "Bulk Capacity Setting"}
                       </span>
                     </div>
                     <div className="flex flex-col md:flex-row gap-4 items-end">
                       <div className="flex-1">
                         <label className="block text-xs font-medium text-gray-400 mb-1.5">
-                          Filter by Category (optional)
+                          {isEs ? "Filtrar por categoría (opcional)" : "Filter by Category (optional)"}
                         </label>
                         <select
                           className="w-full h-10 px-3 bg-[#0a0a0a] border border-[#222] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all"
@@ -1951,7 +1977,7 @@ export default function LocationsPage() {
                             if (bulkQtyInput.trim() && !isNaN(qty)) applyBulkCapacity(qty, catId);
                           }}
                         >
-                          <option value="">All Categories</option>
+                          <option value="">{isEs ? "Todas las categorías" : "All Categories"}</option>
                           {categories.map((cat) => (
                             <option key={cat._id} value={cat._id}>
                               {cat.name}
@@ -1961,14 +1987,14 @@ export default function LocationsPage() {
                       </div>
                       <div className="flex-1">
                         <label className="block text-xs font-medium text-gray-400 mb-1.5">
-                          Quantity to Set *
+                          {isEs ? "Cantidad a establecer *" : "Quantity to Set *"}
                         </label>
                         <input
                           type="number"
                           min={0}
                           value={bulkQtyInput}
                           onChange={(e) => setBulkQtyInput(e.target.value)}
-                          placeholder="Enter quantity"
+                          placeholder={isEs ? "Ingresar cantidad" : "Enter quantity"}
                           className="w-full h-10 px-3 bg-[#0a0a0a] border border-[#222] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all"
                         />
                       </div>
@@ -1980,7 +2006,7 @@ export default function LocationsPage() {
                         }}
                         className="h-10 px-6 bg-[#FFD700] hover:bg-[#FFD700]/90 text-black font-semibold rounded text-sm transition-all shadow-md hover:shadow-lg active:scale-95"
                       >
-                        Apply All
+                        {isEs ? "Aplicar a todos" : "Apply All"}
                       </button>
                     </div>
                   </div>
@@ -2030,7 +2056,7 @@ export default function LocationsPage() {
                               min={0}
                               value={capacity?.maxQuantity ?? ""}
                               onChange={(e) => updateCapacity(type._id, e.target.value)}
-                              placeholder="qty required"
+                              placeholder={isEs ? "cant. requerida" : "qty required"}
                               className={`w-full h-9 px-2 bg-[#0a0a0a] border rounded text-right text-sm text-white focus:outline-none focus:ring-1 ${
                                 hasError
                                   ? "border-red-500 focus:ring-red-500"
@@ -2094,13 +2120,13 @@ export default function LocationsPage() {
                   onClick={closeEditModal}
                   className="px-6 py-2.5 text-sm font-semibold text-gray-400 hover:text-white"
                 >
-                  Cancel
+                  {isEs ? "Cancelar" : "Cancel"}
                 </button>
                 <button
                   type="submit"
                   className="px-8 py-2.5 bg-[#FFD700] text-black font-bold rounded-lg hover:bg-[#FFC700] transition-transform active:scale-95 shadow-[0_0_20px_rgba(255,215,0,0.2)]"
                 >
-                  Save Changes
+                  {isEs ? "Guardar cambios" : "Save Changes"}
                 </button>
               </div>
             </form>
@@ -2114,7 +2140,7 @@ export default function LocationsPage() {
           <div className="bg-[#0f0f10] border border-[#2a2a2a] rounded-xl max-w-4xl w-full p-6 shadow-lg max-h-[95vh] flex flex-col overflow-hidden">
             <div className="flex items-center justify-between mb-6 shrink-0">
               <div>
-                <h2 className="text-2xl font-bold text-white">Location Details</h2>
+                <h2 className="text-2xl font-bold text-white">{isEs ? "Detalles de ubicación" : "Location Details"}</h2>
                 <p className="text-gray-400 text-sm mt-1">{previewing.name}</p>
               </div>
               <button
@@ -2132,11 +2158,11 @@ export default function LocationsPage() {
                   <div className="bg-[#1a1a1a] rounded-xl p-5 border border-[#333]">
                     <h3 className="text-sm font-bold text-yellow-500 uppercase tracking-wider mb-4 flex items-center gap-2">
                       <div className="w-1.5 h-1.5 rounded-full bg-yellow-500"></div>
-                      Basic Information
+                      {isEs ? "Información básica" : "Basic Information"}
                     </h3>
                     <div className="space-y-4">
                       <div>
-                        <p className="text-xs text-gray-500 uppercase font-semibold">Status</p>
+                        <p className="text-xs text-gray-500 uppercase font-semibold">{isEs ? "Estado" : "Status"}</p>
                         <span
                           className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold mt-1 shadow-sm ${
                             previewing.status === "available"
@@ -2154,19 +2180,23 @@ export default function LocationsPage() {
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <p className="text-xs text-gray-500 uppercase font-semibold">Created</p>
+                          <p className="text-xs text-gray-500 uppercase font-semibold">{isEs ? "Creado" : "Created"}</p>
                           <p className="text-white font-medium mt-1">
                             {previewing.createdAt
                               ? new Date(previewing.createdAt).toLocaleDateString()
-                              : "N/A"}
+                              : isEs
+                                ? "N/D"
+                                : "N/A"}
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500 uppercase font-semibold">Updated</p>
+                          <p className="text-xs text-gray-500 uppercase font-semibold">{isEs ? "Actualizado" : "Updated"}</p>
                           <p className="text-white font-medium mt-1">
                             {previewing.updatedAt
                               ? new Date(previewing.updatedAt).toLocaleDateString()
-                              : "N/A"}
+                              : isEs
+                                ? "N/D"
+                                : "N/A"}
                           </p>
                         </div>
                       </div>
@@ -2176,37 +2206,39 @@ export default function LocationsPage() {
                   <div className="bg-[#1a1a1a] rounded-xl p-5 border border-[#333]">
                     <h3 className="text-sm font-bold text-yellow-500 uppercase tracking-wider mb-4 flex items-center gap-2">
                       <div className="w-1.5 h-1.5 rounded-full bg-yellow-500"></div>
-                      Address Details
+                      {isEs ? "Datos de dirección" : "Address Details"}
                     </h3>
                     <div className="space-y-4">
                       <div className="grid grid-cols-3 gap-3">
                         <div>
-                          <p className="text-xs text-gray-500 font-semibold mb-1">Country</p>
+                          <p className="text-xs text-gray-500 font-semibold mb-1">{isEs ? "País" : "Country"}</p>
                           <p className="text-white text-sm bg-[#111] p-2 rounded-lg border border-[#2a2a2a] truncate">
                             Colombia
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500 font-semibold mb-1">Department</p>
+                          <p className="text-xs text-gray-500 font-semibold mb-1">{isEs ? "Departamento" : "Department"}</p>
                           <p className="text-white text-sm bg-[#111] p-2 rounded-lg border border-[#2a2a2a] truncate">
-                            {previewing.address?.department || "N/A"}
+                            {previewing.address?.department || (isEs ? "N/D" : "N/A")}
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500 font-semibold mb-1">City</p>
+                          <p className="text-xs text-gray-500 font-semibold mb-1">{isEs ? "Ciudad" : "City"}</p>
                           <p className="text-white text-sm bg-[#111] p-2 rounded-lg border border-[#2a2a2a] truncate">
-                            {previewing.address?.city || "N/A"}
+                            {previewing.address?.city || (isEs ? "N/D" : "N/A")}
                           </p>
                         </div>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500 font-semibold mb-1">Full Address</p>
+                        <p className="text-xs text-gray-500 font-semibold mb-1">{isEs ? "Dirección completa" : "Full Address"}</p>
                         <p className="text-white text-sm bg-[#111] p-3 rounded-lg border border-[#2a2a2a] break-words">
                           {previewing.address?.streetType &&
                           previewing.address?.primaryNumber &&
                           previewing.address?.secondaryNumber
                             ? `${previewing.address.streetType} ${previewing.address.primaryNumber} #${previewing.address.secondaryNumber}${previewing.address.complementaryNumber ? `-${previewing.address.complementaryNumber}` : ""}`
-                            : "N/A"}
+                            : isEs
+                              ? "N/D"
+                              : "N/A"}
                         </p>
                       </div>
                     </div>
@@ -2219,7 +2251,7 @@ export default function LocationsPage() {
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="text-sm font-bold text-yellow-500 uppercase tracking-wider flex items-center gap-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-yellow-500"></div>
-                        Material Capacities
+                        {isEs ? "Capacidades de material" : "Material Capacities"}
                       </h3>
                       <div className="bg-yellow-500/10 text-yellow-500 text-[10px] px-2 py-0.5 rounded border border-yellow-500/20 font-bold">
                         {(() => {
@@ -2271,7 +2303,7 @@ export default function LocationsPage() {
                           });
                           return filtered.length;
                         })()}{" "}
-                        / {materialTypes.length} TYPES
+                        / {materialTypes.length} {isEs ? "TIPOS" : "TYPES"}
                       </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -2283,7 +2315,7 @@ export default function LocationsPage() {
                         }}
                         className="h-9 px-3 bg-[#111] border border-[#2a2a2a] rounded-lg text-white text-sm focus:outline-none focus:border-yellow-500/50"
                       >
-                        <option value="">All Categories</option>
+                        <option value="">{isEs ? "Todas las categorías" : "All Categories"}</option>
                         {categories.map((cat) => (
                           <option key={cat._id} value={cat._id}>
                             {cat.name}
@@ -2297,7 +2329,7 @@ export default function LocationsPage() {
                           setPreviewSearchTerm(e.target.value);
                           setPreviewPage(1);
                         }}
-                        placeholder="Search by material name..."
+                        placeholder={isEs ? "Buscar por nombre de material..." : "Search by material name..."}
                         className="h-9 px-3 bg-[#111] border border-[#2a2a2a] rounded-lg text-white text-sm focus:outline-none focus:border-yellow-500/50"
                       />
                     </div>
@@ -2307,10 +2339,10 @@ export default function LocationsPage() {
                       <thead className="sticky top-0 bg-[#1a1a1a] z-10 shadow-sm shadow-black/20">
                         <tr>
                           <th className="px-3 py-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
-                            Material Type
+                            {isEs ? "Tipo de material" : "Material Type"}
                           </th>
                           <th className="px-3 py-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-right">
-                            Limit
+                            {isEs ? "Límite" : "Limit"}
                           </th>
                         </tr>
                       </thead>
@@ -2507,7 +2539,7 @@ export default function LocationsPage() {
                 onClick={closePreviewModal}
                 className="px-8 py-2.5 bg-[#1a1a1a] text-white font-bold rounded-xl hover:bg-[#222] transition-all border border-[#333] shadow-lg shadow-black/20 active:scale-95 text-sm uppercase tracking-wider"
               >
-                Close Details
+                {isEs ? "Cerrar detalles" : "Close Details"}
               </button>
             </div>
           </div>
@@ -2531,7 +2563,7 @@ export default function LocationsPage() {
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
           <div className="bg-[#0a0a0a] border border-[#333] rounded-lg max-w-md w-full p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-white">Import Locations</h2>
+              <h2 className="text-xl font-bold text-white">{isEs ? "Importar ubicaciones" : "Import Locations"}</h2>
               <button
                 onClick={() => {
                   setShowImportModal(false);
@@ -2547,26 +2579,27 @@ export default function LocationsPage() {
 
             <div className="space-y-4">
               <p className="text-gray-400 text-sm">
-                Upload a CSV or Excel file (.csv, .xlsx, .xls) with location data. The file should
-                contain the following columns:
+                {isEs
+                  ? "Sube un archivo CSV o Excel (.csv, .xlsx, .xls) con datos de ubicaciones. El archivo debe contener las siguientes columnas:"
+                  : "Upload a CSV or Excel file (.csv, .xlsx, .xls) with location data. The file should contain the following columns:"}
               </p>
 
               <div className="bg-[#1a1a1a] rounded-lg p-3 border border-[#333]">
-                <p className="text-xs text-gray-500 mb-2">Required Columns:</p>
+                <p className="text-xs text-gray-500 mb-2">{isEs ? "Columnas requeridas:" : "Required Columns:"}</p>
                 <ul className="text-xs text-gray-300 space-y-1">
-                  <li>• Name</li>
-                  <li>• Street Type</li>
-                  <li>• Primary Number</li>
-                  <li>• Secondary Number</li>
-                  <li>• Complementary Number (optional)</li>
-                  <li>• State</li>
-                  <li>• City</li>
-                  <li>• Additional Details (optional)</li>
+                  <li>• {isEs ? "Nombre" : "Name"}</li>
+                  <li>• {isEs ? "Tipo de calle" : "Street Type"}</li>
+                  <li>• {isEs ? "Número principal" : "Primary Number"}</li>
+                  <li>• {isEs ? "Número secundario" : "Secondary Number"}</li>
+                  <li>• {isEs ? "Número complementario (opcional)" : "Complementary Number (optional)"}</li>
+                  <li>• {isEs ? "Departamento" : "State"}</li>
+                  <li>• {isEs ? "Ciudad" : "City"}</li>
+                  <li>• {isEs ? "Detalles adicionales (opcional)" : "Additional Details (optional)"}</li>
                 </ul>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Select File</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">{isEs ? "Seleccionar archivo" : "Select File"}</label>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -2576,7 +2609,7 @@ export default function LocationsPage() {
                   disabled={importing}
                 />
                 {importFile && (
-                  <p className="text-xs text-gray-400 mt-2">Selected: {importFile.name}</p>
+                  <p className="text-xs text-gray-400 mt-2">{isEs ? "Seleccionado:" : "Selected:"} {importFile.name}</p>
                 )}
               </div>
 
@@ -2586,7 +2619,7 @@ export default function LocationsPage() {
                   disabled={!importFile || importing}
                   className="flex-1 px-4 py-2 bg-[#FFD700] text-black font-medium rounded-lg hover:bg-[#FFD700]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {importing ? "Importing..." : "Import"}
+                  {importing ? (isEs ? "Importando..." : "Importing...") : isEs ? "Importar" : "Import"}
                 </button>
                 <button
                   onClick={() => {
@@ -2597,7 +2630,7 @@ export default function LocationsPage() {
                   disabled={importing}
                   className="flex-1 px-4 py-2 bg-[#1a1a1a] text-gray-300 font-medium rounded-lg hover:bg-[#222] transition-colors border border-[#333] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Cancel
+                  {isEs ? "Cancelar" : "Cancel"}
                 </button>
               </div>
             </div>
@@ -2614,16 +2647,20 @@ export default function LocationsPage() {
             doApplyBulkCapacity(bulkConfirmPending.val, bulkConfirmPending.categoryId, false);
           setBulkConfirmPending(null);
         }}
-        secondaryText="Keep existing"
+        secondaryText={isEs ? "Mantener existentes" : "Keep existing"}
         onSecondaryAction={() => {
           if (bulkConfirmPending)
             doApplyBulkCapacity(bulkConfirmPending.val, bulkConfirmPending.categoryId, true);
           setBulkConfirmPending(null);
         }}
-        title="Apply bulk capacity"
-        message='How do you want to apply this value? "Override all" replaces every value. "Keep existing" only fills in material types that haven&apos;t been set yet.'
-        confirmText="Override all"
-        cancelText="Cancel"
+        title={isEs ? "Aplicar capacidad masiva" : "Apply bulk capacity"}
+        message={
+          isEs
+            ? '¿Cómo deseas aplicar este valor? "Sobrescribir todo" reemplaza todos los valores. "Mantener existentes" solo completa los tipos de material que aún no han sido definidos.'
+            : 'How do you want to apply this value? "Override all" replaces every value. "Keep existing" only fills in material types that haven\'t been set yet.'
+        }
+        confirmText={isEs ? "Sobrescribir todo" : "Override all"}
+        cancelText={isEs ? "Cancelar" : "Cancel"}
         variant="warning"
       />
 
@@ -2632,10 +2669,14 @@ export default function LocationsPage() {
         isOpen={showDeleteConfirm}
         onClose={() => setShowDeleteConfirm(false)}
         onConfirm={confirmDelete}
-        title="Eliminar ubicación"
-        message="¿Confirmas eliminar esta ubicación? Esta acción no se puede deshacer."
-        confirmText="Eliminar"
-        cancelText="Cancelar"
+        title={isEs ? "Eliminar ubicación" : "Delete location"}
+        message={
+          isEs
+            ? "¿Confirmas eliminar esta ubicación? Esta acción no se puede deshacer."
+            : "Are you sure you want to delete this location? This action cannot be undone."
+        }
+        confirmText={isEs ? "Eliminar" : "Delete"}
+        cancelText={isEs ? "Cancelar" : "Cancel"}
         variant="danger"
         isLoading={deleteLoading}
       />

@@ -11,6 +11,7 @@
 
 import { useEffect, type ReactNode } from 'react';
 import { CheckCircle2, Info, AlertTriangle, XCircle, X } from 'lucide-react';
+import { useLanguage } from "../../contexts/useLanguage";
 
 export type AlertModalType = 'success' | 'info' | 'warning' | 'error';
 
@@ -36,21 +37,15 @@ const ICONS: Record<AlertModalType, typeof CheckCircle2> = {
   error: XCircle,
 };
 
-const DEFAULT_TITLES: Record<AlertModalType, string> = {
-  success: 'Success',
-  info: 'Information',
-  warning: 'Warning',
-  error: 'Error',
-};
-
 export function AlertModal({
   open,
   type,
   title,
   message,
   onClose,
-  confirmText = 'OK',
+  confirmText,
 }: AlertModalProps) {
+  const { t } = useLanguage();
   // Close on Escape key
   useEffect(() => {
     if (!open) return;
@@ -74,7 +69,14 @@ export function AlertModal({
   if (!open) return null;
 
   const Icon = ICONS[type];
-  const displayTitle = title ?? DEFAULT_TITLES[type];
+  const defaultTitles: Record<AlertModalType, string> = {
+    success: t("alert.success"),
+    info: t("alert.info"),
+    warning: t("alert.warning"),
+    error: t("alert.error"),
+  };
+  const displayTitle = title ?? defaultTitles[type];
+  const resolvedConfirmText = confirmText ?? t("common.ok");
 
   return (
     <>
@@ -135,7 +137,7 @@ export function AlertModal({
                 type="button"
                 onClick={onClose}
                 className="flex-shrink-0 text-gray-500 hover:text-white transition-colors"
-                aria-label="Close"
+                aria-label={t("common.close")}
               >
                 <X size={20} />
               </button>
@@ -169,7 +171,7 @@ export function AlertModal({
                   e.currentTarget.style.background = `var(--alert-${type}-bg)`;
                 }}
               >
-                {confirmText}
+                {resolvedConfirmText}
               </button>
             </div>
           </div>

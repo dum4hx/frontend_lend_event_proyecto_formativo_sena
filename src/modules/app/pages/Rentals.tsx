@@ -14,6 +14,7 @@ import { getLoans, extendLoan, returnLoan } from "../../../services/loanService"
 import { getCustomers } from "../../../services/customerService";
 import { useAlertModal } from "../../../hooks/useAlertModal";
 import { usePermissions } from "../../../contexts/usePermissions";
+import { useLanguage } from "../../../contexts/useLanguage";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -24,13 +25,24 @@ interface LoanView {
   customer?: Customer;
 }
 
-const STATUS_OPTIONS: Array<{ value: LoanFilter; label: string }> = [
-  { value: "all", label: "All Status" },
-  { value: "active", label: "Active" },
-  { value: "overdue", label: "Overdue" },
-  { value: "returned", label: "Returned" },
-  { value: "closed", label: "Closed" },
-];
+const STATUS_OPTIONS: LoanFilter[] = ["all", "active", "overdue", "returned", "closed"];
+
+function getStatusLabel(status: LoanFilter, isEs: boolean): string {
+  switch (status) {
+    case "all":
+      return isEs ? "Todos los estados" : "All Status";
+    case "active":
+      return isEs ? "Activo" : "Active";
+    case "overdue":
+      return isEs ? "Vencido" : "Overdue";
+    case "returned":
+      return isEs ? "Devuelto" : "Returned";
+    case "closed":
+      return isEs ? "Cerrado" : "Closed";
+    default:
+      return status;
+  }
+}
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -49,8 +61,8 @@ function getLoanStatusBadgeStyle(status: LoanStatus): string {
   }
 }
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("en-US", {
+function formatDate(dateStr: string, locale: string): string {
+  return new Date(dateStr).toLocaleDateString(locale, {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -76,6 +88,8 @@ function customerFullName(customer?: Customer): string {
 export default function Rentals() {
   const { hasPermission } = usePermissions();
   const { showError, showSuccess, AlertModal } = useAlertModal();
+  const { language, locale } = useLanguage();
+  const isEs = language === "es";
 
   // ── Data state ──────────────────────────────────────────────────────────
   const [loans, setLoans] = useState<LoanView[]>([]);
@@ -121,8 +135,8 @@ export default function Rentals() {
       }));
       setLoans(views);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to load loans";
-      showError(message, "Load Error");
+      const message = error instanceof Error ? error.message : isEs ? "No se pudieron cargar los prestamos" : "Failed to load loans";
+      showError(message, isEs ? "Error de carga" : "Load Error");
     } finally {
       setLoading(false);
     }
@@ -162,13 +176,16 @@ export default function Rentals() {
         ...(extendNotes.trim() ? { notes: extendNotes.trim() } : {}),
       };
       await extendLoan(extendTarget.loan._id, payload);
-      showSuccess("Loan extended successfully.", "Loan Extended");
+      showSuccess(
+        isEs ? "Prestamo extendido correctamente." : "Loan extended successfully.",
+        isEs ? "Prestamo extendido" : "Loan Extended"
+      );
       setShowExtendModal(false);
       setExtendTarget(null);
       await fetchData();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to extend loan";
-      showError(message, "Extend Error");
+      const message = error instanceof Error ? error.message : isEs ? "No se pudo extender el prestamo" : "Failed to extend loan";
+      showError(message, isEs ? "Error al extender" : "Extend Error");
     } finally {
       setSubmitting(false);
     }
@@ -184,13 +201,16 @@ export default function Rentals() {
     setSubmitting(true);
     try {
       await returnLoan(returnTarget.loan._id);
-      showSuccess("Loan marked as returned.", "Loan Returned");
+      showSuccess(
+        isEs ? "Prestamo marcado como devuelto." : "Loan marked as returned.",
+        isEs ? "Prestamo devuelto" : "Loan Returned"
+      );
       setShowReturnModal(false);
       setReturnTarget(null);
       await fetchData();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to return loan";
-      showError(message, "Return Error");
+      const message = error instanceof Error ? error.message : isEs ? "No se pudo registrar la devolucion" : "Failed to return loan";
+      showError(message, isEs ? "Error de devolucion" : "Return Error");
     } finally {
       setSubmitting(false);
     }
@@ -202,8 +222,10 @@ export default function Rentals() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">Loans</h1>
-          <p className="text-gray-400 mt-1">Track active loans and manage returns</p>
+          <h1 className="text-3xl font-bold text-white">{isEs ? "Prestamos" : "Loans"}</h1>
+          <p className="text-gray-400 mt-1">
+            {isEs ? "Haz seguimiento de prestamos activos y devoluciones" : "Track active loans and manage returns"}
+          </p>
         </div>
       </div>
 
@@ -213,7 +235,7 @@ export default function Rentals() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={20} />
           <input
             type="text"
-            placeholder="Search by loan ID or customer..."
+            placeholder={isEs ? "Buscar por ID de prestamo o cliente..." : "Search by loan ID or customer..."}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 bg-[#1a1a1a] border border-[#333] rounded-[8px] text-white placeholder-gray-600 focus:outline-none focus:border-[#FFD700] transition-all"
@@ -226,8 +248,8 @@ export default function Rentals() {
             className="appearance-none px-4 py-2 bg-[#1a1a1a] border border-[#333] rounded-[8px] text-white focus:outline-none focus:border-[#FFD700] transition-all cursor-pointer pr-10"
           >
             {STATUS_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
+              <option key={opt} value={opt}>
+                {getStatusLabel(opt, isEs)}
               </option>
             ))}
           </select>
@@ -244,19 +266,19 @@ export default function Rentals() {
           <Loader2 className="animate-spin text-[#FFD700]" size={32} />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-12 text-gray-400">No loans found</div>
+        <div className="text-center py-12 text-gray-400">{isEs ? "No se encontraron prestamos" : "No loans found"}</div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-[#333]">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-[#1a1a1a] text-gray-400 border-b border-[#333]">
-                <th className="text-left px-4 py-3 font-semibold">Loan ID</th>
-                <th className="text-left px-4 py-3 font-semibold">Customer</th>
-                <th className="text-left px-4 py-3 font-semibold">Start Date</th>
-                <th className="text-left px-4 py-3 font-semibold">End Date</th>
-                <th className="text-left px-4 py-3 font-semibold">Days</th>
-                <th className="text-left px-4 py-3 font-semibold">Status</th>
-                <th className="text-left px-4 py-3 font-semibold">Actions</th>
+                <th className="text-left px-4 py-3 font-semibold">{isEs ? "ID Prestamo" : "Loan ID"}</th>
+                <th className="text-left px-4 py-3 font-semibold">{isEs ? "Cliente" : "Customer"}</th>
+                <th className="text-left px-4 py-3 font-semibold">{isEs ? "Fecha inicio" : "Start Date"}</th>
+                <th className="text-left px-4 py-3 font-semibold">{isEs ? "Fecha fin" : "End Date"}</th>
+                <th className="text-left px-4 py-3 font-semibold">{isEs ? "Dias" : "Days"}</th>
+                <th className="text-left px-4 py-3 font-semibold">{isEs ? "Estado" : "Status"}</th>
+                <th className="text-left px-4 py-3 font-semibold">{isEs ? "Acciones" : "Actions"}</th>
               </tr>
             </thead>
             <tbody>
@@ -276,8 +298,8 @@ export default function Rentals() {
                     <td className="px-4 py-3 text-white font-medium">
                       {customerFullName(lv.customer)}
                     </td>
-                    <td className="px-4 py-3 text-gray-300">{formatDate(lv.loan.startDate)}</td>
-                    <td className="px-4 py-3 text-gray-300">{formatDate(lv.loan.endDate)}</td>
+                    <td className="px-4 py-3 text-gray-300">{formatDate(lv.loan.startDate, locale)}</td>
+                    <td className="px-4 py-3 text-gray-300">{formatDate(lv.loan.endDate, locale)}</td>
                     <td className="px-4 py-3">
                       {isActive ? (
                         <span
@@ -290,10 +312,16 @@ export default function Rentals() {
                           }
                         >
                           {remaining < 0
-                            ? `${Math.abs(remaining)}d overdue`
+                            ? isEs
+                              ? `${Math.abs(remaining)}d vencido`
+                              : `${Math.abs(remaining)}d overdue`
                             : remaining === 0
-                              ? "Due today"
-                              : `${remaining}d left`}
+                              ? isEs
+                                ? "Vence hoy"
+                                : "Due today"
+                              : isEs
+                                ? `${remaining}d restantes`
+                                : `${remaining}d left`}
                         </span>
                       ) : (
                         <span className="text-gray-500">—</span>
@@ -304,7 +332,7 @@ export default function Rentals() {
                         <span
                           className={`px-2 py-0.5 rounded-full text-xs font-semibold capitalize ${getLoanStatusBadgeStyle(lv.loan.status)}`}
                         >
-                          {lv.loan.status}
+                          {getStatusLabel(lv.loan.status, isEs)}
                         </span>
                         {lv.loan.status === "overdue" && (
                           <AlertCircle size={14} className="text-red-400" />
@@ -322,7 +350,7 @@ export default function Rentals() {
                             setShowDetailModal(true);
                           }}
                         >
-                          Details
+                          {isEs ? "Detalle" : "Details"}
                         </Button>
                         {isActive && canExtend && (
                           <Button
@@ -332,7 +360,7 @@ export default function Rentals() {
                             disabled={submitting}
                             className="bg-blue-500/15 text-blue-300 border-blue-500/40 hover:bg-blue-500/25"
                           >
-                            Extend
+                            {isEs ? "Extender" : "Extend"}
                           </Button>
                         )}
                         {isActive && canReturn && (
@@ -343,7 +371,7 @@ export default function Rentals() {
                             disabled={submitting}
                             className="bg-green-500/15 text-green-300 border-green-500/40 hover:bg-green-500/25"
                           >
-                            Return
+                            {isEs ? "Devolver" : "Return"}
                           </Button>
                         )}
                       </div>
@@ -363,16 +391,16 @@ export default function Rentals() {
           onClick={(e) => e.target === e.currentTarget && setShowDetailModal(false)}
         >
           <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-6 w-full max-w-lg shadow-2xl space-y-4">
-            <h2 className="text-xl font-semibold text-white">Loan Details</h2>
+            <h2 className="text-xl font-semibold text-white">{isEs ? "Detalle del prestamo" : "Loan Details"}</h2>
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
-                <p className="text-gray-400 text-xs mb-1">Loan ID</p>
+                <p className="text-gray-400 text-xs mb-1">{isEs ? "ID prestamo" : "Loan ID"}</p>
                 <p className="text-white font-mono">
                   #{detailTarget.loan._id.slice(-8).toUpperCase()}
                 </p>
               </div>
               <div>
-                <p className="text-gray-400 text-xs mb-1">Status</p>
+                <p className="text-gray-400 text-xs mb-1">{isEs ? "Estado" : "Status"}</p>
                 <span
                   className={`px-2 py-0.5 rounded-full text-xs font-semibold capitalize inline-block ${getLoanStatusBadgeStyle(detailTarget.loan.status)}`}
                 >
@@ -380,33 +408,33 @@ export default function Rentals() {
                 </span>
               </div>
               <div>
-                <p className="text-gray-400 text-xs mb-1">Customer</p>
+                <p className="text-gray-400 text-xs mb-1">{isEs ? "Cliente" : "Customer"}</p>
                 <p className="text-white">{customerFullName(detailTarget.customer)}</p>
               </div>
               <div>
-                <p className="text-gray-400 text-xs mb-1">Request ID</p>
+                <p className="text-gray-400 text-xs mb-1">{isEs ? "ID solicitud" : "Request ID"}</p>
                 <p className="text-white font-mono text-xs">
                   #{detailTarget.loan.requestId.slice(-8).toUpperCase()}
                 </p>
               </div>
               <div>
-                <p className="text-gray-400 text-xs mb-1">Start Date</p>
-                <p className="text-white">{formatDate(detailTarget.loan.startDate)}</p>
+                <p className="text-gray-400 text-xs mb-1">{isEs ? "Fecha inicio" : "Start Date"}</p>
+                <p className="text-white">{formatDate(detailTarget.loan.startDate, locale)}</p>
               </div>
               <div>
-                <p className="text-gray-400 text-xs mb-1">End Date</p>
-                <p className="text-white">{formatDate(detailTarget.loan.endDate)}</p>
+                <p className="text-gray-400 text-xs mb-1">{isEs ? "Fecha fin" : "End Date"}</p>
+                <p className="text-white">{formatDate(detailTarget.loan.endDate, locale)}</p>
               </div>
               {detailTarget.loan.notes && (
                 <div className="col-span-2">
-                  <p className="text-gray-400 text-xs mb-1">Notes</p>
+                  <p className="text-gray-400 text-xs mb-1">{isEs ? "Notas" : "Notes"}</p>
                   <p className="text-gray-200 text-sm">{detailTarget.loan.notes}</p>
                 </div>
               )}
             </div>
             <div className="flex justify-end pt-2">
               <Button variant="outline" onClick={() => setShowDetailModal(false)}>
-                Close
+                {isEs ? "Cerrar" : "Close"}
               </Button>
             </div>
           </div>
@@ -420,20 +448,20 @@ export default function Rentals() {
           onClick={(e) => e.target === e.currentTarget && setShowExtendModal(false)}
         >
           <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-6 w-full max-w-md shadow-2xl space-y-4">
-            <h2 className="text-xl font-semibold text-white">Extend Loan</h2>
+            <h2 className="text-xl font-semibold text-white">{isEs ? "Extender prestamo" : "Extend Loan"}</h2>
             <p className="text-zinc-400 text-sm">
-              Extending loan{" "}
+              {isEs ? "Extendiendo prestamo" : "Extending loan"}{" "}
               <span className="text-white font-medium">
                 #{extendTarget.loan._id.slice(-8).toUpperCase()}
               </span>{" "}
-              for{" "}
+              {isEs ? "para" : "for"}{" "}
               <span className="text-white font-medium">
                 {customerFullName(extendTarget.customer)}
               </span>
             </p>
             <div className="space-y-3">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">New End Date</label>
+                <label className="block text-sm text-gray-400 mb-1">{isEs ? "Nueva fecha fin" : "New End Date"}</label>
                 <input
                   type="date"
                   value={newEndDate}
@@ -444,13 +472,13 @@ export default function Rentals() {
               </div>
               <div>
                 <label className="block text-sm text-gray-400 mb-1">
-                  Notes <span className="text-gray-600 text-xs">(optional)</span>
+                  {isEs ? "Notas" : "Notes"} <span className="text-gray-600 text-xs">{isEs ? "(opcional)" : "(optional)"}</span>
                 </label>
                 <textarea
                   value={extendNotes}
                   onChange={(e) => setExtendNotes(e.target.value)}
                   rows={3}
-                  placeholder="Reason for extension..."
+                  placeholder={isEs ? "Motivo de la extension..." : "Reason for extension..."}
                   className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-[#FFD700] transition-all resize-none"
                 />
               </div>
@@ -464,7 +492,7 @@ export default function Rentals() {
                 }}
                 disabled={submitting}
               >
-                Cancel
+                {isEs ? "Cancelar" : "Cancel"}
               </Button>
               <Button
                 leftIcon={CalendarRange}
@@ -472,7 +500,7 @@ export default function Rentals() {
                 disabled={submitting || !newEndDate}
                 className="bg-blue-500 hover:bg-blue-600 text-white border-transparent"
               >
-                {submitting ? "Extending..." : "Extend Loan"}
+                {submitting ? (isEs ? "Extendiendo..." : "Extending...") : isEs ? "Extender prestamo" : "Extend Loan"}
               </Button>
             </div>
           </div>
@@ -486,13 +514,13 @@ export default function Rentals() {
           onClick={(e) => e.target === e.currentTarget && setShowReturnModal(false)}
         >
           <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-6 w-full max-w-md shadow-2xl space-y-4">
-            <h2 className="text-xl font-semibold text-white">Confirm Return</h2>
+            <h2 className="text-xl font-semibold text-white">{isEs ? "Confirmar devolucion" : "Confirm Return"}</h2>
             <p className="text-zinc-400 text-sm">
-              Mark loan{" "}
+              {isEs ? "Marcar prestamo" : "Mark loan"}{" "}
               <span className="text-white font-medium">
                 #{returnTarget.loan._id.slice(-8).toUpperCase()}
               </span>{" "}
-              as returned?
+              {isEs ? "como devuelto?" : "as returned?"}
             </p>
             <div className="flex gap-3 justify-end">
               <Button
@@ -503,7 +531,7 @@ export default function Rentals() {
                 }}
                 disabled={submitting}
               >
-                Cancel
+                {isEs ? "Cancelar" : "Cancel"}
               </Button>
               <Button
                 leftIcon={RotateCcw}
@@ -511,7 +539,7 @@ export default function Rentals() {
                 disabled={submitting}
                 className="bg-green-500 hover:bg-green-600 text-white border-transparent"
               >
-                {submitting ? "Processing..." : "Mark as Returned"}
+                {submitting ? (isEs ? "Procesando..." : "Processing...") : isEs ? "Marcar como devuelto" : "Mark as Returned"}
               </Button>
             </div>
           </div>

@@ -3,6 +3,7 @@ import { AlertTriangle, Users, Calendar, DollarSign, Clock, ShoppingCart, FileTe
 import { Link } from "react-router-dom";
 import { StatCard, AdminTable } from "../components";
 import { useDashboardStats } from "../hooks/useDashboardStats";
+import { useLanguage } from "../../../contexts/useLanguage";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -10,8 +11,8 @@ function fmt(n: number) {
   return n.toLocaleString();
 }
 
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-US", {
+function fmtDate(iso: string, locale: string) {
+  return new Date(iso).toLocaleDateString(locale, {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -42,6 +43,8 @@ const LOAN_BADGE: Record<string, string> = {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function AdminDashboard() {
+  const { language, locale } = useLanguage();
+  const isEs = language === "es";
   const { stats, loading, error, refetch } = useDashboardStats();
 
   const invoiceTotal =
@@ -67,11 +70,15 @@ export default function AdminDashboard() {
     <div className="space-y-8">
       {/* ── Header ── */}
       <div>
-        <h1 className="text-3xl font-bold text-white">Dashboard</h1>
+        <h1 className="text-3xl font-bold text-white">{isEs ? "Panel" : "Dashboard"}</h1>
         <p className="text-gray-400">
           {error
-            ? "There was a problem loading the data"
-            : "Welcome back! Here's your overview"}
+            ? isEs
+              ? "Hubo un problema al cargar los datos"
+              : "There was a problem loading the data"
+            : isEs
+              ? "Bienvenido de nuevo. Aqui tienes tu resumen"
+              : "Welcome back! Here's your overview"}
         </p>
       </div>
 
@@ -84,7 +91,7 @@ export default function AdminDashboard() {
             onClick={refetch}
             className="border border-red-400 px-3 py-1 rounded-lg hover:bg-red-400/10 transition-colors text-xs font-medium"
           >
-            Retry
+            {isEs ? "Reintentar" : "Retry"}
           </button>
         </div>
       )}
@@ -92,33 +99,37 @@ export default function AdminDashboard() {
       {/* ── Stat cards ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         <StatCard
-          label="Total Users"
+          label={isEs ? "Usuarios totales" : "Total Users"}
           value={loading ? "—" : fmt(stats?.totalUsers ?? 0)}
           icon={<Users size={28} />}
         />
         <StatCard
-          label="Active Loans"
+          label={isEs ? "Prestamos activos" : "Active Loans"}
           value={loading ? "—" : fmt(stats?.activeLoans ?? 0)}
           icon={<Calendar size={28} />}
         />
         <StatCard
-          label="Overdue Loans"
+          label={isEs ? "Prestamos vencidos" : "Overdue Loans"}
           value={loading ? "—" : fmt(stats?.overdueLoans ?? 0)}
           icon={<Clock size={28} />}
           trend={
             !loading && (stats?.overdueLoans ?? 0) > 0
-              ? `${stats!.overdueLoans} overdue`
+              ? isEs
+                ? `${stats!.overdueLoans} vencidos`
+                : `${stats!.overdueLoans} overdue`
               : undefined
           }
           trendUp={false}
         />
         <StatCard
-          label="Paid This Period"
+          label={isEs ? "Pagado en el periodo" : "Paid This Period"}
           value={loading ? "—" : `$${fmt(stats?.paidInvoicesTotal ?? 0)}`}
           icon={<DollarSign size={28} />}
           trend={
             !loading && (stats?.pendingInvoicesCount ?? 0) > 0
-              ? `${stats!.pendingInvoicesCount} pending`
+              ? isEs
+                ? `${stats!.pendingInvoicesCount} pendientes`
+                : `${stats!.pendingInvoicesCount} pending`
               : undefined
           }
           trendUp={false}
@@ -131,12 +142,12 @@ export default function AdminDashboard() {
         {/* ── Pending Requests (2/3) ── */}
         <div className="xl:col-span-2 bg-[#121212] border border-[#333] rounded-xl p-5 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-white font-semibold text-base">Pending Requests</h2>
+            <h2 className="text-white font-semibold text-base">{isEs ? "Solicitudes pendientes" : "Pending Requests"}</h2>
             <Link
               to="/app/orders"
               className="text-xs text-[#FFD700] hover:underline flex items-center gap-1"
             >
-              View all <ArrowRight size={12} />
+              {isEs ? "Ver todo" : "View all"} <ArrowRight size={12} />
             </Link>
           </div>
 
@@ -149,17 +160,17 @@ export default function AdminDashboard() {
           ) : (stats?.recentRequests ?? []).length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 text-gray-500 gap-2">
               <CheckCircle2 size={32} className="text-green-500/40" />
-              <p className="text-sm">No pending requests</p>
+              <p className="text-sm">{isEs ? "No hay solicitudes pendientes" : "No pending requests"}</p>
             </div>
           ) : (
             <AdminTable>
               <thead>
                 <tr className="border-b border-[#333] text-gray-400 text-xs uppercase">
                   <th className="px-4 py-3 font-medium">ID</th>
-                  <th className="px-4 py-3 font-medium">Items</th>
-                  <th className="px-4 py-3 font-medium">Start</th>
-                  <th className="px-4 py-3 font-medium">End</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
+                  <th className="px-4 py-3 font-medium">{isEs ? "Items" : "Items"}</th>
+                  <th className="px-4 py-3 font-medium">{isEs ? "Inicio" : "Start"}</th>
+                  <th className="px-4 py-3 font-medium">{isEs ? "Fin" : "End"}</th>
+                  <th className="px-4 py-3 font-medium">{isEs ? "Estado" : "Status"}</th>
                 </tr>
               </thead>
               <tbody>
@@ -172,15 +183,25 @@ export default function AdminDashboard() {
                       {shortId(req._id)}
                     </td>
                     <td className="px-4 py-3 text-gray-300">
-                      {req.items.length} item{req.items.length !== 1 ? "s" : ""}
+                      {req.items.length} {isEs ? (req.items.length !== 1 ? "items" : "item") : `item${req.items.length !== 1 ? "s" : ""}`}
                     </td>
-                    <td className="px-4 py-3 text-gray-400">{fmtDate(req.startDate)}</td>
-                    <td className="px-4 py-3 text-gray-400">{fmtDate(req.endDate)}</td>
+                    <td className="px-4 py-3 text-gray-400">{fmtDate(req.startDate, locale)}</td>
+                    <td className="px-4 py-3 text-gray-400">{fmtDate(req.endDate, locale)}</td>
                     <td className="px-4 py-3">
                       <span
                         className={`text-xs px-2 py-0.5 rounded-full font-medium ${REQUEST_BADGE[req.status] ?? "bg-gray-500/20 text-gray-400"}`}
                       >
-                        {req.status}
+                        {isEs
+                          ? req.status === "pending"
+                            ? "pendiente"
+                            : req.status === "approved"
+                              ? "aprobado"
+                              : req.status === "rejected"
+                                ? "rechazado"
+                                : req.status === "ready"
+                                  ? "listo"
+                                  : "cancelado"
+                          : req.status}
                       </span>
                     </td>
                   </tr>
@@ -196,12 +217,12 @@ export default function AdminDashboard() {
           {/* ── Invoice Summary ── */}
           <div className="bg-[#121212] border border-[#333] rounded-xl p-5 space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-white font-semibold text-base">Invoice Summary</h2>
+              <h2 className="text-white font-semibold text-base">{isEs ? "Resumen de facturas" : "Invoice Summary"}</h2>
               <Link
                 to="/app/invoices"
                 className="text-xs text-[#FFD700] hover:underline flex items-center gap-1"
               >
-                View all <ArrowRight size={12} />
+                {isEs ? "Ver todo" : "View all"} <ArrowRight size={12} />
               </Link>
             </div>
 
@@ -215,7 +236,7 @@ export default function AdminDashboard() {
               <>
                 <div className="space-y-1">
                   <div className="flex justify-between text-xs text-gray-400">
-                    <span>Paid</span>
+                    <span>{isEs ? "Pagado" : "Paid"}</span>
                     <span className="text-green-400 font-medium">
                       ${fmt(stats?.paidInvoicesTotal ?? 0)}
                     </span>
@@ -227,7 +248,7 @@ export default function AdminDashboard() {
                     />
                   </div>
                   <div className="flex justify-between text-xs text-gray-400">
-                    <span>Pending ({stats?.pendingInvoicesCount ?? 0})</span>
+                    <span>{isEs ? "Pendiente" : "Pending"} ({stats?.pendingInvoicesCount ?? 0})</span>
                     <span className="text-yellow-400 font-medium">
                       ${fmt(stats?.pendingInvoicesTotal ?? 0)}
                     </span>
@@ -236,7 +257,7 @@ export default function AdminDashboard() {
 
                 <div className="text-center text-2xl font-bold text-white pt-1">
                   {paidPct}%
-                  <span className="text-xs font-normal text-gray-400 ml-1">collected</span>
+                  <span className="text-xs font-normal text-gray-400 ml-1">{isEs ? "recaudado" : "collected"}</span>
                 </div>
               </>
             )}
@@ -244,13 +265,13 @@ export default function AdminDashboard() {
 
           {/* ── Quick Actions ── */}
           <div className="bg-[#121212] border border-[#333] rounded-xl p-5 space-y-3">
-            <h2 className="text-white font-semibold text-base">Quick Actions</h2>
+            <h2 className="text-white font-semibold text-base">{isEs ? "Acciones rapidas" : "Quick Actions"}</h2>
             <div className="grid grid-cols-2 gap-2">
               {[
-                { label: "Orders", to: "/app/orders", icon: <ShoppingCart size={16} /> },
-                { label: "Rentals", to: "/app/rentals", icon: <Package size={16} /> },
-                { label: "Customers", to: "/app/customers", icon: <UserCircle size={16} /> },
-                { label: "Invoices", to: "/app/invoices", icon: <FileText size={16} /> },
+                { label: isEs ? "Pedidos" : "Orders", to: "/app/orders", icon: <ShoppingCart size={16} /> },
+                { label: isEs ? "Alquileres" : "Rentals", to: "/app/rentals", icon: <Package size={16} /> },
+                { label: isEs ? "Clientes" : "Customers", to: "/app/customers", icon: <UserCircle size={16} /> },
+                { label: isEs ? "Facturas" : "Invoices", to: "/app/invoices", icon: <FileText size={16} /> },
               ].map(({ label, to, icon }) => (
                 <Link
                   key={to}
@@ -272,22 +293,22 @@ export default function AdminDashboard() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-red-400">
               <AlertTriangle size={18} />
-              <h2 className="font-semibold text-base">Overdue Loans</h2>
+              <h2 className="font-semibold text-base">{isEs ? "Prestamos vencidos" : "Overdue Loans"}</h2>
             </div>
             <Link
               to="/app/rentals"
               className="text-xs text-red-400 hover:underline flex items-center gap-1"
             >
-              View all <ArrowRight size={12} />
+              {isEs ? "Ver todo" : "View all"} <ArrowRight size={12} />
             </Link>
           </div>
           <AdminTable>
             <thead>
               <tr className="border-b border-[#333] text-gray-400 text-xs uppercase">
                 <th className="px-4 py-3 font-medium">ID</th>
-                <th className="px-4 py-3 font-medium">Due Date</th>
-                <th className="px-4 py-3 font-medium">Days Late</th>
-                <th className="px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3 font-medium">{isEs ? "Fecha limite" : "Due Date"}</th>
+                <th className="px-4 py-3 font-medium">{isEs ? "Dias tarde" : "Days Late"}</th>
+                <th className="px-4 py-3 font-medium">{isEs ? "Estado" : "Status"}</th>
               </tr>
             </thead>
             <tbody>
@@ -299,15 +320,23 @@ export default function AdminDashboard() {
                   <td className="px-4 py-3 text-[#FFD700] font-mono font-medium">
                     {shortId(loan._id)}
                   </td>
-                  <td className="px-4 py-3 text-gray-400">{fmtDate(loan.endDate)}</td>
+                  <td className="px-4 py-3 text-gray-400">{fmtDate(loan.endDate, locale)}</td>
                   <td className="px-4 py-3 text-red-400 font-medium">
-                    {loan.daysLate}d late
+                    {loan.daysLate} {isEs ? "dias" : "d"} {isEs ? "tarde" : "late"}
                   </td>
                   <td className="px-4 py-3">
                     <span
                       className={`text-xs px-2 py-0.5 rounded-full font-medium ${LOAN_BADGE[loan.status] ?? "bg-gray-500/20 text-gray-400"}`}
                     >
-                      {loan.status}
+                      {isEs
+                        ? loan.status === "active"
+                          ? "activo"
+                          : loan.status === "overdue"
+                            ? "vencido"
+                            : loan.status === "returned"
+                              ? "devuelto"
+                              : "cerrado"
+                        : loan.status}
                     </span>
                   </td>
                 </tr>
