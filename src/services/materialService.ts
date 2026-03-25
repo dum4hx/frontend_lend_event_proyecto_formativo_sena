@@ -26,6 +26,135 @@ import type {
   PaginationMeta,
 } from "../types/api";
 
+interface MaterialInstanceApiModel {
+  _id?: string;
+  id?: string;
+  name?: string;
+  description?: string;
+  pricePerDay?: number;
+}
+
+interface MaterialInstanceApiLocation {
+  _id?: string;
+  id?: string;
+  name?: string;
+}
+
+interface MaterialInstanceApiPayload {
+  _id: string;
+  serialNumber?: string;
+  barcode?: string;
+  status: MaterialInstance["status"];
+  model?: MaterialInstanceApiModel | string;
+  modelId?: MaterialInstanceApiModel | string;
+  location?: MaterialInstanceApiLocation | string;
+  locationId?: MaterialInstanceApiLocation | string;
+  organizationId?: string;
+  attributes?: unknown[];
+  createdAt?: string;
+  updatedAt?: string;
+  __v?: number;
+}
+
+interface GroupedMaterialInstancesApiPayload {
+  location: MaterialInstanceApiLocation;
+  instances: MaterialInstanceApiPayload[];
+}
+
+interface MaterialInstancesApiResponse extends PaginationMeta {
+  instances?: MaterialInstanceApiPayload[];
+  byLocation?: GroupedMaterialInstancesApiPayload[];
+  currentUserLocations?: GroupedMaterialInstancesApiPayload[];
+  otherLocations?: GroupedMaterialInstancesApiPayload[];
+}
+
+interface GroupedMaterialInstances {
+  location: MaterialInstance["locationId"];
+  instances: MaterialInstance[];
+}
+
+interface MaterialInstancesResponse extends PaginationMeta {
+  instances?: MaterialInstance[];
+  byLocation?: GroupedMaterialInstances[];
+  currentUserLocations?: GroupedMaterialInstances[];
+  otherLocations?: GroupedMaterialInstances[];
+}
+
+function normalizeMaterialModel(
+  model: MaterialInstanceApiPayload["model"] | MaterialInstanceApiPayload["modelId"],
+): MaterialInstance["modelId"] {
+  if (typeof model === "string") {
+    return {
+      _id: model,
+      name: "Unknown material type",
+      pricePerDay: 0,
+    };
+  }
+
+  return {
+    _id: model?._id ?? model?.id ?? "",
+    name: model?.name ?? "Unknown material type",
+    description: model?.description,
+    pricePerDay: typeof model?.pricePerDay === "number" ? model.pricePerDay : 0,
+  };
+}
+
+function normalizeMaterialLocation(
+  location:
+    | MaterialInstanceApiPayload["location"]
+    | MaterialInstanceApiPayload["locationId"]
+    | MaterialInstanceApiLocation
+    | undefined,
+): MaterialInstance["locationId"] {
+  if (typeof location === "string") {
+    return {
+      _id: location,
+      id: location,
+      name: "Unknown location",
+    };
+  }
+
+  return {
+    _id: location?._id ?? location?.id ?? "",
+    id: location?.id ?? location?._id ?? "",
+    name: location?.name ?? "Unknown location",
+  };
+}
+
+function normalizeMaterialInstance(
+  instance: MaterialInstanceApiPayload,
+  fallbackLocation?: MaterialInstanceApiLocation,
+): MaterialInstance {
+  return {
+    _id: instance._id,
+    serialNumber: instance.serialNumber ?? "",
+    barcode: instance.barcode,
+    status: instance.status,
+    modelId: normalizeMaterialModel(instance.modelId ?? instance.model),
+    locationId: normalizeMaterialLocation(instance.locationId ?? instance.location ?? fallbackLocation),
+    organizationId: instance.organizationId ?? "",
+    attributes: Array.isArray(instance.attributes) ? instance.attributes : [],
+    createdAt: instance.createdAt ?? "",
+    updatedAt: instance.updatedAt ?? "",
+    __v: instance.__v ?? 0,
+  };
+}
+
+function normalizeGroupedMaterialInstances(
+  groups?: GroupedMaterialInstancesApiPayload[],
+): GroupedMaterialInstances[] | undefined {
+  if (!groups) {
+    return undefined;
+  }
+
+  return groups.map((group) => ({
+    location: normalizeMaterialLocation(group.location),
+    instances: (group.instances ?? []).map((instance) =>
+      normalizeMaterialInstance(instance, group.location),
+    ),
+  }));
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // Categories
 // ═══════════════════════════════════════════════════════════════════════════
@@ -123,11 +252,22 @@ export async function deleteMaterialInstance(
 /** List material instances with optional filtering. */
 export async function getMaterialInstances(
   params: MaterialInstancesQueryParams = {},
-): Promise<ApiSuccessResponse<{ instances: MaterialInstance[] }>> {
-  return get<{ instances: MaterialInstance[] }>(
+): Promise<ApiSuccessResponse<MaterialInstancesResponse>> {
+  const response = await get<MaterialInstancesApiResponse>(
     "/materials/instances",
     params as Record<string, string | number | boolean | undefined>,
   );
+
+  return {
+    ...response,
+    data: {
+      ...response.data,
+      instances: response.data.instances?.map((instance) => normalizeMaterialInstance(instance)),
+      byLocation: normalizeGroupedMaterialInstances(response.data.byLocation),
+      currentUserLocations: normalizeGroupedMaterialInstances(response.data.currentUserLocations),
+      otherLocations: normalizeGroupedMaterialInstances(response.data.otherLocations),
+    },
+  };
 }
 
 /** Create a new material instance. */

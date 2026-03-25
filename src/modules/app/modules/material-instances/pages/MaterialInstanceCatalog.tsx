@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from "react";
-import { AlertTriangle, Plus, Search, X } from "lucide-react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { AlertTriangle, Barcode, Plus, Search, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useMaterialInstances } from "../hooks";
+import { useBarcodeScanner, useMaterialInstances } from "../hooks";
 import { useMaterialTypes } from "../../material-types/hooks";
 import {
   MaterialInstanceList,
@@ -15,11 +15,16 @@ import {
   getLocations,
   type WarehouseLocation,
 } from "../../../../../services/warehouseOperatorService";
-import type { MaterialInstance, CreateMaterialInstancePayload } from "../../../../../types/api";
+import type {
+  MaterialInstance,
+  CreateMaterialInstancePayload,
+  MaterialInstanceStatus,
+} from "../../../../../types/api";
 
 export const MaterialInstanceCatalog: React.FC = () => {
   const navigate = useNavigate();
-  const { instances, loading, error, removeInstance, addInstance, refetch } = useMaterialInstances();
+  const { instances, loading, error, removeInstance, addInstance, updateInstanceStatus, refetch } =
+    useMaterialInstances();
   const { materialTypes } = useMaterialTypes();
   const { showToast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
@@ -28,8 +33,13 @@ export const MaterialInstanceCatalog: React.FC = () => {
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [isDependencyModalOpen, setIsDependencyModalOpen] = useState(false);
   const [locations, setLocations] = useState<WarehouseLocation[]>([]);
+  const [scanInput, setScanInput] = useState("");
+  const [lastScannedCode, setLastScannedCode] = useState("");
+  const [isScannerEnabled, setIsScannerEnabled] = useState(true);
+  const [statusUpdateLoading, setStatusUpdateLoading] = useState(false);
   const pageSize = 10;
   const searchInputId = "material-instances-search";
+  const scannerInputId = "material-instances-scanner";
 
   useEffect(() => {
     const fetchLocations = async () => {
@@ -48,9 +58,25 @@ export const MaterialInstanceCatalog: React.FC = () => {
   const hasLocations = locations.length > 0;
   const canCreateInstance = hasMaterialTypes && hasLocations;
 
-  const filteredInstances = instances.filter((inst) =>
-    inst.serialNumber.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+  const filteredInstances = useMemo(() => {
+    const normalizedTerm = searchTerm.trim().toLowerCase();
+    if (!normalizedTerm) {
+      return instances;
+    }
+
+    return instances.filter((inst) => {
+      const serial = inst.serialNumber.toLowerCase();
+      const barcode = (inst.barcode ?? "").toLowerCase();
+      const model = (inst.modelId?.name ?? "").toLowerCase();
+      const location = (inst.locationId?.name ?? "").toLowerCase();
+      return (
+        serial.includes(normalizedTerm) ||
+        barcode.includes(normalizedTerm) ||
+        model.includes(normalizedTerm) ||
+        location.includes(normalizedTerm)
+      );
+    });
+  }, [instances, searchTerm]);
 
   const totalPages = Math.max(1, Math.ceil(filteredInstances.length / pageSize));
   const currentPage = Math.min(page, totalPages);
@@ -87,7 +113,11 @@ export const MaterialInstanceCatalog: React.FC = () => {
 
   const handleCreateOrUpdate = async (data: CreateMaterialInstancePayload) => {
     try {
-      await addInstance(data);
+      await addInstance({
+        ...data,
+        serialNumber: data.serialNumber.trim(),
+        barcode: data.barcode?.trim() || undefined,
+      });
       showToast("success", "Material instance created successfully", "Success");
       setIsFormModalOpen(false);
     } catch (error: unknown) {
@@ -110,6 +140,7 @@ export const MaterialInstanceCatalog: React.FC = () => {
   interface ImportRow {
     modelId?: string;
     serialNumber?: string;
+    barcode?: string;
     locationId?: string;
   }
 
@@ -122,12 +153,15 @@ export const MaterialInstanceCatalog: React.FC = () => {
           continue;
         }
         try {
+          const payload: CreateMaterialInstancePayload = {
+            modelId: item.modelId,
+            serialNumber: item.serialNumber,
+            locationId: item.locationId,
+            barcode: item.barcode?.trim() || undefined,
+          };
+
           await addInstance(
-            {
-              modelId: item.modelId,
-              serialNumber: item.serialNumber,
-              locationId: item.locationId,
-            },
+            payload,
             true, // skipFetch: true, avoid refetching inside the loop
           );
           successCount++;
@@ -152,6 +186,99 @@ export const MaterialInstanceCatalog: React.FC = () => {
         error instanceof Error ? error.message : "Error importing material instances",
         "Import Failed",
       );
+    }
+  };
+
+  const findInstanceByScannedCode = useCallback(
+    (rawCode: string) => {
+      const normalizedCode = rawCode.trim().toLowerCase();
+      if (!normalizedCode) {
+        return null;
+      }
+
+      return (
+        instances.find((inst) => {
+          const serial = inst.serialNumber.trim().toLowerCase();
+          const barcode = (inst.barcode ?? "").trim().toLowerCase();
+          return serial === normalizedCode || barcode === normalizedCode;
+        }) ?? null
+      );
+    },
+    [instances],
+  );
+
+  const handleScan = useCallback(
+    (code: string) => {
+      const cleanedCode = code.trim();
+      if (!cleanedCode) {
+        return;
+      }
+
+      setLastScannedCode(cleanedCode);
+      setSearchTerm(cleanedCode);
+      setPage(1);
+
+      const matchedInstance = findInstanceByScannedCode(cleanedCode);
+      if (matchedInstance) {
+        setSelectedInstance(matchedInstance);
+        showToast(
+          "success",
+          `Match found: ${matchedInstance.serialNumber}${
+            matchedInstance.barcode ? ` (barcode ${matchedInstance.barcode})` : ""
+          }`,
+          "Scan Successful",
+        );
+        return;
+      }
+
+      showToast(
+        "warning",
+        `No instance found for scanned code: ${cleanedCode}`,
+        "Scan Not Found",
+      );
+    },
+    [findInstanceByScannedCode, showToast],
+  );
+
+  useBarcodeScanner({
+    onScan: handleScan,
+    enabled: isScannerEnabled,
+  });
+
+  const handleManualScan = () => {
+    handleScan(scanInput);
+    setScanInput("");
+  };
+
+  const handleQuickStatusChange = async (status: MaterialInstanceStatus) => {
+    if (!selectedInstance) {
+      return;
+    }
+
+    try {
+      setStatusUpdateLoading(true);
+      const updated = await updateInstanceStatus(selectedInstance._id, {
+        status,
+        notes: lastScannedCode
+          ? `Updated from scanner flow using code ${lastScannedCode}`
+          : "Updated from scanner flow",
+      });
+      setSelectedInstance(updated);
+      showToast(
+        "success",
+        `Status updated to ${status.toUpperCase()} for ${updated.serialNumber}`,
+        "Status Updated",
+      );
+    } catch (statusError: unknown) {
+      showToast(
+        "error",
+        statusError instanceof Error
+          ? statusError.message
+          : "Failed to update material status",
+        "Error",
+      );
+    } finally {
+      setStatusUpdateLoading(false);
     }
   };
 
@@ -219,13 +346,13 @@ export const MaterialInstanceCatalog: React.FC = () => {
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
           <div className="flex-1 relative">
             <label htmlFor={searchInputId} className="sr-only">
-              Search material instances by serial number
+              Search material instances by serial number, barcode, material type, or location
             </label>
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
             <input
               id={searchInputId}
               type="text"
-              placeholder="Search by serial number..."
+              placeholder="Search by serial, barcode, type, or location..."
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
@@ -248,6 +375,101 @@ export const MaterialInstanceCatalog: React.FC = () => {
               <Plus size={20} />
               New Instance
             </button>
+          </div>
+        </div>
+
+        {/* Barcode Scanner */}
+        <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-5 mb-6 space-y-4">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Barcode size={18} className="text-[#FFD700]" />
+              <h2 className="text-white font-semibold">Barcode Scanner Workflow</h2>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsScannerEnabled((prev) => !prev)}
+              className={`px-3 py-1.5 text-xs rounded border transition-colors ${
+                isScannerEnabled
+                  ? "border-green-600/40 text-green-300 bg-green-700/10"
+                  : "border-[#555] text-gray-300 bg-[#202020]"
+              }`}
+            >
+              {isScannerEnabled ? "Scanner Enabled" : "Scanner Disabled"}
+            </button>
+          </div>
+
+          <p className="text-sm text-gray-400">
+            Use your hardware scanner (keyboard mode) and press Enter automatically, or type a code
+            manually below.
+          </p>
+
+          <div className="flex flex-col md:flex-row gap-3">
+            <div className="flex-1">
+              <label htmlFor={scannerInputId} className="sr-only">
+                Scan code input
+              </label>
+              <input
+                id={scannerInputId}
+                type="text"
+                value={scanInput}
+                onChange={(e) => setScanInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleManualScan();
+                  }
+                }}
+                className="w-full px-4 py-2.5 bg-[#111] border border-[#333] rounded text-white placeholder-gray-500 focus:outline-none focus:border-[#FFD700]"
+                placeholder="Scan barcode or type serial"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={handleManualScan}
+              className="px-4 py-2.5 border border-[#B88A00] text-[#FFD700] hover:bg-[#FFD700]/10 rounded font-medium transition-colors"
+            >
+              Find Code
+            </button>
+          </div>
+
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 pt-1">
+            <p className="text-xs text-gray-500">
+              Last scanned: <span className="text-gray-300 font-mono">{lastScannedCode || "-"}</span>
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={!selectedInstance || statusUpdateLoading}
+                onClick={() => void handleQuickStatusChange("loaned")}
+                className="px-3 py-1.5 text-xs rounded border border-yellow-600/40 text-yellow-300 bg-yellow-700/10 hover:bg-yellow-700/20 transition-colors disabled:opacity-50"
+              >
+                Mark Loaned
+              </button>
+              <button
+                type="button"
+                disabled={!selectedInstance || statusUpdateLoading}
+                onClick={() => void handleQuickStatusChange("returned")}
+                className="px-3 py-1.5 text-xs rounded border border-blue-600/40 text-blue-300 bg-blue-700/10 hover:bg-blue-700/20 transition-colors disabled:opacity-50"
+              >
+                Mark Returned
+              </button>
+              <button
+                type="button"
+                disabled={!selectedInstance || statusUpdateLoading}
+                onClick={() => void handleQuickStatusChange("available")}
+                className="px-3 py-1.5 text-xs rounded border border-green-600/40 text-green-300 bg-green-700/10 hover:bg-green-700/20 transition-colors disabled:opacity-50"
+              >
+                Mark Available
+              </button>
+              <button
+                type="button"
+                disabled={!selectedInstance || statusUpdateLoading}
+                onClick={() => void handleQuickStatusChange("maintenance")}
+                className="px-3 py-1.5 text-xs rounded border border-orange-600/40 text-orange-300 bg-orange-700/10 hover:bg-orange-700/20 transition-colors disabled:opacity-50"
+              >
+                Mark Maintenance
+              </button>
+            </div>
           </div>
         </div>
 

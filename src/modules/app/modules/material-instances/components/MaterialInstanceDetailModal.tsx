@@ -55,6 +55,11 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
             </div>
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-gray-400 mb-2">Barcode</label>
+            <p className="text-white font-mono">{instance.barcode || "Not assigned"}</p>
+          </div>
+
           <div className="grid grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-2">Material Type</label>

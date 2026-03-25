@@ -21,23 +21,8 @@ export function useMaterialInstances() {
       setLoading(true);
       setError(null);
       const response = await getMaterialInstances({ byLocation: true });
-      // If byLocation is true, the backend returns grouped data in response.data.byLocation
       const instanceList =
-        response.data.instances ||
-        (
-          response.data as {
-            byLocation?: Array<{
-              location: { _id: string; name: string };
-              instances: MaterialInstance[];
-            }>;
-          }
-        ).byLocation?.flatMap((loc) =>
-          loc.instances.map((inst) => ({
-            ...inst,
-            location: loc.location,
-          })),
-        ) ||
-        [];
+        response.data.instances ?? response.data.byLocation?.flatMap((group) => group.instances) ?? [];
       setInstances(instanceList);
     } catch (err) {
       const error = err as Error;
