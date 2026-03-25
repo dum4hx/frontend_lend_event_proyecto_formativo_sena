@@ -930,6 +930,7 @@ export interface MaterialInstancesQueryParams {
   materialTypeId?: string;
   search?: string;
   byLocation?: boolean;
+  byUserAccessibleLocation?: boolean;
 }
 
 export interface LoanRequestsQueryParams extends PaginationParams {
