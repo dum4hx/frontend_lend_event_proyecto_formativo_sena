@@ -58,12 +58,12 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
           <div className="grid grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-2">Material Type</label>
-              <p className="text-white">{instance.model?.name || "Unknown"}</p>
+              <p className="text-white">{instance.modelId?.name || "Unknown"}</p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-2">Location</label>
-              <p className="text-white">{instance.location?.name || "Unknown"}</p>
+              <p className="text-white">{instance.locationId?.name || "Unknown"}</p>
             </div>
           </div>
 
