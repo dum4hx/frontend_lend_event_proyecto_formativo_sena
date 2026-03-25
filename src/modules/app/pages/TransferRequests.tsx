@@ -1166,7 +1166,7 @@ const TransferRequests: React.FC = () => {
     }
 
     return (
-      <div className="flex items-center justify-end">
+      <div className="flex items-center justify-center">
         <span className="text-xs text-gray-600 italic">{isEs ? "Sin acciones" : "No actions"}</span>
       </div>
     );
@@ -1317,7 +1317,7 @@ const TransferRequests: React.FC = () => {
                       <th className="px-4 py-3">{isEs ? "Estado" : "Status"}</th>
                       <th className="px-4 py-3">{isEs ? "Notas" : "Notes"}</th>
                       <th className="px-4 py-3">{isEs ? "Creado" : "Created"}</th>
-                      <th className="px-4 py-3 text-right">{isEs ? "Acciones" : "Actions"}</th>
+                      <th className="px-4 py-3 text-center">{isEs ? "Acciones" : "Actions"}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#1a1a1a]">
@@ -1345,7 +1345,7 @@ const TransferRequests: React.FC = () => {
                         <td className="px-4 py-3 text-gray-400 whitespace-nowrap">
                           {formatDate(req.createdAt, isEs)}
                         </td>
-                        <td className="px-4 py-3 text-right">{renderRequestActions(req)}</td>
+                        <td className="px-4 py-3 text-center">{renderRequestActions(req)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1414,7 +1414,7 @@ const TransferRequests: React.FC = () => {
                       <th className="px-4 py-3">{isEs ? "Estado" : "Status"}</th>
                       <th className="px-4 py-3">{isEs ? "Notas del Remitente" : "Sender Notes"}</th>
                       <th className="px-4 py-3">{isEs ? "Creado" : "Created"}</th>
-                      <th className="px-4 py-3 text-right">{isEs ? "Acciones" : "Actions"}</th>
+                      <th className="px-4 py-3 text-center">{isEs ? "Acciones" : "Actions"}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#1a1a1a]">
@@ -1442,7 +1442,7 @@ const TransferRequests: React.FC = () => {
                         <td className="px-4 py-3 text-gray-400 whitespace-nowrap">
                           {formatDate(tr.createdAt, isEs)}
                         </td>
-                        <td className="px-4 py-3 text-right">
+                        <td className="px-4 py-3 text-center">
                           {tr.status === "in_transit" && canUpdate ? (
                             <div className="flex items-center justify-end">
                               <button
@@ -1454,7 +1454,7 @@ const TransferRequests: React.FC = () => {
                               </button>
                             </div>
                           ) : (
-                            <div className="flex items-center justify-end">
+                            <div className="flex items-center justify-center">
                               <span className="text-xs text-gray-600 italic">—</span>
                             </div>
                           )}
