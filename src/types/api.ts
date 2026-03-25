@@ -453,6 +453,7 @@ export interface CreateLoanRequestPayload {
   items: LoanRequestItem[];
   startDate: string;
   endDate: string;
+  depositDueDate: string;
   notes?: string;
 }
 
@@ -503,6 +504,26 @@ export interface CreateInspectionPayload {
   loanId: string;
   items: InspectionItem[];
   overallNotes?: string;
+}
+
+export interface PendingLoan {
+  _id: string;
+  customerId: {
+    _id: string;
+    email: string;
+    name: string;
+  };
+  materialInstances: {
+    _id: string;
+    serialNumber: string;
+    materialTypeId: {
+      _id: string;
+      name: string;
+    };
+  }[];
+  startDate: string;
+  endDate: string;
+  status: "returned";
 }
 
 // ─── Invoices ──────────────────────────────────────────────────────────────

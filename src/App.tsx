@@ -64,6 +64,7 @@ import PricingConfigs from "./modules/app/pages/PricingConfigs";
 import { CategoryCatalog, CreateCategory } from "./modules/app/modules/material-categories";
 import { MaterialTypeCatalog, CreateMaterialType } from "./modules/app/modules/material-types";
 import { MaterialInstanceCatalog } from "./modules/app/modules/material-instances";
+import { InspectionsCatalog } from "./modules/app/modules/inspections";
 import TransferRequests from "./modules/app/pages/TransferRequests";
 
 // Super Admin — lazy-loaded for code-splitting
@@ -140,6 +141,7 @@ function App() {
               <Route path="material-types" element={<MaterialTypeCatalog />} />
               <Route path="material-types/create" element={<CreateMaterialType />} />
               <Route path="material-instances" element={<MaterialInstanceCatalog />} />
+              <Route path="inspections" element={<InspectionsCatalog />} />
               <Route path="transfer-requests" element={<TransferRequests />} />
               <Route path="attributes" element={<Attributes />} />
               <Route path="plans" element={<Plans />} />

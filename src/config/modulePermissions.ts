@@ -154,6 +154,13 @@ export const allNavItems: NavItem[] = [
     section: "Warehouse",
   },
   {
+    id: "inspections",
+    label: "Inspections",
+    path: "/app/inspections",
+    requiredPermissions: ["inspections:read", "inspections:create"],
+    section: "Warehouse",
+  },
+  {
     id: "alerts",
     label: "Alerts",
     path: "/app/alerts",
