@@ -5,6 +5,8 @@ import {
   CheckCircle,
   ChevronDown,
   CircleDashed,
+  Eye,
+  Package,
   Plus,
   RefreshCw,
   Send,
@@ -165,6 +167,21 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ label, className }) => (
   >
     {label}
   </span>
+);
+
+// ─── Transfer Route Component ──────────────────────────────────────────────
+
+interface TransferRouteProps {
+  fromLocation: string;
+  toLocation: string;
+}
+
+const TransferRoute: React.FC<TransferRouteProps> = ({ fromLocation, toLocation }) => (
+  <div className="flex items-center gap-3 text-sm">
+    <span className="text-white font-medium">{fromLocation}</span>
+    <ArrowLeftRight size={14} className="text-[#FFD700] shrink-0" />
+    <span className="text-white font-medium">{toLocation}</span>
+  </div>
 );
 
 // ─── Create Request Modal ──────────────────────────────────────────────────
@@ -418,6 +435,8 @@ const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
   const [senderNotes, setSenderNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewFilterType, setPreviewFilterType] = useState<string>("");
 
   useEffect(() => {
     const fetchInstances = async () => {
@@ -456,6 +475,29 @@ const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
 
   const getItemCondition = (instanceId: string): TransferCondition | "" =>
     selectedItems.find((i) => i.instanceId === instanceId)?.sentCondition ?? "";
+
+  // Group instances by material type for preview
+  const instancesByType = React.useMemo(() => {
+    const groups = new Map<string, { materialTypeId: string; materialTypeName: string; instances: MaterialInstance[] }>();
+    
+    instances.forEach((inst) => {
+      const typeId = typeof inst.modelId === "string" 
+        ? inst.modelId 
+        : inst.modelId?._id ?? "unknown";
+      const typeName = getInstanceModelName(inst, isEs);
+      
+      if (!groups.has(typeId)) {
+        groups.set(typeId, {
+          materialTypeId: typeId,
+          materialTypeName: typeName,
+          instances: [],
+        });
+      }
+      groups.get(typeId)!.instances.push(inst);
+    });
+    
+    return Array.from(groups.values());
+  }, [instances, isEs]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -603,16 +645,182 @@ const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
               {isEs ? "Cancelar" : "Cancel"}
             </button>
             <button
-              type="submit"
+              type="button"
+              onClick={() => {
+                setPreviewFilterType("");
+                setShowPreview(true);
+              }}
               disabled={loading || selectedItems.length === 0}
               className="px-5 h-9 bg-[#FFD700] hover:bg-[#FFD700]/90 text-black font-semibold rounded text-sm transition-all disabled:opacity-50 flex items-center gap-2"
             >
-              <Send size={14} />
-              {loading ? (isEs ? "Enviando…" : "Sending…") : (isEs ? "Enviar Envío" : "Send Shipment")}
+              <Eye size={14} />
+              {isEs ? "Vista Previa y Confirmar" : "Preview & Confirm"}
             </button>
           </div>
         </form>
       </div>
+
+      {/* Preview Modal */}
+      {showPreview && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="bg-[#111] border border-[#2a2a2a] rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-5 border-b border-[#222]">
+              <h2 className="text-base font-bold text-white flex items-center gap-2">
+                <Eye size={18} className="text-[#FFD700]" />
+                {isEs ? "Vista Previa del Envío" : "Preview Shipment"}
+              </h2>
+              <button
+                onClick={() => setShowPreview(false)}
+                className="text-gray-500 hover:text-white transition-colors"
+                aria-label={isEs ? "Cerrar vista previa" : "Close preview"}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4 overflow-y-auto custom-scrollbar">
+              {/* Route Summary */}
+              <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4">
+                <TransferRoute
+                  fromLocation={locationName(request.fromLocationId)}
+                  toLocation={locationName(request.toLocationId)}
+                />
+              </div>
+
+              {/* Filter by Material Type */}
+              <div className="flex items-center gap-3">
+                <label className="text-xs font-medium text-gray-400 whitespace-nowrap">
+                  {isEs ? "Filtrar por Tipo:" : "Filter by Type:"}
+                </label>
+                <select
+                  value={previewFilterType}
+                  onChange={(e) => setPreviewFilterType(e.target.value)}
+                  className="flex-1 h-9 px-3 bg-[#0a0a0a] border border-[#222] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all"
+                >
+                  <option value="">
+                    {isEs ? "Todos los tipos" : "All Types"} ({selectedItems.length} {isEs ? "artículos" : "items"})
+                  </option>
+                  {instancesByType
+                    .filter((group) =>
+                      group.instances.some((inst) => isSelected(inst._id)),
+                    )
+                    .map((group) => {
+                      const count = group.instances.filter((inst) =>
+                        isSelected(inst._id),
+                      ).length;
+                      return (
+                        <option key={group.materialTypeId} value={group.materialTypeId}>
+                          {group.materialTypeName} ({count})
+                        </option>
+                      );
+                    })}
+                </select>
+              </div>
+
+              {/* Items Summary by Type */}
+              <div>
+                <h3 className="text-xs font-semibold text-gray-400 mb-3 uppercase tracking-wide">
+                  {previewFilterType
+                    ? `${
+                        instancesByType.find((g) => g.materialTypeId === previewFilterType)
+                          ?.materialTypeName ?? (isEs ? "Tipo Seleccionado" : "Selected Type")
+                      } ${isEs ? "Artículos" : "Items"}`
+                    : `${isEs ? "Todos los Artículos a Transferir" : "All Items to Transfer"} (${selectedItems.length})`}
+                </h3>
+                <div className="space-y-3">
+                  {instancesByType
+                    .filter((group) =>
+                      group.instances.some((inst) => isSelected(inst._id)),
+                    )
+                    .filter((group) =>
+                      previewFilterType ? group.materialTypeId === previewFilterType : true,
+                    )
+                    .map((group) => {
+                      const selectedInGroup = group.instances.filter((inst) =>
+                        isSelected(inst._id),
+                      );
+                      return (
+                        <div
+                          key={group.materialTypeId}
+                          className="bg-[#0a0a0a]/80 border border-[#222] rounded-lg p-3"
+                        >
+                          <div className="flex items-center gap-2 mb-2">
+                            <Package size={14} className="text-[#FFD700]" />
+                            <span className="text-sm font-semibold text-white">
+                              {group.materialTypeName}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              ({selectedInGroup.length} {selectedInGroup.length === 1 ? (isEs ? "artículo" : "item") : (isEs ? "artículos" : "items")})
+                            </span>
+                          </div>
+                          <div className="space-y-1.5 ml-5">
+                            {selectedInGroup.map((inst) => {
+                              const condition = getItemCondition(inst._id);
+                              return (
+                                <div
+                                  key={inst._id}
+                                  className="flex items-center justify-between text-xs"
+                                >
+                                  <span className="text-gray-300">{inst.serialNumber}</span>
+                                  {condition && (
+                                    <span className="text-gray-500">
+                                      {getConditionLabel(condition, isEs)}
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+                {previewFilterType &&
+                  !instancesByType
+                    .filter((group) =>
+                      group.instances.some((inst) => isSelected(inst._id)),
+                    )
+                    .some((group) => group.materialTypeId === previewFilterType) && (
+                    <div className="flex items-center justify-center py-8 text-gray-500 text-sm">
+                      {isEs ? "No hay artículos seleccionados para este tipo." : "No items selected for this type."}
+                    </div>
+                  )}
+              </div>
+
+              {/* Sender Notes */}
+              {senderNotes.trim() && (
+                <div className="bg-[#0a0a0a]/80 border border-[#222] rounded-lg p-3">
+                  <h3 className="text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wide">
+                    {isEs ? "Notas del Remitente" : "Sender Notes"}
+                  </h3>
+                  <p className="text-sm text-gray-300 whitespace-pre-wrap">{senderNotes}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Confirm Actions */}
+            <div className="flex justify-end gap-3 p-5 border-t border-[#222]">
+              <button
+                type="button"
+                onClick={() => setShowPreview(false)}
+                disabled={loading}
+                className="px-4 h-9 rounded text-sm text-gray-400 hover:text-white border border-[#333] hover:border-[#555] transition-all"
+              >
+                {isEs ? "Regresar a Editar" : "Back to Edit"}
+              </button>
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={loading}
+                className="px-5 h-9 bg-[#FFD700] hover:bg-[#FFD700]/90 text-black font-semibold rounded text-sm transition-all disabled:opacity-50 flex items-center gap-2"
+              >
+                <Send size={14} />
+                {loading ? (isEs ? "Enviando…" : "Sending…") : (isEs ? "Confirmar y Enviar" : "Confirm & Send")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
