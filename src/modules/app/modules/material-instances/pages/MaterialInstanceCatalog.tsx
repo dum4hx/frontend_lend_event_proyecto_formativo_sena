@@ -37,6 +37,7 @@ export const MaterialInstanceCatalog: React.FC = () => {
   const [lastScannedCode, setLastScannedCode] = useState("");
   const [isScannerEnabled, setIsScannerEnabled] = useState(true);
   const [statusUpdateLoading, setStatusUpdateLoading] = useState(false);
+  const [formInitialData, setFormInitialData] = useState<Partial<CreateMaterialInstancePayload> | undefined>(undefined);
   const pageSize = 10;
   const searchInputId = "material-instances-search";
   const scannerInputId = "material-instances-scanner";
@@ -120,6 +121,7 @@ export const MaterialInstanceCatalog: React.FC = () => {
       });
       showToast("success", "Material instance created successfully", "Success");
       setIsFormModalOpen(false);
+      setFormInitialData(undefined);
     } catch (error: unknown) {
       showToast(
         "error",
@@ -134,6 +136,7 @@ export const MaterialInstanceCatalog: React.FC = () => {
       setIsDependencyModalOpen(true);
       return;
     }
+    setFormInitialData(undefined);
     setIsFormModalOpen(true);
   };
 
@@ -231,10 +234,24 @@ export const MaterialInstanceCatalog: React.FC = () => {
         return;
       }
 
+      setFormInitialData({ barcode: cleanedCode });
       showToast(
         "warning",
-        `No instance found for scanned code: ${cleanedCode}`,
+        `No instance found for barcode "${cleanedCode}". Register as new?`,
         "Scan Not Found",
+        {
+          duration: 8000,
+          action: {
+            label: "Register Instance",
+            onClick: () => {
+              if (!canCreateInstance) {
+                setIsDependencyModalOpen(true);
+                return;
+              }
+              setIsFormModalOpen(true);
+            },
+          },
+        },
       );
     },
     [findInstanceByScannedCode, showToast],
@@ -527,10 +544,13 @@ export const MaterialInstanceCatalog: React.FC = () => {
             <div className="bg-[#121212] border border-[#333] rounded-xl w-full max-w-2xl overflow-hidden shadow-2xl">
               <div className="flex items-center justify-between px-6 py-4 border-b border-[#333]">
                 <h2 className="text-xl font-bold text-white">
-                  New Material Instance
+                  {formInitialData?.barcode ? "Register Scanned Barcode" : "New Material Instance"}
                 </h2>
                 <button
-                  onClick={() => setIsFormModalOpen(false)}
+                  onClick={() => {
+                    setIsFormModalOpen(false);
+                    setFormInitialData(undefined);
+                  }}
                   className="p-2 text-gray-400 hover:text-white transition-colors"
                 >
                   <X size={24} />
@@ -539,7 +559,11 @@ export const MaterialInstanceCatalog: React.FC = () => {
               <div className="p-6">
                 <MaterialInstanceForm
                   onSubmit={handleCreateOrUpdate}
-                  onCancel={() => setIsFormModalOpen(false)}
+                  onCancel={() => {
+                    setIsFormModalOpen(false);
+                    setFormInitialData(undefined);
+                  }}
+                  initialData={formInitialData}
                 />
               </div>
             </div>
