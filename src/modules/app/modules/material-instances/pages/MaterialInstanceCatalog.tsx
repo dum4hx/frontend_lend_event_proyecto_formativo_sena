@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Barcode, Plus, Search, X } from "lucide-react";
+import { AlertTriangle, Barcode, Eye, Plus, Printer, Search, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useBarcodeScanner, useMaterialInstances } from "../hooks";
 import { useMaterialTypes } from "../../material-types/hooks";
@@ -7,6 +7,7 @@ import {
   MaterialInstanceList,
   MaterialInstanceDetailModal,
   MaterialInstanceForm,
+  BarcodePrintModal,
 } from "../components";
 import { AdminPagination } from "../../../components";
 import { ExcelExportImport } from "../../../../../components/export/ExcelExportImport";
@@ -38,6 +39,10 @@ export const MaterialInstanceCatalog: React.FC = () => {
   const [isScannerEnabled, setIsScannerEnabled] = useState(true);
   const [statusUpdateLoading, setStatusUpdateLoading] = useState(false);
   const [formInitialData, setFormInitialData] = useState<Partial<CreateMaterialInstancePayload> | undefined>(undefined);
+  const [showBarcodePreview, setShowBarcodePreview] = useState(false);
+  const [isBarcodePrintModalOpen, setIsBarcodePrintModalOpen] = useState(false);
+  const [barcodePrintSelection, setBarcodePrintSelection] = useState<MaterialInstance[]>([]);
+  const [selectedInstanceIds, setSelectedInstanceIds] = useState<string[]>([]);
   const pageSize = 10;
   const searchInputId = "material-instances-search";
   const scannerInputId = "material-instances-scanner";
@@ -85,6 +90,17 @@ export const MaterialInstanceCatalog: React.FC = () => {
     (currentPage - 1) * pageSize,
     currentPage * pageSize,
   );
+
+  const selectedInstances = useMemo(
+    () => filteredInstances.filter((instance) => selectedInstanceIds.includes(instance._id)),
+    [filteredInstances, selectedInstanceIds],
+  );
+
+  useEffect(() => {
+    setSelectedInstanceIds((current) =>
+      current.filter((instanceId) => instances.some((instance) => instance._id === instanceId)),
+    );
+  }, [instances]);
 
   const handleDelete = (instance: MaterialInstance) => {
     showToast(
@@ -138,6 +154,32 @@ export const MaterialInstanceCatalog: React.FC = () => {
     }
     setFormInitialData(undefined);
     setIsFormModalOpen(true);
+  };
+
+  const handleOpenBarcodePrintModal = (selection: MaterialInstance[]) => {
+    setBarcodePrintSelection(selection);
+    setIsBarcodePrintModalOpen(true);
+  };
+
+  const handleToggleInstanceSelection = (instanceId: string) => {
+    setSelectedInstanceIds((current) =>
+      current.includes(instanceId)
+        ? current.filter((selectedId) => selectedId !== instanceId)
+        : [...current, instanceId],
+    );
+  };
+
+  const handleToggleSelectAllVisible = (instanceIds: string[]) => {
+    setSelectedInstanceIds((current) => {
+      const allVisibleSelected = instanceIds.every((instanceId) => current.includes(instanceId));
+      if (allVisibleSelected) {
+        return current.filter((selectedId) => !instanceIds.includes(selectedId));
+      }
+
+      const nextIds = new Set(current);
+      instanceIds.forEach((instanceId) => nextIds.add(instanceId));
+      return Array.from(nextIds);
+    });
   };
 
   interface ImportRow {
@@ -254,7 +296,7 @@ export const MaterialInstanceCatalog: React.FC = () => {
         },
       );
     },
-    [findInstanceByScannedCode, showToast],
+    [canCreateInstance, findInstanceByScannedCode, showToast],
   );
 
   useBarcodeScanner({
@@ -378,7 +420,33 @@ export const MaterialInstanceCatalog: React.FC = () => {
               className="w-full pl-12 pr-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#FFD700]"
             />
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setShowBarcodePreview((prev) => !prev)}
+              className="flex items-center gap-2 px-4 py-3 rounded-lg border border-[#333] bg-[#1a1a1a] text-gray-300 transition-colors hover:bg-[#202020] hover:text-white"
+            >
+              <Eye size={18} />
+              {showBarcodePreview ? "Hide Barcodes" : "Show Barcodes"}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleOpenBarcodePrintModal(filteredInstances)}
+              disabled={filteredInstances.length === 0}
+              className="flex items-center gap-2 px-4 py-3 rounded-lg border border-[#FFD700]/35 bg-[#FFD700]/8 text-[#FFD700] font-semibold transition-colors hover:bg-[#FFD700]/14 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Printer size={18} />
+              Print Barcodes
+            </button>
+            <button
+              type="button"
+              onClick={() => handleOpenBarcodePrintModal(selectedInstances)}
+              disabled={selectedInstances.length === 0}
+              className="flex items-center gap-2 px-4 py-3 rounded-lg border border-[#333] bg-[#1a1a1a] text-gray-300 transition-colors hover:bg-[#202020] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Printer size={18} />
+              Print Selected ({selectedInstances.length})
+            </button>
             <ExcelExportImport
               data={filteredInstances}
               filename="material-instances"
@@ -516,9 +584,35 @@ export const MaterialInstanceCatalog: React.FC = () => {
 
         {/* Instance List */}
         <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-6">
+          {selectedInstances.length > 0 && (
+            <div className="mb-4 flex flex-col gap-3 rounded-lg border border-[#3b3320] bg-[#1b1710] px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-[#FFD700]">
+                {selectedInstances.length} material{selectedInstances.length === 1 ? "" : "s"} selected for printing.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleOpenBarcodePrintModal(selectedInstances)}
+                  className="rounded-lg border border-[#FFD700]/35 bg-[#FFD700]/10 px-3 py-2 font-semibold text-[#FFD700] transition-colors hover:bg-[#FFD700]/16"
+                >
+                  Print Selected
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedInstanceIds([])}
+                  className="rounded-lg border border-[#333] bg-[#1a1a1a] px-3 py-2 text-gray-300 transition-colors hover:bg-[#202020] hover:text-white"
+                >
+                  Clear Selection
+                </button>
+              </div>
+            </div>
+          )}
+
           <MaterialInstanceList
             instances={pagedInstances}
+            selectedInstanceIds={selectedInstanceIds}
             onView={setSelectedInstance}
+            onPrint={(instance) => handleOpenBarcodePrintModal([instance])}
             onEdit={() => {
               showToast(
                 "info",
@@ -527,6 +621,9 @@ export const MaterialInstanceCatalog: React.FC = () => {
               );
             }}
             onDelete={handleDelete}
+            showBarcodePreview={showBarcodePreview}
+            onToggleSelect={handleToggleInstanceSelection}
+            onToggleSelectAll={handleToggleSelectAllVisible}
           />
           <AdminPagination
             currentPage={currentPage}
@@ -652,6 +749,15 @@ export const MaterialInstanceCatalog: React.FC = () => {
             onClose={() => setSelectedInstance(null)}
           />
         )}
+
+        <BarcodePrintModal
+          isOpen={isBarcodePrintModalOpen}
+          instances={barcodePrintSelection}
+          onClose={() => {
+            setIsBarcodePrintModalOpen(false);
+            setBarcodePrintSelection([]);
+          }}
+        />
       </div>
     </div>
   );
