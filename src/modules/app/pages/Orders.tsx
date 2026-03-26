@@ -80,6 +80,7 @@ type CreateOrderValidationErrors = {
   customerId?: string;
   startDate?: string;
   endDate?: string;
+  depositDueDate?: string;
   items?: string;
   rows: Record<string, DraftItemValidationErrors>;
 };
@@ -130,6 +131,7 @@ const EMPTY_FORM = {
   customerId: "",
   startDate: "",
   endDate: "",
+  depositDueDate: "",
   notes: "",
 };
 
@@ -1182,6 +1184,14 @@ export default function Orders() {
       nextErrors.endDate = "End date and time must be after the start date and time.";
     }
 
+    if (!formData.depositDueDate) {
+      nextErrors.depositDueDate = "Select a deposit due date.";
+    } else if (isDatetimeIncomplete(formData.depositDueDate)) {
+      nextErrors.depositDueDate = "Please set both date and hour for the deposit due date.";
+    } else if (formData.depositDueDate > formData.startDate) {
+      nextErrors.depositDueDate = "Deposit due date must be before or on the start date.";
+    }
+
     const draftRowsToValidate = formItems.filter((item) => !isDraftRowEmpty(item));
 
     draftRowsToValidate.forEach((item) => {
@@ -1229,6 +1239,7 @@ export default function Orders() {
       Boolean(validationErrors.customerId) ||
       Boolean(validationErrors.startDate) ||
       Boolean(validationErrors.endDate) ||
+      Boolean(validationErrors.depositDueDate) ||
       Boolean(validationErrors.items) ||
       Object.keys(validationErrors.rows).length > 0;
 
@@ -1263,6 +1274,7 @@ export default function Orders() {
       items: parsedItems,
       startDate: toSafeStartDateIso(formData.startDate),
       endDate: toSafeEndDateIso(formData.endDate),
+      depositDueDate: toSafeEndDateIso(formData.depositDueDate),
       notes: formData.notes.trim() || undefined,
     };
 
@@ -1820,6 +1832,22 @@ export default function Orders() {
                         className={`input ${createErrors.endDate ? "input-error" : ""}`}
                       />
                       {createErrors.endDate && <p className="form-error">{createErrors.endDate}</p>}
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Deposit Due Date *</label>
+                      <input
+                        type="datetime-local"
+                        value={formData.depositDueDate}
+                        max={formData.startDate || undefined}
+                        onChange={(e) =>
+                          setFormData((prev) => ({ ...prev, depositDueDate: e.target.value }))
+                        }
+                        className={`input ${createErrors.depositDueDate ? "input-error" : ""}`}
+                      />
+                      {createErrors.depositDueDate && (
+                        <p className="form-error">{createErrors.depositDueDate}</p>
+                      )}
                     </div>
 
                     <div className="form-group md:col-span-2">
