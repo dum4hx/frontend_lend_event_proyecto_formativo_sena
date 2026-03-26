@@ -31,25 +31,19 @@ export function isFormDraftItemEmpty(item: FormDraftItem): boolean {
 export function calculateRentalDays(startDate: string, endDate: string): number {
   if (!startDate || !endDate) return 1;
 
-  // If time is missing, add it to ensure stable parsing
-  const startFull = startDate.includes("T") ? startDate : `${startDate}T00:00:00`;
-  const endFull = endDate.includes("T") ? endDate : `${endDate}T00:00:00`;
-
-  const start = new Date(startFull);
-  const end = new Date(endFull);
+  const start = new Date(startDate);
+  const end = new Date(endDate);
 
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) {
     return 1;
   }
 
   const millisecondsPerDay = 24 * 60 * 60 * 1000;
-  const diffTime = end.getTime() - start.getTime();
+  const startDay = Date.UTC(start.getFullYear(), start.getMonth(), start.getDate());
+  const endDay = Date.UTC(end.getFullYear(), end.getMonth(), end.getDate());
+  const diffDays = Math.round((endDay - startDay) / millisecondsPerDay);
 
-  // If exactly same or very close (less than 1s), count as 1 day
-  if (diffTime < 1000) return 1;
-
-  // Count partial days as a full day (ceil)
-  return Math.ceil(diffTime / millisecondsPerDay);
+  return Math.max(1, diffDays + 1);
 }
 
 export function mergeSelectionsIntoDraftRows(

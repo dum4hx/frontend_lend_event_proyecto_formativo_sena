@@ -92,6 +92,40 @@ const fmtId = (id: string | undefined): string => {
   return id; // Show complete ID
 };
 
+function getReferenceId(value: string | Customer | undefined): string | undefined {
+  if (!value) return undefined;
+  return typeof value === "string" ? value : value._id;
+}
+
+type CategoryReference =
+  | string
+  | { _id?: string; name?: string }
+  | Array<{ _id?: string; name?: string }>;
+
+function getCategoryName(
+  categoryData: CategoryReference | null | undefined,
+  categories: MaterialCategory[],
+): string {
+  if (!categoryData) return "—";
+
+  if (Array.isArray(categoryData)) {
+    const category = categoryData[0];
+    return category?.name || category?._id || "—";
+  }
+
+  if (typeof categoryData === "object") {
+    if (categoryData.name) return categoryData.name;
+    if (categoryData._id) {
+      const foundCategory = categories.find((category) => category._id === categoryData._id);
+      return foundCategory?.name || categoryData._id;
+    }
+    return "—";
+  }
+
+  const category = categories.find((entry) => entry._id === categoryData);
+  return category?.name || categoryData;
+}
+
 function exportToCSV(headers: string[], rows: ReportRow[], filename: string) {
   const csvContent = [
     headers.join(","),
@@ -483,7 +517,7 @@ export default function Reports() {
             id: r._id,
             columns: {
               "ID": fmtId(r._id),
-              "Customer ID": fmtId(r.customerId),
+              "Customer ID": fmtId(getReferenceId(r.customerId)),
               "Status": r.status,
               "Start Date": fmtDate(r.startDate),
               "End Date": fmtDate(r.endDate),
@@ -501,7 +535,7 @@ export default function Reports() {
             id: l._id,
             columns: {
               "ID": fmtId(l._id),
-              "Customer ID": fmtId(l.customerId),
+              "Customer ID": fmtId(getReferenceId(l.customerId)),
               "Status": l.status,
               "Start Date": fmtDate(l.startDate),
               "End Date": fmtDate(l.endDate),
@@ -531,61 +565,24 @@ export default function Reports() {
 
       case "inventory": {
         const filterType = filters.inventory.type;
-        
-        // Helper function to extract category name from different possible formats
-        const getCategoryName = (categoryData: any): string => {
-          if (!categoryData) return "—";
-          
-          // If it's an array, take the first element
-          if (Array.isArray(categoryData)) {
-            const category = categoryData[0];
-            return category?.name || category?._id || "—";
-          }
-          
-          // If it's an object with name property
-          if (typeof categoryData === "object" && categoryData.name) {
-            return categoryData.name;
-          }
-          
-          // If it's an object with _id property
-          if (typeof categoryData === "object" && categoryData._id) {
-            // Try to find the category name first
-            const foundCategory = categories.find(c => c._id === categoryData._id);
-            return foundCategory?.name || categoryData._id;
-          }
-          
-          // If it's a string (just the ID)
-          if (typeof categoryData === "string") {
-            const category = categories.find(c => c._id === categoryData);
-            return category?.name || categoryData;
-          }
-          
-          return "—";
-        };
-        
+
         if (filterType === "categories") {
           return {
             headers: ["ID", "Name", "Description"],
-            rows: categories.map((c) => {
-              console.log(`Processing category:`, c);
-              return {
-                id: c._id,
-                columns: {
-                  "ID": fmtId(c._id),
-                  "Name": c.name,
-                  "Description": c.description || "—",
-                },
-              };
-            }),
+            rows: categories.map((c) => ({
+              id: c._id,
+              columns: {
+                "ID": fmtId(c._id),
+                "Name": c.name,
+                "Description": c.description || "—",
+              },
+            })),
           };
         } else if (filterType === "types") {
-          console.log('Processing material types:', materialTypes);
-          console.log('Available categories for lookup:', categories);
           return {
             headers: ["ID", "Name", "Category", "Price/Day", "Description"],
             rows: materialTypes.map((mt) => {
-              const categoryName = getCategoryName(mt.categoryId);
-              console.log(`Type ${mt.name} - categoryId:`, mt.categoryId, '- resolved to:', categoryName);
+              const categoryName = getCategoryName(mt.categoryId, categories);
               return {
                 id: mt._id,
                 columns: {
@@ -604,20 +601,10 @@ export default function Reports() {
             if (filters.inventory.status && m.status !== filters.inventory.status) return false;
             return true;
           });
-          
-          console.log('🔍 Filtered instances for table:', filtered);
-          
+
           return {
             headers: ["Serial", "Model", "Status", "Location", "Price/Day", "Description"],
             rows: filtered.map((m) => {
-              console.log('🔍 Processing instance for table:', m);
-              console.log('🔍 Instance fields:', {
-                serialNumber: m.serialNumber,
-                modelId: m.modelId,
-                status: m.status,
-                locationId: m.locationId
-              });
-              
               const row = {
                 id: m._id,
                 columns: {
