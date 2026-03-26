@@ -22,6 +22,7 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
   isEditing = false,
 }) => {
   const { materialTypes } = useMaterialTypes();
+  const [useBarcodeAsSerial, setUseBarcodeAsSerial] = useState(false);
   const [formData, setFormData] = useState<CreateMaterialInstancePayload>({
     modelId: "",
     serialNumber: "",
@@ -62,20 +63,47 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
 
   useEffect(() => {
     if (initialData) {
+      const initialBarcode = initialData.barcode || "";
+      const initialSerial = initialData.serialNumber || "";
+      const shouldUseBarcodeAsSerial = Boolean(initialBarcode && !initialSerial);
+      setUseBarcodeAsSerial(shouldUseBarcodeAsSerial);
       setFormData({
         modelId: initialData.modelId || "",
-        serialNumber: initialData.serialNumber || "",
-        barcode: initialData.barcode || "",
+        serialNumber: shouldUseBarcodeAsSerial ? initialBarcode : initialSerial,
+        barcode: initialBarcode,
         locationId: initialData.locationId || "",
       });
     }
   }, [initialData]);
 
+  useEffect(() => {
+    if (!useBarcodeAsSerial) {
+      return;
+    }
+
+    setFormData((prev) => {
+      const nextSerial = (prev.barcode || "").trim();
+      if (prev.serialNumber === nextSerial) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        serialNumber: nextSerial,
+      };
+    });
+  }, [formData.barcode, useBarcodeAsSerial]);
+
   const validate = useCallback((data: CreateMaterialInstancePayload) => {
     const newErrors: Record<string, string> = {};
     if (!data.modelId) newErrors.modelId = "Material type is required";
+    if (useBarcodeAsSerial && !data.barcode?.trim()) {
+      newErrors.barcode = "Barcode is required when using it as serial number";
+    }
     if (!data.serialNumber.trim()) {
-      newErrors.serialNumber = "Serial number is required";
+      newErrors.serialNumber = useBarcodeAsSerial
+        ? "Serial number is auto-generated from barcode; please provide barcode"
+        : "Serial number is required";
     } else if (data.serialNumber.length > 100) {
       newErrors.serialNumber = "Serial number must be under 100 characters";
     }
@@ -84,7 +112,7 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
     }
     if (!data.locationId) newErrors.locationId = "Location is required";
     return newErrors;
-  }, []);
+  }, [useBarcodeAsSerial]);
 
   useEffect(() => {
     const validationErrors = validate(formData);
@@ -94,6 +122,22 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
   const handleChange = (field: keyof CreateMaterialInstancePayload, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     setTouched((prev) => ({ ...prev, [field]: true }));
+  };
+
+  const handleBarcodeAsSerialToggle = (enabled: boolean) => {
+    setUseBarcodeAsSerial(enabled);
+    setTouched((prev) => ({
+      ...prev,
+      barcode: true,
+      serialNumber: true,
+    }));
+
+    if (enabled) {
+      setFormData((prev) => ({
+        ...prev,
+        serialNumber: (prev.barcode || "").trim(),
+      }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -163,16 +207,19 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
           onBlur={() => setTouched((prev) => ({ ...prev, serialNumber: true }))}
           className={`w-full px-4 py-3 bg-[#1a1a1a] border ${
             touched.serialNumber && errors.serialNumber ? "border-red-500" : "border-[#333]"
-          } rounded-lg text-white focus:outline-none focus:border-[#FFD700]`}
+          } rounded-lg text-white focus:outline-none focus:border-[#FFD700] disabled:opacity-60 disabled:cursor-not-allowed`}
           placeholder="e.g., SN-001, CHAIR-A-01..."
           required
           maxLength={100}
+          disabled={useBarcodeAsSerial}
         />
         {touched.serialNumber && errors.serialNumber && (
           <p className="text-xs text-red-500 mt-1">{errors.serialNumber}</p>
         )}
         <p className="text-xs text-gray-500 mt-1">
-          Unique identifier for this specific item (max 100 characters)
+          {useBarcodeAsSerial
+            ? "Automatically copied from Barcode / Scan Code"
+            : "Unique identifier for this specific item (max 100 characters)"}
         </p>
       </div>
 
@@ -197,6 +244,23 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
         <p className="text-xs text-gray-500 mt-1">
           Recommended for scanner workflows. Must be unique when backend validation is enabled.
         </p>
+      </div>
+
+      <div className="rounded-lg border border-[#333] bg-[#151515] px-4 py-3">
+        <label className="flex items-center justify-between gap-4 cursor-pointer">
+          <div>
+            <p className="text-sm font-medium text-gray-200">Use Barcode as Serial Number</p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              When enabled, Serial Number is auto-filled from Barcode and becomes read-only.
+            </p>
+          </div>
+          <input
+            type="checkbox"
+            checked={useBarcodeAsSerial}
+            onChange={(e) => handleBarcodeAsSerialToggle(e.target.checked)}
+            className="h-4 w-4 rounded border-[#444] bg-[#1a1a1a] text-[#FFD700] focus:ring-[#FFD700]"
+          />
+        </label>
       </div>
 
       <div>
