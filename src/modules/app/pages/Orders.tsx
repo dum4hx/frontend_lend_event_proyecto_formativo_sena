@@ -520,6 +520,115 @@ export default function Orders() {
     [selectedPlanEntries, materialTypes],
   );
 
+  const renderOrderActions = (order: OrderView) => (
+    <div className="flex max-w-full flex-wrap items-center gap-1.5">
+      <IconButton
+        icon={Eye}
+        title="View details"
+        onClick={() => {
+          setActiveOrder(order);
+          setShowDetailsModal(true);
+        }}
+        intent="secondary"
+        ariaLabel="View order details"
+        className="h-8 w-8 rounded-md border border-[#3a3a3a] bg-[#161616] text-gray-400 hover:border-[#565656] hover:bg-[#1f1f1f] hover:text-white"
+      />
+
+      {order.request.status === "pending" && (
+        <Button
+          size="sm"
+          leftIcon={Check}
+          onClick={() => handleApproveOrder(order.request._id)}
+          disabled={submitting || !canApproveRequest}
+          variant="outline"
+          className="h-8 rounded-md border-emerald-500/35 bg-emerald-500/8 px-2.5 text-[11px] font-semibold text-emerald-200 hover:bg-emerald-500/15"
+        >
+          Approve
+        </Button>
+      )}
+
+      {order.request.status === "pending" && (
+        <Button
+          size="sm"
+          leftIcon={X}
+          onClick={() => handleOpenRejectModal(order)}
+          disabled={submitting || !canUpdateRequest}
+          variant="outline"
+          className="h-8 rounded-md border-red-500/40 bg-red-500/8 px-2.5 text-[11px] font-semibold text-red-300 hover:bg-red-500/15"
+        >
+          Reject
+        </Button>
+      )}
+
+      {order.request.status === "rejected" && (
+        <Button
+          size="sm"
+          leftIcon={RotateCcw}
+          onClick={() => handleOpenReactivateModal(order)}
+          disabled={submitting || !canUpdateRequest}
+          variant="outline"
+          className="h-8 rounded-md border-[#FFD700]/40 bg-[#FFD700]/8 px-2.5 text-[11px] font-semibold text-[#FFD700] hover:bg-[#FFD700]/14"
+        >
+          Reactivate
+        </Button>
+      )}
+
+      {order.request.depositAmount != null &&
+        order.request.depositAmount > 0 &&
+        !order.request.depositPaidAt && (
+          <Button
+            size="sm"
+            leftIcon={CreditCard}
+            onClick={() => handleOpenRecordPaymentModal(order)}
+            disabled={submitting || !canRecordPayment}
+            variant="outline"
+            className="h-8 rounded-md border-orange-500/40 bg-orange-500/8 px-2.5 text-[11px] font-semibold text-orange-300 hover:bg-orange-500/15"
+          >
+            Record Payment
+          </Button>
+        )}
+
+      {!order.loan && order.request.status === "approved" && (
+        <Button
+          size="sm"
+          leftIcon={Check}
+          onClick={() => handlePrepareOrder(order)}
+          disabled={submitting || !canAssignRequest}
+          variant="outline"
+          className="h-8 rounded-md border-sky-500/40 bg-sky-500/8 px-2.5 text-[11px] font-semibold text-sky-300 hover:bg-sky-500/15"
+        >
+          Prepare
+        </Button>
+      )}
+
+      {!order.loan && order.request.status === "ready" && (
+        <Button
+          size="sm"
+          leftIcon={Truck}
+          onClick={() => handleStartLoan(order.request._id)}
+          disabled={submitting || !canCreateLoan}
+          variant="outline"
+          className="h-8 rounded-md border-blue-500/40 bg-blue-500/8 px-2.5 text-[11px] font-semibold text-blue-300 hover:bg-blue-500/15"
+        >
+          Start Loan
+        </Button>
+      )}
+
+      {order.loan && (order.loan.status === "active" || order.loan.status === "overdue") && (
+        <Button
+          size="sm"
+          leftIcon={CircleCheck}
+          onClick={() => handleCompleteLoan(order.loan!._id)}
+          disabled={submitting || !canReturnLoan}
+          variant="outline"
+          className="h-8 rounded-md border-cyan-500/40 bg-cyan-500/8 px-2.5 text-[11px] font-semibold text-cyan-300 hover:bg-cyan-500/15"
+        >
+          Complete
+        </Button>
+      )}
+    </div>
+  );
+
   useEffect(() => {
     try {
       const raw = localStorage.getItem(RECENT_ORDER_MATERIALS_KEY);
@@ -1492,8 +1601,8 @@ export default function Orders() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div className="space-y-1">
           <h1 className="text-3xl font-bold text-white">Orders</h1>
           <p className="text-gray-400 mt-1">
             Create, approve, and track order lifecycle from one place
@@ -1503,6 +1612,8 @@ export default function Orders() {
           leftIcon={Plus}
           onClick={() => setShowCreateModal(true)}
           disabled={!canCreateRequest}
+          variant="outline"
+          className="w-full sm:w-auto border-[#FFD700]/40 text-[#FFD700] bg-[#FFD700]/8 hover:bg-[#FFD700]/16"
         >
           New Order
         </Button>
@@ -1514,8 +1625,8 @@ export default function Orders() {
         </div>
       )}
 
-      <div className="flex gap-4 flex-wrap">
-        <div className="flex-1 min-w-[250px] relative">
+      <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_220px] gap-3 md:gap-4">
+        <div className="relative">
           <Search
             className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"
             size={20}
@@ -1525,7 +1636,7 @@ export default function Orders() {
             placeholder="Search by request ID or customer..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-[#1a1a1a] border border-[#333] rounded-[8px] text-white placeholder-gray-600 focus:outline-none focus:border-[#FFD700] transition-all"
+            className="w-full h-11 pl-10 pr-4 bg-[#1a1a1a] border border-[#333] rounded-[10px] text-white placeholder-gray-600 focus:outline-none focus:border-[#FFD700]/80 focus:ring-1 focus:ring-[#FFD700]/30 transition-all"
           />
         </div>
 
@@ -1533,7 +1644,7 @@ export default function Orders() {
           <select
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value as WorkflowFilter)}
-            className="appearance-none px-4 py-2 bg-[#1a1a1a] border border-[#333] rounded-[8px] text-white focus:outline-none focus:border-[#FFD700] transition-all cursor-pointer pr-10"
+            className="appearance-none w-full h-11 px-4 bg-[#1a1a1a] border border-[#333] rounded-[10px] text-white focus:outline-none focus:border-[#FFD700]/80 focus:ring-1 focus:ring-[#FFD700]/30 transition-all cursor-pointer pr-10"
           >
             {getFilterOptions(isEs).map((status) => (
               <option key={status.value} value={status.value}>
@@ -1548,25 +1659,25 @@ export default function Orders() {
         </div>
       </div>
 
-      <div className="border border-[#333] rounded-[12px] overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
+      <div className="border border-[#333] rounded-[12px] overflow-hidden bg-[#101010]">
+        <div className="hidden lg:block">
+          <table className="w-full table-fixed">
             <thead>
               <tr className="bg-[#121212] border-b border-[#333]">
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">
+                <th className="w-[22%] px-6 py-4 text-left text-sm font-semibold text-gray-300">
                   Request ID
                 </th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">
+                <th className="w-[16%] px-6 py-4 text-left text-sm font-semibold text-gray-300">
                   Customer
                 </th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">
+                <th className="w-[24%] px-6 py-4 text-left text-sm font-semibold text-gray-300">
                   Date Range
                 </th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">
+                <th className="w-[12%] px-6 py-4 text-left text-sm font-semibold text-gray-300">
                   Products / Services
                 </th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Status</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Actions</th>
+                <th className="w-[14%] px-6 py-4 text-left text-sm font-semibold text-gray-300">Status</th>
+                <th className="w-[22%] px-6 py-4 text-left text-sm font-semibold text-gray-300">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -1589,12 +1700,21 @@ export default function Orders() {
                 filteredOrders.map((order) => (
                   <tr
                     key={order.request._id}
-                    className="border-b border-[#333] hover:bg-[#1a1a1a] transition-all"
+                    className="border-b border-[#333] hover:bg-[#171717] transition-all"
                   >
-                    <td className="px-6 py-4 text-white font-semibold">{order.request._id}</td>
+                    <td className="px-6 py-4">
+                      <span
+                        className="block max-w-full truncate font-semibold text-white"
+                        title={order.request._id}
+                      >
+                        {order.request._id}
+                      </span>
+                    </td>
                     <td className="px-6 py-4 text-gray-300">{order.customerName}</td>
                     <td className="px-6 py-4 text-gray-400 text-sm">
-                      {formatDate(order.request.startDate)} to {formatDate(order.request.endDate)}
+                      <span className="block leading-relaxed">{formatDate(order.request.startDate)}</span>
+                      <span className="block leading-relaxed text-gray-500">to</span>
+                      <span className="block leading-relaxed">{formatDate(order.request.endDate)}</span>
                     </td>
                     <td className="px-6 py-4 text-gray-300 text-sm">
                       <span className="bg-[#FFD700]/20 text-[#FFD700] px-3 py-1 rounded-full text-xs font-semibold mr-2">
@@ -1604,112 +1724,13 @@ export default function Orders() {
                     </td>
                     <td className="px-6 py-4">
                       <span
-                        className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadgeStyle(order.workflowStatus)}`}
+                        className={`inline-flex items-center whitespace-nowrap px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadgeStyle(order.workflowStatus)}`}
                       >
                         {order.workflowLabel}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <IconButton
-                          icon={Eye}
-                          title="View details"
-                          onClick={() => {
-                            setActiveOrder(order);
-                            setShowDetailsModal(true);
-                          }}
-                          intent="secondary"
-                          ariaLabel="View order details"
-                        />
-
-                        {order.request.status === "pending" && (
-                          <Button
-                            size="sm"
-                            leftIcon={Check}
-                            onClick={() => handleApproveOrder(order.request._id)}
-                            disabled={submitting || !canApproveRequest}
-                            className="bg-emerald-500/15 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/25"
-                          >
-                            Approve
-                          </Button>
-                        )}
-
-                        {order.request.status === "pending" && (
-                          <Button
-                            size="sm"
-                            leftIcon={X}
-                            onClick={() => handleOpenRejectModal(order)}
-                            disabled={submitting || !canUpdateRequest}
-                            variant="danger"
-                            className="bg-red-500/15 text-red-300 border-red-500/40 hover:bg-red-500/25"
-                          >
-                            Reject
-                          </Button>
-                        )}
-
-                        {order.request.status === "rejected" && (
-                          <Button
-                            size="sm"
-                            leftIcon={RotateCcw}
-                            onClick={() => handleOpenReactivateModal(order)}
-                            disabled={submitting || !canUpdateRequest}
-                            className="bg-[#FFD700]/10 text-[#FFD700] border-[#FFD700]/40 hover:bg-[#FFD700]/20"
-                          >
-                            Reactivate
-                          </Button>
-                        )}
-
-                        {order.request.depositAmount != null &&
-                          order.request.depositAmount > 0 &&
-                          !order.request.depositPaidAt && (
-                            <Button
-                              size="sm"
-                              leftIcon={CreditCard}
-                              onClick={() => handleOpenRecordPaymentModal(order)}
-                              disabled={submitting || !canRecordPayment}
-                              className="bg-orange-500/15 text-orange-300 border-orange-500/40 hover:bg-orange-500/25"
-                            >
-                              Record Payment
-                            </Button>
-                          )}
-
-                        {!order.loan && order.request.status === "approved" && (
-                          <Button
-                            size="sm"
-                            leftIcon={Check}
-                            onClick={() => handlePrepareOrder(order)}
-                            disabled={submitting || !canAssignRequest}
-                            className="bg-violet-500/15 text-violet-300 border-violet-500/40 hover:bg-violet-500/25"
-                          >
-                            Prepare
-                          </Button>
-                        )}
-
-                        {!order.loan && order.request.status === "ready" && (
-                          <Button
-                            size="sm"
-                            leftIcon={Truck}
-                            onClick={() => handleStartLoan(order.request._id)}
-                            disabled={submitting || !canCreateLoan}
-                            className="bg-blue-500/15 text-blue-300 border-blue-500/40 hover:bg-blue-500/25"
-                          >
-                            Start Loan
-                          </Button>
-                        )}
-
-                        {order.loan &&
-                          (order.loan.status === "active" || order.loan.status === "overdue") && (
-                            <Button
-                              size="sm"
-                              leftIcon={CircleCheck}
-                              onClick={() => handleCompleteLoan(order.loan!._id)}
-                              disabled={submitting || !canReturnLoan}
-                              className="bg-cyan-500/15 text-cyan-300 border-cyan-500/40 hover:bg-cyan-500/25"
-                            >
-                              Complete
-                            </Button>
-                          )}
-                      </div>
+                    <td className="px-6 py-4 align-top">
+                      {renderOrderActions(order)}
                     </td>
                   </tr>
                 ))
@@ -1717,13 +1738,69 @@ export default function Orders() {
             </tbody>
           </table>
         </div>
+
+        <div className="lg:hidden">
+          {loading ? (
+            <div className="px-4 py-10 text-center text-gray-400">
+              <span className="inline-flex items-center gap-2">
+                <Loader2 className="animate-spin" size={16} />
+                Loading orders...
+              </span>
+            </div>
+          ) : filteredOrders.length === 0 ? (
+            <div className="px-4 py-10 text-center text-gray-400">No orders found</div>
+          ) : (
+            <div className="divide-y divide-[#2a2a2a]">
+              {filteredOrders.map((order) => (
+                <article key={`mobile-${order.request._id}`} className="p-4 space-y-4 bg-[#111111]">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-gray-500">Request ID</p>
+                      <p className="text-sm font-semibold text-white break-all">{order.request._id}</p>
+                    </div>
+                    <span
+                      className={`shrink-0 px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadgeStyle(order.workflowStatus)}`}
+                    >
+                      {order.workflowLabel}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                    <div className="rounded-lg border border-[#2f2f2f] bg-[#171717] px-3 py-2">
+                      <p className="text-xs text-gray-500 uppercase tracking-wide">Customer</p>
+                      <p className="text-gray-200 mt-1">{order.customerName}</p>
+                    </div>
+                    <div className="rounded-lg border border-[#2f2f2f] bg-[#171717] px-3 py-2">
+                      <p className="text-xs text-gray-500 uppercase tracking-wide">Items</p>
+                      <p className="text-gray-200 mt-1">
+                        <span className="inline-flex items-center justify-center min-w-6 h-6 px-2 rounded-full bg-[#FFD700]/20 text-[#FFD700] text-xs font-semibold mr-2">
+                          {order.itemCount}
+                        </span>
+                        products/services
+                      </p>
+                    </div>
+                    <div className="sm:col-span-2 rounded-lg border border-[#2f2f2f] bg-[#171717] px-3 py-2">
+                      <p className="text-xs text-gray-500 uppercase tracking-wide">Date Range</p>
+                      <p className="text-gray-300 mt-1 text-sm">
+                        {formatDate(order.request.startDate)} to {formatDate(order.request.endDate)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {renderOrderActions(order)}
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
+
         <div className="border-t border-[#333] bg-[#121212] px-4 py-3 flex items-center justify-between text-sm">
-          <p className="text-gray-400">
+          <p className="text-gray-400 order-2 sm:order-1 w-full sm:w-auto text-center sm:text-left">
             Showing page <span className="text-white font-semibold">{requestsPage}</span> of{" "}
             <span className="text-white font-semibold">{requestsTotalPages}</span>
             <span className="ml-2 text-gray-500">({requestsTotal} total requests)</span>
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center sm:justify-end gap-2 order-1 sm:order-2 w-full sm:w-auto mb-2 sm:mb-0">
             <Button
               variant="secondary"
               size="sm"

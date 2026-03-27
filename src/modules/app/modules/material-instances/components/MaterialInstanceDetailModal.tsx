@@ -1,6 +1,7 @@
 import React from "react";
 import { X } from "lucide-react";
 import { type MaterialInstance, MATERIAL_INSTANCE_STATUS_LABELS } from "../../../../../types/api";
+import { MaterialBarcode } from "./MaterialBarcode";
 
 interface MaterialInstanceDetailModalProps {
   instance: MaterialInstance;
@@ -11,6 +12,8 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
   instance,
   onClose,
 }) => {
+  const resolvedCode = instance.barcode?.trim() || instance.serialNumber.trim();
+
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
       available: "text-green-400",
@@ -55,9 +58,21 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-400 mb-2">Barcode</label>
-            <p className="text-white font-mono">{instance.barcode || "Not assigned"}</p>
+          <div className="rounded-xl border border-[#333] bg-[#171717] p-4">
+            <label className="block text-sm font-medium text-gray-400 mb-3">Barcode</label>
+            <div className="rounded-lg bg-white p-4">
+              <MaterialBarcode
+                value={resolvedCode}
+                fallbackValue={instance.serialNumber}
+                height={72}
+                width={1.6}
+                showCodeLabel={false}
+              />
+            </div>
+            <p className="mt-3 text-white font-mono break-all">{resolvedCode || "Not assigned"}</p>
+            {!instance.barcode && (
+              <p className="mt-2 text-xs text-[#FFD700]">Using serial number as barcode fallback.</p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-6">

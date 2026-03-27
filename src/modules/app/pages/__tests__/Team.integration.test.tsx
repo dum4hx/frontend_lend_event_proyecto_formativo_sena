@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import Team from "../Team";
 import type { Role } from "../../../../types/api";
+import type { WarehouseLocation } from "../../../../services/warehouseOperatorService";
 
 const mocks = vi.hoisted(() => ({
   getUsers: vi.fn(),
@@ -12,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   deactivateUser: vi.fn(),
   reactivateUser: vi.fn(),
   getRoles: vi.fn(),
+  getLocations: vi.fn(),
   showConfirm: vi.fn(),
 }));
 
@@ -26,6 +28,10 @@ vi.mock("../../../../services/adminService", () => ({
 
 vi.mock("../../../../services/roleService", () => ({
   getRoles: mocks.getRoles,
+}));
+
+vi.mock("../../../../services/warehouseOperatorService", () => ({
+  getLocations: mocks.getLocations,
 }));
 
 vi.mock("../../../../hooks/useConfirmModal", () => ({
@@ -56,6 +62,23 @@ const roles: Role[] = [
     permissions: ["users:read"],
     isReadOnly: false,
     type: "CUSTOM",
+  },
+];
+
+const locations: WarehouseLocation[] = [
+  {
+    _id: "location-main",
+    id: "location-main",
+    name: "Main Warehouse",
+    organizationId: "org-1",
+    address: {},
+    capacity: 100,
+    occupied: 10,
+    status: "available",
+    isActive: true,
+    materialCapacities: [],
+    createdAt: "2026-03-25T00:00:00.000Z",
+    updatedAt: "2026-03-25T00:00:00.000Z",
   },
 ];
 
@@ -94,6 +117,10 @@ beforeEach(() => {
     status: "success",
     data: { items: roles, total: roles.length, page: 1, limit: 10 },
   });
+  mocks.getLocations.mockResolvedValue({
+    status: "success",
+    data: { items: locations, pagination: { total: 1, page: 1, totalPages: 1 } },
+  });
 
   mocks.inviteUser.mockResolvedValue({ status: "success", data: { user: { id: "u-new" } } });
   mocks.updateUser.mockResolvedValue({ status: "success", data: { user: { id: "u-active" } } });
@@ -104,7 +131,9 @@ beforeEach(() => {
 });
 
 describe("Team integration", () => {
-  it("invites a member with normalized payload and +57 phone prefix", async () => {
+  it(
+    "invites a member with normalized payload and +57 phone prefix",
+    async () => {
     const user = userEvent.setup();
     render(<Team />);
 
@@ -128,8 +157,11 @@ describe("Team integration", () => {
         firstSurname: "Rojas",
       },
       roleId: "role-admin",
+      locations: ["location-main"],
     });
-  });
+    },
+    10000,
+  );
 
   it("edits a member and updates both profile and role", async () => {
     const user = userEvent.setup();
