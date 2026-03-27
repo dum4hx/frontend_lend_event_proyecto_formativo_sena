@@ -320,9 +320,9 @@ export const MATERIAL_INSTANCE_STATUS_LABELS: Record<MaterialInstanceStatus, str
 export interface MaterialInstance {
   _id: string;
   /**
-   * The parent model (Material Type) - comes as modelId from API.
+   * The parent model (Material Type) - comes as model from API.
    */
-  modelId: {
+  model: {
     _id: string;
     name: string;
     description?: string;

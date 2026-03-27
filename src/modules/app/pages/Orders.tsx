@@ -1170,8 +1170,12 @@ export default function Orders() {
       nextErrors.startDate = "Select a start date.";
     } else if (isDatetimeIncomplete(formData.startDate)) {
       nextErrors.startDate = "Please set both date and hour for the start time.";
-    } else if (formData.startDate < getTodayLocalDatetimeString()) {
-      nextErrors.startDate = "Start date and time cannot be in the past.";
+    } else {
+      const startDateTime = new Date(formData.startDate);
+      const now = new Date();
+      if (startDateTime <= now) {
+        nextErrors.startDate = "Start date and time must be in the future.";
+      }
     }
 
     if (!formData.endDate) {
@@ -1290,7 +1294,7 @@ export default function Orders() {
       }
       showSuccess(
         isEs ? "Pedido creado correctamente." : "Order created successfully.",
-        isEs ? "Pedido registrado" : "Order Registered"
+        isEs ? "Pedido registrado" : "Order Registered",
       );
       closeCreateModal();
       await refreshData();

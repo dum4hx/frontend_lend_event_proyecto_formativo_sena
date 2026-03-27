@@ -150,7 +150,7 @@ export default function PrepareOrderModal({
       const currentUserInstances: AvailableMaterialInstance[] = [];
       for (const loc of availableMaterials.currentUserLocations) {
         for (const inst of loc.instances) {
-          if (inst.modelId._id === materialTypeId) currentUserInstances.push(inst);
+          if (inst.model._id === materialTypeId) currentUserInstances.push(inst);
         }
       }
       return { materialTypeId, materialTypeName, quantity, currentUserInstances };
@@ -215,7 +215,7 @@ export default function PrepareOrderModal({
       type LocEntry = { locationName: string; instances: AvailableMaterialInstance[] };
       const byLoc = new Map<string, LocEntry>();
       for (const loc of availableMaterials.otherLocations) {
-        const matching = loc.instances.filter((i) => i.modelId._id === materialTypeId);
+        const matching = loc.instances.filter((i) => i.model._id === materialTypeId);
         if (matching.length > 0) {
           byLoc.set(loc.location._id, {
             locationName: loc.location.name,

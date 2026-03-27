@@ -81,13 +81,21 @@ export default function Login() {
 
       if (!loggedUser) {
         console.error("❌ [Login] checkAuth() returned null after login");
-        setError(isEs ? "Fallo la autenticacion. Intenta de nuevo." : "Authentication failed. Please try again.");
+        setError(
+          isEs
+            ? "Fallo la autenticacion. Intenta de nuevo."
+            : "Authentication failed. Please try again.",
+        );
         return;
       }
 
       if (permissions.length === 0) {
         console.error("❌ [Login] User has no permissions assigned:", loggedUser);
-        setError(isEs ? "No tienes permisos asignados. Contacta a tu administrador." : "No permissions assigned. Please contact your administrator.");
+        setError(
+          isEs
+            ? "No tienes permisos asignados. Contacta a tu administrador."
+            : "No permissions assigned. Please contact your administrator.",
+        );
         return;
       }
 
@@ -135,13 +143,21 @@ export default function Login() {
           );
 
           if (!refreshedUser) {
-            setError(isEs ? "Fallo la autenticacion tras refrescar el token. Intenta de nuevo." : "Authentication failed after token refresh. Please try again.");
+            setError(
+              isEs
+                ? "Fallo la autenticacion tras refrescar el token. Intenta de nuevo."
+                : "Authentication failed after token refresh. Please try again.",
+            );
             return;
           }
 
           if (refreshedPermissions.length === 0) {
             console.error("❌ [Login] Refreshed user has no permissions:", refreshedUser);
-            setError(isEs ? "No tienes permisos asignados. Contacta a tu administrador." : "No permissions assigned. Please contact your administrator.");
+            setError(
+              isEs
+                ? "No tienes permisos asignados. Contacta a tu administrador."
+                : "No permissions assigned. Please contact your administrator.",
+            );
             return;
           }
 
@@ -173,11 +189,12 @@ export default function Login() {
           return;
         }
       }
-      const message = err instanceof ApiError
-        ? err.message
-        : isEs
-          ? "Error de conexion. Intenta de nuevo."
-          : "Connection error. Please try again.";
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : isEs
+            ? "Error de conexion. Intenta de nuevo."
+            : "Connection error. Please try again.";
       setError(message);
     } finally {
       setLoading(false);
@@ -265,7 +282,9 @@ export default function Login() {
             <h1 className="text-5xl text-white lg:text-6xl font-extrabold mb-6 leading-tight">
               {isEs ? "Gestion global" : "Global Management"}
               <br />
-              <span className="text-yellow-400">{isEs ? "Centro de control" : "Command Center"}</span>
+              <span className="text-yellow-400">
+                {isEs ? "Centro de control" : "Command Center"}
+              </span>
             </h1>
 
             {/* Description */}
@@ -282,8 +301,14 @@ export default function Login() {
                   <span className="text-yellow-400 text-xl font-bold">✓</span>
                 </div>
                 <div>
-                  <p className="font-bold text-white">{isEs ? "Seguridad empresarial" : "Business Security"}</p>
-                  <p className="text-sm text-gray-400">{isEs ? "Proteccion de datos cifrada de extremo a extremo." : "End-to-end encrypted data protection."}</p>
+                  <p className="font-bold text-white">
+                    {isEs ? "Seguridad empresarial" : "Business Security"}
+                  </p>
+                  <p className="text-sm text-gray-400">
+                    {isEs
+                      ? "Proteccion de datos cifrada de extremo a extremo."
+                      : "End-to-end encrypted data protection."}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center space-x-4 bg-white/5 p-4 rounded-xl border border-white/10">
@@ -291,9 +316,13 @@ export default function Login() {
                   <span className="text-yellow-400 text-xl font-bold">✓</span>
                 </div>
                 <div>
-                  <p className="font-bold text-white">{isEs ? "Acceso multinivel" : "Multi-level Access"}</p>
+                  <p className="font-bold text-white">
+                    {isEs ? "Acceso multinivel" : "Multi-level Access"}
+                  </p>
                   <p className="text-sm text-gray-400">
-                    {isEs ? "Portal unico para administradores y clientes." : "Single portal for administrators and customers."}
+                    {isEs
+                      ? "Portal unico para administradores y clientes."
+                      : "Single portal for administrators and customers."}
                   </p>
                 </div>
               </div>
@@ -305,7 +334,11 @@ export default function Login() {
         <div className="flex-grow md:w-1/2 flex items-center justify-center p-8 bg-black">
           <div className="w-full max-w-md">
             <h2 className="text-4xl font-extrabold mb-2">{isEs ? "Bienvenido" : "Welcome"}</h2>
-            <p className="text-gray-400 mb-10">{isEs ? "Ingresa tus credenciales corporativas para continuar" : "Enter your corporate credentials to continue"}</p>
+            <p className="text-gray-400 mb-10">
+              {isEs
+                ? "Ingresa tus credenciales corporativas para continuar"
+                : "Enter your corporate credentials to continue"}
+            </p>
 
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Error Message */}
@@ -382,7 +415,10 @@ export default function Login() {
                         const v = e.target.value.replace(/^\s+|\s+$/g, ""); // trim both ends
                         setPassword(v);
                         if (!v) {
-                          setErrorFor("password", isEs ? "La contrasena es obligatoria" : "Password is required");
+                          setErrorFor(
+                            "password",
+                            isEs ? "La contrasena es obligatoria" : "Password is required",
+                          );
                         } else {
                           setErrorFor("password", undefined);
                         }
@@ -394,7 +430,15 @@ export default function Login() {
                       type="button"
                       onClick={() => setShowPassword((s) => !s)}
                       className="absolute inset-y-0 right-0 mr-3 my-auto text-gray-400 hover:text-white"
-                      aria-label={showPassword ? (isEs ? "Ocultar contrasena" : "Hide password") : (isEs ? "Mostrar contrasena" : "Show password")}
+                      aria-label={
+                        showPassword
+                          ? isEs
+                            ? "Ocultar contrasena"
+                            : "Hide password"
+                          : isEs
+                            ? "Mostrar contrasena"
+                            : "Show password"
+                      }
                     >
                       {showPassword ? (
                         <svg
@@ -449,7 +493,9 @@ export default function Login() {
                     disabled={loading}
                     className="w-4 h-4 accent-yellow-400 bg-zinc-800 border-zinc-700 rounded disabled:opacity-50"
                   />
-                  <span className="text-gray-400 hover:text-white transition">{isEs ? "Recordarme" : "Remember me"}</span>
+                  <span className="text-gray-400 hover:text-white transition">
+                    {isEs ? "Recordarme" : "Remember me"}
+                  </span>
                 </label>
                 <Link
                   to="/password-recovery"
@@ -465,7 +511,13 @@ export default function Login() {
                 disabled={loading || Object.keys(fieldErrors).length > 0}
                 className={`w-full bg-yellow-400 text-black font-extrabold py-4 rounded-xl text-lg ${styles.glowButton} mt-4 shadow-xl hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed transition`}
               >
-                {loading ? (isEs ? "Iniciando sesion..." : "Signing in...") : (isEs ? "Ingresar" : "Sign In")}
+                {loading
+                  ? isEs
+                    ? "Iniciando sesion..."
+                    : "Signing in..."
+                  : isEs
+                    ? "Ingresar"
+                    : "Sign In"}
               </button>
             </form>
 

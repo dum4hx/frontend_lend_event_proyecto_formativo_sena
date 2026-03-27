@@ -17,9 +17,9 @@ npm run dev
 
 ## Environment variables
 
-| Variable            | Description                        | Default                        |
-| ------------------- | ---------------------------------- | ------------------------------ |
-| `VITE_API_BASE_URL` | Base URL of the LendEvent REST API | `http://api.test.local/api/v1` |
+| Variable            | Description                        | Default                         |
+| ------------------- | ---------------------------------- | ------------------------------- |
+| `VITE_API_BASE_URL` | Base URL of the LendEvent REST API | `https://api.test.local/api/v1` |
 
 > Create a `.env` file in the project root (see `.env.example`).
 
@@ -78,13 +78,13 @@ Client-side data export with redaction, audit metadata, and pluggable format ada
 ### Quick usage
 
 ```ts
-import { exportService, PLAN_CONFIGURATION_POLICY } from './services/export';
-import type { ExportConfig } from './types/export';
+import { exportService, PLAN_CONFIGURATION_POLICY } from "./services/export";
+import type { ExportConfig } from "./types/export";
 
 const config: ExportConfig = {
-  format: 'xlsx',
-  module: 'plan-configuration',
-  selectedFields: ['plan', 'displayName', 'baseCost', 'status'],
+  format: "xlsx",
+  module: "plan-configuration",
+  selectedFields: ["plan", "displayName", "baseCost", "status"],
   includeAuditMetadata: true,
   fullExport: false,
 };
@@ -94,15 +94,15 @@ const result = await exportService.export(rawData, config, userId);
 
 ### Architecture
 
-| Layer | File | Responsibility |
-| --- | --- | --- |
-| Types | `src/types/export.ts` | All export-related TypeScript interfaces |
-| Redaction | `src/services/export/redaction.ts` | PII pseudonymization/exclusion policies per module |
-| Validation | `src/services/export/validation.ts` | Runtime payload validation |
-| Checksum | `src/services/export/checksum.ts` | SHA-256 hashing via Web Crypto API |
-| PDF Adapter | `src/services/export/adapters/pdfAdapter.ts` | Minimal PDF-1.4 generator (no dependencies) |
-| Excel Adapter | `src/services/export/adapters/excelAdapter.ts` | Minimal XLSX generator (no dependencies) |
-| Service | `src/services/export/exportService.ts` | Orchestrates redaction → validation → adapter |
+| Layer         | File                                           | Responsibility                                     |
+| ------------- | ---------------------------------------------- | -------------------------------------------------- |
+| Types         | `src/types/export.ts`                          | All export-related TypeScript interfaces           |
+| Redaction     | `src/services/export/redaction.ts`             | PII pseudonymization/exclusion policies per module |
+| Validation    | `src/services/export/validation.ts`            | Runtime payload validation                         |
+| Checksum      | `src/services/export/checksum.ts`              | SHA-256 hashing via Web Crypto API                 |
+| PDF Adapter   | `src/services/export/adapters/pdfAdapter.ts`   | Minimal PDF-1.4 generator (no dependencies)        |
+| Excel Adapter | `src/services/export/adapters/excelAdapter.ts` | Minimal XLSX generator (no dependencies)           |
+| Service       | `src/services/export/exportService.ts`         | Orchestrates redaction → validation → adapter      |
 
 ### Redaction policies
 
@@ -120,13 +120,13 @@ Full export (PII included) requires explicit user confirmation and is logged in 
 Reusable alert notification with neon styling:
 
 ```tsx
-import { AlertContainer } from './components/ui';
-import { useAlerts } from './hooks/useAlerts';
+import { AlertContainer } from "./components/ui";
+import { useAlerts } from "./hooks/useAlerts";
 
 const { alerts, showAlert, dismissAlert } = useAlerts();
-showAlert('success', 'Export completed!');
+showAlert("success", "Export completed!");
 
-<AlertContainer alerts={alerts} onDismiss={dismissAlert} position="top-right" />
+<AlertContainer alerts={alerts} onDismiss={dismissAlert} position="top-right" />;
 ```
 
 ### Demo page

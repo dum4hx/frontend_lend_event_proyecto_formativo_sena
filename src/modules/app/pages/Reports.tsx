@@ -13,18 +13,20 @@ import {
   ClipboardList,
   Boxes,
   Send,
-  ArrowRightLeft,
   ShoppingCart,
-  FileSignature,
 } from "lucide-react";
 import { StatCard } from "../components";
 import { getCustomers } from "../../../services/customerService";
 import { getRequests, getLoans } from "../../../services/loanService";
 import { getInvoices, getInvoicesSummary } from "../../../services/invoiceService";
 import { getUsers } from "../../../services/userService";
-import { getMaterialTypes, getMaterialInstances, getMaterialCategories } from "../../../services/materialService";
-import { getLocations, getInventoryItems, getStockMovements, getAlerts } from "../../../services/warehouseOperatorService";
-import { commercialAdvisorService } from "../../../services/commercialAdvisorService";
+import {
+  getMaterialTypes,
+  getMaterialInstances,
+  getMaterialCategories,
+} from "../../../services/materialService";
+import { getLocations } from "../../../services/warehouseOperatorService";
+import { commercialAdvisorService, type Order } from "../../../services/commercialAdvisorService";
 import { ApiError } from "../../../lib/api";
 import { useLanguage } from "../../../contexts/useLanguage";
 import type {
@@ -45,7 +47,15 @@ import type { WarehouseLocation } from "../../../services/warehouseOperatorServi
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
-type ReportModule = "customers" | "requests" | "loans" | "invoices" | "inventory" | "team" | "locations" | "orders";
+type ReportModule =
+  | "customers"
+  | "requests"
+  | "loans"
+  | "invoices"
+  | "inventory"
+  | "team"
+  | "locations"
+  | "orders";
 
 interface DateRange {
   from: string;
@@ -84,7 +94,11 @@ const fmtDate = (iso: string | undefined) => {
 };
 
 const fmtCurrency = (cents: number) =>
-  new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(cents);
+  new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency: "COP",
+    maximumFractionDigits: 0,
+  }).format(cents);
 
 /** Format an ID for display - shows the complete ID */
 const fmtId = (id: string | undefined): string => {
@@ -96,11 +110,13 @@ function exportToCSV(headers: string[], rows: ReportRow[], filename: string) {
   const csvContent = [
     headers.join(","),
     ...rows.map((row) =>
-      headers.map((h) => {
-        const val = row.columns[h] ?? "";
-        const str = String(val).replace(/"/g, '""');
-        return str.includes(",") || str.includes('"') ? `"${str}"` : str;
-      }).join(",")
+      headers
+        .map((h) => {
+          const val = row.columns[h] ?? "";
+          const str = String(val).replace(/"/g, '""');
+          return str.includes(",") || str.includes('"') ? `"${str}"` : str;
+        })
+        .join(","),
     ),
   ].join("\n");
 
@@ -130,7 +146,7 @@ const MODULE_CONFIG: Record<
     description: "Transfer requests and approvals",
   },
   loans: {
-    label: "Loans", 
+    label: "Loans",
     icon: <TrendingUp size={18} />,
     description: "Active and completed loans",
   },
@@ -170,13 +186,37 @@ export default function Reports() {
   const moduleConfig = useMemo(() => {
     if (!isEs) return MODULE_CONFIG;
     return {
-      customers: { ...MODULE_CONFIG.customers, label: "Clientes", description: "Base de clientes y actividad" },
-      requests: { ...MODULE_CONFIG.requests, label: "Solicitudes", description: "Solicitudes y aprobaciones" },
-      loans: { ...MODULE_CONFIG.loans, label: "Prestamos", description: "Prestamos activos y completados" },
-      invoices: { ...MODULE_CONFIG.invoices, label: "Facturas", description: "Facturacion y pagos" },
-      inventory: { ...MODULE_CONFIG.inventory, label: "Inventario", description: "Categorias, tipos e instancias" },
+      customers: {
+        ...MODULE_CONFIG.customers,
+        label: "Clientes",
+        description: "Base de clientes y actividad",
+      },
+      requests: {
+        ...MODULE_CONFIG.requests,
+        label: "Solicitudes",
+        description: "Solicitudes y aprobaciones",
+      },
+      loans: {
+        ...MODULE_CONFIG.loans,
+        label: "Prestamos",
+        description: "Prestamos activos y completados",
+      },
+      invoices: {
+        ...MODULE_CONFIG.invoices,
+        label: "Facturas",
+        description: "Facturacion y pagos",
+      },
+      inventory: {
+        ...MODULE_CONFIG.inventory,
+        label: "Inventario",
+        description: "Categorias, tipos e instancias",
+      },
       team: { ...MODULE_CONFIG.team, label: "Equipo", description: "Miembros y roles" },
-      locations: { ...MODULE_CONFIG.locations, label: "Ubicaciones", description: "Ubicaciones y capacidad" },
+      locations: {
+        ...MODULE_CONFIG.locations,
+        label: "Ubicaciones",
+        description: "Ubicaciones y capacidad",
+      },
       orders: { ...MODULE_CONFIG.orders, label: "Pedidos", description: "Pedidos y ventas" },
     } as typeof MODULE_CONFIG;
   }, [isEs]);
@@ -207,10 +247,12 @@ export default function Reports() {
   const [invoiceSummary, setInvoiceSummary] = useState<InvoiceSummary | null>(null);
   const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
   const [materialInstances, setMaterialInstances] = useState<MaterialInstance[]>([]);
-  const [teamMembers, setTeamMembers] = useState<Array<{id: string; name: string; email: string; role: string; status: string}>>([]);
+  const [teamMembers, setTeamMembers] = useState<
+    Array<{ id: string; name: string; email: string; role: string; status: string }>
+  >([]);
   const [locations, setLocations] = useState<WarehouseLocation[]>([]);
   const [categories, setCategories] = useState<MaterialCategory[]>([]);
-  const [orders, setOrders] = useState<any[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
 
   // ─── Fetch data ────────────────────────────────────────────────────────
 
@@ -266,18 +308,18 @@ export default function Reports() {
             getMaterialCategories(),
           ]);
 
-          console.log('🔍 Raw API Response - Material Types:', typesRes.data);
-          console.log('🔍 Raw API Response - Material Instances:', instancesRes.data);
-          console.log('🔍 Raw API Response - Categories:', categoriesRes.data);
-          
+          console.log("🔍 Raw API Response - Material Types:", typesRes.data);
+          console.log("🔍 Raw API Response - Material Instances:", instancesRes.data);
+          console.log("🔍 Raw API Response - Categories:", categoriesRes.data);
+
           const instances = instancesRes.data.instances ?? [];
           const types = typesRes.data.materialTypes ?? [];
           const categories = categoriesRes.data.categories ?? [];
-          
-          console.log('🔍 Processed instances:', instances);
-          console.log('🔍 Processed types:', types);
-          console.log('🔍 Processed categories:', categories);
-          
+
+          console.log("🔍 Processed instances:", instances);
+          console.log("🔍 Processed types:", types);
+          console.log("🔍 Processed categories:", categories);
+
           // Log each instance to see its structure
           instances.forEach((instance, index) => {
             console.log(`🔍 Instance ${index}:`, {
@@ -285,14 +327,14 @@ export default function Reports() {
               serialNumber: instance.serialNumber,
               status: instance.status,
               modelId: instance.modelId,
-              locationId: instance.locationId
+              locationId: instance.locationId,
             });
           });
 
           setMaterialTypes(types);
           setMaterialInstances(instances);
           setCategories(categories);
-          
+
           break;
         }
         case "team": {
@@ -318,7 +360,7 @@ export default function Reports() {
                 role: u.roleName ?? "—",
                 status: u.status ?? "—",
               };
-            })
+            }),
           );
           break;
         }
@@ -326,100 +368,100 @@ export default function Reports() {
           try {
             const res = await getLocations({ limit: 100 });
             const locationsData = res.data.items ?? [];
-            
+
             // Mock locations data if no real data
             const mockLocations: WarehouseLocation[] = [
-              { 
+              {
                 _id: "loc1",
-                id: "loc1", 
-                name: "Main Warehouse", 
+                id: "loc1",
+                name: "Main Warehouse",
                 status: "available",
                 organizationId: "org1",
-                address: { 
-                  city: "Bogotá", 
+                address: {
+                  city: "Bogotá",
                   department: "Cundinamarca",
-                  formatted: "Bogotá, Cundinamarca"
+                  formatted: "Bogotá, Cundinamarca",
                 },
                 capacity: 1000,
                 occupied: 750,
                 isActive: true,
                 createdAt: "2024-01-01T00:00:00Z",
-                updatedAt: "2024-01-01T00:00:00Z"
+                updatedAt: "2024-01-01T00:00:00Z",
               },
-              { 
+              {
                 _id: "loc2",
-                id: "loc2", 
-                name: "Event Storage", 
+                id: "loc2",
+                name: "Event Storage",
                 status: "available",
-                organizationId: "org1",  
-                address: { 
-                  city: "Medellín", 
+                organizationId: "org1",
+                address: {
+                  city: "Medellín",
                   department: "Antioquia",
-                  formatted: "Medellín, Antioquia"
+                  formatted: "Medellín, Antioquia",
                 },
                 capacity: 800,
                 occupied: 400,
                 isActive: true,
                 createdAt: "2024-01-02T00:00:00Z",
-                updatedAt: "2024-01-02T00:00:00Z"
+                updatedAt: "2024-01-02T00:00:00Z",
               },
-              { 
+              {
                 _id: "loc3",
-                id: "loc3", 
-                name: "Repair Center", 
-                status: "maintenance", 
+                id: "loc3",
+                name: "Repair Center",
+                status: "maintenance",
                 organizationId: "org1",
-                address: { 
-                  city: "Cali", 
+                address: {
+                  city: "Cali",
                   department: "Valle del Cauca",
-                  formatted: "Cali, Valle del Cauca"
+                  formatted: "Cali, Valle del Cauca",
                 },
                 capacity: 600,
                 occupied: 200,
                 isActive: true,
                 createdAt: "2024-01-03T00:00:00Z",
-                updatedAt: "2024-01-03T00:00:00Z"
+                updatedAt: "2024-01-03T00:00:00Z",
               },
-              { 
+              {
                 _id: "loc4",
-                id: "loc4", 
-                name: "Client Site A", 
+                id: "loc4",
+                name: "Client Site A",
                 status: "full_capacity",
-                organizationId: "org2", 
-                address: { 
-                  city: "Barranquilla", 
+                organizationId: "org2",
+                address: {
+                  city: "Barranquilla",
                   department: "Atlántico",
-                  formatted: "Barranquilla, Atlántico"
+                  formatted: "Barranquilla, Atlántico",
                 },
                 capacity: 400,
                 occupied: 400,
                 isActive: true,
                 createdAt: "2024-01-04T00:00:00Z",
-                updatedAt: "2024-01-04T00:00:00Z"
-              }
+                updatedAt: "2024-01-04T00:00:00Z",
+              },
             ];
 
             setLocations(locationsData.length > 0 ? locationsData : mockLocations);
-          } catch (error) {
+          } catch {
             // Fallback to mock data on error
             setLocations([
-              { 
+              {
                 _id: "loc1",
-                id: "loc1", 
-                name: "Main Warehouse", 
+                id: "loc1",
+                name: "Main Warehouse",
                 status: "available",
                 organizationId: "org1",
-                address: { 
-                  city: "Bogotá", 
+                address: {
+                  city: "Bogotá",
                   department: "Cundinamarca",
-                  formatted: "Bogotá, Cundinamarca"
+                  formatted: "Bogotá, Cundinamarca",
                 },
                 capacity: 1000,
                 occupied: 750,
                 isActive: true,
                 createdAt: "2024-01-01T00:00:00Z",
-                updatedAt: "2024-01-01T00:00:00Z"
-              }
+                updatedAt: "2024-01-01T00:00:00Z",
+              },
             ] as WarehouseLocation[]);
           }
           break;
@@ -434,7 +476,11 @@ export default function Reports() {
       if (err instanceof ApiError) {
         setError(err.message);
       } else {
-        setError(isEs ? "No se pudieron cargar los datos. Intenta de nuevo." : "Failed to load data. Please try again.");
+        setError(
+          isEs
+            ? "No se pudieron cargar los datos. Intenta de nuevo."
+            : "Failed to load data. Please try again.",
+        );
       }
     } finally {
       setLoading(false);
@@ -463,13 +509,13 @@ export default function Reports() {
           rows: filtered.map((c) => ({
             id: c._id,
             columns: {
-              "ID": fmtId(c._id),
+              ID: fmtId(c._id),
               "First Name": c.name.firstName,
               "Last Name": c.name.firstSurname,
-              "Email": c.email,
-              "Phone": c.phone,
-              "Document": `${c.documentType} ${c.documentNumber}`,
-              "Status": c.status,
+              Email: c.email,
+              Phone: c.phone,
+              Document: `${c.documentType} ${c.documentNumber}`,
+              Status: c.status,
             },
           })),
         };
@@ -482,12 +528,12 @@ export default function Reports() {
           rows: filtered.map((r) => ({
             id: r._id,
             columns: {
-              "ID": fmtId(r._id),
+              ID: fmtId(r._id),
               "Customer ID": fmtId(r.customerId),
-              "Status": r.status,
+              Status: r.status,
               "Start Date": fmtDate(r.startDate),
               "End Date": fmtDate(r.endDate),
-              "Items": r.items?.length ? r.items.length.toString() : "—",
+              Items: r.items?.length ? r.items.length.toString() : "—",
             },
           })),
         };
@@ -500,12 +546,13 @@ export default function Reports() {
           rows: filtered.map((l) => ({
             id: l._id,
             columns: {
-              "ID": fmtId(l._id),
-              "Customer ID": fmtId(l.customerId),
-              "Status": l.status,
+              ID: fmtId(l._id),
+              "Customer ID":
+                typeof l.customerId === "string" ? fmtId(l.customerId) : fmtId(l.customerId._id),
+              Status: l.status,
               "Start Date": fmtDate(l.startDate),
               "End Date": fmtDate(l.endDate),
-              "Notes": l.notes ?? "—",
+              Notes: l.notes ?? "—",
             },
           })),
         };
@@ -518,10 +565,10 @@ export default function Reports() {
           rows: filtered.map((i) => ({
             id: i._id,
             columns: {
-              "ID": fmtId(i._id),
+              ID: fmtId(i._id),
               "Customer ID": fmtId(i.customerId),
-              "Type": i.type,
-              "Status": i.status,
+              Type: i.type,
+              Status: i.status,
               "Amount (COP)": fmtCurrency(i.amount),
               "Loan ID": i.loanId ? fmtId(i.loanId) : "—",
             },
@@ -531,38 +578,35 @@ export default function Reports() {
 
       case "inventory": {
         const filterType = filters.inventory.type;
-        
+
         // Helper function to extract category name from different possible formats
-        const getCategoryName = (categoryData: any): string => {
+        const getCategoryName = (
+          categoryData: string | MaterialCategory | { _id: string; name?: string } | undefined,
+        ): string => {
           if (!categoryData) return "—";
-          
-          // If it's an array, take the first element
-          if (Array.isArray(categoryData)) {
-            const category = categoryData[0];
-            return category?.name || category?._id || "—";
-          }
-          
+
           // If it's an object with name property
-          if (typeof categoryData === "object" && categoryData.name) {
+          if (typeof categoryData === "object" && "name" in categoryData && categoryData.name) {
             return categoryData.name;
           }
-          
+
           // If it's an object with _id property
-          if (typeof categoryData === "object" && categoryData._id) {
+          if (typeof categoryData === "object" && "_id" in categoryData && categoryData._id) {
+            const catObj = categoryData as { _id: string; name?: string };
             // Try to find the category name first
-            const foundCategory = categories.find(c => c._id === categoryData._id);
-            return foundCategory?.name || categoryData._id;
+            const foundCategory = categories.find((c) => c._id === catObj._id);
+            return foundCategory?.name || catObj._id;
           }
-          
+
           // If it's a string (just the ID)
           if (typeof categoryData === "string") {
-            const category = categories.find(c => c._id === categoryData);
+            const category = categories.find((c) => c._id === categoryData);
             return category?.name || categoryData;
           }
-          
+
           return "—";
         };
-        
+
         if (filterType === "categories") {
           return {
             headers: ["ID", "Name", "Description"],
@@ -571,29 +615,34 @@ export default function Reports() {
               return {
                 id: c._id,
                 columns: {
-                  "ID": fmtId(c._id),
-                  "Name": c.name,
-                  "Description": c.description || "—",
+                  ID: fmtId(c._id),
+                  Name: c.name,
+                  Description: c.description || "—",
                 },
               };
             }),
           };
         } else if (filterType === "types") {
-          console.log('Processing material types:', materialTypes);
-          console.log('Available categories for lookup:', categories);
+          console.log("Processing material types:", materialTypes);
+          console.log("Available categories for lookup:", categories);
           return {
             headers: ["ID", "Name", "Category", "Price/Day", "Description"],
             rows: materialTypes.map((mt) => {
               const categoryName = getCategoryName(mt.categoryId);
-              console.log(`Type ${mt.name} - categoryId:`, mt.categoryId, '- resolved to:', categoryName);
+              console.log(
+                `Type ${mt.name} - categoryId:`,
+                mt.categoryId,
+                "- resolved to:",
+                categoryName,
+              );
               return {
                 id: mt._id,
                 columns: {
-                  "ID": fmtId(mt._id),
-                  "Name": mt.name,
-                  "Category": categoryName,
+                  ID: fmtId(mt._id),
+                  Name: mt.name,
+                  Category: categoryName,
                   "Price/Day": fmtCurrency(mt.pricePerDay ?? 0),
-                  "Description": mt.description || "—",
+                  Description: mt.description || "—",
                 },
               };
             }),
@@ -604,33 +653,33 @@ export default function Reports() {
             if (filters.inventory.status && m.status !== filters.inventory.status) return false;
             return true;
           });
-          
-          console.log('🔍 Filtered instances for table:', filtered);
-          
+
+          console.log("🔍 Filtered instances for table:", filtered);
+
           return {
             headers: ["Serial", "Model", "Status", "Location", "Price/Day", "Description"],
             rows: filtered.map((m) => {
-              console.log('🔍 Processing instance for table:', m);
-              console.log('🔍 Instance fields:', {
+              console.log("🔍 Processing instance for table:", m);
+              console.log("🔍 Instance fields:", {
                 serialNumber: m.serialNumber,
                 modelId: m.modelId,
                 status: m.status,
-                locationId: m.locationId
+                locationId: m.locationId,
               });
-              
+
               const row = {
                 id: m._id,
                 columns: {
-                  "Serial": m.serialNumber || "—",
-                  "Model": m.modelId?.name || "—",
-                  "Status": m.status || "—",
-                  "Location": m.locationId?.name || "—",
+                  Serial: m.serialNumber || "—",
+                  Model: m.modelId?.name || "—",
+                  Status: m.status || "—",
+                  Location: m.locationId?.name || "—",
                   "Price/Day": m.modelId?.pricePerDay ? fmtCurrency(m.modelId.pricePerDay) : "—",
-                  "Description": m.modelId?.description || "—",
+                  Description: m.modelId?.description || "—",
                 },
               };
-              
-              console.log('🔍 Generated row:', row);
+
+              console.log("🔍 Generated row:", row);
               return row;
             }),
           };
@@ -647,11 +696,11 @@ export default function Reports() {
           rows: filtered.map((u) => ({
             id: u.id,
             columns: {
-              "ID": fmtId(u.id),
-              "Name": u.name,
-              "Email": u.email,
-              "Role": u.role,
-              "Status": u.status,
+              ID: fmtId(u.id),
+              Name: u.name,
+              Email: u.email,
+              Role: u.role,
+              Status: u.status,
             },
           })),
         };
@@ -667,34 +716,44 @@ export default function Reports() {
           rows: filtered.map((l) => ({
             id: l._id,
             columns: {
-              "ID": fmtId(l._id),
-              "Name": l.name,
-              "Organization": fmtId(l.organizationId) || "—",
-              "Status": l.status,
-              "City": l.address?.city || "—",
-              "Department": l.address?.department || "—",
-              "Address": `${l.address?.streetType || ""} ${l.address?.primaryNumber || ""}`.trim() || "—",
+              ID: fmtId(l._id),
+              Name: l.name,
+              Organization: fmtId(l.organizationId) || "—",
+              Status: l.status,
+              City: l.address?.city || "—",
+              Department: l.address?.department || "—",
+              Address:
+                `${l.address?.streetType || ""} ${l.address?.primaryNumber || ""}`.trim() || "—",
             },
           })),
         };
       }
 
       case "orders": {
-        const filtered = orders.filter((o: any) => {
+        const filtered = orders.filter((o) => {
           if (filters.orders.status && o.status !== filters.orders.status) return false;
           return matchesDate(o.date);
         });
         return {
-          headers: ["Order ID", "Customer", "Date", "Items", "Total", "Status", "Rental Start", "Rental End"],
-          rows: filtered.map((o: any) => ({
+          headers: [
+            "Order ID",
+            "Customer",
+            "Date",
+            "Items",
+            "Total",
+            "Status",
+            "Rental Start",
+            "Rental End",
+          ],
+          rows: filtered.map((o) => ({
             id: o.id,
             columns: {
               "Order ID": o.orderId,
-              "Customer": o.customer,
-              "Date": fmtDate(o.date),
-              "Items": o.items.toString(),
-              "Total": fmtCurrency(o.total),
-              "Status": o.status,
+              Customer: o.customer,
+              Date: fmtDate(o.date),
+              Items: o.items.toString(),
+              Total: fmtCurrency(o.total),
+              Status: o.status,
               "Rental Start": fmtDate(o.rentalStart),
               "Rental End": fmtDate(o.rentalEnd),
             },
@@ -705,116 +764,278 @@ export default function Reports() {
       default:
         return { headers: [], rows: [] };
     }
-  }, [activeModule, customers, requests, loans, invoices, materialTypes, materialInstances, teamMembers, locations, categories, orders, filters, dateRange]);
+  }, [
+    activeModule,
+    customers,
+    requests,
+    loans,
+    invoices,
+    materialTypes,
+    materialInstances,
+    teamMembers,
+    locations,
+    categories,
+    orders,
+    filters.inventory.type,
+    filters.inventory.status,
+    filters.locations.status,
+    filters.team.status,
+    filters.orders.status,
+    dateRange,
+  ]);
 
   const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   const pagedRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   // ─── KPI Cards ─────────────────────────────────────────────────────────
 
-  const kpiCards: Array<{ label: string; value: string | number; icon: React.ReactNode; trend?: string; trendUp?: boolean }> = useMemo(() => {
+  const kpiCards: Array<{
+    label: string;
+    value: string | number;
+    icon: React.ReactNode;
+    trend?: string;
+    trendUp?: boolean;
+  }> = useMemo(() => {
     switch (activeModule) {
       case "customers":
         return [
           { label: "Total", value: customers.length, icon: <Users size={24} /> },
-          { label: "Active", value: customers.filter((c) => c.status === "active").length, icon: <Users size={24} />, trend: "active", trendUp: true },
-          { label: "Inactive", value: customers.filter((c) => c.status === "inactive").length, icon: <Users size={24} /> },
-          { label: "Blacklisted", value: customers.filter((c) => c.status === "blacklisted").length, icon: <Users size={24} /> },
+          {
+            label: "Active",
+            value: customers.filter((c) => c.status === "active").length,
+            icon: <Users size={24} />,
+            trend: "active",
+            trendUp: true,
+          },
+          {
+            label: "Inactive",
+            value: customers.filter((c) => c.status === "inactive").length,
+            icon: <Users size={24} />,
+          },
+          {
+            label: "Blacklisted",
+            value: customers.filter((c) => c.status === "blacklisted").length,
+            icon: <Users size={24} />,
+          },
         ];
       case "requests":
         return [
           { label: "Total", value: requests.length, icon: <ClipboardList size={24} /> },
-          { label: "Pending", value: requests.filter((r) => r.status === "pending").length, icon: <ClipboardList size={24} /> },
-          { label: "Approved", value: requests.filter((r) => r.status === "approved").length, icon: <ClipboardList size={24} />, trend: "approved", trendUp: true },
-          { label: "Rejected", value: requests.filter((r) => r.status === "rejected").length, icon: <ClipboardList size={24} /> },
+          {
+            label: "Pending",
+            value: requests.filter((r) => r.status === "pending").length,
+            icon: <ClipboardList size={24} />,
+          },
+          {
+            label: "Approved",
+            value: requests.filter((r) => r.status === "approved").length,
+            icon: <ClipboardList size={24} />,
+            trend: "approved",
+            trendUp: true,
+          },
+          {
+            label: "Rejected",
+            value: requests.filter((r) => r.status === "rejected").length,
+            icon: <ClipboardList size={24} />,
+          },
         ];
       case "loans":
         return [
           { label: "Total", value: loans.length, icon: <TrendingUp size={24} /> },
-          { label: "Active", value: loans.filter((l) => l.status === "active").length, icon: <TrendingUp size={24} />, trendUp: true },
-          { label: "Overdue", value: loans.filter((l) => l.status === "overdue").length, icon: <TrendingUp size={24} /> },
-          { label: "Returned", value: loans.filter((l) => l.status === "returned").length, icon: <TrendingUp size={24} /> },
+          {
+            label: "Active",
+            value: loans.filter((l) => l.status === "active").length,
+            icon: <TrendingUp size={24} />,
+            trendUp: true,
+          },
+          {
+            label: "Overdue",
+            value: loans.filter((l) => l.status === "overdue").length,
+            icon: <TrendingUp size={24} />,
+          },
+          {
+            label: "Returned",
+            value: loans.filter((l) => l.status === "returned").length,
+            icon: <TrendingUp size={24} />,
+          },
         ];
       case "invoices":
         return [
           { label: "Total Invoices", value: invoices.length, icon: <FileText size={24} /> },
-          { label: "Pending", value: invoiceSummary?.pending.count ?? invoices.filter((i) => i.status === "pending").length, icon: <DollarSign size={24} /> },
-          { label: "Paid", value: invoiceSummary?.paid.count ?? invoices.filter((i) => i.status === "paid").length, icon: <DollarSign size={24} />, trendUp: true },
+          {
+            label: "Pending",
+            value:
+              invoiceSummary?.pending.count ??
+              invoices.filter((i) => i.status === "pending").length,
+            icon: <DollarSign size={24} />,
+          },
+          {
+            label: "Paid",
+            value: invoiceSummary?.paid.count ?? invoices.filter((i) => i.status === "paid").length,
+            icon: <DollarSign size={24} />,
+            trendUp: true,
+          },
           {
             label: "Total Amount",
             value: fmtCurrency(invoices.reduce((sum, i) => sum + (i.amount ?? 0), 0)),
             icon: <DollarSign size={24} />,
           },
         ];
-      case "inventory":
-        return [
-          { label: "Types (Catalog)", value: materialTypes.length, icon: <Boxes size={24} /> },
-          { label: "Total Units", value: materialInstances.length, icon: <Boxes size={24} /> },
-          { label: "Available", value: materialInstances.filter((m) => m.status === "available").length, icon: <Boxes size={24} />, trendUp: true },
-          { label: "Loaned / In Use", value: materialInstances.filter((m) => ["loaned", "in_use"].includes(m.status)).length, icon: <Boxes size={24} /> },
-        ];
-      case "team":
-        return [
-          { label: "Total Members", value: teamMembers.length, icon: <Users size={24} /> },
-          { label: "Active", value: teamMembers.filter((u) => u.status === "active").length, icon: <Users size={24} />, trendUp: true },
-          { label: "Invited", value: teamMembers.filter((u) => u.status === "invited").length, icon: <Users size={24} /> },
-          { label: "Roles", value: new Set(teamMembers.map((u) => u.role)).size, icon: <Package size={24} /> },
-        ];
-      case "locations":
-        return [
-          { label: "Total Locations", value: locations.length, icon: <Boxes size={24} /> },
-          { label: "Available", value: locations.filter((l) => l.status === "available").length, icon: <Boxes size={24} />, trendUp: true },
-          { label: "Full Capacity", value: locations.filter((l) => l.status === "full_capacity").length, icon: <Boxes size={24} /> },
-          { label: "Maintenance", value: locations.filter((l) => l.status === "maintenance").length, icon: <Boxes size={24} /> },
-        ];
-      case "inventory":
+      case "inventory": {
         const filterType = filters.inventory.type;
         if (filterType === "categories") {
           return [
             { label: "Total Categories", value: categories.length, icon: <Package size={24} /> },
             { label: "Material Types", value: materialTypes.length, icon: <Package size={24} /> },
             { label: "Instances", value: materialInstances.length, icon: <Package size={24} /> },
-            { label: "With Parent", value: categories.filter((c) => c.parentId).length, icon: <Package size={24} /> },
+            {
+              label: "With Parent",
+              value: categories.filter((c) => c.parentId).length,
+              icon: <Package size={24} />,
+            },
           ];
         } else if (filterType === "types") {
           return [
             { label: "Total Types", value: materialTypes.length, icon: <Package size={24} /> },
             { label: "Categories", value: categories.length, icon: <Package size={24} /> },
             { label: "Instances", value: materialInstances.length, icon: <Package size={24} /> },
-            { label: "Avg Price/Day", value: fmtCurrency(materialTypes.reduce((sum, mt) => sum + (mt.pricePerDay || 0), 0) / (materialTypes.length || 1)), icon: <Package size={24} /> },
+            {
+              label: "Avg Price/Day",
+              value: fmtCurrency(
+                materialTypes.reduce((sum, mt) => sum + (mt.pricePerDay || 0), 0) /
+                  (materialTypes.length || 1),
+              ),
+              icon: <Package size={24} />,
+            },
           ];
         } else {
           // Default: instances view
           return [
-            { label: "Total Instances", value: materialInstances.length, icon: <Package size={24} /> },
-            { label: "Available", value: materialInstances.filter((mi) => mi.status === "available").length, icon: <Package size={24} />, trendUp: true },
-            { label: "Loaned", value: materialInstances.filter((mi) => mi.status === "loaned").length, icon: <Package size={24} /> },
-            { label: "Maintenance", value: materialInstances.filter((mi) => mi.status === "maintenance").length, icon: <Package size={24} /> },
+            {
+              label: "Total Instances",
+              value: materialInstances.length,
+              icon: <Package size={24} />,
+            },
+            {
+              label: "Available",
+              value: materialInstances.filter((mi) => mi.status === "available").length,
+              icon: <Package size={24} />,
+              trendUp: true,
+            },
+            {
+              label: "Loaned",
+              value: materialInstances.filter((mi) => mi.status === "loaned").length,
+              icon: <Package size={24} />,
+            },
+            {
+              label: "Maintenance",
+              value: materialInstances.filter((mi) => mi.status === "maintenance").length,
+              icon: <Package size={24} />,
+            },
           ];
         }
+      }
+      case "team":
+        return [
+          { label: "Total Members", value: teamMembers.length, icon: <Users size={24} /> },
+          {
+            label: "Active",
+            value: teamMembers.filter((u) => u.status === "active").length,
+            icon: <Users size={24} />,
+            trendUp: true,
+          },
+          {
+            label: "Invited",
+            value: teamMembers.filter((u) => u.status === "invited").length,
+            icon: <Users size={24} />,
+          },
+          {
+            label: "Roles",
+            value: new Set(teamMembers.map((u) => u.role)).size,
+            icon: <Package size={24} />,
+          },
+        ];
+      case "locations":
+        return [
+          { label: "Total Locations", value: locations.length, icon: <Boxes size={24} /> },
+          {
+            label: "Available",
+            value: locations.filter((l) => l.status === "available").length,
+            icon: <Boxes size={24} />,
+            trendUp: true,
+          },
+          {
+            label: "Full Capacity",
+            value: locations.filter((l) => l.status === "full_capacity").length,
+            icon: <Boxes size={24} />,
+          },
+          {
+            label: "Maintenance",
+            value: locations.filter((l) => l.status === "maintenance").length,
+            icon: <Boxes size={24} />,
+          },
+        ];
       case "orders":
         return [
           { label: "Total Orders", value: orders.length, icon: <ShoppingCart size={24} /> },
-          { label: "Pending", value: orders.filter((o: any) => o.status === "pending").length, icon: <ShoppingCart size={24} /> },
-          { label: "Completed", value: orders.filter((o: any) => o.status === "completed").length, icon: <ShoppingCart size={24} />, trendUp: true },
-          { label: "Revenue", value: fmtCurrency(orders.reduce((sum: number, o: any) => sum + (o.total || 0), 0)), icon: <DollarSign size={24} /> },
+          {
+            label: "Pending",
+            value: orders.filter((o) => o.status === "pending").length,
+            icon: <ShoppingCart size={24} />,
+          },
+          {
+            label: "Completed",
+            value: orders.filter((o) => o.status === "completed").length,
+            icon: <ShoppingCart size={24} />,
+            trendUp: true,
+          },
+          {
+            label: "Revenue",
+            value: fmtCurrency(orders.reduce((sum, o) => sum + (o.total || 0), 0)),
+            icon: <DollarSign size={24} />,
+          },
         ];
       default:
         return [];
     }
-  }, [activeModule, customers, requests, loans, invoices, materialTypes, materialInstances, teamMembers, locations, categories, orders, invoiceSummary]);
+  }, [
+    activeModule,
+    customers,
+    requests,
+    loans,
+    invoices,
+    materialTypes,
+    materialInstances,
+    teamMembers,
+    locations,
+    categories,
+    orders,
+    invoiceSummary,
+    filters.inventory.type,
+  ]);
 
   // ─── Status badge ──────────────────────────────────────────────────────
 
   const statusBadgeClass = (val: string) => {
     switch (val) {
-      case "active": case "paid": case "approved": case "available": case "returned":
+      case "active":
+      case "paid":
+      case "approved":
+      case "available":
+      case "returned":
         return "bg-emerald-900/60 text-emerald-300";
-      case "inactive": case "cancelled": case "rejected": case "retired":
+      case "inactive":
+      case "cancelled":
+      case "rejected":
+      case "retired":
         return "bg-red-900/60 text-red-300";
-      case "pending": case "invited": case "reserved":
+      case "pending":
+      case "invited":
+      case "reserved":
         return "bg-yellow-900/60 text-yellow-300";
-      case "overdue": case "damaged": case "lost":
+      case "overdue":
+      case "damaged":
+      case "lost":
         return "bg-orange-900/60 text-orange-300";
       case "blacklisted":
         return "bg-purple-900/60 text-purple-300";
@@ -834,7 +1055,11 @@ export default function Reports() {
     setPage(1);
   };
 
-  const setFilter = <M extends ReportModule>(mod: M, key: keyof ModuleFilters[M], value: ModuleFilters[M][keyof ModuleFilters[M]]) => {
+  const setFilter = <M extends ReportModule>(
+    mod: M,
+    key: keyof ModuleFilters[M],
+    value: ModuleFilters[M][keyof ModuleFilters[M]],
+  ) => {
     setFilters((prev) => ({ ...prev, [mod]: { ...prev[mod], [key]: value } }));
     setPage(1);
   };
@@ -851,8 +1076,12 @@ export default function Reports() {
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white">{isEs ? "Reportes y analitica" : "Reports & Analytics"}</h1>
-          <p className="text-gray-400 mt-1">{isEs ? "Explora datos en todos los modulos" : "Explore data across all modules"}</p>
+          <h1 className="text-3xl font-bold text-white">
+            {isEs ? "Reportes y analitica" : "Reports & Analytics"}
+          </h1>
+          <p className="text-gray-400 mt-1">
+            {isEs ? "Explora datos en todos los modulos" : "Explore data across all modules"}
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -876,28 +1105,35 @@ export default function Reports() {
 
       {/* Module Tabs */}
       <div className="flex flex-wrap gap-2">
-        {(Object.entries(moduleConfig) as [ReportModule, typeof moduleConfig[ReportModule]][]).map(
-          ([mod, cfg]) => (
-            <button
-              key={mod}
-              onClick={() => handleModuleChange(mod)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition ${
-                activeModule === mod
-                  ? "bg-yellow-400 text-black border-yellow-400"
-                  : "bg-zinc-900 border-zinc-700 text-gray-300 hover:border-yellow-400 hover:text-white"
-              }`}
-            >
-              {cfg.icon}
-              {cfg.label}
-            </button>
-          )
-        )}
+        {(
+          Object.entries(moduleConfig) as [ReportModule, (typeof moduleConfig)[ReportModule]][]
+        ).map(([mod, cfg]) => (
+          <button
+            key={mod}
+            onClick={() => handleModuleChange(mod)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition ${
+              activeModule === mod
+                ? "bg-yellow-400 text-black border-yellow-400"
+                : "bg-zinc-900 border-zinc-700 text-gray-300 hover:border-yellow-400 hover:text-white"
+            }`}
+          >
+            {cfg.icon}
+            {cfg.label}
+          </button>
+        ))}
       </div>
 
       {/* KPI Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {kpiCards.map((card, i) => (
-          <StatCard key={i} label={card.label} value={card.value} icon={card.icon} trend={card.trend} trendUp={card.trendUp} />
+          <StatCard
+            key={i}
+            label={card.label}
+            value={card.value}
+            icon={card.icon}
+            trend={card.trend}
+            trendUp={card.trendUp}
+          />
         ))}
       </div>
 
@@ -905,7 +1141,9 @@ export default function Reports() {
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
         <div className="flex items-center gap-2 mb-4">
           <Filter size={16} className="text-yellow-400" />
-          <span className="text-sm font-semibold text-gray-300">{isEs ? "Filtros" : "Filters"}</span>
+          <span className="text-sm font-semibold text-gray-300">
+            {isEs ? "Filtros" : "Filters"}
+          </span>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {/* Date From */}
@@ -914,7 +1152,10 @@ export default function Reports() {
             <input
               type="date"
               value={dateRange.from}
-              onChange={(e) => { setDateRange((p) => ({ ...p, from: e.target.value })); setPage(1); }}
+              onChange={(e) => {
+                setDateRange((p) => ({ ...p, from: e.target.value }));
+                setPage(1);
+              }}
               className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-lg px-3 py-2 text-sm outline-none focus:border-yellow-400 transition"
             />
           </div>
@@ -924,7 +1165,10 @@ export default function Reports() {
             <input
               type="date"
               value={dateRange.to}
-              onChange={(e) => { setDateRange((p) => ({ ...p, to: e.target.value })); setPage(1); }}
+              onChange={(e) => {
+                setDateRange((p) => ({ ...p, to: e.target.value }));
+                setPage(1);
+              }}
               className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-lg px-3 py-2 text-sm outline-none focus:border-yellow-400 transition"
             />
           </div>
@@ -935,7 +1179,9 @@ export default function Reports() {
               <label className="block text-xs text-gray-400 mb-1">Status</label>
               <select
                 value={filters.customers.status}
-                onChange={(e) => setFilter("customers", "status", e.target.value as CustomerStatus | "")}
+                onChange={(e) =>
+                  setFilter("customers", "status", e.target.value as CustomerStatus | "")
+                }
                 className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-lg px-3 py-2 text-sm outline-none focus:border-yellow-400 transition"
               >
                 <option value="">All</option>
@@ -951,7 +1197,9 @@ export default function Reports() {
               <label className="block text-xs text-gray-400 mb-1">Status</label>
               <select
                 value={filters.requests.status}
-                onChange={(e) => setFilter("requests", "status", e.target.value as LoanRequestStatus | "")}
+                onChange={(e) =>
+                  setFilter("requests", "status", e.target.value as LoanRequestStatus | "")
+                }
                 className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-lg px-3 py-2 text-sm outline-none focus:border-yellow-400 transition"
               >
                 <option value="">All</option>
@@ -1000,7 +1248,9 @@ export default function Reports() {
                 <label className="block text-xs text-gray-400 mb-1">Status</label>
                 <select
                   value={filters.invoices.status}
-                  onChange={(e) => setFilter("invoices", "status", e.target.value as InvoiceStatus | "")}
+                  onChange={(e) =>
+                    setFilter("invoices", "status", e.target.value as InvoiceStatus | "")
+                  }
                   className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-lg px-3 py-2 text-sm outline-none focus:border-yellow-400 transition"
                 >
                   <option value="">All</option>
@@ -1013,7 +1263,13 @@ export default function Reports() {
                 <label className="block text-xs text-gray-400 mb-1">Type</label>
                 <select
                   value={filters.invoices.type}
-                  onChange={(e) => setFilter("invoices", "type", e.target.value as "rental" | "damage" | "deposit" | "")}
+                  onChange={(e) =>
+                    setFilter(
+                      "invoices",
+                      "type",
+                      e.target.value as "rental" | "damage" | "deposit" | "",
+                    )
+                  }
                   className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-lg px-3 py-2 text-sm outline-none focus:border-yellow-400 transition"
                 >
                   <option value="">All</option>
@@ -1084,7 +1340,13 @@ export default function Reports() {
                 <label className="block text-xs text-gray-400 mb-1">View Type</label>
                 <select
                   value={filters.inventory.type}
-                  onChange={(e) => setFilter("inventory", "type", e.target.value as "types" | "categories" | "instances" | "")}
+                  onChange={(e) =>
+                    setFilter(
+                      "inventory",
+                      "type",
+                      e.target.value as "types" | "categories" | "instances" | "",
+                    )
+                  }
                   className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-lg px-3 py-2 text-sm outline-none focus:border-yellow-400 transition"
                 >
                   <option value="">Material Instances (Default)</option>
@@ -1113,14 +1375,24 @@ export default function Reports() {
             </>
           )}
 
-
-
           {activeModule === "orders" && (
             <div>
               <label className="block text-xs text-gray-400 mb-1">Order Status</label>
               <select
                 value={filters.orders.status}
-                onChange={(e) => setFilter("orders", "status", e.target.value as "pending" | "confirmed" | "in-progress" | "completed" | "cancelled" | "")}
+                onChange={(e) =>
+                  setFilter(
+                    "orders",
+                    "status",
+                    e.target.value as
+                      | "pending"
+                      | "confirmed"
+                      | "in-progress"
+                      | "completed"
+                      | "cancelled"
+                      | "",
+                  )
+                }
                 className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-lg px-3 py-2 text-sm outline-none focus:border-yellow-400 transition"
               >
                 <option value="">All</option>
@@ -1133,13 +1405,14 @@ export default function Reports() {
             </div>
           )}
 
-
-
           {/* Clear filters */}
           {(dateRange.from || dateRange.to) && (
             <div className="flex items-end">
               <button
-                onClick={() => { setDateRange({ from: "", to: "" }); setPage(1); }}
+                onClick={() => {
+                  setDateRange({ from: "", to: "" });
+                  setPage(1);
+                }}
                 className="text-xs text-yellow-400 hover:text-yellow-300 transition underline"
               >
                 {isEs ? "Limpiar fechas" : "Clear dates"}
@@ -1158,7 +1431,13 @@ export default function Reports() {
               {moduleConfig[activeModule].label} {isEs ? "- Reporte" : "Report"}
             </h2>
             <p className="text-gray-400 text-xs mt-0.5">
-              {loading ? (isEs ? "Cargando..." : "Loading…") : isEs ? `${rows.length} registros encontrados` : `${rows.length} records found`}
+              {loading
+                ? isEs
+                  ? "Cargando..."
+                  : "Loading…"
+                : isEs
+                  ? `${rows.length} registros encontrados`
+                  : `${rows.length} records found`}
             </p>
           </div>
         </div>
@@ -1177,7 +1456,9 @@ export default function Reports() {
         ) : rows.length === 0 ? (
           <div className="p-12 text-center text-gray-400">
             <FileText size={40} className="mx-auto mb-3 opacity-40" />
-            {isEs ? "No hay registros para esta combinacion de filtros." : "No records for this filter combination."}
+            {isEs
+              ? "No hay registros para esta combinacion de filtros."
+              : "No records for this filter combination."}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -1185,7 +1466,10 @@ export default function Reports() {
               <thead className="bg-zinc-800/60 border-b border-zinc-700">
                 <tr>
                   {headers.map((h) => (
-                    <th key={h} className="px-5 py-3 text-left text-gray-400 font-medium whitespace-nowrap">
+                    <th
+                      key={h}
+                      className="px-5 py-3 text-left text-gray-400 font-medium whitespace-nowrap"
+                    >
                       {h}
                     </th>
                   ))}
@@ -1193,14 +1477,19 @@ export default function Reports() {
               </thead>
               <tbody>
                 {pagedRows.map((row) => (
-                  <tr key={row.id} className="border-b border-zinc-800 hover:bg-zinc-800/40 transition">
+                  <tr
+                    key={row.id}
+                    className="border-b border-zinc-800 hover:bg-zinc-800/40 transition"
+                  >
                     {headers.map((h) => {
                       const val = row.columns[h] ?? "—";
                       const isStatus = STATUS_COLUMNS.has(h);
                       return (
                         <td key={h} className="px-5 py-3 text-gray-300 whitespace-nowrap">
                           {isStatus ? (
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusBadgeClass(String(val))}`}>
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusBadgeClass(String(val))}`}
+                            >
                               {String(val)}
                             </span>
                           ) : (
