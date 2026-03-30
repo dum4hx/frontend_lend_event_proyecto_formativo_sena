@@ -1,27 +1,38 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Plus, Search, Tag, X } from "lucide-react";
 import { useMaterialTypes } from "../hooks";
 import { useCategories } from "../../material-categories/hooks";
-import { MaterialTypeList, MaterialTypeDetailModal } from "../components";
+import { MaterialTypeList, MaterialTypeDetailModal, MaterialTypeForm } from "../components";
 import { AdminPagination } from "../../../components";
 import { ExcelExportImport } from "../../../../../components/export/ExcelExportImport";
 import { useToast } from "../../../../../contexts/ToastContext";
-import type { MaterialType } from "../../../../../types/api";
+import type {
+  MaterialType,
+  CreateMaterialTypePayload,
+  UpdateMaterialTypePayload,
+} from "../../../../../types/api";
 
 type MaterialWithCategory = MaterialType & {
   categoryId?: string | string[] | { _id?: string } | { _id?: string }[];
 };
 
 export const MaterialTypeCatalog: React.FC = () => {
-  const navigate = useNavigate();
-  const { materialTypes, loading, error, removeMaterialType, addMaterialType } = useMaterialTypes();
+  const {
+    materialTypes,
+    loading,
+    error,
+    removeMaterialType,
+    addMaterialType,
+    updateMaterialType: updateMaterialTypeData,
+  } = useMaterialTypes();
   const { categories } = useCategories();
   const { showToast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<Set<string>>(new Set());
   const [selectedMaterialType, setSelectedMaterialType] = useState<MaterialType | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingType, setEditingType] = useState<MaterialType | null>(null);
   const pageSize = 10;
   const searchInputId = "material-types-search";
 
@@ -59,6 +70,29 @@ export const MaterialTypeCatalog: React.FC = () => {
     return matchesSearch && matchesCategory;
   });
 
+  const handleEdit = (type: MaterialType) => {
+    setEditingType(type);
+    setIsFormOpen(true);
+  };
+
+  const handleFormSubmit = async (payload: CreateMaterialTypePayload) => {
+    try {
+      if (editingType) {
+        await updateMaterialTypeData(editingType._id, payload as UpdateMaterialTypePayload);
+        showToast("success", "Material type updated successfully", "Success");
+      } else {
+        await addMaterialType(payload);
+        showToast("success", "Material type created successfully", "Success");
+      }
+      setIsFormOpen(false);
+      setEditingType(null);
+    } catch (err) {
+      const error = err as Error;
+      showToast("error", error.message || "Failed to save material type", "Error");
+      throw err;
+    }
+  };
+
   const totalPages = Math.max(1, Math.ceil(filteredMaterialTypes.length / pageSize));
 
   // Ensure current page is within total pages range
@@ -95,9 +129,7 @@ export const MaterialTypeCatalog: React.FC = () => {
     try {
       // Build lookup structures from loaded categories
       const categoryIdMap = new Map(categories.map((c) => [c._id, c._id]));
-      const categoryNameMap = new Map(
-        categories.map((c) => [c.name.toLowerCase().trim(), c._id]),
-      );
+      const categoryNameMap = new Map(categories.map((c) => [c.name.toLowerCase().trim(), c._id]));
 
       let successCount = 0;
       const rejected: { name: string; categoryId: string; reason: string }[] = [];
@@ -253,7 +285,7 @@ export const MaterialTypeCatalog: React.FC = () => {
                 showLabels={true}
               />
               <button
-                onClick={() => navigate("create")}
+                onClick={() => setIsFormOpen(true)}
                 className="flex items-center gap-2 px-6 py-3 font-semibold rounded-lg transition-colors whitespace-nowrap border border-[#B88A00] text-[#FFD700] hover:bg-[#FFD700]/10"
               >
                 <Plus size={20} />
@@ -348,7 +380,7 @@ export const MaterialTypeCatalog: React.FC = () => {
               {!searchTerm && selectedCategoryIds.size === 0 && (
                 <button
                   type="button"
-                  onClick={() => navigate("create")}
+                  onClick={() => setIsFormOpen(true)}
                   className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-[#B88A00] text-[#FFD700] hover:bg-[#FFD700]/10 transition-colors"
                 >
                   <Plus size={18} />
@@ -362,7 +394,7 @@ export const MaterialTypeCatalog: React.FC = () => {
                 materialTypes={pagedMaterialTypes}
                 categories={categories}
                 onView={setSelectedMaterialType}
-                onEdit={(type) => navigate("create", { state: { materialType: type } })}
+                onEdit={handleEdit}
                 onDelete={handleDelete}
               />
               <AdminPagination
@@ -376,6 +408,20 @@ export const MaterialTypeCatalog: React.FC = () => {
             </>
           )}
         </div>
+
+        {/* Form Modal */}
+        {isFormOpen && (
+          <MaterialTypeForm
+            categories={categories}
+            initialData={editingType || undefined}
+            isEditing={!!editingType}
+            onSubmit={handleFormSubmit}
+            onCancel={() => {
+              setIsFormOpen(false);
+              setEditingType(null);
+            }}
+          />
+        )}
 
         {/* Detail Modal */}
         {selectedMaterialType && (
