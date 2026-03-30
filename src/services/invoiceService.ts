@@ -1,7 +1,7 @@
 /**
  * Invoice service.
  *
- * Covers invoice listing, creation, payments, voiding, and summary stats.
+ * Covers invoice listing, fetching by ID, payments, voiding, and summary stats.
  */
 
 import { get, post, type ApiSuccessResponse } from "../lib/api";
@@ -25,12 +25,19 @@ export async function getInvoices(
   );
 }
 
+// ─── Get by ID ─────────────────────────────────────────────────────────────
+
+/** Fetch a single invoice by ID, including populated line items and payment history. */
+export async function getInvoiceById(
+  id: string,
+): Promise<ApiSuccessResponse<{ invoice: Invoice }>> {
+  return get<{ invoice: Invoice }>(`/invoices/${id}`);
+}
+
 // ─── Summary ───────────────────────────────────────────────────────────────
 
 /** Fetch invoice summary statistics. */
-export async function getInvoicesSummary(): Promise<
-  ApiSuccessResponse<InvoiceSummary>
-> {
+export async function getInvoicesSummary(): Promise<ApiSuccessResponse<InvoiceSummary>> {
   return get<InvoiceSummary>("/invoices/summary");
 }
 
@@ -56,3 +63,4 @@ export async function voidInvoice(
 ): Promise<ApiSuccessResponse<null>> {
   return post<null>(`/invoices/${invoiceId}/void`, { reason });
 }
+

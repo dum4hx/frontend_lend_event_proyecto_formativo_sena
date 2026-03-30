@@ -57,6 +57,7 @@ import Contracts from "./modules/app/pages/Contracts";
 import Orders from "./modules/app/pages/Orders";
 import Rentals from "./modules/app/pages/Rentals";
 import Invoices from "./modules/app/pages/Invoices";
+import PaymentMethods from "./modules/app/pages/PaymentMethods";
 import Reports from "./modules/app/pages/Reports";
 import PricingConfigs from "./modules/app/pages/PricingConfigs";
 
@@ -153,6 +154,7 @@ function App() {
               <Route path="rentals" element={<Rentals />} />
               <Route path="pricing" element={<PricingConfigs />} />
               <Route path="invoices" element={<Invoices />} />
+              <Route path="payment-methods" element={<PaymentMethods />} />
               <Route path="reports" element={<Reports />} />
               <Route path="ia-settings" element={<IASettings />} />
               <Route path="settings" element={<Settings />} />

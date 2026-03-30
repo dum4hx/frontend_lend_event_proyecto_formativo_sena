@@ -599,11 +599,15 @@ export default function Reports() {
             id: i._id,
             columns: {
               ID: fmtId(i._id),
-              "Customer ID": fmtId(i.customerId),
+              "Customer ID": typeof i.customerId === "object" && i.customerId !== null
+                ? fmtId(i.customerId._id)
+                : fmtId(i.customerId as string),
               Type: i.type,
               Status: i.status,
-              "Amount (COP)": fmtCurrency(i.amount),
-              "Loan ID": i.loanId ? fmtId(i.loanId) : "—",
+              "Amount (COP)": fmtCurrency(i.totalAmount),
+              "Loan ID": i.loanId
+                ? fmtId(typeof i.loanId === "object" ? i.loanId._id : i.loanId)
+                : "—",
             },
           })),
         };
@@ -861,7 +865,7 @@ export default function Reports() {
           },
           {
             label: "Total Amount",
-            value: fmtCurrency(invoices.reduce((sum, i) => sum + (i.amount ?? 0), 0)),
+            value: fmtCurrency(invoices.reduce((sum, i) => sum + (i.totalAmount ?? 0), 0)),
             icon: <DollarSign size={24} />,
           },
         ];

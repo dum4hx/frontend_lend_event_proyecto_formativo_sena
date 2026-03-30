@@ -39,7 +39,7 @@ This document defines:
 
 ### 🎯 Type Safety
 
-- **No `any` types** — all code is strictly typed
+- **DO NOT UNDER ANY CIRCUMSTANCE use `any` types** — all code is strictly typed, create custom types or derive from existing interfaces as needed
 - All interfaces derive from `src/types/api.ts`
 - API types mirror `docs/API_DOCUMENTATION.md` exactly
 

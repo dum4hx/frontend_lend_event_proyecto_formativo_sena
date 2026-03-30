@@ -33,8 +33,14 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
     })),
   );
   const [overallNotes, setOverallNotes] = useState("");
+  const [dueDate, setDueDate] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Check if any item is damaged or lost (for conditional dueDate display)
+  const hasDamagedOrLostItems = items.some(
+    (item) => item.condition === "damaged" || item.condition === "lost",
+  );
 
   const handleItemChange = <K extends keyof InspectionItem>(
     index: number,
@@ -56,6 +62,7 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
         loanId: loan._id,
         items,
         overallNotes,
+        ...(dueDate && { dueDate }),
       });
       onClose();
     } catch (err) {
@@ -171,16 +178,38 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
             ))}
           </div>
 
-          <div className="border-t border-[#333] pt-6">
-            <label className="block text-sm font-semibold text-white mb-2 uppercase tracking-wide">
-              Overall Inspection Notes
-            </label>
-            <textarea
-              placeholder="Record any general observations about the loan return..."
-              className="w-full bg-[#1a1a1a] border border-[#333] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#FFD700] min-h-[100px]"
-              value={overallNotes}
-              onChange={(e) => setOverallNotes(e.target.value)}
-            />
+          <div className="border-t border-[#333] pt-6 space-y-6">
+            <div>
+              <label className="block text-sm font-semibold text-white mb-2 uppercase tracking-wide">
+                Overall Inspection Notes
+              </label>
+              <textarea
+                placeholder="Record any general observations about the loan return..."
+                className="w-full bg-[#1a1a1a] border border-[#333] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#FFD700] min-h-[100px]"
+                value={overallNotes}
+                onChange={(e) => setOverallNotes(e.target.value)}
+              />
+            </div>
+
+            {hasDamagedOrLostItems && (
+              <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-4 space-y-3">
+                <label className="block text-sm font-semibold text-white uppercase tracking-wide">
+                  Invoice Due Date{" "}
+                  <span className="text-gray-500 font-normal text-xs">(Optional)</span>
+                </label>
+                <p className="text-xs text-gray-400">
+                  Set when a damage invoice will be generated. If not provided, defaults to 30 days
+                  from creation.
+                </p>
+                <input
+                  type="datetime-local"
+                  placeholder="Select due date and time"
+                  className="w-full bg-[#0a0a0a] border border-[#333] rounded-md px-4 py-2 text-sm text-white focus:outline-none focus:border-[#FFD700]"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                />
+              </div>
+            )}
           </div>
         </form>
 

@@ -509,6 +509,7 @@ export interface CreateInspectionPayload {
   loanId: string;
   items: InspectionItem[];
   overallNotes?: string;
+  dueDate?: string;
 }
 
 export interface PendingLoan {
@@ -543,13 +544,61 @@ export interface PendingLoan {
 export type InvoiceStatus = "pending" | "paid" | "cancelled";
 export type InvoiceType = "rental" | "damage" | "deposit";
 
+export interface InvoiceLineItem {
+  _id: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  referenceId?: string;
+  referenceType?: string;
+}
+
+export interface InvoicePayment {
+  _id: string;
+  amount: number;
+  paymentMethodId: string;
+  reference?: string;
+  recordedAt: string;
+}
+
+export interface InvoiceCustomer {
+  _id: string;
+  name: {
+    firstName: string;
+    firstSurname: string;
+    secondName?: string;
+    secondSurname?: string;
+  };
+  email?: string;
+}
+
+export interface InvoiceLoan {
+  _id: string;
+  startDate?: string;
+  endDate?: string;
+}
+
 export interface Invoice {
   _id: string;
+  organizationId?: string;
+  invoiceNumber: string;
   status: InvoiceStatus;
   type: InvoiceType;
-  amount: number;
-  customerId: string;
-  loanId?: string;
+  customerId: InvoiceCustomer | string;
+  loanId?: InvoiceLoan | string;
+  inspectionId?: string;
+  lineItems: InvoiceLineItem[];
+  subtotal: number;
+  taxRate: number;
+  taxAmount: number;
+  totalAmount: number;
+  amountPaid: number;
+  amountDue: number;
+  dueDate?: string;
+  payments: InvoicePayment[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface InvoiceSummary {
@@ -562,6 +611,30 @@ export interface RecordPaymentPayload {
   amount: number;
   paymentMethodId: string;
   reference?: string;
+}
+
+// ─── Payment Methods ───────────────────────────────────────────────────────
+
+export interface PaymentMethod {
+  id: string;
+  name: string;
+  description?: string;
+  status: "active" | "inactive";
+  isDefault: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreatePaymentMethodPayload {
+  name: string;
+  description?: string;
+  status?: "active" | "inactive";
+}
+
+export interface UpdatePaymentMethodPayload {
+  name?: string;
+  description?: string;
+  status?: "active" | "inactive";
 }
 
 // ─── Billing ───────────────────────────────────────────────────────────────
