@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { X, Plus, Info } from "lucide-react";
 import { useToast } from "../../../../../contexts/ToastContext";
 import { useMaterialAttributes } from "../../material-attributes/hooks/useMaterialAttributes";
@@ -8,6 +8,8 @@ import type {
   MaterialCategory,
   CreateMaterialAttributePayload,
   MaterialType,
+  MaterialTypeAttribute,
+  MaterialAttribute,
 } from "../../../../../types/api";
 import { Button, IconButton } from "../../../../../components/ui";
 
@@ -33,25 +35,34 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
     description: "",
     categoryId: "",
     pricePerDay: 0,
+    attributes: [],
   });
   const [priceDisplay, setPriceDisplay] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAttributeForm, setShowAttributeForm] = useState(false);
 
-  // Local state for related attributes (since API integration placeholder is requested)
-  const [relatedAttributes, setRelatedAttributes] = useState<
-    Array<{
-      attributeId: string;
-      isRequired: boolean;
-    }>
-  >([]);
-
   const { showToast } = useToast();
-  const {
-    attributes,
-    addAttribute,
-    loading: loadingAttrs,
-  } = useMaterialAttributes(formData.categoryId);
+  const { attributes: allAttributes } = useMaterialAttributes();
+
+  // Get category-specific attributes when category changes
+  const selectedCategory = useMemo(
+    () => categories.find((c) => c._id === formData.categoryId),
+    [formData.categoryId, categories],
+  );
+
+  const categoryAttributeIds = useMemo(
+    () => new Set((selectedCategory?.attributes || []).map((a) => a.attributeId)),
+    [selectedCategory],
+  );
+
+  // Available attributes filtered to only those in the selected category
+  const categoryAttributes = useMemo(
+    () =>
+      allAttributes.filter((attr) => categoryAttributeIds.has(attr._id)).sort((a, b) =>
+        a.name.localeCompare(b.name),
+      ),
+    [allAttributes, categoryAttributeIds],
+  );
 
   const formatCop = (value: number) => {
     return new Intl.NumberFormat("es-CO", {
@@ -80,24 +91,12 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
         description: initialData.description || "",
         categoryId: categoryIdValue,
         pricePerDay: initialData.pricePerDay || 0,
+        attributes: (initialData as MaterialType).attributes || [],
       });
       if (initialData.pricePerDay) {
         setPriceDisplay(formatCop(initialData.pricePerDay));
       } else {
         setPriceDisplay("");
-      }
-
-      // Load existing attributes if any (Placeholder for when initialData has them)
-      const dataAsType = initialData as MaterialType;
-      // Note: Backend might not return isRequired in the materialType.attributes array,
-      // but we use it for the local UI state.
-      if (dataAsType && dataAsType.attributes) {
-        setRelatedAttributes(
-          dataAsType.attributes.map((a) => ({
-            attributeId: a.attributeId,
-            isRequired: (a as { isRequired?: boolean }).isRequired ?? false,
-          })),
-        );
       }
     }
   }, [initialData]);
@@ -117,18 +116,26 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
       return;
     }
 
+    // Validate required attributes have values
+    const requiredAttrs = selectedCategory?.attributes?.filter((a) => a.isRequired) || [];
+    const missingRequired = requiredAttrs.filter(
+      (req) =>
+        !(formData.attributes || []).find(
+          (attr) => attr.attributeId === req.attributeId && attr.value?.trim(),
+        ),
+    );
+
+    if (missingRequired.length > 0) {
+      showToast(
+        "error",
+        `Required attributes missing values: ${missingRequired.map((a) => a.attributeId).join(", ")}`,
+      );
+      return;
+    }
+
     try {
       setIsSubmitting(true);
-
-      // Integration Placeholder:
-      // The API payload might need to include relatedAttributes
-      const finalPayload = {
-        ...formData,
-        // attributes: relatedAttributes, // Uncomment when API supports this
-      };
-
-      console.log("Submitting material type:", finalPayload);
-      await onSubmit(finalPayload as CreateMaterialTypePayload);
+      await onSubmit(formData as CreateMaterialTypePayload);
     } catch (error) {
       const err = error as Error & { details?: { errors?: Array<{ message: string }> } };
       console.error("Error saving material type:", err);
@@ -140,40 +147,69 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
     }
   };
 
-  const handleCreateAttribute = async (attrPayload: CreateMaterialAttributePayload) => {
+  const handleCreateAttribute = async (_attrPayload: CreateMaterialAttributePayload) => {
     try {
-      const newAttr = await addAttribute(attrPayload);
-
-      // Auto-relate the newly created attribute with isRequired defaulting to false
-      setRelatedAttributes((prev) => [
-        ...prev,
-        { attributeId: newAttr._id, value: "", isRequired: false },
-      ]);
-
+      // After creating, the attribute is auto-added to the organization
+      // Will be available for next category that includes it
+      showToast("success", "Attribute created successfully");
       setShowAttributeForm(false);
-      showToast("success", "Attribute created and linked successfully");
     } catch (err) {
       showToast("error", (err as Error).message || "Failed to create attribute");
     }
   };
 
-  const toggleAttributeRelation = (attrId: string) => {
-    setRelatedAttributes((prev) => {
-      const exists = prev.find((a) => a.attributeId === attrId);
-      if (exists) {
-        return prev.filter((a) => a.attributeId !== attrId);
+  /**
+   * Update an attribute value or required status
+   */
+  const updateAttributeValue = (
+    attributeId: string,
+    value: string,
+    isRequired?: boolean,
+  ) => {
+    setFormData((prev) => {
+      const existing = (prev.attributes || []).find((a) => a.attributeId === attributeId);
+      if (existing) {
+        return {
+          ...prev,
+          attributes: (prev.attributes || []).map((a) =>
+            a.attributeId === attributeId
+              ? {
+                  ...a,
+                  value,
+                  isRequired: isRequired !== undefined ? isRequired : a.isRequired,
+                }
+              : a,
+          ),
+        };
       } else {
-        // New attributes default to optional (isRequired: false) with empty value
-        return [...prev, { attributeId: attrId, value: "", isRequired: false }];
+        return {
+          ...prev,
+          attributes: [
+            ...(prev.attributes || []),
+            {
+              attributeId,
+              value,
+              isRequired: isRequired ?? false,
+            },
+          ],
+        };
       }
     });
   };
 
-  const toggleAttributeRequired = (attrId: string) => {
-    setRelatedAttributes((prev) =>
-      prev.map((a) => (a.attributeId === attrId ? { ...a, isRequired: !a.isRequired } : a)),
-    );
+  /**
+   * Remove an attribute value
+   */
+  const removeAttributeValue = (attributeId: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      attributes: (prev.attributes || []).filter((a) => a.attributeId !== attributeId),
+    }));
   };
+
+  const currentAttributeValues = new Map(
+    (formData.attributes || []).map((a) => [a.attributeId, a]),
+  );
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -295,7 +331,6 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
                   variant="secondary"
                   size="sm"
                   onClick={() => setShowAttributeForm(true)}
-                  disabled={!formData.categoryId}
                   className="bg-[#1a1a1a] border-[#333] text-gray-300 hover:text-white hover:border-[#FFD700] transition-all"
                 >
                   <Plus size={16} className="mr-2" />
@@ -310,62 +345,103 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
                     Select a category first to manage specific attributes.
                   </p>
                 </div>
+              ) : categoryAttributes.length === 0 ? (
+                <div className="bg-[#1a1a1a]/50 border border-dashed border-[#333] rounded-2xl p-10 text-center">
+                  <Info className="w-10 h-10 text-gray-600 mx-auto mb-4" />
+                  <p className="text-gray-500 text-sm">
+                    This category has no attributes. Create one or add to the category.
+                  </p>
+                </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {attributes.map((attr) => {
-                    const relation = relatedAttributes.find((ra) => ra.attributeId === attr._id);
-                    const isSelected = !!relation;
+                <div className="space-y-3">
+                  {categoryAttributes.map((attr) => {
+                    const categoryAttr = selectedCategory?.attributes?.find(
+                      (ca) => ca.attributeId === attr._id,
+                    );
+                    const isRequired = categoryAttr?.isRequired ?? false;
+                    const currentValue = currentAttributeValues.get(attr._id);
+                    const isSelected = !!currentValue;
 
                     return (
                       <div
                         key={attr._id}
-                        onClick={() => toggleAttributeRelation(attr._id)}
-                        className={`group cursor-pointer p-4 rounded-xl border transition-all duration-300 flex flex-col justify-between space-y-3 ${
+                        className={`p-4 rounded-xl border transition-all ${
                           isSelected
-                            ? "bg-[#FFD700]/5 border-[#FFD700] shadow-[0_0_15px_rgba(255,215,0,0.05)]"
-                            : "bg-[#1a1a1a] border-[#222] hover:border-[#444]"
+                            ? "bg-[#FFD700]/5 border-[#FFD700] shadow-[0_0_10px_rgba(255,215,0,0.1)]"
+                            : "bg-[#1a1a1a] border-[#222]"
                         }`}
                       >
-                        <div className="flex items-center justify-between">
-                          <span
-                            className={`text-xs font-bold transition-colors ${isSelected ? "text-[#FFD700]" : "text-gray-400 group-hover:text-gray-200"}`}
-                          >
-                            {attr.name}
-                          </span>
-                          <div
-                            className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${
-                              isSelected ? "bg-[#FFD700] border-[#FFD700]" : "border-[#444]"
-                            }`}
-                          >
-                            {isSelected && <div className="w-1.5 h-1.5 bg-black rounded-full" />}
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-3">
+                              <label className="flex items-center gap-2 cursor-pointer flex-1">
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      updateAttributeValue(attr._id, "", isRequired);
+                                    } else {
+                                      removeAttributeValue(attr._id);
+                                    }
+                                  }}
+                                  className="w-4 h-4 rounded cursor-pointer"
+                                  disabled={isSubmitting}
+                                />
+                                <span className="font-medium text-white">{attr.name}</span>
+                                {attr.unit && (
+                                  <span className="text-xs text-gray-500">({attr.unit})</span>
+                                )}
+                                {isRequired && (
+                                  <span className="text-xs bg-red-500/20 text-red-300 px-2 py-1 rounded border border-red-500/40">
+                                    Required
+                                  </span>
+                                )}
+                              </label>
+                            </div>
+
+                            {isSelected && (
+                              <div className="space-y-2 ml-6">
+                                {attr.allowedValues && attr.allowedValues.length > 0 ? (
+                                  <select
+                                    value={currentValue?.value || ""}
+                                    onChange={(e) =>
+                                      updateAttributeValue(attr._id, e.target.value)
+                                    }
+                                    className="w-full px-3 py-2 bg-[#111] border border-[#333] rounded-lg text-white text-sm focus:outline-none focus:border-[#FFD700]"
+                                    disabled={isSubmitting}
+                                  >
+                                    <option value="">-- Select value --</option>
+                                    {attr.allowedValues.map((val) => (
+                                      <option key={val} value={val}>
+                                        {val}
+                                      </option>
+                                    ))}
+                                  </select>
+                                ) : (
+                                  <input
+                                    type="text"
+                                    value={currentValue?.value || ""}
+                                    onChange={(e) =>
+                                      updateAttributeValue(attr._id, e.target.value)
+                                    }
+                                    placeholder={`Enter ${attr.name}...`}
+                                    className="w-full px-3 py-2 bg-[#111] border border-[#333] rounded-lg text-white text-sm focus:outline-none focus:border-[#FFD700]"
+                                    disabled={isSubmitting}
+                                  />
+                                )}
+                                {isRequired && !currentValue?.value && (
+                                  <p className="text-xs text-red-400">
+                                    This attribute is required
+                                  </p>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
-
-                        {isSelected && (
-                          <div
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleAttributeRequired(attr._id);
-                            }}
-                            className="flex items-center space-x-2 pt-2 border-t border-[#FFD700]/20"
-                          >
-                            <div
-                              className={`w-3 h-3 rounded-sm border transition-all ${relation.isRequired ? "bg-[#FFD700] border-[#FFD700]" : "border-[#444]"}`}
-                            />
-                            <span className="text-[10px] text-gray-500 uppercase tracking-tighter">
-                              Mark as Required
-                            </span>
-                          </div>
-                        )}
                       </div>
                     );
                   })}
-
-                  {attributes.length === 0 && !loadingAttrs && (
-                    <div className="col-span-full py-6 text-center text-gray-500 text-xs italic">
-                      No attributes found for this category.
-                    </div>
-                  )}
                 </div>
               )}
             </div>
