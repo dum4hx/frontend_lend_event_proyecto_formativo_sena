@@ -6,9 +6,7 @@ import { MaterialAttributeForm } from "../../material-attributes/components/Attr
 import type {
   CreateMaterialTypePayload,
   MaterialCategory,
-  CreateMaterialAttributePayload,
   MaterialType,
-  MaterialTypeAttribute,
 } from "../../../../../types/api";
 import { Button, IconButton } from "../../../../../components/ui";
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { getOrphanedAttributeValues } from "../../../../../services/materialService";
 import { useToast } from "../../../../../contexts/ToastContext";
@@ -28,7 +28,7 @@ export const OrphanedAttributesAudit: React.FC = () => {
   const { language } = useLanguage();
   const isEs = language === "es";
 
-  const fetchOrphanedValues = async () => {
+  const fetchOrphanedValues = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -46,7 +46,7 @@ export const OrphanedAttributesAudit: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [showToast, isEs]);
 
   useEffect(() => {
     fetchOrphanedValues();
