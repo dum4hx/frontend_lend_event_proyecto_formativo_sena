@@ -48,10 +48,7 @@ export async function recordPayment(
   invoiceId: string,
   payload: RecordPaymentPayload,
 ): Promise<ApiSuccessResponse<{ invoice: Invoice }>> {
-  return post<{ invoice: Invoice }, RecordPaymentPayload>(
-    `/invoices/${invoiceId}/payment`,
-    payload,
-  );
+  return post<{ invoice: Invoice }, RecordPaymentPayload>(`/invoices/${invoiceId}/pay`, payload);
 }
 
 // ─── Void ──────────────────────────────────────────────────────────────────
@@ -63,4 +60,3 @@ export async function voidInvoice(
 ): Promise<ApiSuccessResponse<null>> {
   return post<null>(`/invoices/${invoiceId}/void`, { reason });
 }
-

@@ -81,6 +81,7 @@ type CreateOrderValidationErrors = {
   startDate?: string;
   endDate?: string;
   depositDueDate?: string;
+  depositAmount?: string;
   items?: string;
   rows: Record<string, DraftItemValidationErrors>;
 };
@@ -132,6 +133,7 @@ const EMPTY_FORM = {
   startDate: "",
   endDate: "",
   depositDueDate: "",
+  depositAmount: "" as string | number,
   notes: "",
 };
 
@@ -1305,6 +1307,10 @@ export default function Orders() {
       nextErrors.depositDueDate = "Deposit due date must be before or on the start date.";
     }
 
+    if (formData.depositAmount === "") {
+      nextErrors.depositAmount = "Please enter a deposit amount (or 0 for no deposit conditions).";
+    }
+
     const draftRowsToValidate = formItems.filter((item) => !isDraftRowEmpty(item));
 
     draftRowsToValidate.forEach((item) => {
@@ -1388,6 +1394,7 @@ export default function Orders() {
       startDate: toSafeStartDateIso(formData.startDate),
       endDate: toSafeEndDateIso(formData.endDate),
       depositDueDate: toSafeEndDateIso(formData.depositDueDate),
+      depositAmount: Number(formData.depositAmount) || 0,
       notes: formData.notes.trim() || undefined,
     };
 
@@ -1676,8 +1683,12 @@ export default function Orders() {
                 <th className="w-[12%] px-6 py-4 text-left text-sm font-semibold text-gray-300">
                   Products / Services
                 </th>
-                <th className="w-[14%] px-6 py-4 text-left text-sm font-semibold text-gray-300">Status</th>
-                <th className="w-[22%] px-6 py-4 text-left text-sm font-semibold text-gray-300">Actions</th>
+                <th className="w-[14%] px-6 py-4 text-left text-sm font-semibold text-gray-300">
+                  Status
+                </th>
+                <th className="w-[22%] px-6 py-4 text-left text-sm font-semibold text-gray-300">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -1712,9 +1723,13 @@ export default function Orders() {
                     </td>
                     <td className="px-6 py-4 text-gray-300">{order.customerName}</td>
                     <td className="px-6 py-4 text-gray-400 text-sm">
-                      <span className="block leading-relaxed">{formatDate(order.request.startDate)}</span>
+                      <span className="block leading-relaxed">
+                        {formatDate(order.request.startDate)}
+                      </span>
                       <span className="block leading-relaxed text-gray-500">to</span>
-                      <span className="block leading-relaxed">{formatDate(order.request.endDate)}</span>
+                      <span className="block leading-relaxed">
+                        {formatDate(order.request.endDate)}
+                      </span>
                     </td>
                     <td className="px-6 py-4 text-gray-300 text-sm">
                       <span className="bg-[#FFD700]/20 text-[#FFD700] px-3 py-1 rounded-full text-xs font-semibold mr-2">
@@ -1729,9 +1744,7 @@ export default function Orders() {
                         {order.workflowLabel}
                       </span>
                     </td>
-                    <td className="px-6 py-4 align-top">
-                      {renderOrderActions(order)}
-                    </td>
+                    <td className="px-6 py-4 align-top">{renderOrderActions(order)}</td>
                   </tr>
                 ))
               )}
@@ -1756,7 +1769,9 @@ export default function Orders() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-xs uppercase tracking-wide text-gray-500">Request ID</p>
-                      <p className="text-sm font-semibold text-white break-all">{order.request._id}</p>
+                      <p className="text-sm font-semibold text-white break-all">
+                        {order.request._id}
+                      </p>
                     </div>
                     <span
                       className={`shrink-0 px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadgeStyle(order.workflowStatus)}`}
@@ -1928,6 +1943,27 @@ export default function Orders() {
                       />
                       {createErrors.depositDueDate && (
                         <p className="form-error">{createErrors.depositDueDate}</p>
+                      )}
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Deposit Amount (COP) *</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        placeholder="e.g. 50000"
+                        value={formData.depositAmount}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setFormData((prev) => ({
+                            ...prev,
+                            depositAmount: val === "" ? "" : Number(val),
+                          }));
+                        }}
+                        className={`input ${createErrors.depositAmount ? "input-error" : ""}`}
+                      />
+                      {createErrors.depositAmount && (
+                        <p className="form-error">{createErrors.depositAmount}</p>
                       )}
                     </div>
 

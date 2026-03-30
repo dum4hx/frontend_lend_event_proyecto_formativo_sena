@@ -129,6 +129,14 @@ export async function returnLoan(loanId: string): Promise<ApiSuccessResponse<{ l
   return post<{ loan: Loan }>(`/loans/${loanId}/return`);
 }
 
+/** Refund a loan's deposit (physical/manual refund). */
+export async function refundDeposit(
+  loanId: string,
+  notes?: string,
+): Promise<ApiSuccessResponse<{ loan: Loan }>> {
+  return post<{ loan: Loan }>(`/loans/${loanId}/deposit/refund`, { notes });
+}
+
 /** Record that a deposit for a request has been paid manually. */
 export async function recordPayment(
   requestId: string,

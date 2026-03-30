@@ -129,11 +129,7 @@ export default function PaymentMethods() {
       await load();
     } catch (err) {
       setFormError(
-        err instanceof Error
-          ? err.message
-          : isEs
-            ? "Error al crear"
-            : "Failed to create",
+        err instanceof Error ? err.message : isEs ? "Error al crear" : "Failed to create",
       );
     } finally {
       setSubmitting(false);
@@ -167,11 +163,7 @@ export default function PaymentMethods() {
       await load();
     } catch (err) {
       setFormError(
-        err instanceof Error
-          ? err.message
-          : isEs
-            ? "Error al actualizar"
-            : "Failed to update",
+        err instanceof Error ? err.message : isEs ? "Error al actualizar" : "Failed to update",
       );
     } finally {
       setSubmitting(false);
@@ -195,11 +187,7 @@ export default function PaymentMethods() {
     } catch (err) {
       showToast(
         "error",
-        err instanceof Error
-          ? err.message
-          : isEs
-            ? "Error al eliminar"
-            : "Failed to delete",
+        err instanceof Error ? err.message : isEs ? "Error al eliminar" : "Failed to delete",
         isEs ? "Error" : "Error",
         { duration: 4000 },
       );
@@ -310,9 +298,7 @@ export default function PaymentMethods() {
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-gray-400 text-xs">
-                      {method.description ?? "—"}
-                    </td>
+                    <td className="px-6 py-4 text-gray-400 text-xs">{method.description ?? "—"}</td>
                     <td className="px-6 py-4 text-center">
                       <span
                         className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
@@ -364,11 +350,11 @@ export default function PaymentMethods() {
                               </div>
                             ) : (
                               <IconButton
-                                  icon={Trash2}
-                                  ariaLabel={isEs ? "Eliminar" : "Delete"}
-                                  intent="delete"
-                                  onClick={() => setConfirmDeleteId(method.id)}
-                                />
+                                icon={Trash2}
+                                ariaLabel={isEs ? "Eliminar" : "Delete"}
+                                intent="delete"
+                                onClick={() => setConfirmDeleteId(method.id)}
+                              />
                             )}
                           </>
                         )}
@@ -444,9 +430,7 @@ export default function PaymentMethods() {
                   value={form.description}
                   onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                   className="w-full bg-[#1a1a1a] border border-[#222] rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-[#FFD700] transition-all placeholder-gray-600 resize-none"
-                  placeholder={
-                    isEs ? "Descripción opcional..." : "Optional description..."
-                  }
+                  placeholder={isEs ? "Descripción opcional..." : "Optional description..."}
                 />
               </div>
 
@@ -459,7 +443,10 @@ export default function PaymentMethods() {
                   <button
                     type="button"
                     onClick={() =>
-                      setForm((f) => ({ ...f, status: f.status === "active" ? "inactive" : "active" }))
+                      setForm((f) => ({
+                        ...f,
+                        status: f.status === "active" ? "inactive" : "active",
+                      }))
                     }
                     className={`relative w-11 h-6 rounded-full transition-colors ${
                       form.status === "active" ? "bg-[#FFD700]" : "bg-[#333]"
@@ -494,9 +481,7 @@ export default function PaymentMethods() {
                 onClick={isEditing ? handleUpdate : handleCreate}
                 disabled={submitting}
               >
-                {submitting ? (
-                  <Loader2 size={16} className="animate-spin mr-2" />
-                ) : null}
+                {submitting ? <Loader2 size={16} className="animate-spin mr-2" /> : null}
                 {isEditing
                   ? isEs
                     ? "Guardar Cambios"

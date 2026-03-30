@@ -7,10 +7,11 @@ import {
   AlertCircle,
   Eye,
   Loader2,
+  HandCoins,
 } from "lucide-react";
 import { Button } from "../../../components/ui";
 import type { Loan, LoanStatus, Customer, ExtendLoanPayload } from "../../../types/api";
-import { getLoans, extendLoan, returnLoan } from "../../../services/loanService";
+import { getLoans, extendLoan, returnLoan, refundDeposit } from "../../../services/loanService";
 import { getCustomers } from "../../../services/customerService";
 import { useAlertModal } from "../../../hooks/useAlertModal";
 import { usePermissions } from "../../../contexts/usePermissions";
@@ -114,6 +115,11 @@ export default function Rentals() {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [detailTarget, setDetailTarget] = useState<LoanView | null>(null);
 
+  // ── Refund modal ─────────────────────────────────────────────────────────
+  const [showRefundModal, setShowRefundModal] = useState(false);
+  const [refundTarget, setRefundTarget] = useState<LoanView | null>(null);
+  const [refundNotes, setRefundNotes] = useState("");
+
   // ── Permissions ──────────────────────────────────────────────────────────
   const canExtend = hasPermission("loans:extend");
   const canReturn = hasPermission("loans:return");
@@ -177,6 +183,37 @@ export default function Rentals() {
     setNewEndDate(lv.loan.endDate.slice(0, 10));
     setExtendNotes("");
     setShowExtendModal(true);
+  };
+
+  const handleOpenRefund = (lv: LoanView) => {
+    setRefundTarget(lv);
+    setRefundNotes("");
+    setShowRefundModal(true);
+  };
+
+  const handleRefundDeposit = async () => {
+    if (!refundTarget) return;
+    setSubmitting(true);
+    try {
+      await refundDeposit(refundTarget.loan._id, refundNotes.trim() || undefined);
+      showSuccess(
+        isEs ? "Depósito reembolsado correctamente." : "Deposit refunded successfully.",
+        isEs ? "Depósito reembolsado" : "Deposit Refunded",
+      );
+      setShowRefundModal(false);
+      setRefundTarget(null);
+      await fetchData();
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : isEs
+            ? "No se pudo reembolsar el depósito"
+            : "Failed to refund deposit";
+      showError(message, isEs ? "Error al reembolsar" : "Refund Error");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleExtendLoan = async () => {
@@ -416,6 +453,18 @@ export default function Rentals() {
                             {isEs ? "Devolver" : "Return"}
                           </Button>
                         )}
+                        {(lv.loan.deposit?.status === "refund_pending" ||
+                          lv.loan.deposit?.status === "partially_applied") && (
+                          <Button
+                            size="sm"
+                            leftIcon={HandCoins}
+                            onClick={() => handleOpenRefund(lv)}
+                            disabled={submitting}
+                            className="bg-yellow-500/15 text-yellow-300 border-yellow-500/40 hover:bg-yellow-500/25"
+                          >
+                            {isEs ? "Reembolsar" : "Refund"}
+                          </Button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -605,6 +654,69 @@ export default function Rentals() {
                   : isEs
                     ? "Marcar como devuelto"
                     : "Mark as Returned"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Refund Deposit Modal ─────────────────────────────────────────── */}
+      {showRefundModal && refundTarget && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={(e) => e.target === e.currentTarget && setShowRefundModal(false)}
+        >
+          <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-6 w-full max-w-md shadow-2xl space-y-4">
+            <h2 className="text-xl font-semibold text-white">
+              {isEs ? "Reembolsar depósito" : "Refund Deposit"}
+            </h2>
+            <div className="text-zinc-400 text-sm space-y-2">
+              <p>
+                {isEs
+                  ? `El cliente tiene un depósito de $${(refundTarget.loan.deposit.amount / 1).toLocaleString()} COP para reembolsar.`
+                  : `The customer has a deposit of $${(refundTarget.loan.deposit.amount / 1).toLocaleString()} COP to be refunded.`}
+              </p>
+              <p className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-yellow-200/80">
+                {isEs
+                  ? "Esta acción registrará el reembolso manual y permitirá cerrar el préstamo."
+                  : "This action will record the manual refund and allow the loan to be completed."}
+              </p>
+            </div>
+
+            <div className="space-y-1.5 pt-2">
+              <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+                {isEs ? "Notas de reembolso" : "Refund Notes"}
+              </label>
+              <textarea
+                value={refundNotes}
+                onChange={(e) => setRefundNotes(e.target.value)}
+                placeholder={
+                  isEs
+                    ? "Notas opcionales (ej. Referencia de transferencia)"
+                    : "Optional notes (e.g. Transfer reference)"
+                }
+                className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded-lg text-white focus:outline-none focus:border-[#FFD700] min-h-[80px] text-sm"
+              />
+            </div>
+
+            <div className="flex gap-3 justify-end pt-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowRefundModal(false);
+                  setRefundNotes("");
+                }}
+                disabled={submitting}
+              >
+                {isEs ? "Cancelar" : "Cancel"}
+              </Button>
+              <Button
+                leftIcon={HandCoins}
+                onClick={handleRefundDeposit}
+                loading={submitting}
+                className="bg-[#FFD700] text-black hover:bg-[#FFD700]/90 border-transparent shadow-[0_0_15px_rgba(255,215,0,0.2)]"
+              >
+                {isEs ? "Confirmar reembolso" : "Confirm Refund"}
               </Button>
             </div>
           </div>

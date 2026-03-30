@@ -11,6 +11,7 @@ interface InspectionFormModalProps {
     loanId: string;
     items: InspectionItem[];
     overallNotes?: string;
+    dueDate?: string;
   }) => Promise<unknown>;
 }
 
@@ -131,7 +132,7 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
                     <>
                       <div className="col-span-1 md:col-span-2">
                         <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase">
-                          Damage Description
+                          Damage Description <span className="text-red-500">*</span>
                         </label>
                         <textarea
                           placeholder="Describe the damage or reason for loss..."

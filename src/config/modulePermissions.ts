@@ -211,6 +211,13 @@ export const allNavItems: NavItem[] = [
     requiredPermissions: ["pricing:read"],
     section: "Commerce",
   },
+  {
+    id: "payment-methods",
+    label: "Payment Methods",
+    path: "/app/payment-methods",
+    requiredPermissions: ["payment_methods:read"],
+    section: "Commerce",
+  },
 
   // -- /super-admin (separate module, kept here for getNavItemsByPrefix) --
   {

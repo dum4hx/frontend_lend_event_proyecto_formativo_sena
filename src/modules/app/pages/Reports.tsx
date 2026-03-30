@@ -599,9 +599,10 @@ export default function Reports() {
             id: i._id,
             columns: {
               ID: fmtId(i._id),
-              "Customer ID": typeof i.customerId === "object" && i.customerId !== null
-                ? fmtId(i.customerId._id)
-                : fmtId(i.customerId as string),
+              "Customer ID":
+                typeof i.customerId === "object" && i.customerId !== null
+                  ? fmtId(i.customerId._id)
+                  : fmtId(i.customerId as string),
               Type: i.type,
               Status: i.status,
               "Amount (COP)": fmtCurrency(i.totalAmount),

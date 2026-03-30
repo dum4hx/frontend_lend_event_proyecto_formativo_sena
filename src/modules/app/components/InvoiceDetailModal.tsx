@@ -166,7 +166,9 @@ export function InvoiceDetailModal({
                 </div>
                 <div className="bg-[#1a1a1a] border border-[#222] rounded-lg p-4">
                   <p className="text-gray-400 text-xs mb-1">{isEs ? "Estado" : "Status"}</p>
-                  <p className={`capitalize font-semibold text-sm ${getStatusColor(detail.status)}`}>
+                  <p
+                    className={`capitalize font-semibold text-sm ${getStatusColor(detail.status)}`}
+                  >
                     {getStatusLabel(detail.status)}
                   </p>
                 </div>

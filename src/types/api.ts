@@ -456,6 +456,7 @@ export interface LoanRequest {
 export interface CreateLoanRequestPayload {
   customerId: string;
   items: LoanRequestItem[];
+  depositAmount: number;
   startDate: string;
   endDate: string;
   depositDueDate: string;
@@ -471,6 +472,21 @@ export interface AssignMaterialPayload {
 
 export type LoanStatus = "active" | "overdue" | "returned" | "closed";
 
+export type DepositStatus =
+  | "pending"
+  | "held"
+  | "partially_applied"
+  | "applied"
+  | "refund_pending"
+  | "refunded";
+
+export interface DepositTransaction {
+  type: "held" | "applied" | "refund";
+  amount: number;
+  date: string;
+  reference?: string;
+}
+
 export interface Loan {
   _id: string;
   customerId: string | Customer;
@@ -479,6 +495,11 @@ export interface Loan {
   startDate: string;
   endDate: string;
   notes?: string;
+  deposit: {
+    amount: number;
+    status: DepositStatus;
+    transactions: DepositTransaction[];
+  };
 }
 
 export interface ExtendLoanPayload {
@@ -494,7 +515,7 @@ export interface InspectionItem {
   materialInstanceId: string;
   condition: InspectionCondition;
   notes?: string;
-  damageDescription?: string;
+  damageDescription: string;
   damageCost?: number;
 }
 

@@ -17,7 +17,13 @@ import VoidInvoiceModal from "../components/VoidInvoiceModal";
 import InvoiceDetailModal from "../components/InvoiceDetailModal";
 import { useInvoices } from "../hooks/useInvoices";
 import { getPaymentMethods } from "../../../services/paymentMethodService";
-import type { Invoice, InvoiceStatus, InvoiceType, PaymentMethod, InvoiceCustomer } from "../../../types/api";
+import type {
+  Invoice,
+  InvoiceStatus,
+  InvoiceType,
+  PaymentMethod,
+  InvoiceCustomer,
+} from "../../../types/api";
 
 /**
  * Invoices — Main dashboard for managing organization invoices.
@@ -47,7 +53,7 @@ export default function Invoices() {
     voidInvoiceAction,
     refetch,
   } = useInvoices();
-const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
 
   // UI State
   const [activeTab, setActiveTab] = useState<"all" | "pending" | "overdue">("all");
