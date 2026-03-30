@@ -48,12 +48,9 @@ import IASettings from "./modules/app/pages/IA_Settings";
 import Settings from "./modules/app/pages/Settings";
 import SubscriptionManagement from "./modules/app/pages/SubscriptionManagement";
 import RoleManagement from "./modules/app/pages/RoleManagement";
-import Alerts from "./modules/app/pages/Alerts";
 import Locations from "./modules/app/pages/Locations";
-import StockMovements from "./modules/app/pages/StockMovements";
 import Attributes from "./modules/app/pages/Attributes";
 import Plans from "./modules/app/pages/Plans";
-import Contracts from "./modules/app/pages/Contracts";
 import Orders from "./modules/app/pages/Orders";
 import Rentals from "./modules/app/pages/Rentals";
 import Invoices from "./modules/app/pages/Invoices";
@@ -147,10 +144,7 @@ function App() {
                 <Route path="attributes" element={<Attributes />} />
                 <Route path="plans" element={<Plans />} />
                 <Route path="locations" element={<Locations />} />
-                <Route path="stock-movements" element={<StockMovements />} />
-                <Route path="alerts" element={<Alerts />} />
                 <Route path="orders" element={<Orders />} />
-                <Route path="contracts" element={<Contracts />} />
                 <Route path="rentals" element={<Rentals />} />
                 <Route path="pricing" element={<PricingConfigs />} />
                 <Route path="invoices" element={<Invoices />} />
