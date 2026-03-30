@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { ChevronDown } from "lucide-react";
 import { useToast } from "../../../../../contexts/ToastContext";
-import type { CreateMaterialCategoryPayload } from "../../../../../types/api";
+import type { CreateMaterialCategoryPayload, CategoryAttribute } from "../../../../../types/api";
 import { Button } from "../../../../../components/ui";
 import { validateCategoryName, validateCategoryDescription } from "../../../../../utils/validators";
+import { useMaterialAttributes } from "../../material-attributes/hooks/useMaterialAttributes";
 
 interface CategoryFormProps {
   onSubmit: (data: CreateMaterialCategoryPayload) => Promise<void>;
@@ -22,19 +24,23 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
   const [formData, setFormData] = useState<CreateMaterialCategoryPayload>({
     name: "",
     description: "",
+    attributes: [],
   });
   const [touched, setTouched] = useState<Record<CategoryFormField, boolean>>({
     name: false,
     description: false,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [expandedAttributes, setExpandedAttributes] = useState(false);
   const { showToast } = useToast();
+  const { attributes: availableAttributes, loading: attributesLoading } = useMaterialAttributes();
 
   useEffect(() => {
     if (initialData) {
       setFormData({
         name: initialData.name || "",
         description: initialData.description || "",
+        attributes: initialData.attributes || [],
       });
     }
   }, [initialData]);
@@ -71,6 +77,41 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
   const handleBlur = (field: CategoryFormField) => {
     setTouched((prev) => ({ ...prev, [field]: true }));
   };
+
+  /**
+   * Toggle attribute selection for a category
+   */
+  const toggleAttribute = (attributeId: string) => {
+    setFormData((prev) => {
+      const existingAttr = prev.attributes?.find((a) => a.attributeId === attributeId);
+      if (existingAttr) {
+        return {
+          ...prev,
+          attributes: prev.attributes?.filter((a) => a.attributeId !== attributeId) || [],
+        };
+      }
+      return {
+        ...prev,
+        attributes: [...(prev.attributes || []), { attributeId, isRequired: false }],
+      };
+    });
+  };
+
+  /**
+   * Toggle required flag for an attribute
+   */
+  const toggleAttributeRequired = (attributeId: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      attributes: (prev.attributes || []).map((a) =>
+        a.attributeId === attributeId ? { ...a, isRequired: !a.isRequired } : a,
+      ),
+    }));
+  };
+
+  const selectedAttributeIds = new Set(
+    (formData.attributes || []).map((a) => a.attributeId),
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -145,6 +186,88 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
         <p className="mt-1 text-xs text-gray-500">
           {(formData.description ?? "").length}/500 characters
         </p>
+      </div>
+
+      {/* Attributes Selection Section */}
+      <div className="border border-[#333] rounded-lg p-4">
+        <button
+          type="button"
+          onClick={() => setExpandedAttributes(!expandedAttributes)}
+          className="w-full flex items-center justify-between text-left hover:bg-[#1a1a1a]/50 p-2 rounded transition-colors"
+        >
+          <span className="text-sm font-medium text-gray-300">
+            Available Attributes
+            {(formData.attributes || []).length > 0 && (
+              <span className="ml-2 text-xs bg-[#FFD700] text-black px-2 py-1 rounded">
+                {(formData.attributes || []).length} selected
+              </span>
+            )}
+          </span>
+          <ChevronDown
+            size={18}
+            className={`transition-transform ${expandedAttributes ? "rotate-180" : ""}`}
+          />
+        </button>
+
+        {expandedAttributes && (
+          <div className="mt-4 space-y-3 max-h-64 overflow-y-auto">
+            {attributesLoading ? (
+              <p className="text-sm text-gray-400">Loading attributes...</p>
+            ) : availableAttributes.length === 0 ? (
+              <p className="text-sm text-gray-400">
+                No attributes available. Create attributes first.
+              </p>
+            ) : (
+              availableAttributes.map((attribute) => {
+                const isSelected = selectedAttributeIds.has(attribute._id);
+                const categoryAttr = (formData.attributes || []).find(
+                  (a) => a.attributeId === attribute._id,
+                );
+
+                return (
+                  <div
+                    key={attribute._id}
+                    className="flex items-center gap-3 p-3 bg-[#111] border border-[#222] rounded hover:border-[#333] transition-colors"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => toggleAttribute(attribute._id)}
+                      className="w-4 h-4 rounded cursor-pointer"
+                      disabled={isSubmitting}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-white truncate">
+                        {attribute.name}
+                        {attribute.unit && (
+                          <span className="text-gray-500 ml-2">({attribute.unit})</span>
+                        )}
+                      </p>
+                      {attribute.allowedValues && attribute.allowedValues.length > 0 && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Values: {attribute.allowedValues.join(", ")}
+                        </p>
+                      )}
+                    </div>
+                    {isSelected && (
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={categoryAttr?.isRequired ?? false}
+                          onChange={() => toggleAttributeRequired(attribute._id)}
+                          className="w-4 h-4 rounded cursor-pointer"
+                          disabled={isSubmitting}
+                          title="Mark as required for material types in this category"
+                        />
+                        <span className="text-xs text-gray-400 whitespace-nowrap">Required</span>
+                      </label>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
       </div>
 
       <div className="flex gap-4 pt-4">
