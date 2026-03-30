@@ -35,7 +35,7 @@ export const OrphanedAttributesAudit: React.FC = () => {
       const response = await getOrphanedAttributeValues();
       setOrphanedMaterials(response.data?.orphanedMaterials || []);
       setOrphanedCount(response.data?.orphanedCount || 0);
-      
+
       if ((response.data?.orphanedMaterials || []).length === 0) {
         showToast("success", isEs ? "No hay valores huérfanos" : "No orphaned values found");
       }
@@ -50,7 +50,7 @@ export const OrphanedAttributesAudit: React.FC = () => {
 
   useEffect(() => {
     fetchOrphanedValues();
-  }, []);
+  }, [fetchOrphanedValues, showToast, isEs]);
 
   if (isLoading) {
     return (
@@ -134,9 +134,7 @@ export const OrphanedAttributesAudit: React.FC = () => {
           <p className="text-3xl font-bold text-white mt-2">{orphanedCount}</p>
         </div>
         <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-4">
-          <p className="text-gray-400 text-sm">
-            {isEs ? "Tipos únicos" : "Unique Material Types"}
-          </p>
+          <p className="text-gray-400 text-sm">{isEs ? "Tipos únicos" : "Unique Material Types"}</p>
           <p className="text-3xl font-bold text-white mt-2">
             {new Set(orphanedMaterials.map((v) => v.materialTypeId)).size}
           </p>
@@ -176,10 +174,7 @@ export const OrphanedAttributesAudit: React.FC = () => {
           </thead>
           <tbody>
             {orphanedMaterials.map((item, idx) => (
-              <tr
-                key={idx}
-                className="border-b border-[#222] hover:bg-[#1a1a1a] transition-colors"
-              >
+              <tr key={idx} className="border-b border-[#222] hover:bg-[#1a1a1a] transition-colors">
                 <td className="px-6 py-4 text-white font-medium">
                   <div>
                     <p className="font-semibold">{item.materialTypeName}</p>
@@ -196,12 +191,17 @@ export const OrphanedAttributesAudit: React.FC = () => {
                   <div className="flex flex-wrap gap-1">
                     {item.allowedValues && item.allowedValues.length > 0 ? (
                       item.allowedValues.map((val, i) => (
-                        <span key={i} className="inline-block px-2 py-1 bg-blue-500/20 border border-blue-500/40 text-blue-300 rounded text-xs">
+                        <span
+                          key={i}
+                          className="inline-block px-2 py-1 bg-blue-500/20 border border-blue-500/40 text-blue-300 rounded text-xs"
+                        >
                           {val}
                         </span>
                       ))
                     ) : (
-                      <span className="text-gray-500 text-xs italic">{isEs ? "Ninguno" : "None"}</span>
+                      <span className="text-gray-500 text-xs italic">
+                        {isEs ? "Ninguno" : "None"}
+                      </span>
                     )}
                   </div>
                 </td>

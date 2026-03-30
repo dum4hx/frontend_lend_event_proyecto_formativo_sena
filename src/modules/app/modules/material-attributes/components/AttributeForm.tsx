@@ -1,10 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { X, Plus } from "lucide-react";
 import { useToast } from "../../../../../contexts/ToastContext";
-import type {
-  CreateMaterialAttributePayload,
-  MaterialAttribute,
-} from "../../../../../types/api";
+import type { CreateMaterialAttributePayload, MaterialAttribute } from "../../../../../types/api";
 import { Button, IconButton } from "../../../../../components/ui";
 
 interface MaterialAttributeFormProps {

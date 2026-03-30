@@ -122,7 +122,9 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
 
     return labelItems
       .map(({ instance, copyIndex, totalCopies }) => {
-        const resolvedCode = (instance.barcode?.trim() || instance.serialNumber.trim()).toUpperCase();
+        const resolvedCode = (
+          instance.barcode?.trim() || instance.serialNumber.trim()
+        ).toUpperCase();
         const materialName = instance.model?.name || "Unknown material";
         const locationName = instance.locationId?.name || "Unknown";
 
@@ -138,11 +140,7 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
               ${renderBarcodeSvg(resolvedCode)}
             </div>
             <p class="code ${preset.compactLayout ? "compact" : ""}">${escapeHtml(resolvedCode)}</p>
-            ${
-              totalCopies > 1
-                ? `<p class="copy-mark">Copy ${copyIndex} / ${totalCopies}</p>`
-                : ""
-            }
+            ${totalCopies > 1 ? `<p class="copy-mark">Copy ${copyIndex} / ${totalCopies}</p>` : ""}
           </article>
         `;
       })
@@ -363,15 +361,22 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
                     className={`barcode-card rounded-xl border border-[#333] bg-[#171717] p-4 ${preset.compactLayout ? "compact" : ""}`}
                     style={{ width: `${preset.previewWidthPx}px`, maxWidth: "100%" }}
                   >
-                    <h3 className={`barcode-title text-sm font-bold text-white ${preset.compactLayout ? "compact" : ""}`}>
+                    <h3
+                      className={`barcode-title text-sm font-bold text-white ${preset.compactLayout ? "compact" : ""}`}
+                    >
                       {preset.compactLayout
                         ? instance.serialNumber
                         : instance.model?.name || "Unknown material"}
                     </h3>
-                    <p className={`barcode-meta text-xs text-gray-400 ${preset.compactLayout ? "compact" : ""}`}>
-                      Serial: {instance.serialNumber} | Location: {instance.locationId?.name || "Unknown"}
+                    <p
+                      className={`barcode-meta text-xs text-gray-400 ${preset.compactLayout ? "compact" : ""}`}
+                    >
+                      Serial: {instance.serialNumber} | Location:{" "}
+                      {instance.locationId?.name || "Unknown"}
                     </p>
-                    <div className={`barcode-wrap rounded-lg border border-[#333] bg-white p-3 ${preset.compactLayout ? "compact" : ""}`}>
+                    <div
+                      className={`barcode-wrap rounded-lg border border-[#333] bg-white p-3 ${preset.compactLayout ? "compact" : ""}`}
+                    >
                       <MaterialBarcode
                         value={resolvedCode}
                         fallbackValue={instance.serialNumber}
@@ -380,11 +385,15 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
                         showCodeLabel={false}
                       />
                     </div>
-                    <p className={`code mt-3 text-xs font-mono text-gray-300 ${preset.compactLayout ? "compact" : ""}`}>
+                    <p
+                      className={`code mt-3 text-xs font-mono text-gray-300 ${preset.compactLayout ? "compact" : ""}`}
+                    >
                       {resolvedCode}
                     </p>
                     {totalCopies > 1 && (
-                      <p className="copy-mark">Copy {copyIndex} / {totalCopies}</p>
+                      <p className="copy-mark">
+                        Copy {copyIndex} / {totalCopies}
+                      </p>
                     )}
                   </article>
                 );

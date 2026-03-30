@@ -38,7 +38,9 @@ export const MaterialInstanceCatalog: React.FC = () => {
   const [lastScannedCode, setLastScannedCode] = useState("");
   const [isScannerEnabled, setIsScannerEnabled] = useState(true);
   const [statusUpdateLoading, setStatusUpdateLoading] = useState(false);
-  const [formInitialData, setFormInitialData] = useState<Partial<CreateMaterialInstancePayload> | undefined>(undefined);
+  const [formInitialData, setFormInitialData] = useState<
+    Partial<CreateMaterialInstancePayload> | undefined
+  >(undefined);
   const [showBarcodePreview, setShowBarcodePreview] = useState(false);
   const [isBarcodePrintModalOpen, setIsBarcodePrintModalOpen] = useState(false);
   const [barcodePrintSelection, setBarcodePrintSelection] = useState<MaterialInstance[]>([]);
@@ -331,9 +333,7 @@ export const MaterialInstanceCatalog: React.FC = () => {
     } catch (statusError: unknown) {
       showToast(
         "error",
-        statusError instanceof Error
-          ? statusError.message
-          : "Failed to update material status",
+        statusError instanceof Error ? statusError.message : "Failed to update material status",
         "Error",
       );
     } finally {
@@ -370,7 +370,9 @@ export const MaterialInstanceCatalog: React.FC = () => {
     return (
       <div className="min-h-screen bg-[#121212] p-8 flex items-center justify-center">
         <div className="bg-[#1a1a1a] border border-red-900/70 rounded-xl p-6 max-w-lg w-full">
-          <h2 className="text-xl font-semibold text-red-300 mb-2">Unable to load material instances</h2>
+          <h2 className="text-xl font-semibold text-red-300 mb-2">
+            Unable to load material instances
+          </h2>
           <p className="text-sm text-red-200/80 mb-4">{error}</p>
           <button
             type="button"
@@ -519,7 +521,8 @@ export const MaterialInstanceCatalog: React.FC = () => {
 
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 pt-1">
             <p className="text-xs text-gray-500">
-              Last scanned: <span className="text-gray-300 font-mono">{lastScannedCode || "-"}</span>
+              Last scanned:{" "}
+              <span className="text-gray-300 font-mono">{lastScannedCode || "-"}</span>
             </p>
             <div className="flex flex-wrap gap-2">
               <button
@@ -587,7 +590,8 @@ export const MaterialInstanceCatalog: React.FC = () => {
           {selectedInstances.length > 0 && (
             <div className="mb-4 flex flex-col gap-3 rounded-lg border border-[#3b3320] bg-[#1b1710] px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
               <p className="text-[#FFD700]">
-                {selectedInstances.length} material{selectedInstances.length === 1 ? "" : "s"} selected for printing.
+                {selectedInstances.length} material{selectedInstances.length === 1 ? "" : "s"}{" "}
+                selected for printing.
               </p>
               <div className="flex flex-wrap gap-2">
                 <button

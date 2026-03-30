@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { ChevronDown } from "lucide-react";
 import { useToast } from "../../../../../contexts/ToastContext";
-import type { CreateMaterialCategoryPayload, CategoryAttribute } from "../../../../../types/api";
+import type { CreateMaterialCategoryPayload } from "../../../../../types/api";
 import { Button } from "../../../../../components/ui";
 import { validateCategoryName, validateCategoryDescription } from "../../../../../utils/validators";
 import { useMaterialAttributes } from "../../material-attributes/hooks/useMaterialAttributes";
@@ -109,9 +109,7 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
     }));
   };
 
-  const selectedAttributeIds = new Set(
-    (formData.attributes || []).map((a) => a.attributeId),
-  );
+  const selectedAttributeIds = new Set((formData.attributes || []).map((a) => a.attributeId));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

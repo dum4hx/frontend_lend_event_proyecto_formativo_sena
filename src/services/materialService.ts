@@ -133,9 +133,13 @@ function normalizeMaterialInstance(
     barcode: instance.barcode,
     status: instance.status,
     model: normalizeMaterialModel(instance.modelId ?? instance.model),
-    locationId: normalizeMaterialLocation(instance.locationId ?? instance.location ?? fallbackLocation),
+    locationId: normalizeMaterialLocation(
+      instance.locationId ?? instance.location ?? fallbackLocation,
+    ),
     organizationId: instance.organizationId ?? "",
-    attributes: (Array.isArray(instance.attributes) ? instance.attributes : []) as MaterialTypeAttribute[],
+    attributes: (Array.isArray(instance.attributes)
+      ? instance.attributes
+      : []) as MaterialTypeAttribute[],
     createdAt: instance.createdAt ?? "",
     updatedAt: instance.updatedAt ?? "",
     __v: instance.__v ?? 0,

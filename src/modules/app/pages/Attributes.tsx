@@ -4,7 +4,6 @@ import { useApiQuery } from "../../../hooks/useApiQuery";
 import { useLanguage } from "../../../contexts/useLanguage";
 import {
   getMaterialAttributes,
-  getMaterialCategories,
   createMaterialAttribute,
   updateMaterialAttribute,
   deleteMaterialAttribute,
@@ -54,10 +53,16 @@ export default function Attributes() {
     try {
       if (selectedAttribute) {
         await updateMaterialAttribute(selectedAttribute._id, payload);
-        showToast("success", isEs ? "Atributo actualizado exitosamente" : "Attribute updated successfully");
+        showToast(
+          "success",
+          isEs ? "Atributo actualizado exitosamente" : "Attribute updated successfully",
+        );
       } else {
         await createMaterialAttribute(payload);
-        showToast("success", isEs ? "Atributo creado exitosamente" : "Attribute created successfully");
+        showToast(
+          "success",
+          isEs ? "Atributo creado exitosamente" : "Attribute created successfully",
+        );
       }
       setIsModalOpen(false);
       setSelectedAttribute(undefined);
@@ -71,7 +76,10 @@ export default function Attributes() {
     if (!attributeToDelete) return;
     try {
       await deleteMaterialAttribute(attributeToDelete._id);
-      showToast("success", isEs ? "Atributo eliminado exitosamente" : "Attribute deleted successfully");
+      showToast(
+        "success",
+        isEs ? "Atributo eliminado exitosamente" : "Attribute deleted successfully",
+      );
       setIsDeleteDialogOpen(false);
       setAttributeToDelete(null);
       refetchAttributes();
@@ -85,7 +93,9 @@ export default function Attributes() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px]">
         <LoadingSpinner size="lg" />
-        <p className="mt-4 text-gray-400">{isEs ? "Cargando atributos..." : "Loading attributes..."}</p>
+        <p className="mt-4 text-gray-400">
+          {isEs ? "Cargando atributos..." : "Loading attributes..."}
+        </p>
       </div>
     );
   }
@@ -99,8 +109,14 @@ export default function Attributes() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">{isEs ? "Atributos de Materiales" : "Material Attributes"}</h1>
-          <p className="text-gray-400 mt-1">{isEs ? "Define métricas reutilizables para el catálogo" : "Define reusable metrics for material catalog items"}</p>
+          <h1 className="text-3xl font-bold text-white">
+            {isEs ? "Atributos de Materiales" : "Material Attributes"}
+          </h1>
+          <p className="text-gray-400 mt-1">
+            {isEs
+              ? "Define métricas reutilizables para el catálogo"
+              : "Define reusable metrics for material catalog items"}
+          </p>
         </div>
         {canCreate && (
           <button
@@ -178,7 +194,9 @@ export default function Attributes() {
             {/* Values and Statistics */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <p className="text-gray-400 text-sm mb-2 font-semibold">{isEs ? "Valores Permitidos:" : "Allowed Values:"}</p>
+                <p className="text-gray-400 text-sm mb-2 font-semibold">
+                  {isEs ? "Valores Permitidos:" : "Allowed Values:"}
+                </p>
                 <div className="flex flex-wrap gap-2">
                   {attribute.allowedValues && attribute.allowedValues.length > 0 ? (
                     attribute.allowedValues.map((value, idx) => (
@@ -191,13 +209,17 @@ export default function Attributes() {
                     ))
                   ) : (
                     <span className="text-gray-500 text-xs italic">
-                      {isEs ? `Cualquier ${attribute.unit} aceptado` : `Any ${attribute.unit} accepted`}
+                      {isEs
+                        ? `Cualquier ${attribute.unit} aceptado`
+                        : `Any ${attribute.unit} accepted`}
                     </span>
                   )}
                 </div>
               </div>
               <div>
-                <p className="text-gray-400 text-sm mb-2 font-semibold">{isEs ? "Uso:" : "Usage:"}</p>
+                <p className="text-gray-400 text-sm mb-2 font-semibold">
+                  {isEs ? "Uso:" : "Usage:"}
+                </p>
                 <div className="flex items-center">
                   <div className="flex-1 bg-[#121212] rounded-full h-2 mr-3 overflow-hidden">
                     <div
@@ -216,7 +238,9 @@ export default function Attributes() {
       {/* Empty State */}
       {filtered.length === 0 && (
         <div className="text-center py-12 bg-[#1a1a1a] rounded-[12px] border border-dashed border-[#333]">
-          <p className="text-gray-400">{isEs ? "No se encontraron atributos" : "No attributes found"}</p>
+          <p className="text-gray-400">
+            {isEs ? "No se encontraron atributos" : "No attributes found"}
+          </p>
         </div>
       )}
 
@@ -226,7 +250,13 @@ export default function Attributes() {
           <div className="bg-[#121212] border border-[#333] rounded-[16px] w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="flex items-center justify-between p-6 border-b border-[#333]">
               <h2 className="text-xl font-bold text-white">
-                {selectedAttribute ? (isEs ? "Editar Atributo" : "Edit Attribute") : (isEs ? "Nuevo Atributo" : "New Attribute")}
+                {selectedAttribute
+                  ? isEs
+                    ? "Editar Atributo"
+                    : "Edit Attribute"
+                  : isEs
+                    ? "Nuevo Atributo"
+                    : "New Attribute"}
               </h2>
               <button
                 onClick={() => setIsModalOpen(false)}
@@ -253,7 +283,11 @@ export default function Attributes() {
         onClose={() => setIsDeleteDialogOpen(false)}
         onConfirm={handleDelete}
         title={isEs ? "Eliminar Atributo" : "Delete Attribute"}
-        message={isEs ? `¿Estás seguro de que deseas eliminar "${attributeToDelete?.name}"? Esta acción no se puede deshacer y fallará si algún tipo de material usa actualmente este atributo.` : `Are you sure you want to delete "${attributeToDelete?.name}"? This action cannot be undone and will fail if any material types are currently using this attribute.`}
+        message={
+          isEs
+            ? `¿Estás seguro de que deseas eliminar "${attributeToDelete?.name}"? Esta acción no se puede deshacer y fallará si algún tipo de material usa actualmente este atributo.`
+            : `Are you sure you want to delete "${attributeToDelete?.name}"? This action cannot be undone and will fail if any material types are currently using this attribute.`
+        }
         confirmText={isEs ? "Eliminar" : "Delete"}
         variant="danger"
       />

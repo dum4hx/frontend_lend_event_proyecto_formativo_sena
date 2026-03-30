@@ -229,12 +229,24 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
     e.preventDefault();
     if (!fromLocationId || !toLocationId) return;
     if (fromLocationId === toLocationId) {
-      showToast("error", isEs ? "El origen y el destino deben ser diferentes" : "Origin and destination must be different", isEs ? "Error de Validación" : "Validation Error");
+      showToast(
+        "error",
+        isEs
+          ? "El origen y el destino deben ser diferentes"
+          : "Origin and destination must be different",
+        isEs ? "Error de Validación" : "Validation Error",
+      );
       return;
     }
     const filledItems = requestItems.filter((it) => it.modelId.trim() !== "");
     if (filledItems.length === 0) {
-      showToast("error", isEs ? "Agrega al menos un artículo a la solicitud" : "Add at least one material item to the request", isEs ? "Error de Validación" : "Validation Error");
+      showToast(
+        "error",
+        isEs
+          ? "Agrega al menos un artículo a la solicitud"
+          : "Add at least one material item to the request",
+        isEs ? "Error de Validación" : "Validation Error",
+      );
       return;
     }
     setLoading(true);
@@ -246,12 +258,22 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
         ...(notes.trim() ? { notes: notes.trim() } : {}),
       };
       await createTransferRequest(payload);
-      showToast("success", isEs ? "Solicitud de transferencia creada exitosamente" : "Transfer request created successfully", isEs ? "Éxito" : "Success");
+      showToast(
+        "success",
+        isEs
+          ? "Solicitud de transferencia creada exitosamente"
+          : "Transfer request created successfully",
+        isEs ? "Éxito" : "Success",
+      );
       onCreated();
     } catch (err: unknown) {
       showToast(
         "error",
-        err instanceof Error ? err.message : (isEs ? "Error al crear la solicitud de transferencia" : "Failed to create transfer request"),
+        err instanceof Error
+          ? err.message
+          : isEs
+            ? "Error al crear la solicitud de transferencia"
+            : "Failed to create transfer request",
         "Error",
       );
     } finally {
@@ -281,7 +303,8 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
           {/* From location */}
           <div>
             <label className="block text-xs font-medium text-gray-400 mb-1.5">
-              {isEs ? "Ubicación de Origen" : "From Location"} <span className="text-red-400">*</span>
+              {isEs ? "Ubicación de Origen" : "From Location"}{" "}
+              <span className="text-red-400">*</span>
             </label>
             <select
               value={fromLocationId}
@@ -292,7 +315,9 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
               required
               className="w-full h-10 px-3 bg-[#0a0a0a] border border-[#222] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all"
             >
-              <option value="">{isEs ? "Seleccionar ubicación de origen" : "Select origin location"}</option>
+              <option value="">
+                {isEs ? "Seleccionar ubicación de origen" : "Select origin location"}
+              </option>
               {locations.map((loc) => (
                 <option key={loc._id} value={loc._id}>
                   {loc.name}
@@ -304,7 +329,8 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
           {/* To location */}
           <div>
             <label className="block text-xs font-medium text-gray-400 mb-1.5">
-              {isEs ? "Ubicación de Destino" : "To Location"} <span className="text-red-400">*</span>
+              {isEs ? "Ubicación de Destino" : "To Location"}{" "}
+              <span className="text-red-400">*</span>
             </label>
             <select
               value={toLocationId}
@@ -313,7 +339,9 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
               disabled={!fromLocationId}
               className="w-full h-10 px-3 bg-[#0a0a0a] border border-[#222] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all disabled:opacity-40"
             >
-              <option value="">{isEs ? "Seleccionar ubicación de destino" : "Select destination location"}</option>
+              <option value="">
+                {isEs ? "Seleccionar ubicación de destino" : "Select destination location"}
+              </option>
               {availableDestinations.map((loc) => (
                 <option key={loc._id} value={loc._id}>
                   {loc.name}
@@ -345,7 +373,9 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                     onChange={(e) => updateItem(idx, { modelId: e.target.value })}
                     className="flex-1 h-9 px-2 bg-[#0a0a0a] border border-[#222] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all"
                   >
-                    <option value="">{isEs ? "Seleccionar tipo de material" : "Select material type"}</option>
+                    <option value="">
+                      {isEs ? "Seleccionar tipo de material" : "Select material type"}
+                    </option>
                     {materialTypes.map((mt) => (
                       <option key={mt._id} value={mt._id}>
                         {mt.name}
@@ -360,7 +390,9 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                       updateItem(idx, { quantity: Math.max(1, Number(e.target.value)) })
                     }
                     className="w-20 h-9 px-2 bg-[#0a0a0a] border border-[#222] rounded text-sm text-white text-center focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all"
-                    aria-label={isEs ? `Cantidad para artículo ${idx + 1}` : `Quantity for item ${idx + 1}`}
+                    aria-label={
+                      isEs ? `Cantidad para artículo ${idx + 1}` : `Quantity for item ${idx + 1}`
+                    }
                   />
                   {requestItems.length > 1 && (
                     <button
@@ -379,7 +411,9 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
 
           {/* Notes */}
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1.5">{isEs ? "Notas" : "Notes"}</label>
+            <label className="block text-xs font-medium text-gray-400 mb-1.5">
+              {isEs ? "Notas" : "Notes"}
+            </label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -403,7 +437,13 @@ const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
               disabled={loading || !fromLocationId || !toLocationId}
               className="px-5 h-9 bg-[#FFD700] hover:bg-[#FFD700]/90 text-black font-semibold rounded text-sm transition-all disabled:opacity-50"
             >
-              {loading ? (isEs ? "Creando…" : "Creating…") : (isEs ? "Crear Solicitud" : "Create Request")}
+              {loading
+                ? isEs
+                  ? "Creando…"
+                  : "Creating…"
+                : isEs
+                  ? "Crear Solicitud"
+                  : "Create Request"}
             </button>
           </div>
         </form>
@@ -478,12 +518,15 @@ const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
 
   // Group instances by material type for preview
   const instancesByType = React.useMemo(() => {
-    const groups = new Map<string, { materialTypeId: string; materialTypeName: string; instances: MaterialInstance[] }>();
-    
+    const groups = new Map<
+      string,
+      { materialTypeId: string; materialTypeName: string; instances: MaterialInstance[] }
+    >();
+
     instances.forEach((inst) => {
       const typeId = inst.model?._id ?? "unknown";
       const typeName = getInstanceModelName(inst, isEs);
-      
+
       if (!groups.has(typeId)) {
         groups.set(typeId, {
           materialTypeId: typeId,
@@ -493,14 +536,20 @@ const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
       }
       groups.get(typeId)!.instances.push(inst);
     });
-    
+
     return Array.from(groups.values());
   }, [instances, isEs]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedItems.length === 0) {
-      showToast("error", isEs ? "Selecciona al menos un artículo para transferir" : "Select at least one item to transfer", isEs ? "Validación" : "Validation");
+      showToast(
+        "error",
+        isEs
+          ? "Selecciona al menos un artículo para transferir"
+          : "Select at least one item to transfer",
+        isEs ? "Validación" : "Validation",
+      );
       return;
     }
     setLoading(true);
@@ -512,12 +561,20 @@ const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
         items: selectedItems,
         ...(senderNotes.trim() ? { senderNotes: senderNotes.trim() } : {}),
       });
-      showToast("success", isEs ? "Envío iniciado exitosamente" : "Shipment initiated successfully", isEs ? "Éxito" : "Success");
+      showToast(
+        "success",
+        isEs ? "Envío iniciado exitosamente" : "Shipment initiated successfully",
+        isEs ? "Éxito" : "Success",
+      );
       onCreated();
     } catch (err: unknown) {
       showToast(
         "error",
-        err instanceof Error ? err.message : (isEs ? "Error al iniciar el envío" : "Failed to initiate shipment"),
+        err instanceof Error
+          ? err.message
+          : isEs
+            ? "Error al iniciar el envío"
+            : "Failed to initiate shipment",
         "Error",
       );
     } finally {
@@ -600,7 +657,11 @@ const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
                               setItemCondition(inst._id, e.target.value as TransferCondition)
                             }
                             className="h-8 px-2 bg-[#0a0a0a] border border-[#222] rounded text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all"
-                            aria-label={isEs ? `Condición de envío para ${inst.serialNumber}` : `Sent condition for ${inst.serialNumber}`}
+                            aria-label={
+                              isEs
+                                ? `Condición de envío para ${inst.serialNumber}`
+                                : `Sent condition for ${inst.serialNumber}`
+                            }
                           >
                             <option value="">
                               {isEs ? "Condición de envío (opcional)" : "Sent condition (optional)"}
@@ -628,7 +689,9 @@ const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
               value={senderNotes}
               onChange={(e) => setSenderNotes(e.target.value)}
               rows={2}
-              placeholder={isEs ? "Notas opcionales del remitente…" : "Optional notes from the sender…"}
+              placeholder={
+                isEs ? "Notas opcionales del remitente…" : "Optional notes from the sender…"
+              }
               className="w-full px-3 py-2 bg-[#0a0a0a] border border-[#222] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all resize-none"
             />
           </div>
@@ -696,16 +759,13 @@ const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
                   className="flex-1 h-9 px-3 bg-[#0a0a0a] border border-[#222] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all"
                 >
                   <option value="">
-                    {isEs ? "Todos los tipos" : "All Types"} ({selectedItems.length} {isEs ? "artículos" : "items"})
+                    {isEs ? "Todos los tipos" : "All Types"} ({selectedItems.length}{" "}
+                    {isEs ? "artículos" : "items"})
                   </option>
                   {instancesByType
-                    .filter((group) =>
-                      group.instances.some((inst) => isSelected(inst._id)),
-                    )
+                    .filter((group) => group.instances.some((inst) => isSelected(inst._id)))
                     .map((group) => {
-                      const count = group.instances.filter((inst) =>
-                        isSelected(inst._id),
-                      ).length;
+                      const count = group.instances.filter((inst) => isSelected(inst._id)).length;
                       return (
                         <option key={group.materialTypeId} value={group.materialTypeId}>
                           {group.materialTypeName} ({count})
@@ -727,9 +787,7 @@ const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
                 </h3>
                 <div className="space-y-3">
                   {instancesByType
-                    .filter((group) =>
-                      group.instances.some((inst) => isSelected(inst._id)),
-                    )
+                    .filter((group) => group.instances.some((inst) => isSelected(inst._id)))
                     .filter((group) =>
                       previewFilterType ? group.materialTypeId === previewFilterType : true,
                     )
@@ -748,7 +806,15 @@ const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
                               {group.materialTypeName}
                             </span>
                             <span className="text-xs text-gray-500">
-                              ({selectedInGroup.length} {selectedInGroup.length === 1 ? (isEs ? "artículo" : "item") : (isEs ? "artículos" : "items")})
+                              ({selectedInGroup.length}{" "}
+                              {selectedInGroup.length === 1
+                                ? isEs
+                                  ? "artículo"
+                                  : "item"
+                                : isEs
+                                  ? "artículos"
+                                  : "items"}
+                              )
                             </span>
                           </div>
                           <div className="space-y-1.5 ml-5">
@@ -775,12 +841,12 @@ const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
                 </div>
                 {previewFilterType &&
                   !instancesByType
-                    .filter((group) =>
-                      group.instances.some((inst) => isSelected(inst._id)),
-                    )
+                    .filter((group) => group.instances.some((inst) => isSelected(inst._id)))
                     .some((group) => group.materialTypeId === previewFilterType) && (
                     <div className="flex items-center justify-center py-8 text-gray-500 text-sm">
-                      {isEs ? "No hay artículos seleccionados para este tipo." : "No items selected for this type."}
+                      {isEs
+                        ? "No hay artículos seleccionados para este tipo."
+                        : "No items selected for this type."}
                     </div>
                   )}
               </div>
@@ -813,7 +879,13 @@ const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
                 className="px-5 h-9 bg-[#FFD700] hover:bg-[#FFD700]/90 text-black font-semibold rounded text-sm transition-all disabled:opacity-50 flex items-center gap-2"
               >
                 <Send size={14} />
-                {loading ? (isEs ? "Enviando…" : "Sending…") : (isEs ? "Confirmar y Enviar" : "Confirm & Send")}
+                {loading
+                  ? isEs
+                    ? "Enviando…"
+                    : "Sending…"
+                  : isEs
+                    ? "Confirmar y Enviar"
+                    : "Confirm & Send"}
               </button>
             </div>
           </div>
@@ -908,8 +980,7 @@ const ReceiveTransferModal: React.FC<ReceiveTransferModalProps> = ({
             {isEs ? "Confirma la recepción del envío desde" : "Confirm receipt of shipment from"}{" "}
             <span className="text-white font-medium">{locationName(transfer.fromLocationId)}</span>{" "}
             {isEs ? "hacia" : "to"}{" "}
-            <span className="text-white font-medium">{locationName(transfer.toLocationId)}</span>
-            .{" "}
+            <span className="text-white font-medium">{locationName(transfer.toLocationId)}</span>.{" "}
             {isEs ? "Todos los artículos quedarán como" : "All items will be set to"}{" "}
             <span className="text-green-400 font-medium">{isEs ? "disponible" : "available"}</span>{" "}
             {isEs ? "en el destino." : "at the destination."}
@@ -933,9 +1004,15 @@ const ReceiveTransferModal: React.FC<ReceiveTransferModalProps> = ({
                         setCondition(item.instanceId, e.target.value as TransferCondition | "")
                       }
                       className="h-8 px-2 bg-[#0a0a0a] border border-[#222] rounded text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all"
-                      aria-label={isEs ? `Condición recibida para ${item.instanceId}` : `Received condition for ${item.instanceId}`}
+                      aria-label={
+                        isEs
+                          ? `Condición recibida para ${item.instanceId}`
+                          : `Received condition for ${item.instanceId}`
+                      }
                     >
-                      <option value="">{isEs ? "Condición (opcional)" : "Condition (optional)"}</option>
+                      <option value="">
+                        {isEs ? "Condición (opcional)" : "Condition (optional)"}
+                      </option>
                       {(Object.keys(CONDITION_LABEL) as TransferCondition[]).map((c) => (
                         <option key={c} value={c}>
                           {getConditionLabel(c, isEs)}
@@ -956,7 +1033,9 @@ const ReceiveTransferModal: React.FC<ReceiveTransferModalProps> = ({
               value={receiverNotes}
               onChange={(e) => setReceiverNotes(e.target.value)}
               rows={3}
-              placeholder={isEs ? "Notas opcionales del receptor…" : "Optional notes from the receiver…"}
+              placeholder={
+                isEs ? "Notas opcionales del receptor…" : "Optional notes from the receiver…"
+              }
               className="w-full px-3 py-2 bg-[#0a0a0a] border border-[#222] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all resize-none"
             />
           </div>
@@ -975,7 +1054,13 @@ const ReceiveTransferModal: React.FC<ReceiveTransferModalProps> = ({
               className="px-5 h-9 bg-green-600 hover:bg-green-500 text-white font-semibold rounded text-sm transition-all disabled:opacity-50 flex items-center gap-2"
             >
               <CheckCircle size={14} />
-              {loading ? (isEs ? "Confirmando…" : "Confirming…") : (isEs ? "Marcar como Recibido" : "Mark as Received")}
+              {loading
+                ? isEs
+                  ? "Confirmando…"
+                  : "Confirming…"
+                : isEs
+                  ? "Marcar como Recibido"
+                  : "Mark as Received"}
             </button>
           </div>
         </form>
@@ -1095,19 +1180,12 @@ const TransferRequests: React.FC = () => {
   const handleRespond = async (requestId: string, status: "approved" | "rejected") => {
     try {
       await respondToTransferRequest(requestId, { status });
-      const statusLabel = status === "approved"
-        ? isEs
-          ? "aprobada"
-          : "approved"
-        : isEs
-          ? "rechazada"
-          : "rejected";
+      const statusLabel =
+        status === "approved" ? (isEs ? "aprobada" : "approved") : isEs ? "rechazada" : "rejected";
 
       showToast(
         "success",
-        isEs
-          ? `Solicitud ${statusLabel} exitosamente`
-          : `Request ${statusLabel} successfully`,
+        isEs ? `Solicitud ${statusLabel} exitosamente` : `Request ${statusLabel} successfully`,
         isEs ? "Éxito" : "Success",
       );
       void loadRequests();
@@ -1294,7 +1372,9 @@ const TransferRequests: React.FC = () => {
               <div className="flex flex-col items-center justify-center py-16 gap-3 text-gray-500">
                 <CircleDashed size={32} />
                 <p className="text-sm">
-                  {isEs ? "No se encontraron solicitudes de transferencia" : "No transfer requests found"}
+                  {isEs
+                    ? "No se encontraron solicitudes de transferencia"
+                    : "No transfer requests found"}
                 </p>
                 {canCreate && (
                   <button
@@ -1323,9 +1403,13 @@ const TransferRequests: React.FC = () => {
                       <tr key={req._id} className="hover:bg-white/3 transition-colors group">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
-                            <span className="text-gray-200 font-medium whitespace-nowrap">{locationName(req.fromLocationId)}</span>
+                            <span className="text-gray-200 font-medium whitespace-nowrap">
+                              {locationName(req.fromLocationId)}
+                            </span>
                             <ArrowLeftRight size={14} className="text-[#FFD700] shrink-0" />
-                            <span className="text-gray-200 whitespace-nowrap">{locationName(req.toLocationId)}</span>
+                            <span className="text-gray-200 whitespace-nowrap">
+                              {locationName(req.toLocationId)}
+                            </span>
                           </div>
                         </td>
                         <td className="px-4 py-3 text-gray-400 whitespace-nowrap">
@@ -1400,7 +1484,9 @@ const TransferRequests: React.FC = () => {
             ) : transfers.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 gap-3 text-gray-500">
                 <Truck size={32} />
-                <p className="text-sm">{isEs ? "No se encontraron envíos" : "No shipments found"}</p>
+                <p className="text-sm">
+                  {isEs ? "No se encontraron envíos" : "No shipments found"}
+                </p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -1420,9 +1506,13 @@ const TransferRequests: React.FC = () => {
                       <tr key={tr._id} className="hover:bg-white/3 transition-colors">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
-                            <span className="text-gray-200 font-medium whitespace-nowrap">{locationName(tr.fromLocationId)}</span>
+                            <span className="text-gray-200 font-medium whitespace-nowrap">
+                              {locationName(tr.fromLocationId)}
+                            </span>
                             <ArrowLeftRight size={14} className="text-[#FFD700] shrink-0" />
-                            <span className="text-gray-200 whitespace-nowrap">{locationName(tr.toLocationId)}</span>
+                            <span className="text-gray-200 whitespace-nowrap">
+                              {locationName(tr.toLocationId)}
+                            </span>
                           </div>
                         </td>
                         <td className="px-4 py-3 text-gray-400">

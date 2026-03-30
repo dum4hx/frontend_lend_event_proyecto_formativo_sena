@@ -71,7 +71,9 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
             </div>
             <p className="mt-3 text-white font-mono break-all">{resolvedCode || "Not assigned"}</p>
             {!instance.barcode && (
-              <p className="mt-2 text-xs text-[#FFD700]">Using serial number as barcode fallback.</p>
+              <p className="mt-2 text-xs text-[#FFD700]">
+                Using serial number as barcode fallback.
+              </p>
             )}
           </div>
 

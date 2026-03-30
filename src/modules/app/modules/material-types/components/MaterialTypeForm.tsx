@@ -9,7 +9,6 @@ import type {
   CreateMaterialAttributePayload,
   MaterialType,
   MaterialTypeAttribute,
-  MaterialAttribute,
 } from "../../../../../types/api";
 import { Button, IconButton } from "../../../../../components/ui";
 
@@ -58,9 +57,9 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
   // Available attributes filtered to only those in the selected category
   const categoryAttributes = useMemo(
     () =>
-      allAttributes.filter((attr) => categoryAttributeIds.has(attr._id)).sort((a, b) =>
-        a.name.localeCompare(b.name),
-      ),
+      allAttributes
+        .filter((attr) => categoryAttributeIds.has(attr._id))
+        .sort((a, b) => a.name.localeCompare(b.name)),
     [allAttributes, categoryAttributeIds],
   );
 
@@ -147,7 +146,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
     }
   };
 
-  const handleCreateAttribute = async (_attrPayload: CreateMaterialAttributePayload) => {
+  const handleCreateAttribute = async () => {
     try {
       // After creating, the attribute is auto-added to the organization
       // Will be available for next category that includes it
@@ -161,11 +160,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
   /**
    * Update an attribute value or required status
    */
-  const updateAttributeValue = (
-    attributeId: string,
-    value: string,
-    isRequired?: boolean,
-  ) => {
+  const updateAttributeValue = (attributeId: string, value: string, isRequired?: boolean) => {
     setFormData((prev) => {
       const existing = (prev.attributes || []).find((a) => a.attributeId === attributeId);
       if (existing) {
@@ -405,9 +400,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
                                 {attr.allowedValues && attr.allowedValues.length > 0 ? (
                                   <select
                                     value={currentValue?.value || ""}
-                                    onChange={(e) =>
-                                      updateAttributeValue(attr._id, e.target.value)
-                                    }
+                                    onChange={(e) => updateAttributeValue(attr._id, e.target.value)}
                                     className="w-full px-3 py-2 bg-[#111] border border-[#333] rounded-lg text-white text-sm focus:outline-none focus:border-[#FFD700]"
                                     disabled={isSubmitting}
                                   >
@@ -422,18 +415,14 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
                                   <input
                                     type="text"
                                     value={currentValue?.value || ""}
-                                    onChange={(e) =>
-                                      updateAttributeValue(attr._id, e.target.value)
-                                    }
+                                    onChange={(e) => updateAttributeValue(attr._id, e.target.value)}
                                     placeholder={`Enter ${attr.name}...`}
                                     className="w-full px-3 py-2 bg-[#111] border border-[#333] rounded-lg text-white text-sm focus:outline-none focus:border-[#FFD700]"
                                     disabled={isSubmitting}
                                   />
                                 )}
                                 {isRequired && !currentValue?.value && (
-                                  <p className="text-xs text-red-400">
-                                    This attribute is required
-                                  </p>
+                                  <p className="text-xs text-red-400">This attribute is required</p>
                                 )}
                               </div>
                             )}

@@ -44,7 +44,9 @@ export const MaterialInstanceList: React.FC<MaterialInstanceListProps> = ({
     return colors[status] || "text-gray-400";
   };
 
-  const selectedCount = instances.filter((instance) => selectedInstanceIds.includes(instance._id)).length;
+  const selectedCount = instances.filter((instance) =>
+    selectedInstanceIds.includes(instance._id),
+  ).length;
   const allSelected = instances.length > 0 && selectedCount === instances.length;
   const someSelected = selectedCount > 0 && selectedCount < instances.length;
 

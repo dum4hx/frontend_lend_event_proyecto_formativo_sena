@@ -290,10 +290,12 @@ export interface MaterialType {
   organizationId: string;
   name: string;
   description: string;
-  categoryId: {
-    _id: string;
-    name: string;
-  } | string;
+  categoryId:
+    | {
+        _id: string;
+        name: string;
+      }
+    | string;
   pricePerDay: number;
   attributes: MaterialTypeAttribute[];
   createdAt: string;
