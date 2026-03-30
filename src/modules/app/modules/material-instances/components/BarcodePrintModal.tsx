@@ -128,7 +128,7 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
     return labelItems
       .map(({ instance, copyIndex, totalCopies }) => {
         const resolvedCode = (instance.barcode?.trim() || instance.serialNumber.trim()).toUpperCase();
-        const materialName = instance.modelId?.name || "Unknown material";
+        const materialName = instance.model?.name || "Unknown material";
         const locationName = instance.locationId?.name || "Unknown";
 
         return `
@@ -371,7 +371,7 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
                     <h3 className={`barcode-title text-sm font-bold text-white ${preset.compactLayout ? "compact" : ""}`}>
                       {preset.compactLayout
                         ? instance.serialNumber
-                        : instance.modelId?.name || "Unknown material"}
+                        : instance.model?.name || "Unknown material"}
                     </h3>
                     <p className={`barcode-meta text-xs text-gray-400 ${preset.compactLayout ? "compact" : ""}`}>
                       Serial: {instance.serialNumber} | Location: {instance.locationId?.name || "Unknown"}

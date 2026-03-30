@@ -73,7 +73,7 @@ export const MaterialInstanceCatalog: React.FC = () => {
     return instances.filter((inst) => {
       const serial = inst.serialNumber.toLowerCase();
       const barcode = (inst.barcode ?? "").toLowerCase();
-      const model = (inst.modelId?.name ?? "").toLowerCase();
+      const model = (inst.model?.name ?? "").toLowerCase();
       const location = (inst.locationId?.name ?? "").toLowerCase();
       return (
         serial.includes(normalizedTerm) ||

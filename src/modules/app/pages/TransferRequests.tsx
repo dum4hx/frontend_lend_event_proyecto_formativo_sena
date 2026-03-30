@@ -481,9 +481,7 @@ const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
     const groups = new Map<string, { materialTypeId: string; materialTypeName: string; instances: MaterialInstance[] }>();
     
     instances.forEach((inst) => {
-      const typeId = typeof inst.modelId === "string" 
-        ? inst.modelId 
-        : inst.modelId?._id ?? "unknown";
+      const typeId = inst.model?._id ?? "unknown";
       const typeName = getInstanceModelName(inst, isEs);
       
       if (!groups.has(typeId)) {

@@ -82,7 +82,7 @@ interface MaterialInstancesResponse extends PaginationMeta {
 
 function normalizeMaterialModel(
   model: MaterialInstanceApiPayload["model"] | MaterialInstanceApiPayload["modelId"],
-): MaterialInstance["modelId"] {
+): MaterialInstance["model"] {
   if (typeof model === "string") {
     return {
       _id: model,
@@ -130,7 +130,7 @@ function normalizeMaterialInstance(
     serialNumber: instance.serialNumber ?? "",
     barcode: instance.barcode,
     status: instance.status,
-    modelId: normalizeMaterialModel(instance.modelId ?? instance.model),
+    model: normalizeMaterialModel(instance.modelId ?? instance.model),
     locationId: normalizeMaterialLocation(instance.locationId ?? instance.location ?? fallbackLocation),
     organizationId: instance.organizationId ?? "",
     attributes: Array.isArray(instance.attributes) ? instance.attributes : [],

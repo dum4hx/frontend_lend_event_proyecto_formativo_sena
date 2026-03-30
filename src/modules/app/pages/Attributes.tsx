@@ -150,16 +150,6 @@ export default function Attributes() {
                   <span className="px-2 py-1 bg-[#FFD700]/20 text-[#FFD700] rounded text-xs font-semibold">
                     {attribute.unit}
                   </span>
-                  {attribute.isRequired && (
-                    <span className="px-2 py-1 bg-red-500/10 text-red-500 rounded text-xs font-semibold">
-                      {isEs ? "Requerido" : "Required"}
-                    </span>
-                  )}
-                  {attribute.categoryId && (
-                    <span className="px-2 py-1 bg-blue-500/10 text-blue-500 rounded text-xs font-semibold">
-                      {categories.find((c) => c._id === attribute.categoryId)?.name || (isEs ? "Restringido" : "Restricted")}
-                    </span>
-                  )}
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -252,7 +242,6 @@ export default function Attributes() {
             </div>
             <div className="p-6">
               <MaterialAttributeForm
-                categories={categories}
                 onSubmit={handleCreateOrUpdate}
                 onCancel={() => setIsModalOpen(false)}
                 initialData={selectedAttribute}

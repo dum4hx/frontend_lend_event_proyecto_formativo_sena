@@ -190,34 +190,31 @@ export type CustomerStatus = "active" | "inactive" | "blacklisted";
 
 // ─── Material Attributes ───────────────────────────────────────────────────
 
+/** Organization-wide material attribute definition (global library). */
 export interface MaterialAttribute {
   _id: string;
   organizationId: string;
-  categoryId?: string;
   name: string;
   unit: string;
   allowedValues: string[];
-  isRequired: boolean;
   createdAt: string;
   updatedAt: string;
   /** Frontend-only usage stat (if backend provides it, otherwise manually calculated) */
   usageCount?: number;
 }
 
+/** Payload to create a new material attribute definition. */
 export interface CreateMaterialAttributePayload {
   name: string;
   unit: string;
-  categoryId?: string;
   allowedValues?: string[];
-  isRequired?: boolean;
 }
 
+/** Payload to update an existing material attribute definition. */
 export interface UpdateMaterialAttributePayload {
   name?: string;
   unit?: string;
-  categoryId?: string;
   allowedValues?: string[];
-  isRequired?: boolean;
 }
 
 export interface Customer {
@@ -249,49 +246,76 @@ export interface UpdateCustomerPayload {
 
 // ─── Materials ─────────────────────────────────────────────────────────────
 
-export interface MaterialCategory {
-  _id: string;
-  name: string;
-  description?: string;
-  parentId?: string;
+/** Attribute reference within a category (defines which attributes belong and if required). */
+export interface CategoryAttribute {
+  attributeId: string;
+  isRequired: boolean;
 }
 
+/** Material category that groups material types and defines available attributes. */
+export interface MaterialCategory {
+  _id: string;
+  organizationId: string;
+  name: string;
+  description?: string;
+  attributes: CategoryAttribute[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Payload to create a new material category. */
 export interface CreateMaterialCategoryPayload {
   name: string;
   description?: string;
-  parentId?: string;
+  attributes?: CategoryAttribute[];
 }
 
+/** Payload to update an existing material category. */
 export interface UpdateMaterialCategoryPayload {
   name?: string;
   description?: string;
-  parentId?: string;
+  attributes?: CategoryAttribute[];
 }
 
+/** Attribute value assignment within a material type. */
+export interface MaterialTypeAttribute {
+  attributeId: string;
+  value: string;
+  isRequired: boolean;
+}
+
+/** Material type (catalog item) that can be rented/loaned. */
 export interface MaterialType {
   _id: string;
+  organizationId: string;
   name: string;
   description: string;
-  categoryId: string;
+  categoryId: {
+    _id: string;
+    name: string;
+  } | string;
   pricePerDay: number;
-  attributes?: Array<{
-    attributeId: string;
-    value: string | number | boolean;
-  }>;
+  attributes: MaterialTypeAttribute[];
+  createdAt: string;
+  updatedAt: string;
 }
 
+/** Payload to create a new material type. */
 export interface CreateMaterialTypePayload {
   name: string;
   description?: string;
   categoryId: string;
   pricePerDay: number;
+  attributes?: MaterialTypeAttribute[];
 }
 
+/** Payload to update an existing material type. */
 export interface UpdateMaterialTypePayload {
   name?: string;
   description?: string;
   categoryId?: string;
   pricePerDay?: number;
+  attributes?: MaterialTypeAttribute[];
 }
 
 export type MaterialInstanceStatus =

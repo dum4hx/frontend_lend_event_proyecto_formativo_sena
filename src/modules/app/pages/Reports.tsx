@@ -360,7 +360,7 @@ export default function Reports() {
               _id: instance._id,
               serialNumber: instance.serialNumber,
               status: instance.status,
-              modelId: instance.modelId,
+              model: instance.model,
               locationId: instance.locationId,
             });
           });
@@ -660,11 +660,11 @@ export default function Reports() {
                 id: m._id,
                 columns: {
                   Serial: m.serialNumber || "—",
-                  Model: m.modelId?.name || "—",
+                  Model: m.model?.name || "—",
                   Status: m.status || "—",
                   Location: m.locationId?.name || "—",
-                  "Price/Day": m.modelId?.pricePerDay ? fmtCurrency(m.modelId.pricePerDay) : "—",
-                  Description: m.modelId?.description || "—",
+                  "Price/Day": m.model?.pricePerDay ? fmtCurrency(m.model.pricePerDay) : "—",
+                  Description: m.model?.description || "—",
                 },
               };
 
@@ -878,8 +878,8 @@ export default function Reports() {
             { label: "Material Types", value: materialTypes.length, icon: <Package size={24} /> },
             { label: "Instances", value: materialInstances.length, icon: <Package size={24} /> },
             {
-              label: "With Parent",
-              value: categories.filter((c) => c.parentId).length,
+              label: "With Attributes",
+              value: categories.filter((c) => c.attributes && c.attributes.length > 0).length,
               icon: <Package size={24} />,
             },
           ];

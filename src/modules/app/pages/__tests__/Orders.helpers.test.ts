@@ -10,10 +10,14 @@ import {
 function buildMaterial(id: string, name: string, categoryId: string): MaterialType {
   return {
     _id: id,
+    organizationId: "org-1",
     name,
     description: `${name} description`,
     categoryId,
     pricePerDay: 100,
+    attributes: [],
+    createdAt: "2024-01-01T00:00:00.000Z",
+    updatedAt: "2024-01-01T00:00:00.000Z",
   };
 }
 

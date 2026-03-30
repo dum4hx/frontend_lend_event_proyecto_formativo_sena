@@ -122,7 +122,7 @@ export const MaterialInstanceList: React.FC<MaterialInstanceListProps> = ({
                 instance.barcode || <span className="text-gray-600">-</span>
               )}
             </td>
-            <td className="py-4 px-4 text-gray-400">{instance.modelId?.name || "Unknown"}</td>
+            <td className="py-4 px-4 text-gray-400">{instance.model?.name || "Unknown"}</td>
             <td className="py-4 px-4 text-gray-400">{instance.locationId?.name || "Unknown"}</td>
             <td className="py-4 px-4">
               <span className={`font-semibold ${getStatusColor(instance.status)}`}>

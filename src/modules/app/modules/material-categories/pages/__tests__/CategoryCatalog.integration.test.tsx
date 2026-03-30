@@ -61,8 +61,12 @@ vi.mock("../../../../../../components/export/ExcelExportImport", () => ({
 function categoryFactory(overrides?: Partial<MaterialCategory>): MaterialCategory {
   return {
     _id: "category-1",
+    organizationId: "org-1",
     name: "Lighting",
     description: "Stage lights",
+    attributes: [],
+    createdAt: "2024-01-01T00:00:00.000Z",
+    updatedAt: "2024-01-01T00:00:00.000Z",
     ...overrides,
   };
 }

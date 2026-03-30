@@ -142,14 +142,12 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
 
   const handleCreateAttribute = async (attrPayload: CreateMaterialAttributePayload) => {
     try {
-      // Ensure attribute is linked to the current category if not already
-      const payload = { ...attrPayload, categoryId: formData.categoryId };
-      const newAttr = await addAttribute(payload);
+      const newAttr = await addAttribute(attrPayload);
 
-      // Auto-relate the newly created attribute
+      // Auto-relate the newly created attribute with isRequired defaulting to false
       setRelatedAttributes((prev) => [
         ...prev,
-        { attributeId: newAttr._id, isRequired: !!newAttr.isRequired },
+        { attributeId: newAttr._id, value: "", isRequired: false },
       ]);
 
       setShowAttributeForm(false);
@@ -165,8 +163,8 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
       if (exists) {
         return prev.filter((a) => a.attributeId !== attrId);
       } else {
-        const attr = attributes.find((a) => a._id === attrId);
-        return [...prev, { attributeId: attrId, isRequired: !!attr?.isRequired }];
+        // New attributes default to optional (isRequired: false) with empty value
+        return [...prev, { attributeId: attrId, value: "", isRequired: false }];
       }
     });
   };
@@ -413,7 +411,6 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
             </div>
 
             <MaterialAttributeForm
-              categories={categories.filter((c) => c._id === formData.categoryId)}
               onCancel={() => setShowAttributeForm(false)}
               onSubmit={handleCreateAttribute}
             />

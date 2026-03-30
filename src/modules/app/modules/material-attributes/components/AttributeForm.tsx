@@ -4,12 +4,10 @@ import { useToast } from "../../../../../contexts/ToastContext";
 import type {
   CreateMaterialAttributePayload,
   MaterialAttribute,
-  MaterialCategory,
 } from "../../../../../types/api";
 import { Button, IconButton } from "../../../../../components/ui";
 
 interface MaterialAttributeFormProps {
-  categories: MaterialCategory[];
   onSubmit: (data: CreateMaterialAttributePayload) => Promise<void>;
   onCancel: () => void;
   initialData?: MaterialAttribute;
@@ -17,7 +15,6 @@ interface MaterialAttributeFormProps {
 }
 
 export const MaterialAttributeForm: React.FC<MaterialAttributeFormProps> = ({
-  categories,
   onSubmit,
   onCancel,
   initialData,
@@ -26,9 +23,7 @@ export const MaterialAttributeForm: React.FC<MaterialAttributeFormProps> = ({
   const [formData, setFormData] = useState<CreateMaterialAttributePayload>({
     name: "",
     unit: "",
-    categoryId: "",
     allowedValues: [],
-    isRequired: false,
   });
   const [newValue, setNewValue] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -39,9 +34,7 @@ export const MaterialAttributeForm: React.FC<MaterialAttributeFormProps> = ({
       setFormData({
         name: initialData.name,
         unit: initialData.unit,
-        categoryId: initialData.categoryId || "",
         allowedValues: initialData.allowedValues || [],
-        isRequired: initialData.isRequired || false,
       });
     }
   }, [initialData]);
@@ -119,24 +112,6 @@ export const MaterialAttributeForm: React.FC<MaterialAttributeFormProps> = ({
 
       <div>
         <label className="block text-sm font-medium text-gray-300 mb-2">
-          Category (Restricts attribute to this category)
-        </label>
-        <select
-          value={formData.categoryId}
-          onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-          className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-lg text-white focus:outline-none focus:border-[#FFD700]"
-        >
-          <option value="">Global (All categories)</option>
-          {categories.map((cat) => (
-            <option key={cat._id} value={cat._id}>
-              {cat.name}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">
           Allowed Values (Leave empty for free text/number)
         </label>
         <div className="flex gap-2 mb-3">
@@ -178,19 +153,6 @@ export const MaterialAttributeForm: React.FC<MaterialAttributeFormProps> = ({
             <span className="text-gray-600 text-xs italic">No restricted values defined</span>
           )}
         </div>
-      </div>
-
-      <div className="flex items-center gap-3">
-        <input
-          type="checkbox"
-          id="isRequired"
-          checked={formData.isRequired}
-          onChange={(e) => setFormData({ ...formData, isRequired: e.target.checked })}
-          className="w-5 h-5 rounded border-[#333] bg-[#1a1a1a] text-[#FFD700] focus:ring-[#FFD700]"
-        />
-        <label htmlFor="isRequired" className="text-sm font-medium text-gray-300 cursor-pointer">
-          Required for material types
-        </label>
       </div>
 
       <div className="flex justify-end gap-3 pt-4">

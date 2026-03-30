@@ -106,13 +106,36 @@ export default function Invoices() {
     return typeof customerId === "string" ? customerId : "";
   };
 
-  // Filter invoices based on search
+  // Filter invoices based on search, status, type, and overdue status
   const filteredInvoices = invoices.filter((inv) => {
+    // Apply search filter
     const searchLower = searchTerm.toLowerCase();
-    return (
+    const matchesSearch =
       (inv.invoiceNumber?.toLowerCase().includes(searchLower) ?? false) ||
-      getCustomerName(inv.customerId).toLowerCase().includes(searchLower)
-    );
+      getCustomerName(inv.customerId).toLowerCase().includes(searchLower);
+
+    if (!matchesSearch) return false;
+
+    // Apply status filter
+    if (statusFilter !== "all" && inv.status !== statusFilter) {
+      return false;
+    }
+
+    // Apply type filter
+    if (typeFilter !== "all" && inv.type !== typeFilter) {
+      return false;
+    }
+
+    // Apply overdue filter
+    if (overdueOnly) {
+      const now = new Date();
+      const dueDate = inv.dueDate ? new Date(inv.dueDate) : null;
+      const isOverdue =
+        dueDate && now > dueDate && inv.status !== "paid" && inv.status !== "cancelled";
+      if (!isOverdue) return false;
+    }
+
+    return true;
   });
 
   // Payment flow
