@@ -147,7 +147,6 @@ export const allNavItems: NavItem[] = [
     section: "Warehouse",
   },
   {
-  {
     id: "inspections",
     label: "Inspections",
     path: "/app/inspections",

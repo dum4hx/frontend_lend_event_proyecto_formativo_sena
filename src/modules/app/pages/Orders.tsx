@@ -577,7 +577,8 @@ export default function Orders() {
 
       {order.request.depositAmount != null &&
         order.request.depositAmount > 0 &&
-        !order.request.depositPaidAt && (
+        !order.request.depositPaidAt &&
+        ["approved", "deposit_pending", "assigned", "ready"].includes(order.request.status) && (
           <Button
             size="sm"
             leftIcon={CreditCard}

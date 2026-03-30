@@ -2,10 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useToast } from "../../../../../contexts/ToastContext";
 import type { CreateMaterialCategoryPayload } from "../../../../../types/api";
 import { Button } from "../../../../../components/ui";
-import {
-  validateCategoryName,
-  validateCategoryDescription,
-} from "../../../../../utils/validators";
+import { validateCategoryName, validateCategoryDescription } from "../../../../../utils/validators";
 
 interface CategoryFormProps {
   onSubmit: (data: CreateMaterialCategoryPayload) => Promise<void>;
@@ -125,7 +122,9 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">Description</label>
+        <label className="block text-sm font-medium text-gray-300 mb-2">
+          Description <span className="text-red-400">*</span>
+        </label>
         <textarea
           value={formData.description}
           onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -143,7 +142,9 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
         {touched.description && fieldErrors.description && (
           <p className="mt-1 text-sm text-red-400">{fieldErrors.description}</p>
         )}
-        <p className="mt-1 text-xs text-gray-500">{(formData.description ?? "").length}/500 characters</p>
+        <p className="mt-1 text-xs text-gray-500">
+          {(formData.description ?? "").length}/500 characters
+        </p>
       </div>
 
       <div className="flex gap-4 pt-4">
