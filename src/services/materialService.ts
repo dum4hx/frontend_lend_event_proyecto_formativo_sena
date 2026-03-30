@@ -9,10 +9,12 @@ import { get, post, patch, del, type ApiSuccessResponse } from "../lib/api";
 import type {
   MaterialCategory,
   CreateMaterialCategoryPayload,
+  UpdateMaterialCategoryPayload,
   MaterialType,
   CreateMaterialTypePayload,
   UpdateMaterialTypePayload,
   MaterialAttribute,
+  MaterialTypeAttribute,
   CreateMaterialAttributePayload,
   UpdateMaterialAttributePayload,
   MaterialInstance,
@@ -133,7 +135,7 @@ function normalizeMaterialInstance(
     model: normalizeMaterialModel(instance.modelId ?? instance.model),
     locationId: normalizeMaterialLocation(instance.locationId ?? instance.location ?? fallbackLocation),
     organizationId: instance.organizationId ?? "",
-    attributes: Array.isArray(instance.attributes) ? instance.attributes : [],
+    attributes: (Array.isArray(instance.attributes) ? instance.attributes : []) as MaterialTypeAttribute[],
     createdAt: instance.createdAt ?? "",
     updatedAt: instance.updatedAt ?? "",
     __v: instance.__v ?? 0,
@@ -179,9 +181,9 @@ export async function createMaterialCategory(
 /** Update a material category. */
 export async function updateMaterialCategory(
   categoryId: string,
-  payload: CreateMaterialCategoryPayload,
+  payload: UpdateMaterialCategoryPayload,
 ): Promise<ApiSuccessResponse<{ category: MaterialCategory }>> {
-  return patch<{ category: MaterialCategory }, CreateMaterialCategoryPayload>(
+  return patch<{ category: MaterialCategory }, UpdateMaterialCategoryPayload>(
     `/materials/categories/${categoryId}`,
     payload,
   );
@@ -382,4 +384,31 @@ export async function deleteMaterialAttribute(
   attributeId: string,
 ): Promise<ApiSuccessResponse<{ message: string }>> {
   return del<{ message: string }>(`/materials/attributes/${attributeId}`);
+}
+
+/** Audit endpoint: returns material types with orphaned attribute values. */
+export async function getOrphanedAttributeValues(): Promise<
+  ApiSuccessResponse<{
+    orphanedCount: number;
+    orphanedMaterials: Array<{
+      materialTypeId: string;
+      materialTypeName: string;
+      attributeName: string;
+      currentValue: string;
+      allowedValues: string[];
+      message: string;
+    }>;
+  }>
+> {
+  return get<{
+    orphanedCount: number;
+    orphanedMaterials: Array<{
+      materialTypeId: string;
+      materialTypeName: string;
+      attributeName: string;
+      currentValue: string;
+      allowedValues: string[];
+      message: string;
+    }>;
+  }>("/materials/audit/orphaned-attribute-values");
 }

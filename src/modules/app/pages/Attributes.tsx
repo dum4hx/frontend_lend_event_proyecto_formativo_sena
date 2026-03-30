@@ -36,12 +36,7 @@ export default function Attributes() {
     refetch: refetchAttributes,
   } = useApiQuery(getMaterialAttributes, { context: "Material Attributes" });
 
-  const { data: categoriesData } = useApiQuery(getMaterialCategories, {
-    context: "Material Categories",
-  });
-
   const attributes = useMemo(() => attributesData?.data?.attributes || [], [attributesData]);
-  const categories = useMemo(() => categoriesData?.data?.categories || [], [categoriesData]);
 
   const canCreate = hasPermission("material_attributes:create");
   const canEdit = hasPermission("material_attributes:update");

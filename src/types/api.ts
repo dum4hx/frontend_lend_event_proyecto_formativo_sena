@@ -373,7 +373,7 @@ export interface MaterialInstance {
   /** Organization ID */
   organizationId: string;
   /** Attributes array */
-  attributes: any[];
+  attributes: MaterialTypeAttribute[];
   /** Date when the instance was created (ISO date string) */
   createdAt: string;
   /** Date when the instance was last updated (ISO date string) */

@@ -61,19 +61,14 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
   instances,
   onClose,
 }) => {
-  const [selectedPreset, setSelectedPreset] = useState<PrintPreset>("zebra-4x6");
-  const [copiesPerLabel, setCopiesPerLabel] = useState(1);
-
-  useEffect(() => {
+  const [selectedPreset, setSelectedPreset] = useState<PrintPreset>(() => {
     const storedPreset = localStorage.getItem(PRINT_PRESET_STORAGE_KEY);
-    if (!storedPreset) {
-      return;
+    if (storedPreset && storedPreset in PRINT_PRESETS) {
+      return storedPreset as PrintPreset;
     }
-
-    if (storedPreset in PRINT_PRESETS) {
-      setSelectedPreset(storedPreset as PrintPreset);
-    }
-  }, []);
+    return "zebra-4x6";
+  });
+  const [copiesPerLabel, setCopiesPerLabel] = useState(1);
 
   useEffect(() => {
     localStorage.setItem(PRINT_PRESET_STORAGE_KEY, selectedPreset);
