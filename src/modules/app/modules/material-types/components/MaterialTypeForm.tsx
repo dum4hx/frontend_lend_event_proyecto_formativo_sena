@@ -37,6 +37,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
   const [priceDisplay, setPriceDisplay] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAttributeForm, setShowAttributeForm] = useState(false);
+  const [categorySearchInput, setCategorySearchInput] = useState("");
 
   const { showToast } = useToast();
   const { attributes: allAttributes } = useMaterialAttributes();
@@ -50,21 +51,18 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
     [formData.categoryId, categories],
   );
 
-  const categoryAttributeIds = useMemo(
-    () => {
-      const allAttributeIds = new Map<string, Set<string>>();
-      selectedCategories.forEach((cat) => {
-        cat.attributes?.forEach((attr) => {
-          if (!allAttributeIds.has(attr.attributeId)) {
-            allAttributeIds.set(attr.attributeId, new Set());
-          }
-          allAttributeIds.get(attr.attributeId)!.add(cat._id);
-        });
+  const categoryAttributeIds = useMemo(() => {
+    const allAttributeIds = new Map<string, Set<string>>();
+    selectedCategories.forEach((cat) => {
+      cat.attributes?.forEach((attr) => {
+        if (!allAttributeIds.has(attr.attributeId)) {
+          allAttributeIds.set(attr.attributeId, new Set());
+        }
+        allAttributeIds.get(attr.attributeId)!.add(cat._id);
       });
-      return allAttributeIds;
-    },
-    [selectedCategories],
-  );
+    });
+    return allAttributeIds;
+  }, [selectedCategories]);
 
   // Available attributes filtered to only those in the selected categories
   const categoryAttributes = useMemo(
@@ -87,12 +85,10 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
   useEffect(() => {
     if (initialData) {
       let categoryIds: string[] = [];
-      
+
       if (Array.isArray(initialData.categoryId)) {
         categoryIds = initialData.categoryId
-          .map((cat) =>
-            typeof cat === "string" ? cat : (cat as { _id?: string })?._id,
-          )
+          .map((cat) => (typeof cat === "string" ? cat : (cat as { _id?: string })?._id))
           .filter((id): id is string => !!id);
       } else if (typeof initialData.categoryId === "string") {
         categoryIds = [initialData.categoryId];
@@ -143,8 +139,8 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
     }
 
     // Validate required attributes have values
-    const requiredAttrs = selectedCategories.flatMap((cat) =>
-      cat.attributes?.filter((a) => a.isRequired) || [],
+    const requiredAttrs = selectedCategories.flatMap(
+      (cat) => cat.attributes?.filter((a) => a.isRequired) || [],
     );
     const attributeNameMap = new Map(categoryAttributes.map((a) => [a._id, a.name]));
     const missingRequired = requiredAttrs.filter(
@@ -276,23 +272,82 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
                   <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] ml-1">
                     Categories *
                   </label>
-                  <select
-                    multiple
-                    value={Array.isArray(formData.categoryId) ? formData.categoryId : []}
-                    onChange={(e) => {
-                      const selected = Array.from(e.target.selectedOptions, (opt) => opt.value);
-                      setFormData({ ...formData, categoryId: selected });
-                    }}
-                    className="w-full px-5 py-4 bg-[#1a1a1a] border border-[#222] rounded-xl text-white focus:outline-none focus:border-[#FFD700] focus:ring-1 focus:ring-[#FFD700]/20 transition-all"
-                    required
-                  >
-                    {categories.map((cat) => (
-                      <option key={cat._id} value={cat._id}>
-                        {cat.name}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple</p>
+                  <div className="space-y-3">
+                    {/* Category Selector Input */}
+                    <div className="flex gap-2">
+                      <select
+                        value={categorySearchInput}
+                        onChange={(e) => setCategorySearchInput(e.target.value)}
+                        className="flex-1 px-5 py-4 bg-[#1a1a1a] border border-[#222] rounded-xl text-white focus:outline-none focus:border-[#FFD700] focus:ring-1 focus:ring-[#FFD700]/20 transition-all"
+                      >
+                        <option value="">Select category to add...</option>
+                        {categories
+                          .filter(
+                            (cat) =>
+                              !Array.isArray(formData.categoryId) ||
+                              !formData.categoryId.includes(cat._id),
+                          )
+                          .map((cat) => (
+                            <option key={cat._id} value={cat._id}>
+                              {cat.name}
+                            </option>
+                          ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (categorySearchInput.trim()) {
+                            const updated = Array.isArray(formData.categoryId)
+                              ? formData.categoryId
+                              : [];
+                            if (!updated.includes(categorySearchInput)) {
+                              setFormData({
+                                ...formData,
+                                categoryId: [...updated, categorySearchInput],
+                              });
+                              setCategorySearchInput("");
+                            }
+                          }
+                        }}
+                        disabled={!categorySearchInput || isSubmitting}
+                        className="px-5 py-4 bg-[#FFD700] hover:bg-[#FFD700]/90 disabled:bg-gray-600 disabled:cursor-not-allowed text-black font-bold rounded-xl transition-all flex items-center justify-center"
+                      >
+                        <Plus size={20} />
+                      </button>
+                    </div>
+
+                    {/* Selected Categories List */}
+                    {Array.isArray(formData.categoryId) && formData.categoryId.length > 0 ? (
+                      <div className="space-y-2">
+                        {formData.categoryId.map((catId) => {
+                          const cat = categories.find((c) => c._id === catId);
+                          return (
+                            <div
+                              key={catId}
+                              className="flex items-center justify-between px-5 py-3 bg-[#FFD700]/10 border border-[#FFD700]/30 rounded-xl hover:bg-[#FFD700]/15 transition-all"
+                            >
+                              <span className="text-white font-medium">{cat?.name}</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setFormData({
+                                    ...formData,
+                                    categoryId: formData.categoryId.filter((id) => id !== catId),
+                                  });
+                                }}
+                                disabled={isSubmitting}
+                                className="text-gray-400 hover:text-red-400 transition-colors p-1"
+                              >
+                                <X size={18} />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-500 italic">No categories selected yet</p>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -387,12 +442,10 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
                   {categoryAttributes.map((attr) => {
                     const currentValue = currentAttributeValues.get(attr._id);
                     const isSelected = !!currentValue;
-                    
+
                     // Get all categories that require this attribute
                     const requiringCategories = selectedCategories.filter((cat) =>
-                      cat.attributes?.find(
-                        (ca) => ca.attributeId === attr._id && ca.isRequired,
-                      ),
+                      cat.attributes?.find((ca) => ca.attributeId === attr._id && ca.isRequired),
                     );
                     const isRequired = requiringCategories.length > 0;
 

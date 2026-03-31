@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Plus, Search, Tag, X } from "lucide-react";
 import { useMaterialTypes } from "../hooks";
 import { useCategories } from "../../material-categories/hooks";
+import { useMaterialAttributes } from "../../material-attributes/hooks/useMaterialAttributes";
 import { MaterialTypeList, MaterialTypeDetailModal, MaterialTypeForm } from "../components";
 import { AdminPagination } from "../../../components";
 import { ExcelExportImport } from "../../../../../components/export/ExcelExportImport";
@@ -26,6 +27,7 @@ export const MaterialTypeCatalog: React.FC = () => {
     updateMaterialType: updateMaterialTypeData,
   } = useMaterialTypes();
   const { categories } = useCategories();
+  const { attributes } = useMaterialAttributes();
   const { showToast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
@@ -162,7 +164,7 @@ export const MaterialTypeCatalog: React.FC = () => {
           await addMaterialType({
             name: item.name as string,
             description: item.description as string,
-            categoryId: catId,
+            categoryId: [catId],
             pricePerDay: parseFloat(item.pricePerDay as string),
           });
           successCount++;
@@ -428,6 +430,7 @@ export const MaterialTypeCatalog: React.FC = () => {
           <MaterialTypeDetailModal
             materialType={selectedMaterialType}
             categories={categories}
+            attributes={attributes}
             onClose={() => setSelectedMaterialType(null)}
           />
         )}

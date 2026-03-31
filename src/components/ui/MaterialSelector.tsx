@@ -88,10 +88,12 @@ export const MaterialSelector: React.FC<MaterialSelectorProps> = ({
           const materialsInCategory = Array.isArray(materialCategory)
             ? materialCategory
             : [materialCategory];
-          if (!materialsInCategory.some((cat) => {
-            const catId = typeof cat === "string" ? cat : (cat as { _id?: string })?._id;
-            return catId === categoryId;
-          })) {
+          if (
+            !materialsInCategory.some((cat) => {
+              const catId = typeof cat === "string" ? cat : (cat as { _id?: string })?._id;
+              return catId === categoryId;
+            })
+          ) {
             return false;
           }
         }
@@ -125,9 +127,7 @@ export const MaterialSelector: React.FC<MaterialSelectorProps> = ({
       setSelectedMaterialIds([materialId]);
     } else {
       setSelectedMaterialIds((prev) =>
-        prev.includes(materialId)
-          ? prev.filter((id) => id !== materialId)
-          : [...prev, materialId],
+        prev.includes(materialId) ? prev.filter((id) => id !== materialId) : [...prev, materialId],
       );
     }
   };
@@ -247,7 +247,9 @@ export const MaterialSelector: React.FC<MaterialSelectorProps> = ({
                     const availability = getAvailabilityLabel?.(material._id);
                     if (!availability) return null;
                     return (
-                      <span className={`mt-1 inline-flex text-[11px] px-1.5 py-0.5 rounded ${getAvailabilityBadgeClass(availability.tone)}`}>
+                      <span
+                        className={`mt-1 inline-flex text-[11px] px-1.5 py-0.5 rounded ${getAvailabilityBadgeClass(availability.tone)}`}
+                      >
                         {availability.text}
                       </span>
                     );

@@ -1,62 +1,65 @@
-import React from 'react';
-import { X } from 'lucide-react';
-import type { MaterialCategory, MaterialType } from '../../../../../types/api';
+import React from "react";
+import { X } from "lucide-react";
+import type { MaterialCategory, MaterialType, MaterialAttribute } from "../../../../../types/api";
 
 interface MaterialTypeDetailModalProps {
   materialType: MaterialType;
   categories: MaterialCategory[];
+  attributes?: MaterialAttribute[];
   onClose: () => void;
 }
 
 export const MaterialTypeDetailModal: React.FC<MaterialTypeDetailModalProps> = ({
   materialType,
   categories,
+  attributes = [],
   onClose,
 }) => {
-  const extractCategoryId = (value: unknown): string | undefined => {
-    // Plain string ID
-    if (typeof value === 'string') return value;
-
-    // Array — backend returns categoryId as string[] or populated object[]
-    if (Array.isArray(value) && value.length > 0) {
-      const first = value[0];
-      if (typeof first === 'string') return first;          // string[]
-      if (first && typeof first === 'object') {
-        const id = (first as { _id?: string })._id;
-        return typeof id === 'string' ? id : undefined;     // populated object[]
-      }
+  const extractCategoryIds = (value: unknown): string[] => {
+    // Array of strings
+    if (Array.isArray(value)) {
+      return value
+        .map((item) => {
+          if (typeof item === "string") return item;
+          if (item && typeof item === "object") {
+            const id = (item as { _id?: string })._id;
+            return typeof id === "string" ? id : undefined;
+          }
+          return undefined;
+        })
+        .filter((id): id is string => !!id);
     }
+
+    // Single string ID
+    if (typeof value === "string") return [value];
 
     // Single populated object
-    if (value && typeof value === 'object') {
+    if (value && typeof value === "object") {
       const maybeId = (value as { _id?: string })._id;
-      return typeof maybeId === 'string' ? maybeId : undefined;
+      return typeof maybeId === "string" ? [maybeId] : [];
     }
 
-    return undefined;
+    return [];
   };
 
-  const getCategoryName = (
-    typeData: MaterialType & {
-      categoryId?: string | { _id?: string; name?: string };
-      category?: { _id?: string; name?: string };
-    }
-  ) => {
-    const embeddedCategory = typeData.category;
-    if (embeddedCategory?.name) {
-      return embeddedCategory.name;
-    }
+  const getCategoryNames = (typeData: Partial<MaterialType>): string[] => {
+    const categoryIds = extractCategoryIds(typeData.categoryId);
+    return categoryIds
+      .map((id) => categories.find((c) => c._id === id)?.name)
+      .filter((name): name is string => !!name)
+      .sort();
+  };
 
-    const categoryIdValue = extractCategoryId(typeData.categoryId);
-
-    const category = categories.find((c) => c._id === categoryIdValue);
-    return category?.name || 'Unknown';
+  const getAttributeDisplayLabel = (attributeId: string): string => {
+    const attr = attributes.find((a) => a._id === attributeId);
+    if (!attr) return attributeId;
+    return attr.unit ? `${attr.name} (${attr.unit})` : attr.name;
   };
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP',
+    return new Intl.NumberFormat("es-CO", {
+      style: "currency",
+      currency: "COP",
       minimumFractionDigits: 0,
     }).format(price);
   };
@@ -79,45 +82,67 @@ export const MaterialTypeDetailModal: React.FC<MaterialTypeDetailModalProps> = (
         <div className="p-6 space-y-6">
           <div className="grid grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">
-                Material Name
-              </label>
+              <label className="block text-sm font-medium text-gray-400 mb-2">Material Name</label>
               <p className="text-white font-semibold text-lg">{materialType.name}</p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">
-                Category
-              </label>
-              <p className="text-white">{getCategoryName(materialType)}</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">
-                Price per Day
-              </label>
+              <label className="block text-sm font-medium text-gray-400 mb-2">Price per Day</label>
               <p className="text-[#FFD700] font-bold text-xl">
                 {formatPrice(materialType.pricePerDay)}
               </p>
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">
-                Type ID
-              </label>
-              <p className="text-gray-400 text-sm font-mono">{materialType._id}</p>
-            </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-400 mb-2">
-              Description
-            </label>
-            <p className="text-white">
-              {materialType.description || 'No description provided'}
-            </p>
+            <label className="block text-sm font-medium text-gray-400 mb-2">Description</label>
+            <p className="text-white">{materialType.description || "No description provided"}</p>
+          </div>
+
+          {/* Categories */}
+          <div>
+            <label className="block text-sm font-medium text-gray-400 mb-3">Categories</label>
+            {getCategoryNames(materialType).length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {getCategoryNames(materialType).map((name) => (
+                  <span
+                    key={name}
+                    className="px-3 py-1.5 bg-[#FFD700]/10 border border-[#FFD700]/30 text-[#FFD700] rounded-lg text-sm font-medium"
+                  >
+                    {name}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500 italic">No categories assigned</p>
+            )}
+          </div>
+
+          {/* Attributes */}
+          {materialType.attributes && materialType.attributes.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-3">
+                Technical Specifications
+              </label>
+              <div className="space-y-2">
+                {materialType.attributes.map((attr) => (
+                  <div
+                    key={attr.attributeId}
+                    className="p-3 bg-[#1a1a1a] border border-[#222] rounded-lg flex items-start justify-between gap-4"
+                  >
+                    <span className="text-gray-300 font-medium">
+                      {getAttributeDisplayLabel(attr.attributeId)}
+                    </span>
+                    <span className="text-white font-semibold">{attr.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-400 mb-2">Type ID</label>
+            <p className="text-gray-400 text-sm font-mono">{materialType._id}</p>
           </div>
         </div>
 
