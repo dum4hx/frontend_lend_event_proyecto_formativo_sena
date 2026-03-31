@@ -191,44 +191,28 @@ export default function Attributes() {
               </div>
             </div>
 
-            {/* Values and Statistics */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <p className="text-gray-400 text-sm mb-2 font-semibold">
-                  {isEs ? "Valores Permitidos:" : "Allowed Values:"}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {attribute.allowedValues && attribute.allowedValues.length > 0 ? (
-                    attribute.allowedValues.map((value, idx) => (
-                      <span
-                        key={idx}
-                        className="px-3 py-1 bg-[#121212] border border-[#333] rounded-full text-xs text-gray-300"
-                      >
-                        {value}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-gray-500 text-xs italic">
-                      {isEs
-                        ? `Cualquier ${attribute.unit} aceptado`
-                        : `Any ${attribute.unit} accepted`}
+            {/* Values */}
+            <div>
+              <p className="text-gray-400 text-sm mb-2 font-semibold">
+                {isEs ? "Valores Permitidos:" : "Allowed Values:"}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {attribute.allowedValues && attribute.allowedValues.length > 0 ? (
+                  attribute.allowedValues.map((value, idx) => (
+                    <span
+                      key={idx}
+                      className="px-3 py-1 bg-[#121212] border border-[#333] rounded-full text-xs text-gray-300"
+                    >
+                      {value}
                     </span>
-                  )}
-                </div>
-              </div>
-              <div>
-                <p className="text-gray-400 text-sm mb-2 font-semibold">
-                  {isEs ? "Uso:" : "Usage:"}
-                </p>
-                <div className="flex items-center">
-                  <div className="flex-1 bg-[#121212] rounded-full h-2 mr-3 overflow-hidden">
-                    <div
-                      className="bg-[#FFD700] h-2 rounded-full transition-all"
-                      style={{ width: `${Math.min((attribute.usageCount || 0) * 10, 100)}%` }}
-                    ></div>
-                  </div>
-                  <span className="font-semibold text-[#FFD700]">{attribute.usageCount || 0}</span>
-                </div>
+                  ))
+                ) : (
+                  <span className="text-gray-500 text-xs italic">
+                    {isEs
+                      ? `Cualquier ${attribute.unit} aceptado`
+                      : `Any ${attribute.unit} accepted`}
+                  </span>
+                )}
               </div>
             </div>
           </div>
