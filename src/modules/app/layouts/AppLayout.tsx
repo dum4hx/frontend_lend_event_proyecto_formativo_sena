@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Sidebar } from "../components";
 import { ToastContainer } from "../../../components/ui/ToastContainer";
 import { ToastProvider, useToast } from "../../../contexts/ToastContext";
+import { AnimatedPage } from "../../../components/ui";
 
 function AppLayoutContent() {
   const { toasts, dismissToast } = useToast();
@@ -18,7 +19,9 @@ function AppLayoutContent() {
       />
       <div className={`transition-all duration-300 ${sidebarMargin}`}>
         <main className="p-8 min-h-screen">
-          <Outlet />
+          <AnimatedPage>
+            <Outlet />
+          </AnimatedPage>
         </main>
       </div>
 

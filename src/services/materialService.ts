@@ -390,6 +390,27 @@ export async function deleteMaterialAttribute(
   return del<{ message: string }>(`/materials/attributes/${attributeId}`);
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// Package availability
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Check package availability for a date range. */
+export async function getPackageAvailability(
+  packageId: string,
+  startDate: string,
+  endDate: string,
+): Promise<
+  ApiSuccessResponse<{
+    available: boolean;
+    unavailableItems: Array<{ materialTypeId: string; name: string; available: number; required: number }>;
+  }>
+> {
+  return get<{
+    available: boolean;
+    unavailableItems: Array<{ materialTypeId: string; name: string; available: number; required: number }>;
+  }>(`/packages/${packageId}/availability`, { startDate, endDate });
+}
+
 /** Audit endpoint: returns material types with orphaned attribute values. */
 export async function getOrphanedAttributeValues(): Promise<
   ApiSuccessResponse<{

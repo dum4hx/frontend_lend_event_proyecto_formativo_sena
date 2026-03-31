@@ -60,3 +60,12 @@ export async function voidInvoice(
 ): Promise<ApiSuccessResponse<null>> {
   return post<null>(`/invoices/${invoiceId}/void`, { reason });
 }
+
+// ─── Send ──────────────────────────────────────────────────────────────────
+
+/** Send (finalise) a draft invoice via email. */
+export async function sendInvoice(
+  invoiceId: string,
+): Promise<ApiSuccessResponse<{ invoice: Invoice }>> {
+  return post<{ invoice: Invoice }>(`/invoices/${invoiceId}/send`, {});
+}

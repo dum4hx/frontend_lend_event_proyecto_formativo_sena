@@ -3,6 +3,7 @@
  * Makes imports cleaner throughout the application.
  */
 
+// ── Existing components ──────────────────────────────────────────────────
 export { ConfirmDialog } from "./ConfirmDialog";
 export type { ConfirmDialogProps } from "./ConfirmDialog";
 
@@ -35,3 +36,43 @@ export type { HeroButtonProps, HeroButtonVariant } from "./HeroButton";
 
 export { MaterialSelector } from "./MaterialSelector";
 export type { MaterialSelectorProps } from "./MaterialSelector";
+
+// ── New shared components ────────────────────────────────────────────────
+export { AnimatedPage } from "./AnimatedPage";
+export type { AnimatedPageProps } from "./AnimatedPage";
+
+export { Modal } from "./Modal";
+export type { ModalProps, ModalSize } from "./Modal";
+
+export { FormModal } from "./FormModal";
+export type { FormModalProps } from "./FormModal";
+
+export { DetailModal } from "./DetailModal";
+export type { DetailModalProps, DetailField } from "./DetailModal";
+
+export { QuickCreateModal } from "./QuickCreateModal";
+export type { QuickCreateModalProps } from "./QuickCreateModal";
+
+export { DataTable } from "./DataTable";
+export type { DataTableProps, ColumnDef } from "./DataTable";
+
+export { SearchableSelect } from "./SearchableSelect";
+export type { SearchableSelectProps, SelectOption } from "./SearchableSelect";
+
+export { SearchInput } from "./SearchInput";
+export type { SearchInputProps } from "./SearchInput";
+
+export { StatusBadge } from "./StatusBadge";
+export type { StatusBadgeProps } from "./StatusBadge";
+
+export { TruncatedText } from "./TruncatedText";
+export type { TruncatedTextProps } from "./TruncatedText";
+
+export { PageHeader } from "./PageHeader";
+export type { PageHeaderProps } from "./PageHeader";
+
+export { Pagination } from "./Pagination";
+export type { PaginationProps } from "./Pagination";
+
+export { LinkedEntity } from "./LinkedEntity";
+export type { LinkedEntityProps } from "./LinkedEntity";

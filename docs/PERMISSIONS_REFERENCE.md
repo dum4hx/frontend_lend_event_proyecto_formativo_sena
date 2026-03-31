@@ -2,7 +2,7 @@
 
 Generated at: 2026-03-08T21:18:03.050Z
 
-Total permissions: 52
+Total permissions: 55
 
 This document is generated from the MongoDB `permissions` collection.
 Each section explains the purpose of a permission and the action it allows.
@@ -34,6 +34,7 @@ Each section explains the purpose of a permission and the action it allows.
 - [`materials:delete`](#materialsdelete)
 - [`materials:read`](#materialsread)
 - [`materials:update`](#materialsupdate)
+- [`operations:read`](#operationsread)
 - [`organization:delete`](#organizationdelete)
 - [`organization:read`](#organizationread)
 - [`organization:update`](#organizationupdate)
@@ -61,6 +62,9 @@ Each section explains the purpose of a permission and the action it allows.
 - [`subscription_types:delete`](#subscription_typesdelete)
 - [`subscription_types:read`](#subscription_typesread)
 - [`subscription_types:update`](#subscription_typesupdate)
+- [`transfers:create`](#transferscreate)
+- [`transfers:read`](#transfersread)
+- [`transfers:update`](#transfersupdate)
 - [`users:create`](#userscreate)
 - [`users:delete`](#usersdelete)
 - [`users:read`](#usersread)
@@ -588,6 +592,36 @@ Each section explains the purpose of a permission and the action it allows.
 - **Allowed Action:** Modify existing records in this resource.
 - **Resource Target:** Subscription Types
 
+### `transfers:create`
+
+- **Display Name:** Create Transfers
+- **Category:** Transfers
+- **Scope:** Organization
+- **Active:** Yes
+- **Purpose:** Allows creating transfer requests and initiating physical transfers between locations.
+- **Allowed Action:** Create new records in this resource.
+- **Resource Target:** Transfers
+
+### `transfers:read`
+
+- **Display Name:** View Transfers
+- **Category:** Transfers
+- **Scope:** Organization
+- **Active:** Yes
+- **Purpose:** Allows viewing transfer requests and transfer records.
+- **Allowed Action:** View/list records and details for this resource.
+- **Resource Target:** Transfers
+
+### `transfers:update`
+
+- **Display Name:** Update Transfers
+- **Category:** Transfers
+- **Scope:** Organization
+- **Active:** Yes
+- **Purpose:** Allows responding to transfer requests and marking transfers as received.
+- **Allowed Action:** Modify existing records in this resource.
+- **Resource Target:** Transfers
+
 ### `users:create`
 
 - **Display Name:** Create Users
@@ -627,3 +661,90 @@ Each section explains the purpose of a permission and the action it allows.
 - **Purpose:** Allows editing user roles, profiles, and account status.
 - **Allowed Action:** Modify existing records in this resource.
 - **Resource Target:** Users
+
+---
+
+## Pricing
+
+### `pricing:read`
+
+- **Display Name:** View Pricing Configurations
+- **Category:** Pricing
+- **Scope:** Organization
+- **Active:** Yes
+- **Purpose:** Allows viewing pricing strategies and configurations for the organization.
+- **Allowed Action:** View/list pricing configs and preview prices.
+- **Resource Target:** Pricing Configurations
+
+### `pricing:manage`
+
+- **Display Name:** Manage Pricing Configurations
+- **Category:** Pricing
+- **Scope:** Organization
+- **Active:** Yes
+- **Purpose:** Allows creating, updating, and deleting pricing configurations for the organization.
+- **Allowed Action:** Create, modify, and delete pricing configurations.
+- **Resource Target:** Pricing Configurations
+
+---
+
+## Payment Methods
+
+### `payment_methods:read`
+
+- **Display Name:** View Payment Methods
+- **Category:** Payment Methods
+- **Scope:** Organization
+- **Active:** Yes
+- **Purpose:** Allows viewing the organization's available payment methods.
+- **Allowed Action:** List payment methods.
+- **Resource Target:** PaymentMethod
+- **Roles:** super_admin, owner, manager, warehouse_operator, commercial_advisor
+
+### `payment_methods:create`
+
+- **Display Name:** Create Payment Methods
+- **Category:** Payment Methods
+- **Scope:** Organization
+- **Active:** Yes
+- **Purpose:** Allows adding new payment methods to the organization.
+- **Allowed Action:** Create a new payment method.
+- **Resource Target:** PaymentMethod
+- **Roles:** super_admin, owner, manager
+
+### `payment_methods:update`
+
+- **Display Name:** Update Payment Methods
+- **Category:** Payment Methods
+- **Scope:** Organization
+- **Active:** Yes
+- **Purpose:** Allows editing existing payment methods in the organization.
+- **Allowed Action:** Edit name/description/status of a payment method.
+- **Resource Target:** PaymentMethod
+- **Roles:** super_admin, owner, manager
+
+### `payment_methods:delete`
+
+- **Display Name:** Deactivate Payment Methods
+- **Category:** Payment Methods
+- **Scope:** Organization
+- **Active:** Yes
+- **Purpose:** Allows deactivating payment methods in the organization.
+- **Allowed Action:** Soft-delete (deactivate) a payment method.
+- **Resource Target:** PaymentMethod
+- **Roles:** super_admin, owner
+
+---
+
+## Operations
+
+### `operations:read`
+
+- **Display Name:** View Operations Dashboard
+- **Category:** Operations
+- **Scope:** Organization
+- **Active:** Yes
+- **Purpose:** Allows viewing the location-scoped operational dashboard with aggregated tasks, inspections, financials, inventory issues, and transfer queues.
+- **Allowed Action:** View aggregated operational data for a location.
+- **Resource Target:** Operations Dashboard
+- **Roles:** super_admin, owner, manager, warehouse_operator

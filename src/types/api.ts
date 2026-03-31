@@ -588,7 +588,7 @@ export interface PendingLoan {
 
 // ─── Invoices ──────────────────────────────────────────────────────────────
 
-export type InvoiceStatus = "pending" | "paid" | "cancelled";
+export type InvoiceStatus = "draft" | "pending" | "paid" | "cancelled";
 export type InvoiceType = "rental" | "damage" | "deposit";
 
 export interface InvoiceLineItem {
@@ -1501,4 +1501,194 @@ export interface PricingPreviewResult {
   unitPrice: number;
   totalPrice: number;
   effectivePricePerDay: number;
+}
+
+// ─── Package Availability ──────────────────────────────────────────────────
+
+export interface PackageAvailabilityInstance {
+  instanceId: string;
+  serialNumber: string;
+  status: MaterialInstanceStatus;
+  available: boolean;
+}
+
+export interface PackageAvailabilityItem {
+  materialTypeId: string;
+  materialTypeName: string;
+  requiredQuantity: number;
+  availableQuantity: number;
+  fulfilled: boolean;
+  instances: PackageAvailabilityInstance[];
+}
+
+export interface PackageAvailabilityResponse {
+  packageId: string;
+  packageName: string;
+  startDate: string;
+  endDate: string;
+  fullyAvailable: boolean;
+  items: PackageAvailabilityItem[];
+}
+
+// ─── Org-Level Analytics ───────────────────────────────────────────────────
+
+export interface OrgAnalyticsOverview {
+  totalCustomers: number;
+  activeLoans: number;
+  totalRevenue: number;
+  pendingInvoices: number;
+  overdueLoans: number;
+  materialsInUse: number;
+  totalMaterialTypes: number;
+  totalInstances: number;
+}
+
+export interface OrgMaterialUsage {
+  materialTypeId: string;
+  materialTypeName: string;
+  totalInstances: number;
+  inUse: number;
+  available: number;
+  utilization: number;
+}
+
+export interface OrgAnalyticsMaterials {
+  usage: OrgMaterialUsage[];
+  totalUtilization: number;
+}
+
+export interface OrgRevenueByMonth {
+  period: string;
+  revenue: number;
+  invoiceCount: number;
+}
+
+export interface OrgAnalyticsRevenue {
+  totalRevenue: number;
+  monthlyTrend: OrgRevenueByMonth[];
+  averageInvoiceAmount: number;
+}
+
+export interface OrgTopCustomer {
+  customerId: string;
+  customerName: string;
+  totalLoans: number;
+  totalSpent: number;
+  activeLoans: number;
+}
+
+export interface OrgAnalyticsCustomers {
+  totalCustomers: number;
+  activeCustomers: number;
+  topCustomers: OrgTopCustomer[];
+}
+
+// ─── Reports ───────────────────────────────────────────────────────────────
+
+export interface ReportsQueryParams {
+  startDate?: string;
+  endDate?: string;
+  status?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface ReportLoanEntry {
+  loanId: string;
+  customerName: string;
+  startDate: string;
+  endDate: string;
+  status: LoanStatus;
+  materialCount: number;
+  depositAmount: number;
+}
+
+export interface ReportsLoansResponse {
+  loans: ReportLoanEntry[];
+  summary: {
+    total: number;
+    active: number;
+    overdue: number;
+    returned: number;
+  };
+  pagination: PaginationMeta;
+}
+
+export interface ReportInventoryEntry {
+  materialTypeId: string;
+  materialTypeName: string;
+  totalInstances: number;
+  available: number;
+  loaned: number;
+  maintenance: number;
+  damaged: number;
+}
+
+export interface ReportsInventoryResponse {
+  inventory: ReportInventoryEntry[];
+  summary: {
+    totalTypes: number;
+    totalInstances: number;
+    totalAvailable: number;
+    totalLoaned: number;
+  };
+}
+
+export interface ReportFinancialEntry {
+  period: string;
+  invoiceCount: number;
+  totalBilled: number;
+  totalPaid: number;
+  totalOutstanding: number;
+}
+
+export interface ReportsFinancialResponse {
+  entries: ReportFinancialEntry[];
+  summary: {
+    totalBilled: number;
+    totalPaid: number;
+    totalOutstanding: number;
+    overdueCount: number;
+  };
+}
+
+export interface ReportDamageEntry {
+  inspectionId: string;
+  loanId: string;
+  customerName: string;
+  materialName: string;
+  condition: InspectionCondition;
+  damageCost: number;
+  date: string;
+}
+
+export interface ReportsDamagesResponse {
+  damages: ReportDamageEntry[];
+  summary: {
+    totalDamages: number;
+    totalCost: number;
+    lostCount: number;
+    damagedCount: number;
+  };
+  pagination: PaginationMeta;
+}
+
+export interface ReportTransferEntry {
+  transferId: string;
+  fromLocation: string;
+  toLocation: string;
+  itemCount: number;
+  status: TransferStatus;
+  date: string;
+}
+
+export interface ReportsTransfersResponse {
+  transfers: ReportTransferEntry[];
+  summary: {
+    total: number;
+    inTransit: number;
+    completed: number;
+    cancelled: number;
+  };
+  pagination: PaginationMeta;
 }

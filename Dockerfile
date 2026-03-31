@@ -45,7 +45,7 @@ EXPOSE 5173
 
 # Healthcheck to ensure the container is running
 HEALTHCHECK --interval=30s --timeout=3s \
-  CMD wget --quiet --tries=1 --spider http://localhost:5173/ || exit 1
+  CMD wget --quiet --tries=1 --spider $VITE_API_BASE_URL || exit 1
 
 # Start the server on port 5173 serving the dist folder
 CMD ["serve", "-s", "dist", "-l", "5173"]

@@ -18,6 +18,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.96.0",
+    "@tanstack/react-query-devtools": "^5.96.0",
+    "framer-motion": "^12.38.0",
     "jsbarcode": "^3.12.3",
     "lucide-react": "^0.563.0",
     "react": "^19.2.0",
