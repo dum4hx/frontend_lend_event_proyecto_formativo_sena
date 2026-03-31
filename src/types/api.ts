@@ -306,7 +306,7 @@ export interface MaterialType {
 export interface CreateMaterialTypePayload {
   name: string;
   description?: string;
-  categoryId: string;
+  categoryId: string[];
   pricePerDay: number;
   attributes?: MaterialTypeAttribute[];
 }
@@ -315,7 +315,7 @@ export interface CreateMaterialTypePayload {
 export interface UpdateMaterialTypePayload {
   name?: string;
   description?: string;
-  categoryId?: string;
+  categoryId?: string[];
   pricePerDay?: number;
   attributes?: MaterialTypeAttribute[];
 }

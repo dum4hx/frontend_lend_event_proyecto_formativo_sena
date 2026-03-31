@@ -32,3 +32,6 @@ export type { IconButtonProps, IconButtonIntent } from "./IconButton";
 
 export { default as HeroButton } from "./HeroButton";
 export type { HeroButtonProps, HeroButtonVariant } from "./HeroButton";
+
+export { MaterialSelector } from "./MaterialSelector";
+export type { MaterialSelectorProps } from "./MaterialSelector";

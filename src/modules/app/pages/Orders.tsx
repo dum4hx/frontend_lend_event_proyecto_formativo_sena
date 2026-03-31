@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Plus,
   Eye,
@@ -13,7 +13,7 @@ import {
   Trash2,
   CreditCard,
 } from "lucide-react";
-import { Button, IconButton } from "../../../components/ui";
+import { Button, IconButton, MaterialSelector } from "../../../components/ui";
 import type {
   Customer,
   CreateLoanRequestPayload,
@@ -473,10 +473,7 @@ export default function Orders() {
       quantity: "1",
     },
   ]);
-  const [quickSearchTerm, setQuickSearchTerm] = useState("");
-  const [quickCategoryId, setQuickCategoryId] = useState("");
   const [selectedPlanId, setSelectedPlanId] = useState("");
-  const [quickSelectedMaterialIds, setQuickSelectedMaterialIds] = useState<string[]>([]);
   const [recentMaterialIds, setRecentMaterialIds] = useState<string[]>([]);
   const [materialUsageCounts, setMaterialUsageCounts] = useState<Record<string, number>>({});
   const [activeMaterialRowId, setActiveMaterialRowId] = useState<string | null>(null);
@@ -485,7 +482,6 @@ export default function Orders() {
   const [requestsPageSize] = useState(20);
   const [requestsTotalPages, setRequestsTotalPages] = useState(1);
   const [requestsTotal, setRequestsTotal] = useState(0);
-  const quickSearchInputRef = useRef<HTMLInputElement | null>(null);
 
   const canCreateRequest = hasPermission("requests:create");
   const canApproveRequest = hasPermission("requests:approve");
@@ -679,20 +675,6 @@ export default function Orders() {
       // Ignore storage errors.
     }
   }, [materialUsageCounts]);
-
-  useEffect(() => {
-    if (!showCreateModal) return;
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
-        event.preventDefault();
-        quickSearchInputRef.current?.focus();
-      }
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [showCreateModal]);
 
   const refreshData = useCallback(async () => {
     setLoading(true);
@@ -929,41 +911,6 @@ export default function Orders() {
     return availability;
   }, [materialInstances]);
 
-  const quickFilteredMaterials = useMemo(() => {
-    const normalizedQuery = normalizeSearchText(quickSearchTerm);
-    return materialTypes
-      .filter((material) => {
-        const categoryId = extractCategoryId(material.categoryId);
-        const categoryMatch = !quickCategoryId || categoryId === quickCategoryId;
-        if (!categoryMatch) return false;
-
-        return getMaterialSearchScore(material, normalizedQuery) > 0;
-      })
-      .sort((a, b) => {
-        const scoreDelta =
-          getMaterialSearchScore(b, normalizedQuery) - getMaterialSearchScore(a, normalizedQuery);
-        if (scoreDelta !== 0) return scoreDelta;
-
-        const aAvailability = materialAvailabilityByType.get(a._id);
-        const bAvailability = materialAvailabilityByType.get(b._id);
-        const aAvailableCount = inventoryDataAvailable ? (aAvailability?.available ?? 0) : 1;
-        const bAvailableCount = inventoryDataAvailable ? (bAvailability?.available ?? 0) : 1;
-        if (aAvailableCount !== bAvailableCount) return bAvailableCount - aAvailableCount;
-
-        const usageDelta = (materialUsageCounts[b._id] ?? 0) - (materialUsageCounts[a._id] ?? 0);
-        if (usageDelta !== 0) return usageDelta;
-        return a.name.localeCompare(b.name);
-      })
-      .slice(0, 20);
-  }, [
-    materialTypes,
-    quickCategoryId,
-    quickSearchTerm,
-    materialUsageCounts,
-    materialAvailabilityByType,
-    inventoryDataAvailable,
-  ]);
-
   const recentMaterials = useMemo(
     () =>
       recentMaterialIds
@@ -1083,7 +1030,6 @@ export default function Orders() {
     setCreateErrors({ rows: {} });
     setShowValidationErrors(false);
     setSelectedPlanId("");
-    setQuickSelectedMaterialIds([]);
   };
 
   const closeCreateModal = () => {
@@ -1162,46 +1108,12 @@ export default function Orders() {
     });
   };
 
-  const handleQuickToggleMaterial = (materialId: string) => {
-    setQuickSelectedMaterialIds((prev) =>
-      prev.includes(materialId) ? prev.filter((id) => id !== materialId) : [...prev, materialId],
-    );
-  };
-
   const addMaterialAsRow = (material: MaterialType) => {
     if (!isMaterialSelectable(material._id)) {
       showError(`${material.name} is currently out of stock.`, "Material Unavailable");
       return;
     }
     insertMaterialsIntoDraft([{ material, quantity: 1 }]);
-  };
-
-  const handleBulkAddSelectedMaterials = () => {
-    if (quickSelectedMaterialIds.length === 0) return;
-
-    const selectedMaterials = quickSelectedMaterialIds
-      .map((id) => materialTypes.find((material) => material._id === id))
-      .filter((entry): entry is MaterialType => Boolean(entry));
-
-    if (selectedMaterials.length === 0) return;
-
-    const availableMaterials = selectedMaterials.filter((material) =>
-      isMaterialSelectable(material._id),
-    );
-    const skippedCount = selectedMaterials.length - availableMaterials.length;
-
-    if (availableMaterials.length > 0) {
-      insertMaterialsIntoDraft(availableMaterials.map((material) => ({ material, quantity: 1 })));
-    }
-
-    if (skippedCount > 0) {
-      showError(
-        `${skippedCount} selected item${skippedCount === 1 ? "" : "s"} could not be added because stock is not available.`,
-        "Some Materials Unavailable",
-      );
-    }
-
-    setQuickSelectedMaterialIds([]);
   };
 
   const handleAddPlanToDraft = () => {
@@ -2366,114 +2278,22 @@ export default function Orders() {
                     )}
                   </div>
 
-                  <div className="rounded-lg border border-[#333] bg-[#1a1a1a] p-4 space-y-3">
-                    <p className="text-sm font-semibold text-white">Quick Material Picker</p>
-
-                    <select
-                      value={quickCategoryId}
-                      onChange={(e) => setQuickCategoryId(e.target.value)}
-                      className="input"
-                    >
-                      <option value="">All categories</option>
-                      {materialCategories.map((category) => (
-                        <option key={`quick-category-${category._id}`} value={category._id}>
-                          {category.name}
-                        </option>
-                      ))}
-                    </select>
-
-                    <input
-                      ref={quickSearchInputRef}
-                      type="text"
-                      value={quickSearchTerm}
-                      onChange={(e) => setQuickSearchTerm(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key !== "Enter") return;
-                        const firstResult = quickFilteredMaterials.find((material) =>
-                          isMaterialSelectable(material._id),
-                        );
-                        if (!firstResult) return;
-                        e.preventDefault();
-                        addMaterialAsRow(firstResult);
-                      }}
-                      placeholder="Search material by name or description..."
-                      className="input"
-                    />
-                    <p className="text-[11px] text-gray-500">
-                      Tip: Press Ctrl/Cmd + K to focus this search, then Enter to add the first
-                      result.
-                    </p>
-
-                    <p className="text-[11px] text-gray-500">
-                      {quickFilteredMaterials.length} result
-                      {quickFilteredMaterials.length === 1 ? "" : "s"} in real time
-                    </p>
-
-                    <div className="max-h-44 overflow-y-auto space-y-2 pr-1">
-                      {quickFilteredMaterials.length === 0 ? (
-                        <p className="text-xs text-gray-500">
-                          No materials found for current filters.
-                        </p>
-                      ) : (
-                        quickFilteredMaterials.map((material) => {
-                          const selected = quickSelectedMaterialIds.includes(material._id);
-                          return (
-                            <label
-                              key={`quick-material-${material._id}`}
-                              className={`flex items-start gap-2 text-xs p-2 rounded-md border ${
-                                isMaterialSelectable(material._id)
-                                  ? "border-[#333] bg-[#151515]"
-                                  : "border-red-500/30 bg-red-500/5"
-                              }`}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={selected}
-                                onChange={() => handleQuickToggleMaterial(material._id)}
-                                className="mt-0.5"
-                                disabled={!isMaterialSelectable(material._id)}
-                              />
-                              <span className="flex-1 min-w-0">
-                                <span className="block text-gray-100 truncate">
-                                  {material.name}
-                                </span>
-                                <span className="block text-gray-400 truncate">
-                                  {formatMoney(material.pricePerDay)} / day
-                                </span>
-                                {(() => {
-                                  const availability = getMaterialAvailabilityLabel(material._id);
-                                  return (
-                                    <span
-                                      className={`mt-1 inline-flex text-[11px] px-1.5 py-0.5 rounded ${getAvailabilityBadgeClass(
-                                        availability.tone,
-                                      )}`}
-                                    >
-                                      {availability.text}
-                                    </span>
-                                  );
-                                })()}
-                                {(materialUsageCounts[material._id] ?? 0) > 0 && (
-                                  <span className="block text-[11px] text-[#FFD700] truncate">
-                                    Used {materialUsageCounts[material._id]} times
-                                  </span>
-                                )}
-                              </span>
-                            </label>
-                          );
-                        })
-                      )}
-                    </div>
-
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={handleBulkAddSelectedMaterials}
-                      className="w-full"
-                      disabled={quickSelectedMaterialIds.length === 0}
-                    >
-                      Add selected items ({quickSelectedMaterialIds.length})
-                    </Button>
-                  </div>
+                  <MaterialSelector
+                    categories={materialCategories}
+                    materials={materialTypes}
+                    onAddMaterials={(selected) => {
+                      const selections: DraftMaterialSelection[] = selected.map((material) => ({
+                        material,
+                        quantity: 1,
+                      }));
+                      insertMaterialsIntoDraft(selections);
+                    }}
+                    getAvailabilityLabel={getMaterialAvailabilityLabel}
+                    getMaterialUsageCount={(id) => materialUsageCounts[id] ?? 0}
+                    formatPrice={formatMoney}
+                    recentMaterials={recentMaterials}
+                    showPrice
+                  />
 
                   <div className="rounded-lg border border-[#333] bg-[#1a1a1a] p-4 space-y-3">
                     <p className="text-sm font-semibold text-white">Order Cost Preview</p>

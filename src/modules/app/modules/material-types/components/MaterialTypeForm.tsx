@@ -30,7 +30,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
   const [formData, setFormData] = useState<CreateMaterialTypePayload>({
     name: "",
     description: "",
-    categoryId: "",
+    categoryId: [],
     pricePerDay: 0,
     attributes: [],
   });
@@ -41,18 +41,32 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
   const { showToast } = useToast();
   const { attributes: allAttributes } = useMaterialAttributes();
 
-  // Get category-specific attributes when category changes
-  const selectedCategory = useMemo(
-    () => categories.find((c) => c._id === formData.categoryId),
+  // Get all selected categories
+  const selectedCategories = useMemo(
+    () =>
+      categories.filter((c) =>
+        (Array.isArray(formData.categoryId) ? formData.categoryId : []).includes(c._id),
+      ),
     [formData.categoryId, categories],
   );
 
   const categoryAttributeIds = useMemo(
-    () => new Set((selectedCategory?.attributes || []).map((a) => a.attributeId)),
-    [selectedCategory],
+    () => {
+      const allAttributeIds = new Map<string, Set<string>>();
+      selectedCategories.forEach((cat) => {
+        cat.attributes?.forEach((attr) => {
+          if (!allAttributeIds.has(attr.attributeId)) {
+            allAttributeIds.set(attr.attributeId, new Set());
+          }
+          allAttributeIds.get(attr.attributeId)!.add(cat._id);
+        });
+      });
+      return allAttributeIds;
+    },
+    [selectedCategories],
   );
 
-  // Available attributes filtered to only those in the selected category
+  // Available attributes filtered to only those in the selected categories
   const categoryAttributes = useMemo(
     () =>
       allAttributes
@@ -72,21 +86,32 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
 
   useEffect(() => {
     if (initialData) {
-      const categoryIdFromArray = Array.isArray(initialData.categoryId)
-        ? (initialData.categoryId[0] as { _id?: string } | undefined)?._id
-        : undefined;
-      const categoryIdValue =
-        typeof initialData.categoryId === "string"
-          ? initialData.categoryId
-          : categoryIdFromArray ||
-            (initialData as { categoryId?: { _id?: string } }).categoryId?._id ||
-            (initialData as { category?: { _id?: string } }).category?._id ||
-            "";
+      let categoryIds: string[] = [];
+      
+      if (Array.isArray(initialData.categoryId)) {
+        categoryIds = initialData.categoryId
+          .map((cat) =>
+            typeof cat === "string" ? cat : (cat as { _id?: string })?._id,
+          )
+          .filter((id): id is string => !!id);
+      } else if (typeof initialData.categoryId === "string") {
+        categoryIds = [initialData.categoryId];
+      } else {
+        const categoryIdObj = (initialData as { categoryId?: { _id?: string } }).categoryId;
+        if (categoryIdObj?._id) {
+          categoryIds = [categoryIdObj._id];
+        } else {
+          const categoryObj = (initialData as { category?: { _id?: string } }).category;
+          if (categoryObj?._id) {
+            categoryIds = [categoryObj._id];
+          }
+        }
+      }
 
       setFormData({
         name: initialData.name || "",
         description: initialData.description || "",
-        categoryId: categoryIdValue,
+        categoryId: categoryIds,
         pricePerDay: initialData.pricePerDay || 0,
         attributes: (initialData as MaterialType).attributes || [],
       });
@@ -104,8 +129,12 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
       showToast("error", "Material name is required");
       return;
     }
-    if (!formData.categoryId) {
-      showToast("error", "Category is required");
+    if (!(formData.description || "").trim()) {
+      showToast("error", "Description is required");
+      return;
+    }
+    if (!Array.isArray(formData.categoryId) || formData.categoryId.length === 0) {
+      showToast("error", "At least one category is required");
       return;
     }
     if (formData.pricePerDay <= 0) {
@@ -114,7 +143,10 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
     }
 
     // Validate required attributes have values
-    const requiredAttrs = selectedCategory?.attributes?.filter((a) => a.isRequired) || [];
+    const requiredAttrs = selectedCategories.flatMap((cat) =>
+      cat.attributes?.filter((a) => a.isRequired) || [],
+    );
+    const attributeNameMap = new Map(categoryAttributes.map((a) => [a._id, a.name]));
     const missingRequired = requiredAttrs.filter(
       (req) =>
         !(formData.attributes || []).find(
@@ -125,7 +157,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
     if (missingRequired.length > 0) {
       showToast(
         "error",
-        `Required attributes missing values: ${missingRequired.map((a) => a.attributeId).join(", ")}`,
+        `Required attributes missing values: ${missingRequired.map((a) => attributeNameMap.get(a.attributeId) || a.attributeId).join(", ")}`,
       );
       return;
     }
@@ -242,21 +274,25 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] ml-1">
-                    Category *
+                    Categories *
                   </label>
                   <select
-                    value={formData.categoryId}
-                    onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
+                    multiple
+                    value={Array.isArray(formData.categoryId) ? formData.categoryId : []}
+                    onChange={(e) => {
+                      const selected = Array.from(e.target.selectedOptions, (opt) => opt.value);
+                      setFormData({ ...formData, categoryId: selected });
+                    }}
                     className="w-full px-5 py-4 bg-[#1a1a1a] border border-[#222] rounded-xl text-white focus:outline-none focus:border-[#FFD700] focus:ring-1 focus:ring-[#FFD700]/20 transition-all"
                     required
                   >
-                    <option value="">Select category...</option>
                     {categories.map((cat) => (
                       <option key={cat._id} value={cat._id}>
                         {cat.name}
                       </option>
                     ))}
                   </select>
+                  <p className="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple</p>
                 </div>
 
                 <div className="space-y-2">
@@ -297,7 +333,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
 
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] ml-1">
-                    Description
+                    Description *
                   </label>
                   <input
                     type="text"
@@ -305,6 +341,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     className="w-full px-5 py-4 bg-[#1a1a1a] border border-[#222] rounded-xl text-white focus:outline-none focus:border-[#FFD700] focus:ring-1 focus:ring-[#FFD700]/20 transition-all"
                     placeholder="Brief details about the material..."
+                    required
                   />
                 </div>
               </div>
@@ -331,11 +368,11 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
                 </Button>
               </div>
 
-              {!formData.categoryId ? (
+              {!Array.isArray(formData.categoryId) || formData.categoryId.length === 0 ? (
                 <div className="bg-[#1a1a1a]/50 border border-dashed border-[#333] rounded-2xl p-10 text-center">
                   <Info className="w-10 h-10 text-gray-600 mx-auto mb-4" />
                   <p className="text-gray-500 text-sm">
-                    Select a category first to manage specific attributes.
+                    Select at least one category to manage specific attributes.
                   </p>
                 </div>
               ) : categoryAttributes.length === 0 ? (
@@ -348,12 +385,16 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
               ) : (
                 <div className="space-y-3">
                   {categoryAttributes.map((attr) => {
-                    const categoryAttr = selectedCategory?.attributes?.find(
-                      (ca) => ca.attributeId === attr._id,
-                    );
-                    const isRequired = categoryAttr?.isRequired ?? false;
                     const currentValue = currentAttributeValues.get(attr._id);
                     const isSelected = !!currentValue;
+                    
+                    // Get all categories that require this attribute
+                    const requiringCategories = selectedCategories.filter((cat) =>
+                      cat.attributes?.find(
+                        (ca) => ca.attributeId === attr._id && ca.isRequired,
+                      ),
+                    );
+                    const isRequired = requiringCategories.length > 0;
 
                     return (
                       <div
@@ -392,6 +433,12 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
                                 )}
                               </label>
                             </div>
+
+                            {isRequired && requiringCategories.length > 0 && (
+                              <p className="text-xs text-gray-400 ml-6 mb-3">
+                                Required by: {requiringCategories.map((c) => c.name).join(", ")}
+                              </p>
+                            )}
 
                             {isSelected && (
                               <div className="space-y-2 ml-6">

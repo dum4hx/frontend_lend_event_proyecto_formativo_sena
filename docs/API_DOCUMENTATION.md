@@ -3100,7 +3100,7 @@ Creates a new material type. Validates against organization's catalog item limit
 | ------------------------ | -------- | -------- | -------- | ---------------------------------------------------------------------------------------------------- |
 | name                     | body     | string   | Yes      | Material name (max 150 chars)                                                                        |
 | description              | body     | string   | Yes      | Description (max 500 chars)                                                                          |
-| categoryId               | body     | string   | Yes      | Category ID (MongoDB ObjectId). Attribute availability is inherited from this category.              |
+| categoryId               | body     | string[] | Yes      | Category ID (MongoDB ObjectId). Attribute availability is inherited from this category.              |
 | pricePerDay              | body     | number   | Yes      | Rental price per day (must be > 0)                                                                   |
 | attributes               | body     | object[] | No       | Array of attributes for this material type (only attributes from the category can be used)           |
 | attributes[].attributeId | body     | string   | Yes\*    | Attribute ID (MongoDB ObjectId). Attribute must exist in the organization and the selected category. |
