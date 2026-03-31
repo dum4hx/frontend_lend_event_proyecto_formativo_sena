@@ -12,7 +12,15 @@ interface OpsTransfersPanelProps {
   data: OpsTransfersResponse;
 }
 
-function TransferRow({ entry, index, type }: { entry: OpsTransferEntry; index: number; type: "inbound" | "request" }) {
+function TransferRow({
+  entry,
+  index,
+  type,
+}: {
+  entry: OpsTransferEntry;
+  index: number;
+  type: "inbound" | "request";
+}) {
   const { language } = useLanguage();
   const isEs = language === "es";
 
@@ -31,7 +39,9 @@ function TransferRow({ entry, index, type }: { entry: OpsTransferEntry; index: n
         <p className="text-sm font-medium text-zinc-200 truncate">{entry.fromLocationName}</p>
         <div className="flex items-center gap-2 text-xs text-zinc-500 mt-0.5">
           <Package size={10} />
-          <span>{entry.itemCount} {isEs ? "ítems" : "items"}</span>
+          <span>
+            {entry.itemCount} {isEs ? "ítems" : "items"}
+          </span>
           <span className="text-zinc-600">·</span>
           <span>{new Date(entry.createdAt).toLocaleDateString()}</span>
         </div>
@@ -70,7 +80,9 @@ export function OpsTransfersPanel({ data }: OpsTransfersPanelProps) {
       {data.total === 0 ? (
         <div className="text-center py-6 text-zinc-500">
           <ArrowLeftRight size={28} className="mx-auto mb-2 text-emerald-400" />
-          <p className="text-sm">{isEs ? "Sin transferencias pendientes" : "No pending transfers"}</p>
+          <p className="text-sm">
+            {isEs ? "Sin transferencias pendientes" : "No pending transfers"}
+          </p>
         </div>
       ) : (
         <div className="flex flex-col gap-2 max-h-[320px] overflow-y-auto pr-1 scrollbar-thin">
@@ -78,7 +90,12 @@ export function OpsTransfersPanel({ data }: OpsTransfersPanelProps) {
             <TransferRow key={entry.transferId} entry={entry} index={i} type="inbound" />
           ))}
           {data.pendingRequests.map((entry, i) => (
-            <TransferRow key={entry.requestId ?? entry.transferId} entry={entry} index={i + data.inbound.length} type="request" />
+            <TransferRow
+              key={entry.requestId ?? entry.transferId}
+              entry={entry}
+              index={i + data.inbound.length}
+              type="request"
+            />
           ))}
         </div>
       )}

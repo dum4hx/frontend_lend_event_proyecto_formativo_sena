@@ -39,8 +39,12 @@ export function EditUserModal({ member, availableRoles, onClose, onSuccess }: Ed
   const isEs = language === "es";
 
   const [form, setForm] = useState<EditFormValues>({ firstName: "", firstSurname: "", roleId: "" });
-  const [errors, setErrors] = useState<Partial<Record<keyof Omit<EditFormValues, "roleId">, string>>>({});
-  const [touched, setTouched] = useState<Partial<Record<keyof Omit<EditFormValues, "roleId">, boolean>>>({});
+  const [errors, setErrors] = useState<
+    Partial<Record<keyof Omit<EditFormValues, "roleId">, string>>
+  >({});
+  const [touched, setTouched] = useState<
+    Partial<Record<keyof Omit<EditFormValues, "roleId">, boolean>>
+  >({});
   const [ownerSecurity, setOwnerSecurity] = useState<OwnerSecurity>({
     acceptedCritical: false,
     acceptedIrreversible: false,
@@ -60,7 +64,12 @@ export function EditUserModal({ member, availableRoles, onClose, onSuccess }: Ed
     });
     setErrors({});
     setTouched({});
-    setOwnerSecurity({ acceptedCritical: false, acceptedIrreversible: false, confirmEmail: "", confirmPhrase: "" });
+    setOwnerSecurity({
+      acceptedCritical: false,
+      acceptedIrreversible: false,
+      confirmEmail: "",
+      confirmPhrase: "",
+    });
     setOwnerErrors({});
     setFormError(null);
   }, [member]);
@@ -73,7 +82,9 @@ export function EditUserModal({ member, availableRoles, onClose, onSuccess }: Ed
     if (!ownerSecurity.acceptedCritical)
       errs.acceptedCritical = isEs ? "Debes aceptar este riesgo." : "You must accept this risk.";
     if (!ownerSecurity.acceptedIrreversible)
-      errs.acceptedIrreversible = isEs ? "Reconoce el cambio irreversible." : "Acknowledge the irreversible change.";
+      errs.acceptedIrreversible = isEs
+        ? "Reconoce el cambio irreversible."
+        : "Acknowledge the irreversible change.";
     if (!ownerSecurity.confirmEmail)
       errs.confirmEmail = isEs ? "Confirma el correo del miembro." : "Confirm the member email.";
     else if (ownerSecurity.confirmEmail.trim().toLowerCase() !== member?.email.toLowerCase())
@@ -81,16 +92,23 @@ export function EditUserModal({ member, availableRoles, onClose, onSuccess }: Ed
     if (!ownerSecurity.confirmPhrase)
       errs.confirmPhrase = isEs ? `Escribe "${OWNER_PHRASE}".` : `Type "${OWNER_PHRASE}".`;
     else if (ownerSecurity.confirmPhrase.trim().toUpperCase() !== OWNER_PHRASE)
-      errs.confirmPhrase = isEs ? `La frase debe ser: ${OWNER_PHRASE}` : `Phrase must be: ${OWNER_PHRASE}`;
+      errs.confirmPhrase = isEs
+        ? `La frase debe ser: ${OWNER_PHRASE}`
+        : `Phrase must be: ${OWNER_PHRASE}`;
     return errs;
   }, [ownerSecurity, member, isEs]);
 
   function handleChange(field: keyof Omit<EditFormValues, "roleId">, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
     if (touched[field]) {
-      const msg = field === "firstName"
-        ? (validateFirstName(value).isValid ? undefined : validateFirstName(value).message)
-        : (validateLastName(value).isValid ? undefined : validateLastName(value).message);
+      const msg =
+        field === "firstName"
+          ? validateFirstName(value).isValid
+            ? undefined
+            : validateFirstName(value).message
+          : validateLastName(value).isValid
+            ? undefined
+            : validateLastName(value).message;
       setErrors((prev) => ({ ...prev, [field]: msg }));
     }
     setFormError(null);
@@ -99,9 +117,14 @@ export function EditUserModal({ member, availableRoles, onClose, onSuccess }: Ed
   function handleBlur(field: keyof Omit<EditFormValues, "roleId">) {
     setTouched((prev) => ({ ...prev, [field]: true }));
     const value = form[field] as string;
-    const msg = field === "firstName"
-      ? (validateFirstName(value).isValid ? undefined : validateFirstName(value).message)
-      : (validateLastName(value).isValid ? undefined : validateLastName(value).message);
+    const msg =
+      field === "firstName"
+        ? validateFirstName(value).isValid
+          ? undefined
+          : validateFirstName(value).message
+        : validateLastName(value).isValid
+          ? undefined
+          : validateLastName(value).message;
     setErrors((prev) => ({ ...prev, [field]: msg }));
   }
 
@@ -114,7 +137,10 @@ export function EditUserModal({ member, availableRoles, onClose, onSuccess }: Ed
     const firstErr = validateFirstName(form.firstName);
     const lastErr = validateLastName(form.firstSurname);
     if (!firstErr.isValid || !lastErr.isValid) {
-      setErrors({ firstName: firstErr.isValid ? undefined : firstErr.message, firstSurname: lastErr.isValid ? undefined : lastErr.message });
+      setErrors({
+        firstName: firstErr.isValid ? undefined : firstErr.message,
+        firstSurname: lastErr.isValid ? undefined : lastErr.message,
+      });
       setTouched({ firstName: true, firstSurname: true });
       return;
     }
@@ -123,14 +149,20 @@ export function EditUserModal({ member, availableRoles, onClose, onSuccess }: Ed
       const secErrs = validateOwnerSecurity();
       setOwnerErrors(secErrs);
       if (Object.keys(secErrs).length > 0) {
-        setFormError(isEs ? "Completa todas las verificaciones de seguridad." : "Complete all security checks.");
+        setFormError(
+          isEs
+            ? "Completa todas las verificaciones de seguridad."
+            : "Complete all security checks.",
+        );
         return;
       }
     }
 
     setSubmitting(true);
     try {
-      await updateUser(member.id, { name: { firstName: form.firstName, firstSurname: form.firstSurname } });
+      await updateUser(member.id, {
+        name: { firstName: form.firstName, firstSurname: form.firstSurname },
+      });
       if (form.roleId !== member.roleId) {
         await updateUserRole(member.id, { roleId: form.roleId });
       }
@@ -176,7 +208,9 @@ export function EditUserModal({ member, availableRoles, onClose, onSuccess }: Ed
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs text-zinc-400 mb-1.5">{isEs ? "Nombre *" : "First Name *"}</label>
+            <label className="block text-xs text-zinc-400 mb-1.5">
+              {isEs ? "Nombre *" : "First Name *"}
+            </label>
             <input
               className={inputClass(!!(touched.firstName && errors.firstName))}
               value={form.firstName}
@@ -188,7 +222,9 @@ export function EditUserModal({ member, availableRoles, onClose, onSuccess }: Ed
             )}
           </div>
           <div>
-            <label className="block text-xs text-zinc-400 mb-1.5">{isEs ? "Apellido *" : "Last Name *"}</label>
+            <label className="block text-xs text-zinc-400 mb-1.5">
+              {isEs ? "Apellido *" : "Last Name *"}
+            </label>
             <input
               className={inputClass(!!(touched.firstSurname && errors.firstSurname))}
               value={form.firstSurname}
@@ -206,7 +242,10 @@ export function EditUserModal({ member, availableRoles, onClose, onSuccess }: Ed
           <SearchableSelect
             options={roleOptions}
             value={form.roleId}
-            onChange={(v) => { setForm((prev) => ({ ...prev, roleId: v })); setFormError(null); }}
+            onChange={(v) => {
+              setForm((prev) => ({ ...prev, roleId: v }));
+              setFormError(null);
+            }}
             placeholder={isEs ? "Seleccionar rol" : "Select role"}
           />
         </div>
@@ -227,7 +266,9 @@ export function EditUserModal({ member, availableRoles, onClose, onSuccess }: Ed
               <input
                 type="checkbox"
                 checked={ownerSecurity.acceptedCritical}
-                onChange={(e) => setOwnerSecurity((p) => ({ ...p, acceptedCritical: e.target.checked }))}
+                onChange={(e) =>
+                  setOwnerSecurity((p) => ({ ...p, acceptedCritical: e.target.checked }))
+                }
                 className="mt-0.5 accent-yellow-400"
               />
               <span className="text-xs text-zinc-300">
@@ -244,7 +285,9 @@ export function EditUserModal({ member, availableRoles, onClose, onSuccess }: Ed
               <input
                 type="checkbox"
                 checked={ownerSecurity.acceptedIrreversible}
-                onChange={(e) => setOwnerSecurity((p) => ({ ...p, acceptedIrreversible: e.target.checked }))}
+                onChange={(e) =>
+                  setOwnerSecurity((p) => ({ ...p, acceptedIrreversible: e.target.checked }))
+                }
                 className="mt-0.5 accent-yellow-400"
               />
               <span className="text-xs text-zinc-300">
@@ -255,25 +298,33 @@ export function EditUserModal({ member, availableRoles, onClose, onSuccess }: Ed
             </label>
 
             <div>
-              <label className="block text-xs text-zinc-400 mb-1">{isEs ? "Confirmar correo del miembro" : "Confirm member email"}</label>
+              <label className="block text-xs text-zinc-400 mb-1">
+                {isEs ? "Confirmar correo del miembro" : "Confirm member email"}
+              </label>
               <input
                 className={inputClass(!!ownerErrors.confirmEmail)}
                 placeholder={member?.email ?? ""}
                 value={ownerSecurity.confirmEmail}
                 onChange={(e) => setOwnerSecurity((p) => ({ ...p, confirmEmail: e.target.value }))}
               />
-              {ownerErrors.confirmEmail && <p className="text-xs text-red-400 mt-1">{ownerErrors.confirmEmail}</p>}
+              {ownerErrors.confirmEmail && (
+                <p className="text-xs text-red-400 mt-1">{ownerErrors.confirmEmail}</p>
+              )}
             </div>
 
             <div>
-              <label className="block text-xs text-zinc-400 mb-1">{isEs ? `Escribe "${OWNER_PHRASE}"` : `Type "${OWNER_PHRASE}"`}</label>
+              <label className="block text-xs text-zinc-400 mb-1">
+                {isEs ? `Escribe "${OWNER_PHRASE}"` : `Type "${OWNER_PHRASE}"`}
+              </label>
               <input
                 className={inputClass(!!ownerErrors.confirmPhrase)}
                 placeholder={OWNER_PHRASE}
                 value={ownerSecurity.confirmPhrase}
                 onChange={(e) => setOwnerSecurity((p) => ({ ...p, confirmPhrase: e.target.value }))}
               />
-              {ownerErrors.confirmPhrase && <p className="text-xs text-red-400 mt-1">{ownerErrors.confirmPhrase}</p>}
+              {ownerErrors.confirmPhrase && (
+                <p className="text-xs text-red-400 mt-1">{ownerErrors.confirmPhrase}</p>
+              )}
             </div>
           </div>
         )}

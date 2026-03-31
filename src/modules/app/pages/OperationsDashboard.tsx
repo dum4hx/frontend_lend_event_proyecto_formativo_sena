@@ -6,7 +6,7 @@
  */
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { RefreshCw, MapPin, ChevronDown } from "lucide-react";
+import { RefreshCw, MapPin } from "lucide-react";
 import { useAuth } from "../../../contexts/useAuth";
 import { useLanguage } from "../../../contexts/useLanguage";
 import { LoadingSpinner, SearchableSelect } from "../../../components/ui";
@@ -32,7 +32,14 @@ import { OpsDamagesPanel } from "./operations/OpsDamagesPanel";
 import { useQueryClient } from "@tanstack/react-query";
 import { OPERATIONS_KEYS } from "../../../hooks/queries/useOperationsQueries";
 
-type TabKey = "overview" | "inspections" | "financials" | "inventory" | "transfers" | "deadlines" | "damages";
+type TabKey =
+  | "overview"
+  | "inspections"
+  | "financials"
+  | "inventory"
+  | "transfers"
+  | "deadlines"
+  | "damages";
 
 interface TabDef {
   key: TabKey;
@@ -88,9 +95,7 @@ export default function OperationsDashboard() {
   const damages = useOpsDamages(selectedLocation);
   const tasks = useOpsTasks(selectedLocation);
 
-  const isInitialLoading =
-    overview.isLoading ||
-    tasks.isLoading;
+  const isInitialLoading = overview.isLoading || tasks.isLoading;
 
   async function handleRefresh() {
     setIsRefreshing(true);
@@ -209,12 +214,16 @@ export default function OperationsDashboard() {
               {inspections.data ? (
                 <OpsInspectionPanel data={inspections.data} />
               ) : inspections.isLoading ? (
-                <div className="depth-card rounded-xl p-8 flex justify-center"><LoadingSpinner /></div>
+                <div className="depth-card rounded-xl p-8 flex justify-center">
+                  <LoadingSpinner />
+                </div>
               ) : null}
               {financials.data ? (
                 <OpsFinancialsPanel data={financials.data} />
               ) : financials.isLoading ? (
-                <div className="depth-card rounded-xl p-8 flex justify-center"><LoadingSpinner /></div>
+                <div className="depth-card rounded-xl p-8 flex justify-center">
+                  <LoadingSpinner />
+                </div>
               ) : null}
             </div>
           )}
@@ -222,7 +231,9 @@ export default function OperationsDashboard() {
           {activeTab === "inspections" && (
             <div className="max-w-2xl">
               {inspections.isLoading ? (
-                <div className="depth-card rounded-xl p-8 flex justify-center"><LoadingSpinner /></div>
+                <div className="depth-card rounded-xl p-8 flex justify-center">
+                  <LoadingSpinner />
+                </div>
               ) : inspections.data ? (
                 <OpsInspectionPanel data={inspections.data} />
               ) : null}
@@ -232,7 +243,9 @@ export default function OperationsDashboard() {
           {activeTab === "financials" && (
             <div className="max-w-2xl">
               {financials.isLoading ? (
-                <div className="depth-card rounded-xl p-8 flex justify-center"><LoadingSpinner /></div>
+                <div className="depth-card rounded-xl p-8 flex justify-center">
+                  <LoadingSpinner />
+                </div>
               ) : financials.data ? (
                 <OpsFinancialsPanel data={financials.data} />
               ) : null}
@@ -242,7 +255,9 @@ export default function OperationsDashboard() {
           {activeTab === "inventory" && (
             <div className="max-w-2xl">
               {inventory.isLoading ? (
-                <div className="depth-card rounded-xl p-8 flex justify-center"><LoadingSpinner /></div>
+                <div className="depth-card rounded-xl p-8 flex justify-center">
+                  <LoadingSpinner />
+                </div>
               ) : inventory.data ? (
                 <OpsInventoryPanel data={inventory.data} />
               ) : null}
@@ -252,7 +267,9 @@ export default function OperationsDashboard() {
           {activeTab === "transfers" && (
             <div className="max-w-2xl">
               {transfers.isLoading ? (
-                <div className="depth-card rounded-xl p-8 flex justify-center"><LoadingSpinner /></div>
+                <div className="depth-card rounded-xl p-8 flex justify-center">
+                  <LoadingSpinner />
+                </div>
               ) : transfers.data ? (
                 <OpsTransfersPanel data={transfers.data} />
               ) : null}
@@ -262,7 +279,9 @@ export default function OperationsDashboard() {
           {activeTab === "deadlines" && (
             <div className="max-w-2xl">
               {deadlines.isLoading ? (
-                <div className="depth-card rounded-xl p-8 flex justify-center"><LoadingSpinner /></div>
+                <div className="depth-card rounded-xl p-8 flex justify-center">
+                  <LoadingSpinner />
+                </div>
               ) : deadlines.data ? (
                 <OpsDeadlinesPanel data={deadlines.data} />
               ) : null}
@@ -272,7 +291,9 @@ export default function OperationsDashboard() {
           {activeTab === "damages" && (
             <div className="max-w-2xl">
               {damages.isLoading ? (
-                <div className="depth-card rounded-xl p-8 flex justify-center"><LoadingSpinner /></div>
+                <div className="depth-card rounded-xl p-8 flex justify-center">
+                  <LoadingSpinner />
+                </div>
               ) : damages.data ? (
                 <OpsDamagesPanel data={damages.data} />
               ) : null}

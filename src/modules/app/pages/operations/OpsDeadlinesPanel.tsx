@@ -35,9 +35,7 @@ function DeadlineRow({
       animate="animate"
       custom={index}
       className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border ${
-        isOverdue
-          ? "bg-red-500/10 border-red-500/30"
-          : "bg-amber-500/10 border-amber-500/20"
+        isOverdue ? "bg-red-500/10 border-red-500/30" : "bg-amber-500/10 border-amber-500/20"
       }`}
     >
       <div className={`shrink-0 ${isOverdue ? "text-red-400" : "text-amber-400"}`}>
@@ -50,7 +48,9 @@ function DeadlineRow({
         </div>
         <div className="flex items-center gap-2 text-xs text-zinc-500">
           <Package size={10} />
-          <span>{loan.materialCount} {isEs ? "ítems" : "items"}</span>
+          <span>
+            {loan.materialCount} {isEs ? "ítems" : "items"}
+          </span>
           <span className="text-zinc-600">·</span>
           <span>{new Date(loan.endDate).toLocaleDateString()}</span>
         </div>
@@ -95,9 +95,7 @@ export function OpsDeadlinesPanel({ data }: OpsDeadlinesPanelProps) {
       {data.total === 0 ? (
         <div className="text-center py-6 text-zinc-500">
           <Clock size={28} className="mx-auto mb-2 text-emerald-400" />
-          <p className="text-sm">
-            {isEs ? "Sin vencimientos próximos" : "No upcoming deadlines"}
-          </p>
+          <p className="text-sm">{isEs ? "Sin vencimientos próximos" : "No upcoming deadlines"}</p>
         </div>
       ) : (
         <div className="flex flex-col gap-2 max-h-[320px] overflow-y-auto pr-1 scrollbar-thin">
@@ -105,7 +103,12 @@ export function OpsDeadlinesPanel({ data }: OpsDeadlinesPanelProps) {
             <DeadlineRow key={loan.loanId} loan={loan} index={i} isOverdue={true} />
           ))}
           {data.dueSoon.map((loan, i) => (
-            <DeadlineRow key={loan.loanId} loan={loan} index={i + data.overdue.length} isOverdue={false} />
+            <DeadlineRow
+              key={loan.loanId}
+              loan={loan}
+              index={i + data.overdue.length}
+              isOverdue={false}
+            />
           ))}
         </div>
       )}
