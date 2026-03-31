@@ -56,7 +56,8 @@ export const materialKeys = {
   instances: {
     all: ["materialInstances"] as const,
     lists: () => [...materialKeys.instances.all, "list"] as const,
-    list: (params: MaterialInstancesQueryParams) => [...materialKeys.instances.lists(), params] as const,
+    list: (params: MaterialInstancesQueryParams) =>
+      [...materialKeys.instances.lists(), params] as const,
   },
   attributes: {
     all: ["materialAttributes"] as const,
@@ -255,7 +256,12 @@ export function useCreatePackage() {
   });
 }
 
-export function usePackageAvailability(id: string, startDate: string, endDate: string, enabled = true) {
+export function usePackageAvailability(
+  id: string,
+  startDate: string,
+  endDate: string,
+  enabled = true,
+) {
   return useQuery({
     queryKey: materialKeys.packages.availability(id, startDate, endDate),
     queryFn: () => getPackageAvailability(id, startDate, endDate),

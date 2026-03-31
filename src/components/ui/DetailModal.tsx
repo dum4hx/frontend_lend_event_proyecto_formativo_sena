@@ -45,10 +45,7 @@ const STATUS_KEYS = new Set([
 ]);
 
 function isStatusValue(label: string, value: unknown): value is string {
-  return (
-    typeof value === "string" &&
-    STATUS_KEYS.has(label.toLowerCase().replace(/\s/g, ""))
-  );
+  return typeof value === "string" && STATUS_KEYS.has(label.toLowerCase().replace(/\s/g, ""));
 }
 
 // ─── Component ─────────────────────────────────────────────────────────────
@@ -73,7 +70,7 @@ export function DetailModal({
               {isStatusValue(f.label, f.value) ? (
                 <StatusBadge status={f.value} />
               ) : (
-                f.value ?? <span className="text-gray-600">—</span>
+                (f.value ?? <span className="text-gray-600">—</span>)
               )}
             </dd>
           </div>

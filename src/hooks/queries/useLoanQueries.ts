@@ -37,7 +37,8 @@ export const requestKeys = {
   list: (params: LoanRequestsQueryParams) => [...requestKeys.lists(), params] as const,
   details: () => [...requestKeys.all, "detail"] as const,
   detail: (id: string) => [...requestKeys.details(), id] as const,
-  availableMaterials: (id: string) => [...requestKeys.details(), id, "available-materials"] as const,
+  availableMaterials: (id: string) =>
+    [...requestKeys.details(), id, "available-materials"] as const,
 };
 
 export const loanKeys = {
@@ -108,8 +109,13 @@ export function useRejectRequest() {
 export function useAssignMaterials() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ requestId, assignments }: { requestId: string; assignments: AssignMaterialPayload[] }) =>
-      assignMaterials(requestId, assignments),
+    mutationFn: ({
+      requestId,
+      assignments,
+    }: {
+      requestId: string;
+      assignments: AssignMaterialPayload[];
+    }) => assignMaterials(requestId, assignments),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: requestKeys.all });
     },
@@ -119,8 +125,13 @@ export function useAssignMaterials() {
 export function useUpdateRequest() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: Partial<CreateLoanRequestPayload> & { status?: LoanRequestStatus } }) =>
-      updateRequest(id, updates),
+    mutationFn: ({
+      id,
+      updates,
+    }: {
+      id: string;
+      updates: Partial<CreateLoanRequestPayload> & { status?: LoanRequestStatus };
+    }) => updateRequest(id, updates),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: requestKeys.all });
     },

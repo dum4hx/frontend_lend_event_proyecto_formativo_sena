@@ -4,11 +4,7 @@
 
 import { SearchableSelect, type SelectOption } from "../../../../components/ui";
 import { useLanguage } from "../../../../contexts/useLanguage";
-import type {
-  CreateCustomerPayload,
-  DocumentType,
-  DocumentTypeInfo,
-} from "../../../../types/api";
+import type { CreateCustomerPayload, DocumentType, DocumentTypeInfo } from "../../../../types/api";
 import { CustomerAddressFields } from "./CustomerAddressFields";
 import {
   useCustomerForm,
@@ -34,7 +30,9 @@ const inputClass = (hasError: boolean) =>
 
 const phoneWrapperClass = (hasError: boolean) =>
   `w-full bg-zinc-900 rounded-xl text-white transition duration-200 border ${
-    hasError ? "border-red-500 focus-within:border-red-500" : "border-zinc-800 focus-within:border-yellow-400"
+    hasError
+      ? "border-red-500 focus-within:border-red-500"
+      : "border-zinc-800 focus-within:border-yellow-400"
   }`;
 
 export function CustomerCreateModal({
@@ -228,7 +226,9 @@ export function CustomerCreateModal({
           />
         </div>
         <div className="form-group">
-          <label className="form-label">{isEs ? "Número de documento *" : "Document Number *"}</label>
+          <label className="form-label">
+            {isEs ? "Número de documento *" : "Document Number *"}
+          </label>
           <input
             type="text"
             minLength={8}
@@ -259,7 +259,13 @@ export function CustomerCreateModal({
           className="text-xs text-yellow-400 hover:text-yellow-300 transition border border-yellow-400/30 hover:border-yellow-400/60 rounded-lg px-3 py-1"
           disabled={loading}
         >
-          {form.showAddress ? (isEs ? "Ocultar" : "Hide") : (isEs ? "Agregar dirección" : "Add Address")}
+          {form.showAddress
+            ? isEs
+              ? "Ocultar"
+              : "Hide"
+            : isEs
+              ? "Agregar dirección"
+              : "Add Address"}
         </button>
       </div>
 

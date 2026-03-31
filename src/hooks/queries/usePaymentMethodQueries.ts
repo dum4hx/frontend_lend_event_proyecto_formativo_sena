@@ -9,10 +9,7 @@ import {
   updatePaymentMethod,
   deletePaymentMethod,
 } from "../../services/paymentMethodService";
-import type {
-  CreatePaymentMethodPayload,
-  UpdatePaymentMethodPayload,
-} from "../../types/api";
+import type { CreatePaymentMethodPayload, UpdatePaymentMethodPayload } from "../../types/api";
 
 export const paymentMethodKeys = {
   all: ["paymentMethods"] as const,

@@ -244,11 +244,7 @@ export function LinkedEntity({
         className={`inline-flex items-center gap-1 text-[#FFD700] hover:text-[#FFC700] hover:underline underline-offset-2 transition-colors text-sm font-medium disabled:opacity-50 ${className}`}
         title={`View ${type} details`}
       >
-        {loading ? (
-          <LoadingSpinner size="xs" />
-        ) : (
-          <ExternalLink className="w-3 h-3 opacity-60" />
-        )}
+        {loading ? <LoadingSpinner size="xs" /> : <ExternalLink className="w-3 h-3 opacity-60" />}
         <span className="truncate max-w-[180px]">{displayText}</span>
       </button>
 

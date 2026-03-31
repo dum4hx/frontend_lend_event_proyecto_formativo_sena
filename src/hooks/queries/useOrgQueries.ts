@@ -42,8 +42,11 @@ export function useOrganization() {
 export function useUpdateOrganization() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (updates: Partial<Pick<Organization, "name" | "legalName" | "email" | "phone" | "address" | "taxId">>) =>
-      updateOrganization(updates),
+    mutationFn: (
+      updates: Partial<
+        Pick<Organization, "name" | "legalName" | "email" | "phone" | "address" | "taxId">
+      >,
+    ) => updateOrganization(updates),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: orgKeys.all });
     },

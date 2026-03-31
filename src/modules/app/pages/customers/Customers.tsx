@@ -138,7 +138,10 @@ export default function Customers() {
       setShowCreate(false);
       showToast("success", isEs ? "Cliente creado exitosamente" : "Customer created successfully");
     } catch (err) {
-      showToast("error", errorMessage(err, "No se pudo crear el cliente", "Failed to create customer"));
+      showToast(
+        "error",
+        errorMessage(err, "No se pudo crear el cliente", "Failed to create customer"),
+      );
       throw err; // let modal keep open
     }
   };
@@ -149,7 +152,10 @@ export default function Customers() {
       setEditCustomer(null);
       showToast("success", isEs ? "Cliente actualizado" : "Customer updated successfully");
     } catch (err) {
-      showToast("error", errorMessage(err, "No se pudo actualizar el cliente", "Failed to update customer"));
+      showToast(
+        "error",
+        errorMessage(err, "No se pudo actualizar el cliente", "Failed to update customer"),
+      );
       throw err;
     }
   };
@@ -169,7 +175,10 @@ export default function Customers() {
       await blacklistMutation.mutateAsync(customer._id);
       showToast("success", isEs ? "Cliente bloqueado" : "Customer blocked");
     } catch (err) {
-      showToast("error", errorMessage(err, "No se pudo bloquear el cliente", "Failed to block customer"));
+      showToast(
+        "error",
+        errorMessage(err, "No se pudo bloquear el cliente", "Failed to block customer"),
+      );
     }
   };
 
@@ -188,7 +197,10 @@ export default function Customers() {
       await deactivateMutation.mutateAsync(customer._id);
       showToast("success", isEs ? "Cliente desactivado" : "Customer deactivated");
     } catch (err) {
-      showToast("error", errorMessage(err, "No se pudo desactivar el cliente", "Failed to deactivate customer"));
+      showToast(
+        "error",
+        errorMessage(err, "No se pudo desactivar el cliente", "Failed to deactivate customer"),
+      );
     }
   };
 
@@ -207,7 +219,10 @@ export default function Customers() {
       await activateMutation.mutateAsync(customer._id);
       showToast("success", isEs ? "Cliente activado" : "Customer activated");
     } catch (err) {
-      showToast("error", errorMessage(err, "No se pudo activar el cliente", "Failed to activate customer"));
+      showToast(
+        "error",
+        errorMessage(err, "No se pudo activar el cliente", "Failed to activate customer"),
+      );
     }
   };
 
@@ -226,7 +241,10 @@ export default function Customers() {
       await deleteMutation.mutateAsync(customer._id);
       showToast("success", isEs ? "Cliente eliminado" : "Customer deleted");
     } catch (err) {
-      showToast("error", errorMessage(err, "No se pudo eliminar el cliente", "Failed to delete customer"));
+      showToast(
+        "error",
+        errorMessage(err, "No se pudo eliminar el cliente", "Failed to delete customer"),
+      );
     }
   };
 
@@ -330,11 +348,7 @@ export default function Customers() {
 
         {/* Pagination */}
         {!loading && totalPages > 1 && (
-          <Pagination
-            page={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-          />
+          <Pagination page={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
         )}
 
         {/* ----- Modals ----- */}

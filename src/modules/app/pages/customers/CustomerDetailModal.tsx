@@ -93,9 +93,7 @@ export function CustomerDetailModal({
     },
     {
       label: isEs ? "Dirección" : "Address",
-      value: (
-        <span className="whitespace-pre-line">{formatAddress(customer)}</span>
-      ),
+      value: <span className="whitespace-pre-line">{formatAddress(customer)}</span>,
     },
   ];
 

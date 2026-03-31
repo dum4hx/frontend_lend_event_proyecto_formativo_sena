@@ -189,11 +189,7 @@ export function SearchableSelect({
             </div>
 
             {/* Options list */}
-            <ul
-              ref={listRef}
-              className="max-h-52 overflow-y-auto custom-scrollbar"
-              role="listbox"
-            >
+            <ul ref={listRef} className="max-h-52 overflow-y-auto custom-scrollbar" role="listbox">
               {filtered.length === 0 ? (
                 <li className="px-4 py-3 text-xs text-gray-500 text-center">No results found</li>
               ) : (

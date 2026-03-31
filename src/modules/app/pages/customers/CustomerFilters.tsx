@@ -3,11 +3,7 @@
  */
 
 import { Plus } from "lucide-react";
-import {
-  SearchInput,
-  SearchableSelect,
-  type SelectOption,
-} from "../../../../components/ui";
+import { SearchInput, SearchableSelect, type SelectOption } from "../../../../components/ui";
 import Button from "../../../../components/ui/Button";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import type { DocumentTypeInfo } from "../../../../types/api";

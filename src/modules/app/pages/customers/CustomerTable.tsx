@@ -3,11 +3,7 @@
  */
 
 import { Edit2, Eye, Ban, UserX, RotateCcw, Trash2 } from "lucide-react";
-import {
-  DataTable,
-  StatusBadge,
-  type ColumnDef,
-} from "../../../../components/ui";
+import { DataTable, StatusBadge, type ColumnDef } from "../../../../components/ui";
 import IconButton from "../../../../components/ui/IconButton";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import type { Customer, DocumentTypeInfo } from "../../../../types/api";
@@ -66,9 +62,7 @@ export function CustomerTable({
     {
       key: "name",
       header: isEs ? "Nombre" : "Name",
-      render: (row) => (
-        <span className="font-medium text-white">{formatFullName(row)}</span>
-      ),
+      render: (row) => <span className="font-medium text-white">{formatFullName(row)}</span>,
     },
     {
       key: "email",
@@ -145,13 +139,21 @@ export function CustomerTable({
               onClick={() => onReactivate(row)}
               ariaLabel={
                 row.status === "blacklisted"
-                  ? isEs ? "Desbloquear" : "Unblock"
-                  : isEs ? "Reactivar" : "Reactivate"
+                  ? isEs
+                    ? "Desbloquear"
+                    : "Unblock"
+                  : isEs
+                    ? "Reactivar"
+                    : "Reactivate"
               }
               title={
                 row.status === "blacklisted"
-                  ? isEs ? "Desbloquear" : "Unblock"
-                  : isEs ? "Reactivar" : "Reactivate"
+                  ? isEs
+                    ? "Desbloquear"
+                    : "Unblock"
+                  : isEs
+                    ? "Reactivar"
+                    : "Reactivate"
               }
             />
           )}

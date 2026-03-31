@@ -11,10 +11,7 @@ import {
   voidInvoice,
   sendInvoice,
 } from "../../services/invoiceService";
-import type {
-  InvoicesQueryParams,
-  RecordPaymentPayload,
-} from "../../types/api";
+import type { InvoicesQueryParams, RecordPaymentPayload } from "../../types/api";
 
 export const invoiceKeys = {
   all: ["invoices"] as const,

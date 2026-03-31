@@ -402,12 +402,22 @@ export async function getPackageAvailability(
 ): Promise<
   ApiSuccessResponse<{
     available: boolean;
-    unavailableItems: Array<{ materialTypeId: string; name: string; available: number; required: number }>;
+    unavailableItems: Array<{
+      materialTypeId: string;
+      name: string;
+      available: number;
+      required: number;
+    }>;
   }>
 > {
   return get<{
     available: boolean;
-    unavailableItems: Array<{ materialTypeId: string; name: string; available: number; required: number }>;
+    unavailableItems: Array<{
+      materialTypeId: string;
+      name: string;
+      available: number;
+      required: number;
+    }>;
   }>(`/packages/${packageId}/availability`, { startDate, endDate });
 }
 

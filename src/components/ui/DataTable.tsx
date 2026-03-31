@@ -91,7 +91,7 @@ function getRowKey<T>(row: T, fallback: number): string | number {
 
 // ─── Component ─────────────────────────────────────────────────────────────
 
-export function DataTable<T>({ 
+export function DataTable<T>({
   data,
   columns,
   onRowClick,
@@ -125,64 +125,57 @@ export function DataTable<T>({
 
         {/* Body */}
         <tbody>
-          {loading
-            ? Array.from({ length: skeletonRows }).map((_, i) => (
-                <tr key={`skel-${i}`}>
-                  {columns.map((col) => (
-                    <td
-                      key={col.key}
-                      className={col.hideBelow ? responsiveMap[col.hideBelow] : ""}
-                    >
-                      <div className="h-4 bg-white/5 rounded animate-pulse" />
-                    </td>
-                  ))}
-                </tr>
-              ))
-            : data.length === 0
-              ? (
-                <tr>
-                  <td colSpan={columns.length} className="text-center py-16 text-gray-500 text-sm">
-                    {emptyMessage}
+          {loading ? (
+            Array.from({ length: skeletonRows }).map((_, i) => (
+              <tr key={`skel-${i}`}>
+                {columns.map((col) => (
+                  <td key={col.key} className={col.hideBelow ? responsiveMap[col.hideBelow] : ""}>
+                    <div className="h-4 bg-white/5 rounded animate-pulse" />
                   </td>
-                </tr>
-              )
-              : data.map((row, idx) => (
-                <tr
-                  key={getRowKey(row, idx)}
-                  className={onRowClick ? "cursor-pointer" : ""}
-                  onClick={() => onRowClick?.(row)}
-                >
-                  {columns.map((col) => {
-                    const cellClass = [
-                      col.hideBelow ? responsiveMap[col.hideBelow] : "",
-                      col.align ? alignMap[col.align] : "",
-                    ]
-                      .filter(Boolean)
-                      .join(" ");
+                ))}
+              </tr>
+            ))
+          ) : data.length === 0 ? (
+            <tr>
+              <td colSpan={columns.length} className="text-center py-16 text-gray-500 text-sm">
+                {emptyMessage}
+              </td>
+            </tr>
+          ) : (
+            data.map((row, idx) => (
+              <tr
+                key={getRowKey(row, idx)}
+                className={onRowClick ? "cursor-pointer" : ""}
+                onClick={() => onRowClick?.(row)}
+              >
+                {columns.map((col) => {
+                  const cellClass = [
+                    col.hideBelow ? responsiveMap[col.hideBelow] : "",
+                    col.align ? alignMap[col.align] : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ");
 
-                    if (col.render) {
-                      return (
-                        <td key={col.key} className={cellClass}>
-                          {col.render(row, idx)}
-                        </td>
-                      );
-                    }
-
-                    const raw = getNestedValue(row, col.key);
-                    const text = raw != null ? String(raw) : "—";
-
+                  if (col.render) {
                     return (
                       <td key={col.key} className={cellClass}>
-                        {col.truncate ? (
-                          <TruncatedText text={text} maxLength={col.truncate} />
-                        ) : (
-                          text
-                        )}
+                        {col.render(row, idx)}
                       </td>
                     );
-                  })}
-                </tr>
-              ))}
+                  }
+
+                  const raw = getNestedValue(row, col.key);
+                  const text = raw != null ? String(raw) : "—";
+
+                  return (
+                    <td key={col.key} className={cellClass}>
+                      {col.truncate ? <TruncatedText text={text} maxLength={col.truncate} /> : text}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
 

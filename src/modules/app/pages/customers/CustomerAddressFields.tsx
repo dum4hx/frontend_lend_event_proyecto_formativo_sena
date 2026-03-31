@@ -214,8 +214,12 @@ export function CustomerAddressFields({
           onChange={handleCitySelect}
           placeholder={
             selectedState
-              ? isEs ? "Buscar ciudad..." : "Search city..."
-              : isEs ? "Seleccione un departamento primero" : "Select a department first"
+              ? isEs
+                ? "Buscar ciudad..."
+                : "Search city..."
+              : isEs
+                ? "Seleccione un departamento primero"
+                : "Select a department first"
           }
           error={fieldErrors.cityQuery}
           disabled={disabled || !selectedState}
@@ -253,9 +257,15 @@ export function CustomerAddressFields({
           placeholder={
             selectedCity
               ? canEditPostalCode
-                ? isEs ? "Ingrese código postal" : "Enter postal code"
-                : isEs ? "Auto-completado" : "Auto-filled from city"
-              : isEs ? "Seleccione una ciudad" : "Select a city first"
+                ? isEs
+                  ? "Ingrese código postal"
+                  : "Enter postal code"
+                : isEs
+                  ? "Auto-completado"
+                  : "Auto-filled from city"
+              : isEs
+                ? "Seleccione una ciudad"
+                : "Select a city first"
           }
           value={postalCodeField}
           readOnly={!canEditPostalCode}

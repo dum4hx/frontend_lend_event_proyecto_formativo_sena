@@ -1692,3 +1692,163 @@ export interface ReportsTransfersResponse {
   };
   pagination: PaginationMeta;
 }
+
+// ─── Location Operations (Warehouse Operator Dashboard) ────────────────────
+
+/** Priority levels for operational tasks. */
+export type OpsTaskPriority = "critical" | "high" | "medium" | "low";
+
+/** Task type identifiers returned by the unified tasks endpoint. */
+export type OpsTaskType =
+  | "overdue_loan"
+  | "expiring_loan"
+  | "overdue_invoice"
+  | "pending_inspection"
+  | "damaged_item"
+  | "maintenance_item"
+  | "lost_item"
+  | "inbound_transfer"
+  | "pending_transfer_request"
+  | "pending_damage_assessment"
+  | "pending_repair"
+  | "pending_billing";
+
+/** KPI snapshot from GET /locations/:id/operations/overview */
+export interface OpsOverview {
+  activeLoans: number;
+  pendingInspections: number;
+  overdueInvoices: number;
+  damagedItems: number;
+  maintenanceItems: number;
+  pendingTransfers: number;
+  loansExpiringSoon: number;
+}
+
+/** Individual inspection item in the queue. */
+export interface OpsInspectionItem {
+  loanId: string;
+  customerId: string;
+  customerName: string;
+  itemCount: number;
+  returnDate: string;
+  status: "pending" | "in-progress";
+}
+
+/** Grouped inspection queue from GET /locations/:id/operations/inspections */
+export interface OpsInspectionsResponse {
+  pending: OpsInspectionItem[];
+  inProgress: OpsInspectionItem[];
+  total: number;
+}
+
+/** Overdue invoice entry from GET /locations/:id/operations/financials/overdue */
+export interface OpsOverdueInvoice {
+  invoiceId: string;
+  invoiceNumber: string;
+  customerId: string;
+  customerName: string;
+  amount: number;
+  dueDate: string;
+  daysOverdue: number;
+}
+
+export interface OpsOverdueFinancialsResponse {
+  invoices: OpsOverdueInvoice[];
+  totalOverdue: number;
+  totalAmount: number;
+}
+
+/** Inventory issue from GET /locations/:id/operations/inventory/issues */
+export interface OpsInventoryIssue {
+  instanceId: string;
+  serialNumber: string;
+  materialTypeId: string;
+  materialTypeName: string;
+  category: "damaged" | "maintenance" | "lost";
+  since: string;
+}
+
+export interface OpsInventoryIssuesResponse {
+  damaged: OpsInventoryIssue[];
+  maintenance: OpsInventoryIssue[];
+  lost: OpsInventoryIssue[];
+  total: number;
+}
+
+/** Transfer entry in the queue from GET /locations/:id/operations/transfers */
+export interface OpsTransferEntry {
+  transferId: string;
+  requestId?: string;
+  fromLocationId: string;
+  fromLocationName: string;
+  toLocationId: string;
+  toLocationName: string;
+  itemCount: number;
+  status: TransferStatus | TransferRequestStatus;
+  createdAt: string;
+}
+
+export interface OpsTransfersResponse {
+  inbound: OpsTransferEntry[];
+  pendingRequests: OpsTransferEntry[];
+  total: number;
+}
+
+/** Loan deadline entry from GET /locations/:id/operations/loans/deadlines */
+export interface OpsLoanDeadline {
+  loanId: string;
+  customerId: string;
+  customerName: string;
+  endDate: string;
+  materialCount: number;
+  isOverdue: boolean;
+  hoursRemaining: number;
+}
+
+export interface OpsLoanDeadlinesResponse {
+  overdue: OpsLoanDeadline[];
+  dueSoon: OpsLoanDeadline[];
+  total: number;
+}
+
+/** Damage resolution item from GET /locations/:id/operations/damages */
+export interface OpsDamageItem {
+  inspectionId: string;
+  instanceId: string;
+  serialNumber: string;
+  materialTypeName: string;
+  condition: InspectionCondition;
+  customerName: string;
+  inspectionDate: string;
+  estimatedCost?: number;
+}
+
+export interface OpsDamagesResponse {
+  pendingAssessment: OpsDamageItem[];
+  pendingRepair: OpsDamageItem[];
+  pendingBilling: OpsDamageItem[];
+  total: number;
+}
+
+/** Unified task from GET /locations/:id/operations/tasks */
+export interface OpsTask {
+  id: string;
+  type: OpsTaskType;
+  priority: OpsTaskPriority;
+  title: string;
+  description: string;
+  referenceId: string;
+  dueDate?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface OpsTasksResponse {
+  tasks: OpsTask[];
+  summary: {
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+    total: number;
+  };
+}

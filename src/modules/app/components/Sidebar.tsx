@@ -27,6 +27,9 @@ import {
   BarChart3,
   ArrowLeftRight,
   DollarSign,
+  ClipboardList,
+  Wallet,
+  ClipboardCheck,
 } from "lucide-react";
 import { ApiError } from "../../../lib/api";
 import { useLogout } from "../../../hooks/useLogout";
@@ -56,8 +59,10 @@ const iconMap: Record<string, React.ReactNode> = {
   plans: <BookOpen size={20} />,
   "transfer-requests": <ArrowLeftRight size={20} />,
   // Warehouse
+  operations: <ClipboardList size={20} />,
   inventory: <Package size={20} />,
   locations: <MapPin size={20} />,
+  inspections: <ClipboardCheck size={20} />,
   "stock-movements": <TrendingDown size={20} />,
   alerts: <AlertCircle size={20} />,
   // Commerce
@@ -67,6 +72,7 @@ const iconMap: Record<string, React.ReactNode> = {
   invoices: <FileText size={20} />,
   reports: <BarChart3 size={20} />,
   pricing: <DollarSign size={20} />,
+  "payment-methods": <Wallet size={20} />,
   // Super admin
   "sa-plans": <BookOpen size={20} />,
 };
@@ -246,7 +252,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
           }`}
         >
           <LogOut size={16} />
-          {!isCollapsed && <span>{isLoggingOut ? t("common.loggingOut") : t("common.logout")}</span>}
+          {!isCollapsed && (
+            <span>{isLoggingOut ? t("common.loggingOut") : t("common.logout")}</span>
+          )}
         </button>
       </div>
       <AlertModal />

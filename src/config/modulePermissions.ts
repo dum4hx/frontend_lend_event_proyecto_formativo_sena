@@ -140,6 +140,13 @@ export const allNavItems: NavItem[] = [
 
   // -- Warehouse --
   {
+    id: "operations",
+    label: "Operations",
+    path: "/app/operations",
+    requiredPermissions: ["operations:read"],
+    section: "Warehouse",
+  },
+  {
     id: "locations",
     label: "Locations",
     path: "/app/locations",

@@ -5,12 +5,7 @@
 
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
-import type {
-  Address,
-  CreateCustomerPayload,
-  Customer,
-  DocumentType,
-} from "../../../../types/api";
+import type { Address, CreateCustomerPayload, Customer, DocumentType } from "../../../../types/api";
 import {
   validateEmail,
   validateFirstName,
@@ -558,7 +553,9 @@ export function useCustomerForm({ initialCustomer }: UseCustomerFormOptions = {}
         return;
       }
 
-      const parsed = asTrimmedString(addr.street) ? parseStreet(asTrimmedString(addr.street)) : null;
+      const parsed = asTrimmedString(addr.street)
+        ? parseStreet(asTrimmedString(addr.street))
+        : null;
 
       setStreetType(
         normalizeStreetTypeValue(asTrimmedString(addr.streetType) || parsed?.streetType || ""),

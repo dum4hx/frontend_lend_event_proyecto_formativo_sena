@@ -32,6 +32,10 @@ export const PageHeader: React.FC = () => {
       "/app/rentals": isEs ? "Alquileres" : "Rentals",
       "/app/invoices": isEs ? "Facturas" : "Invoices",
       "/app/reports": isEs ? "Reportes" : "Reports",
+      "/app/operations": isEs ? "Operaciones" : "Operations",
+      "/app/pricing": isEs ? "Precios" : "Pricing",
+      "/app/payment-methods": isEs ? "Métodos de Pago" : "Payment Methods",
+      "/app/transfer-requests": isEs ? "Transferencias" : "Transfer Requests",
     };
 
     return routeMap[pathname] || (isEs ? "Panel" : "Dashboard");

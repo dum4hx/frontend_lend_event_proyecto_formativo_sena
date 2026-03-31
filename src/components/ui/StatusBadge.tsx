@@ -60,9 +60,7 @@ const defaultColorMap: Record<string, string> = {
 
 /** Human-readable label for a status key. */
 function formatLabel(status: string): string {
-  return status
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  return status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 export function StatusBadge({ status, colorMap, className = "" }: StatusBadgeProps) {
@@ -70,9 +68,5 @@ export function StatusBadge({ status, colorMap, className = "" }: StatusBadgePro
   const merged = colorMap ? { ...defaultColorMap, ...colorMap } : defaultColorMap;
   const badgeClass = merged[key] ?? "badge-neutral";
 
-  return (
-    <span className={`badge ${badgeClass} ${className}`}>
-      {formatLabel(key)}
-    </span>
-  );
+  return <span className={`badge ${badgeClass} ${className}`}>{formatLabel(key)}</span>;
 }

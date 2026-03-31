@@ -23,7 +23,8 @@ export const transferKeys = {
   requests: {
     all: ["transferRequests"] as const,
     lists: () => [...transferKeys.requests.all, "list"] as const,
-    list: (params?: TransferRequestsQueryParams) => [...transferKeys.requests.lists(), params ?? {}] as const,
+    list: (params?: TransferRequestsQueryParams) =>
+      [...transferKeys.requests.lists(), params ?? {}] as const,
   },
   shipments: {
     all: ["transfers"] as const,

@@ -6,23 +6,19 @@
 import { useLanguage } from "../../contexts/useLanguage";
 
 export interface LoadingSpinnerProps {
-  size?: 'xs' | 'sm' | 'md' | 'lg';
+  size?: "xs" | "sm" | "md" | "lg";
   message?: string;
   fullScreen?: boolean;
 }
 
 const sizeClasses = {
-  xs: 'h-4 w-4 border-2',
-  sm: 'h-6 w-6 border-2',
-  md: 'h-12 w-12 border-2',
-  lg: 'h-16 w-16 border-3',
+  xs: "h-4 w-4 border-2",
+  sm: "h-6 w-6 border-2",
+  md: "h-12 w-12 border-2",
+  lg: "h-16 w-16 border-3",
 };
 
-export function LoadingSpinner({ 
-  size = 'md', 
-  message, 
-  fullScreen = false 
-}: LoadingSpinnerProps) {
+export function LoadingSpinner({ size = "md", message, fullScreen = false }: LoadingSpinnerProps) {
   const { t } = useLanguage();
   const spinner = (
     <div className="text-center">
@@ -36,11 +32,7 @@ export function LoadingSpinner({
   );
 
   if (fullScreen) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        {spinner}
-      </div>
-    );
+    return <div className="flex items-center justify-center min-h-[60vh]">{spinner}</div>;
   }
 
   return spinner;
