@@ -774,6 +774,7 @@ export function CreateOrderModal({
                       placeholder="e.g. 50.000,00"
                       value={depositAmountInput.displayValue}
                       onChange={depositAmountInput.handleChange}
+                      onBlur={depositAmountInput.handleBlur}
                       className={`input ${createErrors.depositAmount ? "input-error" : ""}`}
                     />
                     {createErrors.depositAmount && (

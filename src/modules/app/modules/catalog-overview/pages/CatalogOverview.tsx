@@ -58,7 +58,7 @@ export const CatalogOverview: React.FC = () => {
   }
 
   if (isError) {
-    return <ErrorDisplay error={error} onRetry={handleRefresh} />;
+    return <ErrorDisplay error={error?.message ?? "Failed to load catalog overview"} onRetry={handleRefresh} />;
   }
 
   const summary = data?.summary;

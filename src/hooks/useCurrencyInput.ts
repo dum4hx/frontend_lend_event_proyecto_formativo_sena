@@ -2,19 +2,19 @@ import { useState, useCallback, useEffect } from "react";
 
 /**
  * Custom hook for handling COP currency input with real-time formatting.
- * 
+ *
  * Formats numeric input to COP format (e.g., 1234567.89 → 1.234.567,89) while
  * maintaining a raw numeric value for API submission. Supports decimal values.
- * 
+ *
  * @param initialValue - Initial numeric value (raw, unformatted)
  * @param onChangeRaw - Callback fired when raw numeric value changes
  * @returns Object with displayValue (formatted string) and handleChange (input handler)
- * 
+ *
  * @example
  * const { displayValue, handleChange } = useCurrencyInput(100000, (val) => {
  *   setFormData(prev => ({ ...prev, price: val }));
  * });
- * 
+ *
  * <input
  *   type="text"
  *   value={displayValue}
@@ -26,13 +26,13 @@ import { useState, useCallback, useEffect } from "react";
 /**
  * Format a number to COP currency string (es-CO locale).
  * E.g., 1234567.89 → "1.234.567,89"
+ * Note: Returns ONLY the formatted number (no currency symbol) to avoid deletion issues
  */
 function formatCOP(num: number): string {
   if (isNaN(num) || num === 0) return "";
   try {
     return new Intl.NumberFormat("es-CO", {
-      style: "currency",
-      currency: "COP",
+      style: "decimal",
       minimumFractionDigits: 0,
       maximumFractionDigits: 2,
     }).format(num);
@@ -133,7 +133,8 @@ export function useCurrencyInput(
 
   /**
    * Handle input change event from text input.
-   * Updates both rawValue and displayValue.
+   * Preserves user input exactly as typed to maintain cursor position and enable
+   * natural character-by-character deletion. Reformatting happens on blur.
    */
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -142,9 +143,9 @@ export function useCurrencyInput(
       // Parse the input to get raw numeric value
       const newRawValue = parseCurrencyInput(inputValue);
 
-      // Update state
+      // Update state: keep display value exactly as the user typed it (no reformatting)
       setRawValue(newRawValue);
-      setDisplayValue(inputValue.length === 0 ? "" : formatCOP(newRawValue));
+      setDisplayValue(inputValue);
 
       // Notify parent via callback
       if (onChangeRaw) {
@@ -154,9 +155,22 @@ export function useCurrencyInput(
     [onChangeRaw],
   );
 
+  /**
+   * Handle blur event: reformat the display value after user finishes editing.
+   * This ensures clean formatting without disrupting the editing experience.
+   */
+  const handleBlur = useCallback(() => {
+    if (rawValue === 0) {
+      setDisplayValue("");
+    } else {
+      setDisplayValue(formatCOP(rawValue));
+    }
+  }, [rawValue]);
+
   return {
     displayValue,
     handleChange,
+    handleBlur,
     rawValue,
   };
 }

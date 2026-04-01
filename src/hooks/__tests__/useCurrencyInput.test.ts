@@ -95,6 +95,16 @@ describe("useCurrencyInput", () => {
         } as React.ChangeEvent<HTMLInputElement>);
       });
 
+      // displayValue preserves user input during typing (formatting happens on blur)
+      expect(result.current.displayValue).toBe("1000000");
+      // rawValue is correctly parsed
+      expect(result.current.rawValue).toBe(1000000);
+
+      act(() => {
+        result.current.handleBlur();
+      });
+
+      // After blur, displayValue is formatted
       expect(result.current.displayValue).toContain("1.000.000");
     });
 
@@ -204,6 +214,14 @@ describe("useCurrencyInput", () => {
       });
 
       expect(result.current.rawValue).toBe(0);
+      // displayValue preserves user input during typing
+      expect(result.current.displayValue).toBe("0");
+
+      act(() => {
+        result.current.handleBlur();
+      });
+
+      // After blur, zero is cleared
       expect(result.current.displayValue).toBe("");
     });
 
@@ -246,10 +264,9 @@ describe("useCurrencyInput", () => {
 
   describe("Update initialValue (edit scenario)", () => {
     it("should update display when initialValue prop changes", () => {
-      const { result, rerender } = renderHook(
-        ({ value }) => useCurrencyInput(value),
-        { initialProps: { value: 100000 } },
-      );
+      const { result, rerender } = renderHook(({ value }) => useCurrencyInput(value), {
+        initialProps: { value: 100000 },
+      });
 
       expect(result.current.rawValue).toBe(100000);
 
