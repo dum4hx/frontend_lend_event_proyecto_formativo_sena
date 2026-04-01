@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { X, Plus, Info } from "lucide-react";
+import { X, Plus, Info, FolderPlus } from "lucide-react";
 import { useToast } from "../../../../../contexts/ToastContext";
+import { usePermissions } from "../../../../../contexts/usePermissions";
 import { useMaterialAttributes } from "../../material-attributes/hooks/useMaterialAttributes";
 import { MaterialAttributeForm } from "../../material-attributes/components/AttributeForm";
+import { createMaterialCategory } from "../../../../../services/materialService";
 import type {
   CreateMaterialTypePayload,
   MaterialCategory,
   MaterialType,
 } from "../../../../../types/api";
-import { Button, IconButton } from "../../../../../components/ui";
+import { Button, IconButton, QuickCreateModal } from "../../../../../components/ui";
 
 interface MaterialTypeFormProps {
   categories: MaterialCategory[];
@@ -17,6 +19,8 @@ interface MaterialTypeFormProps {
   initialData?: MaterialType | (Partial<CreateMaterialTypePayload> & { name?: string });
   isEditing?: boolean;
   title?: string;
+  /** Called after a category is quick-created so the parent can refresh its list. */
+  onCategoryCreated?: (category: MaterialCategory) => void;
 }
 
 export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
@@ -26,6 +30,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
   initialData,
   isEditing = false,
   title = isEditing ? "Update Material Type" : "Create Material Type",
+  onCategoryCreated,
 }) => {
   const [formData, setFormData] = useState<CreateMaterialTypePayload>({
     name: "",
@@ -39,16 +44,33 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
   const [showAttributeForm, setShowAttributeForm] = useState(false);
   const [categorySearchInput, setCategorySearchInput] = useState("");
 
+  // Quick-create category modal state
+  const [showQuickCreateCategory, setShowQuickCreateCategory] = useState(false);
+  const [quickCategoryName, setQuickCategoryName] = useState("");
+  const [quickCategoryDescription, setQuickCategoryDescription] = useState("");
+  const [quickCategoryLoading, setQuickCategoryLoading] = useState(false);
+  /** Locally-appended categories created via QuickCreateModal (merged with prop list). */
+  const [localCategories, setLocalCategories] = useState<MaterialCategory[]>([]);
+
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
   const { attributes: allAttributes } = useMaterialAttributes();
+
+  const canCreateCategory = hasPermission("materials:create");
+
+  /** Merged category list: prop categories + any quick-created ones not yet in props. */
+  const allCategories = useMemo(() => {
+    const propIds = new Set(categories.map((c) => c._id));
+    return [...categories, ...localCategories.filter((c) => !propIds.has(c._id))];
+  }, [categories, localCategories]);
 
   // Get all selected categories
   const selectedCategories = useMemo(
     () =>
-      categories.filter((c) =>
+      allCategories.filter((c) =>
         (Array.isArray(formData.categoryId) ? formData.categoryId : []).includes(c._id),
       ),
-    [formData.categoryId, categories],
+    [formData.categoryId, allCategories],
   );
 
   const categoryAttributeIds = useMemo(() => {
@@ -118,6 +140,38 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
       }
     }
   }, [initialData]);
+
+  const handleQuickCreateCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quickCategoryName.trim() || !quickCategoryDescription.trim()) {
+      showToast("error", "Name and description are required");
+      return;
+    }
+    setQuickCategoryLoading(true);
+    try {
+      const res = await createMaterialCategory({
+        name: quickCategoryName.trim(),
+        description: quickCategoryDescription.trim(),
+      });
+      const newCategory = res.data.category;
+      setLocalCategories((prev) => [...prev, newCategory]);
+      // Auto-select the new category
+      setFormData((prev) => ({
+        ...prev,
+        categoryId: [...(Array.isArray(prev.categoryId) ? prev.categoryId : []), newCategory._id],
+      }));
+      showToast("success", `Category "${newCategory.name}" created`);
+      onCategoryCreated?.(newCategory);
+      setShowQuickCreateCategory(false);
+      setQuickCategoryName("");
+      setQuickCategoryDescription("");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to create category";
+      showToast("error", message);
+    } finally {
+      setQuickCategoryLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -281,7 +335,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
                         className="flex-1 px-5 py-4 bg-[#1a1a1a] border border-[#222] rounded-xl text-white focus:outline-none focus:border-[#FFD700] focus:ring-1 focus:ring-[#FFD700]/20 transition-all"
                       >
                         <option value="">Select category to add...</option>
-                        {categories
+                        {allCategories
                           .filter(
                             (cat) =>
                               !Array.isArray(formData.categoryId) ||
@@ -314,13 +368,24 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
                       >
                         <Plus size={20} />
                       </button>
+                      {canCreateCategory && (
+                        <button
+                          type="button"
+                          onClick={() => setShowQuickCreateCategory(true)}
+                          disabled={isSubmitting}
+                          className="px-4 py-4 bg-[#1a1a1a] border border-[#FFD700]/40 hover:border-[#FFD700] text-[#FFD700] font-bold rounded-xl transition-all flex items-center justify-center gap-1"
+                          title="Create new category"
+                        >
+                          <FolderPlus size={20} />
+                        </button>
+                      )}
                     </div>
 
                     {/* Selected Categories List */}
                     {Array.isArray(formData.categoryId) && formData.categoryId.length > 0 ? (
                       <div className="space-y-2">
                         {formData.categoryId.map((catId) => {
-                          const cat = categories.find((c) => c._id === catId);
+                          const cat = allCategories.find((c) => c._id === catId);
                           return (
                             <div
                               key={catId}
@@ -556,6 +621,50 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
           </Button>
         </div>
       </div>
+
+      {/* Quick Create Category Modal */}
+      <QuickCreateModal
+        open={showQuickCreateCategory}
+        onClose={() => {
+          setShowQuickCreateCategory(false);
+          setQuickCategoryName("");
+          setQuickCategoryDescription("");
+        }}
+        title="New Category"
+        hint="Create a category without leaving this form."
+        onSubmit={handleQuickCreateCategory}
+        loading={quickCategoryLoading}
+        submitLabel="Create Category"
+      >
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] ml-1">
+              Name *
+            </label>
+            <input
+              type="text"
+              value={quickCategoryName}
+              onChange={(e) => setQuickCategoryName(e.target.value)}
+              className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#222] rounded-xl text-white focus:outline-none focus:border-[#FFD700] focus:ring-1 focus:ring-[#FFD700]/20 transition-all"
+              placeholder="e.g., Lighting"
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] ml-1">
+              Description *
+            </label>
+            <textarea
+              value={quickCategoryDescription}
+              onChange={(e) => setQuickCategoryDescription(e.target.value)}
+              className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#222] rounded-xl text-white focus:outline-none focus:border-[#FFD700] focus:ring-1 focus:ring-[#FFD700]/20 transition-all resize-none"
+              placeholder="Brief description of this category"
+              rows={3}
+              required
+            />
+          </div>
+        </div>
+      </QuickCreateModal>
 
       {/* Internal Modal for New Attribute Creation */}
       {showAttributeForm && (
