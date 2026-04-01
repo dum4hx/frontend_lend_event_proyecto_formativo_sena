@@ -93,6 +93,11 @@
     @apply bg-blue-500/10 text-blue-400 border border-blue-500/30;
   }
 
+  /* Entity Link (cross-collection hyperlinks in tables) */
+  .entity-link {
+    @apply text-gray-300 hover:text-[#FFD700] hover:underline underline-offset-2 transition-colors cursor-pointer;
+  }
+
   /* Table Styles */
   .table-container {
     @apply overflow-x-auto rounded-lg border border-[#333];

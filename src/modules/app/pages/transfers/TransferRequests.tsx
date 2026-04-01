@@ -18,6 +18,7 @@ import {
   getTransfers,
 } from "../../../../services/transferService";
 import { getLocations } from "../../../../services/warehouseOperatorService";
+import { Link } from "react-router-dom";
 import { AnimatedPage, PageHeader } from "../../../../components/ui";
 import {
   REQUEST_STATUS_LABEL,
@@ -384,13 +385,13 @@ export function TransferRequests() {
                         <tr key={req._id} className="hover:bg-white/3 transition-colors group">
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
-                              <span className="text-gray-200 font-medium whitespace-nowrap">
+                              <Link to="/app/locations" className="entity-link font-medium whitespace-nowrap">
                                 {locationName(req.fromLocationId)}
-                              </span>
+                              </Link>
                               <ArrowLeftRight size={14} className="text-[#FFD700] shrink-0" />
-                              <span className="text-gray-200 whitespace-nowrap">
+                              <Link to="/app/locations" className="entity-link whitespace-nowrap">
                                 {locationName(req.toLocationId)}
-                              </span>
+                              </Link>
                             </div>
                           </td>
                           <td className="px-4 py-3 text-gray-400 whitespace-nowrap">
@@ -489,13 +490,13 @@ export function TransferRequests() {
                         <tr key={tr._id} className="hover:bg-white/3 transition-colors">
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
-                              <span className="text-gray-200 font-medium whitespace-nowrap">
+                              <Link to="/app/locations" className="entity-link font-medium whitespace-nowrap">
                                 {locationName(tr.fromLocationId)}
-                              </span>
+                              </Link>
                               <ArrowLeftRight size={14} className="text-[#FFD700] shrink-0" />
-                              <span className="text-gray-200 whitespace-nowrap">
+                              <Link to="/app/locations" className="entity-link whitespace-nowrap">
                                 {locationName(tr.toLocationId)}
-                              </span>
+                              </Link>
                             </div>
                           </td>
                           <td className="px-4 py-3 text-gray-400">

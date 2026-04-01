@@ -1,4 +1,5 @@
 import { Pencil, Trash2, Loader2 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { IconButton } from "../../../../components/ui";
 import { SCOPE_LABELS, STRATEGY_LABELS, getScopeBadgeStyle, formatStrategyParams } from "./helpers";
 import type { PricingConfig } from "./types";
@@ -59,11 +60,17 @@ export function PricingConfigsTable({
                 </span>
               </td>
               <td className="px-4 py-3">
-                <span className="font-mono text-xs text-gray-300">
-                  {config.scope === "organization"
-                    ? "—"
-                    : config.referenceId.slice(-8).toUpperCase()}
-                </span>
+                {config.scope === "organization" ? (
+                  <span className="font-mono text-xs text-gray-300">—</span>
+                ) : config.scope === "materialType" ? (
+                  <Link to="/app/material-types" className="entity-link font-mono text-xs">
+                    {config.referenceId.slice(-8).toUpperCase()}
+                  </Link>
+                ) : (
+                  <span className="font-mono text-xs text-gray-300">
+                    {config.referenceId.slice(-8).toUpperCase()}
+                  </span>
+                )}
               </td>
               <td className="px-4 py-3 text-gray-200">{STRATEGY_LABELS[config.strategyType]}</td>
               <td className="px-4 py-3 text-gray-300 text-xs max-w-xs truncate">

@@ -1,4 +1,5 @@
 import { Eye, CalendarRange, RotateCcw, AlertCircle, HandCoins, Loader2 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button } from "../../../../components/ui";
 import type { LoanView } from "./types";
 import {
@@ -99,8 +100,10 @@ export function RentalsTable({
                     #{lv.loan._id.slice(-8).toUpperCase()}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-white font-medium">
-                  {customerFullName(lv.customer)}
+                <td className="px-4 py-3">
+                  <Link to="/app/customers" className="entity-link font-medium">
+                    {customerFullName(lv.customer)}
+                  </Link>
                 </td>
                 <td className="px-4 py-3 text-gray-300">{formatDate(lv.loan.startDate, locale)}</td>
                 <td className="px-4 py-3 text-gray-300">{formatDate(lv.loan.endDate, locale)}</td>

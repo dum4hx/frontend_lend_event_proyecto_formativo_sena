@@ -1,4 +1,5 @@
 import { Check, X, RotateCcw, CreditCard, Truck, CircleCheck, Eye } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button, IconButton, type ColumnDef } from "../../../../components/ui";
 import { DataTable } from "../../../../components/ui";
 import { Pagination } from "../../../../components/ui";
@@ -176,7 +177,11 @@ export function OrdersTable({
     {
       key: "customer",
       header: isEs ? "Cliente" : "Customer",
-      render: (order) => <span className="text-gray-300">{order.customerName}</span>,
+      render: (order) => (
+        <Link to="/app/customers" className="entity-link">
+          {order.customerName}
+        </Link>
+      ),
     },
     {
       key: "dateRange",

@@ -179,8 +179,10 @@ export default function AdminDashboard() {
                     key={req._id}
                     className="border-b border-[#222] hover:bg-[#1a1a1a] transition-colors text-sm"
                   >
-                    <td className="px-4 py-3 text-[#FFD700] font-mono font-medium">
-                      {shortId(req._id)}
+                    <td className="px-4 py-3 font-mono font-medium">
+                      <Link to="/app/orders" className="entity-link">
+                        {shortId(req._id)}
+                      </Link>
                     </td>
                     <td className="px-4 py-3 text-gray-300">
                       {req.items.length} {isEs ? (req.items.length !== 1 ? "items" : "item") : `item${req.items.length !== 1 ? "s" : ""}`}
@@ -317,8 +319,10 @@ export default function AdminDashboard() {
                   key={loan._id}
                   className="border-b border-[#222] hover:bg-[#1a1a1a] transition-colors text-sm"
                 >
-                  <td className="px-4 py-3 text-[#FFD700] font-mono font-medium">
-                    {shortId(loan._id)}
+                  <td className="px-4 py-3 font-mono font-medium">
+                    <Link to="/app/rentals" className="entity-link">
+                      {shortId(loan._id)}
+                    </Link>
                   </td>
                   <td className="px-4 py-3 text-gray-400">{fmtDate(loan.endDate, locale)}</td>
                   <td className="px-4 py-3 text-red-400 font-medium">

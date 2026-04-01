@@ -1,4 +1,5 @@
 import { FileText, DollarSign, Eye, Download, Trash2 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { EmptyState } from "../../../../components/ui";
 import type { Invoice } from "./types";
 import {
@@ -103,9 +104,9 @@ export function InvoicesTable({
                       <span className="text-white font-mono text-xs block">
                         {invoice.invoiceNumber}
                       </span>
-                      <span className="text-gray-500 text-xs">
+                      <Link to="/app/customers" className="entity-link text-xs">
                         {getCustomerName(invoice.customerId)}
-                      </span>
+                      </Link>
                     </div>
                   </div>
                 </td>
