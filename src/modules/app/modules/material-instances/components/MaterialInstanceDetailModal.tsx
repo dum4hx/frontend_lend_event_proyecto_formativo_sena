@@ -1,7 +1,8 @@
-import React from "react";
-import { X } from "lucide-react";
-import { type MaterialInstance, MATERIAL_INSTANCE_STATUS_LABELS } from "../../../../../types/api";
+import React, { useState, useEffect } from "react";
+import { X, Info } from "lucide-react";
+import { type MaterialInstance, MATERIAL_INSTANCE_STATUS_LABELS, type MaterialAttribute, type MaterialType } from "../../../../../types/api";
 import { MaterialBarcode } from "./MaterialBarcode";
+import { getMaterialAttributes, getMaterialTypes } from "../../../../../services/materialService";
 
 interface MaterialInstanceDetailModalProps {
   instance: MaterialInstance;
@@ -12,6 +13,35 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
   instance,
   onClose,
 }) => {
+  const [attributeDefinitions, setAttributeDefinitions] = useState<MaterialAttribute[]>([]);
+  const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
+  const [loadingAttributes, setLoadingAttributes] = useState(false);
+
+  useEffect(() => {
+    async function loadResources() {
+      setLoadingAttributes(true);
+      try {
+        const [attrRes, typeRes] = await Promise.all([
+          getMaterialAttributes(),
+          getMaterialTypes()
+        ]);
+        setAttributeDefinitions(attrRes.data.attributes);
+        setMaterialTypes(typeRes.data.materialTypes || []);
+      } catch (error) {
+        console.error("Failed to load material resources:", error);
+      } finally {
+        setLoadingAttributes(false);
+      }
+    }
+    loadResources();
+  }, []);
+
+  // Use instance attributes if present, otherwise fallback to material type attributes
+  const typeAttributes = materialTypes.find(t => t._id === instance.model?._id)?.attributes || [];
+  const activeAttributes = (instance.attributes && instance.attributes.length > 0) 
+    ? instance.attributes 
+    : typeAttributes;
+
   const resolvedCode = instance.barcode?.trim() || instance.serialNumber.trim();
 
   const getStatusColor = (status: string) => {
@@ -88,6 +118,40 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
               <p className="text-white">{instance.locationId?.name || "Unknown"}</p>
             </div>
           </div>
+
+          {/* Attributes Section */}
+          {activeAttributes.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-sm font-semibold text-[#FFD700] uppercase tracking-wider">
+                <Info size={16} />
+                <span>Technical Specifications</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {activeAttributes.map((attr) => {
+                  const definition = attributeDefinitions.find((d) => d._id === attr.attributeId);
+                  return (
+                    <div
+                      key={attr.attributeId}
+                      className="bg-[#1a1a1a] border border-[#333] p-3 rounded-lg flex flex-col"
+                    >
+                      <span className="text-xs text-gray-500 uppercase font-bold tracking-tight">
+                        {definition?.name || "Attribute"}
+                      </span>
+                      <div className="flex items-baseline gap-1 mt-1">
+                        <span className="text-white font-medium">{attr.value}</span>
+                        {definition?.unit && (
+                          <span className="text-gray-400 text-sm">{definition.unit}</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {loadingAttributes && (
+                <p className="text-xs text-gray-500 animate-pulse">Loading specifications...</p>
+              )}
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-400 mb-2">Instance ID</label>
