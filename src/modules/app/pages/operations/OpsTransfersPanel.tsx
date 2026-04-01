@@ -55,29 +55,33 @@ export function OpsTransfersPanel({ data }: OpsTransfersPanelProps) {
   const { language } = useLanguage();
   const isEs = language === "es";
 
+  const inbound = Array.isArray(data?.inbound) ? data.inbound : [];
+  const pendingRequests = Array.isArray(data?.pendingRequests) ? data.pendingRequests : [];
+  const total = data?.total ?? 0;
+
   return (
     <div className="depth-card rounded-xl p-5">
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <h3 className="text-lg font-semibold text-zinc-100 flex items-center gap-2">
           <ArrowLeftRight size={20} className="text-blue-400" />
           {isEs ? "Cola de Transferencias" : "Transfer Queue"}
-          <span className="text-sm text-zinc-500">({data.total})</span>
+          <span className="text-sm text-zinc-500">({total})</span>
         </h3>
         <div className="flex gap-2">
-          {data.inbound.length > 0 && (
+          {inbound.length > 0 && (
             <span className="text-xs px-2 py-1 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
-              {data.inbound.length} {isEs ? "entrantes" : "inbound"}
+              {inbound.length} {isEs ? "entrantes" : "inbound"}
             </span>
           )}
-          {data.pendingRequests.length > 0 && (
+          {pendingRequests.length > 0 && (
             <span className="text-xs px-2 py-1 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
-              {data.pendingRequests.length} {isEs ? "solicitudes" : "requests"}
+              {pendingRequests.length} {isEs ? "solicitudes" : "requests"}
             </span>
           )}
         </div>
       </div>
 
-      {data.total === 0 ? (
+      {total === 0 && inbound.length === 0 && pendingRequests.length === 0 ? (
         <div className="text-center py-6 text-zinc-500">
           <ArrowLeftRight size={28} className="mx-auto mb-2 text-emerald-400" />
           <p className="text-sm">
@@ -86,14 +90,14 @@ export function OpsTransfersPanel({ data }: OpsTransfersPanelProps) {
         </div>
       ) : (
         <div className="flex flex-col gap-2 max-h-[320px] overflow-y-auto pr-1 scrollbar-thin">
-          {data.inbound.map((entry, i) => (
+          {inbound.map((entry, i) => (
             <TransferRow key={entry.transferId} entry={entry} index={i} type="inbound" />
           ))}
-          {data.pendingRequests.map((entry, i) => (
+          {pendingRequests.map((entry, i) => (
             <TransferRow
               key={entry.requestId ?? entry.transferId}
               entry={entry}
-              index={i + data.inbound.length}
+              index={i + inbound.length}
               type="request"
             />
           ))}

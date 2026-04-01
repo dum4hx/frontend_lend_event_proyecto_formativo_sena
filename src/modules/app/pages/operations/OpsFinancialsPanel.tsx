@@ -15,6 +15,10 @@ export function OpsFinancialsPanel({ data }: OpsFinancialsPanelProps) {
   const { language } = useLanguage();
   const isEs = language === "es";
 
+  const invoices = Array.isArray(data?.invoices) ? data.invoices : [];
+  const totalOverdue = data?.totalOverdue ?? 0;
+  const totalAmount = data?.totalAmount ?? 0;
+
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat(isEs ? "es-CO" : "en-US", {
       style: "currency",
@@ -28,23 +32,21 @@ export function OpsFinancialsPanel({ data }: OpsFinancialsPanelProps) {
         <h3 className="text-lg font-semibold text-zinc-100 flex items-center gap-2">
           <FileWarning size={20} className="text-red-400" />
           {isEs ? "Facturas Vencidas" : "Overdue Invoices"}
-          <span className="text-sm text-zinc-500">({data.totalOverdue})</span>
+          <span className="text-sm text-zinc-500">({totalOverdue})</span>
         </h3>
-        {data.totalAmount > 0 && (
-          <span className="text-sm font-medium text-red-400">
-            {formatCurrency(data.totalAmount)}
-          </span>
+        {totalAmount > 0 && (
+          <span className="text-sm font-medium text-red-400">{formatCurrency(totalAmount)}</span>
         )}
       </div>
 
-      {data.invoices.length === 0 ? (
+      {invoices.length === 0 ? (
         <div className="text-center py-6 text-zinc-500">
           <DollarSign size={28} className="mx-auto mb-2 text-emerald-400" />
           <p className="text-sm">{isEs ? "Sin facturas vencidas" : "No overdue invoices"}</p>
         </div>
       ) : (
         <div className="flex flex-col gap-2 max-h-[320px] overflow-y-auto pr-1 scrollbar-thin">
-          {data.invoices.map((inv, i) => (
+          {invoices.map((inv, i) => (
             <motion.div
               key={inv.invoiceId}
               variants={listItemVariants}

@@ -31,55 +31,64 @@ export function OpsKpiGrid({ data }: OpsKpiGridProps) {
   const { language } = useLanguage();
   const isEs = language === "es";
 
+  if (!data) {
+    return (
+      <div className="depth-card rounded-xl p-5 text-center text-zinc-500">
+        <Package size={28} className="mx-auto mb-2 text-zinc-600" />
+        <p className="text-sm">{isEs ? "Sin datos disponibles" : "No data available"}</p>
+      </div>
+    );
+  }
+
   const cards: KpiCard[] = [
     {
       label: isEs ? "Préstamos Activos" : "Active Loans",
-      value: data.activeLoans,
+      value: data.activeLoans ?? 0,
       icon: <Package size={22} />,
       color: "text-blue-400",
       bgGlow: "shadow-blue-500/10",
     },
     {
       label: isEs ? "Inspecciones Pend." : "Pending Inspections",
-      value: data.pendingInspections,
+      value: data.pendingInspections ?? 0,
       icon: <ClipboardCheck size={22} />,
       color: "text-amber-400",
       bgGlow: "shadow-amber-500/10",
     },
     {
       label: isEs ? "Facturas Vencidas" : "Overdue Invoices",
-      value: data.overdueInvoices,
+      value: data.overdueInvoices ?? 0,
       icon: <FileWarning size={22} />,
-      color: data.overdueInvoices > 0 ? "text-red-400" : "text-emerald-400",
-      bgGlow: data.overdueInvoices > 0 ? "shadow-red-500/10" : "shadow-emerald-500/10",
+      color: (data.overdueInvoices ?? 0) > 0 ? "text-red-400" : "text-emerald-400",
+      bgGlow: (data.overdueInvoices ?? 0) > 0 ? "shadow-red-500/10" : "shadow-emerald-500/10",
     },
     {
       label: isEs ? "Dañados" : "Damaged Items",
-      value: data.damagedItems,
+      value: data.damagedItems ?? 0,
       icon: <AlertTriangle size={22} />,
-      color: data.damagedItems > 0 ? "text-orange-400" : "text-emerald-400",
-      bgGlow: data.damagedItems > 0 ? "shadow-orange-500/10" : "shadow-emerald-500/10",
+      color: (data.damagedItems ?? 0) > 0 ? "text-orange-400" : "text-emerald-400",
+      bgGlow: (data.damagedItems ?? 0) > 0 ? "shadow-orange-500/10" : "shadow-emerald-500/10",
     },
     {
       label: isEs ? "Mantenimiento" : "Maintenance",
-      value: data.maintenanceItems,
+      value: data.maintenanceItems ?? 0,
       icon: <Wrench size={22} />,
       color: "text-yellow-400",
       bgGlow: "shadow-yellow-500/10",
     },
     {
       label: isEs ? "Transfer. Pend." : "Pending Transfers",
-      value: data.pendingTransfers,
+      value: data.pendingTransfers ?? 0,
       icon: <ArrowLeftRight size={22} />,
       color: "text-purple-400",
       bgGlow: "shadow-purple-500/10",
     },
     {
       label: isEs ? "Vencen Pronto" : "Expiring Soon",
-      value: data.loansExpiringSoon,
+      value: data.loansExpiringSoon ?? 0,
       icon: <Clock size={22} />,
-      color: data.loansExpiringSoon > 0 ? "text-amber-400" : "text-emerald-400",
-      bgGlow: data.loansExpiringSoon > 0 ? "shadow-amber-500/10" : "shadow-emerald-500/10",
+      color: (data.loansExpiringSoon ?? 0) > 0 ? "text-amber-400" : "text-emerald-400",
+      bgGlow: (data.loansExpiringSoon ?? 0) > 0 ? "shadow-amber-500/10" : "shadow-emerald-500/10",
     },
   ];
 

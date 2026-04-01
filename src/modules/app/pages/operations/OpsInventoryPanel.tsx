@@ -77,7 +77,12 @@ export function OpsInventoryPanel({ data }: OpsInventoryPanelProps) {
   const { language } = useLanguage();
   const isEs = language === "es";
 
-  const allIssues: OpsInventoryIssue[] = [...data.damaged, ...data.maintenance, ...data.lost];
+  const damaged = Array.isArray(data?.damaged) ? data.damaged : [];
+  const maintenance = Array.isArray(data?.maintenance) ? data.maintenance : [];
+  const lost = Array.isArray(data?.lost) ? data.lost : [];
+  const total = data?.total ?? 0;
+
+  const allIssues: OpsInventoryIssue[] = [...damaged, ...maintenance, ...lost];
 
   return (
     <div className="depth-card rounded-xl p-5">
@@ -85,22 +90,22 @@ export function OpsInventoryPanel({ data }: OpsInventoryPanelProps) {
         <h3 className="text-lg font-semibold text-zinc-100 flex items-center gap-2">
           <Wrench size={20} className="text-orange-400" />
           {isEs ? "Problemas de Inventario" : "Inventory Issues"}
-          <span className="text-sm text-zinc-500">({data.total})</span>
+          <span className="text-sm text-zinc-500">({total})</span>
         </h3>
         <div className="flex gap-2">
-          {data.damaged.length > 0 && (
+          {damaged.length > 0 && (
             <span className="text-xs px-2 py-1 rounded bg-red-500/10 text-red-400 border border-red-500/20">
-              {data.damaged.length} {isEs ? "dañados" : "damaged"}
+              {damaged.length} {isEs ? "dañados" : "damaged"}
             </span>
           )}
-          {data.maintenance.length > 0 && (
+          {maintenance.length > 0 && (
             <span className="text-xs px-2 py-1 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
-              {data.maintenance.length} {isEs ? "mant." : "maint."}
+              {maintenance.length} {isEs ? "mant." : "maint."}
             </span>
           )}
-          {data.lost.length > 0 && (
+          {lost.length > 0 && (
             <span className="text-xs px-2 py-1 rounded bg-zinc-500/10 text-zinc-400 border border-zinc-500/20">
-              {data.lost.length} {isEs ? "perdidos" : "lost"}
+              {lost.length} {isEs ? "perdidos" : "lost"}
             </span>
           )}
         </div>

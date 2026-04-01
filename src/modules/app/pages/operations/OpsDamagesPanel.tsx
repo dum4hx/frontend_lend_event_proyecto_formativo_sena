@@ -99,10 +99,15 @@ export function OpsDamagesPanel({ data }: OpsDamagesPanelProps) {
   const { language } = useLanguage();
   const isEs = language === "es";
 
+  const pendingAssessment = Array.isArray(data?.pendingAssessment) ? data.pendingAssessment : [];
+  const pendingRepair = Array.isArray(data?.pendingRepair) ? data.pendingRepair : [];
+  const pendingBilling = Array.isArray(data?.pendingBilling) ? data.pendingBilling : [];
+  const total = data?.total ?? 0;
+
   const allItems = [
-    ...data.pendingAssessment.map((i) => ({ item: i, phase: "assessment" as DamagePhase })),
-    ...data.pendingRepair.map((i) => ({ item: i, phase: "repair" as DamagePhase })),
-    ...data.pendingBilling.map((i) => ({ item: i, phase: "billing" as DamagePhase })),
+    ...pendingAssessment.map((i) => ({ item: i, phase: "assessment" as DamagePhase })),
+    ...pendingRepair.map((i) => ({ item: i, phase: "repair" as DamagePhase })),
+    ...pendingBilling.map((i) => ({ item: i, phase: "billing" as DamagePhase })),
   ];
 
   return (
@@ -111,22 +116,22 @@ export function OpsDamagesPanel({ data }: OpsDamagesPanelProps) {
         <h3 className="text-lg font-semibold text-zinc-100 flex items-center gap-2">
           <Hammer size={20} className="text-orange-400" />
           {isEs ? "Cola de Daños" : "Damage Queue"}
-          <span className="text-sm text-zinc-500">({data.total})</span>
+          <span className="text-sm text-zinc-500">({total})</span>
         </h3>
         <div className="flex gap-2">
-          {data.pendingAssessment.length > 0 && (
+          {pendingAssessment.length > 0 && (
             <span className="text-xs px-2 py-1 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20">
-              {data.pendingAssessment.length} {isEs ? "eval." : "assess."}
+              {pendingAssessment.length} {isEs ? "eval." : "assess."}
             </span>
           )}
-          {data.pendingRepair.length > 0 && (
+          {pendingRepair.length > 0 && (
             <span className="text-xs px-2 py-1 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20">
-              {data.pendingRepair.length} {isEs ? "rep." : "repair"}
+              {pendingRepair.length} {isEs ? "rep." : "repair"}
             </span>
           )}
-          {data.pendingBilling.length > 0 && (
+          {pendingBilling.length > 0 && (
             <span className="text-xs px-2 py-1 rounded bg-red-500/10 text-red-400 border border-red-500/20">
-              {data.pendingBilling.length} {isEs ? "cobro" : "billing"}
+              {pendingBilling.length} {isEs ? "cobro" : "billing"}
             </span>
           )}
         </div>

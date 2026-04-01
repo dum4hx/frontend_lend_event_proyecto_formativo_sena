@@ -70,43 +70,47 @@ export function OpsDeadlinesPanel({ data }: OpsDeadlinesPanelProps) {
   const { language } = useLanguage();
   const isEs = language === "es";
 
+  const overdue = Array.isArray(data?.overdue) ? data.overdue : [];
+  const dueSoon = Array.isArray(data?.dueSoon) ? data.dueSoon : [];
+  const total = data?.total ?? 0;
+
   return (
     <div className="depth-card rounded-xl p-5">
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <h3 className="text-lg font-semibold text-zinc-100 flex items-center gap-2">
           <Clock size={20} className="text-amber-400" />
           {isEs ? "Vencimientos de Préstamos" : "Loan Deadlines"}
-          <span className="text-sm text-zinc-500">({data.total})</span>
+          <span className="text-sm text-zinc-500">({total})</span>
         </h3>
         <div className="flex gap-2">
-          {data.overdue.length > 0 && (
+          {overdue.length > 0 && (
             <span className="text-xs px-2 py-1 rounded bg-red-500/10 text-red-400 border border-red-500/20">
-              {data.overdue.length} {isEs ? "vencidos" : "overdue"}
+              {overdue.length} {isEs ? "vencidos" : "overdue"}
             </span>
           )}
-          {data.dueSoon.length > 0 && (
+          {dueSoon.length > 0 && (
             <span className="text-xs px-2 py-1 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
-              {data.dueSoon.length} {isEs ? "próximos" : "due soon"}
+              {dueSoon.length} {isEs ? "próximos" : "due soon"}
             </span>
           )}
         </div>
       </div>
 
-      {data.total === 0 ? (
+      {total === 0 && overdue.length === 0 && dueSoon.length === 0 ? (
         <div className="text-center py-6 text-zinc-500">
           <Clock size={28} className="mx-auto mb-2 text-emerald-400" />
           <p className="text-sm">{isEs ? "Sin vencimientos próximos" : "No upcoming deadlines"}</p>
         </div>
       ) : (
         <div className="flex flex-col gap-2 max-h-[320px] overflow-y-auto pr-1 scrollbar-thin">
-          {data.overdue.map((loan, i) => (
+          {overdue.map((loan, i) => (
             <DeadlineRow key={loan.loanId} loan={loan} index={i} isOverdue={true} />
           ))}
-          {data.dueSoon.map((loan, i) => (
+          {dueSoon.map((loan, i) => (
             <DeadlineRow
               key={loan.loanId}
               loan={loan}
-              index={i + data.overdue.length}
+              index={i + overdue.length}
               isOverdue={false}
             />
           ))}

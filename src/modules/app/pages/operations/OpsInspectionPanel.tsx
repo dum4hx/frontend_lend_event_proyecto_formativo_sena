@@ -45,7 +45,10 @@ export function OpsInspectionPanel({ data }: OpsInspectionPanelProps) {
   const { language } = useLanguage();
   const isEs = language === "es";
 
-  const allItems = [...data.pending, ...data.inProgress];
+  const pending = Array.isArray(data?.pending) ? data.pending : [];
+  const inProgress = Array.isArray(data?.inProgress) ? data.inProgress : [];
+  const allItems = [...pending, ...inProgress];
+  const total = data?.total ?? allItems.length;
 
   return (
     <div className="depth-card rounded-xl p-5">
@@ -53,14 +56,14 @@ export function OpsInspectionPanel({ data }: OpsInspectionPanelProps) {
         <h3 className="text-lg font-semibold text-zinc-100 flex items-center gap-2">
           <ClipboardCheck size={20} className="text-amber-400" />
           {isEs ? "Cola de Inspecciones" : "Inspection Queue"}
-          <span className="text-sm text-zinc-500">({data.total})</span>
+          <span className="text-sm text-zinc-500">({total})</span>
         </h3>
         <div className="flex gap-2">
           <span className="text-xs px-2 py-1 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
-            {data.pending.length} {isEs ? "pendientes" : "pending"}
+            {pending.length} {isEs ? "pendientes" : "pending"}
           </span>
           <span className="text-xs px-2 py-1 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
-            {data.inProgress.length} {isEs ? "en progreso" : "in progress"}
+            {inProgress.length} {isEs ? "en progreso" : "in progress"}
           </span>
         </div>
       </div>

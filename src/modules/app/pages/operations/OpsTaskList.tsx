@@ -105,7 +105,8 @@ function TaskRow({ task, index }: { task: OpsTask; index: number }) {
 export function OpsTaskList({ data }: OpsTaskListProps) {
   const { language } = useLanguage();
   const isEs = language === "es";
-  const { tasks, summary } = data;
+  const tasks = Array.isArray(data?.tasks) ? data.tasks : [];
+  const summary = data?.summary ?? { total: 0, critical: 0, high: 0, medium: 0, low: 0 };
 
   return (
     <div className="depth-card rounded-xl p-5">
