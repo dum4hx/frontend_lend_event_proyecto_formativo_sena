@@ -71,14 +71,14 @@ export function useConfirmModal() {
       state.resolve(true);
     }
     closeModal();
-  }, [state.resolve, closeModal]);
+  }, [state, closeModal]);
 
   const handleCancel = useCallback(() => {
     if (state.resolve) {
       state.resolve(false);
     }
     closeModal();
-  }, [state.resolve, closeModal]);
+  }, [state, closeModal]);
 
   const ConfirmModalComponent = useCallback(() => (
     <ConfirmDialog

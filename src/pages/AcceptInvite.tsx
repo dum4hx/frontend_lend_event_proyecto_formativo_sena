@@ -53,7 +53,7 @@ export default function AcceptInvite() {
 
     setEmail(emailParam);
     setToken(tokenParam);
-  }, [searchParams]);
+  }, [searchParams, isEs]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

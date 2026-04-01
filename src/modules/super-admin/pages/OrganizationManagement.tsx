@@ -187,7 +187,7 @@ export default function OrganizationManagement() {
         exportAbort.current = null;
       }
     },
-    [buildAllExportRows, user?._id, showAlert],
+    [buildAllExportRows, user?._id, showAlert, isEs],
   );
 
   const handleExportPreview = useCallback(

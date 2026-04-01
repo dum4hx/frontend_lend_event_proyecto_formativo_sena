@@ -95,8 +95,6 @@ export function useApiQuery<T>(
     if (enabled) {
       void execute();
     }
-    // Only re-run when `enabled` or `execute` identity changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, execute]);
 
   return { data, isLoading, isFetching, error, refetch: execute };

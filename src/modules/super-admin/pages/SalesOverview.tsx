@@ -189,7 +189,7 @@ export default function SalesOverview() {
         showAlert("error", result.error);
       }
     },
-    [buildExportRows, buildTotalsSheet, user?._id, showAlert],
+    [buildExportRows, buildTotalsSheet, user?._id, showAlert, isEs],
   );
 
   const handleExportPreview = useCallback(

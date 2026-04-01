@@ -23,6 +23,11 @@ export default defineConfig([
     rules: {
       // Discourage `any` — warn now, upgrade to error as codebase cleans up.
       "@typescript-eslint/no-explicit-any": "warn",
+      // Allow unused vars/args prefixed with _ (common TS convention for intentionally unused params).
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
     },
   },
   eslintConfigPrettier,

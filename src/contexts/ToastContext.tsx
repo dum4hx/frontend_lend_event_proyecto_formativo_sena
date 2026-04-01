@@ -3,19 +3,14 @@
  * Provides centralized toast management across the application
  */
 
-import React, { createContext, useCallback, useContext, useState, useRef } from 'react';
-import type { Toast, ToastType } from '../components/ui/ToastContainer';
+import React, { createContext, useCallback, useContext, useState, useRef } from "react";
+import type { Toast, ToastType } from "../components/ui/ToastContainer";
 
 let toastIdCounter = 0;
 
 interface ToastContextValue {
   toasts: Toast[];
-  showToast: (
-    type: ToastType,
-    message: string,
-    title?: string,
-    options?: Partial<Toast>
-  ) => string;
+  showToast: (type: ToastType, message: string, title?: string, options?: Partial<Toast>) => string;
   dismissToast: (id: string) => void;
   clearAll: () => void;
 }
@@ -28,12 +23,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   toastsRef.current = toasts;
 
   const showToast = useCallback(
-    (
-      type: ToastType,
-      message: string,
-      title?: string,
-      options?: Partial<Toast>
-    ): string => {
+    (type: ToastType, message: string, title?: string, options?: Partial<Toast>): string => {
       toastIdCounter++;
       const id = `toast-${toastIdCounter}-${Date.now()}`;
       const toast: Toast = {
@@ -47,7 +37,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setToasts((prev) => [...prev, toast]);
       return id;
     },
-    []
+    [],
   );
 
   const dismissToast = useCallback((id: string) => {
@@ -65,10 +55,11 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components -- context + hook co-location is standard
 export const useToast = (): ToastContextValue => {
   const context = useContext(ToastContext);
   if (!context) {
-    throw new Error('useToast must be used within a ToastProvider');
+    throw new Error("useToast must be used within a ToastProvider");
   }
   return context;
 };

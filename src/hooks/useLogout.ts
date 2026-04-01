@@ -27,7 +27,11 @@ export function useLogout() {
       await checkAuth();
 
       // Clean transient purchase state
-      try { localStorage.removeItem("pendingCheckoutPlan"); } catch {}
+      try {
+        localStorage.removeItem("pendingCheckoutPlan");
+      } catch {
+        /* storage unavailable */
+      }
 
       // Redirect to home (public). Could be `/packages` if preferred.
       navigate("/", { replace: true });
