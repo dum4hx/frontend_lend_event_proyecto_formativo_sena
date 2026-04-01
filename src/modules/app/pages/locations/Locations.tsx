@@ -457,9 +457,14 @@ export function Locations() {
 
         {/* Filters */}
         <LocationsFilters
-          value={filters}
-          onChange={(f) => {
-            setFilters(f);
+          search={filters.search}
+          onSearchChange={(search) => {
+            setFilters((prev) => ({ ...prev, search }));
+            setPage(1);
+          }}
+          statusFilter={filters.status}
+          onStatusFilterChange={(status) => {
+            setFilters((prev) => ({ ...prev, status }));
             setPage(1);
           }}
         />
@@ -483,9 +488,8 @@ export function Locations() {
         {!loading && !error && (
           <>
             <LocationsTable
-              locations={paginatedLocations}
-              materialTypes={materialTypes}
-              categories={categories}
+              data={paginatedLocations}
+              loading={false}
               onView={(loc) => {
                 setDetailLocation(loc);
                 setDetailOpen(true);
@@ -494,7 +498,9 @@ export function Locations() {
                 setEditingLocation(loc);
                 setEditOpen(true);
               }}
-              onDelete={(loc) => handleDelete(loc._id)}
+              onDelete={(id) => handleDelete(id)}
+              canEdit={hasPermission("locations:update")}
+              canDelete={hasPermission("locations:delete")}
             />
 
             {/* Pagination */}
@@ -560,7 +566,7 @@ export function Locations() {
 
         {/* Delete confirm */}
         <ConfirmDialog
-          open={showDeleteConfirm}
+          isOpen={showDeleteConfirm}
           onClose={() => {
             setShowDeleteConfirm(false);
             setDeleteTargetId(null);
@@ -571,22 +577,22 @@ export function Locations() {
               ? "¿Estás seguro de que deseas eliminar esta ubicación? Esta acción no se puede deshacer."
               : "Are you sure you want to delete this location? This action cannot be undone."
           }
-          confirmLabel={isEs ? "Eliminar" : "Delete"}
+          confirmText={isEs ? "Eliminar" : "Delete"}
           onConfirm={() => void confirmDelete()}
-          loading={deleteLoading}
+          isLoading={deleteLoading}
           variant="danger"
         />
 
         {/* Export */}
         <ExportSettingsModal
-          open={exportOpen}
+          isOpen={exportOpen}
           onClose={() => setExportOpen(false)}
           onExport={(config) => void handleExport(config)}
           onCancel={handleCancelExport}
+          module="locations"
           policy={LOCATIONS_POLICY}
-          isExporting={exporting}
+          exporting={exporting}
           progress={exportProgress}
-          entityName={isEs ? "ubicaciones" : "locations"}
         />
 
         {/* Import modal */}

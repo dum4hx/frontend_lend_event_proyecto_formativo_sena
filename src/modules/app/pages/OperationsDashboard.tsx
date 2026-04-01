@@ -4,13 +4,15 @@
  * Shows a KPI snapshot followed by all actionable queues.
  * If the user has multiple locations, a selector is provided.
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { RefreshCw, MapPin } from "lucide-react";
 import { useAuth } from "../../../contexts/useAuth";
 import { useLanguage } from "../../../contexts/useLanguage";
 import { LoadingSpinner, SearchableSelect } from "../../../components/ui";
 import { pageVariants } from "../../../lib/animations";
+import { getLocation as fetchLocationById } from "../../../services/warehouseOperatorService";
+import type { WarehouseLocation } from "../../../services/warehouseOperatorService";
 import {
   useOpsOverview,
   useOpsInspections,
@@ -85,6 +87,32 @@ export default function OperationsDashboard() {
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  // Fetch location names for the selector
+  const [locationMap, setLocationMap] = useState<Record<string, string>>({});
+  useEffect(() => {
+    if (locationIds.length === 0) return;
+    let cancelled = false;
+    const load = async () => {
+      const entries: Record<string, string> = {};
+      await Promise.all(
+        locationIds.map(async (id) => {
+          try {
+            const res = await fetchLocationById(id);
+            const loc = res.data as WarehouseLocation;
+            entries[id] = loc.name || id;
+          } catch {
+            entries[id] = id;
+          }
+        }),
+      );
+      if (!cancelled) setLocationMap(entries);
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [locationIds.join(",")]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Queries — only fire when locationId is set
   const overview = useOpsOverview(selectedLocation);
   const inspections = useOpsInspections(selectedLocation);
@@ -107,7 +135,10 @@ export default function OperationsDashboard() {
     return <NoLocationState isEs={isEs} />;
   }
 
-  const locationOptions = locationIds.map((id) => ({ value: id, label: id }));
+  const locationOptions = locationIds.map((id) => ({
+    value: id,
+    label: locationMap[id] || id,
+  }));
 
   return (
     <motion.div
@@ -147,7 +178,9 @@ export default function OperationsDashboard() {
           {locationIds.length === 1 && (
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg depth-card text-sm text-zinc-300">
               <MapPin size={14} className="text-yellow-400" />
-              <span className="font-mono text-xs">{selectedLocation.slice(-8)}</span>
+              <span className="text-xs font-medium">
+                {locationMap[selectedLocation] || selectedLocation}
+              </span>
             </div>
           )}
 

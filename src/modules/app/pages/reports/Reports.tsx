@@ -26,7 +26,14 @@ import { getLocations } from "../../../../services/warehouseOperatorService";
 import { commercialAdvisorService } from "../../../../services/commercialAdvisorService";
 import { ApiError } from "../../../../lib/api";
 import { useLanguage } from "../../../../contexts/useLanguage";
-import { fmtCurrency, fmtDate, fmtId, getReferenceId, getCategoryName, exportToCSV } from "./helpers";
+import {
+  fmtCurrency,
+  fmtDate,
+  fmtId,
+  getReferenceId,
+  getCategoryName,
+  exportToCSV,
+} from "./helpers";
 import { ReportsFilters } from "./ReportsFilters";
 import { ReportsTable } from "./ReportsTable";
 import type {
