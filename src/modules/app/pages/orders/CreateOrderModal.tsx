@@ -11,6 +11,7 @@ import type {
   CreateLoanRequestPayload,
 } from "../../../../types/api";
 import { useAlertModal } from "../../../../hooks/useAlertModal";
+import { useCurrencyInput } from "../../../../hooks/useCurrencyInput";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import {
   applySelectedMaterialToDraftRows,
@@ -74,6 +75,13 @@ export function CreateOrderModal({
 
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [showValidationErrors, setShowValidationErrors] = useState(false);
+
+  // ── Currency input hook for depositAmount ─────────────────────────────
+  const depositAmountInput = useCurrencyInput(
+    formData.depositAmount ? Number(formData.depositAmount) : "",
+    (val) => setFormData((prev) => ({ ...prev, depositAmount: val || undefined })),
+  );
+
   const [formItems, setFormItems] = useState<FormDraftItem[]>([
     {
       localId: crypto.randomUUID(),
@@ -761,17 +769,11 @@ export function CreateOrderModal({
                       {isEs ? "Monto del depósito (COP) *" : "Deposit Amount (COP) *"}
                     </label>
                     <input
-                      type="number"
-                      step="0.01"
-                      placeholder="e.g. 50000"
-                      value={formData.depositAmount}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setFormData((prev) => ({
-                          ...prev,
-                          depositAmount: val === "" ? "" : Number(val),
-                        }));
-                      }}
+                      type="text"
+                      inputMode="decimal"
+                      placeholder="e.g. 50.000,00"
+                      value={depositAmountInput.displayValue}
+                      onChange={depositAmountInput.handleChange}
                       className={`input ${createErrors.depositAmount ? "input-error" : ""}`}
                     />
                     {createErrors.depositAmount && (

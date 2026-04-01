@@ -1,0 +1,124 @@
+import React from "react";
+import { DataTable } from "../../../../../components/ui";
+import type { ColumnDef } from "../../../../../components/ui/DataTable";
+import type { CatalogMaterialType } from "../../../../../types/api";
+import { AlertBadge } from "./AlertBadge";
+
+/** Format a 0–1 rate as a percentage string with one decimal. */
+function pct(rate: number): string {
+  return `${(rate * 100).toFixed(1)}%`;
+}
+
+/** Format price in COP (no decimals, dot thousands separator). */
+function formatPrice(value: number): string {
+  return `$${value.toLocaleString("es-CO")}`;
+}
+
+/** Color class for availability ratio (green / yellow / red). */
+function availabilityColor(available: number, total: number): string {
+  if (total === 0) return "text-gray-500";
+  const ratio = available / total;
+  if (ratio >= 0.5) return "text-green-400";
+  if (ratio >= 0.2) return "text-yellow-400";
+  return "text-red-400";
+}
+
+const columns: ColumnDef<CatalogMaterialType>[] = [
+  {
+    key: "name",
+    header: "Name",
+    width: "min-w-[180px]",
+    render: (row) => <span className="font-medium text-white">{row.name}</span>,
+  },
+  {
+    key: "pricePerDay",
+    header: "Price / Day",
+    align: "right",
+    render: (row) => (
+      <span className="font-mono text-gray-300">{formatPrice(row.pricePerDay)}</span>
+    ),
+  },
+  {
+    key: "categories",
+    header: "Categories",
+    hideBelow: "md",
+    render: (row) => (
+      <span className="text-gray-400 text-xs">
+        {row.categories.map((c) => c.name).join(", ") || "—"}
+      </span>
+    ),
+  },
+  {
+    key: "totalInstances",
+    header: "Instances",
+    align: "center",
+    render: (row) => <span className="font-mono text-white">{row.totals.totalInstances}</span>,
+  },
+  {
+    key: "available",
+    header: "Available",
+    align: "center",
+    render: (row) => (
+      <span
+        className={`font-mono font-bold ${availabilityColor(row.totals.available, row.totals.totalInstances)}`}
+      >
+        {row.totals.available}
+      </span>
+    ),
+  },
+  {
+    key: "availabilityRate",
+    header: "Availability",
+    align: "center",
+    hideBelow: "lg",
+    render: (row) => <span className="font-mono text-gray-300">{pct(row.metrics.availabilityRate)}</span>,
+  },
+  {
+    key: "utilizationRate",
+    header: "Utilization",
+    align: "center",
+    hideBelow: "lg",
+    render: (row) => <span className="font-mono text-gray-300">{pct(row.metrics.utilizationRate)}</span>,
+  },
+  {
+    key: "alerts",
+    header: "Alerts",
+    align: "center",
+    render: (row) =>
+      row.alerts.length > 0 ? (
+        <div className="flex flex-wrap gap-1 justify-center">
+          {row.alerts.map((alert, i) => (
+            <AlertBadge key={`${alert.type}-${i}`} alert={alert} />
+          ))}
+        </div>
+      ) : (
+        <span className="text-gray-600 text-xs">—</span>
+      ),
+  },
+];
+
+interface CatalogTableProps {
+  /** Material type rows from the catalog overview response. */
+  data: CatalogMaterialType[];
+  /** Whether data is currently loading.  */
+  loading: boolean;
+}
+
+/**
+ * CatalogTable — DataTable wrapper with typed columns for the catalog overview.
+ * Shows name, price, categories, instances count, availability (color-coded),
+ * utilization, and alert badges.
+ */
+export const CatalogTable: React.FC<CatalogTableProps> = ({ data, loading }) => {
+  return (
+    <div className="bg-[#121212] border border-[#222] rounded-2xl overflow-hidden shadow-2xl">
+      <DataTable<CatalogMaterialType>
+        data={data}
+        columns={columns}
+        loading={loading}
+        skeletonRows={8}
+        emptyMessage="No material types match your filters."
+      />
+    </div>
+  );
+};

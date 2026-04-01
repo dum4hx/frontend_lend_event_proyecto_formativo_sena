@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Plus, X, Loader2, AlertCircle } from "lucide-react";
 import { useLanguage } from "../../../../contexts/useLanguage";
+import { useCurrencyInput } from "../../../../hooks/useCurrencyInput";
 import { createPackage, getMaterialTypes } from "../../../../services/materialService";
 import { normalizeError, logError } from "../../../../utils/errorHandling";
 import type {
@@ -21,6 +22,12 @@ export default function CreatePackageModal({ onClose, onSaved }: CreatePackageMo
   const [form, setForm] = useState<PackageFormData>(DEFAULT_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  // ── Currency input hook for pricePerDay ───────────────────────────────
+  const pricePerDayInput = useCurrencyInput(
+    form.pricePerDay ? parseFloat(form.pricePerDay) : "",
+    (val) => setForm((p) => ({ ...p, pricePerDay: String(val) })),
+  );
 
   const inputCls =
     "w-full bg-[#0f0f0f] border border-[#333] rounded-lg px-3 py-2 text-white text-sm focus:border-[#FFD700] focus:outline-none disabled:opacity-50";
@@ -153,17 +160,16 @@ export default function CreatePackageModal({ onClose, onSaved }: CreatePackageMo
 
           <div>
             <label className="block text-xs font-semibold text-gray-400 mb-1">
-              {isEs ? "Precio por Día ($)" : "Price per Day ($)"}{" "}
+              {isEs ? "Precio por Día (COP)" : "Price per Day (COP)"}{" "}
               <span className="text-gray-600 font-normal">
                 ({isEs ? "dejar en blanco para sumar materiales" : "leave blank to sum materials"})
               </span>
             </label>
             <input
-              type="number"
-              min={0}
-              step={0.01}
-              value={form.pricePerDay}
-              onChange={(e) => setForm((p) => ({ ...p, pricePerDay: e.target.value }))}
+              type="text"
+              inputMode="decimal"
+              value={pricePerDayInput.displayValue}
+              onChange={pricePerDayInput.handleChange}
               placeholder={isEs ? "Anulación opcional" : "Optional override"}
               disabled={submitting}
               className={inputCls}

@@ -11,6 +11,7 @@ import {
 } from "../../../../services/pricingService";
 import { getMaterialTypes, getPackages } from "../../../../services/materialService";
 import { useAlertModal } from "../../../../hooks/useAlertModal";
+import { useCurrencyInput } from "../../../../hooks/useCurrencyInput";
 import { usePermissions } from "../../../../contexts/usePermissions";
 import { PricingConfigsTable } from "./PricingConfigsTable";
 import { configToForm, buildPayload } from "./helpers";
@@ -69,6 +70,27 @@ export default function PricingConfigs() {
   const [previewItems, setPreviewItems] = useState<FormItem[]>([]);
   const [previewItemsLoading, setPreviewItemsLoading] = useState(false);
   const [previewItemSearch, setPreviewItemSearch] = useState("");
+
+  // ── Currency input hooks ──────────────────────────────────────────────
+  const overridePricePerDay = useCurrencyInput(
+    form.overridePricePerDay ? parseFloat(form.overridePricePerDay) : "",
+    (val) => setForm((f) => ({ ...f, overridePricePerDay: String(val) })),
+  );
+
+  const weeklyPrice = useCurrencyInput(
+    form.weeklyPrice ? parseFloat(form.weeklyPrice) : "",
+    (val) => setForm((f) => ({ ...f, weeklyPrice: String(val) })),
+  );
+
+  const monthlyPrice = useCurrencyInput(
+    form.monthlyPrice ? parseFloat(form.monthlyPrice) : "",
+    (val) => setForm((f) => ({ ...f, monthlyPrice: String(val) })),
+  );
+
+  const flatPrice = useCurrencyInput(
+    form.flatPrice ? parseFloat(form.flatPrice) : "",
+    (val) => setForm((f) => ({ ...f, flatPrice: String(val) })),
+  );
 
   // ── Fetch form items when scope changes ───────────────────────────────
   useEffect(() => {
@@ -493,16 +515,15 @@ export default function PricingConfigs() {
             {form.strategyType === "per_day" && (
               <div>
                 <label className="block text-sm text-gray-400 mb-1">
-                  Override price per day{" "}
+                  Override price per day (COP){" "}
                   <span className="text-gray-600 text-xs">(leave blank for default)</span>
                 </label>
                 <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={form.overridePricePerDay}
-                  onChange={(e) => setForm((f) => ({ ...f, overridePricePerDay: e.target.value }))}
-                  placeholder="0.00"
+                  type="text"
+                  inputMode="decimal"
+                  value={overridePricePerDay.displayValue}
+                  onChange={overridePricePerDay.handleChange}
+                  placeholder="0,00"
                   className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-[#FFD700] transition-all"
                 />
               </div>
@@ -512,14 +533,13 @@ export default function PricingConfigs() {
             {form.strategyType === "weekly_monthly" && (
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Weekly price ($)</label>
+                  <label className="block text-sm text-gray-400 mb-1">Weekly price (COP)</label>
                   <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={form.weeklyPrice}
-                    onChange={(e) => setForm((f) => ({ ...f, weeklyPrice: e.target.value }))}
-                    placeholder="0.00"
+                    type="text"
+                    inputMode="decimal"
+                    value={weeklyPrice.displayValue}
+                    onChange={weeklyPrice.handleChange}
+                    placeholder="0,00"
                     className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-[#FFD700] transition-all"
                   />
                 </div>
@@ -537,14 +557,13 @@ export default function PricingConfigs() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Monthly price ($)</label>
+                  <label className="block text-sm text-gray-400 mb-1">Monthly price (COP)</label>
                   <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={form.monthlyPrice}
-                    onChange={(e) => setForm((f) => ({ ...f, monthlyPrice: e.target.value }))}
-                    placeholder="0.00"
+                    type="text"
+                    inputMode="decimal"
+                    value={monthlyPrice.displayValue}
+                    onChange={monthlyPrice.handleChange}
+                    placeholder="0,00"
                     className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-[#FFD700] transition-all"
                   />
                 </div>
@@ -567,14 +586,13 @@ export default function PricingConfigs() {
             {/* Fixed Params */}
             {form.strategyType === "fixed" && (
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Flat price ($)</label>
+                <label className="block text-sm text-gray-400 mb-1">Flat price (COP)</label>
                 <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={form.flatPrice}
-                  onChange={(e) => setForm((f) => ({ ...f, flatPrice: e.target.value }))}
-                  placeholder="0.00"
+                  type="text"
+                  inputMode="decimal"
+                  value={flatPrice.displayValue}
+                  onChange={flatPrice.handleChange}
+                  placeholder="0,00"
                   className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-[#FFD700] transition-all"
                 />
               </div>

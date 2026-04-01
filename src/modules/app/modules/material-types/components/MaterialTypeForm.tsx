@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { X, Plus, Info, FolderPlus } from "lucide-react";
 import { useToast } from "../../../../../contexts/ToastContext";
 import { usePermissions } from "../../../../../contexts/usePermissions";
+import { useCurrencyInput } from "../../../../../hooks/useCurrencyInput";
 import { useMaterialAttributes } from "../../material-attributes/hooks/useMaterialAttributes";
 import { MaterialAttributeForm } from "../../material-attributes/components/AttributeForm";
 import { createMaterialCategory } from "../../../../../services/materialService";
@@ -43,7 +44,6 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
     pricePerDay: 0,
     attributes: [],
   });
-  const [priceDisplay, setPriceDisplay] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAttributeForm, setShowAttributeForm] = useState(false);
   const [categorySearchInput, setCategorySearchInput] = useState("");
@@ -61,6 +61,11 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
   const { attributes: allAttributes, addAttribute, refetch: refetchAttributes } = useMaterialAttributes();
 
   const canCreateCategory = hasPermission("materials:create");
+
+  // ── Currency input hook for pricePerDay ───────────────────────────────
+  const pricePerDayInput = useCurrencyInput(formData.pricePerDay, (val) => {
+    setFormData({ ...formData, pricePerDay: val });
+  });
 
   /** Merged category list: prop categories + any quick-created ones not yet in props. */
   const allCategories = useMemo(() => {
@@ -99,14 +104,6 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
     [allAttributes, categoryAttributeIds],
   );
 
-  const formatCop = (value: number) => {
-    return new Intl.NumberFormat("es-CO", {
-      style: "currency",
-      currency: "COP",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
 
   useEffect(() => {
     if (initialData) {
@@ -137,11 +134,6 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
         pricePerDay: initialData.pricePerDay || 0,
         attributes: (initialData as MaterialType).attributes || [],
       });
-      if (initialData.pricePerDay) {
-        setPriceDisplay(formatCop(initialData.pricePerDay));
-      } else {
-        setPriceDisplay("");
-      }
     }
   }, [initialData]);
 
@@ -441,16 +433,11 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
                   <div className="relative">
                     <input
                       type="text"
-                      inputMode="numeric"
-                      value={priceDisplay}
-                      onChange={(e) => {
-                        const raw = e.target.value.replace(/[^0-9]/g, "");
-                        const numericValue = raw ? parseInt(raw, 10) : 0;
-                        setFormData({ ...formData, pricePerDay: numericValue });
-                        setPriceDisplay(raw ? formatCop(numericValue) : "");
-                      }}
+                      inputMode="decimal"
+                      value={pricePerDayInput.displayValue}
+                      onChange={pricePerDayInput.handleChange}
                       className="w-full px-5 py-4 bg-[#1a1a1a] border border-[#222] rounded-xl text-[#FFD700] font-mono text-lg focus:outline-none focus:border-[#FFD700] focus:ring-1 focus:ring-[#FFD700]/20 transition-all"
-                      placeholder="$ 0"
+                      placeholder="$ 0,00"
                       required
                     />
                   </div>
