@@ -1,6 +1,12 @@
 import { useState, useEffect } from "react";
 import { RefreshCcw, FileText, DollarSign, Filter } from "lucide-react";
-import { AnimatedPage, LoadingSpinner, ErrorDisplay, StatCard, PageHeader } from "../../../../components/ui";
+import {
+  AnimatedPage,
+  LoadingSpinner,
+  ErrorDisplay,
+  StatCard,
+  PageHeader,
+} from "../../../../components/ui";
 import PaymentRecordingModal from "../../components/PaymentRecordingModal";
 import VoidInvoiceModal from "../../components/VoidInvoiceModal";
 import InvoiceDetailModal from "../../components/InvoiceDetailModal";

@@ -1,5 +1,17 @@
 import { useMemo } from "react";
-import { AlertTriangle, Users, Calendar, DollarSign, Clock, ShoppingCart, FileText, UserCircle, Package, ArrowRight, CheckCircle2 } from "lucide-react";
+import {
+  AlertTriangle,
+  Users,
+  Calendar,
+  DollarSign,
+  Clock,
+  ShoppingCart,
+  FileText,
+  UserCircle,
+  Package,
+  ArrowRight,
+  CheckCircle2,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import { StatCard, AdminTable } from "../components";
 import { PageHeader } from "../../../components/ui";
@@ -48,22 +60,16 @@ export default function AdminDashboard() {
   const isEs = language === "es";
   const { stats, loading, error, refetch } = useDashboardStats();
 
-  const invoiceTotal =
-    (stats?.paidInvoicesTotal ?? 0) + (stats?.pendingInvoicesTotal ?? 0);
+  const invoiceTotal = (stats?.paidInvoicesTotal ?? 0) + (stats?.pendingInvoicesTotal ?? 0);
   const paidPct =
-    invoiceTotal > 0
-      ? Math.round(((stats?.paidInvoicesTotal ?? 0) / invoiceTotal) * 100)
-      : 0;
+    invoiceTotal > 0 ? Math.round(((stats?.paidInvoicesTotal ?? 0) / invoiceTotal) * 100) : 0;
 
   // fetchedAt is captured in the hook (inside useCallback), not during render
   const overdueWithDays = useMemo(() => {
     const now = stats?.fetchedAt ?? 0;
     return (stats?.recentOverdueLoans ?? []).map((loan) => ({
       ...loan,
-      daysLate: Math.max(
-        0,
-        Math.floor((now - new Date(loan.endDate).getTime()) / 86_400_000),
-      ),
+      daysLate: Math.max(0, Math.floor((now - new Date(loan.endDate).getTime()) / 86_400_000)),
     }));
   }, [stats?.recentOverdueLoans, stats?.fetchedAt]);
 
@@ -138,11 +144,12 @@ export default function AdminDashboard() {
 
       {/* ── Main grid ── */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-
         {/* ── Pending Requests (2/3) ── */}
         <div className="xl:col-span-2 bg-[#121212] border border-[#333] rounded-xl p-5 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-white font-semibold text-base">{isEs ? "Solicitudes pendientes" : "Pending Requests"}</h2>
+            <h2 className="text-white font-semibold text-base">
+              {isEs ? "Solicitudes pendientes" : "Pending Requests"}
+            </h2>
             <Link
               to="/app/orders"
               className="text-xs text-[#FFD700] hover:underline flex items-center gap-1"
@@ -160,7 +167,9 @@ export default function AdminDashboard() {
           ) : (stats?.recentRequests ?? []).length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 text-gray-500 gap-2">
               <CheckCircle2 size={32} className="text-green-500/40" />
-              <p className="text-sm">{isEs ? "No hay solicitudes pendientes" : "No pending requests"}</p>
+              <p className="text-sm">
+                {isEs ? "No hay solicitudes pendientes" : "No pending requests"}
+              </p>
             </div>
           ) : (
             <AdminTable>
@@ -185,7 +194,12 @@ export default function AdminDashboard() {
                       </Link>
                     </td>
                     <td className="px-4 py-3 text-gray-300">
-                      {req.items.length} {isEs ? (req.items.length !== 1 ? "items" : "item") : `item${req.items.length !== 1 ? "s" : ""}`}
+                      {req.items.length}{" "}
+                      {isEs
+                        ? req.items.length !== 1
+                          ? "items"
+                          : "item"
+                        : `item${req.items.length !== 1 ? "s" : ""}`}
                     </td>
                     <td className="px-4 py-3 text-gray-400">{fmtDate(req.startDate, locale)}</td>
                     <td className="px-4 py-3 text-gray-400">{fmtDate(req.endDate, locale)}</td>
@@ -215,11 +229,12 @@ export default function AdminDashboard() {
 
         {/* ── Right column (1/3) ── */}
         <div className="space-y-6">
-
           {/* ── Invoice Summary ── */}
           <div className="bg-[#121212] border border-[#333] rounded-xl p-5 space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-white font-semibold text-base">{isEs ? "Resumen de facturas" : "Invoice Summary"}</h2>
+              <h2 className="text-white font-semibold text-base">
+                {isEs ? "Resumen de facturas" : "Invoice Summary"}
+              </h2>
               <Link
                 to="/app/invoices"
                 className="text-xs text-[#FFD700] hover:underline flex items-center gap-1"
@@ -250,7 +265,9 @@ export default function AdminDashboard() {
                     />
                   </div>
                   <div className="flex justify-between text-xs text-gray-400">
-                    <span>{isEs ? "Pendiente" : "Pending"} ({stats?.pendingInvoicesCount ?? 0})</span>
+                    <span>
+                      {isEs ? "Pendiente" : "Pending"} ({stats?.pendingInvoicesCount ?? 0})
+                    </span>
                     <span className="text-yellow-400 font-medium">
                       ${fmt(stats?.pendingInvoicesTotal ?? 0)}
                     </span>
@@ -259,7 +276,9 @@ export default function AdminDashboard() {
 
                 <div className="text-center text-2xl font-bold text-white pt-1">
                   {paidPct}%
-                  <span className="text-xs font-normal text-gray-400 ml-1">{isEs ? "recaudado" : "collected"}</span>
+                  <span className="text-xs font-normal text-gray-400 ml-1">
+                    {isEs ? "recaudado" : "collected"}
+                  </span>
                 </div>
               </>
             )}
@@ -267,13 +286,31 @@ export default function AdminDashboard() {
 
           {/* ── Quick Actions ── */}
           <div className="bg-[#121212] border border-[#333] rounded-xl p-5 space-y-3">
-            <h2 className="text-white font-semibold text-base">{isEs ? "Acciones rapidas" : "Quick Actions"}</h2>
+            <h2 className="text-white font-semibold text-base">
+              {isEs ? "Acciones rapidas" : "Quick Actions"}
+            </h2>
             <div className="grid grid-cols-2 gap-2">
               {[
-                { label: isEs ? "Pedidos" : "Orders", to: "/app/orders", icon: <ShoppingCart size={16} /> },
-                { label: isEs ? "Alquileres" : "Rentals", to: "/app/rentals", icon: <Package size={16} /> },
-                { label: isEs ? "Clientes" : "Customers", to: "/app/customers", icon: <UserCircle size={16} /> },
-                { label: isEs ? "Facturas" : "Invoices", to: "/app/invoices", icon: <FileText size={16} /> },
+                {
+                  label: isEs ? "Pedidos" : "Orders",
+                  to: "/app/orders",
+                  icon: <ShoppingCart size={16} />,
+                },
+                {
+                  label: isEs ? "Alquileres" : "Rentals",
+                  to: "/app/rentals",
+                  icon: <Package size={16} />,
+                },
+                {
+                  label: isEs ? "Clientes" : "Customers",
+                  to: "/app/customers",
+                  icon: <UserCircle size={16} />,
+                },
+                {
+                  label: isEs ? "Facturas" : "Invoices",
+                  to: "/app/invoices",
+                  icon: <FileText size={16} />,
+                },
               ].map(({ label, to, icon }) => (
                 <Link
                   key={to}
@@ -295,7 +332,9 @@ export default function AdminDashboard() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-red-400">
               <AlertTriangle size={18} />
-              <h2 className="font-semibold text-base">{isEs ? "Prestamos vencidos" : "Overdue Loans"}</h2>
+              <h2 className="font-semibold text-base">
+                {isEs ? "Prestamos vencidos" : "Overdue Loans"}
+              </h2>
             </div>
             <Link
               to="/app/rentals"

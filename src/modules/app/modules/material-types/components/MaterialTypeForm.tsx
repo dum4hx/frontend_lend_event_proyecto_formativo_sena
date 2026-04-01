@@ -58,7 +58,11 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
 
   const { showToast } = useToast();
   const { hasPermission } = usePermissions();
-  const { attributes: allAttributes, addAttribute, refetch: refetchAttributes } = useMaterialAttributes();
+  const {
+    attributes: allAttributes,
+    addAttribute,
+    refetch: refetchAttributes,
+  } = useMaterialAttributes();
 
   const canCreateCategory = hasPermission("materials:create");
 
@@ -103,7 +107,6 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
         .sort((a, b) => a.name.localeCompare(b.name)),
     [allAttributes, categoryAttributeIds],
   );
-
 
   useEffect(() => {
     if (initialData) {

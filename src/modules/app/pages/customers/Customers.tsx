@@ -258,9 +258,7 @@ export default function Customers() {
         title={isEs ? "Clientes" : "Customers"}
         titleAccent=""
         subtitle={
-          isEs
-            ? "Gestiona los clientes de tu organización"
-            : "Manage your organization's customers"
+          isEs ? "Gestiona los clientes de tu organización" : "Manage your organization's customers"
         }
       />
 

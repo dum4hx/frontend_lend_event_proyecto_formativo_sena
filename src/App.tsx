@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { ToastProvider } from "./contexts/ToastContext";
 import { RequirePermission } from "./utils/permissionGuard";
 import { RequireActiveSubscription } from "./utils/subscriptionGuard";
 import { LoadingSpinner } from "./components/ui";
@@ -85,8 +86,9 @@ function App() {
     <AuthProvider>
       <LanguageProvider>
         <ThemeProvider>
-          <BrowserRouter>
-            <ScrollToTop />
+          <ToastProvider>
+            <BrowserRouter>
+              <ScrollToTop />
             <Routes>
               {/* Public Routes */}
               <Route path="/" element={<Dashboard />} />
@@ -189,6 +191,7 @@ function App() {
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
+          </ToastProvider>
         </ThemeProvider>
       </LanguageProvider>
     </AuthProvider>

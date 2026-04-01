@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import { GreetingCard } from "../components/ui";
 import { loginUser, refreshToken, getPaymentStatus } from "../services/authService";
 import { ApiError } from "../lib/api";
 import { validateLoginForm, validateEmail } from "../utils/validators";
@@ -11,7 +12,6 @@ import {
 } from "../utils/roleRouting";
 import { useAuth } from "../contexts/useAuth";
 import { useLanguage } from "../contexts/useLanguage";
-import { useToast } from "../contexts/ToastContext";
 import styles from "./Login.module.css";
 
 export default function Login() {
@@ -19,7 +19,11 @@ export default function Login() {
   const isEs = language === "es";
   const navigate = useNavigate();
   const { checkAuth } = useAuth();
-  const { showToast } = useToast();
+
+  // Helper to format PersonName to display string
+  const formatPersonName = (name: { firstName: string; firstSurname: string }) => {
+    return `${name.firstName} ${name.firstSurname}`.trim();
+  };
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
@@ -28,6 +32,8 @@ export default function Login() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [showPassword, setShowPassword] = useState(false);
   const [showNoSubModal, setShowNoSubModal] = useState(false);
+  const [showGreeting, setShowGreeting] = useState(false);
+  const [greetingUser, setGreetingUser] = useState<{ name: string; dashboardUrl: string } | null>(null);
 
   const setErrorFor = (field: string, message?: string) => {
     setFieldErrors((prev) => {
@@ -37,6 +43,17 @@ export default function Login() {
       return next;
     });
   };
+
+  // Navigate to dashboard after greeting card displays for 5 seconds
+  useEffect(() => {
+    if (showGreeting && greetingUser) {
+      const navigationTimer = setTimeout(() => {
+        navigate(greetingUser.dashboardUrl);
+      }, 5000);
+
+      return () => clearTimeout(navigationTimer);
+    }
+  }, [showGreeting, greetingUser, navigate]);
 
   const inputClass = (hasError: boolean, withIcon?: boolean) =>
     `w-full bg-zinc-900 rounded-xl py-4 ${withIcon ? "pl-12" : "px-4"} pr-4 text-white outline-none transition duration-200 disabled:opacity-50 border ${hasError ? "border-red-500 focus:border-red-500" : "border-zinc-800 focus:border-yellow-400"}`;
@@ -106,8 +123,10 @@ export default function Login() {
 
       // Navigate based on the user's permissions
       const dashboardUrl = getDashboardUrlByPermissions(permissions);
-      showToast("success", isEs ? `Bienvenido de nuevo, ${user.name}` : `Welcome back, ${user.name}`);
-      navigate(dashboardUrl);
+      
+      // Show greeting card instead of toast
+      setGreetingUser({ name: formatPersonName(loggedUser.name), dashboardUrl });
+      setShowGreeting(true);
     } catch (err: unknown) {
       // Generic error message for invalid credentials; do not reveal which field
       if (err instanceof ApiError && err.statusCode === 401) {
@@ -146,7 +165,8 @@ export default function Login() {
             }
           }
           const dashboardUrl = getDashboardUrlByPermissions(refreshedPermissions);
-          navigate(dashboardUrl);
+          setGreetingUser({ name: formatPersonName(refreshedUser.name), dashboardUrl });
+          setShowGreeting(true);
           return;
         } catch {
           setError(isEs ? "Credenciales invalidas" : "Invalid credentials");
@@ -297,7 +317,9 @@ export default function Login() {
         {/* Right Section - Form */}
         <div className="flex-grow md:w-1/2 flex items-center justify-center p-8 bg-black">
           <div className="w-full max-w-md">
-            <h2 className="text-4xl font-extrabold mb-2">{isEs ? "Bienvenido de nuevo" : "Welcome back"}</h2>
+            <h2 className="text-4xl font-extrabold mb-2">
+              {isEs ? "Bienvenido de nuevo" : "Welcome back"}
+            </h2>
             <p className="text-gray-400 mb-10">
               {isEs
                 ? "Inicia sesion para acceder a tu panel y gestionar tus operaciones"
@@ -497,6 +519,21 @@ export default function Login() {
       </main>
 
       <Footer />
+
+      {/* Greeting Card after successful login */}
+      {showGreeting && greetingUser && (
+        <GreetingCard
+          name={greetingUser.name}
+          language={isEs ? "es" : "en"}
+          action={{
+            label: isEs ? "Ir al panel" : "Go to dashboard",
+            onClick: () => navigate(greetingUser.dashboardUrl),
+          }}
+          onDismiss={() => {
+            setShowGreeting(false);
+          }}
+        />
+      )}
     </div>
   );
 }

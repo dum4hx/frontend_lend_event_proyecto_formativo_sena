@@ -288,10 +288,7 @@ export default function Settings() {
 
   return (
     <div className="page-container">
-      <PageHeader
-        title={t("settings.title")}
-        subtitle={t("settings.description")}
-      />
+      <PageHeader title={t("settings.title")} subtitle={t("settings.description")} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <StatCard

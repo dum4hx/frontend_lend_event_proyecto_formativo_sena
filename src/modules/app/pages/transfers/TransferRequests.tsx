@@ -385,7 +385,10 @@ export function TransferRequests() {
                         <tr key={req._id} className="hover:bg-white/3 transition-colors group">
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
-                              <Link to="/app/locations" className="entity-link font-medium whitespace-nowrap">
+                              <Link
+                                to="/app/locations"
+                                className="entity-link font-medium whitespace-nowrap"
+                              >
                                 {locationName(req.fromLocationId)}
                               </Link>
                               <ArrowLeftRight size={14} className="text-[#FFD700] shrink-0" />
@@ -490,7 +493,10 @@ export function TransferRequests() {
                         <tr key={tr._id} className="hover:bg-white/3 transition-colors">
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
-                              <Link to="/app/locations" className="entity-link font-medium whitespace-nowrap">
+                              <Link
+                                to="/app/locations"
+                                className="entity-link font-medium whitespace-nowrap"
+                              >
                                 {locationName(tr.fromLocationId)}
                               </Link>
                               <ArrowLeftRight size={14} className="text-[#FFD700] shrink-0" />

@@ -87,9 +87,8 @@ export default function PricingConfigs() {
     (val) => setForm((f) => ({ ...f, monthlyPrice: String(val) })),
   );
 
-  const flatPrice = useCurrencyInput(
-    form.flatPrice ? parseFloat(form.flatPrice) : "",
-    (val) => setForm((f) => ({ ...f, flatPrice: String(val) })),
+  const flatPrice = useCurrencyInput(form.flatPrice ? parseFloat(form.flatPrice) : "", (val) =>
+    setForm((f) => ({ ...f, flatPrice: String(val) })),
   );
 
   // ── Fetch form items when scope changes ───────────────────────────────

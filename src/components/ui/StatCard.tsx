@@ -7,7 +7,7 @@
  *
  * To update the look of ALL stat cards across the app, edit only this file.
  */
-import React from 'react';
+import React from "react";
 
 export interface StatCardProps {
   label: string;
@@ -17,13 +17,7 @@ export interface StatCardProps {
   trendUp?: boolean;
 }
 
-export const StatCard: React.FC<StatCardProps> = ({
-  label,
-  value,
-  icon,
-  trend,
-  trendUp,
-}) => {
+export const StatCard: React.FC<StatCardProps> = ({ label, value, icon, trend, trendUp }) => {
   return (
     <div className="bg-[#1a1a1a] border border-[#222] rounded-xl p-5 shadow-lg hover:border-[#444] transition-all">
       <div className="flex items-start justify-between">
@@ -33,18 +27,18 @@ export const StatCard: React.FC<StatCardProps> = ({
           </div>
           <div>
             <h3 className="text-2xl font-black text-white">{value}</h3>
-            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-0.5">{label}</p>
+            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-0.5">
+              {label}
+            </p>
           </div>
         </div>
         {trend && (
           <span
             className={`text-xs px-2 py-1 rounded-full font-medium shrink-0 ${
-              trendUp
-                ? 'bg-green-500/20 text-green-400'
-                : 'bg-red-500/20 text-red-400'
+              trendUp ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"
             }`}
           >
-            {trendUp ? '▲' : '▼'} {trend}
+            {trendUp ? "▲" : "▼"} {trend}
           </span>
         )}
       </div>

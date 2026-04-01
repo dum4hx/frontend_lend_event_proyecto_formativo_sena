@@ -28,10 +28,13 @@ export default function AcceptInvite() {
     const validationMap: Record<string, string> = {
       "Password is required": "La contrasena es obligatoria",
       "Password must be at least 8 characters": "La contrasena debe tener al menos 8 caracteres",
-      "Password must contain at least one uppercase letter": "La contrasena debe incluir al menos una letra mayuscula",
-      "Password must contain at least one lowercase letter": "La contrasena debe incluir al menos una letra minuscula",
+      "Password must contain at least one uppercase letter":
+        "La contrasena debe incluir al menos una letra mayuscula",
+      "Password must contain at least one lowercase letter":
+        "La contrasena debe incluir al menos una letra minuscula",
       "Password must contain at least one number": "La contrasena debe incluir al menos un numero",
-      "Password must contain at least one special character (!@#$%^&*.)": "La contrasena debe incluir al menos un caracter especial (!@#$%^&*.)",
+      "Password must contain at least one special character (!@#$%^&*.)":
+        "La contrasena debe incluir al menos un caracter especial (!@#$%^&*.)",
     };
 
     return validationMap[message] ?? message;
@@ -46,7 +49,7 @@ export default function AcceptInvite() {
       setError(
         isEs
           ? "Enlace de invitacion invalido. Solicita un nuevo enlace a tu administrador."
-          : "Invalid invitation link. Please request a new link from your administrator."
+          : "Invalid invitation link. Please request a new link from your administrator.",
       );
       return;
     }
@@ -62,7 +65,10 @@ export default function AcceptInvite() {
     // Validate password
     const passwordValidation = validatePassword(password);
     if (!passwordValidation.isValid) {
-      setError(mapValidationMessage(passwordValidation.message) || (isEs ? "Validacion fallida" : "Validation failed"));
+      setError(
+        mapValidationMessage(passwordValidation.message) ||
+          (isEs ? "Validacion fallida" : "Validation failed"),
+      );
       return;
     }
 
@@ -81,7 +87,7 @@ export default function AcceptInvite() {
 
     try {
       await acceptInvite({ email, token, password });
-      
+
       setSuccess(true);
 
       // Redirect to login after 2 seconds
@@ -198,7 +204,13 @@ export default function AcceptInvite() {
                   disabled={loading || !email || !token}
                   className={`w-full bg-[#FFD700] text-black font-semibold py-3 px-4 rounded-lg hover:bg-[#FFC700] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${styles.glowButton}`}
                 >
-                  {loading ? (isEs ? "Activando..." : "Activating...") : (isEs ? "Activar cuenta" : "Activate Account")}
+                  {loading
+                    ? isEs
+                      ? "Activando..."
+                      : "Activating..."
+                    : isEs
+                      ? "Activar cuenta"
+                      : "Activate Account"}
                 </button>
               </form>
 
