@@ -1,11 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import {
-  CreditCard,
-  Users,
-  XCircle,
-  ExternalLink,
-  Download,
-} from "lucide-react";
+import { CreditCard, Users, XCircle, ExternalLink, Download } from "lucide-react";
 import { StatCard } from "../../components";
 import {
   getBillingHistory,
@@ -23,11 +17,7 @@ import {
   getSubscriptionTypesPublic,
   getSubscriptionTypes,
 } from "../../../../services/subscriptionTypeService";
-import {
-  ErrorDisplay,
-  AlertContainer,
-  ConfirmDialog,
-} from "../../../../components/ui";
+import { ErrorDisplay, AlertContainer, ConfirmDialog } from "../../../../components/ui";
 import { normalizeError, logError } from "../../../../utils/errorHandling";
 import { ApiError } from "../../../../lib/api";
 import { useAlerts } from "../../../../hooks/useAlerts";
@@ -370,8 +360,7 @@ export default function SubscriptionManagement() {
 
   const currency = history[0]?.currency ?? "usd";
 
-  const currentPlan =
-    organization?.subscription?.plan ?? history.find((e) => e.newPlan)?.newPlan;
+  const currentPlan = organization?.subscription?.plan ?? history.find((e) => e.newPlan)?.newPlan;
 
   // ─── Render ────────────────────────────────────────────────────────────────
 
@@ -474,10 +463,7 @@ export default function SubscriptionManagement() {
           </div>
           <div className="card space-y-4">
             {Array.from({ length: 6 }).map((_, idx) => (
-              <div
-                key={idx}
-                className="h-12 bg-[#1a1a1a] rounded animate-pulse"
-              />
+              <div key={idx} className="h-12 bg-[#1a1a1a] rounded animate-pulse" />
             ))}
           </div>
         </div>
@@ -487,29 +473,19 @@ export default function SubscriptionManagement() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
             <StatCard
               label={isEs ? "Plan actual" : "Current Plan"}
-              value={
-                currentPlan
-                  ? currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1)
-                  : "—"
-              }
+              value={currentPlan ? currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1) : "—"}
               icon={<CreditCard size={20} />}
             />
             <StatCard
               label={isEs ? "Asientos" : "Seats"}
               value={
-                usage
-                  ? `${usage.currentSeats} / ${usage.maxSeats < 0 ? "∞" : usage.maxSeats}`
-                  : "—"
+                usage ? `${usage.currentSeats} / ${usage.maxSeats < 0 ? "∞" : usage.maxSeats}` : "—"
               }
               icon={<Users size={20} />}
             />
             <StatCard
               label={isEs ? "Total pagado" : "Total Paid"}
-              value={
-                totalSpend > 0
-                  ? formatCurrency(totalSpend, currency, locale)
-                  : "$0.00"
-              }
+              value={totalSpend > 0 ? formatCurrency(totalSpend, currency, locale) : "$0.00"}
               icon={<CreditCard size={20} />}
             />
           </div>
@@ -550,23 +526,14 @@ export default function SubscriptionManagement() {
                   <input
                     type="number"
                     min={1}
-                    max={
-                      usage?.maxSeats && usage.maxSeats > 0
-                        ? usage.maxSeats
-                        : undefined
-                    }
+                    max={usage?.maxSeats && usage.maxSeats > 0 ? usage.maxSeats : undefined}
                     value={seatCount}
-                    onChange={(e) =>
-                      setSeatCount(Math.max(1, parseInt(e.target.value) || 1))
-                    }
+                    onChange={(e) => setSeatCount(Math.max(1, parseInt(e.target.value) || 1))}
                     className="w-full sm:w-24 bg-[#1a1a1a] border border-[#444] text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-[#FFD700]"
                   />
                   <button
                     onClick={() => void handleUpdateSeats()}
-                    disabled={
-                      updatingSeats ||
-                      seatCount === (usage?.currentSeats ?? 0)
-                    }
+                    disabled={updatingSeats || seatCount === (usage?.currentSeats ?? 0)}
                     className="w-full sm:w-auto px-4 py-2 rounded-lg transition-colors text-sm font-semibold gold-action-btn disabled:opacity-40"
                   >
                     {updatingSeats
@@ -624,11 +591,7 @@ export default function SubscriptionManagement() {
           )}
 
           {/* Billing History */}
-          <BillingHistorySection
-            history={history}
-            isEs={isEs}
-            locale={locale}
-          />
+          <BillingHistorySection history={history} isEs={isEs} locale={locale} />
         </>
       )}
     </div>

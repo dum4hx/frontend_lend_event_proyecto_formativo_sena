@@ -30,9 +30,7 @@ export function PricingConfigsTable({
   }
 
   if (configs.length === 0) {
-    return (
-      <div className="text-center py-12 text-gray-400">No pricing configurations found</div>
-    );
+    return <div className="text-center py-12 text-gray-400">No pricing configurations found</div>;
   }
 
   return (
@@ -67,9 +65,7 @@ export function PricingConfigsTable({
                     : config.referenceId.slice(-8).toUpperCase()}
                 </span>
               </td>
-              <td className="px-4 py-3 text-gray-200">
-                {STRATEGY_LABELS[config.strategyType]}
-              </td>
+              <td className="px-4 py-3 text-gray-200">{STRATEGY_LABELS[config.strategyType]}</td>
               <td className="px-4 py-3 text-gray-300 text-xs max-w-xs truncate">
                 {formatStrategyParams(config)}
               </td>

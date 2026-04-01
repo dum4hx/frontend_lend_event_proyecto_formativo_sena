@@ -137,18 +137,13 @@ export default function MaterialPlans() {
       {/* Empty State */}
       {filtered.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-gray-400">
-            {isEs ? "No se encontraron planes" : "No plans found"}
-          </p>
+          <p className="text-gray-400">{isEs ? "No se encontraron planes" : "No plans found"}</p>
         </div>
       )}
 
       {/* Modals */}
       {showCreate && (
-        <CreatePackageModal
-          onClose={() => setShowCreate(false)}
-          onSaved={() => void refetch()}
-        />
+        <CreatePackageModal onClose={() => setShowCreate(false)} onSaved={() => void refetch()} />
       )}
       {viewPkg && <PackageDetailModal pkg={viewPkg} onClose={() => setViewPkg(null)} />}
     </div>

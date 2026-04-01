@@ -1,13 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Plus,
-  Search,
-  ChevronDown,
-  DollarSign,
-  Calculator,
-  Loader2,
-  Trash2,
-} from "lucide-react";
+import { Plus, Search, ChevronDown, DollarSign, Calculator, Loader2, Trash2 } from "lucide-react";
 import { Button } from "../../../../components/ui";
 import {
   getPricingConfigs,
@@ -22,12 +14,7 @@ import { useAlertModal } from "../../../../hooks/useAlertModal";
 import { usePermissions } from "../../../../contexts/usePermissions";
 import { PricingConfigsTable } from "./PricingConfigsTable";
 import { configToForm, buildPayload } from "./helpers";
-import {
-  SCOPE_LABELS,
-  STRATEGY_LABELS,
-  EMPTY_FORM,
-  EMPTY_PREVIEW_FORM,
-} from "./types";
+import { SCOPE_LABELS, STRATEGY_LABELS, EMPTY_FORM, EMPTY_PREVIEW_FORM } from "./types";
 import type {
   PricingConfig,
   PricingScope,
@@ -293,8 +280,7 @@ export default function PricingConfigs() {
   const filteredFormItems = useMemo(
     () =>
       formItems.filter(
-        (item) =>
-          !formItemSearch || item.name.toLowerCase().includes(formItemSearch.toLowerCase()),
+        (item) => !formItemSearch || item.name.toLowerCase().includes(formItemSearch.toLowerCase()),
       ),
     [formItems, formItemSearch],
   );
@@ -315,9 +301,7 @@ export default function PricingConfigs() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-white">Pricing Configurations</h1>
-          <p className="text-gray-400 mt-1">
-            Manage pricing strategies for materials and packages
-          </p>
+          <p className="text-gray-400 mt-1">Manage pricing strategies for materials and packages</p>
         </div>
         <div className="flex gap-3">
           {canPreview && (
@@ -344,10 +328,7 @@ export default function PricingConfigs() {
       {/* Filters */}
       <div className="flex gap-4 flex-wrap">
         <div className="flex-1 min-w-[250px] relative">
-          <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
-            size={20}
-          />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={20} />
           <input
             type="text"
             placeholder="Search by scope or reference..."
@@ -377,9 +358,7 @@ export default function PricingConfigs() {
         <div className="relative">
           <select
             value={strategyFilter}
-            onChange={(e) =>
-              setStrategyFilter(e.target.value as PricingStrategyType | "all")
-            }
+            onChange={(e) => setStrategyFilter(e.target.value as PricingStrategyType | "all")}
             className="appearance-none px-4 py-2 bg-[#1a1a1a] border border-[#333] rounded-[8px] text-white focus:outline-none focus:border-[#FFD700] transition-all cursor-pointer pr-10"
           >
             <option value="all">All Strategies</option>
@@ -477,8 +456,7 @@ export default function PricingConfigs() {
                     className="w-full px-3 py-1 bg-[#1a1a1a] border border-[#333] rounded-lg text-white focus:outline-none focus:border-[#FFD700] transition-all text-sm"
                   >
                     <option value="" disabled>
-                      Select{" "}
-                      {form.scope === "materialType" ? "a material type" : "a package"}
+                      Select {form.scope === "materialType" ? "a material type" : "a package"}
                     </option>
                     {filteredFormItems.map((item) => (
                       <option key={item._id} value={item._id}>
@@ -523,9 +501,7 @@ export default function PricingConfigs() {
                   min="0"
                   step="0.01"
                   value={form.overridePricePerDay}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, overridePricePerDay: e.target.value }))
-                  }
+                  onChange={(e) => setForm((f) => ({ ...f, overridePricePerDay: e.target.value }))}
                   placeholder="0.00"
                   className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-[#FFD700] transition-all"
                 />
@@ -555,9 +531,7 @@ export default function PricingConfigs() {
                     type="number"
                     min="1"
                     value={form.weeklyThreshold}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, weeklyThreshold: e.target.value }))
-                    }
+                    onChange={(e) => setForm((f) => ({ ...f, weeklyThreshold: e.target.value }))}
                     placeholder="7"
                     className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-[#FFD700] transition-all"
                   />
@@ -582,9 +556,7 @@ export default function PricingConfigs() {
                     type="number"
                     min="1"
                     value={form.monthlyThreshold}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, monthlyThreshold: e.target.value }))
-                    }
+                    onChange={(e) => setForm((f) => ({ ...f, monthlyThreshold: e.target.value }))}
                     placeholder="30"
                     className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-[#FFD700] transition-all"
                   />
@@ -637,9 +609,7 @@ export default function PricingConfigs() {
             <h2 className="text-xl font-semibold text-white">Delete Pricing Config</h2>
             <p className="text-zinc-400 text-sm">
               Delete the{" "}
-              <span className="text-white font-medium">
-                {SCOPE_LABELS[deleteTarget.scope]}
-              </span>{" "}
+              <span className="text-white font-medium">{SCOPE_LABELS[deleteTarget.scope]}</span>{" "}
               configuration with{" "}
               <span className="text-white font-medium">
                 {STRATEGY_LABELS[deleteTarget.strategyType]}
@@ -737,8 +707,7 @@ export default function PricingConfigs() {
                   className="w-full px-3 py-1 bg-[#1a1a1a] border border-[#333] rounded-lg text-white focus:outline-none focus:border-[#FFD700] transition-all text-sm"
                 >
                   <option value="" disabled>
-                    Select{" "}
-                    {previewForm.itemType === "material" ? "a material type" : "a package"}
+                    Select {previewForm.itemType === "material" ? "a material type" : "a package"}
                   </option>
                   {filteredPreviewItems.map((item) => (
                     <option key={item._id} value={item._id}>
@@ -756,9 +725,7 @@ export default function PricingConfigs() {
                   type="number"
                   min="1"
                   value={previewForm.quantity}
-                  onChange={(e) =>
-                    setPreviewForm((f) => ({ ...f, quantity: e.target.value }))
-                  }
+                  onChange={(e) => setPreviewForm((f) => ({ ...f, quantity: e.target.value }))}
                   className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded-lg text-white focus:outline-none focus:border-[#FFD700] transition-all"
                 />
               </div>
@@ -783,15 +750,11 @@ export default function PricingConfigs() {
                 </p>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Strategy</span>
-                  <span className="text-white">
-                    {STRATEGY_LABELS[previewResult.strategyType]}
-                  </span>
+                  <span className="text-white">{STRATEGY_LABELS[previewResult.strategyType]}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Unit price</span>
-                  <span className="text-white">
-                    ${previewResult.unitPrice?.toFixed(2) ?? "—"}
-                  </span>
+                  <span className="text-white">${previewResult.unitPrice?.toFixed(2) ?? "—"}</span>
                 </div>
                 {previewResult.effectivePricePerDay != null && (
                   <div className="flex justify-between text-sm">

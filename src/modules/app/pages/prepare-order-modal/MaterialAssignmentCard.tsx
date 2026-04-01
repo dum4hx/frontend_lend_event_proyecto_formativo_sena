@@ -44,9 +44,7 @@ export default function MaterialAssignmentCard({
         <span>{inst.serialNumber}</span>
         <span
           className={`text-[10px] px-1 py-0.5 rounded ${
-            isAvailNow
-              ? "bg-[#FFD700]/20 text-[#FFD700]"
-              : "bg-gray-700/80 text-gray-400"
+            isAvailNow ? "bg-[#FFD700]/20 text-[#FFD700]" : "bg-gray-700/80 text-gray-400"
           }`}
         >
           {isAvailNow ? "available" : "upcoming"}
@@ -58,9 +56,7 @@ export default function MaterialAssignmentCard({
   return (
     <div
       className={`rounded-lg border p-4 transition-colors ${
-        isFulfilled
-          ? "border-emerald-500/40 bg-emerald-500/5"
-          : "border-[#444] bg-[#121212]"
+        isFulfilled ? "border-emerald-500/40 bg-emerald-500/5" : "border-[#444] bg-[#121212]"
       }`}
     >
       {/* Row header */}
@@ -71,14 +67,10 @@ export default function MaterialAssignmentCard({
           ) : (
             <PackageIcon size={15} className="text-gray-500 flex-shrink-0" />
           )}
-          <span className="font-semibold text-white text-sm">
-            {row.materialTypeName}
-          </span>
+          <span className="font-semibold text-white text-sm">{row.materialTypeName}</span>
           <span
             className={`text-xs px-2 py-0.5 rounded-full ${
-              isFulfilled
-                ? "bg-emerald-500/20 text-emerald-300"
-                : "bg-gray-700 text-gray-400"
+              isFulfilled ? "bg-emerald-500/20 text-emerald-300" : "bg-gray-700 text-gray-400"
             }`}
           >
             {selected.length}/{row.quantity}
@@ -95,9 +87,7 @@ export default function MaterialAssignmentCard({
 
       {/* Instance badges */}
       {row.currentUserInstances.length === 0 ? (
-        <p className="text-xs text-gray-500 italic">
-          No instances in your accessible locations.
-        </p>
+        <p className="text-xs text-gray-500 italic">No instances in your accessible locations.</p>
       ) : (
         <div className="flex flex-wrap gap-2">
           {row.currentUserInstances.map(renderInstanceBadge)}

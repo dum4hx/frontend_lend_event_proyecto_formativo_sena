@@ -33,10 +33,7 @@ export default function RoleFormModal({
   const [fieldError, setFieldError] = useState<string | null>(null);
   const [permSearch, setPermSearch] = useState("");
 
-  const selectedCount = useMemo(
-    () => Object.values(selected).filter(Boolean).length,
-    [selected],
-  );
+  const selectedCount = useMemo(() => Object.values(selected).filter(Boolean).length, [selected]);
 
   const selectedPermIds = useMemo(
     () =>
@@ -65,8 +62,7 @@ export default function RoleFormModal({
     return map;
   }, [filteredPermissions]);
 
-  const togglePermission = (id: string) =>
-    setSelected((prev) => ({ ...prev, [id]: !prev[id] }));
+  const togglePermission = (id: string) => setSelected((prev) => ({ ...prev, [id]: !prev[id] }));
 
   const selectAll = () => {
     const extra = Object.fromEntries(filteredPermissions.map((p) => [p._id, true]));
@@ -154,9 +150,7 @@ export default function RoleFormModal({
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-semibold text-gray-400 mb-1">
-              Description
-            </label>
+            <label className="block text-sm font-semibold text-gray-400 mb-1">Description</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}

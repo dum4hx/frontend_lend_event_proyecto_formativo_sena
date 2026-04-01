@@ -38,13 +38,11 @@ export default function ShortfallSection({
     <div className="rounded-lg border border-yellow-500/40 bg-yellow-500/5 p-4 space-y-4">
       <div className="flex items-center gap-2">
         <AlertTriangle size={15} className="text-yellow-400 flex-shrink-0" />
-        <h3 className="font-semibold text-yellow-300 text-sm">
-          Insufficient Local Stock
-        </h3>
+        <h3 className="font-semibold text-yellow-300 text-sm">Insufficient Local Stock</h3>
       </div>
       <p className="text-sm text-yellow-200/70">
-        {shortfallByType.size} material type(s) cannot be fully fulfilled from your
-        accessible locations.
+        {shortfallByType.size} material type(s) cannot be fully fulfilled from your accessible
+        locations.
       </p>
 
       {/* Shortfall summary per type */}
@@ -72,13 +70,9 @@ export default function ShortfallSection({
                 key={group.fromLocationId}
                 className="flex items-start gap-3 bg-[#121212] rounded-lg px-3 py-2 text-sm"
               >
-                <span className="text-gray-500 text-xs mt-0.5 flex-shrink-0">
-                  From
-                </span>
+                <span className="text-gray-500 text-xs mt-0.5 flex-shrink-0">From</span>
                 <div>
-                  <span className="text-white font-medium">
-                    {group.fromLocationName}
-                  </span>
+                  <span className="text-white font-medium">{group.fromLocationName}</span>
                   <div className="flex flex-wrap gap-1 mt-1">
                     {group.items.map((item) => (
                       <span
@@ -136,8 +130,7 @@ export default function ShortfallSection({
                 htmlFor="transfer-notes"
                 className="block text-sm font-medium text-gray-300 mb-1"
               >
-                Notes{" "}
-                <span className="text-gray-500 font-normal">(optional)</span>
+                Notes <span className="text-gray-500 font-normal">(optional)</span>
               </label>
               <textarea
                 id="transfer-notes"

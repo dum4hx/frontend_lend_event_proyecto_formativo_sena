@@ -194,8 +194,7 @@ export default function RoleManagement() {
   const handleDelete = async (role: Role) => {
     const confirmed = await showConfirm({
       title: `Delete role ${role.name}?`,
-      message:
-        "Users with this role may lose access. This destructive action cannot be undone.",
+      message: "Users with this role may lose access. This destructive action cannot be undone.",
       confirmText: "Delete",
       variant: "danger",
     });
@@ -222,12 +221,9 @@ export default function RoleManagement() {
         {/* Header */}
         <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">
-              Role Management
-            </h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Role Management</h1>
             <p className="text-gray-400 text-sm sm:text-base max-w-2xl">
-              Manage organization roles and their permissions. System roles cannot be
-              modified.
+              Manage organization roles and their permissions. System roles cannot be modified.
             </p>
           </div>
           <button
@@ -308,10 +304,7 @@ export default function RoleManagement() {
               aria-label="Sort roles"
               value={`${sortField}:${sortDirection}`}
               onChange={(e) => {
-                const [field, direction] = e.target.value.split(":") as [
-                  SortField,
-                  SortDirection,
-                ];
+                const [field, direction] = e.target.value.split(":") as [SortField, SortDirection];
                 setSortField(field);
                 setSortDirection(direction);
               }}
@@ -341,11 +334,7 @@ export default function RoleManagement() {
 
         {/* Roles list */}
         {rolesError ? (
-          <ErrorDisplay
-            error={rolesError}
-            onRetry={() => void refetchRoles()}
-            fullScreen={false}
-          />
+          <ErrorDisplay error={rolesError} onRetry={() => void refetchRoles()} fullScreen={false} />
         ) : rolesLoading || permsLoading ? (
           <div className="card space-y-4">
             {Array.from({ length: 6 }).map((_, idx) => (
@@ -412,14 +401,10 @@ export default function RoleManagement() {
                     >
                       <td className="px-6 py-4 text-white font-medium">{role.name}</td>
                       <td className="px-6 py-4">
-                        <span className={getRoleTypeBadgeClassName(role.type)}>
-                          {role.type}
-                        </span>
+                        <span className={getRoleTypeBadgeClassName(role.type)}>{role.type}</span>
                       </td>
                       <td className="px-6 py-4 text-gray-400">
-                        {role.description || (
-                          <span className="text-gray-600">No description</span>
-                        )}
+                        {role.description || <span className="text-gray-600">No description</span>}
                       </td>
                       <td className="px-6 py-4 text-gray-300">
                         {role.permissions.length} permission
@@ -427,9 +412,7 @@ export default function RoleManagement() {
                       </td>
                       <td className="px-6 py-4">
                         {role.isReadOnly ? (
-                          <span className="text-xs text-gray-500 italic">
-                            System role
-                          </span>
+                          <span className="text-xs text-gray-500 italic">System role</span>
                         ) : (
                           <div className="flex items-center gap-2">
                             <button
@@ -473,15 +456,11 @@ export default function RoleManagement() {
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-1">
                       <h3 className="text-white font-semibold">{role.name}</h3>
-                      <span className={getRoleTypeBadgeClassName(role.type)}>
-                        {role.type}
-                      </span>
+                      <span className={getRoleTypeBadgeClassName(role.type)}>{role.type}</span>
                       {role.isReadOnly && <Lock size={13} className="text-gray-500" />}
                     </div>
                     {role.description && (
-                      <p className="text-gray-400 text-sm break-words">
-                        {role.description}
-                      </p>
+                      <p className="text-gray-400 text-sm break-words">{role.description}</p>
                     )}
                     <p className="text-gray-600 text-xs mt-1">
                       {role.permissions.length} permission

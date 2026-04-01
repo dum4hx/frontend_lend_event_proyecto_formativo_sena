@@ -48,9 +48,7 @@ export default function AvailablePlansGrid({
             >
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <div className="text-white font-semibold text-lg">
-                    {p.displayName}
-                  </div>
+                  <div className="text-white font-semibold text-lg">{p.displayName}</div>
                   <div className="text-xs text-gray-500 capitalize">
                     {p.billingModel === "fixed"
                       ? isEs
@@ -72,8 +70,7 @@ export default function AvailablePlansGrid({
               </div>
               {p.pricePerSeat > 0 && (
                 <div className="text-gray-400 text-sm mb-2">
-                  + ${p.pricePerSeat.toLocaleString(locale)}{" "}
-                  {isEs ? "por asiento" : "per seat"}
+                  + ${p.pricePerSeat.toLocaleString(locale)} {isEs ? "por asiento" : "per seat"}
                 </div>
               )}
               <div className="text-gray-400 text-sm mb-3">

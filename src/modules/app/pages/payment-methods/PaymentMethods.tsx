@@ -3,10 +3,7 @@ import { Plus, Search, Pencil, Trash2, Loader2, CreditCard, RefreshCcw, Lock } f
 import { Button, IconButton } from "../../../../components/ui";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import { useToast } from "../../../../hooks/useToast";
-import {
-  getPaymentMethods,
-  deletePaymentMethod,
-} from "../../../../services/paymentMethodService";
+import { getPaymentMethods, deletePaymentMethod } from "../../../../services/paymentMethodService";
 import type { PaymentMethod } from "../../../../types/api";
 import PaymentMethodFormModal from "./PaymentMethodFormModal";
 

@@ -35,7 +35,9 @@ export function configToForm(config: PricingConfig): FormState {
   };
 }
 
-export function buildPayload(form: FormState): CreatePricingConfigPayload | UpdatePricingConfigPayload {
+export function buildPayload(
+  form: FormState,
+): CreatePricingConfigPayload | UpdatePricingConfigPayload {
   const base = {
     strategyType: form.strategyType,
   };

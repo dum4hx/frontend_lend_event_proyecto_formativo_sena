@@ -49,8 +49,9 @@ export default function PrepareOrderModal({
   // ── Fetch state ──
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState("");
-  const [availableMaterials, setAvailableMaterials] =
-    useState<AvailableMaterialsResponse | null>(null);
+  const [availableMaterials, setAvailableMaterials] = useState<AvailableMaterialsResponse | null>(
+    null,
+  );
   const [allLocations, setAllLocations] = useState<WarehouseLocation[]>([]);
 
   // ── Assignment selections: materialTypeId → selected instanceIds ──
@@ -80,9 +81,7 @@ export default function PrepareOrderModal({
       setAllLocations(locRes.data.items ?? []);
     } catch (err) {
       setFetchError(
-        err instanceof Error
-          ? err.message
-          : "Failed to load available materials. Please retry.",
+        err instanceof Error ? err.message : "Failed to load available materials. Please retry.",
       );
     } finally {
       setLoading(false);
@@ -141,8 +140,7 @@ export default function PrepareOrderModal({
     [materialTypeRows, selections],
   );
 
-  const canPrepareAll =
-    stockSummary.fulfilled === stockSummary.total && stockSummary.total > 0;
+  const canPrepareAll = stockSummary.fulfilled === stockSummary.total && stockSummary.total > 0;
   const canPreparePartial = stockSummary.fulfilled > 0 && !canPrepareAll;
 
   // ── Shortfall per type: required - selected ──
@@ -159,10 +157,7 @@ export default function PrepareOrderModal({
   const shortfallGroups = useMemo<ShortfallGroup[]>(() => {
     if (!availableMaterials || shortfallByType.size === 0) return [];
 
-    const groups = new Map<
-      string,
-      { locationName: string; items: ShortfallGroup["items"] }
-    >();
+    const groups = new Map<string, { locationName: string; items: ShortfallGroup["items"] }>();
 
     for (const [materialTypeId, need] of shortfallByType) {
       const row = materialTypeRows.find((r) => r.materialTypeId === materialTypeId);
@@ -203,13 +198,11 @@ export default function PrepareOrderModal({
       }
     }
 
-    return Array.from(groups.entries()).map(
-      ([fromLocationId, { locationName, items }]) => ({
-        fromLocationId,
-        fromLocationName: locationName,
-        items,
-      }),
-    );
+    return Array.from(groups.entries()).map(([fromLocationId, { locationName, items }]) => ({
+      fromLocationId,
+      fromLocationName: locationName,
+      items,
+    }));
   }, [availableMaterials, shortfallByType, materialTypeRows]);
 
   // ── Destination dropdown: locations accessible to the current user ──
@@ -301,11 +294,7 @@ export default function PrepareOrderModal({
     setSubmittingAssign(true);
     try {
       await assignMaterials(requestId, assignments);
-      showToast(
-        "success",
-        "Order prepared and moved to ready status.",
-        "Order Prepared",
-      );
+      showToast("success", "Order prepared and moved to ready status.", "Order Prepared");
       onClose();
       await onSuccess();
     } catch (err) {
@@ -326,18 +315,13 @@ export default function PrepareOrderModal({
       return;
     }
     if (destinationConflict) {
-      showToast(
-        "error",
-        "Destination cannot be the same as a source location.",
-        "Validation",
-      );
+      showToast("error", "Destination cannot be the same as a source location.", "Validation");
       return;
     }
     if (shortfallGroups.length === 0) return;
 
     const destName =
-      userLocations.find((l) => l._id === destinationLocationId)?.name ??
-      destinationLocationId;
+      userLocations.find((l) => l._id === destinationLocationId)?.name ?? destinationLocationId;
 
     const summary = shortfallGroups
       .map(

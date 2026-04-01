@@ -54,9 +54,7 @@ export default function SettingsModulePanel({
   if (!hasAccess) {
     return (
       <div className="bg-[#121212] border border-[#333] rounded-[12px] p-6">
-        <h2 className="text-xl font-semibold text-white mb-2">
-          {t("settings.noAccessTitle")}
-        </h2>
+        <h2 className="text-xl font-semibold text-white mb-2">{t("settings.noAccessTitle")}</h2>
         <p className="text-gray-400 text-sm">{t("settings.noAccessDescription")}</p>
       </div>
     );
@@ -65,12 +63,8 @@ export default function SettingsModulePanel({
   if (activeModule === "notifications") {
     return (
       <div className="bg-[#121212] border border-[#333] rounded-[12px] p-6 space-y-4">
-        <h2 className="text-xl font-semibold text-white">
-          {t("settings.notifications.title")}
-        </h2>
-        <p className="text-gray-400 text-sm">
-          {t("settings.notifications.description")}
-        </p>
+        <h2 className="text-xl font-semibold text-white">{t("settings.notifications.title")}</h2>
+        <p className="text-gray-400 text-sm">{t("settings.notifications.description")}</p>
 
         <ToggleRow
           label={t("settings.notifications.emailEvents")}
@@ -119,12 +113,8 @@ export default function SettingsModulePanel({
   if (activeModule === "security") {
     return (
       <div className="bg-[#121212] border border-[#333] rounded-[12px] p-6 space-y-4">
-        <h2 className="text-xl font-semibold text-white">
-          {t("settings.security.title")}
-        </h2>
-        <p className="text-gray-400 text-sm">
-          {t("settings.security.description")}
-        </p>
+        <h2 className="text-xl font-semibold text-white">{t("settings.security.title")}</h2>
+        <p className="text-gray-400 text-sm">{t("settings.security.description")}</p>
 
         <ToggleRow
           label={t("settings.security.requireMfa")}
@@ -176,12 +166,8 @@ export default function SettingsModulePanel({
   if (activeModule === "appearance") {
     return (
       <div className="bg-[#121212] border border-[#333] rounded-[12px] p-6 space-y-4">
-        <h2 className="text-xl font-semibold text-white">
-          {t("settings.appearance.title")}
-        </h2>
-        <p className="text-gray-400 text-sm">
-          {t("settings.appearance.description")}
-        </p>
+        <h2 className="text-xl font-semibold text-white">{t("settings.appearance.title")}</h2>
+        <p className="text-gray-400 text-sm">{t("settings.appearance.description")}</p>
 
         {/* Theme toggle */}
         <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-4">
@@ -296,16 +282,10 @@ export default function SettingsModulePanel({
             <input
               type="text"
               value={orgData.name}
-              onChange={(e) =>
-                onOrgDataChange((prev) => ({ ...prev, name: e.target.value }))
-              }
-              onBlur={() =>
-                onAccountTouchedChange((prev) => ({ ...prev, name: true }))
-              }
+              onChange={(e) => onOrgDataChange((prev) => ({ ...prev, name: e.target.value }))}
+              onBlur={() => onAccountTouchedChange((prev) => ({ ...prev, name: true }))}
               className={`w-full px-4 py-2 bg-[#1a1a1a] border rounded text-white focus:outline-none focus:border-[#FFD700] ${
-                accountTouched.name && accountErrors.name
-                  ? "border-red-500"
-                  : "border-[#333]"
+                accountTouched.name && accountErrors.name ? "border-red-500" : "border-[#333]"
               }`}
               placeholder={t("settings.account.organizationPlaceholder")}
             />
@@ -321,12 +301,8 @@ export default function SettingsModulePanel({
             <input
               type="text"
               value={orgData.legalName}
-              onChange={(e) =>
-                onOrgDataChange((prev) => ({ ...prev, legalName: e.target.value }))
-              }
-              onBlur={() =>
-                onAccountTouchedChange((prev) => ({ ...prev, legalName: true }))
-              }
+              onChange={(e) => onOrgDataChange((prev) => ({ ...prev, legalName: e.target.value }))}
+              onBlur={() => onAccountTouchedChange((prev) => ({ ...prev, legalName: true }))}
               className={`w-full px-4 py-2 bg-[#1a1a1a] border rounded text-white focus:outline-none focus:border-[#FFD700] ${
                 accountTouched.legalName && accountErrors.legalName
                   ? "border-red-500"
@@ -335,9 +311,7 @@ export default function SettingsModulePanel({
               placeholder={t("settings.account.legalNamePlaceholder")}
             />
             {accountTouched.legalName && accountErrors.legalName && (
-              <p className="text-red-400 text-xs mt-1">
-                {accountErrors.legalName}
-              </p>
+              <p className="text-red-400 text-xs mt-1">{accountErrors.legalName}</p>
             )}
           </div>
 
@@ -354,19 +328,13 @@ export default function SettingsModulePanel({
                   taxId: normalizeTaxIdInput(e.target.value),
                 }))
               }
-              onBlur={() =>
-                onAccountTouchedChange((prev) => ({ ...prev, taxId: true }))
-              }
+              onBlur={() => onAccountTouchedChange((prev) => ({ ...prev, taxId: true }))}
               className={`w-full px-4 py-2 bg-[#1a1a1a] border rounded text-white focus:outline-none focus:border-[#FFD700] ${
-                accountTouched.taxId && accountErrors.taxId
-                  ? "border-red-500"
-                  : "border-[#333]"
+                accountTouched.taxId && accountErrors.taxId ? "border-red-500" : "border-[#333]"
               }`}
               placeholder={t("settings.account.taxIdPlaceholder")}
             />
-            <p className="text-gray-500 text-xs mt-1">
-              {t("settings.account.taxIdHelp")}
-            </p>
+            <p className="text-gray-500 text-xs mt-1">{t("settings.account.taxIdHelp")}</p>
             {accountTouched.taxId && accountErrors.taxId && (
               <p className="text-red-400 text-xs mt-1">{accountErrors.taxId}</p>
             )}
@@ -386,16 +354,10 @@ export default function SettingsModulePanel({
             <input
               type="email"
               value={orgData.email}
-              onChange={(e) =>
-                onOrgDataChange((prev) => ({ ...prev, email: e.target.value }))
-              }
-              onBlur={() =>
-                onAccountTouchedChange((prev) => ({ ...prev, email: true }))
-              }
+              onChange={(e) => onOrgDataChange((prev) => ({ ...prev, email: e.target.value }))}
+              onBlur={() => onAccountTouchedChange((prev) => ({ ...prev, email: true }))}
               className={`w-full px-4 py-2 bg-[#1a1a1a] border rounded text-white focus:outline-none focus:border-[#FFD700] ${
-                accountTouched.email && accountErrors.email
-                  ? "border-red-500"
-                  : "border-[#333]"
+                accountTouched.email && accountErrors.email ? "border-red-500" : "border-[#333]"
               }`}
               placeholder={t("settings.account.emailPlaceholder")}
             />
@@ -417,13 +379,9 @@ export default function SettingsModulePanel({
                   phone: normalizePhoneInput(e.target.value),
                 }))
               }
-              onBlur={() =>
-                onAccountTouchedChange((prev) => ({ ...prev, phone: true }))
-              }
+              onBlur={() => onAccountTouchedChange((prev) => ({ ...prev, phone: true }))}
               className={`w-full px-4 py-2 bg-[#1a1a1a] border rounded text-white focus:outline-none focus:border-[#FFD700] ${
-                accountTouched.phone && accountErrors.phone
-                  ? "border-red-500"
-                  : "border-[#333]"
+                accountTouched.phone && accountErrors.phone ? "border-red-500" : "border-[#333]"
               }`}
               placeholder={t("settings.account.phonePlaceholder")}
             />

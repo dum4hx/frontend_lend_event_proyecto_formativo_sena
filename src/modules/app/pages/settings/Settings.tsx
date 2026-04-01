@@ -17,11 +17,7 @@ import {
 } from "../../../../utils/validators";
 import { loadPreferences, cloneDefaultPreferences, arePreferencesEqual } from "./helpers";
 import SettingsModulePanel from "./SettingsModulePanel";
-import {
-  SETTING_MODULES,
-  SETTINGS_STORAGE_KEY,
-  ACTIVE_MODULE_STORAGE_KEY,
-} from "./types";
+import { SETTING_MODULES, SETTINGS_STORAGE_KEY, ACTIVE_MODULE_STORAGE_KEY } from "./types";
 import type { SettingsModuleId, SettingsPreferences, AccountField } from "./types";
 
 export default function Settings() {
@@ -41,13 +37,10 @@ export default function Settings() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [preferences, setPreferences] = useState<SettingsPreferences>(loadPreferences);
-  const [savedPreferences, setSavedPreferences] =
-    useState<SettingsPreferences>(loadPreferences);
+  const [savedPreferences, setSavedPreferences] = useState<SettingsPreferences>(loadPreferences);
   const [activeModule, setActiveModule] = useState<SettingsModuleId>("account");
   const [savedOrgData, setSavedOrgData] = useState(orgData);
-  const [accountTouched, setAccountTouched] = useState<
-    Partial<Record<AccountField, boolean>>
-  >({});
+  const [accountTouched, setAccountTouched] = useState<Partial<Record<AccountField, boolean>>>({});
   const [confirmResetOpen, setConfirmResetOpen] = useState(false);
   const [confirmModuleSwitchOpen, setConfirmModuleSwitchOpen] = useState(false);
   const [pendingModule, setPendingModule] = useState<SettingsModuleId | null>(null);
@@ -56,10 +49,13 @@ export default function Settings() {
   // ─── Module access ─────────────────────────────────────────────────────────
 
   const moduleAccess = useMemo(() => {
-    return SETTING_MODULES.reduce<Record<SettingsModuleId, boolean>>((acc, item) => {
-      acc[item.id] = hasAnyPermission(item.requiredPermissions);
-      return acc;
-    }, {} as Record<SettingsModuleId, boolean>);
+    return SETTING_MODULES.reduce<Record<SettingsModuleId, boolean>>(
+      (acc, item) => {
+        acc[item.id] = hasAnyPermission(item.requiredPermissions);
+        return acc;
+      },
+      {} as Record<SettingsModuleId, boolean>,
+    );
   }, [hasAnyPermission]);
 
   const accessibleModules = useMemo(
@@ -77,9 +73,7 @@ export default function Settings() {
   useEffect(() => {
     if (restoredActiveModuleRef.current) return;
 
-    const storedModule = localStorage.getItem(
-      ACTIVE_MODULE_STORAGE_KEY,
-    ) as SettingsModuleId | null;
+    const storedModule = localStorage.getItem(ACTIVE_MODULE_STORAGE_KEY) as SettingsModuleId | null;
     if (storedModule && moduleAccess[storedModule]) {
       setActiveModule(storedModule);
     }
@@ -119,8 +113,7 @@ export default function Settings() {
         });
         setError(null);
       } catch (err: unknown) {
-        const message =
-          err instanceof ApiError ? err.message : "Failed to load organization data";
+        const message = err instanceof ApiError ? err.message : "Failed to load organization data";
         setError(message);
       } finally {
         setLoading(false);
@@ -156,10 +149,7 @@ export default function Settings() {
     return next;
   }, [orgData]);
 
-  const isAccountValid = useMemo(
-    () => Object.keys(accountErrors).length === 0,
-    [accountErrors],
-  );
+  const isAccountValid = useMemo(() => Object.keys(accountErrors).length === 0, [accountErrors]);
 
   const hasUnsavedChanges = useMemo(() => {
     if (activeModule === "account") {
@@ -210,14 +200,12 @@ export default function Settings() {
         "success",
         t("settings.toast.updateSuccess", {
           module: t(
-            SETTING_MODULES.find((s) => s.id === activeModule)?.categoryKey ??
-              "settings.title",
+            SETTING_MODULES.find((s) => s.id === activeModule)?.categoryKey ?? "settings.title",
           ),
         }),
       );
     } catch (err: unknown) {
-      const message =
-        err instanceof ApiError ? err.message : t("settings.toast.updateError");
+      const message = err instanceof ApiError ? err.message : t("settings.toast.updateError");
       setError(message);
       showToast("error", message);
     } finally {
@@ -266,8 +254,7 @@ export default function Settings() {
     setActiveModule(targetModule);
   };
 
-  const canSave =
-    hasUnsavedChanges && !saving && (activeModule !== "account" || isAccountValid);
+  const canSave = hasUnsavedChanges && !saving && (activeModule !== "account" || isAccountValid);
 
   const activeSetting = SETTING_MODULES.find((item) => item.id === activeModule)!;
   const activeSettingLabel = t(activeSetting.categoryKey);
@@ -291,10 +278,7 @@ export default function Settings() {
         </div>
         <div className="card space-y-4">
           {Array.from({ length: 4 }).map((_, idx) => (
-            <div
-              key={idx}
-              className="h-12 bg-[#1a1a1a] rounded animate-pulse"
-            />
+            <div key={idx} className="h-12 bg-[#1a1a1a] rounded animate-pulse" />
           ))}
         </div>
       </div>
@@ -322,15 +306,11 @@ export default function Settings() {
       </div>
 
       {error && (
-        <div className="card bg-red-900/20 border-red-600/70 p-4 text-red-200">
-          {error}
-        </div>
+        <div className="card bg-red-900/20 border-red-600/70 p-4 text-red-200">{error}</div>
       )}
 
       <div>
-        <h2 className="text-xl font-semibold text-white mb-4">
-          {t("settings.modulesTitle")}
-        </h2>
+        <h2 className="text-xl font-semibold text-white mb-4">{t("settings.modulesTitle")}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {SETTING_MODULES.map((setting) => (
             <div
@@ -344,9 +324,7 @@ export default function Settings() {
             >
               <div className="flex items-center gap-4 mb-3">
                 <div className="text-[#FFD700]">{setting.icon}</div>
-                <h3 className="text-white font-semibold text-lg">
-                  {t(setting.categoryKey)}
-                </h3>
+                <h3 className="text-white font-semibold text-lg">{t(setting.categoryKey)}</h3>
               </div>
               <p className="text-gray-400 text-sm">{t(setting.descriptionKey)}</p>
               <button
@@ -354,9 +332,7 @@ export default function Settings() {
                 className="mt-4 px-4 py-2 font-medium rounded-[8px] transition-all gold-action-btn"
                 disabled={!moduleAccess[setting.id]}
               >
-                {moduleAccess[setting.id]
-                  ? t("common.manage")
-                  : t("common.noAccess")}
+                {moduleAccess[setting.id] ? t("common.manage") : t("common.noAccess")}
               </button>
             </div>
           ))}

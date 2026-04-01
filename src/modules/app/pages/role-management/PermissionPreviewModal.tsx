@@ -13,10 +13,7 @@ export default function PermissionPreviewModal({
   permissions,
   onClose,
 }: PermissionPreviewModalProps) {
-  const permissionById = useMemo(
-    () => new Map(permissions.map((p) => [p._id, p])),
-    [permissions],
-  );
+  const permissionById = useMemo(() => new Map(permissions.map((p) => [p._id, p])), [permissions]);
 
   const resolvedPermissions = useMemo(
     () =>
@@ -36,9 +33,7 @@ export default function PermissionPreviewModal({
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([category, perms]) => ({
         category,
-        permissions: [...perms].sort((a, b) =>
-          a.displayName.localeCompare(b.displayName),
-        ),
+        permissions: [...perms].sort((a, b) => a.displayName.localeCompare(b.displayName)),
       }));
   }, [resolvedPermissions]);
 
@@ -47,9 +42,7 @@ export default function PermissionPreviewModal({
       <div className="bg-[#121212] border border-[#333] rounded-xl max-w-2xl w-full max-h-[85vh] overflow-y-auto">
         <div className="sticky top-0 bg-[#121212] border-b border-[#333] p-4 sm:p-5 flex items-center justify-between">
           <div>
-            <h3 className="text-white font-bold text-lg">
-              Permissions · {role.name}
-            </h3>
+            <h3 className="text-white font-bold text-lg">Permissions · {role.name}</h3>
             <p className="text-gray-400 text-xs sm:text-sm mt-1">
               {resolvedPermissions.length} assigned permission
               {resolvedPermissions.length !== 1 ? "s" : ""}
@@ -89,9 +82,7 @@ export default function PermissionPreviewModal({
                         key={permission._id}
                         className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-3"
                       >
-                        <p className="text-white text-sm font-medium">
-                          {permission.displayName}
-                        </p>
+                        <p className="text-white text-sm font-medium">{permission.displayName}</p>
                       </div>
                     ))}
                   </div>
