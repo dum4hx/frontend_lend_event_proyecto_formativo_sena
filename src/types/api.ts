@@ -559,7 +559,7 @@ export interface LoanDetail extends Omit<Loan, "customerId"> {
 /** Detailed loan response with material instances grouped by type. */
 export interface LoanDetailGrouped extends Omit<Loan, "customerId"> {
   customerId: Customer;
-  materialInstancesByType: Record<string, LoanMaterialInstanceEntry[]>;
+  materialInstancesByType: Record<string, { instances: LoanMaterialInstanceEntry[] }>;
 }
 
 export interface ExtendLoanPayload {

@@ -216,6 +216,13 @@ export async function getMaterialTypes(
   );
 }
 
+/** Get a single material type by ID. */
+export async function getMaterialType(
+  typeId: string,
+): Promise<ApiSuccessResponse<{ materialType: MaterialType }>> {
+  return get<{ materialType: MaterialType }>(`/materials/types/${typeId}`);
+}
+
 /** Create a new material type. Validates against org catalog limit. */
 export async function createMaterialType(
   payload: CreateMaterialTypePayload,

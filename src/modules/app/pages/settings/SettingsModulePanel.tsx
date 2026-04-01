@@ -6,6 +6,8 @@ import ToggleRow from "./ToggleRow";
 import { LANGUAGE_OPTIONS } from "./types";
 import type { SettingsModuleId, SettingsPreferences, AccountField } from "./types";
 
+import type { OrganizationSettings } from "../../../../types/api";
+
 interface OrgData {
   name: string;
   email: string;
@@ -35,6 +37,12 @@ interface SettingsModulePanelProps {
   >;
   /** Per-field validation errors for the account module. */
   accountErrors: Partial<Record<AccountField, string>>;
+  /** Current organization settings from the API. */
+  orgSettings: OrganizationSettings | null;
+  /** Whether organization settings are loading. */
+  orgSettingsLoading: boolean;
+  /** Setter for organization settings (partial update via callback). */
+  onOrgSettingsChange: React.Dispatch<React.SetStateAction<OrganizationSettings | null>>;
 }
 
 export default function SettingsModulePanel({
@@ -47,6 +55,9 @@ export default function SettingsModulePanel({
   accountTouched,
   onAccountTouchedChange,
   accountErrors,
+  orgSettings,
+  orgSettingsLoading,
+  onOrgSettingsChange,
 }: SettingsModulePanelProps) {
   const { language, setLanguage, t } = useLanguage();
   const { theme, setTheme } = useTheme();
@@ -263,6 +274,67 @@ export default function SettingsModulePanel({
             }))
           }
         />
+      </div>
+    );
+  }
+
+  if (activeModule === "organization") {
+    if (orgSettingsLoading) {
+      return (
+        <div className="bg-[#121212] border border-[#333] rounded-[12px] p-6 space-y-4">
+          <div className="h-6 bg-[#1a1a1a] rounded w-1/3 animate-pulse" />
+          <div className="h-4 bg-[#1a1a1a] rounded w-2/3 animate-pulse" />
+          <div className="h-14 bg-[#1a1a1a] rounded animate-pulse" />
+          <div className="h-14 bg-[#1a1a1a] rounded animate-pulse" />
+        </div>
+      );
+    }
+
+    if (!orgSettings) {
+      return (
+        <div className="bg-[#121212] border border-[#333] rounded-[12px] p-6">
+          <p className="text-gray-400 text-sm">{t("settings.organization.description")}</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="bg-[#121212] border border-[#333] rounded-[12px] p-6 space-y-4">
+        <h2 className="text-xl font-semibold text-white">{t("settings.organization.title")}</h2>
+        <p className="text-gray-400 text-sm">{t("settings.organization.description")}</p>
+
+        <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-4">
+          <label className="block text-gray-300 text-sm mb-2">
+            {t("settings.organization.damageDueDaysLabel")}
+          </label>
+          <input
+            type="number"
+            min={1}
+            max={365}
+            value={orgSettings.damageDueDays}
+            onChange={(e) => {
+              const value = Math.min(365, Math.max(1, Number(e.target.value) || 1));
+              onOrgSettingsChange((prev) => (prev ? { ...prev, damageDueDays: value } : prev));
+            }}
+            className="w-full px-4 py-2 bg-[#121212] border border-[#333] rounded text-white focus:outline-none focus:border-[#FFD700]"
+          />
+          <p className="text-gray-500 text-xs mt-1">
+            {t("settings.organization.damageDueDaysHelp")}
+          </p>
+        </div>
+
+        <ToggleRow
+          label={t("settings.organization.requireFullPaymentLabel")}
+          checked={orgSettings.requireFullPaymentBeforeCheckout}
+          onChange={(value) =>
+            onOrgSettingsChange((prev) =>
+              prev ? { ...prev, requireFullPaymentBeforeCheckout: value } : prev,
+            )
+          }
+        />
+        <p className="text-gray-500 text-xs -mt-2 px-4">
+          {t("settings.organization.requireFullPaymentHelp")}
+        </p>
       </div>
     );
   }

@@ -3,6 +3,11 @@ import { Settings as SettingsIcon, Lock, Save, RotateCcw } from "lucide-react";
 import { StatCard } from "../../components";
 import { PageHeader } from "../../../../components/ui/PageHeader";
 import { getOrganization, updateOrganization } from "../../../../services/adminService";
+import {
+  getOrganizationSettings,
+  updateOrganizationSettings,
+} from "../../../../services/organizationService";
+import type { OrganizationSettings } from "../../../../types/api";
 import { ApiError } from "../../../../lib/api";
 import { usePermissions } from "../../../../contexts/usePermissions";
 import { useAuth } from "../../../../contexts/useAuth";
@@ -41,6 +46,9 @@ export default function Settings() {
   const [savedPreferences, setSavedPreferences] = useState<SettingsPreferences>(loadPreferences);
   const [activeModule, setActiveModule] = useState<SettingsModuleId>("account");
   const [savedOrgData, setSavedOrgData] = useState(orgData);
+  const [orgSettings, setOrgSettings] = useState<OrganizationSettings | null>(null);
+  const [savedOrgSettings, setSavedOrgSettings] = useState<OrganizationSettings | null>(null);
+  const [orgSettingsLoading, setOrgSettingsLoading] = useState(false);
   const [accountTouched, setAccountTouched] = useState<Partial<Record<AccountField, boolean>>>({});
   const [confirmResetOpen, setConfirmResetOpen] = useState(false);
   const [confirmModuleSwitchOpen, setConfirmModuleSwitchOpen] = useState(false);
@@ -124,6 +132,28 @@ export default function Settings() {
     fetchOrgData();
   }, []);
 
+  useEffect(() => {
+    if (!moduleAccess.organization) return;
+
+    const fetchOrgSettings = async () => {
+      try {
+        setOrgSettingsLoading(true);
+        const response = await getOrganizationSettings();
+        const settings = response.data.settings;
+        setOrgSettings(settings);
+        setSavedOrgSettings(settings);
+      } catch (err: unknown) {
+        const message =
+          err instanceof ApiError ? err.message : "Failed to load organization settings";
+        setError(message);
+      } finally {
+        setOrgSettingsLoading(false);
+      }
+    };
+
+    fetchOrgSettings();
+  }, [moduleAccess.organization]);
+
   // ─── Validation ────────────────────────────────────────────────────────────
 
   const accountErrors = useMemo(() => {
@@ -156,8 +186,19 @@ export default function Settings() {
     if (activeModule === "account") {
       return JSON.stringify(orgData) !== JSON.stringify(savedOrgData);
     }
+    if (activeModule === "organization") {
+      return JSON.stringify(orgSettings) !== JSON.stringify(savedOrgSettings);
+    }
     return !arePreferencesEqual(preferences, savedPreferences);
-  }, [activeModule, orgData, savedOrgData, preferences, savedPreferences]);
+  }, [
+    activeModule,
+    orgData,
+    savedOrgData,
+    orgSettings,
+    savedOrgSettings,
+    preferences,
+    savedPreferences,
+  ]);
 
   // ─── Actions ───────────────────────────────────────────────────────────────
 
@@ -193,6 +234,9 @@ export default function Settings() {
           taxId: orgData.taxId,
         });
         setSavedOrgData(orgData);
+      } else if (activeModule === "organization" && orgSettings) {
+        await updateOrganizationSettings(orgSettings);
+        setSavedOrgSettings(orgSettings);
       } else {
         setSavedPreferences(preferences);
       }
@@ -239,6 +283,10 @@ export default function Settings() {
         ...prev,
         appearance: cloneDefaultPreferences().appearance,
       }));
+      return;
+    }
+    if (activeModule === "organization") {
+      setOrgSettings(savedOrgSettings);
     }
   };
 
@@ -347,6 +395,9 @@ export default function Settings() {
         accountTouched={accountTouched}
         onAccountTouchedChange={setAccountTouched}
         accountErrors={accountErrors}
+        orgSettings={orgSettings}
+        orgSettingsLoading={orgSettingsLoading}
+        onOrgSettingsChange={setOrgSettings}
       />
 
       <ConfirmDialog

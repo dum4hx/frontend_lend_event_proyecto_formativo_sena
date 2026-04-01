@@ -1,6 +1,10 @@
-import { CalendarRange } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { CalendarRange, X, Package, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "../../../../components/ui";
 import type { LoanView } from "./types";
+import type { LoanDetailGrouped, LoanMaterialInstanceEntry } from "../../../../types/api";
+import { getLoanDetailGrouped } from "../../../../services/loanService";
+import { getMaterialType } from "../../../../services/materialService";
 import { customerFullName } from "./helpers";
 
 // ─── Props ──────────────────────────────────────────────────────────────
@@ -101,59 +105,205 @@ function formatDateLocal(dateStr: string, locale: string): string {
 }
 
 export function LoanDetailModal({ show, onClose, target, locale, isEs }: LoanDetailModalProps) {
+  const [loanDetail, setLoanDetail] = useState<LoanDetailGrouped | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [typeNames, setTypeNames] = useState<Record<string, string>>({});
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    if (!show || !target) return;
+    const loanId = target.loan._id;
+    let cancelled = false;
+    async function fetchDetail() {
+      setLoadingDetail(true);
+      try {
+        const detailRes = await getLoanDetailGrouped(loanId);
+        if (cancelled) return;
+        const loan = detailRes.data.loan;
+        setLoanDetail(loan);
+        const typeIds = Object.keys(loan.materialInstancesByType ?? {});
+        const typeResults = await Promise.allSettled(typeIds.map((id) => getMaterialType(id)));
+        if (cancelled) return;
+        const nameMap: Record<string, string> = {};
+        typeResults.forEach((result, idx) => {
+          if (result.status === "fulfilled") {
+            nameMap[typeIds[idx]] = result.value.data.materialType.name;
+          }
+        });
+        setTypeNames(nameMap);
+      } catch {
+        if (!cancelled) setLoanDetail(null);
+      } finally {
+        if (!cancelled) setLoadingDetail(false);
+      }
+    }
+    fetchDetail();
+    return () => {
+      cancelled = true;
+    };
+  }, [show, target]);
+
   if (!show || !target) return null;
+
+  const rawByType = loanDetail?.materialInstancesByType ?? {};
+  const typeEntries = Object.entries(rawByType);
+
+  function toggleCollapse(typeId: string) {
+    setCollapsed((prev) => ({ ...prev, [typeId]: !prev[typeId] }));
+  }
 
   return (
     <div
       className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-6 w-full max-w-lg shadow-2xl space-y-4">
-        <h2 className="text-xl font-semibold text-white">
-          {isEs ? "Detalle del prestamo" : "Loan Details"}
-        </h2>
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <div>
-            <p className="text-gray-400 text-xs mb-1">{isEs ? "ID prestamo" : "Loan ID"}</p>
-            <p className="text-white font-mono">#{target.loan._id.slice(-8).toUpperCase()}</p>
-          </div>
-          <div>
-            <p className="text-gray-400 text-xs mb-1">{isEs ? "Estado" : "Status"}</p>
-            <span
-              className={`px-2 py-0.5 rounded-full text-xs font-semibold capitalize inline-block ${getLoanStatusBadgeStyle(target.loan.status)}`}
-            >
-              {target.loan.status}
-            </span>
-          </div>
-          <div>
-            <p className="text-gray-400 text-xs mb-1">{isEs ? "Cliente" : "Customer"}</p>
-            <p className="text-white">{customerFullName(target.customer)}</p>
-          </div>
-          <div>
-            <p className="text-gray-400 text-xs mb-1">{isEs ? "ID solicitud" : "Request ID"}</p>
-            <p className="text-white font-mono text-xs">
-              #{target.loan.requestId.slice(-8).toUpperCase()}
-            </p>
-          </div>
-          <div>
-            <p className="text-gray-400 text-xs mb-1">{isEs ? "Fecha inicio" : "Start Date"}</p>
-            <p className="text-white">{formatDateLocal(target.loan.startDate, locale)}</p>
-          </div>
-          <div>
-            <p className="text-gray-400 text-xs mb-1">{isEs ? "Fecha fin" : "End Date"}</p>
-            <p className="text-white">{formatDateLocal(target.loan.endDate, locale)}</p>
-          </div>
-          {target.loan.notes && (
-            <div className="col-span-2">
-              <p className="text-gray-400 text-xs mb-1">{isEs ? "Notas" : "Notes"}</p>
-              <p className="text-gray-200 text-sm">{target.loan.notes}</p>
-            </div>
-          )}
+      <div className="bg-[#121212] border border-[#333] rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+        {/* Header */}
+        <div className="sticky top-0 bg-[#121212] border-b border-[#333] p-6 flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-white">
+            {isEs ? "Detalle del préstamo" : "Loan Details"}
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-[#1a1a1a] rounded-lg"
+          >
+            <X size={24} />
+          </button>
         </div>
-        <div className="flex justify-end pt-2">
-          <Button variant="outline" onClick={onClose}>
+
+        <div className="p-6 space-y-6">
+          {/* Basic info grid */}
+          <div className="grid grid-cols-2 gap-6 text-sm">
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1 uppercase tracking-wide">
+                {isEs ? "ID préstamo" : "Loan ID"}
+              </label>
+              <p className="text-white font-mono font-semibold">
+                #{target.loan._id.slice(-8).toUpperCase()}
+              </p>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1 uppercase tracking-wide">
+                {isEs ? "Estado" : "Status"}
+              </label>
+              <span
+                className={`px-2 py-0.5 rounded-full text-xs font-semibold capitalize inline-block ${getLoanStatusBadgeStyle(target.loan.status)}`}
+              >
+                {target.loan.status}
+              </span>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1 uppercase tracking-wide">
+                {isEs ? "Cliente" : "Customer"}
+              </label>
+              <p className="text-white">{customerFullName(target.customer)}</p>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1 uppercase tracking-wide">
+                {isEs ? "ID solicitud" : "Request ID"}
+              </label>
+              <p className="text-white font-mono text-xs">
+                #{target.loan.requestId.slice(-8).toUpperCase()}
+              </p>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1 uppercase tracking-wide">
+                {isEs ? "Fecha inicio" : "Start Date"}
+              </label>
+              <p className="text-white">{formatDateLocal(target.loan.startDate, locale)}</p>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1 uppercase tracking-wide">
+                {isEs ? "Fecha fin" : "End Date"}
+              </label>
+              <p className="text-white">{formatDateLocal(target.loan.endDate, locale)}</p>
+            </div>
+            {target.loan.notes && (
+              <div className="col-span-2">
+                <label className="block text-xs font-medium text-gray-400 mb-1 uppercase tracking-wide">
+                  {isEs ? "Notas" : "Notes"}
+                </label>
+                <p className="text-gray-200">{target.loan.notes}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Material instances grouped by type */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-sm font-semibold text-[#FFD700] uppercase tracking-wider">
+              <Package size={16} />
+              <span>{isEs ? "Materiales prestados" : "Loaned Materials"}</span>
+            </div>
+
+            {loadingDetail && (
+              <p className="text-xs text-gray-500 animate-pulse">
+                {isEs ? "Cargando materiales..." : "Loading materials..."}
+              </p>
+            )}
+
+            {!loadingDetail && typeEntries.length === 0 && (
+              <p className="text-gray-500 text-sm">
+                {isEs ? "Sin materiales registrados." : "No materials recorded."}
+              </p>
+            )}
+
+            {typeEntries.map(([typeId, group]) => {
+              const instances: LoanMaterialInstanceEntry[] = group.instances;
+              const typeName = typeNames[typeId] ?? typeId.slice(-8).toUpperCase();
+              const isCollapsed = collapsed[typeId] === true;
+              return (
+                <div
+                  key={typeId}
+                  className="rounded-xl border border-[#333] bg-[#171717] overflow-hidden"
+                >
+                  <button
+                    type="button"
+                    onClick={() => toggleCollapse(typeId)}
+                    className="w-full flex items-center justify-between px-4 py-3 bg-[#1a1a1a] border-b border-[#333] hover:bg-[#222] transition-colors"
+                  >
+                    <p className="text-xs font-bold text-gray-300 uppercase tracking-wide text-left">
+                      {typeName}
+                      <span className="ml-2 text-gray-500 font-normal normal-case">
+                        ({instances.length})
+                      </span>
+                    </p>
+                    {isCollapsed ? (
+                      <ChevronDown size={14} className="text-gray-500 shrink-0" />
+                    ) : (
+                      <ChevronUp size={14} className="text-gray-500 shrink-0" />
+                    )}
+                  </button>
+                  {!isCollapsed && (
+                    <div className="divide-y divide-[#2a2a2a]">
+                      {instances.map((entry) => (
+                        <div
+                          key={entry.materialInstanceId._id}
+                          className="flex items-center justify-between px-4 py-3"
+                        >
+                          <span className="text-white font-mono text-sm">
+                            {entry.materialInstanceId.serialNumber}
+                          </span>
+                          <span className="text-xs text-gray-400 capitalize">
+                            {entry.materialInstanceId.status}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="border-t border-[#333] p-6">
+          <button
+            onClick={onClose}
+            className="w-full px-6 py-3 bg-[#1a1a1a] text-white font-semibold rounded-lg hover:bg-[#222] transition-colors border border-[#333]"
+          >
             {isEs ? "Cerrar" : "Close"}
-          </Button>
+          </button>
         </div>
       </div>
     </div>

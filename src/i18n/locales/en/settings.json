@@ -64,5 +64,13 @@
   "settings.account.email": "Email",
   "settings.account.emailPlaceholder": "contact@example.com",
   "settings.account.phone": "Phone",
-  "settings.account.phonePlaceholder": "+57 3XXXXXXXXX"
+  "settings.account.phonePlaceholder": "+57 3XXXXXXXXX",
+  "settings.organization.title": "Organization Policies",
+  "settings.organization.description": "Configure operational rules that affect loans, inspections, and billing across your organization.",
+  "settings.organization.damageDueDaysLabel": "Damage invoice due date (days)",
+  "settings.organization.damageDueDaysHelp": "Number of days after an inspection to set as the due date for damage invoices (1–365).",
+  "settings.organization.requireFullPaymentLabel": "Require rental fee payment before checkout",
+  "settings.organization.requireFullPaymentHelp": "When enabled, loans cannot be checked out until the rental fee has been recorded as paid.",
+  "settings.module.organization": "Organization",
+  "settings.module.organizationDescription": "Configure organization policies and operational rules"
 }

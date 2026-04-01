@@ -1,10 +1,15 @@
-import { Bell, Palette, Shield, UserCircle2 } from "lucide-react";
+import { Bell, Building2, Palette, Shield, UserCircle2 } from "lucide-react";
 import type { TranslationKey } from "../../../../i18n/translations";
 import type { SupportedLanguage } from "../../../../i18n/translations";
 
 // ─── Module types ────────────────────────────────────────────────────────────
 
-export type SettingsModuleId = "notifications" | "security" | "appearance" | "account";
+export type SettingsModuleId =
+  | "notifications"
+  | "security"
+  | "appearance"
+  | "account"
+  | "organization";
 export type AccountField = "name" | "email" | "phone" | "legalName" | "taxId";
 
 export interface SettingsPreferences {
@@ -87,5 +92,12 @@ export const SETTING_MODULES: SettingModule[] = [
     icon: <UserCircle2 size={28} />,
     descriptionKey: "settings.module.accountDescription",
     requiredPermissions: ["organization:update"],
+  },
+  {
+    id: "organization",
+    categoryKey: "settings.module.organization",
+    icon: <Building2 size={28} />,
+    descriptionKey: "settings.module.organizationDescription",
+    requiredPermissions: ["organization:read", "organization:update"],
   },
 ];

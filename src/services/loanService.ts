@@ -107,7 +107,9 @@ export async function getLoan(loanId: string): Promise<ApiSuccessResponse<{ loan
 }
 
 /** Get a specific loan by ID with full populated details (flat instance list). */
-export async function getLoanDetail(loanId: string): Promise<ApiSuccessResponse<{ loan: LoanDetail }>> {
+export async function getLoanDetail(
+  loanId: string,
+): Promise<ApiSuccessResponse<{ loan: LoanDetail }>> {
   return get<{ loan: LoanDetail }>(`/loans/${loanId}`);
 }
 
