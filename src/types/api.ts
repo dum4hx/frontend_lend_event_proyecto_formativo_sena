@@ -1045,16 +1045,14 @@ export interface RolesListResponse {
 
 /** Permission */
 export interface Permission {
-  _id: string;
+  id: string;
   displayName: string;
   description: string;
   category: string;
 }
 
 /** Permissions list response */
-export interface PermissionsResponse {
-  permissions: Permission[];
-}
+export type PermissionsResponse = Permission[];
 
 // ─── Query Params ──────────────────────────────────────────────────────────
 

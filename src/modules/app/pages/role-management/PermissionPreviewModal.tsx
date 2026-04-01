@@ -13,7 +13,7 @@ export default function PermissionPreviewModal({
   permissions,
   onClose,
 }: PermissionPreviewModalProps) {
-  const permissionById = useMemo(() => new Map(permissions.map((p) => [p._id, p])), [permissions]);
+  const permissionById = useMemo(() => new Map(permissions.map((p) => [p.id, p])), [permissions]);
 
   const resolvedPermissions = useMemo(
     () =>
@@ -79,7 +79,7 @@ export default function PermissionPreviewModal({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {group.permissions.map((permission) => (
                       <div
-                        key={permission._id}
+                        key={permission.id}
                         className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-3"
                       >
                         <p className="text-white text-sm font-medium">{permission.displayName}</p>

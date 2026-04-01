@@ -65,7 +65,7 @@ export default function RoleFormModal({
   const togglePermission = (id: string) => setSelected((prev) => ({ ...prev, [id]: !prev[id] }));
 
   const selectAll = () => {
-    const extra = Object.fromEntries(filteredPermissions.map((p) => [p._id, true]));
+    const extra = Object.fromEntries(filteredPermissions.map((p) => [p.id, true]));
     setSelected((prev) => ({ ...prev, ...extra }));
   };
 
@@ -213,13 +213,13 @@ export default function RoleFormModal({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
                     {perms.map((p) => (
                       <label
-                        key={p._id}
+                        key={p.id}
                         className="flex items-center gap-2 text-xs bg-[#121212] px-2 py-2 rounded-md cursor-pointer hover:bg-[#1a1a1a] transition-colors"
                       >
                         <input
                           type="checkbox"
-                          checked={!!selected[p._id]}
-                          onChange={() => togglePermission(p._id)}
+                          checked={!!selected[p.id]}
+                          onChange={() => togglePermission(p.id)}
                           disabled={submitting}
                           className="h-3.5 w-3.5 accent-[#FFD700]"
                         />

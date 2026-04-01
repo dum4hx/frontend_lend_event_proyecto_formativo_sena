@@ -44,7 +44,7 @@ export default function RoleManagement() {
 
   const { data: permsData, isLoading: permsLoading } = useApiQuery(async () => {
     const res = await getPermissions();
-    return res.data.permissions;
+    return res.data;
   });
 
   const roles = useMemo(() => rolesData ?? [], [rolesData]);
