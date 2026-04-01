@@ -203,7 +203,7 @@ export function Locations() {
         const result = await exportService.export(
           rows,
           config,
-          user?.id ?? "anonymous",
+          user?._id ?? "anonymous",
           (p: ExportProgress) => setExportProgress(p),
           abort.signal,
         );

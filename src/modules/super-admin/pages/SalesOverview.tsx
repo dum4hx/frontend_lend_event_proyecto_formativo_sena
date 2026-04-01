@@ -166,7 +166,7 @@ export default function SalesOverview() {
       const result = await exportService.export(
         rawData,
         configWithTotals,
-        user?.id ?? "anonymous",
+        user?._id ?? "anonymous",
         (p) => setExportProgress(p),
         abort.signal,
       );
@@ -189,7 +189,7 @@ export default function SalesOverview() {
         showAlert("error", result.error);
       }
     },
-    [buildExportRows, buildTotalsSheet, user?.id, showAlert],
+    [buildExportRows, buildTotalsSheet, user?._id, showAlert],
   );
 
   const handleExportPreview = useCallback(
@@ -200,9 +200,9 @@ export default function SalesOverview() {
         ...config,
         additionalSheets: [buildTotalsSheet()],
       };
-      return exportService.preview(rawData, configWithTotals, user?.id ?? "anonymous");
+      return exportService.preview(rawData, configWithTotals, user?._id ?? "anonymous");
     },
-    [buildExportRows, buildTotalsSheet, user?.id],
+    [buildExportRows, buildTotalsSheet, user?._id],
   );
 
   const handleCancelExport = useCallback(() => {

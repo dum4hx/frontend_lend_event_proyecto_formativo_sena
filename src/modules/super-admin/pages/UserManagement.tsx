@@ -141,7 +141,7 @@ export default function UserManagement() {
         const result = await exportService.export(
           rawData,
           config,
-          user?.id ?? "anonymous",
+          user?._id ?? "anonymous",
           (p) => setExportProgress(p),
           abort.signal,
         );
@@ -168,7 +168,7 @@ export default function UserManagement() {
         exportAbort.current = null;
       }
     },
-      [buildExportRows, showAlert, t, user?.id],
+      [buildExportRows, showAlert, t, user?._id],
   );
 
   const handleExportPreview = useCallback(
@@ -177,9 +177,9 @@ export default function UserManagement() {
       const freshStats = freshResult.data.stats;
       const rawData = buildExportRows(freshStats);
       if (rawData.length === 0) return undefined;
-      return exportService.preview(rawData, config, user?.id ?? "anonymous");
+      return exportService.preview(rawData, config, user?._id ?? "anonymous");
     },
-    [buildExportRows, user?.id],
+    [buildExportRows, user?._id],
   );
 
   const handleCancelExport = useCallback(() => {

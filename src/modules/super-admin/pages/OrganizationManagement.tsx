@@ -161,7 +161,7 @@ export default function OrganizationManagement() {
         const result = await exportService.export(
           rawData,
           config,
-          user?.id ?? "anonymous",
+          user?._id ?? "anonymous",
           (p) => setExportProgress(p),
           abort.signal,
         );
@@ -187,16 +187,16 @@ export default function OrganizationManagement() {
         exportAbort.current = null;
       }
     },
-    [buildAllExportRows, user?.id, showAlert],
+    [buildAllExportRows, user?._id, showAlert],
   );
 
   const handleExportPreview = useCallback(
     async (config: ExportConfig) => {
       const rawData = await buildAllExportRows();
       if (rawData.length === 0) return undefined;
-      return exportService.preview(rawData, config, user?.id ?? "anonymous");
+      return exportService.preview(rawData, config, user?._id ?? "anonymous");
     },
-    [buildAllExportRows, user?.id],
+    [buildAllExportRows, user?._id],
   );
 
   const handleCancelExport = useCallback(() => {

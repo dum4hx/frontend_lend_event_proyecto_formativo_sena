@@ -533,7 +533,7 @@ export default function PlanConfiguration() {
       const result = await exportService.export(
         rawData,
         config,
-        user?.id ?? "anonymous",
+        user?._id ?? "anonymous",
         (p) => setExportProgress(p),
         abort.signal,
       );
@@ -556,16 +556,16 @@ export default function PlanConfiguration() {
         showAlert("error", result.error);
       }
     },
-    [buildExportRows, user?.id, showAlert],
+    [buildExportRows, user?._id, showAlert],
   );
 
   const handleExportPreview = useCallback(
     async (config: ExportConfig) => {
       const rawData = buildExportRows();
       if (rawData.length === 0) return undefined;
-      return exportService.preview(rawData, config, user?.id ?? "anonymous");
+      return exportService.preview(rawData, config, user?._id ?? "anonymous");
     },
-    [buildExportRows, user?.id],
+    [buildExportRows, user?._id],
   );
 
   const handleCancelExport = useCallback(() => {

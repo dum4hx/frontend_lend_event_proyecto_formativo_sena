@@ -62,7 +62,7 @@ export interface Address {
 export type UserStatus = "active" | "inactive" | "invited" | "suspended";
 
 export interface User {
-  id: string;
+  _id: string;
   email: string;
   name: PersonName;
   roleName: string;
@@ -1002,6 +1002,7 @@ export interface UpdateUserPayload {
   name?: Partial<PersonName>;
   email?: string;
   phone?: string;
+  locations?: string[];
 }
 
 export interface UpdateUserRolePayload {

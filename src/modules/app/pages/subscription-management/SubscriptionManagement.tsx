@@ -319,7 +319,7 @@ export default function SubscriptionManagement() {
         const result = await exportService.export(
           rawData,
           config,
-          user?.id ?? "anonymous",
+          user?._id ?? "anonymous",
           (p) => setExportProgress(p),
           abort.signal,
         );
@@ -345,7 +345,7 @@ export default function SubscriptionManagement() {
         exportAbort.current = null;
       }
     },
-    [buildExportRows, user?.id, showAlert, isEs],
+    [buildExportRows, user?._id, showAlert, isEs],
   );
 
   const handleExportPreview = useCallback(
@@ -353,9 +353,9 @@ export default function SubscriptionManagement() {
       const freshRes = await getBillingHistory(500);
       const rawData = buildExportRows(freshRes.data.history ?? []);
       if (rawData.length === 0) return undefined;
-      return exportService.preview(rawData, config, user?.id ?? "anonymous");
+      return exportService.preview(rawData, config, user?._id ?? "anonymous");
     },
-    [buildExportRows, user?.id],
+    [buildExportRows, user?._id],
   );
 
   const handleCancelExport = useCallback(() => {

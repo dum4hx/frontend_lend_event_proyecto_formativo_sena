@@ -252,7 +252,7 @@ export default function Reports() {
               const first = p.firstName ?? u.name?.firstName ?? "";
               const last = p.lastName ?? p.firstSurname ?? u.name?.firstSurname ?? "";
               return {
-                id: u._id ?? u.id ?? "",
+                id: u._id ?? "",
                 name: `${first} ${last}`.trim() || (u.email ?? ""),
                 email: u.email ?? "",
                 role: u.roleName ?? "—",

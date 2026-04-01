@@ -1,15 +1,18 @@
 /**
- * EditUserModal — Edit an existing team member's name and role.
+ * EditUserModal — Edit an existing team member's name, role, and locations.
  * Includes owner-promotion safety confirmation.
  */
 import { useState, useEffect, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { FormModal } from "../../../../components/ui/FormModal";
 import { SearchableSelect } from "../../../../components/ui/SearchableSelect";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import { ApiError } from "../../../../lib/api";
 import { updateUser, updateUserRole } from "../../../../services/adminService";
+import { getLocations } from "../../../../services/warehouseOperatorService";
 import { validateFirstName, validateLastName } from "../../../../utils/validators";
 import type { Role } from "../../../../types/api";
+import type { WarehouseLocation } from "../../../../services/warehouseOperatorService";
 import type { TeamMember } from "./types";
 
 interface EditUserModalProps {
@@ -23,6 +26,7 @@ interface EditFormValues {
   firstName: string;
   firstSurname: string;
   roleId: string;
+  locations: string[];
 }
 
 interface OwnerSecurity {
@@ -38,12 +42,21 @@ export function EditUserModal({ member, availableRoles, onClose, onSuccess }: Ed
   const { language } = useLanguage();
   const isEs = language === "es";
 
-  const [form, setForm] = useState<EditFormValues>({ firstName: "", firstSurname: "", roleId: "" });
+  const locationsQuery = useQuery({
+    queryKey: ["locations", "edit-modal"],
+    queryFn: () => getLocations(),
+    select: (res) => res.data.items,
+    enabled: !!member,
+    staleTime: 1000 * 60 * 5,
+  });
+  const availableLocations: WarehouseLocation[] = locationsQuery.data ?? [];
+
+  const [form, setForm] = useState<EditFormValues>({ firstName: "", firstSurname: "", roleId: "", locations: [] });
   const [errors, setErrors] = useState<
-    Partial<Record<keyof Omit<EditFormValues, "roleId">, string>>
+    Partial<Record<keyof Omit<EditFormValues, "roleId" | "locations">, string>>
   >({});
   const [touched, setTouched] = useState<
-    Partial<Record<keyof Omit<EditFormValues, "roleId">, boolean>>
+    Partial<Record<keyof Omit<EditFormValues, "roleId" | "locations">, boolean>>
   >({});
   const [ownerSecurity, setOwnerSecurity] = useState<OwnerSecurity>({
     acceptedCritical: false,
@@ -61,6 +74,7 @@ export function EditUserModal({ member, availableRoles, onClose, onSuccess }: Ed
       firstName: member.firstName,
       firstSurname: member.lastName,
       roleId: member.roleId,
+      locations: member.locations ?? [],
     });
     setErrors({});
     setTouched({});
@@ -98,7 +112,7 @@ export function EditUserModal({ member, availableRoles, onClose, onSuccess }: Ed
     return errs;
   }, [ownerSecurity, member, isEs]);
 
-  function handleChange(field: keyof Omit<EditFormValues, "roleId">, value: string) {
+  function handleChange(field: keyof Omit<EditFormValues, "roleId" | "locations">, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
     if (touched[field]) {
       const msg =
@@ -114,7 +128,7 @@ export function EditUserModal({ member, availableRoles, onClose, onSuccess }: Ed
     setFormError(null);
   }
 
-  function handleBlur(field: keyof Omit<EditFormValues, "roleId">) {
+  function handleBlur(field: keyof Omit<EditFormValues, "roleId" | "locations">) {
     setTouched((prev) => ({ ...prev, [field]: true }));
     const value = form[field] as string;
     const msg =
@@ -126,6 +140,16 @@ export function EditUserModal({ member, availableRoles, onClose, onSuccess }: Ed
           ? undefined
           : validateLastName(value).message;
     setErrors((prev) => ({ ...prev, [field]: msg }));
+  }
+
+  function toggleLocation(locId: string) {
+    setForm((prev) => ({
+      ...prev,
+      locations: prev.locations.includes(locId)
+        ? prev.locations.filter((l) => l !== locId)
+        : [...prev.locations, locId],
+    }));
+    setFormError(null);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -158,10 +182,20 @@ export function EditUserModal({ member, availableRoles, onClose, onSuccess }: Ed
       }
     }
 
+    if (form.locations.length === 0) {
+      setFormError(
+        isEs
+          ? "Selecciona al menos una ubicación."
+          : "Please select at least one location.",
+      );
+      return;
+    }
+
     setSubmitting(true);
     try {
       await updateUser(member.id, {
         name: { firstName: form.firstName, firstSurname: form.firstSurname },
+        locations: form.locations,
       });
       if (form.roleId !== member.roleId) {
         await updateUserRole(member.id, { roleId: form.roleId });
@@ -249,6 +283,39 @@ export function EditUserModal({ member, availableRoles, onClose, onSuccess }: Ed
             placeholder={isEs ? "Seleccionar rol" : "Select role"}
           />
         </div>
+
+        {/* Locations */}
+        {availableLocations.length > 0 && (
+          <div>
+            <label className="block text-xs text-zinc-400 mb-2">
+              {isEs ? "Ubicaciones *" : "Locations *"}
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {availableLocations.map((loc) => {
+                const selected = form.locations.includes(loc._id);
+                return (
+                  <button
+                    key={loc._id}
+                    type="button"
+                    onClick={() => toggleLocation(loc._id)}
+                    className={`px-3 py-1.5 rounded-lg text-sm border transition-all ${
+                      selected
+                        ? "bg-yellow-400/10 border-yellow-400/40 text-yellow-400"
+                        : "bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:border-zinc-500"
+                    }`}
+                  >
+                    {loc.name}
+                  </button>
+                );
+              })}
+            </div>
+            {form.locations.length === 0 && formError?.toLowerCase().includes("location") && (
+              <p className="text-xs text-red-400 mt-1">
+                {isEs ? "Selecciona al menos una ubicación." : "Select at least one location."}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Owner promotion confirmation */}
         {isOwnerPromotion && (

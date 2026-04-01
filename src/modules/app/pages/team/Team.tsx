@@ -29,7 +29,7 @@ const PAGE_SIZE = 15;
 /** Map API User → local TeamMember for display. */
 function toTeamMember(u: User): TeamMember {
   return {
-    id: u.id,
+    id: u._id,
     firstName: u.name.firstName,
     lastName: u.name.firstSurname,
     fullName: `${u.name.firstName} ${u.name.firstSurname}`,
