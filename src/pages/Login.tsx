@@ -1,8 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import { GreetingCard } from "../components/ui";
 import { loginUser, refreshToken, getPaymentStatus } from "../services/authService";
 import { ApiError } from "../lib/api";
 import { validateLoginForm, validateEmail } from "../utils/validators";
@@ -32,8 +31,6 @@ export default function Login() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [showPassword, setShowPassword] = useState(false);
   const [showNoSubModal, setShowNoSubModal] = useState(false);
-  const [showGreeting, setShowGreeting] = useState(false);
-  const [greetingUser, setGreetingUser] = useState<{ name: string; dashboardUrl: string } | null>(null);
 
   const setErrorFor = (field: string, message?: string) => {
     setFieldErrors((prev) => {
@@ -43,17 +40,6 @@ export default function Login() {
       return next;
     });
   };
-
-  // Navigate to dashboard after greeting card displays for 5 seconds
-  useEffect(() => {
-    if (showGreeting && greetingUser) {
-      const navigationTimer = setTimeout(() => {
-        navigate(greetingUser.dashboardUrl);
-      }, 5000);
-
-      return () => clearTimeout(navigationTimer);
-    }
-  }, [showGreeting, greetingUser, navigate]);
 
   const inputClass = (hasError: boolean, withIcon?: boolean) =>
     `w-full bg-zinc-900 rounded-xl py-4 ${withIcon ? "pl-12" : "px-4"} pr-4 text-white outline-none transition duration-200 disabled:opacity-50 border ${hasError ? "border-red-500 focus:border-red-500" : "border-zinc-800 focus:border-yellow-400"}`;
@@ -123,10 +109,14 @@ export default function Login() {
 
       // Navigate based on the user's permissions
       const dashboardUrl = getDashboardUrlByPermissions(permissions);
-      
-      // Show greeting card instead of toast
-      setGreetingUser({ name: formatPersonName(loggedUser.name), dashboardUrl });
-      setShowGreeting(true);
+
+      // Navigate to dashboard immediately with greeting info
+      navigate(dashboardUrl, {
+        state: {
+          showGreeting: true,
+          greetingName: formatPersonName(loggedUser.name),
+        },
+      });
     } catch (err: unknown) {
       // Generic error message for invalid credentials; do not reveal which field
       if (err instanceof ApiError && err.statusCode === 401) {
@@ -165,8 +155,12 @@ export default function Login() {
             }
           }
           const dashboardUrl = getDashboardUrlByPermissions(refreshedPermissions);
-          setGreetingUser({ name: formatPersonName(refreshedUser.name), dashboardUrl });
-          setShowGreeting(true);
+          navigate(dashboardUrl, {
+            state: {
+              showGreeting: true,
+              greetingName: formatPersonName(refreshedUser.name),
+            },
+          });
           return;
         } catch {
           setError(isEs ? "Credenciales invalidas" : "Invalid credentials");
@@ -519,21 +513,6 @@ export default function Login() {
       </main>
 
       <Footer />
-
-      {/* Greeting Card after successful login */}
-      {showGreeting && greetingUser && (
-        <GreetingCard
-          name={greetingUser.name}
-          language={isEs ? "es" : "en"}
-          action={{
-            label: isEs ? "Ir al panel" : "Go to dashboard",
-            onClick: () => navigate(greetingUser.dashboardUrl),
-          }}
-          onDismiss={() => {
-            setShowGreeting(false);
-          }}
-        />
-      )}
     </div>
   );
 }

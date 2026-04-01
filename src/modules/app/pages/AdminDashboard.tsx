@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   AlertTriangle,
   Users,
@@ -12,9 +12,9 @@ import {
   ArrowRight,
   CheckCircle2,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { StatCard, AdminTable } from "../components";
-import { PageHeader } from "../../../components/ui";
+import { PageHeader, GreetingCard } from "../../../components/ui";
 import { useDashboardStats } from "../hooks/useDashboardStats";
 import { useLanguage } from "../../../contexts/useLanguage";
 
@@ -58,6 +58,12 @@ const LOAN_BADGE: Record<string, string> = {
 export default function AdminDashboard() {
   const { language, locale } = useLanguage();
   const isEs = language === "es";
+  const location = useLocation();
+  const [showGreeting, setShowGreeting] = useState(
+    (location.state as { showGreeting?: boolean; greetingName?: string })?.showGreeting ?? false,
+  );
+  const greetingName =
+    (location.state as { showGreeting?: boolean; greetingName?: string })?.greetingName ?? "";
   const { stats, loading, error, refetch } = useDashboardStats();
 
   const invoiceTotal = (stats?.paidInvoicesTotal ?? 0) + (stats?.pendingInvoicesTotal ?? 0);
@@ -387,6 +393,15 @@ export default function AdminDashboard() {
             </tbody>
           </AdminTable>
         </div>
+      )}
+
+      {/* Greeting Card after login */}
+      {showGreeting && greetingName && (
+        <GreetingCard
+          name={greetingName}
+          language={isEs ? "es" : "en"}
+          onDismiss={() => setShowGreeting(false)}
+        />
       )}
     </div>
   );

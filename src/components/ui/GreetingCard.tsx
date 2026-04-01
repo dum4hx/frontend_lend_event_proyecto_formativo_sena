@@ -45,19 +45,22 @@ export const GreetingCard: React.FC<GreetingCardProps> = ({
   action,
 }) => {
   const [isVisible, setIsVisible] = React.useState(true);
+  const [isExiting, setIsExiting] = React.useState(false);
   const [isPaused, setIsPaused] = React.useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const messages = MESSAGES[language];
 
   const dismiss = useCallback(() => {
-    setIsVisible(false);
+    setIsExiting(true);
+    // Wait for exit animation to complete before calling onDismiss
     setTimeout(() => {
+      setIsVisible(false);
       onDismiss?.();
-    }, 300);
+    }, 400);
   }, [onDismiss]);
 
   useEffect(() => {
-    if (!isVisible || isPaused) return;
+    if (isExiting || isPaused) return;
 
     timerRef.current = setTimeout(() => {
       dismiss();
@@ -66,7 +69,7 @@ export const GreetingCard: React.FC<GreetingCardProps> = ({
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [isVisible, isPaused, dismiss]);
+  }, [isExiting, isPaused, dismiss]);
 
   // Handle keyboard escape
   useEffect(() => {
@@ -84,8 +87,8 @@ export const GreetingCard: React.FC<GreetingCardProps> = ({
 
   return (
     <div
-      className={`transform transition-all duration-500 ${
-        isVisible ? "translate-x-0 translate-y-0 opacity-100" : "translate-x-96 translate-y-96 opacity-0"
+      className={`transform transition-all duration-400 ${
+        isExiting ? "translate-x-96 opacity-0" : "translate-x-0 opacity-100"
       }`}
     >
       <div
@@ -140,9 +143,9 @@ export const GreetingCard: React.FC<GreetingCardProps> = ({
           {/* Progress bar */}
           <div className="mt-4 h-1 bg-yellow-300/40 rounded-full overflow-hidden">
             <div
-              className="bg-yellow-900 h-full animate-pulse"
+              className="bg-yellow-900 h-full"
               style={{
-                animation: "shrink 6s linear forwards",
+                animation: isExiting ? "none" : "shrink 6s linear forwards",
               }}
             />
           </div>
