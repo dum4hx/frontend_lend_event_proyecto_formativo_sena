@@ -11,7 +11,7 @@ export const CreateMaterialType: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { addMaterialType, updateMaterialType } = useMaterialTypes();
-  const { categories, loading: categoriesLoading } = useCategories();
+  const { categories, loading: categoriesLoading, refetch: refetchCategories } = useCategories();
   const { showToast } = useToast();
 
   const editingMaterialType = location.state?.materialType;
@@ -120,6 +120,7 @@ export const CreateMaterialType: React.FC = () => {
             onCancel={() => navigate("/app/material-types")}
             initialData={editingMaterialType}
             isEditing={isEditing}
+            onCategoryCreated={() => void refetchCategories()}
           />
         </div>
       </div>

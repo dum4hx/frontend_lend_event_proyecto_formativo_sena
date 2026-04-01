@@ -26,8 +26,8 @@ export const MaterialTypeCatalog: React.FC = () => {
     addMaterialType,
     updateMaterialType: updateMaterialTypeData,
   } = useMaterialTypes();
-  const { categories } = useCategories();
-  const { attributes } = useMaterialAttributes();
+  const { categories, refetch: refetchCategories } = useCategories();
+  const { attributes, refetch: refetchAttributes } = useMaterialAttributes();
   const { showToast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
@@ -422,6 +422,8 @@ export const MaterialTypeCatalog: React.FC = () => {
               setIsFormOpen(false);
               setEditingType(null);
             }}
+            onCategoryCreated={() => void refetchCategories()}
+            onAttributeCreated={() => void refetchAttributes()}
           />
         )}
 

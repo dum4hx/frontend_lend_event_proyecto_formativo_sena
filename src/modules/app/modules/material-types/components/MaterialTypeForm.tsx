@@ -6,6 +6,7 @@ import { useMaterialAttributes } from "../../material-attributes/hooks/useMateri
 import { MaterialAttributeForm } from "../../material-attributes/components/AttributeForm";
 import { createMaterialCategory } from "../../../../../services/materialService";
 import type {
+  CreateMaterialAttributePayload,
   CreateMaterialTypePayload,
   MaterialCategory,
   MaterialType,
@@ -21,6 +22,8 @@ interface MaterialTypeFormProps {
   title?: string;
   /** Called after a category is quick-created so the parent can refresh its list. */
   onCategoryCreated?: (category: MaterialCategory) => void;
+  /** Called after an attribute is quick-created so the parent can refresh its list. */
+  onAttributeCreated?: () => void;
 }
 
 export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
@@ -31,6 +34,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
   isEditing = false,
   title = isEditing ? "Update Material Type" : "Create Material Type",
   onCategoryCreated,
+  onAttributeCreated,
 }) => {
   const [formData, setFormData] = useState<CreateMaterialTypePayload>({
     name: "",
@@ -54,7 +58,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
 
   const { showToast } = useToast();
   const { hasPermission } = usePermissions();
-  const { attributes: allAttributes } = useMaterialAttributes();
+  const { attributes: allAttributes, addAttribute, refetch: refetchAttributes } = useMaterialAttributes();
 
   const canCreateCategory = hasPermission("materials:create");
 
@@ -226,12 +230,13 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
     }
   };
 
-  const handleCreateAttribute = async () => {
+  const handleCreateAttribute = async (data: CreateMaterialAttributePayload) => {
     try {
-      // After creating, the attribute is auto-added to the organization
-      // Will be available for next category that includes it
+      await addAttribute(data);
+      await refetchAttributes();
       showToast("success", "Attribute created successfully");
       setShowAttributeForm(false);
+      onAttributeCreated?.();
     } catch (err) {
       showToast("error", (err as Error).message || "Failed to create attribute");
     }
