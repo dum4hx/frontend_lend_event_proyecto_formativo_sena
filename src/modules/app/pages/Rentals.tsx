@@ -1,1 +1,1 @@
-﻿export { Rentals as default } from "./rentals";
+﻿export { Rentals as default } from "./rentals/index";

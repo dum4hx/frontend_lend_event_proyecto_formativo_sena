@@ -53,7 +53,7 @@ export function LocationsTable({
     return <div className="text-red-400 py-8 text-center">{error}</div>;
   }
 
-  if (data.length === 0) {
+  if (!data || data.length === 0) {
     return (
       <div className="text-center py-12">
         <MapPin className="mx-auto w-16 h-16 text-gray-400 mb-4" />

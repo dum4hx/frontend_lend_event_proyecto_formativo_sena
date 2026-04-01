@@ -485,9 +485,7 @@ export function TransferRequests() {
                           {isEs ? "Notas del Remitente" : "Sender Notes"}
                         </th>
                         <th className="px-4 py-3">{isEs ? "Creado" : "Created"}</th>
-                        <th className="px-4 py-3 text-center">
-                          {isEs ? "Acciones" : "Actions"}
-                        </th>
+                        <th className="px-4 py-3 text-center">{isEs ? "Acciones" : "Actions"}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#1a1a1a]">
