@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Settings as SettingsIcon, Lock, Save, RotateCcw } from "lucide-react";
 import { StatCard } from "../../components";
+import { PageHeader } from "../../../../components/ui/PageHeader";
 import { getOrganization, updateOrganization } from "../../../../services/adminService";
 import { ApiError } from "../../../../lib/api";
 import { usePermissions } from "../../../../contexts/usePermissions";
@@ -286,11 +287,11 @@ export default function Settings() {
   }
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-white">{t("settings.title")}</h1>
-        <p className="text-gray-400">{t("settings.description")}</p>
-      </div>
+    <div className="page-container">
+      <PageHeader
+        title={t("settings.title")}
+        subtitle={t("settings.description")}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <StatCard

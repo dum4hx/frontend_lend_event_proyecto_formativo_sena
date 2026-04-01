@@ -49,13 +49,13 @@ function StatCard({
   accent: string;
 }) {
   return (
-    <div className="card flex items-center gap-4 p-4">
+    <div className="bg-[#1a1a1a] border border-[#222] rounded-xl p-4 shadow-lg flex items-center gap-4">
       <div className={`p-3 rounded-xl ${accent}`}>
         <Icon size={22} />
       </div>
       <div>
-        <p className="text-2xl font-bold text-white">{value}</p>
-        <p className="text-gray-400 text-sm">{label}</p>
+        <p className="text-2xl font-black text-white">{value}</p>
+        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">{label}</p>
       </div>
     </div>
   );
@@ -252,87 +252,87 @@ export default function Customers() {
   const loading = customersLoading || docTypesLoading;
 
   return (
-    <div className="min-h-screen bg-black text-white p-4 md:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <PageHeader
-          title={isEs ? "Clientes" : "Customers"}
-          titleAccent=""
-          subtitle={
-            isEs
-              ? "Gestiona los clientes de tu organización"
-              : "Manage your organization's customers"
-          }
-        />
+    <div className="page-container">
+      {/* Header */}
+      <PageHeader
+        title={isEs ? "Clientes" : "Customers"}
+        titleAccent=""
+        subtitle={
+          isEs
+            ? "Gestiona los clientes de tu organización"
+            : "Manage your organization's customers"
+        }
+      />
 
-        {/* Stat Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard
-            icon={Users}
-            label={isEs ? "Total" : "Total"}
-            value={total}
-            accent="bg-yellow-400/10 text-yellow-400"
-          />
-          <StatCard
-            icon={UserCheck}
-            label={isEs ? "Activos" : "Active"}
-            value={activeCount}
-            accent="bg-emerald-400/10 text-emerald-400"
-          />
-          <StatCard
-            icon={UserX}
-            label={isEs ? "Inactivos" : "Inactive"}
-            value={inactiveCount}
-            accent="bg-orange-400/10 text-orange-400"
-          />
-          <StatCard
-            icon={ShieldOff}
-            label={isEs ? "Bloqueados" : "Blocked"}
-            value={blacklistedCount}
-            accent="bg-red-400/10 text-red-400"
-          />
+      {/* Stat Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <StatCard
+          icon={Users}
+          label={isEs ? "Total" : "Total"}
+          value={total}
+          accent="bg-yellow-400/10 text-yellow-400"
+        />
+        <StatCard
+          icon={UserCheck}
+          label={isEs ? "Activos" : "Active"}
+          value={activeCount}
+          accent="bg-emerald-400/10 text-emerald-400"
+        />
+        <StatCard
+          icon={UserX}
+          label={isEs ? "Inactivos" : "Inactive"}
+          value={inactiveCount}
+          accent="bg-orange-400/10 text-orange-400"
+        />
+        <StatCard
+          icon={ShieldOff}
+          label={isEs ? "Bloqueados" : "Blocked"}
+          value={blacklistedCount}
+          accent="bg-red-400/10 text-red-400"
+        />
+      </div>
+
+      {/* API error banner */}
+      {customersError && (
+        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
+          <p className="text-red-400">
+            {customersError instanceof ApiError
+              ? customersError.message
+              : isEs
+                ? "Error al cargar clientes"
+                : "Error loading customers"}
+          </p>
         </div>
+      )}
 
-        {/* API error banner */}
-        {customersError && (
-          <div className="card bg-red-500/10 border-red-500/30">
-            <p className="text-red-400">
-              {customersError instanceof ApiError
-                ? customersError.message
-                : isEs
-                  ? "Error al cargar clientes"
-                  : "Error loading customers"}
-            </p>
-          </div>
-        )}
+      {/* Filters */}
+      <CustomerFilters
+        search={search}
+        onSearchChange={handleSearchChange}
+        statusFilter={statusFilter}
+        onStatusChange={handleStatusChange}
+        documentTypeFilter={docTypeFilter}
+        onDocumentTypeChange={handleDocTypeChange}
+        documentTypes={documentTypes}
+        onCreateClick={() => setShowCreate(true)}
+      />
 
-        {/* Filters */}
-        <CustomerFilters
-          search={search}
-          onSearchChange={handleSearchChange}
-          statusFilter={statusFilter}
-          onStatusChange={handleStatusChange}
-          documentTypeFilter={docTypeFilter}
-          onDocumentTypeChange={handleDocTypeChange}
-          documentTypes={documentTypes}
-          onCreateClick={() => setShowCreate(true)}
-        />
-
-        {/* Table / Loading / Empty */}
-        {loading ? (
-          <div className="card flex flex-col items-center justify-center py-12">
-            <div className="spinner w-8 h-8" />
-            <p className="mt-4 text-gray-400">
-              {isEs ? "Cargando clientes..." : "Loading customers..."}
-            </p>
-          </div>
-        ) : customers.length === 0 ? (
-          <div className="card text-center py-12">
-            <p className="text-gray-400">
-              {isEs ? "No se encontraron clientes" : "No customers found"}
-            </p>
-          </div>
-        ) : (
+      {/* Table / Loading / Empty */}
+      {loading ? (
+        <div className="depth-card flex flex-col items-center justify-center py-12">
+          <div className="spinner w-8 h-8" />
+          <p className="mt-4 text-gray-400">
+            {isEs ? "Cargando clientes..." : "Loading customers..."}
+          </p>
+        </div>
+      ) : customers.length === 0 ? (
+        <div className="depth-card text-center py-12">
+          <p className="text-gray-500 text-sm">
+            {isEs ? "No se encontraron clientes" : "No customers found"}
+          </p>
+        </div>
+      ) : (
+        <div className="depth-card">
           <CustomerTable
             customers={customers}
             loading={loading}
@@ -344,45 +344,45 @@ export default function Customers() {
             onReactivate={(c) => void handleReactivate(c)}
             onDelete={(c) => void handleDelete(c)}
           />
-        )}
+        </div>
+      )}
 
-        {/* Pagination */}
-        {!loading && totalPages > 1 && (
-          <Pagination page={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
-        )}
+      {/* Pagination */}
+      {!loading && totalPages > 1 && (
+        <Pagination page={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+      )}
 
-        {/* ----- Modals ----- */}
-        <CustomerDetailModal
-          open={!!viewCustomer}
-          onClose={() => setViewCustomer(null)}
-          customer={viewCustomer}
-          documentTypes={documentTypes}
-          onEdit={(c) => {
-            setViewCustomer(null);
-            setEditCustomer(c);
-          }}
-        />
+      {/* ----- Modals ----- */}
+      <CustomerDetailModal
+        open={!!viewCustomer}
+        onClose={() => setViewCustomer(null)}
+        customer={viewCustomer}
+        documentTypes={documentTypes}
+        onEdit={(c) => {
+          setViewCustomer(null);
+          setEditCustomer(c);
+        }}
+      />
 
-        <CustomerCreateModal
-          open={showCreate}
-          onClose={() => setShowCreate(false)}
-          documentTypes={documentTypes}
-          onSubmit={handleCreate}
-          loading={createMutation.isPending}
-        />
+      <CustomerCreateModal
+        open={showCreate}
+        onClose={() => setShowCreate(false)}
+        documentTypes={documentTypes}
+        onSubmit={handleCreate}
+        loading={createMutation.isPending}
+      />
 
-        <CustomerEditModal
-          open={!!editCustomer}
-          onClose={() => setEditCustomer(null)}
-          customer={editCustomer}
-          documentTypes={documentTypes}
-          onSubmit={handleUpdate}
-          loading={updateMutation.isPending}
-        />
+      <CustomerEditModal
+        open={!!editCustomer}
+        onClose={() => setEditCustomer(null)}
+        customer={editCustomer}
+        documentTypes={documentTypes}
+        onSubmit={handleUpdate}
+        loading={updateMutation.isPending}
+      />
 
-        {/* Confirm dialog for destructive actions */}
-        <ConfirmModal />
-      </div>
+      {/* Confirm dialog for destructive actions */}
+      <ConfirmModal />
     </div>
   );
 }

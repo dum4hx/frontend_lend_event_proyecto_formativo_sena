@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Plus, Eye, Search, Loader2, AlertCircle } from "lucide-react";
 import { useApiQuery } from "../../../../hooks/useApiQuery";
 import { useLanguage } from "../../../../contexts/useLanguage";
+import { PageHeader } from "../../../../components/ui";
 import { getPackages } from "../../../../services/materialService";
 import type { Package } from "../../../../types/api";
 import CreatePackageModal from "./CreatePackageModal";
@@ -47,27 +48,24 @@ export default function MaterialPlans() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-white">
-            {isEs ? "Planes de Material" : "Material Plans"}
-          </h1>
-          <p className="text-gray-400 mt-1">
-            {isEs
-              ? "Crea y gestiona planes para paquetes de materiales"
-              : "Create and manage rental plans for material bundles"}
-          </p>
-        </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-[8px] font-semibold transition-all gold-action-btn"
-        >
-          <Plus size={20} />
-          {isEs ? "Agregar Plan" : "Add Plan"}
-        </button>
-      </div>
+    <div className="page-container">
+      <PageHeader
+        title={isEs ? "Planes de Material" : "Material Plans"}
+        subtitle={
+          isEs
+            ? "Crea y gestiona planes para paquetes de materiales"
+            : "Create and manage rental plans for material bundles"
+        }
+        actions={
+          <button
+            onClick={() => setShowCreate(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-[8px] font-semibold transition-all gold-action-btn"
+          >
+            <Plus size={20} />
+            {isEs ? "Agregar Plan" : "Add Plan"}
+          </button>
+        }
+      />
 
       {/* Search */}
       <div className="flex-1 max-w-sm relative">

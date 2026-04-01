@@ -10,7 +10,7 @@ import {
   ChevronUp,
   ChevronDown,
 } from "lucide-react";
-import { ErrorDisplay } from "../../../../components/ui";
+import { ErrorDisplay, PageHeader } from "../../../../components/ui";
 import { useApiQuery } from "../../../../hooks/useApiQuery";
 import { useConfirmModal } from "../../../../hooks/useConfirmModal";
 import { getRoles, getPermissions, deleteRole } from "../../../../services/roleService";
@@ -216,24 +216,21 @@ export default function RoleManagement() {
   // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="w-full max-w-full min-h-screen bg-[#121212] px-4 sm:px-6 lg:px-8 py-6 overflow-x-hidden">
+    <div className="page-container">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Role Management</h1>
-            <p className="text-gray-400 text-sm sm:text-base max-w-2xl">
-              Manage organization roles and their permissions. System roles cannot be modified.
-            </p>
-          </div>
-          <button
-            onClick={() => setModal({ type: "create" })}
-            className="w-full sm:w-auto shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 font-semibold rounded-lg transition gold-action-btn"
-          >
-            <Plus size={18} />
-            New Role
-          </button>
-        </div>
+        <PageHeader
+          title="Role Management"
+          subtitle="Manage organization roles and their permissions. System roles cannot be modified."
+          actions={
+            <button
+              onClick={() => setModal({ type: "create" })}
+              className="w-full sm:w-auto shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 font-semibold rounded-lg transition gold-action-btn"
+            >
+              <Plus size={18} />
+              New Role
+            </button>
+          }
+        />
 
         {/* Stat cards */}
         {rolesLoading || permsLoading ? (

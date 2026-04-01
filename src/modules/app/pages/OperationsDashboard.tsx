@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { RefreshCw, MapPin } from "lucide-react";
 import { useAuth } from "../../../contexts/useAuth";
 import { useLanguage } from "../../../contexts/useLanguage";
-import { LoadingSpinner, SearchableSelect } from "../../../components/ui";
+import { LoadingSpinner, SearchableSelect, PageHeader } from "../../../components/ui";
 import { pageVariants } from "../../../lib/animations";
 import { getLocation as fetchLocationById } from "../../../services/warehouseOperatorService";
 import type { WarehouseLocation } from "../../../services/warehouseOperatorService";
@@ -146,54 +146,46 @@ export default function OperationsDashboard() {
       initial="initial"
       animate="animate"
       exit="exit"
-      className="flex flex-col gap-6"
+      className="page-container"
     >
-      {/* Page header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-100">
-            {isEs ? "Panel de Operaciones" : "Operations Dashboard"}
-          </h1>
-          <p className="text-sm text-zinc-500 mt-1">
-            {isEs
-              ? "Vista en tiempo real de las operaciones de tu ubicación."
-              : "Real-time view of your location's operations."}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {/* Location selector — only shown when user has multiple locations */}
-          {locationIds.length > 1 && (
-            <div className="w-52">
-              <SearchableSelect
-                options={locationOptions}
-                value={selectedLocation}
-                onChange={setSelectedLocation}
-                placeholder={isEs ? "Seleccionar ubicación" : "Select location"}
-              />
-            </div>
-          )}
-
-          {/* Current location badge for single-location users */}
-          {locationIds.length === 1 && (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg depth-card text-sm text-zinc-300">
-              <MapPin size={14} className="text-yellow-400" />
-              <span className="text-xs font-medium">
-                {locationMap[selectedLocation] || selectedLocation}
-              </span>
-            </div>
-          )}
-
-          <button
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg depth-card text-sm text-zinc-300 hover:text-white transition-colors disabled:opacity-50"
-          >
-            <RefreshCw size={14} className={isRefreshing ? "animate-spin" : ""} />
-            {isEs ? "Actualizar" : "Refresh"}
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title={isEs ? "Panel de Operaciones" : "Operations Dashboard"}
+        subtitle={
+          isEs
+            ? "Vista en tiempo real de las operaciones de tu ubicación."
+            : "Real-time view of your location's operations."
+        }
+        actions={
+          <div className="flex items-center gap-3">
+            {locationIds.length > 1 && (
+              <div className="w-52">
+                <SearchableSelect
+                  options={locationOptions}
+                  value={selectedLocation}
+                  onChange={setSelectedLocation}
+                  placeholder={isEs ? "Seleccionar ubicación" : "Select location"}
+                />
+              </div>
+            )}
+            {locationIds.length === 1 && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg depth-card text-sm text-zinc-300">
+                <MapPin size={14} className="text-yellow-400" />
+                <span className="text-xs font-medium">
+                  {locationMap[selectedLocation] || selectedLocation}
+                </span>
+              </div>
+            )}
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg depth-card text-sm text-zinc-300 hover:text-white transition-colors disabled:opacity-50"
+            >
+              <RefreshCw size={14} className={isRefreshing ? "animate-spin" : ""} />
+              {isEs ? "Actualizar" : "Refresh"}
+            </button>
+          </div>
+        }
+      />
 
       {/* KPI Bar — always visible */}
       {isInitialLoading ? (

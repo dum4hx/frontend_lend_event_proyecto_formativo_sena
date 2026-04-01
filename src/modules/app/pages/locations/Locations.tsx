@@ -9,7 +9,7 @@ import { motion } from "framer-motion";
 import { Plus, Download, Upload } from "lucide-react";
 import * as XLSX from "xlsx";
 import { pageVariants } from "../../../../lib/animations";
-import { ConfirmDialog } from "../../../../components/ui";
+import { ConfirmDialog, PageHeader } from "../../../../components/ui";
 import { ExportSettingsModal } from "../../../../components/export/ExportSettingsModal";
 import { exportService, LOCATIONS_POLICY } from "../../../../services/export";
 import {
@@ -393,45 +393,42 @@ export function Locations() {
 
   return (
     <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
-      <div className="page-container space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-white">
-              {isEs ? "Ubicaciones del almacén" : "Warehouse Locations"}
-            </h1>
-            <p className="text-gray-400">
-              {isEs
-                ? "Gestiona zonas y ubicaciones de almacén"
-                : "Manage warehouse zones and storage locations"}
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setExportOpen(true)}
-              className="export-btn flex items-center gap-2"
-            >
-              <Download size={18} />
-              {isEs ? "Exportar" : "Export"}
-            </button>
-            <button
-              onClick={() => setShowImportModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-[#1a1a1a] border border-[#333] text-gray-300 rounded-lg hover:bg-[#222] hover:border-[#444] hover:text-white transition-all"
-            >
-              <Upload size={18} />
-              {isEs ? "Importar" : "Import"}
-            </button>
-            {hasPermission("locations:create") && (
+      <div className="page-container">
+        <PageHeader
+          title={isEs ? "Ubicaciones del almacén" : "Warehouse Locations"}
+          subtitle={
+            isEs
+              ? "Gestiona zonas y ubicaciones de almacén"
+              : "Manage warehouse zones and storage locations"
+          }
+          actions={
+            <div className="flex items-center gap-3">
               <button
-                onClick={() => setCreateOpen(true)}
-                className="flex items-center gap-2 bg-[#FFD700] text-black font-semibold px-4 py-2 rounded-lg hover:bg-[#FFC107] transition-all"
+                onClick={() => setExportOpen(true)}
+                className="export-btn flex items-center gap-2"
               >
-                <Plus size={20} />
-                {isEs ? "Agregar ubicación" : "Add Location"}
+                <Download size={18} />
+                {isEs ? "Exportar" : "Export"}
               </button>
-            )}
-          </div>
-        </div>
+              <button
+                onClick={() => setShowImportModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-[#1a1a1a] border border-[#333] text-gray-300 rounded-lg hover:bg-[#222] hover:border-[#444] hover:text-white transition-all"
+              >
+                <Upload size={18} />
+                {isEs ? "Importar" : "Import"}
+              </button>
+              {hasPermission("locations:create") && (
+                <button
+                  onClick={() => setCreateOpen(true)}
+                  className="flex items-center gap-2 bg-[#FFD700] text-black font-semibold px-4 py-2 rounded-lg hover:bg-[#FFC107] transition-all"
+                >
+                  <Plus size={20} />
+                  {isEs ? "Agregar ubicación" : "Add Location"}
+                </button>
+              )}
+            </div>
+          }
+        />
 
         {/* Stats */}
         <div className="stat-grid">

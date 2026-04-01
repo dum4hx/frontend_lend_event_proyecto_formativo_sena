@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { CreditCard, Users, XCircle, ExternalLink, Download } from "lucide-react";
 import { StatCard } from "../../components";
+import { PageHeader } from "../../../../components/ui";
 import {
   getBillingHistory,
   createPortalSession,
@@ -371,7 +372,7 @@ export default function SubscriptionManagement() {
   const isOwner = user?.roleName === "owner";
 
   return (
-    <div className="w-full max-w-full overflow-x-hidden">
+    <div className="page-container">
       {/* Alerts */}
       <AlertContainer alerts={alerts} onDismiss={dismissAlert} position="top-right" />
 
@@ -429,27 +430,24 @@ export default function SubscriptionManagement() {
         onCancel={handleCancelExport}
       />
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white">
-            {isEs ? "Gestion de suscripcion" : "Subscription Management"}
-          </h1>
-          <p className="text-gray-400 mt-1">
-            {isEs
-              ? "Gestiona tu plan, asientos e historial de facturacion"
-              : "Manage your plan, seats, and billing history"}
-          </p>
-        </div>
-        <button
-          onClick={() => setExportOpen(true)}
-          className="export-btn w-full sm:w-auto flex items-center justify-center gap-2"
-          disabled={history.length === 0}
-        >
-          <Download size={18} />
-          {isEs ? "Exportar historial" : "Export History"}
-        </button>
-      </div>
+      <PageHeader
+        title={isEs ? "Gestion de suscripcion" : "Subscription Management"}
+        subtitle={
+          isEs
+            ? "Gestiona tu plan, asientos e historial de facturacion"
+            : "Manage your plan, seats, and billing history"
+        }
+        actions={
+          <button
+            onClick={() => setExportOpen(true)}
+            className="export-btn w-full sm:w-auto flex items-center justify-center gap-2"
+            disabled={history.length === 0}
+          >
+            <Download size={18} />
+            {isEs ? "Exportar historial" : "Export History"}
+          </button>
+        }
+      />
 
       {loading ? (
         <div className="space-y-6">

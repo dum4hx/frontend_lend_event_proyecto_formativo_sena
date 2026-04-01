@@ -195,7 +195,8 @@
   /* ── Layout ─────────────────────────────────────────────────────────── */
 
   .page-container {
-    @apply p-6 md:p-10 space-y-8;
+    @apply p-6 md:p-10 space-y-10;
+    animation: fadeIn 0.5s ease-out;
   }
 
   .section-title {

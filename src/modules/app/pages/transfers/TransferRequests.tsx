@@ -18,7 +18,7 @@ import {
   getTransfers,
 } from "../../../../services/transferService";
 import { getLocations } from "../../../../services/warehouseOperatorService";
-import { AnimatedPage } from "../../../../components/ui";
+import { AnimatedPage, PageHeader } from "../../../../components/ui";
 import {
   REQUEST_STATUS_LABEL,
   getRequestStatusLabel,
@@ -235,30 +235,26 @@ export function TransferRequests() {
   // ── Render ──
   return (
     <AnimatedPage>
-      <div className="p-6 space-y-6">
-        {/* Page header */}
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-              <ArrowLeftRight size={26} className="text-[#FFD700]" />
-              {isEs ? "Solicitudes de Transferencia" : "Transfer Requests"}
-            </h1>
-            <p className="text-sm text-gray-400 mt-1">
-              {isEs
-                ? "Gestiona transferencias de material entre ubicaciones"
-                : "Manage material transfers between locations"}
-            </p>
-          </div>
-          {canCreate && (
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 h-10 px-5 bg-[#FFD700] hover:bg-[#FFD700]/90 text-black font-semibold rounded text-sm transition-all shadow-md hover:shadow-lg active:scale-95 shrink-0"
-            >
-              <Plus size={16} />
-              {isEs ? "Nueva Solicitud" : "New Request"}
-            </button>
-          )}
-        </div>
+      <div className="page-container">
+        <PageHeader
+          title={isEs ? "Solicitudes de Transferencia" : "Transfer Requests"}
+          subtitle={
+            isEs
+              ? "Gestiona transferencias de material entre ubicaciones"
+              : "Manage material transfers between locations"
+          }
+          actions={
+            canCreate ? (
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="flex items-center gap-2 h-10 px-5 bg-[#FFD700] hover:bg-[#FFD700]/90 text-black font-semibold rounded text-sm transition-all shadow-md hover:shadow-lg active:scale-95 shrink-0"
+              >
+                <Plus size={16} />
+                {isEs ? "Nueva Solicitud" : "New Request"}
+              </button>
+            ) : undefined
+          }
+        />
 
         {/* Tabs */}
         <div className="flex gap-1 bg-[#111] border border-[#222] rounded-lg p-1 w-fit">

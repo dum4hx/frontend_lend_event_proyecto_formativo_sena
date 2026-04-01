@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { AlertTriangle, Users, Calendar, DollarSign, Clock, ShoppingCart, FileText, UserCircle, Package, ArrowRight, CheckCircle2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { StatCard, AdminTable } from "../components";
+import { PageHeader } from "../../../components/ui";
 import { useDashboardStats } from "../hooks/useDashboardStats";
 import { useLanguage } from "../../../contexts/useLanguage";
 
@@ -67,20 +68,19 @@ export default function AdminDashboard() {
   }, [stats?.recentOverdueLoans, stats?.fetchedAt]);
 
   return (
-    <div className="space-y-8">
-      {/* ── Header ── */}
-      <div>
-        <h1 className="text-3xl font-bold text-white">{isEs ? "Panel" : "Dashboard"}</h1>
-        <p className="text-gray-400">
-          {error
+    <div className="page-container">
+      <PageHeader
+        title={isEs ? "Panel" : "Dashboard"}
+        subtitle={
+          error
             ? isEs
               ? "Hubo un problema al cargar los datos"
               : "There was a problem loading the data"
             : isEs
               ? "Bienvenido de nuevo. Aqui tienes tu resumen"
-              : "Welcome back! Here's your overview"}
-        </p>
-      </div>
+              : "Welcome back! Here's your overview"
+        }
+      />
 
       {/* ── Error banner ── */}
       {error && (

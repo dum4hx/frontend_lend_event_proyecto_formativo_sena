@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Plus, X, CreditCard } from "lucide-react";
-import { Button, IconButton } from "../../../../components/ui";
+import { Button, IconButton, PageHeader } from "../../../../components/ui";
 import type {
   Customer,
   CreateLoanRequestPayload,
@@ -460,26 +460,26 @@ export function Orders() {
   /* ── Render ─────────────────────────────────────────── */
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold text-white">{isEs ? "Pedidos" : "Orders"}</h1>
-          <p className="text-gray-400 mt-1">
-            {isEs
-              ? "Cree, apruebe y rastree el ciclo de vida de los pedidos desde un solo lugar"
-              : "Create, approve, and track order lifecycle from one place"}
-          </p>
-        </div>
-        <Button
-          leftIcon={Plus}
-          onClick={() => setShowCreateModal(true)}
-          disabled={!canCreateRequest}
-          variant="outline"
-          className="w-full sm:w-auto border-[#FFD700]/40 text-[#FFD700] bg-[#FFD700]/8 hover:bg-[#FFD700]/16"
-        >
-          {isEs ? "Nuevo Pedido" : "New Order"}
-        </Button>
-      </div>
+    <div className="page-container">
+      <PageHeader
+        title={isEs ? "Pedidos" : "Orders"}
+        subtitle={
+          isEs
+            ? "Cree, apruebe y rastree el ciclo de vida de los pedidos desde un solo lugar"
+            : "Create, approve, and track order lifecycle from one place"
+        }
+        actions={
+          <Button
+            leftIcon={Plus}
+            onClick={() => setShowCreateModal(true)}
+            disabled={!canCreateRequest}
+            variant="outline"
+            className="w-full sm:w-auto border-[#FFD700]/40 text-[#FFD700] bg-[#FFD700]/8 hover:bg-[#FFD700]/16"
+          >
+            {isEs ? "Nuevo Pedido" : "New Order"}
+          </Button>
+        }
+      />
 
       {loadWarning && (
         <div className="rounded-lg border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-200">

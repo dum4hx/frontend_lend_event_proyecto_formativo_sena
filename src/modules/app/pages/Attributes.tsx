@@ -13,6 +13,7 @@ import { useToast } from "../../../contexts/ToastContext";
 import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
 import { LoadingSpinner } from "../../../components/ui/LoadingSpinner";
 import { ErrorDisplay } from "../../../components/ui/ErrorDisplay";
+import { PageHeader } from "../../../components/ui/PageHeader";
 import type { MaterialAttribute, CreateMaterialAttributePayload } from "../../../types/api";
 import { usePermissions } from "../../../contexts/usePermissions";
 
@@ -105,32 +106,29 @@ export default function Attributes() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-white">
-            {isEs ? "Atributos de Materiales" : "Material Attributes"}
-          </h1>
-          <p className="text-gray-400 mt-1">
-            {isEs
-              ? "Define métricas reutilizables para el catálogo"
-              : "Define reusable metrics for material catalog items"}
-          </p>
-        </div>
-        {canCreate && (
-          <button
-            onClick={() => {
-              setSelectedAttribute(undefined);
-              setIsModalOpen(true);
-            }}
-            className="flex items-center gap-2 px-4 py-2 bg-[#FFD700] text-black rounded-[8px] font-semibold hover:bg-[#FFC700] transition-all"
-          >
-            <Plus size={20} />
-            {isEs ? "Agregar Atributo" : "Add Attribute"}
-          </button>
-        )}
-      </div>
+    <div className="page-container">
+      <PageHeader
+        title={isEs ? "Atributos de Materiales" : "Material Attributes"}
+        subtitle={
+          isEs
+            ? "Define métricas reutilizables para el catálogo"
+            : "Define reusable metrics for material catalog items"
+        }
+        actions={
+          canCreate ? (
+            <button
+              onClick={() => {
+                setSelectedAttribute(undefined);
+                setIsModalOpen(true);
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-[#FFD700] text-black rounded-[8px] font-semibold hover:bg-[#FFC700] transition-all"
+            >
+              <Plus size={20} />
+              {isEs ? "Agregar Atributo" : "Add Attribute"}
+            </button>
+          ) : undefined
+        }
+      />
 
       {/* Search */}
       <div className="relative">

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Plus, Search, ChevronDown, DollarSign, Calculator, Loader2, Trash2 } from "lucide-react";
-import { Button } from "../../../../components/ui";
+import { Button, PageHeader } from "../../../../components/ui";
 import {
   getPricingConfigs,
   getPricingConfig,
@@ -318,34 +318,33 @@ export default function PricingConfigs() {
 
   // ── Render ────────────────────────────────────────────────────────────
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-white">Pricing Configurations</h1>
-          <p className="text-gray-400 mt-1">Manage pricing strategies for materials and packages</p>
-        </div>
-        <div className="flex gap-3">
-          {canPreview && (
-            <Button
-              leftIcon={Calculator}
-              variant="secondary"
-              onClick={() => {
-                setPreviewResult(null);
-                setPreviewForm(EMPTY_PREVIEW_FORM);
-                setShowPreviewModal(true);
-              }}
-            >
-              Price Preview
-            </Button>
-          )}
-          {canCreate && (
-            <Button leftIcon={Plus} onClick={handleOpenCreate} className="gold-action-btn">
-              New Config
-            </Button>
-          )}
-        </div>
-      </div>
+    <div className="page-container">
+      <PageHeader
+        title="Pricing Configurations"
+        subtitle="Manage pricing strategies for materials and packages"
+        actions={
+          <div className="flex gap-3">
+            {canPreview && (
+              <Button
+                leftIcon={Calculator}
+                variant="secondary"
+                onClick={() => {
+                  setPreviewResult(null);
+                  setPreviewForm(EMPTY_PREVIEW_FORM);
+                  setShowPreviewModal(true);
+                }}
+              >
+                Price Preview
+              </Button>
+            )}
+            {canCreate && (
+              <Button leftIcon={Plus} onClick={handleOpenCreate} className="gold-action-btn">
+                New Config
+              </Button>
+            )}
+          </div>
+        }
+      />
 
       {/* Filters */}
       <div className="flex gap-4 flex-wrap">

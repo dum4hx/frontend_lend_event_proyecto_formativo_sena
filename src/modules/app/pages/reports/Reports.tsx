@@ -13,6 +13,7 @@ import {
   ShoppingCart,
 } from "lucide-react";
 import { StatCard } from "../../components";
+import { PageHeader } from "../../../../components/ui";
 import { getCustomers } from "../../../../services/customerService";
 import { getRequests, getLoans } from "../../../../services/loanService";
 import { getInvoices, getInvoicesSummary } from "../../../../services/invoiceService";
@@ -786,36 +787,31 @@ export default function Reports() {
   // ─── Render ────────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-white">
-            {isEs ? "Reportes y analitica" : "Reports & Analytics"}
-          </h1>
-          <p className="text-gray-400 mt-1">
-            {isEs ? "Explora datos en todos los modulos" : "Explore data across all modules"}
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => void fetchData()}
-            disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 bg-zinc-800 border border-zinc-700 text-gray-300 rounded-lg hover:border-yellow-400 hover:text-white transition disabled:opacity-50"
-          >
-            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-            {isEs ? "Actualizar" : "Refresh"}
-          </button>
-          <button
-            onClick={handleExport}
-            disabled={loading || rows.length === 0}
-            className="flex items-center gap-2 px-4 py-2 gold-action-btn font-semibold rounded-lg transition disabled:opacity-50"
-          >
-            <Download size={16} />
-            {isEs ? "Exportar CSV" : "Export CSV"}
-          </button>
-        </div>
-      </div>
+    <div className="page-container">
+      <PageHeader
+        title={isEs ? "Reportes y analitica" : "Reports & Analytics"}
+        subtitle={isEs ? "Explora datos en todos los modulos" : "Explore data across all modules"}
+        actions={
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => void fetchData()}
+              disabled={loading}
+              className="flex items-center gap-2 px-4 py-2 bg-zinc-800 border border-zinc-700 text-gray-300 rounded-lg hover:border-yellow-400 hover:text-white transition disabled:opacity-50"
+            >
+              <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+              {isEs ? "Actualizar" : "Refresh"}
+            </button>
+            <button
+              onClick={handleExport}
+              disabled={loading || rows.length === 0}
+              className="flex items-center gap-2 px-4 py-2 gold-action-btn font-semibold rounded-lg transition disabled:opacity-50"
+            >
+              <Download size={16} />
+              {isEs ? "Exportar CSV" : "Export CSV"}
+            </button>
+          </div>
+        }
+      />
 
       {/* Module Tabs */}
       <div className="flex flex-wrap gap-2">

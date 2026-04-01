@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { RefreshCcw, FileText, DollarSign, Filter } from "lucide-react";
-import { AnimatedPage, LoadingSpinner, ErrorDisplay, StatCard } from "../../../../components/ui";
+import { AnimatedPage, LoadingSpinner, ErrorDisplay, StatCard, PageHeader } from "../../../../components/ui";
 import PaymentRecordingModal from "../../components/PaymentRecordingModal";
 import VoidInvoiceModal from "../../components/VoidInvoiceModal";
 import InvoiceDetailModal from "../../components/InvoiceDetailModal";
@@ -189,28 +189,26 @@ export function Invoices() {
 
   return (
     <AnimatedPage>
-      <div className="p-6 md:p-10 space-y-10">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
-          <div>
-            <h1 className="text-3xl font-extrabold text-white tracking-tight">
-              Invoices <span className="text-[#FFD700]">Dashboard</span>
-            </h1>
-            <p className="text-gray-400 mt-2 text-sm max-w-lg">
-              {isEs
-                ? "Gestiona, rastrea y procesa pagos de facturas. Genera reportes de ingresos."
-                : "Manage, track, and process invoice payments. Generate income reports."}
-            </p>
-          </div>
-          <button
-            onClick={() => refetch()}
-            disabled={loading}
-            className="p-3 bg-[#1a1a1a] border border-[#333] text-gray-400 hover:text-white hover:border-[#444] rounded-xl transition-all disabled:opacity-50"
-            title={isEs ? "Actualizar" : "Refresh"}
-          >
-            <RefreshCcw className={`w-5 h-5 ${loading ? "animate-spin" : ""}`} />
-          </button>
-        </div>
+      <div className="page-container">
+        <PageHeader
+          title="Invoices"
+          titleAccent="Dashboard"
+          subtitle={
+            isEs
+              ? "Gestiona, rastrea y procesa pagos de facturas. Genera reportes de ingresos."
+              : "Manage, track, and process invoice payments. Generate income reports."
+          }
+          actions={
+            <button
+              onClick={() => refetch()}
+              disabled={loading}
+              className="p-3 bg-[#1a1a1a] border border-[#333] text-gray-400 hover:text-white hover:border-[#444] rounded-xl transition-all disabled:opacity-50"
+              title={isEs ? "Actualizar" : "Refresh"}
+            >
+              <RefreshCcw className={`w-5 h-5 ${loading ? "animate-spin" : ""}`} />
+            </button>
+          }
+        />
 
         {/* Summary Stats */}
         {summary && (

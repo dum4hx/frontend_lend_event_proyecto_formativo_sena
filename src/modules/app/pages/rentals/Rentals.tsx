@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AnimatedPage } from "../../../../components/ui";
+import { AnimatedPage, PageHeader } from "../../../../components/ui";
 import { getLoans, extendLoan, returnLoan, refundDeposit } from "../../../../services/loanService";
 import { getCustomers } from "../../../../services/customerService";
 import { useAlertModal } from "../../../../hooks/useAlertModal";
@@ -214,18 +214,15 @@ export function Rentals() {
 
   return (
     <AnimatedPage>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-white">{isEs ? "Prestamos" : "Loans"}</h1>
-            <p className="text-gray-400 mt-1">
-              {isEs
-                ? "Haz seguimiento de prestamos activos y devoluciones"
-                : "Track active loans and manage returns"}
-            </p>
-          </div>
-        </div>
+      <div className="page-container">
+        <PageHeader
+          title={isEs ? "Prestamos" : "Loans"}
+          subtitle={
+            isEs
+              ? "Haz seguimiento de prestamos activos y devoluciones"
+              : "Track active loans and manage returns"
+          }
+        />
 
         {/* Filters */}
         <RentalsFilters

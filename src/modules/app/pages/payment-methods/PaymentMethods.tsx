@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Plus, Search, Pencil, Trash2, Loader2, CreditCard, RefreshCcw, Lock } from "lucide-react";
-import { Button, IconButton } from "../../../../components/ui";
+import { Button, IconButton, PageHeader } from "../../../../components/ui";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import { useToast } from "../../../../hooks/useToast";
 import { getPaymentMethods, deletePaymentMethod } from "../../../../services/paymentMethodService";
@@ -91,35 +91,32 @@ export default function PaymentMethods() {
   const isModalOpen = showCreate || editingMethod !== null;
 
   return (
-    <div className="p-6 md:p-10 space-y-10 animate-in fade-in duration-500">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
-        <div>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight">
-            {isEs ? "Métodos de" : "Payment"}{" "}
-            <span className="text-[#FFD700]">{isEs ? "Pago" : "Methods"}</span>
-          </h1>
-          <p className="text-gray-400 mt-2 text-sm max-w-lg">
-            {isEs
-              ? "Gestiona los métodos de pago aceptados por la organización."
-              : "Manage the payment methods accepted by your organization."}
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={load}
-            disabled={loading}
-            className="p-3 bg-[#1a1a1a] border border-[#333] text-gray-400 hover:text-white hover:border-[#444] rounded-xl transition-all disabled:opacity-50"
-            title={isEs ? "Actualizar" : "Refresh"}
-          >
-            <RefreshCcw className={`w-5 h-5 ${loading ? "animate-spin" : ""}`} />
-          </button>
-          <Button variant="primary" size="md" onClick={() => setShowCreate(true)}>
-            <Plus size={16} className="mr-2" />
-            {isEs ? "Nuevo Método" : "New Method"}
-          </Button>
-        </div>
-      </div>
+    <div className="page-container">
+      <PageHeader
+        title={isEs ? "Métodos de" : "Payment"}
+        titleAccent={isEs ? "Pago" : "Methods"}
+        subtitle={
+          isEs
+            ? "Gestiona los métodos de pago aceptados por la organización."
+            : "Manage the payment methods accepted by your organization."
+        }
+        actions={
+          <div className="flex items-center gap-3">
+            <button
+              onClick={load}
+              disabled={loading}
+              className="p-3 bg-[#1a1a1a] border border-[#333] text-gray-400 hover:text-white hover:border-[#444] rounded-xl transition-all disabled:opacity-50"
+              title={isEs ? "Actualizar" : "Refresh"}
+            >
+              <RefreshCcw className={`w-5 h-5 ${loading ? "animate-spin" : ""}`} />
+            </button>
+            <Button variant="primary" size="md" onClick={() => setShowCreate(true)}>
+              <Plus size={16} className="mr-2" />
+              {isEs ? "Nuevo Método" : "New Method"}
+            </Button>
+          </div>
+        }
+      />
 
       {/* Search */}
       <div className="relative w-full group">
