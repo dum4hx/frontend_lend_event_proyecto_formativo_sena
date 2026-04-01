@@ -32,6 +32,7 @@
    - [Invoice Endpoints](#invoice-endpoints)
    - [Analytics Endpoints (Organization)](#analytics-endpoints-organization)
    - [Reports Endpoints](#reports-endpoints)
+   - [Operations Endpoints (Location Dashboard)](#operations-endpoints-location-dashboard)
 5. [Code Samples](#5-code-samples)
 6. [Rate Limiting and Usage Guidelines](#6-rate-limiting-and-usage-guidelines)
 7. [Versioning and Deprecation Policy](#7-versioning-and-deprecation-policy)
@@ -1185,13 +1186,13 @@ Delete a custom role belonging to the current organization.
 
 ### Permissions
 
-The permissions endpoint exposes all active, organization-assignable permissions from the database. It is intended for UI role editors so users can build a labelled, categorised permission picker without hard-coding permission strings on the client.
+The permissions endpoint serves the system's permission catalogue directly from the canonical `permissions.json` definitions file (no DB round-trip). It is intended for UI role editors so consumers can build a labelled, categorised permission picker without hard-coding permission strings on the client.
 
-**Super-admin-only permissions are excluded** — only permissions that can legally be assigned to an organization role are returned.
+**Platform-only permissions are excluded by default** — only permissions assignable to organization roles are returned unless `includePlatform=true` is provided.
 
 #### GET /permissions
 
-Returns all active permissions that can be assigned to organization roles, sorted by category then identifier.
+Returns the permission catalogue with optional filtering and grouping.
 
 **Authentication Required:** Yes
 
@@ -1199,49 +1200,79 @@ Returns all active permissions that can be assigned to organization roles, sorte
 
 **Permission Required:** `permissions:read`
 
-**Filters applied server-side:**
+| Parameter       | Location | Type    | Required | Description                                                                                    |
+| --------------- | -------- | ------- | -------- | ---------------------------------------------------------------------------------------------- |
+| category        | query    | string  | No       | Filter to a single category (e.g. `Transfers`, `Materials`, `Roles`)                           |
+| includePlatform | query    | boolean | No       | When `true`, includes platform-only permissions (default: `false`)                             |
+| grouped         | query    | boolean | No       | When `true`, returns permissions grouped by category instead of a flat list (default: `false`) |
 
-- `isPlatformPermission: false` — excludes super-admin-only capabilities (e.g. `platform:manage`, `subscription_types:*`)
-- `isActive: true` — excludes soft-disabled permissions
-
-**Response:** `200 OK`
+**Flat response** (`GET /permissions`):
 
 ```json
 {
   "status": "success",
-  "data": {
-    "permissions": [
-      {
-        "_id": "customers:create",
-        "displayName": "Create Customers",
-        "description": "Allows creating new customer records",
-        "category": "Customers"
-      },
-      {
-        "_id": "materials:read",
-        "displayName": "Read Materials",
-        "description": "Allows viewing material types and instances",
-        "category": "Materials"
-      },
-      {
-        "_id": "roles:read",
-        "displayName": "Read Roles",
-        "description": "Allows listing and viewing organization roles",
-        "category": "Roles"
-      }
-    ]
-  }
+  "data": [
+    {
+      "id": "customers:create",
+      "displayName": "Create Customers",
+      "description": "Allows registering new customers/clients in the system.",
+      "category": "Customers",
+      "isPlatformPermission": false
+    },
+    {
+      "id": "materials:read",
+      "displayName": "View Materials",
+      "description": "Allows browsing the inventory and material catalog.",
+      "category": "Materials",
+      "isPlatformPermission": false
+    }
+  ]
+}
+```
+
+**Grouped response** (`GET /permissions?grouped=true`):
+
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "category": "Customers",
+      "permissions": [
+        {
+          "id": "customers:create",
+          "displayName": "Create Customers",
+          "description": "Allows registering new customers/clients in the system.",
+          "category": "Customers",
+          "isPlatformPermission": false
+        }
+      ]
+    },
+    {
+      "category": "Materials",
+      "permissions": [
+        {
+          "id": "materials:read",
+          "displayName": "View Materials",
+          "description": "Allows browsing the inventory and material catalog.",
+          "category": "Materials",
+          "isPlatformPermission": false
+        }
+      ]
+    }
+  ]
 }
 ```
 
 **Response fields per permission object:**
 
-| Field         | Type   | Description                                             |
-| ------------- | ------ | ------------------------------------------------------- |
-| `_id`         | string | Permission identifier in `resource:action` format       |
-| `displayName` | string | Human-readable label for UI display                     |
-| `description` | string | Short description of what granting this permission does |
-| `category`    | string | Grouping category (e.g. `Materials`, `Roles`, `Users`)  |
+| Field                  | Type    | Description                                                |
+| ---------------------- | ------- | ---------------------------------------------------------- |
+| `id`                   | string  | Permission identifier in `resource:action` format          |
+| `displayName`          | string  | Human-readable label for UI display                        |
+| `description`          | string  | Short description of what granting this permission does    |
+| `category`             | string  | Grouping category (e.g. `Materials`, `Roles`, `Transfers`) |
+| `isPlatformPermission` | boolean | Whether this is a platform-only (super-admin) permission   |
 
 ---
 
@@ -3433,6 +3464,103 @@ curl -X DELETE https://api.test.local/api/v1/materials/types/64f1a2b3c4d5e6f7a8b
 
 ---
 
+#### GET /materials/catalog/overview
+
+Returns a comprehensive, aggregation-driven operational view of the catalog and item status. All metrics and alerts are computed in a single MongoDB aggregation pipeline — no instances are loaded into application memory.
+
+**Authentication:** Required  
+**Permission:** `materials:read`
+
+**Query Parameters:**
+
+| Parameter        | Type   | Required | Description                                              |
+| ---------------- | ------ | -------- | -------------------------------------------------------- |
+| `locationId`     | string | No       | Limit scope to a specific location (org-wide if omitted) |
+| `categoryId`     | string | No       | Filter material types by category                        |
+| `materialTypeId` | string | No       | Filter to a single material type                         |
+| `search`         | string | No       | Case-insensitive text search on material type name       |
+| `page`           | number | No       | Page number (default: 1)                                 |
+| `limit`          | number | No       | Items per page (default: 50)                             |
+
+**Example Request:**
+
+```http
+GET /api/v1/materials/catalog/overview
+GET /api/v1/materials/catalog/overview?locationId=<id>
+GET /api/v1/materials/catalog/overview?categoryId=<id>&search=tent&page=1&limit=20
+```
+
+**Success Response (200):**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "summary": {
+      "totalMaterialTypes": 12,
+      "totalInstances": 340,
+      "globalAvailabilityRate": 0.6471,
+      "globalUtilizationRate": 0.2353,
+      "materialTypesWithLowStock": 2,
+      "materialTypesWithHighDamage": 1
+    },
+    "materialTypes": [
+      {
+        "materialTypeId": "64f1a2b3c4d5e6f7a8b9c0d1",
+        "name": "Camping Tent 4-person",
+        "pricePerDay": 25000,
+        "categories": [{ "categoryId": "64f1a2b3c4d5e6f7a8b9c0e1", "name": "Camping" }],
+        "totals": {
+          "totalInstances": 20,
+          "available": 12,
+          "reserved": 3,
+          "loaned": 4,
+          "inUse": 0,
+          "returned": 0,
+          "maintenance": 1,
+          "damaged": 0,
+          "lost": 0,
+          "retired": 0
+        },
+        "metrics": {
+          "availabilityRate": 0.6,
+          "utilizationRate": 0.2,
+          "damageRate": 0.0,
+          "repairRate": 0.05,
+          "reservationPressure": 0.15
+        },
+        "alerts": []
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "total": 12,
+      "totalPages": 1
+    }
+  }
+}
+```
+
+**Alert Types:**
+
+| Alert Type         | Condition                                          | Severity                          |
+| ------------------ | -------------------------------------------------- | --------------------------------- |
+| `LOW_STOCK`        | `available < 20%` of total **and** `available < 5` | `high` (if 0 available), `medium` |
+| `HIGH_UTILIZATION` | `(loaned + inUse) / total > 0.8`                   | `high`                            |
+| `HIGH_DAMAGE_RATE` | `damaged / total > 0.1`                            | `high`                            |
+| `HIGH_DAMAGE_RATE` | `damaged / total > 0.05`                           | `medium`                          |
+| `OVER_RESERVED`    | `reserved > available`                             | `medium`                          |
+
+**Error Responses:**
+
+| Status | Condition                | Message        |
+| ------ | ------------------------ | -------------- |
+| 401    | Not authenticated        | `Unauthorized` |
+| 403    | Missing `materials:read` | `Forbidden`    |
+
+---
+
 #### GET /materials/instances
 
 Lists all material instances. Supports three display modes controlled by query parameters:
@@ -3676,6 +3804,7 @@ Creates a new transfer request to move materials between locations. Items are sp
 | toLocationId   | body     | string | Yes      | Destination location ID                                      |
 | items          | body     | array  | Yes      | List of `{ modelId: string, quantity: number }` (min 1 item) |
 | notes          | body     | string | No       | Request notes                                                |
+| neededBy       | body     | string | No       | ISO 8601 date — deadline by which the transfer is needed     |
 
 **Permission Required:** `transfers:create`
 
@@ -3714,13 +3843,23 @@ Lists all transfer requests for the organization. By default, **fulfilled** requ
 
 #### PATCH /transfers/requests/:id/respond
 
-Approves or rejects a transfer request.
+Approves or rejects a transfer request. **Only users assigned to the source location can respond to the request.** When rejecting, a `rejectionReasonId` from the organization's rejection reason catalogue is required.
 
-| Parameter | Location | Type   | Required | Description                          |
-| --------- | -------- | ------ | -------- | ------------------------------------ |
-| status    | body     | string | Yes      | New status: `approved` or `rejected` |
+| Parameter         | Location | Type   | Required                   | Description                                       |
+| ----------------- | -------- | ------ | -------------------------- | ------------------------------------------------- |
+| status            | body     | string | Yes                        | New status: `approved` or `rejected`              |
+| rejectionReasonId | body     | string | Yes (when status=rejected) | ID of a valid, active `TransferRejectionReason`   |
+| rejectionNote     | body     | string | No                         | Free-text note explaining the rejection (max 500) |
 
 **Permission Required:** `transfers:update`
+
+**Location Requirement:** User must be assigned to the source location (`fromLocationId`) of the transfer request.
+
+**Error Responses:**
+
+- `400` — Missing rejection reason when rejecting
+- `403` — User not assigned to the source location
+- `404` — Rejection reason not found or inactive; User not found
 
 ---
 
@@ -3766,6 +3905,92 @@ Lists all physical transfers.
 Gets detailed information about a specific transfer, including item details.
 
 **Permission Required:** `transfers:read`
+
+---
+
+### Transfer Rejection Reason Endpoints
+
+Org-scoped catalogue of reasons for denying transfer requests. Default entries are seeded at organization registration and cannot be deleted.
+
+#### GET /transfers/rejection-reasons
+
+Lists rejection reasons for the organization. Active reasons only by default.
+
+| Parameter       | Location | Type    | Required | Description                              |
+| --------------- | -------- | ------- | -------- | ---------------------------------------- |
+| includeInactive | query    | boolean | No       | If `true`, includes inactive reasons too |
+
+**Permission Required:** `transfers:read`
+
+**Response (200):**
+
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "id": "64f1a2...",
+      "label": "Can't send in time",
+      "isActive": true,
+      "isDefault": true
+    },
+    {
+      "id": "64f1a3...",
+      "label": "Custom reason",
+      "isActive": true,
+      "isDefault": false
+    }
+  ]
+}
+```
+
+---
+
+#### POST /transfers/rejection-reasons
+
+Creates a new rejection reason.
+
+| Parameter | Location | Type    | Required | Description                     |
+| --------- | -------- | ------- | -------- | ------------------------------- |
+| label     | body     | string  | Yes      | Reason label (3–120 chars)      |
+| isActive  | body     | boolean | No       | Whether active. Default: `true` |
+
+**Permission Required:** `transfer_rejection_reasons:manage`
+
+**Error Responses:**
+
+- `409` — A reason with this label already exists
+
+---
+
+#### PATCH /transfers/rejection-reasons/:id
+
+Updates a rejection reason's label or active status.
+
+| Parameter | Location | Type    | Required | Description                  |
+| --------- | -------- | ------- | -------- | ---------------------------- |
+| label     | body     | string  | No       | New label (3–120 chars)      |
+| isActive  | body     | boolean | No       | Enable or disable the reason |
+
+**Permission Required:** `transfer_rejection_reasons:manage`
+
+**Error Responses:**
+
+- `404` — Rejection reason not found
+- `409` — Duplicate label
+
+---
+
+#### DELETE /transfers/rejection-reasons/:id
+
+Permanently deletes a rejection reason. Default (seeded) reasons are protected and cannot be deleted.
+
+**Permission Required:** `transfer_rejection_reasons:manage`
+
+**Error Responses:**
+
+- `400` — Default rejection reasons cannot be deleted
+- `404` — Rejection reason not found
 
 ---
 
@@ -5169,6 +5394,347 @@ Transfer report with inter-location movement history and status summary.
 | 409         | `CONFLICT`               | Resource already exists           |
 | 429         | `RATE_LIMIT_EXCEEDED`    | Too many requests                 |
 | 500         | `INTERNAL_ERROR`         | Server error                      |
+
+---
+
+### Operations Endpoints (Location Dashboard)
+
+The Operations module provides pre-computed, aggregation-driven endpoints that power an operational dashboard scoped to a single location. Each endpoint returns actionable data (not raw CRUD) — think of it as a TO-DO list for the warehouse operator or manager at a given location.
+
+**Base path:** `/api/v1/locations/:locationId/operations`
+
+**Permission required for ALL endpoints:** `operations:read`
+
+**Middleware chain:** `authenticate` → `requireActiveOrganization` → `requirePermission("operations:read")`
+
+All endpoints validate that `:locationId` belongs to the requesting user's organization before returning data.
+
+---
+
+#### GET /locations/:locationId/operations/overview
+
+Returns a high-level KPI snapshot for the location: active loans, pending inspections, overdue invoices, and items needing attention.
+
+| Parameter  | Location | Type   | Required | Description                      |
+| ---------- | -------- | ------ | -------- | -------------------------------- |
+| locationId | path     | string | Yes      | MongoDB ObjectId of the location |
+
+**Response:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "overview": {
+      "activeLoans": 12,
+      "pendingInspections": 3,
+      "overdueInvoices": 2,
+      "overdueInvoiceTotal": 1500.5,
+      "damagedItems": 4,
+      "maintenanceItems": 1,
+      "pendingTransfers": 2,
+      "expiringLoansNext48h": 5
+    }
+  }
+}
+```
+
+**Error Responses:**
+
+| Status | Code          | Description                                  |
+| ------ | ------------- | -------------------------------------------- |
+| 400    | `BAD_REQUEST` | Invalid locationId format                    |
+| 404    | `NOT_FOUND`   | Location not found or does not belong to org |
+
+---
+
+#### GET /locations/:locationId/operations/inspections
+
+Returns the inspection queue for the location: items pending or in-progress inspection, grouped by urgency.
+
+| Parameter  | Location | Type   | Required | Description                      |
+| ---------- | -------- | ------ | -------- | -------------------------------- |
+| locationId | path     | string | Yes      | MongoDB ObjectId of the location |
+
+**Response:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "inspectionQueue": {
+      "pending": [
+        {
+          "inspectionId": "665...",
+          "loanId": "664...",
+          "customerName": "John Doe",
+          "returnedAt": "2024-06-01T10:00:00Z",
+          "itemCount": 3,
+          "status": "pending"
+        }
+      ],
+      "inProgress": [
+        {
+          "inspectionId": "665...",
+          "loanId": "664...",
+          "customerName": "Jane Smith",
+          "returnedAt": "2024-05-30T14:00:00Z",
+          "itemCount": 2,
+          "status": "in_progress"
+        }
+      ]
+    }
+  }
+}
+```
+
+---
+
+#### GET /locations/:locationId/operations/financials/overdue
+
+Returns overdue invoices for the location with customer details and amounts, enabling the team to prioritize collection follow-ups.
+
+| Parameter  | Location | Type   | Required | Description                      |
+| ---------- | -------- | ------ | -------- | -------------------------------- |
+| locationId | path     | string | Yes      | MongoDB ObjectId of the location |
+
+**Response:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "overdueFinancials": {
+      "totalOverdue": 2500.0,
+      "invoices": [
+        {
+          "invoiceId": "665...",
+          "loanId": "664...",
+          "customerId": "663...",
+          "customerName": "John Doe",
+          "amountDue": 1200.0,
+          "dueDate": "2024-05-15T00:00:00Z",
+          "daysOverdue": 17,
+          "status": "overdue"
+        }
+      ]
+    }
+  }
+}
+```
+
+---
+
+#### GET /locations/:locationId/operations/inventory/issues
+
+Returns inventory problems at the location: items in `damaged`, `maintenance`, or `lost` status grouped by category, enabling quick resolution.
+
+| Parameter  | Location | Type   | Required | Description                      |
+| ---------- | -------- | ------ | -------- | -------------------------------- |
+| locationId | path     | string | Yes      | MongoDB ObjectId of the location |
+
+**Response:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "inventoryIssues": {
+      "damaged": [
+        {
+          "instanceId": "665...",
+          "serialNumber": "SN-001",
+          "materialTypeName": "Projector HD",
+          "status": "damaged",
+          "updatedAt": "2024-06-01T08:00:00Z"
+        }
+      ],
+      "maintenance": [],
+      "lost": []
+    }
+  }
+}
+```
+
+---
+
+#### GET /locations/:locationId/operations/transfers
+
+Returns the transfer queue for the location: inbound transfers (where the location is the destination) that are in transit or picking, plus pending transfer requests.
+
+| Parameter  | Location | Type   | Required | Description                      |
+| ---------- | -------- | ------ | -------- | -------------------------------- |
+| locationId | path     | string | Yes      | MongoDB ObjectId of the location |
+
+**Response:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "transferQueue": {
+      "inboundInTransit": [
+        {
+          "transferId": "665...",
+          "fromLocationName": "Main Warehouse",
+          "status": "in_transit",
+          "itemCount": 5,
+          "createdAt": "2024-06-01T09:00:00Z"
+        }
+      ],
+      "pendingRequests": [
+        {
+          "requestId": "665...",
+          "fromLocationName": "Branch A",
+          "toLocationName": "This Location",
+          "status": "requested",
+          "itemCount": 2,
+          "createdAt": "2024-05-31T15:00:00Z"
+        }
+      ]
+    }
+  }
+}
+```
+
+---
+
+#### GET /locations/:locationId/operations/loans/deadlines
+
+Returns loans with approaching or overdue deadlines for the location, enabling proactive customer follow-up.
+
+| Parameter  | Location | Type   | Required | Description                      |
+| ---------- | -------- | ------ | -------- | -------------------------------- |
+| locationId | path     | string | Yes      | MongoDB ObjectId of the location |
+
+**Response:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "loanDeadlines": {
+      "overdue": [
+        {
+          "loanId": "664...",
+          "customerId": "663...",
+          "customerName": "John Doe",
+          "expectedReturnDate": "2024-05-28T00:00:00Z",
+          "daysOverdue": 4,
+          "itemCount": 2,
+          "status": "overdue"
+        }
+      ],
+      "dueSoon": [
+        {
+          "loanId": "664...",
+          "customerId": "663...",
+          "customerName": "Jane Smith",
+          "expectedReturnDate": "2024-06-03T00:00:00Z",
+          "hoursRemaining": 36,
+          "itemCount": 1,
+          "status": "active"
+        }
+      ]
+    }
+  }
+}
+```
+
+---
+
+#### GET /locations/:locationId/operations/damages
+
+Returns the damage resolution queue: items with damage reported during inspections, categorized into pending assessment, pending repair, and pending billing.
+
+| Parameter  | Location | Type   | Required | Description                      |
+| ---------- | -------- | ------ | -------- | -------------------------------- |
+| locationId | path     | string | Yes      | MongoDB ObjectId of the location |
+
+**Response:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "damageQueue": {
+      "pendingAssessment": [
+        {
+          "inspectionId": "665...",
+          "loanId": "664...",
+          "instanceId": "665...",
+          "serialNumber": "SN-002",
+          "materialTypeName": "Speaker System",
+          "conditionAfter": "damaged",
+          "damageDescription": "Cracked housing",
+          "estimatedRepairCost": 150,
+          "chargeToCustomer": 100,
+          "inspectionStatus": "pending"
+        }
+      ],
+      "pendingRepair": [],
+      "pendingBilling": []
+    }
+  }
+}
+```
+
+---
+
+#### GET /locations/:locationId/operations/tasks
+
+Aggregated TO-DO list that calls all other operations endpoints via `Promise.all` and produces a unified, prioritized task list for the location operator. Each task has a `priority` (critical/high/medium/low), `category`, `title`, `count`, and `detail` for quick scanning.
+
+| Parameter  | Location | Type   | Required | Description                      |
+| ---------- | -------- | ------ | -------- | -------------------------------- |
+| locationId | path     | string | Yes      | MongoDB ObjectId of the location |
+
+**Response:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "tasks": [
+      {
+        "priority": "critical",
+        "category": "financials",
+        "title": "Overdue invoices requiring follow-up",
+        "count": 2,
+        "detail": "Total overdue: $2500.00"
+      },
+      {
+        "priority": "high",
+        "category": "loans",
+        "title": "Overdue loans past expected return date",
+        "count": 3,
+        "detail": "Loans past their return deadline"
+      },
+      {
+        "priority": "high",
+        "category": "inspections",
+        "title": "Pending inspections awaiting review",
+        "count": 5,
+        "detail": "Items returned and waiting for inspection"
+      },
+      {
+        "priority": "medium",
+        "category": "inventory",
+        "title": "Damaged inventory items",
+        "count": 4,
+        "detail": "Items needing repair or write-off"
+      },
+      {
+        "priority": "low",
+        "category": "loans",
+        "title": "Loans due within 48 hours",
+        "count": 2,
+        "detail": "Approaching return deadlines"
+      }
+    ]
+  }
+}
+```
 
 ---
 

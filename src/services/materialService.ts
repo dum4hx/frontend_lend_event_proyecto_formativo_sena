@@ -26,6 +26,8 @@ import type {
   CreatePackagePayload,
   PackageMaterialEntry,
   PaginationMeta,
+  CatalogOverviewQueryParams,
+  CatalogOverviewResponse,
 } from "../types/api";
 
 interface MaterialInstanceApiModel {
@@ -446,4 +448,18 @@ export async function getOrphanedAttributeValues(): Promise<
       message: string;
     }>;
   }>("/materials/audit/orphaned-attribute-values");
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Catalog Overview
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Fetch the aggregated catalog overview with metrics and alerts. */
+export async function getCatalogOverview(
+  params: CatalogOverviewQueryParams = {},
+): Promise<ApiSuccessResponse<CatalogOverviewResponse>> {
+  return get<CatalogOverviewResponse>(
+    "/materials/catalog/overview",
+    params as Record<string, string | number | boolean | undefined>,
+  );
 }

@@ -1853,3 +1853,93 @@ export interface OpsTasksResponse {
     total: number;
   };
 }
+
+// ─── Catalog Overview ──────────────────────────────────────────────────────
+
+/** Query parameters for GET /materials/catalog/overview. */
+export interface CatalogOverviewQueryParams {
+  locationId?: string;
+  categoryId?: string;
+  materialTypeId?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+
+/** Org-wide summary metrics from catalog overview. */
+export interface CatalogOverviewSummary {
+  totalMaterialTypes: number;
+  totalInstances: number;
+  globalAvailabilityRate: number;
+  globalUtilizationRate: number;
+  materialTypesWithLowStock: number;
+  materialTypesWithHighDamage: number;
+}
+
+/** Per-material-type instance count breakdown by status. */
+export interface CatalogMaterialTypeTotals {
+  totalInstances: number;
+  available: number;
+  reserved: number;
+  loaned: number;
+  inUse: number;
+  returned: number;
+  maintenance: number;
+  damaged: number;
+  lost: number;
+  retired: number;
+}
+
+/** Per-material-type operational metrics (rates 0–1). */
+export interface CatalogMaterialTypeMetrics {
+  availabilityRate: number;
+  utilizationRate: number;
+  damageRate: number;
+  repairRate: number;
+  reservationPressure: number;
+}
+
+/** Alert type constants from the catalog overview endpoint. */
+export type CatalogAlertType =
+  | "LOW_STOCK"
+  | "HIGH_UTILIZATION"
+  | "HIGH_DAMAGE_RATE"
+  | "OVER_RESERVED";
+
+/** Severity levels for catalog alerts. */
+export type CatalogAlertSeverity = "high" | "medium";
+
+/** An operational alert attached to a material type. */
+export interface CatalogMaterialTypeAlert {
+  type: CatalogAlertType;
+  severity: CatalogAlertSeverity;
+}
+
+/** Category reference within a catalog overview material type. */
+export interface CatalogCategoryRef {
+  categoryId: string;
+  name: string;
+}
+
+/** A material type entry in the catalog overview response. */
+export interface CatalogMaterialType {
+  materialTypeId: string;
+  name: string;
+  pricePerDay: number;
+  categories: CatalogCategoryRef[];
+  totals: CatalogMaterialTypeTotals;
+  metrics: CatalogMaterialTypeMetrics;
+  alerts: CatalogMaterialTypeAlert[];
+}
+
+/** Full response payload from GET /materials/catalog/overview. */
+export interface CatalogOverviewResponse {
+  summary: CatalogOverviewSummary;
+  materialTypes: CatalogMaterialType[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}

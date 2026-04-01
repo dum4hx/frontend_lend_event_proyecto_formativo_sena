@@ -24,6 +24,7 @@ import {
   getPackage,
   createPackage,
   getPackageAvailability,
+  getCatalogOverview,
 } from "../../services/materialService";
 import type {
   CreateMaterialCategoryPayload,
@@ -37,6 +38,7 @@ import type {
   CreateMaterialAttributePayload,
   UpdateMaterialAttributePayload,
   CreatePackagePayload,
+  CatalogOverviewQueryParams,
 } from "../../types/api";
 
 // ─── Query Keys ────────────────────────────────────────────────────────────
@@ -70,6 +72,12 @@ export const materialKeys = {
     detail: (id: string) => [...materialKeys.packages.details(), id] as const,
     availability: (id: string, start: string, end: string) =>
       [...materialKeys.packages.details(), id, "availability", start, end] as const,
+  },
+  catalogOverview: {
+    all: ["catalogOverview"] as const,
+    lists: () => [...materialKeys.catalogOverview.all, "list"] as const,
+    list: (params: CatalogOverviewQueryParams) =>
+      [...materialKeys.catalogOverview.lists(), params] as const,
   },
 };
 
@@ -267,5 +275,14 @@ export function usePackageAvailability(
     queryFn: () => getPackageAvailability(id, startDate, endDate),
     select: (res) => res.data,
     enabled: enabled && !!id && !!startDate && !!endDate,
+  });
+}
+// ─── Catalog Overview ──────────────────────────────────────────────────────
+
+export function useCatalogOverview(params: CatalogOverviewQueryParams = {}) {
+  return useQuery({
+    queryKey: materialKeys.catalogOverview.list(params),
+    queryFn: () => getCatalogOverview(params),
+    select: (res) => res.data,
   });
 }
