@@ -56,7 +56,10 @@ export function OrdersTable({
   isEs,
 }: OrdersTableProps) {
   const renderActions = (order: OrderView) => (
-    <div className="flex max-w-full flex-wrap items-center gap-1.5">
+    <div
+      className="flex max-w-full flex-wrap items-center gap-1.5"
+      onClick={(e) => e.stopPropagation()}
+    >
       <IconButton
         icon={Eye}
         onClick={() => onViewDetails(order)}
