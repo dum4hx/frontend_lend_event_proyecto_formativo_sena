@@ -321,7 +321,7 @@ export function LocationEditModal({
                     name: e.target.value.trim() ? undefined : isEs ? "Obligatorio" : "Required",
                   }));
                 }}
-                className={`form-input ${fieldErrors.name ? "border-red-500" : ""}`}
+                className={`input ${fieldErrors.name ? "input-error" : ""}`}
               />
               {fieldErrors.name && <p className="form-error">{fieldErrors.name}</p>}
             </div>
@@ -345,7 +345,7 @@ export function LocationEditModal({
               <input
                 value="Colombia"
                 disabled
-                className="form-input opacity-50 cursor-not-allowed"
+                className="input opacity-50 cursor-not-allowed"
               />
             </div>
 
@@ -427,7 +427,7 @@ export function LocationEditModal({
                     updateAddress("primaryNumber", e.target.value);
                     setFieldErrors((s) => ({ ...s, "address.street": undefined }));
                   }}
-                  className={`form-input ${fieldErrors["address.street"] ? "border-red-500" : ""}`}
+                  className={`input ${fieldErrors["address.street"] ? "input-error" : ""}`}
                 />
               </div>
               <div>
@@ -440,7 +440,7 @@ export function LocationEditModal({
                     updateAddress("secondaryNumber", e.target.value);
                     setFieldErrors((s) => ({ ...s, "address.propertyNumber": undefined }));
                   }}
-                  className={`form-input ${fieldErrors["address.propertyNumber"] ? "border-red-500" : ""}`}
+                  className={`input ${fieldErrors["address.propertyNumber"] ? "input-error" : ""}`}
                 />
                 {fieldErrors["address.propertyNumber"] && (
                   <p className="form-error">{fieldErrors["address.propertyNumber"]}</p>
@@ -456,7 +456,7 @@ export function LocationEditModal({
                     updateAddress("complementaryNumber", e.target.value);
                     setFieldErrors((s) => ({ ...s, "address.complementaryNumber": undefined }));
                   }}
-                  className={`form-input ${fieldErrors["address.complementaryNumber"] ? "border-red-500" : ""}`}
+                  className={`input ${fieldErrors["address.complementaryNumber"] ? "input-error" : ""}`}
                 />
                 {fieldErrors["address.complementaryNumber"] && (
                   <p className="form-error">{fieldErrors["address.complementaryNumber"]}</p>
@@ -476,7 +476,7 @@ export function LocationEditModal({
                 value={form.address.additionalInfo}
                 onChange={(e) => updateAddress("additionalInfo", e.target.value)}
                 rows={2}
-                className="form-input resize-none"
+                className="input resize-none"
               />
             </div>
           </div>
@@ -529,7 +529,7 @@ export function LocationEditModal({
                     min={0}
                     value={bulkQtyInput}
                     onChange={(e) => setBulkQtyInput(e.target.value)}
-                    className="form-input"
+                    className="input"
                   />
                 </div>
                 <button
