@@ -11,6 +11,7 @@ import {
 } from "../utils/roleRouting";
 import { useAuth } from "../contexts/useAuth";
 import { useLanguage } from "../contexts/useLanguage";
+import { useToast } from "../contexts/ToastContext";
 import styles from "./Login.module.css";
 
 export default function Login() {
@@ -18,6 +19,7 @@ export default function Login() {
   const isEs = language === "es";
   const navigate = useNavigate();
   const { checkAuth } = useAuth();
+  const { showToast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
@@ -104,6 +106,7 @@ export default function Login() {
 
       // Navigate based on the user's permissions
       const dashboardUrl = getDashboardUrlByPermissions(permissions);
+      showToast("success", isEs ? `Bienvenido de nuevo, ${user.name}` : `Welcome back, ${user.name}`);
       navigate(dashboardUrl);
     } catch (err: unknown) {
       // Generic error message for invalid credentials; do not reveal which field

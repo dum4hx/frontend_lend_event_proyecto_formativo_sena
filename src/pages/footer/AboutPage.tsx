@@ -33,6 +33,25 @@ export default function AboutPage() {
         </article>
       </div>
 
+      {/* Values Section */}
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold text-white mb-6 text-center">{t("publicSite.aboutPage.valuesTitle")}</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="p-6 bg-[#1a1a1a] border border-[#333] rounded-xl hover:border-yellow-400/20 transition-all">
+            <h3 className="text-lg font-bold text-yellow-400 mb-2">{t("publicSite.aboutPage.value1Title")}</h3>
+            <p className="text-gray-400 text-sm">{t("publicSite.aboutPage.value1Description")}</p>
+          </div>
+          <div className="p-6 bg-[#1a1a1a] border border-[#333] rounded-xl hover:border-yellow-400/20 transition-all">
+            <h3 className="text-lg font-bold text-yellow-400 mb-2">{t("publicSite.aboutPage.value2Title")}</h3>
+            <p className="text-gray-400 text-sm">{t("publicSite.aboutPage.value2Description")}</p>
+          </div>
+          <div className="p-6 bg-[#1a1a1a] border border-[#333] rounded-xl hover:border-yellow-400/20 transition-all">
+            <h3 className="text-lg font-bold text-yellow-400 mb-2">{t("publicSite.aboutPage.value3Title")}</h3>
+            <p className="text-gray-400 text-sm">{t("publicSite.aboutPage.value3Description")}</p>
+          </div>
+        </div>
+      </div>
+
       {/* Detailed content */}
       <div className="card space-y-5">
         <p className="text-gray-300 leading-relaxed">

@@ -78,6 +78,28 @@ export default function HelpCenterPage() {
           </article>
         ))}
       </div>
+
+      {/* FAQ Section */}
+      <div className="mt-12">
+        <h2 className="text-2xl font-bold text-white mb-8 text-center">{t("publicSite.helpCenter.faqTitle")}</h2>
+        <div className="space-y-4 max-w-3xl mx-auto">
+          {[
+            { q: t("publicSite.helpCenter.faq1Question"), a: t("publicSite.helpCenter.faq1Answer") },
+            { q: t("publicSite.helpCenter.faq2Question"), a: t("publicSite.helpCenter.faq2Answer") },
+            { q: t("publicSite.helpCenter.faq3Question"), a: t("publicSite.helpCenter.faq3Answer") },
+          ].map((item, i) => (
+            <div key={i} className="card p-6 space-y-2 border border-zinc-900 hover:border-zinc-800 transition-all">
+              <h3 className="text-white font-bold text-base flex items-start gap-3">
+                <span className="text-yellow-400">Q:</span>
+                {item.q}
+              </h3>
+              <p className="text-gray-400 text-sm leading-relaxed pl-7">
+                {item.a}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
     </FooterPageLayout>
   );
 }

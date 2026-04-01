@@ -2,7 +2,7 @@ import Header from '../components/Header'
 import Footer from '../components/Footer'
 import { useLanguage } from "../contexts/useLanguage";
 import styles from './Dashboard.module.css'
-import { Package, ArrowRightLeft, MapPin, BarChart3, AlertTriangle, Zap, Quote } from 'lucide-react'
+import { Package, ArrowRightLeft, MapPin, BarChart3, AlertTriangle, Zap, Quote, Cloud, ShieldCheck, Headphones } from 'lucide-react'
 
 export default function Dashboard() {
   const { t } = useLanguage();
@@ -101,6 +101,34 @@ export default function Dashboard() {
                   </li>
                 ))}
               </ul>
+            </div>
+          </div>
+        </section>
+
+        {/* Why Choose Us Section */}
+        <section className="px-6 py-16 md:py-24 bg-[#050505]">
+          <div className="max-w-6xl mx-auto text-center">
+            <h2 className="text-3xl md:text-5xl font-extrabold mb-6">
+              {t("publicSite.home.whyChooseUsTitle")}
+            </h2>
+            <p className="text-gray-400 text-lg max-w-3xl mx-auto mb-16">
+              {t("publicSite.home.whyChooseUsDescription")}
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {[
+                { icon: Cloud, title: t("publicSite.home.whyPoint1Title"), description: t("publicSite.home.whyPoint1Description") },
+                { icon: ShieldCheck, title: t("publicSite.home.whyPoint2Title"), description: t("publicSite.home.whyPoint2Description") },
+                { icon: Headphones, title: t("publicSite.home.whyPoint3Title"), description: t("publicSite.home.whyPoint3Description") },
+              ].map(({ icon: Icon, title, description }) => (
+                <div key={title} className="flex flex-col items-center p-8 bg-[#0a0a0a] border border-zinc-900 rounded-2xl hover:border-yellow-400/20 transition-all group">
+                  <div className="w-16 h-16 rounded-full bg-yellow-400/5 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                    <Icon className="w-8 h-8 text-yellow-400" />
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-4">{title}</h3>
+                  <p className="text-gray-400 leading-relaxed">{description}</p>
+                </div>
+              ))}
             </div>
           </div>
         </section>
