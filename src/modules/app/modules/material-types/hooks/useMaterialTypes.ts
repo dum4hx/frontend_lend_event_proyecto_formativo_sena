@@ -36,9 +36,7 @@ export function useMaterialTypes() {
   }, []);
 
   const addMaterialType = async (payload: CreateMaterialTypePayload) => {
-    console.log("Creating material type with payload:", payload);
     const response = await createMaterialType(payload);
-    console.log("Material type created successfully:", response.data.materialType);
     setMaterialTypes((prev) => [...prev, response.data.materialType]);
     return response.data.materialType;
   };

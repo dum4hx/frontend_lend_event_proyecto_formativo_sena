@@ -67,17 +67,6 @@ export default function Login() {
 
       // Verify authentication after login
       const { user: loggedUser, permissions } = await checkAuth();
-      console.log(
-        "✅ [Login] Login successful",
-        "| Email:",
-        loggedUser?.email,
-        "| Role:",
-        loggedUser?.roleName,
-        "| Permissions:",
-        permissions,
-        "| Status:",
-        loggedUser?.status,
-      );
 
       if (!loggedUser) {
         console.error("❌ [Login] checkAuth() returned null after login");
@@ -103,7 +92,6 @@ export default function Login() {
       if (requiresActiveSubscriptionByPermissions(permissions)) {
         try {
           const status = await getPaymentStatus();
-          console.log("📊 Subscription status:", status.data.isActive);
           if (!status.data.isActive) {
             setShowNoSubModal(true);
             return;
@@ -116,15 +104,6 @@ export default function Login() {
 
       // Navigate based on the user's permissions
       const dashboardUrl = getDashboardUrlByPermissions(permissions);
-      console.log(
-        "🚀 [Login] Redirecting to dashboard",
-        "| User:",
-        loggedUser.email,
-        "| Permissions:",
-        permissions,
-        "| Dashboard URL:",
-        dashboardUrl,
-      );
       navigate(dashboardUrl);
     } catch (err: unknown) {
       // Generic error message for invalid credentials; do not reveal which field
@@ -132,15 +111,6 @@ export default function Login() {
         try {
           await refreshToken();
           const { user: refreshedUser, permissions: refreshedPermissions } = await checkAuth();
-          console.log(
-            "🔄 [Login] Token refreshed - User logged in",
-            "| Email:",
-            refreshedUser?.email,
-            "| Permissions:",
-            refreshedPermissions,
-            "| Status:",
-            refreshedUser?.status,
-          );
 
           if (!refreshedUser) {
             setError(
@@ -173,15 +143,6 @@ export default function Login() {
             }
           }
           const dashboardUrl = getDashboardUrlByPermissions(refreshedPermissions);
-          console.log(
-            "🚀 [Login] Redirecting after token refresh",
-            "| User:",
-            refreshedUser.email,
-            "| Permissions:",
-            refreshedPermissions,
-            "| Dashboard URL:",
-            dashboardUrl,
-          );
           navigate(dashboardUrl);
           return;
         } catch {

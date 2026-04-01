@@ -220,8 +220,6 @@ export async function getMaterialTypes(
 export async function createMaterialType(
   payload: CreateMaterialTypePayload,
 ): Promise<ApiSuccessResponse<{ materialType: MaterialType }>> {
-  console.log("materialService.createMaterialType called with:", payload);
-  console.log("Endpoint:", "/materials/types");
   return post<{ materialType: MaterialType }, CreateMaterialTypePayload>(
     "/materials/types",
     payload,
