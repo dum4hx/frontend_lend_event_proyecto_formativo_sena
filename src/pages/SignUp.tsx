@@ -77,6 +77,7 @@ interface SignUpFormData {
   cityQuery: string;
   city: string;
   postalCode: string;
+  acceptedTerms: string;
 }
 
 type FormField = keyof SignUpFormData;
@@ -102,6 +103,7 @@ const FIELD_ORDER: FormField[] = [
   "postalCode",
   "password",
   "confirmPassword",
+  "acceptedTerms",
 ];
 
 const STEP_FIELDS: Record<number, FormField[]> = {
@@ -117,7 +119,7 @@ const STEP_FIELDS: Record<number, FormField[]> = {
     "cityQuery",
     "postalCode",
   ],
-  4: ["password", "confirmPassword"],
+  4: ["password", "confirmPassword", "acceptedTerms"],
 };
 
 const FIELD_TO_STEP: Record<FormField, number> = {
@@ -141,6 +143,7 @@ const FIELD_TO_STEP: Record<FormField, number> = {
   postalCode: 3,
   password: 4,
   confirmPassword: 4,
+  acceptedTerms: 4,
 };
 
 const ALL_FIELDS_TOUCHED: Record<FormField, boolean> = {
@@ -164,6 +167,7 @@ const ALL_FIELDS_TOUCHED: Record<FormField, boolean> = {
   postalCode: true,
   password: true,
   confirmPassword: true,
+  acceptedTerms: true,
 };
 
 const INITIAL_FIELD_VALIDATION_STATUS: Record<FormField, FieldValidationStatus> = {
@@ -187,6 +191,7 @@ const INITIAL_FIELD_VALIDATION_STATUS: Record<FormField, FieldValidationStatus> 
   postalCode: "pending",
   password: "pending",
   confirmPassword: "pending",
+  acceptedTerms: "pending",
 };
 
 export default function SignUp() {
@@ -220,6 +225,7 @@ export default function SignUp() {
     cityQuery: "",
     city: "",
     postalCode: "",
+    acceptedTerms: "",
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -254,6 +260,7 @@ export default function SignUp() {
     cityQuery,
     city,
     postalCode,
+    acceptedTerms,
   } = formData;
 
   const setFormField = useCallback(<K extends FormField>(field: K, value: SignUpFormData[K]) => {
@@ -280,6 +287,7 @@ export default function SignUp() {
   const setCityQuery = (value: string) => setFormField("cityQuery", value);
   const setCity = (value: string) => setFormField("city", value);
   const setPostalCode = (value: string) => setFormField("postalCode", value);
+  const setAcceptedTerms = (value: string) => setFormField("acceptedTerms", value);
 
   // Refs for focusing/scrolling to fields with errors
   const firstNameRef = useRef<HTMLInputElement | null>(null);
@@ -301,6 +309,7 @@ export default function SignUp() {
   const postalCodeRef = useRef<HTMLInputElement | null>(null);
   const passwordRef = useRef<HTMLInputElement | null>(null);
   const confirmPasswordRef = useRef<HTMLInputElement | null>(null);
+  const acceptedTermsRef = useRef<HTMLInputElement | null>(null);
   const createAccountButtonRef = useRef<HTMLButtonElement | null>(null);
 
   // --- State (Departamento) autocomplete ------------------------------------
@@ -510,6 +519,7 @@ export default function SignUp() {
     postalCode: postalCodeRef as React.RefObject<HTMLElement>,
     password: passwordRef as React.RefObject<HTMLElement>,
     confirmPassword: confirmPasswordRef as React.RefObject<HTMLElement>,
+    acceptedTerms: acceptedTermsRef as React.RefObject<HTMLElement>,
   };
 
   const focusField = (field: FormField) => {
@@ -702,6 +712,12 @@ export default function SignUp() {
         if (!confirmPasswordValidation.isValid && confirmPasswordValidation.message) {
           validationErrors.confirmPassword = confirmPasswordValidation.message;
         }
+      }
+
+      if (data.acceptedTerms !== "true") {
+        validationErrors.acceptedTerms = isEs
+          ? "Debes aceptar los terminos y condiciones para continuar"
+          : "You must accept the terms and conditions to continue";
       }
 
       return validationErrors;
@@ -919,6 +935,7 @@ export default function SignUp() {
             secondSurname: undefined,
           },
         },
+        acceptedTerms: true,
       };
 
       const response = await registerUser(payload);
@@ -1858,6 +1875,62 @@ export default function SignUp() {
                     {fieldErrors.confirmPassword && (
                       <p className="text-red-400 text-xs mt-1">{fieldErrors.confirmPassword}</p>
                     )}
+                  </div>
+
+                  {/* Terms & Conditions checkbox */}
+                  <div className="md:col-span-2 mt-2 space-y-3">
+                    <label className="flex items-start gap-3 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        ref={acceptedTermsRef}
+                        checked={acceptedTerms === "true"}
+                        onChange={(e) => {
+                          const value = e.target.checked ? "true" : "";
+                          setAcceptedTerms(value);
+                          clearBackendError("acceptedTerms");
+                          if (touched.acceptedTerms || submitted) {
+                            setFieldValidation("acceptedTerms", e.target.checked ? "valid" : "invalid");
+                          }
+                        }}
+                        onBlur={() => validateFieldOnBlur("acceptedTerms")}
+                        disabled={loading}
+                        className="mt-1 h-4 w-4 rounded border-zinc-600 bg-zinc-900 text-yellow-400 focus:ring-yellow-400 focus:ring-offset-0 accent-yellow-400 shrink-0"
+                      />
+                      <span className="text-sm text-gray-300 leading-relaxed">
+                        {isEs ? "Acepto los " : "I accept the "}
+                        <Link to="/terms-of-service" target="_blank" className="text-yellow-400 hover:underline font-semibold">
+                          {isEs ? "Terminos y Condiciones" : "Terms and Conditions"}
+                        </Link>
+                        {isEs ? " y la " : " and "}
+                        <Link to="/cookie-policy" target="_blank" className="text-yellow-400 hover:underline font-semibold">
+                          {isEs ? "Politica de Privacidad" : "Privacy Policy"}
+                        </Link>
+                      </span>
+                    </label>
+                    {fieldErrors.acceptedTerms && (
+                      <p className="text-red-400 text-xs">{fieldErrors.acceptedTerms}</p>
+                    )}
+
+                    <p className="text-xs text-gray-500 leading-relaxed">
+                      {isEs
+                        ? "Al registrarte, autorizas el tratamiento de tus datos personales de acuerdo con la ley colombiana de proteccion de datos (Habeas Data) y nuestra Politica de Privacidad."
+                        : "By registering, you authorize the processing of your personal data in accordance with Colombian data protection laws (Habeas Data) and our Privacy Policy."}
+                    </p>
+
+                    <div className="flex items-center gap-4 text-xs text-gray-500">
+                      <span className="flex items-center gap-1">
+                        <svg className="w-3.5 h-3.5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                        {isEs ? "Datos cifrados de forma segura" : "Your data is securely encrypted"}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <svg className="w-3.5 h-3.5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                        {isEs ? "Respetamos tu privacidad" : "We respect your privacy"}
+                      </span>
+                    </div>
                   </div>
                 </div>
               )}
