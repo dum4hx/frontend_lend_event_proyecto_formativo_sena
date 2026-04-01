@@ -12,6 +12,8 @@ import type {
   AssignMaterialPayload,
   AvailableMaterialsResponse,
   Loan,
+  LoanDetail,
+  LoanDetailGrouped,
   LoanRequestStatus,
   ExtendLoanPayload,
   LoanRequestsQueryParams,
@@ -104,6 +106,18 @@ export async function getLoan(loanId: string): Promise<ApiSuccessResponse<{ loan
   return get<{ loan: Loan }>(`/loans/${loanId}`);
 }
 
+/** Get a specific loan by ID with full populated details (flat instance list). */
+export async function getLoanDetail(loanId: string): Promise<ApiSuccessResponse<{ loan: LoanDetail }>> {
+  return get<{ loan: LoanDetail }>(`/loans/${loanId}`);
+}
+
+/** Get a specific loan by ID with material instances grouped by material type. */
+export async function getLoanDetailGrouped(
+  loanId: string,
+): Promise<ApiSuccessResponse<{ loan: LoanDetailGrouped }>> {
+  return get<{ loan: LoanDetailGrouped }>(`/loans/${loanId}`, { groupByMaterialType: true });
+}
+
 /** Get all overdue loans (auto-updates overdue status). */
 export async function getOverdueLoans(): Promise<ApiSuccessResponse<{ loans: Loan[] }>> {
   return get<{ loans: Loan[] }>("/loans/overdue");
@@ -142,4 +156,11 @@ export async function recordPayment(
   requestId: string,
 ): Promise<ApiSuccessResponse<{ request: LoanRequest }>> {
   return post<{ request: LoanRequest }>(`/requests/${requestId}/record-payment`);
+}
+
+/** Record that the rental fee for a request has been paid manually. */
+export async function recordRentalPayment(
+  requestId: string,
+): Promise<ApiSuccessResponse<{ request: LoanRequest }>> {
+  return post<{ request: LoanRequest }>(`/requests/${requestId}/record-rental-payment`);
 }

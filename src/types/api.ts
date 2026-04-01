@@ -107,6 +107,12 @@ export interface OrganizationUsage {
   canAddSeat: boolean;
 }
 
+/** Organization policy settings managed via GET/PATCH /organizations/settings. */
+export interface OrganizationSettings {
+  damageDueDays: number;
+  requireFullPaymentBeforeCheckout: boolean;
+}
+
 // ─── Subscription Types ────────────────────────────────────────────────────
 
 export type BillingModel = "fixed" | "dynamic";
@@ -476,6 +482,8 @@ export interface LoanRequest {
   notes?: string;
   depositAmount?: number;
   depositPaidAt?: string;
+  totalAmount?: number;
+  rentalFeePaidAt?: string;
   loanId?: string;
 }
 
@@ -525,7 +533,33 @@ export interface Loan {
     amount: number;
     status: DepositStatus;
     transactions: DepositTransaction[];
+    refundAvailable?: boolean;
+    refundableAmount?: number;
   };
+}
+
+/** Populated material instance entry returned by GET /loans/:id */
+export interface LoanMaterialInstanceEntry {
+  materialInstanceId: {
+    _id: string;
+    serialNumber: string;
+    status: string;
+    modelId: string;
+    name: string;
+  };
+  materialTypeId: string;
+}
+
+/** Detailed loan response (default — flat list of instances). */
+export interface LoanDetail extends Omit<Loan, "customerId"> {
+  customerId: Customer;
+  materialInstances: LoanMaterialInstanceEntry[];
+}
+
+/** Detailed loan response with material instances grouped by type. */
+export interface LoanDetailGrouped extends Omit<Loan, "customerId"> {
+  customerId: Customer;
+  materialInstancesByType: Record<string, LoanMaterialInstanceEntry[]>;
 }
 
 export interface ExtendLoanPayload {
@@ -540,6 +574,8 @@ export type InspectionCondition = "good" | "damaged" | "lost";
 export interface InspectionItem {
   materialInstanceId: string;
   condition: InspectionCondition;
+  conditionBefore?: InspectionCondition;
+  conditionDegraded?: boolean;
   notes?: string;
   damageDescription: string;
   damageCost?: number;
