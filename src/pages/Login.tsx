@@ -294,11 +294,11 @@ export default function Login() {
         {/* Right Section - Form */}
         <div className="flex-grow md:w-1/2 flex items-center justify-center p-8 bg-black">
           <div className="w-full max-w-md">
-            <h2 className="text-4xl font-extrabold mb-2">{isEs ? "Bienvenido" : "Welcome"}</h2>
+            <h2 className="text-4xl font-extrabold mb-2">{isEs ? "Bienvenido de nuevo" : "Welcome back"}</h2>
             <p className="text-gray-400 mb-10">
               {isEs
-                ? "Ingresa tus credenciales corporativas para continuar"
-                : "Enter your corporate credentials to continue"}
+                ? "Inicia sesion para acceder a tu panel y gestionar tus operaciones"
+                : "Sign in to access your dashboard and manage your operations"}
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-6">
