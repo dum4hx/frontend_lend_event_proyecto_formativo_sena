@@ -35,7 +35,12 @@ import { LocationsTable } from "./LocationsTable";
 import { LocationDetailModal } from "./LocationDetailModal";
 import { LocationCreateModal } from "./LocationCreateModal";
 import { LocationEditModal } from "./LocationEditModal";
-import { calculateLocationCapacity, filterLocations, buildExportRows, parseCSVLine } from "./helpers";
+import {
+  calculateLocationCapacity,
+  filterLocations,
+  buildExportRows,
+  parseCSVLine,
+} from "./helpers";
 import type { LocationFilterOptions } from "./types";
 
 export function Locations() {
@@ -153,10 +158,7 @@ export function Locations() {
   );
   const totalOccupied = useMemo(
     () =>
-      locations.reduce(
-        (s, l) => s + ((l as unknown as { occupied?: number })?.occupied ?? 0),
-        0,
-      ),
+      locations.reduce((s, l) => s + ((l as unknown as { occupied?: number })?.occupied ?? 0), 0),
     [locations],
   );
   const utilization = totalCapacity > 0 ? Math.round((totalOccupied / totalCapacity) * 100) : 0;
@@ -290,7 +292,9 @@ export function Locations() {
       // Build material type header index
       const mtIndices: Record<string, number> = {};
       materialTypes.forEach((mt) => {
-        const idx = headers.findIndex((h) => h.toLowerCase().trim() === mt.name.toLowerCase().trim());
+        const idx = headers.findIndex(
+          (h) => h.toLowerCase().trim() === mt.name.toLowerCase().trim(),
+        );
         if (idx !== -1) mtIndices[mt._id] = idx;
       });
 
@@ -361,7 +365,10 @@ export function Locations() {
       }
 
       if (successCount > 0) {
-        showToast("success", isEs ? `Importadas ${successCount} ubicaciones` : `Imported ${successCount} location(s)`);
+        showToast(
+          "success",
+          isEs ? `Importadas ${successCount} ubicaciones` : `Imported ${successCount} location(s)`,
+        );
         await fetchLocations();
       }
       if (errorCount > 0) {
@@ -394,7 +401,9 @@ export function Locations() {
               {isEs ? "Ubicaciones del almacén" : "Warehouse Locations"}
             </h1>
             <p className="text-gray-400">
-              {isEs ? "Gestiona zonas y ubicaciones de almacén" : "Manage warehouse zones and storage locations"}
+              {isEs
+                ? "Gestiona zonas y ubicaciones de almacén"
+                : "Manage warehouse zones and storage locations"}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -427,7 +436,9 @@ export function Locations() {
         {/* Stats */}
         <div className="stat-grid">
           <div className="depth-card p-4">
-            <p className="text-gray-400 text-sm">{isEs ? "Ubicaciones totales" : "Total Locations"}</p>
+            <p className="text-gray-400 text-sm">
+              {isEs ? "Ubicaciones totales" : "Total Locations"}
+            </p>
             <p className="text-white text-2xl font-bold">{locations.length}</p>
           </div>
           <div className="depth-card p-4">
@@ -445,7 +456,13 @@ export function Locations() {
         </div>
 
         {/* Filters */}
-        <LocationsFilters value={filters} onChange={(f) => { setFilters(f); setPage(1); }} />
+        <LocationsFilters
+          value={filters}
+          onChange={(f) => {
+            setFilters(f);
+            setPage(1);
+          }}
+        />
 
         {/* Loading / Error */}
         {loading && (
@@ -613,8 +630,12 @@ export function Locations() {
                   className="px-6 py-2 bg-[#FFD700] text-black font-semibold rounded-lg hover:bg-[#FFC700] disabled:opacity-50"
                 >
                   {importing
-                    ? isEs ? "Importando..." : "Importing..."
-                    : isEs ? "Importar" : "Import"}
+                    ? isEs
+                      ? "Importando..."
+                      : "Importing..."
+                    : isEs
+                      ? "Importar"
+                      : "Import"}
                 </button>
               </div>
             </div>

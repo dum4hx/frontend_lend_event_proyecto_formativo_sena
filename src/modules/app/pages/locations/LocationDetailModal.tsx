@@ -47,7 +47,12 @@ export function LocationDetailModal({
     ...categories.map((c) => ({ value: c._id, label: c.name })),
   ];
 
-  const filteredMaterials = filterMaterialTypes(materialTypes, categories, searchTerm, selectedCategory);
+  const filteredMaterials = filterMaterialTypes(
+    materialTypes,
+    categories,
+    searchTerm,
+    selectedCategory,
+  );
   const totalPages = Math.ceil(filteredMaterials.length / ITEMS_PER_PAGE);
   const paginatedMaterials = filteredMaterials.slice(
     (page - 1) * ITEMS_PER_PAGE,
@@ -55,7 +60,12 @@ export function LocationDetailModal({
   );
 
   return (
-    <Modal open={open} onClose={onClose} title={isEs ? "Detalles de ubicación" : "Location Details"} size="lg">
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={isEs ? "Detalles de ubicación" : "Location Details"}
+      size="lg"
+    >
       <div className="space-y-6">
         {/* Header */}
         <p className="text-gray-400 text-sm">{location.name}</p>

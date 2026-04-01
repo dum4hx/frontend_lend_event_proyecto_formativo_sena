@@ -139,7 +139,6 @@ export default function OperationsDashboard() {
                 value={selectedLocation}
                 onChange={setSelectedLocation}
                 placeholder={isEs ? "Seleccionar ubicación" : "Select location"}
-                icon={<MapPin size={14} />}
               />
             </div>
           )}

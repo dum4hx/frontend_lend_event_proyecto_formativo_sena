@@ -1,0 +1,1 @@
+export { Rentals } from "./Rentals";

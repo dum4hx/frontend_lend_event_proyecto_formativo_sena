@@ -1,28 +1,30 @@
 /**
- * LocationCreateModal — Form for creating a new warehouse location
+ * LocationEditModal — Form for editing an existing warehouse location
  */
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { ChevronLeft, ChevronRight, Zap } from "lucide-react";
 import { Modal, SearchableSelect, type SelectOption } from "../../../../components/ui";
 import type { MaterialType, MaterialCategory } from "../../../../types/api";
+import type { WarehouseLocation } from "../../../../services/warehouseOperatorService";
+import { updateLocation as apiUpdateLocation } from "../../../../services/warehouseOperatorService";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import { useToast } from "../../../../contexts/ToastContext";
-import { useAuth } from "../../../../contexts/useAuth";
 import { validateLocationV2 } from "../../../../utils/validators";
-import { createLocation as apiCreateLocation } from "../../../../services/warehouseOperatorService";
 import { useColombiaAddress } from "./useColombiaAddress";
-import { resolveCategoryName, buildCapacitiesFromTypes, applyBulkCapacityToRows } from "./helpers";
-import { INITIAL_FORM, STREET_TYPES, STATUS_OPTIONS } from "./types";
-import type { LocationFormData, LocationFieldErrors } from "./types";
+import { resolveCategoryName, applyBulkCapacityToRows, parseLegacyStreet } from "./helpers";
+import { STREET_TYPES, STATUS_OPTIONS } from "./types";
+import type { LocationFormData, LocationFieldErrors, MaterialCapacityRow } from "./types";
 
-interface LocationCreateModalProps {
+interface LocationEditModalProps {
   /** Whether the modal is open */
   open: boolean;
   /** Close handler */
   onClose: () => void;
-  /** Callback after successful creation */
-  onCreated: () => void;
+  /** Callback after successful update */
+  onUpdated: () => void;
+  /** The location being edited (null = not editing) */
+  location: WarehouseLocation | null;
   /** All material types */
   materialTypes: MaterialType[];
   /** All categories */
@@ -31,21 +33,31 @@ interface LocationCreateModalProps {
 
 const ITEMS_PER_PAGE = 5;
 
-export function LocationCreateModal({
+export function LocationEditModal({
   open,
   onClose,
-  onCreated,
+  onUpdated,
+  location,
   materialTypes,
   categories,
-}: LocationCreateModalProps) {
+}: LocationEditModalProps) {
   const { language } = useLanguage();
   const isEs = language === "es";
   const { showToast } = useToast();
-  const { user } = useAuth();
 
   const [form, setForm] = useState<LocationFormData>({
-    ...INITIAL_FORM,
-    materialCapacities: buildCapacitiesFromTypes(materialTypes),
+    name: "",
+    status: "available",
+    address: {
+      state: "",
+      city: "",
+      streetType: "",
+      primaryNumber: "",
+      secondaryNumber: "",
+      complementaryNumber: "",
+      additionalInfo: "",
+    },
+    materialCapacities: [],
   });
   const [fieldErrors, setFieldErrors] = useState<LocationFieldErrors>({});
   const [materialPage, setMaterialPage] = useState(1);
@@ -55,28 +67,75 @@ export function LocationCreateModal({
 
   const colombia = useColombiaAddress();
 
-  // Reset form when modal opens
-  const handleOpen = () => {
-    setForm({
-      ...INITIAL_FORM,
-      materialCapacities: buildCapacitiesFromTypes(materialTypes),
+  // Populate form when location changes
+  useEffect(() => {
+    if (!location || !open) return;
+
+    const addr = (location.address as Record<string, string | undefined>) ?? {};
+    const resolvedDept = addr.department || addr.state || "";
+
+    // Parse legacy street if new fields are missing
+    let streetType = addr.streetType || "";
+    let primaryNumber = addr.primaryNumber || "";
+    let secondaryNumber = addr.secondaryNumber || "";
+    let complementaryNumber = addr.complementaryNumber || "";
+
+    if (!streetType && addr.street) {
+      const parsed = parseLegacyStreet(addr.street);
+      streetType = parsed.streetType;
+      primaryNumber = parsed.primaryNumber;
+      secondaryNumber = parsed.secondaryNumber;
+      complementaryNumber = parsed.complementaryNumber;
+    }
+
+    // Map material capacities
+    const caps: MaterialCapacityRow[] = materialTypes.map((t) => {
+      const existing = (
+        location.materialCapacities as { materialTypeId: string; maxQuantity: number }[] | undefined
+      )?.find((c) => c.materialTypeId === t._id);
+      return {
+        materialTypeId: t._id,
+        maxQuantity: existing ? existing.maxQuantity : "",
+      };
     });
+
+    setForm({
+      name: location.name || "",
+      status: location.status || "available",
+      address: {
+        state: resolvedDept,
+        city: addr.city || "",
+        streetType,
+        primaryNumber,
+        secondaryNumber,
+        complementaryNumber,
+        additionalInfo: addr.additionalDetails || addr.additionalInfo || "",
+      },
+      materialCapacities: caps,
+    });
+
+    // Sync Colombia hook
+    colombia.setDepartmentQuery(resolvedDept);
+    colombia.setCityQuery(addr.city || "");
+    if (resolvedDept && colombia.departments.length > 0) {
+      const dept = colombia.departments.find((d) => d.name === resolvedDept);
+      if (dept) colombia.setSelectedDepartment(dept.id.toString());
+    }
+
     setFieldErrors({});
     setMaterialPage(1);
     setBulkQtyInput("");
     setBulkCategoryFilter("");
-    colombia.reset();
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location, open, materialTypes]);
 
-  // Reset when open changes
-  if (
-    open &&
-    form.name === "" &&
-    form.materialCapacities.length === 0 &&
-    materialTypes.length > 0
-  ) {
-    handleOpen();
-  }
+  // If departments load after the location is set, match department
+  useEffect(() => {
+    if (!form.address.state || colombia.selectedDepartment) return;
+    const dept = colombia.departments.find((d) => d.name === form.address.state);
+    if (dept) colombia.setSelectedDepartment(dept.id.toString());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [colombia.departments]);
 
   const totalMaterialPages = Math.ceil(materialTypes.length / ITEMS_PER_PAGE);
   const paginatedMaterials = useMemo(() => {
@@ -155,6 +214,8 @@ export function LocationCreateModal({
   };
 
   const handleSubmit = async () => {
+    if (!location) return;
+
     const validation = validateLocationV2({
       name: form.name,
       address: {
@@ -187,9 +248,8 @@ export function LocationCreateModal({
 
     setSubmitting(true);
     try {
-      await apiCreateLocation({
+      await apiUpdateLocation(location._id, {
         name: form.name,
-        organizationId: user?.organizationId ?? "",
         status: form.status,
         address: {
           streetType: form.address.streetType,
@@ -205,14 +265,14 @@ export function LocationCreateModal({
           maxQuantity: Number(c.maxQuantity),
         })),
       });
-      showToast("success", isEs ? "Ubicación creada" : "Location created");
-      onCreated();
+      showToast("success", isEs ? "Ubicación actualizada" : "Location updated");
+      onUpdated();
       onClose();
     } catch (err) {
       const error = err as Error;
       showToast(
         "error",
-        error.message ?? (isEs ? "Error al crear ubicación" : "Error creating location"),
+        error.message ?? (isEs ? "Error al actualizar" : "Error updating location"),
       );
     } finally {
       setSubmitting(false);
@@ -223,13 +283,13 @@ export function LocationCreateModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={isEs ? "Crear ubicación" : "Create Location"}
+      title={isEs ? "Editar ubicación" : "Edit Location"}
       size="xl"
     >
       <p className="text-gray-400 text-sm mb-6">
         {isEs
-          ? "Agrega una nueva ubicación de almacén con capacidades de material específicas"
-          : "Add a new warehouse location with specific material capacities"}
+          ? "Actualiza la información de la ubicación y las capacidades de material"
+          : "Update location information and material capacities"}
       </p>
 
       <form
@@ -240,7 +300,7 @@ export function LocationCreateModal({
         className="space-y-8"
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Left column: General info + Address */}
+          {/* Left column */}
           <div className="space-y-6">
             <h3 className="text-lg font-semibold text-white border-l-4 border-[#FFD700] pl-3">
               {isEs ? "Información general" : "General Information"}
@@ -258,14 +318,9 @@ export function LocationCreateModal({
                   updateForm("name", e.target.value);
                   setFieldErrors((s) => ({
                     ...s,
-                    name: e.target.value.trim()
-                      ? undefined
-                      : isEs
-                        ? "El nombre es obligatorio"
-                        : "Name is required",
+                    name: e.target.value.trim() ? undefined : isEs ? "Obligatorio" : "Required",
                   }));
                 }}
-                placeholder={isEs ? "Ej. Almacén principal A" : "e.g. Main Warehouse A"}
                 className={`form-input ${fieldErrors.name ? "border-red-500" : ""}`}
               />
               {fieldErrors.name && <p className="form-error">{fieldErrors.name}</p>}
@@ -296,7 +351,7 @@ export function LocationCreateModal({
 
             {/* Department + City */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="relative">
+              <div>
                 <label className="form-label">
                   {isEs ? "Departamento" : "Department"} <span className="text-red-400">*</span>
                 </label>
@@ -319,7 +374,6 @@ export function LocationCreateModal({
                   error={fieldErrors["address.state"]}
                 />
               </div>
-
               <div>
                 <label className="form-label">
                   {isEs ? "Ciudad" : "City"} <span className="text-red-400">*</span>
@@ -338,7 +392,7 @@ export function LocationCreateModal({
                         ? "Buscar ciudad..."
                         : "Search city..."
                       : isEs
-                        ? "Selecciona depto. primero"
+                        ? "Selecciona depto."
                         : "Select dept first"
                   }
                   disabled={!colombia.selectedDepartment || colombia.loadingCities}
@@ -373,7 +427,6 @@ export function LocationCreateModal({
                     updateAddress("primaryNumber", e.target.value);
                     setFieldErrors((s) => ({ ...s, "address.street": undefined }));
                   }}
-                  placeholder="e.g. 10"
                   className={`form-input ${fieldErrors["address.street"] ? "border-red-500" : ""}`}
                 />
               </div>
@@ -387,7 +440,6 @@ export function LocationCreateModal({
                     updateAddress("secondaryNumber", e.target.value);
                     setFieldErrors((s) => ({ ...s, "address.propertyNumber": undefined }));
                   }}
-                  placeholder="e.g. 45"
                   className={`form-input ${fieldErrors["address.propertyNumber"] ? "border-red-500" : ""}`}
                 />
                 {fieldErrors["address.propertyNumber"] && (
@@ -404,7 +456,6 @@ export function LocationCreateModal({
                     updateAddress("complementaryNumber", e.target.value);
                     setFieldErrors((s) => ({ ...s, "address.complementaryNumber": undefined }));
                   }}
-                  placeholder="e.g. 67"
                   className={`form-input ${fieldErrors["address.complementaryNumber"] ? "border-red-500" : ""}`}
                 />
                 {fieldErrors["address.complementaryNumber"] && (
@@ -424,9 +475,6 @@ export function LocationCreateModal({
               <textarea
                 value={form.address.additionalInfo}
                 onChange={(e) => updateAddress("additionalInfo", e.target.value)}
-                placeholder={
-                  isEs ? "Ej. Cerca de la entrada principal" : "e.g. Near the main entrance"
-                }
                 rows={2}
                 className="form-input resize-none"
               />
@@ -481,7 +529,6 @@ export function LocationCreateModal({
                     min={0}
                     value={bulkQtyInput}
                     onChange={(e) => setBulkQtyInput(e.target.value)}
-                    placeholder={isEs ? "Ingresar cantidad" : "Enter quantity"}
                     className="form-input"
                   />
                 </div>
@@ -524,7 +571,6 @@ export function LocationCreateModal({
                         min={0}
                         value={capacity?.maxQuantity ?? ""}
                         onChange={(e) => updateCapacity(type._id, e.target.value)}
-                        placeholder={isEs ? "cant." : "qty"}
                         className={`w-full h-9 px-2 bg-[#0a0a0a] border rounded text-right text-sm text-white focus:outline-none focus:ring-1 ${
                           hasError
                             ? "border-red-500 focus:ring-red-500"
@@ -598,11 +644,11 @@ export function LocationCreateModal({
           >
             {submitting
               ? isEs
-                ? "Creando..."
-                : "Creating..."
+                ? "Guardando..."
+                : "Saving..."
               : isEs
-                ? "Crear ubicación"
-                : "Create Location"}
+                ? "Guardar cambios"
+                : "Save Changes"}
           </button>
         </div>
       </form>
