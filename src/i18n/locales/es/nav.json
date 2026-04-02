@@ -34,5 +34,6 @@
   "nav.item.sa-plans": "Configuracion de planes",
   "nav.item.ai-monitor": "Monitor de chatbot IA",
   "nav.item.sa-settings": "Configuracion del sistema",
+  "nav.item.maintenance": "Mantenimiento",
   "superAdmin.badge": "Super administrador"
 }
