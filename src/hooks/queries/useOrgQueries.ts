@@ -9,6 +9,7 @@ import {
   getOrganizationUsage,
   getAvailablePlans,
 } from "../../services/organizationService";
+import { getLocations } from "../../services/warehouseOperatorService";
 import {
   getAnalyticsOverview,
   getAnalyticsMaterials,
@@ -101,5 +102,21 @@ export function useOrgAnalyticsCustomers() {
     queryKey: orgKeys.analytics.customers(),
     queryFn: () => getAnalyticsCustomers(),
     select: (res) => res.data,
+  });
+}
+
+// ─── Locations ─────────────────────────────────────────────────────────────
+
+export const locationKeys = {
+  all: ["locations"] as const,
+  list: () => [...locationKeys.all, "list"] as const,
+};
+
+export function useLocations() {
+  return useQuery({
+    queryKey: locationKeys.list(),
+    queryFn: () => getLocations({ limit: 100 }),
+    select: (res) => res.data.items,
+    staleTime: 1000 * 60 * 5,
   });
 }

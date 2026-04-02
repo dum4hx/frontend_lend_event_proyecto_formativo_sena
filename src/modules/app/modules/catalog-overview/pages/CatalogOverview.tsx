@@ -1,11 +1,17 @@
 import React, { useState, useCallback } from "react";
 import { RefreshCcw } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useCatalogOverview, useMaterialCategories, materialKeys } from "../../../../../hooks/queries";
-import { LoadingSpinner, ErrorDisplay, EmptyState } from "../../../../../components/ui";
+import {
+  useCatalogOverview,
+  useMaterialCategories,
+  materialKeys,
+  useLocations,
+} from "../../../../../hooks/queries";
+import { ErrorDisplay, EmptyState } from "../../../../../components/ui";
 import { AdminPagination } from "../../../components";
 import { CatalogSummaryCards, CatalogFilters, CatalogTable } from "../components";
 import type { CatalogOverviewQueryParams } from "../../../../../types/api";
+import type { SelectOption } from "../../../../../components/ui";
 
 /**
  * CatalogOverview — Aggregated operational view of the material catalog.
@@ -19,12 +25,14 @@ export const CatalogOverview: React.FC = () => {
   // ── Filter state ──────────────────────────────────────────────────────
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState("");
+  const [locationId, setLocationId] = useState("");
   const [page, setPage] = useState(1);
   const limit = 20;
 
   const params: CatalogOverviewQueryParams = {
     ...(search && { search }),
     ...(categoryId && { categoryId }),
+    ...(locationId && { locationId }),
     page,
     limit,
   };
@@ -32,6 +40,12 @@ export const CatalogOverview: React.FC = () => {
   // ── Data hooks ────────────────────────────────────────────────────────
   const { data, isLoading, isError, error } = useCatalogOverview(params);
   const { data: categories = [] } = useMaterialCategories();
+  const { data: locations = [] } = useLocations();
+
+  const locationOptions: SelectOption[] = locations.map((loc) => ({
+    value: loc._id,
+    label: loc.name,
+  }));
 
   // ── Handlers ──────────────────────────────────────────────────────────
   const handleSearchChange = useCallback((value: string) => {
@@ -44,21 +58,23 @@ export const CatalogOverview: React.FC = () => {
     setPage(1);
   }, []);
 
+  const handleLocationChange = useCallback((value: string) => {
+    setLocationId(value);
+    setPage(1);
+  }, []);
+
   const handleRefresh = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: materialKeys.catalogOverview.all });
   }, [queryClient]);
 
   // ── Loading / Error states ────────────────────────────────────────────
-  if (isLoading && !data) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
-  }
-
   if (isError) {
-    return <ErrorDisplay error={error?.message ?? "Failed to load catalog overview"} onRetry={handleRefresh} />;
+    return (
+      <ErrorDisplay
+        error={error?.message ?? "Failed to load catalog overview"}
+        onRetry={handleRefresh}
+      />
+    );
   }
 
   const summary = data?.summary;
@@ -75,8 +91,8 @@ export const CatalogOverview: React.FC = () => {
             Catalog <span className="text-[#FFD700]">Overview</span>
           </h1>
           <p className="text-gray-400 mt-2 text-sm max-w-lg">
-            Aggregated operational view of your material catalog — availability,
-            utilization, and alerts at a glance.
+            Aggregated operational view of your material catalog — availability, utilization, and
+            alerts at a glance.
           </p>
         </div>
 
@@ -100,6 +116,9 @@ export const CatalogOverview: React.FC = () => {
         categoryId={categoryId}
         onCategoryChange={handleCategoryChange}
         categories={categories}
+        locationId={locationId}
+        onLocationChange={handleLocationChange}
+        locationOptions={locationOptions}
       />
 
       {/* ── Table ──────────────────────────────────────────────────────── */}
