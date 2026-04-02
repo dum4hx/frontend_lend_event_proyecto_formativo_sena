@@ -1,13 +1,12 @@
 import React, { useState } from "react";
 import { X, AlertTriangle, CheckCircle, XCircle, Eye } from "lucide-react";
-import type { Incident, IncidentType } from "../../../../../types/api";
-import { EntityLink } from "../../../../../components/ui";
+import type { Incident } from "../../../../../types/api";
+import { EntityLink, StatusBadge } from "../../../../../components/ui";
+import { useLanguage } from "../../../../../contexts/useLanguage";
 
 interface IncidentDetailModalProps {
   /** The incident to display */
   incident: Incident;
-  /** Whether the UI language is Spanish */
-  isEs: boolean;
   /** Whether the user can perform actions (acknowledge, resolve, dismiss) */
   canUpdate: boolean;
   /** Close the modal */
@@ -20,42 +19,18 @@ interface IncidentDetailModalProps {
   onDismiss: (id: string, resolution: string) => Promise<void>;
 }
 
-const TYPE_LABELS: Record<IncidentType, { en: string; es: string }> = {
-  damage: { en: "Damage", es: "Daño" },
-  lost: { en: "Lost", es: "Perdido" },
-  overdue: { en: "Overdue", es: "Vencido" },
-  issue: { en: "Issue", es: "Problema" },
-  replacement: { en: "Replacement", es: "Reemplazo" },
-  extended: { en: "Extended", es: "Extendido" },
-  other: { en: "Other", es: "Otro" },
-};
-
-const SEVERITY_STYLES: Record<string, string> = {
-  low: "bg-blue-900/30 text-blue-300 border-blue-500/30",
-  medium: "bg-amber-900/30 text-amber-300 border-amber-500/30",
-  high: "bg-orange-900/30 text-orange-300 border-orange-500/30",
-  critical: "bg-red-900/30 text-red-300 border-red-500/30",
-};
-
-const STATUS_STYLES: Record<string, string> = {
-  open: "bg-red-900/30 text-red-300 border-red-500/30",
-  acknowledged: "bg-amber-900/30 text-amber-300 border-amber-500/30",
-  resolved: "bg-green-900/30 text-green-300 border-green-500/30",
-  dismissed: "bg-gray-800/30 text-gray-400 border-gray-600/30",
-};
-
 /**
  * Detail modal for viewing an incident and performing actions.
  */
 export const IncidentDetailModal: React.FC<IncidentDetailModalProps> = ({
   incident,
-  isEs,
   canUpdate,
   onClose,
   onAcknowledge,
   onResolve,
   onDismiss,
 }) => {
+  const { t, formatDate, formatCurrency } = useLanguage();
   const [resolution, setResolution] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState("");
@@ -64,11 +39,7 @@ export const IncidentDetailModal: React.FC<IncidentDetailModalProps> = ({
     setActionError("");
 
     if ((action === "resolve" || action === "dismiss") && !resolution.trim()) {
-      setActionError(
-        isEs
-          ? "La resolución es obligatoria para esta acción."
-          : "Resolution text is required for this action.",
-      );
+      setActionError(t("incidents.resolutionRequired"));
       return;
     }
 
@@ -88,13 +59,14 @@ export const IncidentDetailModal: React.FC<IncidentDetailModalProps> = ({
     }
   };
 
-  const formatDate = (date: string) =>
-    new Date(date).toLocaleString(isEs ? "es-CO" : "en-US", {
-      dateStyle: "medium",
-      timeStyle: "short",
-    });
-
   const isTerminal = incident.status === "resolved" || incident.status === "dismissed";
+
+  const loanIdValue =
+    incident.loanId == null
+      ? undefined
+      : typeof incident.loanId === "object"
+        ? incident.loanId._id
+        : incident.loanId;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
@@ -106,9 +78,7 @@ export const IncidentDetailModal: React.FC<IncidentDetailModalProps> = ({
               <Eye className="w-5 h-5 text-[#FFD700]" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white">
-                {isEs ? "Detalle de Novedad" : "Incident Detail"}
-              </h2>
+              <h2 className="text-lg font-bold text-white">{t("incidents.detail")}</h2>
               <p className="text-xs text-gray-500 font-mono">{incident._id}</p>
             </div>
           </div>
@@ -122,42 +92,42 @@ export const IncidentDetailModal: React.FC<IncidentDetailModalProps> = ({
 
         {/* Content */}
         <div className="p-6 space-y-6">
-          {/* Status + Severity + Type badges */}
-          <div className="flex flex-wrap gap-3">
-            <span
-              className={`inline-block px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${STATUS_STYLES[incident.status]}`}
-            >
-              {incident.status}
-            </span>
-            <span
-              className={`inline-block px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${SEVERITY_STYLES[incident.severity]}`}
-            >
-              {incident.severity}
-            </span>
+          {/* Status + Severity + Type + Context badges */}
+          <div className="flex flex-wrap gap-3" data-help-id="incidents-detail-badges">
+            <StatusBadge status={incident.status} />
+            <StatusBadge status={incident.severity} />
             <span className="inline-block px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border border-[#444] bg-[#222] text-gray-300">
-              {isEs ? TYPE_LABELS[incident.type].es : TYPE_LABELS[incident.type].en}
+              {t(`incidents.types.${incident.type}`)}
             </span>
+            <StatusBadge status={incident.context} />
           </div>
 
           {/* Info Grid */}
           <div className="grid grid-cols-2 gap-4">
+            {loanIdValue && <InfoField label={t("incidents.loanId")} value={loanIdValue} mono />}
+            {incident.locationId && (
+              <InfoField
+                label={t("incidents.location")}
+                value={
+                  typeof incident.locationId === "string"
+                    ? incident.locationId
+                    : String(incident.locationId)
+                }
+              />
+            )}
             <InfoField
-              label={isEs ? "ID del Préstamo" : "Loan ID"}
-              value={typeof incident.loanId === "object" ? incident.loanId._id : incident.loanId}
-              mono
+              label={t("incidents.context")}
+              value={t(`incidents.contexts.${incident.context}`)}
             />
             <InfoField
-              label={isEs ? "Tipo de Origen" : "Source Type"}
-              value={incident.sourceType}
+              label={t("incidents.sourceType")}
+              value={t(`incidents.sourceTypes.${incident.sourceType}`)}
             />
-            <InfoField label={isEs ? "Creado" : "Created"} value={formatDate(incident.createdAt)} />
-            <InfoField
-              label={isEs ? "Actualizado" : "Updated"}
-              value={formatDate(incident.updatedAt)}
-            />
+            <InfoField label={t("incidents.created")} value={formatDate(incident.createdAt)} />
+            <InfoField label={t("incidents.updated")} value={formatDate(incident.updatedAt)} />
             {incident.resolvedAt && (
               <InfoField
-                label={isEs ? "Resuelto" : "Resolved"}
+                label={t("incidents.resolvedAt")}
                 value={formatDate(incident.resolvedAt)}
               />
             )}
@@ -167,7 +137,7 @@ export const IncidentDetailModal: React.FC<IncidentDetailModalProps> = ({
           {incident.description && (
             <div>
               <label className="block text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-2">
-                {isEs ? "Descripción" : "Description"}
+                {t("incidents.description")}
               </label>
               <p className="text-sm text-gray-300 bg-[#121212] border border-[#222] rounded-lg p-4">
                 {incident.description}
@@ -179,7 +149,7 @@ export const IncidentDetailModal: React.FC<IncidentDetailModalProps> = ({
           {incident.relatedMaterialInstances && incident.relatedMaterialInstances.length > 0 && (
             <div>
               <label className="block text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-2">
-                {isEs ? "Instancias de Material" : "Material Instances"}
+                {t("incidents.materialInstances")}
               </label>
               <div className="flex flex-wrap gap-2">
                 {incident.relatedMaterialInstances.map((id) => (
@@ -199,17 +169,21 @@ export const IncidentDetailModal: React.FC<IncidentDetailModalProps> = ({
           {incident.financialImpact && (
             <div>
               <label className="block text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-2">
-                {isEs ? "Impacto Financiero" : "Financial Impact"}
+                {t("incidents.financialImpact")}
               </label>
               <div className="bg-[#121212] border border-[#222] rounded-lg p-4 grid grid-cols-2 gap-3">
                 <InfoField
-                  label={isEs ? "Estimado" : "Estimated"}
-                  value={`${incident.financialImpact.currency ?? ""} ${incident.financialImpact.estimated?.toLocaleString() ?? "-"}`}
+                  label={t("incidents.estimated")}
+                  value={
+                    incident.financialImpact.estimated != null
+                      ? formatCurrency(incident.financialImpact.estimated)
+                      : "-"
+                  }
                 />
                 {incident.financialImpact.actual !== undefined && (
                   <InfoField
-                    label={isEs ? "Real" : "Actual"}
-                    value={`${incident.financialImpact.currency ?? ""} ${incident.financialImpact.actual.toLocaleString()}`}
+                    label={t("incidents.actualAmount")}
+                    value={formatCurrency(incident.financialImpact.actual)}
                   />
                 )}
               </div>
@@ -220,7 +194,7 @@ export const IncidentDetailModal: React.FC<IncidentDetailModalProps> = ({
           {incident.resolution && (
             <div>
               <label className="block text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-2">
-                {isEs ? "Resolución" : "Resolution"}
+                {t("incidents.resolution")}
               </label>
               <p className="text-sm text-gray-300 bg-green-900/10 border border-green-500/20 rounded-lg p-4">
                 {incident.resolution}
@@ -230,7 +204,10 @@ export const IncidentDetailModal: React.FC<IncidentDetailModalProps> = ({
 
           {/* Action Area */}
           {canUpdate && !isTerminal && (
-            <div className="border-t border-[#222] pt-5 space-y-4">
+            <div
+              className="border-t border-[#222] pt-5 space-y-4"
+              data-help-id="incidents-detail-actions"
+            >
               {actionError && (
                 <div className="bg-red-900/20 border border-red-500/30 rounded-lg px-4 py-3">
                   <p className="text-red-300 text-sm">{actionError}</p>
@@ -240,17 +217,13 @@ export const IncidentDetailModal: React.FC<IncidentDetailModalProps> = ({
               {/* Resolution textarea for resolve/dismiss */}
               <div>
                 <label className="block text-xs text-gray-400 font-semibold mb-1.5">
-                  {isEs ? "Texto de resolución" : "Resolution text"}
+                  {t("incidents.resolutionText")}
                 </label>
                 <textarea
                   value={resolution}
                   onChange={(e) => setResolution(e.target.value)}
                   rows={2}
-                  placeholder={
-                    isEs
-                      ? "Ingrese la resolución para resolver o descartar..."
-                      : "Enter resolution to resolve or dismiss..."
-                  }
+                  placeholder={t("incidents.resolutionPlaceholder")}
                   className="w-full bg-[#121212] border border-[#333] rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-[#FFD700] focus:ring-1 focus:ring-[#FFD700]/20 transition-all resize-none"
                 />
               </div>
@@ -263,7 +236,7 @@ export const IncidentDetailModal: React.FC<IncidentDetailModalProps> = ({
                     className="flex items-center gap-2 px-4 py-2.5 bg-amber-600 text-white font-bold rounded-lg text-sm hover:bg-amber-500 transition-colors disabled:opacity-60"
                   >
                     <AlertTriangle size={14} />
-                    {isEs ? "Reconocer" : "Acknowledge"}
+                    {t("incidents.action.acknowledge")}
                   </button>
                 )}
                 <button
@@ -272,7 +245,7 @@ export const IncidentDetailModal: React.FC<IncidentDetailModalProps> = ({
                   className="flex items-center gap-2 px-4 py-2.5 border border-[#444] text-gray-300 hover:text-white hover:border-[#555] rounded-lg text-sm font-medium transition-colors disabled:opacity-60"
                 >
                   <XCircle size={14} />
-                  {isEs ? "Descartar" : "Dismiss"}
+                  {t("incidents.action.dismiss")}
                 </button>
                 <button
                   onClick={() => handleAction("resolve")}
@@ -280,7 +253,7 @@ export const IncidentDetailModal: React.FC<IncidentDetailModalProps> = ({
                   className="flex items-center gap-2 px-4 py-2.5 bg-green-700 text-white font-bold rounded-lg text-sm hover:bg-green-600 transition-colors disabled:opacity-60"
                 >
                   <CheckCircle size={14} />
-                  {isEs ? "Resolver" : "Resolve"}
+                  {t("incidents.action.resolve")}
                 </button>
               </div>
             </div>

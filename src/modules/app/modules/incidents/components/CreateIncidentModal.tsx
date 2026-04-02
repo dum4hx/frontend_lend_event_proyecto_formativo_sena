@@ -2,49 +2,47 @@ import React, { useState, useEffect } from "react";
 import { X, AlertTriangle, Plus, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { SearchableSelect } from "../../../../../components/ui";
 import type { SelectOption } from "../../../../../components/ui";
+import { useLanguage } from "../../../../../contexts/useLanguage";
 import { getLoans } from "../../../../../services/loanService";
 import { getMaterialInstances } from "../../../../../services/materialService";
 import type {
   CreateIncidentPayload,
   IncidentType,
   IncidentSeverity,
+  IncidentContext,
 } from "../../../../../types/api";
 
 interface CreateIncidentModalProps {
-  /** Whether the UI language is Spanish */
-  isEs: boolean;
   /** Close the modal */
   onClose: () => void;
   /** Submit the payload — parent handles success toast & close */
   onSave: (payload: CreateIncidentPayload) => Promise<void>;
 }
 
-const TYPE_OPTIONS: { value: IncidentType; en: string; es: string }[] = [
-  { value: "damage", en: "Damage", es: "Daño" },
-  { value: "lost", en: "Lost", es: "Perdido" },
-  { value: "overdue", en: "Overdue", es: "Vencido" },
-  { value: "issue", en: "Issue", es: "Problema" },
-  { value: "replacement", en: "Replacement", es: "Reemplazo" },
-  { value: "extended", en: "Extended", es: "Extendido" },
-  { value: "other", en: "Other", es: "Otro" },
+const INCIDENT_TYPES: IncidentType[] = [
+  "damage",
+  "lost",
+  "overdue",
+  "issue",
+  "replacement",
+  "extended",
+  "other",
 ];
 
-const SEVERITY_OPTIONS: { value: IncidentSeverity; en: string; es: string }[] = [
-  { value: "low", en: "Low", es: "Baja" },
-  { value: "medium", en: "Medium", es: "Media" },
-  { value: "high", en: "High", es: "Alta" },
-  { value: "critical", en: "Critical", es: "Crítica" },
-];
+const SEVERITIES: IncidentSeverity[] = ["low", "medium", "high", "critical"];
+
+const CONTEXTS: IncidentContext[] = ["loan", "transit", "storage", "maintenance", "other"];
 
 /**
- * Modal form for creating a new incident report linked to a loan.
+ * Modal form for creating a new incident report.
+ * Supports multiple contexts: loan, transit, storage, maintenance, and other.
  */
-export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({
-  isEs,
-  onClose,
-  onSave,
-}) => {
+export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({ onClose, onSave }) => {
+  const { t } = useLanguage();
+
+  const [context, setContext] = useState<IncidentContext>("loan");
   const [loanId, setLoanId] = useState("");
+  const [locationId, setLocationId] = useState("");
   const [type, setType] = useState<IncidentType>("damage");
   const [severity, setSeverity] = useState<IncidentSeverity>("medium");
   const [description, setDescription] = useState("");
@@ -67,7 +65,8 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({
             const cust = loan.customerId as unknown as Record<string, unknown>;
             if ("name" in cust) {
               const nm = cust.name as unknown as Record<string, string>;
-              customerName = `${nm.firstName}${nm.secondName ? ` ${nm.secondName}` : ""} ${nm.firstSurname}${nm.secondSurname ? ` ${nm.secondSurname}` : ""}`.trim();
+              customerName =
+                `${nm.firstName}${nm.secondName ? ` ${nm.secondName}` : ""} ${nm.firstSurname}${nm.secondSurname ? ` ${nm.secondSurname}` : ""}`.trim();
             } else if ("_id" in cust) {
               customerName = String(cust._id);
             }
@@ -115,21 +114,28 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({
     e.preventDefault();
     setFormError("");
 
-    if (!loanId.trim()) {
-      setFormError(isEs ? "El préstamo es obligatorio." : "Loan is required.");
-      return;
-    }
-    if (!description.trim()) {
-      setFormError(isEs ? "La descripción es obligatoria." : "Description is required.");
+    if (context === "loan" && !loanId.trim()) {
+      setFormError(t("incidents.loanRequired"));
       return;
     }
 
     const payload: CreateIncidentPayload = {
-      loanId: loanId.trim(),
+      context,
       type,
       severity,
-      description: description.trim(),
     };
+
+    if (context === "loan" && loanId.trim()) {
+      payload.loanId = loanId.trim();
+    }
+
+    if (locationId.trim()) {
+      payload.locationId = locationId.trim();
+    }
+
+    if (description.trim()) {
+      payload.description = description.trim();
+    }
 
     if (materialInstances.length > 0) {
       payload.relatedMaterialInstances = materialInstances;
@@ -156,16 +162,17 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-[#1a1a1a] border border-[#333] rounded-2xl w-full max-w-lg mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div
+        className="bg-[#1a1a1a] border border-[#333] rounded-2xl w-full max-w-lg mx-4 shadow-2xl max-h-[90vh] overflow-y-auto"
+        data-help-id="incidents-create-form"
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#222]">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-[#FFD700]/10 rounded-lg">
               <AlertTriangle className="w-5 h-5 text-[#FFD700]" />
             </div>
-            <h2 className="text-lg font-bold text-white">
-              {isEs ? "Reportar Novedad" : "Report Incident"}
-            </h2>
+            <h2 className="text-lg font-bold text-white">{t("incidents.reportIncident")}</h2>
           </div>
           <button
             onClick={onClose}
@@ -183,45 +190,86 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({
             </div>
           )}
 
-          {/* Loan */}
-          <SearchableSelect
-            options={loanOptions}
-            value={loanId}
-            onChange={setLoanId}
-            label={isEs ? "Préstamo *" : "Loan *"}
-            placeholder={isEs ? "Buscar préstamo…" : "Search loan…"}
-          />
+          {/* Context */}
+          <div data-help-id="incidents-context">
+            <label className="block text-xs text-gray-400 font-semibold mb-1.5">
+              {t("incidents.context")} *
+            </label>
+            <select
+              value={context}
+              onChange={(e) => {
+                setContext(e.target.value as IncidentContext);
+                if (e.target.value !== "loan") {
+                  setLoanId("");
+                  setMaterialInstances([]);
+                }
+              }}
+              className="w-full bg-[#121212] border border-[#333] rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-[#FFD700]"
+            >
+              {CONTEXTS.map((c) => (
+                <option key={c} value={c}>
+                  {t(`incidents.contexts.${c}`)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Loan (only when context is loan) */}
+          {context === "loan" && (
+            <SearchableSelect
+              options={loanOptions}
+              value={loanId}
+              onChange={setLoanId}
+              label={`${t("incidents.loan")} *`}
+              placeholder={t("incidents.loanPlaceholder")}
+              data-help-id="incidents-loan-select"
+            />
+          )}
+
+          {/* Location */}
+          <div data-help-id="incidents-location">
+            <label className="block text-xs text-gray-400 font-semibold mb-1.5">
+              {t("incidents.location")}
+            </label>
+            <input
+              type="text"
+              value={locationId}
+              onChange={(e) => setLocationId(e.target.value)}
+              placeholder={t("incidents.location")}
+              className="w-full bg-[#121212] border border-[#333] rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-[#FFD700] focus:ring-1 focus:ring-[#FFD700]/20 transition-all"
+            />
+          </div>
 
           {/* Type + Severity */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4" data-help-id="incidents-type-severity">
             <div>
               <label className="block text-xs text-gray-400 font-semibold mb-1.5">
-                {isEs ? "Tipo *" : "Type *"}
+                {t("incidents.type")} *
               </label>
               <select
                 value={type}
                 onChange={(e) => setType(e.target.value as IncidentType)}
                 className="w-full bg-[#121212] border border-[#333] rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-[#FFD700]"
               >
-                {TYPE_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {isEs ? o.es : o.en}
+                {INCIDENT_TYPES.map((iType) => (
+                  <option key={iType} value={iType}>
+                    {t(`incidents.types.${iType}`)}
                   </option>
                 ))}
               </select>
             </div>
             <div>
               <label className="block text-xs text-gray-400 font-semibold mb-1.5">
-                {isEs ? "Severidad *" : "Severity *"}
+                {t("incidents.severity")} *
               </label>
               <select
                 value={severity}
                 onChange={(e) => setSeverity(e.target.value as IncidentSeverity)}
                 className="w-full bg-[#121212] border border-[#333] rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-[#FFD700]"
               >
-                {SEVERITY_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {isEs ? o.es : o.en}
+                {SEVERITIES.map((sev) => (
+                  <option key={sev} value={sev}>
+                    {t(`incidents.severities.${sev}`)}
                   </option>
                 ))}
               </select>
@@ -229,17 +277,15 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({
           </div>
 
           {/* Description */}
-          <div>
+          <div data-help-id="incidents-description">
             <label className="block text-xs text-gray-400 font-semibold mb-1.5">
-              {isEs ? "Descripción *" : "Description *"}
+              {t("incidents.description")}
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              placeholder={
-                isEs ? "Describe la novedad en detalle..." : "Describe the incident in detail..."
-              }
+              placeholder={t("incidents.descriptionPlaceholder")}
               className="w-full bg-[#121212] border border-[#333] rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-[#FFD700] focus:ring-1 focus:ring-[#FFD700]/20 transition-all resize-none"
             />
           </div>
@@ -249,11 +295,11 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({
             <button
               type="button"
               onClick={() => setInstancesExpanded((prev) => !prev)}
-              disabled={!loanId}
+              disabled={context === "loan" && !loanId}
               className="flex items-center gap-2 text-xs text-gray-400 font-semibold mb-2 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {instancesExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-              {isEs ? "Instancias de Material" : "Material Instances"}
+              {t("incidents.materialInstances")}
               {materialInstances.length > 0 && (
                 <span className="ml-1 px-1.5 py-0.5 bg-[#FFD700]/20 text-[#FFD700] rounded text-[10px] font-bold">
                   {materialInstances.length}
@@ -261,13 +307,11 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({
               )}
             </button>
 
-            {!loanId && (
-              <p className="text-xs text-gray-500 mb-3">
-                {isEs ? "Selecciona un préstamo primero para agregar instancias de material." : "Select a loan first to add material instances."}
-              </p>
+            {context === "loan" && !loanId && (
+              <p className="text-xs text-gray-500 mb-3">{t("incidents.materialInstancesNote")}</p>
             )}
 
-            {instancesExpanded && loanId && (
+            {instancesExpanded && (context !== "loan" || loanId) && (
               <div className="space-y-3">
                 <div className="flex items-end gap-2">
                   <div className="flex-1">
@@ -275,7 +319,7 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({
                       options={instanceOptions.filter((o) => !materialInstances.includes(o.value))}
                       value={currentInstance}
                       onChange={setCurrentInstance}
-                      placeholder={isEs ? "Buscar instancia…" : "Search instance…"}
+                      placeholder={t("incidents.materialInstances")}
                     />
                   </div>
                   <button
@@ -283,7 +327,6 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({
                     onClick={addInstance}
                     disabled={!currentInstance}
                     className="p-2.5 bg-[#FFD700] text-black rounded-lg hover:bg-[#e6c200] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                    title={isEs ? "Agregar" : "Add"}
                   >
                     <Plus size={16} />
                   </button>
@@ -303,7 +346,6 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({
                           type="button"
                           onClick={() => removeInstance(id)}
                           className="p-1 text-gray-500 hover:text-red-400 transition-colors"
-                          title={isEs ? "Eliminar" : "Remove"}
                         >
                           <Trash2 size={14} />
                         </button>
@@ -316,9 +358,9 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({
           </div>
 
           {/* Financial Impact */}
-          <div>
+          <div data-help-id="incidents-financial-impact">
             <label className="block text-xs text-gray-400 font-semibold mb-1.5">
-              {isEs ? "Monto Estimado (COP)" : "Estimated Amount (COP)"}
+              {t("incidents.estimatedAmount")} (COP)
             </label>
             <input
               type="number"
@@ -332,20 +374,20 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end gap-3 pt-2">
+          <div className="flex justify-end gap-3 pt-2" data-help-id="incidents-form-actions">
             <button
               type="button"
               onClick={onClose}
               className="px-4 py-2.5 border border-[#333] text-gray-400 hover:text-white hover:border-[#444] rounded-lg text-sm font-medium transition-colors"
             >
-              {isEs ? "Cancelar" : "Cancel"}
+              {t("common.cancel")}
             </button>
             <button
               type="submit"
               disabled={submitting}
               className="px-5 py-2.5 bg-[#FFD700] text-black font-bold rounded-lg text-sm hover:bg-[#e6c200] transition-colors disabled:opacity-60"
             >
-              {submitting ? (isEs ? "Enviando..." : "Submitting...") : isEs ? "Reportar" : "Report"}
+              {submitting ? t("incidents.submitting") : t("incidents.report")}
             </button>
           </div>
         </form>
