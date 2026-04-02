@@ -53,7 +53,7 @@ export function OrderDetailModal({ open, onClose, order }: OrderDetailModalProps
                   <p className="text-gray-500 text-sm">{isEs ? "Cliente" : "Customer"}</p>
                   <EntityLink
                     entityType="customer"
-                    entityId={order.request.customerId ?? ""}
+                    entityId={order.request.customerId?._id ?? ""}
                     label={order.customerName}
                     className="font-semibold"
                   />
@@ -83,6 +83,136 @@ export function OrderDetailModal({ open, onClose, order }: OrderDetailModalProps
                   ))}
                 </div>
               </div>
+
+              {(order.request.totalAmount != null ||
+                order.request.subtotal != null ||
+                order.request.depositAmount != null) && (
+                <div className="border border-[#2a2a2a] rounded-lg p-4 bg-[#1a1a1a] space-y-3">
+                  <p className="text-xs font-semibold text-[#FFD700] uppercase tracking-wider">
+                    {isEs ? "Resumen Financiero" : "Financial Summary"}
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {order.request.totalDays != null && (
+                      <div>
+                        <p className="text-gray-500 text-xs">
+                          {isEs ? "Días totales" : "Total Days"}
+                        </p>
+                        <p className="text-white font-semibold">{order.request.totalDays}</p>
+                      </div>
+                    )}
+                    {order.request.subtotal != null && (
+                      <div>
+                        <p className="text-gray-500 text-xs">{isEs ? "Subtotal" : "Subtotal"}</p>
+                        <p className="text-white font-semibold">
+                          ${order.request.subtotal.toLocaleString()}
+                        </p>
+                      </div>
+                    )}
+                    {(order.request.discountAmount ?? 0) > 0 && (
+                      <div>
+                        <p className="text-gray-500 text-xs">{isEs ? "Descuento" : "Discount"}</p>
+                        <p className="text-green-400 font-semibold">
+                          -${order.request.discountAmount!.toLocaleString()}
+                        </p>
+                      </div>
+                    )}
+                    {order.request.totalAmount != null && (
+                      <div>
+                        <p className="text-gray-500 text-xs">{isEs ? "Total" : "Total Amount"}</p>
+                        <p className="text-white font-bold text-base">
+                          ${order.request.totalAmount.toLocaleString()}
+                        </p>
+                      </div>
+                    )}
+                    {order.request.depositAmount != null && (
+                      <div>
+                        <p className="text-gray-500 text-xs">
+                          {isEs ? "Depósito requerido" : "Required Deposit"}
+                        </p>
+                        <p className="text-white font-semibold">
+                          ${order.request.depositAmount.toLocaleString()}
+                        </p>
+                      </div>
+                    )}
+                    {order.request.depositPaidAt != null && (
+                      <div>
+                        <p className="text-gray-500 text-xs">
+                          {isEs ? "Depósito pagado" : "Deposit Paid"}
+                        </p>
+                        <p className="text-green-400 font-semibold">
+                          {formatDate(order.request.depositPaidAt)}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {order.loan && (
+                <div className="border border-[#2a2a2a] rounded-lg p-4 bg-[#1a1a1a] space-y-3">
+                  <p className="text-xs font-semibold text-[#FFD700] uppercase tracking-wider">
+                    {isEs ? "Estado del Préstamo" : "Loan Status"}
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {order.loan.totalAmount != null && (
+                      <div>
+                        <p className="text-gray-500 text-xs">{isEs ? "Total" : "Total Amount"}</p>
+                        <p className="text-white font-semibold">
+                          ${order.loan.totalAmount.toLocaleString()}
+                        </p>
+                      </div>
+                    )}
+                    {order.loan.deposit?.amount != null && (
+                      <div>
+                        <p className="text-gray-500 text-xs">{isEs ? "Depósito" : "Deposit"}</p>
+                        <p className="text-white font-semibold">
+                          ${order.loan.deposit.amount.toLocaleString()}
+                        </p>
+                      </div>
+                    )}
+                    {(order.loan.damageFees ?? 0) > 0 && (
+                      <div>
+                        <p className="text-gray-500 text-xs">
+                          {isEs ? "Cargos por daño" : "Damage Fees"}
+                        </p>
+                        <p className="text-red-400 font-semibold">
+                          ${order.loan.damageFees!.toLocaleString()}
+                        </p>
+                      </div>
+                    )}
+                    {(order.loan.lateFees ?? 0) > 0 && (
+                      <div>
+                        <p className="text-gray-500 text-xs">
+                          {isEs ? "Cargos por mora" : "Late Fees"}
+                        </p>
+                        <p className="text-red-400 font-semibold">
+                          ${order.loan.lateFees!.toLocaleString()}
+                        </p>
+                      </div>
+                    )}
+                    {order.loan.deposit?.status && (
+                      <div>
+                        <p className="text-gray-500 text-xs">
+                          {isEs ? "Estado depósito" : "Deposit Status"}
+                        </p>
+                        <p className="text-gray-300 text-sm capitalize">
+                          {order.loan.deposit.status.replace(/_/g, " ")}
+                        </p>
+                      </div>
+                    )}
+                    {order.loan.deposit?.refundAvailable && (
+                      <div>
+                        <p className="text-gray-500 text-xs">
+                          {isEs ? "Devolución disponible" : "Refundable Amount"}
+                        </p>
+                        <p className="text-green-400 font-semibold">
+                          ${(order.loan.deposit.refundableAmount ?? 0).toLocaleString()}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {order.request.notes && (
                 <div>

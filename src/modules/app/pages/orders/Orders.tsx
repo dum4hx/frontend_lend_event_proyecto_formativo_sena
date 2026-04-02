@@ -8,6 +8,7 @@ import type {
   MaterialCategory,
   MaterialInstance,
   MaterialType,
+  OrganizationSettings,
   Package,
 } from "../../../../types/api";
 import {
@@ -16,11 +17,14 @@ import {
   approveRequest,
   rejectRequest,
   updateRequest,
+  markRequestReady,
   createLoanFromRequest,
   returnLoan,
   recordPayment,
+  recordRentalPayment,
 } from "../../../../services/loanService";
 import { getCustomers } from "../../../../services/customerService";
+import { getOrganizationSettings } from "../../../../services/organizationService";
 import {
   getMaterialCategories,
   getMaterialInstances,
@@ -79,6 +83,9 @@ export function Orders() {
   const [reactivateReason, setReactivateReason] = useState("");
   const [showRecordPaymentModal, setShowRecordPaymentModal] = useState(false);
   const [paymentTarget, setPaymentTarget] = useState<OrderView | null>(null);
+  const [showRentalPaymentModal, setShowRentalPaymentModal] = useState(false);
+  const [rentalPaymentTarget, setRentalPaymentTarget] = useState<OrderView | null>(null);
+  const [requireFullPayment, setRequireFullPayment] = useState(false);
 
   const [requestsPage, setRequestsPage] = useState(1);
   const [requestsPageSize] = useState(20);
@@ -103,6 +110,7 @@ export function Orders() {
         instancesRes,
         packagesRes,
         materialTypesRes,
+        orgSettingsRes,
       ] = await Promise.allSettled([
         getRequests({
           page: requestsPage,
@@ -114,6 +122,7 @@ export function Orders() {
         getMaterialInstances(),
         getPackages({ page: 1, limit: 100 }),
         getMaterialTypes(),
+        getOrganizationSettings(),
       ]);
 
       let requestsFailed = requestsRes.status === "rejected";
@@ -168,6 +177,11 @@ export function Orders() {
       }
       if (materialTypesRes.status === "fulfilled") {
         setMaterialTypes(materialTypesRes.value.data.materialTypes ?? []);
+      }
+      if (orgSettingsRes.status === "fulfilled") {
+        setRequireFullPayment(
+          orgSettingsRes.value.data.settings.requireFullPaymentBeforeCheckout ?? false,
+        );
       }
 
       const failures: Array<{ source: string; reason: unknown }> = [];
@@ -398,6 +412,32 @@ export function Orders() {
     }
   };
 
+  const handleShipOrder = async (order: OrderView) => {
+    if (!canAssignRequest) {
+      showError(
+        isEs
+          ? "Necesita el permiso requests:assign para despachar pedidos."
+          : "You need the requests:assign permission to ship orders.",
+        isEs ? "Permiso requerido" : "Permission Required",
+      );
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await markRequestReady(order.request._id);
+      showSuccess(
+        isEs ? "Pedido marcado como listo para despacho." : "Order marked as ready for checkout.",
+        isEs ? "Pedido actualizado" : "Order Updated",
+      );
+      await refreshData();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to ship order";
+      showError(message, isEs ? "Error de despacho" : "Ship Error");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handlePrepareOrder = (order: OrderView) => {
     if (!canAssignRequest) {
       showError(
@@ -516,6 +556,7 @@ export function Orders() {
           onReactivate={handleOpenReactivateModal}
           onRecordPayment={handleOpenRecordPaymentModal}
           onPrepare={handlePrepareOrder}
+          onShip={handleShipOrder}
           onStartLoan={(requestId) => handleStartLoan(requestId)}
           onCompleteLoan={(loanId) => handleCompleteLoan(loanId)}
           canApproveRequest={canApproveRequest}

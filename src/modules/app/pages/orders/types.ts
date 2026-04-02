@@ -4,6 +4,7 @@ export type WorkflowStatus =
   | "order_created"
   | "order_deposit_pending"
   | "order_approved"
+  | "order_assigned"
   | "order_shipped"
   | "order_in_use"
   | "order_completed"
@@ -49,14 +50,13 @@ export const WORKFLOW_STEPS: Array<{ status: WorkflowStatus; label: string }> = 
   { status: "order_created", label: "Order Created" },
   { status: "order_deposit_pending", label: "Deposit Pending" },
   { status: "order_approved", label: "Order Approved" },
-  { status: "order_shipped", label: "Order Shipped" },
+  { status: "order_assigned", label: "Materials Assigned" },
+  { status: "order_shipped", label: "Ready for Checkout" },
   { status: "order_in_use", label: "Order In Use / Loaned" },
   { status: "order_completed", label: "Order Completed / Delivered" },
 ];
 
-export function getFilterOptions(
-  isEs: boolean,
-): Array<{ value: WorkflowFilter; label: string }> {
+export function getFilterOptions(isEs: boolean): Array<{ value: WorkflowFilter; label: string }> {
   return [
     { value: "all", label: isEs ? "Todos los estados" : "All Status" },
     { value: "order_created", label: isEs ? "Pedido creado" : "Order Created" },
@@ -65,7 +65,14 @@ export function getFilterOptions(
       label: isEs ? "Deposito pendiente" : "Deposit Pending",
     },
     { value: "order_approved", label: isEs ? "Pedido aprobado" : "Order Approved" },
-    { value: "order_shipped", label: isEs ? "Pedido despachado" : "Order Shipped" },
+    {
+      value: "order_assigned",
+      label: isEs ? "Materiales asignados" : "Materials Assigned",
+    },
+    {
+      value: "order_shipped",
+      label: isEs ? "Listo para despacho" : "Ready for Checkout",
+    },
     {
       value: "order_in_use",
       label: isEs ? "Pedido en uso / prestado" : "Order In Use / Loaned",

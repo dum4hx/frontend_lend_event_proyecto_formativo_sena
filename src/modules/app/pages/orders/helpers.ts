@@ -91,10 +91,7 @@ export function normalizeSearchText(value: string): string {
     .toLowerCase();
 }
 
-export function getMaterialSearchScore(
-  material: MaterialType,
-  normalizedQuery: string,
-): number {
+export function getMaterialSearchScore(material: MaterialType, normalizedQuery: string): number {
   if (!normalizedQuery) return 1;
 
   const normalizedName = normalizeSearchText(material.name);
@@ -119,9 +116,7 @@ export function extractCategoryId(value: unknown): string | undefined {
   return undefined;
 }
 
-export function extractMaterialTypeIdFromInstance(
-  instance: MaterialInstance,
-): string | undefined {
+export function extractMaterialTypeIdFromInstance(instance: MaterialInstance): string | undefined {
   const withModel = instance as MaterialInstance & {
     model?: { _id?: string } | string;
     modelId?: { _id?: string } | string;
@@ -143,8 +138,7 @@ export function extractMaterialTypeIdFromInstance(
 export function extractMaterialTypeIdFromPackageEntry(
   entry: PackageMaterialEntry,
 ): string | undefined {
-  const candidate = (entry as PackageMaterialEntry & { materialTypeId: unknown })
-    .materialTypeId;
+  const candidate = (entry as PackageMaterialEntry & { materialTypeId: unknown }).materialTypeId;
   if (typeof candidate === "string") return candidate;
   if (candidate && typeof candidate === "object") {
     return (candidate as { _id?: string })._id;
@@ -181,8 +175,11 @@ export function getWorkflowFromRequestAndLoan(
   if (request.status === "shipped") {
     return { status: "order_in_use", label: "Order In Use / Loaned" };
   }
-  if (request.status === "ready" || request.status === "assigned") {
-    return { status: "order_shipped", label: "Order Shipped" };
+  if (request.status === "ready") {
+    return { status: "order_shipped", label: "Ready for Checkout" };
+  }
+  if (request.status === "assigned") {
+    return { status: "order_assigned", label: "Materials Assigned" };
   }
   if (request.status === "deposit_pending") {
     return { status: "order_deposit_pending", label: "Deposit Pending" };
@@ -202,6 +199,8 @@ export function getStatusBadgeStyle(status: WorkflowStatus): string {
       return "bg-blue-500/20 text-blue-400 border border-blue-500/30";
     case "order_shipped":
       return "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30";
+    case "order_assigned":
+      return "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30";
     case "order_approved":
       return "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
     case "order_deposit_pending":
@@ -222,16 +221,11 @@ export function getStepIndex(status: WorkflowStatus): number {
   return WORKFLOW_STEPS.findIndex((step) => step.status === status);
 }
 
-export function findRelatedLoan(
-  requestId: string,
-  loans: Loan[],
-): Loan | undefined {
+export function findRelatedLoan(requestId: string, loans: Loan[]): Loan | undefined {
   return loans.find((loan) => loan.requestId === requestId);
 }
 
-export function extractCustomerIdFromRequest(
-  request: LoanRequest,
-): string | undefined {
+export function extractCustomerIdFromRequest(request: LoanRequest): string | undefined {
   if (typeof request.customerId === "string") return request.customerId;
 
   const candidate = request.customerId as unknown;
@@ -249,8 +243,7 @@ export function mapRequestItemsToDisplay(
 ): string[] {
   return items.map((item) => {
     const quantity = item.quantity ?? 1;
-    const packageRefId =
-      item.packageId ?? (item.type === "package" ? item.referenceId : undefined);
+    const packageRefId = item.packageId ?? (item.type === "package" ? item.referenceId : undefined);
     const materialRefId =
       item.materialTypeId ?? (item.type === "material" ? item.referenceId : undefined);
 
@@ -260,9 +253,7 @@ export function mapRequestItemsToDisplay(
     }
 
     if (materialRefId) {
-      const materialName = materialTypes.find(
-        (material) => material._id === materialRefId,
-      )?.name;
+      const materialName = materialTypes.find((material) => material._id === materialRefId)?.name;
       return `${quantity}x ${materialName ?? "Material"}`;
     }
 
@@ -281,9 +272,7 @@ export function buildOrderViewModel(
     const relatedLoan = findRelatedLoan(request._id, loans);
     const workflow = getWorkflowFromRequestAndLoan(request, relatedLoan);
     const customerId = extractCustomerIdFromRequest(request);
-    const customer = customerId
-      ? customers.find((entry) => entry._id === customerId)
-      : undefined;
+    const customer = customerId ? customers.find((entry) => entry._id === customerId) : undefined;
 
     return {
       request,
@@ -304,7 +293,8 @@ export function toBackendRequestStatusFilter(
   if (selectedStatus === "order_created") return "pending";
   if (selectedStatus === "order_deposit_pending") return "deposit_pending";
   if (selectedStatus === "order_approved") return "approved";
-  if (selectedStatus === "order_shipped") return "assigned";
+  if (selectedStatus === "order_assigned") return "assigned";
+  if (selectedStatus === "order_shipped") return "ready";
   if (selectedStatus === "order_in_use") return "shipped";
   if (selectedStatus === "order_completed") return "completed";
   if (selectedStatus === "order_rejected") return "rejected";

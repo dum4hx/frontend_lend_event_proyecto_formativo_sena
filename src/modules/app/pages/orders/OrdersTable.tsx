@@ -1,4 +1,13 @@
-import { Check, X, RotateCcw, CreditCard, Truck, CircleCheck, Eye } from "lucide-react";
+import {
+  Check,
+  X,
+  RotateCcw,
+  CreditCard,
+  Truck,
+  PackageCheck,
+  CircleCheck,
+  Eye,
+} from "lucide-react";
 import { Button, IconButton, EntityLink, type ColumnDef } from "../../../../components/ui";
 import { DataTable } from "../../../../components/ui";
 import { Pagination } from "../../../../components/ui";
@@ -19,6 +28,7 @@ interface OrdersTableProps {
   onReactivate: (order: OrderView) => void;
   onRecordPayment: (order: OrderView) => void;
   onPrepare: (order: OrderView) => void;
+  onShip: (order: OrderView) => void;
   onStartLoan: (requestId: string) => void;
   onCompleteLoan: (loanId: string) => void;
   canApproveRequest: boolean;
@@ -44,6 +54,7 @@ export function OrdersTable({
   onReactivate,
   onRecordPayment,
   onPrepare,
+  onShip,
   onStartLoan,
   onCompleteLoan,
   canApproveRequest,
@@ -135,6 +146,19 @@ export function OrdersTable({
         </Button>
       )}
 
+      {!order.loan && order.request.status === "assigned" && (
+        <Button
+          size="sm"
+          leftIcon={PackageCheck}
+          onClick={() => onShip(order)}
+          disabled={submitting || !canAssignRequest}
+          variant="outline"
+          className="h-8 rounded-md border-indigo-500/40 bg-indigo-500/8 px-2.5 text-[11px] font-semibold text-indigo-300 hover:bg-indigo-500/15"
+        >
+          {isEs ? "Despachar" : "Ship"}
+        </Button>
+      )}
+
       {!order.loan && order.request.status === "ready" && (
         <Button
           size="sm"
@@ -182,7 +206,7 @@ export function OrdersTable({
       render: (order) => (
         <EntityLink
           entityType="customer"
-          entityId={order.request.customerId ?? ""}
+          entityId={order.request.customerId?._id ?? ""}
           label={order.customerName}
         />
       ),
