@@ -35,6 +35,9 @@ const defaultColorMap: Record<string, string> = {
   invited: "badge-warning",
   partially_applied: "badge-warning",
   refund_pending: "badge-warning",
+  in_progress: "badge-warning",
+  in_repair: "badge-warning",
+  acknowledged: "badge-warning",
   // Danger
   inactive: "badge-danger",
   cancelled: "badge-danger",
@@ -45,6 +48,8 @@ const defaultColorMap: Record<string, string> = {
   blacklisted: "badge-danger",
   expired: "badge-danger",
   retired: "badge-danger",
+  unrecoverable: "badge-danger",
+  open: "badge-danger",
   // Info
   assigned: "badge-info",
   ready: "badge-info",
@@ -52,10 +57,12 @@ const defaultColorMap: Record<string, string> = {
   returned: "badge-info",
   loaned: "badge-info",
   in_use: "badge-info",
+  repaired: "badge-info",
   // Gold
   applied: "badge-gold",
   closed: "badge-neutral",
   deprecated: "badge-neutral",
+  dismissed: "badge-neutral",
 };
 
 /** Human-readable label for a status key. */

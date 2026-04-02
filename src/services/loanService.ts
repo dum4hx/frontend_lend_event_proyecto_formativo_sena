@@ -80,6 +80,13 @@ export async function assignMaterials(
   });
 }
 
+/** Mark a request as ready for checkout (assigned → ready). */
+export async function markRequestReady(
+  requestId: string,
+): Promise<ApiSuccessResponse<{ request: LoanRequest }>> {
+  return post<{ request: LoanRequest }>(`/requests/${requestId}/ready`);
+}
+
 /** Update a loan request. */
 export async function updateRequest(
   requestId: string,
@@ -159,4 +166,16 @@ export async function recordPayment(
   requestId: string,
 ): Promise<ApiSuccessResponse<{ request: LoanRequest }>> {
   return post<{ request: LoanRequest }>(`/requests/${requestId}/record-payment`);
+}
+
+/** Record that the rental fee for a request has been paid manually. */
+export async function recordRentalPayment(
+  requestId: string,
+): Promise<ApiSuccessResponse<{ request: LoanRequest }>> {
+  return post<{ request: LoanRequest }>(`/requests/${requestId}/record-rental-payment`);
+}
+
+/** Complete a loan after inspection (transitions to closed). */
+export async function completeLoan(loanId: string): Promise<ApiSuccessResponse<{ loan: Loan }>> {
+  return post<{ loan: Loan }>(`/loans/${loanId}/complete`);
 }

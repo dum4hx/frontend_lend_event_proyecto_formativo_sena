@@ -1,6 +1,12 @@
 import { createContext } from "react";
 
-export type EntityType = "customer" | "materialType" | "materialInstance" | "location" | "category" | "transferRequest";
+export type EntityType =
+  | "customer"
+  | "materialType"
+  | "materialInstance"
+  | "location"
+  | "category"
+  | "transferRequest";
 
 export interface EntityDetailContextValue {
   /** Open the detail modal for the given entity. */

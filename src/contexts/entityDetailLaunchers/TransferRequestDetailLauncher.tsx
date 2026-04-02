@@ -27,9 +27,7 @@ export default function TransferRequestDetailLauncher({ id, onClose }: Props) {
       })
       .catch((err: unknown) => {
         if (cancelled) return;
-        setError(
-          err instanceof Error ? err.message : "Failed to load transfer request details.",
-        );
+        setError(err instanceof Error ? err.message : "Failed to load transfer request details.");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);

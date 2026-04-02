@@ -19,6 +19,8 @@ import {
   returnLoan,
   refundDeposit,
   recordPayment,
+  completeLoan,
+  recordRentalPayment,
 } from "../../services/loanService";
 import type {
   LoanRequestsQueryParams,
@@ -219,6 +221,26 @@ export function useRecordRequestPayment() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (requestId: string) => recordPayment(requestId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: requestKeys.all });
+    },
+  });
+}
+
+export function useCompleteLoan() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (loanId: string) => completeLoan(loanId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: loanKeys.all });
+    },
+  });
+}
+
+export function useRecordRentalPayment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (requestId: string) => recordRentalPayment(requestId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: requestKeys.all });
     },
