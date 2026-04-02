@@ -1,6 +1,10 @@
 import React, { useState } from "react";
 import { X, Save, AlertCircle } from "lucide-react";
-import type { PendingLoan, InspectionItem, InspectionCondition } from "../../../../../types/api";
+import type {
+  PendingLoan,
+  InspectionItemInput,
+  InspectionCondition,
+} from "../../../../../types/api";
 import { ConditionPicker } from "./ConditionPicker";
 import Button from "../../../../../components/ui/Button";
 
@@ -9,7 +13,7 @@ interface InspectionFormModalProps {
   onClose: () => void;
   onSave: (payload: {
     loanId: string;
-    items: InspectionItem[];
+    items: InspectionItemInput[];
     overallNotes?: string;
     dueDate?: string;
   }) => Promise<unknown>;
@@ -24,7 +28,7 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
   onClose,
   onSave,
 }) => {
-  const [items, setItems] = useState<InspectionItem[]>(
+  const [items, setItems] = useState<InspectionItemInput[]>(
     loan.materialInstances.map((mi) => ({
       materialInstanceId: mi.materialInstanceId._id,
       condition: "good" as InspectionCondition,
@@ -43,10 +47,10 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
     (item) => item.condition === "damaged" || item.condition === "lost",
   );
 
-  const handleItemChange = <K extends keyof InspectionItem>(
+  const handleItemChange = <K extends keyof InspectionItemInput>(
     index: number,
     field: K,
-    value: InspectionItem[K],
+    value: InspectionItemInput[K],
   ) => {
     const newItems = [...items];
     newItems[index] = { ...newItems[index], [field]: value };
@@ -86,7 +90,7 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
             <p className="text-sm text-gray-400 mt-1">
               Loan ID: <span className="text-gray-300 font-mono">{loan._id}</span> • Customer:{" "}
               <span className="text-gray-300">
-                {loan.customerId.name.firstName} {loan.customerId.name.firstSurname}
+                {`${loan.customerId.name.firstName} ${loan.customerId.name.firstSurname}`}
               </span>
             </p>
           </div>
@@ -119,9 +123,9 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
               >
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#2a2a2a] pb-4">
                   <div>
-                    <p className="text-white font-medium">{mi.materialTypeId.name}</p>
+                    <p className="text-white font-medium">{mi.materialInstanceId.serialNumber}</p>
                     <p className="text-xs text-gray-500 font-mono mt-0.5">
-                      Serial Number: {mi.materialInstanceId.serialNumber}
+                      ID: {mi.materialInstanceId._id}
                     </p>
                   </div>
                   <ConditionPicker

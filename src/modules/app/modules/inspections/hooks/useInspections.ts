@@ -4,14 +4,18 @@ import {
   getPendingLoans,
   createInspection,
 } from "../../../../../services/inspectionService";
-import type { Inspection, PendingLoan, CreateInspectionPayload } from "../../../../../types/api";
+import type {
+  InspectionListItem,
+  PendingLoan,
+  CreateInspectionPayload,
+} from "../../../../../types/api";
 
 /**
  * Hook for managing inspections and pending loans.
  * Provides state for both completed and pending inspections along with CRUD actions.
  */
 export function useInspections() {
-  const [inspections, setInspections] = useState<Inspection[]>([]);
+  const [inspections, setInspections] = useState<InspectionListItem[]>([]);
   const [pendingLoans, setPendingLoans] = useState<PendingLoan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

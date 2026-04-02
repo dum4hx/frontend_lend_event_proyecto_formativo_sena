@@ -1,10 +1,10 @@
 import React from "react";
 import { History, Eye, CheckCircle, AlertTriangle, XCircle, FileText } from "lucide-react";
-import type { Inspection, InspectionItem } from "../../../../../types/api";
+import type { InspectionListItem, InspectionItemResponse } from "../../../../../types/api";
 
 interface CompletedInspectionsTableProps {
-  inspections: Inspection[];
-  onView: (inspection: Inspection) => void;
+  inspections: InspectionListItem[];
+  onView: (inspection: InspectionListItem) => void;
 }
 
 /**
@@ -24,10 +24,10 @@ export const CompletedInspectionsTable: React.FC<CompletedInspectionsTableProps>
     );
   }
 
-  const getOverallCondition = (items: InspectionItem[]) => {
-    if (items.some((i) => i.condition === "lost"))
+  const getOverallCondition = (items: InspectionItemResponse[]) => {
+    if (items.some((i) => i.conditionAfter === "lost"))
       return { icon: XCircle, color: "text-red-500", text: "Loss Report" };
-    if (items.some((i) => i.condition === "damaged"))
+    if (items.some((i) => i.conditionAfter === "damaged"))
       return { icon: AlertTriangle, color: "text-yellow-500", text: "Damages Found" };
     return { icon: CheckCircle, color: "text-green-500", text: "All Good" };
   };
@@ -75,7 +75,7 @@ export const CompletedInspectionsTable: React.FC<CompletedInspectionsTableProps>
                   <span className="text-gray-400 font-mono text-xs group-hover:text-gray-300">
                     {typeof inspection.loanId === "string"
                       ? inspection.loanId
-                      : (inspection.loanId as unknown as { _id: string })._id}
+                      : inspection.loanId._id}
                   </span>
                 </td>
                 <td className="py-5 px-6">
@@ -89,7 +89,7 @@ export const CompletedInspectionsTable: React.FC<CompletedInspectionsTableProps>
                 <td className="py-5 px-6">
                   <div className="flex items-center text-gray-500 text-xs italic line-clamp-1 max-w-[200px]">
                     <FileText className="w-3 h-3 mr-1.5 flex-shrink-0" />
-                    {inspection.overallNotes || "No notes registered."}
+                    {inspection.notes || "No notes registered."}
                   </div>
                 </td>
                 <td className="py-5 px-6 text-right">

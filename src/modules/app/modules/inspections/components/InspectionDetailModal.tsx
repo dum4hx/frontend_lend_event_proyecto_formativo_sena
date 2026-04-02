@@ -1,10 +1,10 @@
 import React from "react";
 import { X, CheckCircle, AlertTriangle, XCircle, FileText } from "lucide-react";
-import type { Inspection } from "../../../../../types/api";
+import type { InspectionListItem } from "../../../../../types/api";
 import { EntityLink } from "../../../../../components/ui";
 
 interface InspectionDetailModalProps {
-  inspection: Inspection;
+  inspection: InspectionListItem;
   onClose: () => void;
 }
 
@@ -67,7 +67,7 @@ export const InspectionDetailModal: React.FC<InspectionDetailModalProps> = ({
           <div>
             <div className="space-y-4">
               {inspection.items.map((item, idx) => {
-                const status = statusIcons[item.condition] || statusIcons.good;
+                const status = statusIcons[item.conditionAfter] || statusIcons.good;
                 const StatusIcon = status.icon;
 
                 return (
@@ -81,33 +81,30 @@ export const InspectionDetailModal: React.FC<InspectionDetailModalProps> = ({
                         <div>
                           <p className="text-white font-medium capitalize">{status.label}</p>
                           <p className="text-xs text-gray-500 font-mono mt-0.5">
-                            ID:{" "}
+                            SN: {item.materialInstanceId.serialNumber}{" "}
                             <EntityLink
                               entityType="materialInstance"
-                              entityId={
-                                typeof item.materialInstanceId === "string"
-                                  ? item.materialInstanceId
-                                  : (item.materialInstanceId as unknown as { _id: string })._id
-                              }
-                              label={
-                                typeof item.materialInstanceId === "string"
-                                  ? item.materialInstanceId
-                                  : (item.materialInstanceId as unknown as { _id: string })._id
-                              }
+                              entityId={item.materialInstanceId._id}
+                              label={item.materialInstanceId._id}
                               className="font-mono text-xs"
                             />
                           </p>
                         </div>
                       </div>
-                      {item.damageCost !== undefined && item.damageCost > 0 && (
+                      {item.chargeToCustomer !== undefined && item.chargeToCustomer > 0 && (
                         <div className="bg-red-900/40 px-3 py-1.5 rounded-full border border-red-500/30">
                           <p className="text-red-200 text-xs font-bold">
                             Total Damage Cost:{" "}
                             <span className="text-red-100 font-black">
-                              {formatCurrency(item.damageCost)}
+                              {formatCurrency(item.chargeToCustomer)}
                             </span>
                           </p>
                         </div>
+                      )}
+                      {item.repairRequired && (
+                        <span className="bg-orange-900/40 px-3 py-1.5 rounded-full border border-orange-500/30 text-orange-200 text-xs font-bold">
+                          Repair Required
+                        </span>
                       )}
                     </div>
 
@@ -147,7 +144,7 @@ export const InspectionDetailModal: React.FC<InspectionDetailModalProps> = ({
                   Overall Notes
                 </span>
                 <p className="text-white mt-1 italic text-lg leading-relaxed whitespace-pre-line">
-                  {inspection.overallNotes || "No notes registered."}
+                  {inspection.notes || "No notes registered."}
                 </p>
               </div>
             </div>

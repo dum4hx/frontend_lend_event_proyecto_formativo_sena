@@ -8,7 +8,7 @@ import {
   InspectionDetailModal,
 } from "../components";
 import { LoadingSpinner, ErrorDisplay } from "../../../../../components/ui";
-import type { PendingLoan, Inspection } from "../../../../../types/api";
+import type { PendingLoan, InspectionListItem } from "../../../../../types/api";
 
 /**
  * Inspections Catalog — Main dashboard for Warehouse Operator to manage loan returns.
@@ -19,19 +19,19 @@ export const InspectionsCatalog: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<"pending" | "history">("pending");
   const [selectedLoan, setSelectedLoan] = useState<PendingLoan | null>(null);
-  const [selectedInspection, setSelectedInspection] = useState<Inspection | null>(null);
+  const [selectedInspection, setSelectedInspection] = useState<InspectionListItem | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredPending = pendingLoans.filter(
     (l) =>
       l._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (l.customerId.name.firstName + " " + l.customerId.name.firstSurname)
+      `${l.customerId.name.firstName} ${l.customerId.name.firstSurname}`
         .toLowerCase()
         .includes(searchTerm.toLowerCase()),
   );
 
   const filteredHistory = inspections.filter((i) => {
-    const loanIdStr = typeof i.loanId === "string" ? i.loanId : (i.loanId as { _id: string })._id;
+    const loanIdStr = typeof i.loanId === "string" ? i.loanId : i.loanId._id;
     return (
       i._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       loanIdStr.toLowerCase().includes(searchTerm.toLowerCase())
