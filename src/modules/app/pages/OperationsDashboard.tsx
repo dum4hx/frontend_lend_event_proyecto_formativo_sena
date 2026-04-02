@@ -148,44 +148,46 @@ export default function OperationsDashboard() {
       exit="exit"
       className="page-container"
     >
-      <PageHeader
-        title={isEs ? "Panel de Operaciones" : "Operations Dashboard"}
-        subtitle={
-          isEs
-            ? "Vista en tiempo real de las operaciones de tu ubicación."
-            : "Real-time view of your location's operations."
-        }
-        actions={
-          <div className="flex items-center gap-3">
-            {locationIds.length > 1 && (
-              <div className="w-52">
-                <SearchableSelect
-                  options={locationOptions}
-                  value={selectedLocation}
-                  onChange={setSelectedLocation}
-                  placeholder={isEs ? "Seleccionar ubicación" : "Select location"}
-                />
-              </div>
-            )}
-            {locationIds.length === 1 && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg depth-card text-sm text-zinc-300">
-                <MapPin size={14} className="text-yellow-400" />
-                <span className="text-xs font-medium">
-                  {locationMap[selectedLocation] || selectedLocation}
-                </span>
-              </div>
-            )}
-            <button
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg depth-card text-sm text-zinc-300 hover:text-white transition-colors disabled:opacity-50"
-            >
-              <RefreshCw size={14} className={isRefreshing ? "animate-spin" : ""} />
-              {isEs ? "Actualizar" : "Refresh"}
-            </button>
-          </div>
-        }
-      />
+      <div data-help-id="operations-header">
+        <PageHeader
+          title={isEs ? "Panel de Operaciones" : "Operations Dashboard"}
+          subtitle={
+            isEs
+              ? "Vista en tiempo real de las operaciones de tu ubicación."
+              : "Real-time view of your location's operations."
+          }
+          actions={
+            <div className="flex items-center gap-3" data-help-id="operations-actions">
+              {locationIds.length > 1 && (
+                <div className="w-52">
+                  <SearchableSelect
+                    options={locationOptions}
+                    value={selectedLocation}
+                    onChange={setSelectedLocation}
+                    placeholder={isEs ? "Seleccionar ubicación" : "Select location"}
+                  />
+                </div>
+              )}
+              {locationIds.length === 1 && (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg depth-card text-sm text-zinc-300">
+                  <MapPin size={14} className="text-yellow-400" />
+                  <span className="text-xs font-medium">
+                    {locationMap[selectedLocation] || selectedLocation}
+                  </span>
+                </div>
+              )}
+              <button
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg depth-card text-sm text-zinc-300 hover:text-white transition-colors disabled:opacity-50"
+              >
+                <RefreshCw size={14} className={isRefreshing ? "animate-spin" : ""} />
+                {isEs ? "Actualizar" : "Refresh"}
+              </button>
+            </div>
+          }
+        />
+      </div>
 
       {/* KPI Bar — always visible */}
       {isInitialLoading ? (
@@ -193,11 +195,13 @@ export default function OperationsDashboard() {
           <LoadingSpinner />
         </div>
       ) : overview.data ? (
-        <OpsKpiGrid data={overview.data} />
+        <div data-help-id="operations-kpis">
+          <OpsKpiGrid data={overview.data} />
+        </div>
       ) : null}
 
       {/* Tab Navigation */}
-      <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none">
+      <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none" data-help-id="operations-tabs">
         {TABS.map((tab) => (
           <button
             key={tab.key}
@@ -216,6 +220,7 @@ export default function OperationsDashboard() {
       {/* Tab Panels */}
       <AnimatePresence mode="wait">
         <motion.div
+          data-help-id="operations-panels"
           key={activeTab}
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}

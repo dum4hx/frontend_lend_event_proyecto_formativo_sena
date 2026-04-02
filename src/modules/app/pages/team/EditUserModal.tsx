@@ -233,7 +233,7 @@ export function EditUserModal({ member, availableRoles, onClose, onSuccess }: Ed
       cancelLabel={isEs ? "Cancelar" : "Cancel"}
       size="md"
     >
-      <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-5" data-help-id="team-form-edit">
         {formError && (
           <div className="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-sm text-red-400">
             {formError}
@@ -246,6 +246,7 @@ export function EditUserModal({ member, availableRoles, onClose, onSuccess }: Ed
               {isEs ? "Nombre *" : "First Name *"}
             </label>
             <input
+              data-help-id="team-form-first-name"
               className={inputClass(!!(touched.firstName && errors.firstName))}
               value={form.firstName}
               onChange={(e) => handleChange("firstName", e.target.value)}
@@ -260,6 +261,7 @@ export function EditUserModal({ member, availableRoles, onClose, onSuccess }: Ed
               {isEs ? "Apellido *" : "Last Name *"}
             </label>
             <input
+              data-help-id="team-form-last-name"
               className={inputClass(!!(touched.firstSurname && errors.firstSurname))}
               value={form.firstSurname}
               onChange={(e) => handleChange("firstSurname", e.target.value)}
@@ -271,7 +273,7 @@ export function EditUserModal({ member, availableRoles, onClose, onSuccess }: Ed
           </div>
         </div>
 
-        <div>
+        <div data-help-id="team-form-role">
           <label className="block text-xs text-zinc-400 mb-1.5">{isEs ? "Rol" : "Role"}</label>
           <SearchableSelect
             options={roleOptions}
@@ -286,7 +288,7 @@ export function EditUserModal({ member, availableRoles, onClose, onSuccess }: Ed
 
         {/* Locations */}
         {availableLocations.length > 0 && (
-          <div>
+          <div data-help-id="team-form-locations">
             <label className="block text-xs text-zinc-400 mb-2">
               {isEs ? "Ubicaciones *" : "Locations *"}
             </label>
@@ -319,7 +321,10 @@ export function EditUserModal({ member, availableRoles, onClose, onSuccess }: Ed
 
         {/* Owner promotion confirmation */}
         {isOwnerPromotion && (
-          <div className="flex flex-col gap-4 p-4 rounded-xl bg-red-500/5 border border-red-500/20">
+          <div
+            className="flex flex-col gap-4 p-4 rounded-xl bg-red-500/5 border border-red-500/20"
+            data-help-id="team-form-owner-security"
+          >
             <p className="text-sm font-semibold text-red-400">
               {isEs ? "⚠️ Transferencia de Propiedad" : "⚠️ Ownership Transfer"}
             </p>
@@ -369,6 +374,7 @@ export function EditUserModal({ member, availableRoles, onClose, onSuccess }: Ed
                 {isEs ? "Confirmar correo del miembro" : "Confirm member email"}
               </label>
               <input
+                data-help-id="team-form-owner-confirm-email"
                 className={inputClass(!!ownerErrors.confirmEmail)}
                 placeholder={member?.email ?? ""}
                 value={ownerSecurity.confirmEmail}
@@ -384,6 +390,7 @@ export function EditUserModal({ member, availableRoles, onClose, onSuccess }: Ed
                 {isEs ? `Escribe "${OWNER_PHRASE}"` : `Type "${OWNER_PHRASE}"`}
               </label>
               <input
+                data-help-id="team-form-owner-confirm-phrase"
                 className={inputClass(!!ownerErrors.confirmPhrase)}
                 placeholder={OWNER_PHRASE}
                 value={ownerSecurity.confirmPhrase}

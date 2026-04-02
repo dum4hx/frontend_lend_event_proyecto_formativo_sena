@@ -95,7 +95,10 @@ export function PaymentRecordingModal({
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-[#121212] border border-[#333] rounded-2xl shadow-2xl max-w-md w-full animate-in fade-in zoom-in-95 duration-200">
+      <div
+        className="bg-[#121212] border border-[#333] rounded-2xl shadow-2xl max-w-md w-full animate-in fade-in zoom-in-95 duration-200"
+        data-help-id="invoice-payment-form"
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-[#333]">
           <div className="flex items-center gap-3">
@@ -169,6 +172,7 @@ export function PaymentRecordingModal({
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600">$</span>
               <input
+                data-help-id="invoice-payment-amount"
                 type="number"
                 inputMode="decimal"
                 step="1"
@@ -204,6 +208,7 @@ export function PaymentRecordingModal({
               {isEs ? "Método de Pago" : "Payment Method"} *
             </label>
             <select
+              data-help-id="invoice-payment-method"
               value={paymentMethodId}
               onChange={(e) => {
                 setPaymentMethodId(e.target.value);
@@ -250,6 +255,7 @@ export function PaymentRecordingModal({
               type="button"
               onClick={onClose}
               disabled={submitting}
+              data-help-id="invoice-payment-cancel"
               className="flex-1 px-4 py-3 rounded-lg font-semibold transition-all bg-[#1a1a1a] border border-[#333] text-gray-300 hover:bg-[#252525] disabled:opacity-50"
             >
               {isEs ? "Cancelar" : "Cancel"}
@@ -257,6 +263,7 @@ export function PaymentRecordingModal({
             <button
               type="submit"
               disabled={!isValidAmount || submitting || isLoading}
+              data-help-id="invoice-payment-submit"
               className="flex-1 px-4 py-3 rounded-lg font-semibold transition-all bg-[#FFD700] text-black hover:bg-[#FFC107] disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {submitting || isLoading ? (

@@ -218,23 +218,25 @@ export default function RoleManagement() {
   return (
     <div className="page-container">
       <div className="max-w-6xl mx-auto">
-        <PageHeader
-          title="Role Management"
-          subtitle="Manage organization roles and their permissions. System roles cannot be modified."
-          actions={
-            <button
-              onClick={() => setModal({ type: "create" })}
-              className="w-full sm:w-auto shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 font-semibold rounded-lg transition gold-action-btn"
-            >
-              <Plus size={18} />
-              New Role
-            </button>
-          }
-        />
+        <div data-help-id="roles-title">
+          <PageHeader
+            title="Role Management"
+            subtitle="Manage organization roles and their permissions. System roles cannot be modified."
+            actions={
+              <button
+                onClick={() => setModal({ type: "create" })}
+                className="w-full sm:w-auto shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 font-semibold rounded-lg transition gold-action-btn"
+              >
+                <Plus size={18} />
+                New Role
+              </button>
+            }
+          />
+        </div>
 
         {/* Stat cards */}
         {rolesLoading || permsLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-4 mb-6">
+          <div data-help-id="roles-stats" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-4 mb-6">
             {Array.from({ length: 5 }).map((_, idx) => (
               <div key={idx} className="card h-[92px] animate-pulse">
                 <div className="h-4 bg-[#1a1a1a] rounded w-1/2 mb-3" />
@@ -243,7 +245,7 @@ export default function RoleManagement() {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-4 mb-6">
+          <div data-help-id="roles-stats" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-4 mb-6">
             <StatCard
               label="Total roles"
               value={roleMetrics.totalRoles}
@@ -275,7 +277,7 @@ export default function RoleManagement() {
         )}
 
         {/* Filters */}
-        <div className="card-compact mb-6 space-y-4">
+        <div data-help-id="roles-filters" className="card-compact mb-6 space-y-4">
           <div className="flex items-center justify-between gap-2">
             <h2 className="text-sm font-semibold text-gray-300">Roles</h2>
             <span className="badge badge-info">{sortedRoles.length} visible</span>
@@ -333,13 +335,13 @@ export default function RoleManagement() {
         {rolesError ? (
           <ErrorDisplay error={rolesError} onRetry={() => void refetchRoles()} fullScreen={false} />
         ) : rolesLoading || permsLoading ? (
-          <div className="card space-y-4">
+          <div data-help-id="roles-table" className="card space-y-4">
             {Array.from({ length: 6 }).map((_, idx) => (
               <div key={idx} className="h-12 bg-[#1a1a1a] rounded animate-pulse" />
             ))}
           </div>
         ) : filteredRoles.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-gray-500">
+          <div data-help-id="roles-table" className="flex flex-col items-center justify-center py-24 text-gray-500">
             <Shield size={48} className="mb-4 opacity-30" />
             <p className="text-lg font-medium">
               {search ? "No roles match your search" : "No roles found"}
@@ -348,7 +350,7 @@ export default function RoleManagement() {
         ) : (
           <>
             {/* Desktop table */}
-            <div className="hidden lg:block">
+            <div data-help-id="roles-table" className="hidden lg:block">
               <AdminTable>
                 <thead className="bg-[#0f0f0f] border-b border-[#333]">
                   <tr>
@@ -444,7 +446,7 @@ export default function RoleManagement() {
             </div>
 
             {/* Mobile cards */}
-            <div className="grid gap-3 lg:hidden">
+            <div data-help-id="roles-table" className="grid gap-3 lg:hidden">
               {pagedRoles.map((role) => (
                 <div
                   key={role._id}
@@ -510,14 +512,16 @@ export default function RoleManagement() {
               ))}
             </div>
 
-            <AdminPagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              totalItems={sortedRoles.length}
-              pageSize={pageSize}
-              itemLabel="roles"
-              onPageChange={setCurrentPage}
-            />
+            <div data-help-id="roles-pagination">
+              <AdminPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={sortedRoles.length}
+                pageSize={pageSize}
+                itemLabel="roles"
+                onPageChange={setCurrentPage}
+              />
+            </div>
           </>
         )}
       </div>

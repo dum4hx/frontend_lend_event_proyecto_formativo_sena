@@ -215,38 +215,44 @@ export function Rentals() {
   return (
     <AnimatedPage>
       <div className="page-container">
-        <PageHeader
-          title={isEs ? "Prestamos" : "Loans"}
-          subtitle={
-            isEs
-              ? "Haz seguimiento de prestamos activos y devoluciones"
-              : "Track active loans and manage returns"
-          }
-        />
+        <div data-help-id="rentals-header">
+          <PageHeader
+            title={isEs ? "Prestamos" : "Loans"}
+            subtitle={
+              isEs
+                ? "Haz seguimiento de prestamos activos y devoluciones"
+                : "Track active loans and manage returns"
+            }
+          />
+        </div>
 
         {/* Filters */}
-        <RentalsFilters
-          searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
-          selectedStatus={selectedStatus}
-          onStatusChange={setSelectedStatus}
-          isEs={isEs}
-        />
+        <div data-help-id="rentals-filters">
+          <RentalsFilters
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+            selectedStatus={selectedStatus}
+            onStatusChange={setSelectedStatus}
+            isEs={isEs}
+          />
+        </div>
 
         {/* Table */}
-        <RentalsTable
-          loans={filtered}
-          loading={loading}
-          submitting={submitting}
-          canExtend={canExtend}
-          canReturn={canReturn}
-          onViewDetail={handleOpenDetail}
-          onExtend={handleOpenExtend}
-          onReturn={handleOpenReturn}
-          onRefund={handleOpenRefund}
-          locale={locale}
-          isEs={isEs}
-        />
+        <div data-help-id="rentals-table">
+          <RentalsTable
+            loans={filtered}
+            loading={loading}
+            submitting={submitting}
+            canExtend={canExtend}
+            canReturn={canReturn}
+            onViewDetail={handleOpenDetail}
+            onExtend={handleOpenExtend}
+            onReturn={handleOpenReturn}
+            onRefund={handleOpenRefund}
+            locale={locale}
+            isEs={isEs}
+          />
+        </div>
 
         {/* Modals */}
         <LoanDetailModal

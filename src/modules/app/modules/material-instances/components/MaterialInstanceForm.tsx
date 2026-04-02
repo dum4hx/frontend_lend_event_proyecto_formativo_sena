@@ -166,10 +166,15 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-6"
+      data-help-id={isEditing ? "material-instances-form-edit" : "material-instances-form-create"}
+    >
       <div>
         <label className="block text-sm font-medium text-gray-300 mb-2">Material Type *</label>
         <select
+          data-help-id="material-instances-form-model"
           value={formData.modelId}
           onChange={(e) => handleChange("modelId", e.target.value)}
           onBlur={() => setTouched((prev) => ({ ...prev, modelId: true }))}
@@ -202,6 +207,7 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
         </label>
         <input
           type="text"
+          data-help-id="material-instances-form-serial"
           value={formData.serialNumber}
           onChange={(e) => handleChange("serialNumber", e.target.value)}
           onBlur={() => setTouched((prev) => ({ ...prev, serialNumber: true }))}
@@ -229,6 +235,7 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
         </label>
         <input
           type="text"
+          data-help-id="material-instances-form-barcode"
           value={formData.barcode ?? ""}
           onChange={(e) => handleChange("barcode", e.target.value)}
           onBlur={() => setTouched((prev) => ({ ...prev, barcode: true }))}
@@ -246,7 +253,7 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
         </p>
       </div>
 
-      <div className="rounded-lg border border-[#333] bg-[#151515] px-4 py-3">
+      <div className="rounded-lg border border-[#333] bg-[#151515] px-4 py-3" data-help-id="material-instances-form-barcode-toggle">
         <label className="flex items-center justify-between gap-4 cursor-pointer">
           <div>
             <p className="text-sm font-medium text-gray-200">Use Barcode as Serial Number</p>
@@ -266,6 +273,7 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
       <div>
         <label className="block text-sm font-medium text-gray-300 mb-2">Location *</label>
         <select
+          data-help-id="material-instances-form-location"
           value={formData.locationId}
           onChange={(e) => handleChange("locationId", e.target.value)}
           onBlur={() => setTouched((prev) => ({ ...prev, locationId: true }))}
@@ -287,7 +295,7 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
       </div>
 
       <div className="flex gap-4 pt-4">
-        <Button type="submit" loading={isSubmitting} className="flex-1">
+        <Button type="submit" loading={isSubmitting} className="flex-1" data-help-id="material-instances-form-submit">
           {isSubmitting
             ? isEditing
               ? "Updating..."
@@ -296,7 +304,13 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
               ? "Update Instance"
               : "Create Instance"}
         </Button>
-        <Button type="button" variant="secondary" onClick={onCancel} disabled={isSubmitting}>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={onCancel}
+          disabled={isSubmitting}
+          data-help-id="material-instances-form-cancel"
+        >
           Cancel
         </Button>
       </div>

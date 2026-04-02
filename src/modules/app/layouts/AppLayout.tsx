@@ -4,6 +4,7 @@ import { Sidebar } from "../components";
 import { ToastContainer } from "../../../components/ui/ToastContainer";
 import { ToastProvider, useToast } from "../../../contexts/ToastContext";
 import { AnimatedPage } from "../../../components/ui";
+import { HelpPanel, HelpPanelProvider } from "../help";
 
 function AppLayoutContent() {
   const { toasts, dismissToast } = useToast();
@@ -26,6 +27,7 @@ function AppLayoutContent() {
       </div>
 
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+      <HelpPanel />
     </div>
   );
 }
@@ -33,7 +35,9 @@ function AppLayoutContent() {
 export default function AppLayout() {
   return (
     <ToastProvider>
-      <AppLayoutContent />
+      <HelpPanelProvider>
+        <AppLayoutContent />
+      </HelpPanelProvider>
     </ToastProvider>
   );
 }

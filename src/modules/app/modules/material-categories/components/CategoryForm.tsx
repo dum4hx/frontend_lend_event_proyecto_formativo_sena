@@ -135,13 +135,18 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-6"
+      data-help-id={isEditing ? "material-categories-form-edit" : "material-categories-form-create"}
+    >
       <div>
         <label className="block text-sm font-medium text-gray-300 mb-2">
           Category Name <span className="text-red-400">*</span>
         </label>
         <input
           type="text"
+          data-help-id="material-categories-form-name"
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           onBlur={() => handleBlur("name")}
@@ -165,6 +170,7 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
           Description <span className="text-red-400">*</span>
         </label>
         <textarea
+          data-help-id="material-categories-form-description"
           value={formData.description}
           onChange={(e) => setFormData({ ...formData, description: e.target.value })}
           onBlur={() => handleBlur("description")}
@@ -187,7 +193,7 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
       </div>
 
       {/* Attributes Selection Section */}
-      <div className="border border-[#333] rounded-lg p-4">
+      <div className="border border-[#333] rounded-lg p-4" data-help-id="material-categories-form-attributes">
         <button
           type="button"
           onClick={() => setExpandedAttributes(!expandedAttributes)}
@@ -273,6 +279,7 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
           type="submit"
           loading={isSubmitting}
           disabled={isSubmitting || !isFormValid}
+          data-help-id="material-categories-form-submit"
           className="flex-1"
         >
           {isSubmitting
@@ -283,7 +290,13 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
               ? "Update Category"
               : "Create Category"}
         </Button>
-        <Button type="button" variant="secondary" onClick={onCancel} disabled={isSubmitting}>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={onCancel}
+          disabled={isSubmitting}
+          data-help-id="material-categories-form-cancel"
+        >
           Cancel
         </Button>
       </div>

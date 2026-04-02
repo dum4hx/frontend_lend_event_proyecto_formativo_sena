@@ -81,18 +81,20 @@ export default function AdminDashboard() {
 
   return (
     <div className="page-container">
-      <PageHeader
-        title={isEs ? "Panel" : "Dashboard"}
-        subtitle={
-          error
-            ? isEs
-              ? "Hubo un problema al cargar los datos"
-              : "There was a problem loading the data"
-            : isEs
-              ? "Bienvenido de nuevo. Aqui tienes tu resumen"
-              : "Welcome back! Here's your overview"
-        }
-      />
+      <div data-help-id="dashboard-title">
+        <PageHeader
+          title={isEs ? "Panel" : "Dashboard"}
+          subtitle={
+            error
+              ? isEs
+                ? "Hubo un problema al cargar los datos"
+                : "There was a problem loading the data"
+              : isEs
+                ? "Bienvenido de nuevo. Aqui tienes tu resumen"
+                : "Welcome back! Here's your overview"
+          }
+        />
+      </div>
 
       {/* ── Error banner ── */}
       {error && (
@@ -109,7 +111,7 @@ export default function AdminDashboard() {
       )}
 
       {/* ── Stat cards ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+      <div data-help-id="dashboard-stat-cards" className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         <StatCard
           label={isEs ? "Usuarios totales" : "Total Users"}
           value={loading ? "—" : fmt(stats?.totalUsers ?? 0)}
@@ -151,7 +153,7 @@ export default function AdminDashboard() {
       {/* ── Main grid ── */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* ── Pending Requests (2/3) ── */}
-        <div className="xl:col-span-2 bg-[#121212] border border-[#333] rounded-xl p-5 space-y-4">
+        <div data-help-id="dashboard-pending-requests" className="xl:col-span-2 bg-[#121212] border border-[#333] rounded-xl p-5 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-white font-semibold text-base">
               {isEs ? "Solicitudes pendientes" : "Pending Requests"}
@@ -236,7 +238,7 @@ export default function AdminDashboard() {
         {/* ── Right column (1/3) ── */}
         <div className="space-y-6">
           {/* ── Invoice Summary ── */}
-          <div className="bg-[#121212] border border-[#333] rounded-xl p-5 space-y-4">
+          <div data-help-id="dashboard-invoice-summary" className="bg-[#121212] border border-[#333] rounded-xl p-5 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-white font-semibold text-base">
                 {isEs ? "Resumen de facturas" : "Invoice Summary"}
