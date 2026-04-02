@@ -163,6 +163,36 @@ Each section explains the purpose of a permission and the action it allows.
 - **Allowed Action:** Modify existing records in this resource.
 - **Resource Target:** Inspections
 
+### `incidents:create`
+
+- **Display Name:** Create Incidents
+- **Category:** Incidents
+- **Scope:** Organization
+- **Active:** Yes
+- **Purpose:** Allows creating new incident reports for loans.
+- **Allowed Action:** Create new records in this resource.
+- **Resource Target:** Incidents
+
+### `incidents:read`
+
+- **Display Name:** View Incidents
+- **Category:** Incidents
+- **Scope:** Organization
+- **Active:** Yes
+- **Purpose:** Allows viewing incident reports and their status.
+- **Allowed Action:** View/list records and details for this resource.
+- **Resource Target:** Incidents
+
+### `incidents:update`
+
+- **Display Name:** Update Incidents
+- **Category:** Incidents
+- **Scope:** Organization
+- **Active:** Yes
+- **Purpose:** Allows acknowledging, resolving, or dismissing incidents.
+- **Allowed Action:** Modify existing records in this resource.
+- **Resource Target:** Incidents
+
 ### `invoices:create`
 
 - **Display Name:** Create Invoices

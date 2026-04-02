@@ -1,18 +1,23 @@
 import React, { useEffect, useState } from "react";
-import { ArrowLeftRight, CheckCircle, Eye, Package, Plus, Send, Truck, X } from "lucide-react";
+import { ArrowLeftRight, CheckCircle, Eye, Package, Plus, Send, Truck, X, Calendar, User, FileText, Info } from "lucide-react";
 import { useToast } from "../../../../contexts/ToastContext";
 import { useLanguage } from "../../../../contexts/useLanguage";
+import { SearchableSelect } from "../../../../components/ui";
+import type { SelectOption } from "../../../../components/ui";
 import {
   createTransferRequest,
   createTransfer,
   receiveTransfer,
 } from "../../../../services/transferService";
-import { getMaterialInstances, getMaterialTypes } from "../../../../services/materialService";
+import { getMaterialInstances, getCatalogOverview } from "../../../../services/materialService";
 import {
   CONDITION_LABEL,
   getConditionLabel,
   extractInstanceLocationId,
   getInstanceModelName,
+  REQUEST_STATUS_CLASSES,
+  getRequestStatusLabel,
+  formatDate,
 } from "./helpers";
 import type {
   TransferRequest,
@@ -21,7 +26,6 @@ import type {
   TransferCondition,
   ReceiveTransferItem,
   MaterialInstance,
-  MaterialType,
   WarehouseLocation,
 } from "./types";
 import type { CreateTransferRequestPayload, Transfer } from "../../../../types/api";
@@ -40,6 +44,212 @@ const TransferRoute: React.FC<TransferRouteProps> = ({ fromLocation, toLocation 
     <span className="text-white font-medium">{toLocation}</span>
   </div>
 );
+
+// ─── Request Detail Modal ──────────────────────────────────────────────────
+
+interface RequestDetailModalProps {
+  request: TransferRequest;
+  locationName: (id: string) => string;
+  materialTypeName: (modelId: string) => string;
+  onClose: () => void;
+}
+
+/**
+ * Detailed view modal for transfer requests.
+ * Displays comprehensive information about a transfer request including
+ * status, locations, items, notes, timestamps, and requester info.
+ */
+export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
+  request,
+  locationName,
+  materialTypeName,
+  onClose,
+}) => {
+  const { language } = useLanguage();
+  const isEs = language === "es";
+
+  const statusBadgeClass = REQUEST_STATUS_CLASSES[request.status];
+  const statusLabel = getRequestStatusLabel(request.status, isEs);
+  const createdDate = formatDate(request.createdAt, isEs);
+  const updatedDate = request.updatedAt ? formatDate(request.updatedAt, isEs) : null;
+
+  // Group items by material type for better readability
+  const itemsByType = new Map<string, TransferRequestItem[]>();
+  request.items.forEach((item) => {
+    const key = item.modelId;
+    if (!itemsByType.has(key)) {
+      itemsByType.set(key, []);
+    }
+    itemsByType.get(key)!.push(item);
+  });
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+      <div className="bg-[#111] border border-[#2a2a2a] rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-[#222]">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-[#FFD700]/10 rounded-lg">
+              <Info className="w-5 h-5 text-[#FFD700]" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-white">
+                {isEs ? "Detalles de la Solicitud" : "Request Details"}
+              </h2>
+              <p className="text-xs text-gray-500 font-mono mt-1">
+                {isEs ? "ID:" : "ID:"} {request._id}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 text-gray-500 hover:text-white hover:bg-[#222] rounded-lg transition-colors"
+            aria-label={isEs ? "Cerrar" : "Close"}
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar">
+          {/* Status Badge */}
+          <div className="flex items-center gap-3">
+            <span className={`inline-flex items-center px-3 py-1 rounded-full border text-xs font-semibold ${statusBadgeClass}`}>
+              <span className="w-2 h-2 rounded-full bg-current mr-2"></span>
+              {statusLabel}
+            </span>
+          </div>
+
+          {/* Transfer Route */}
+          <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-4">
+            <p className="text-xs text-gray-500 font-semibold mb-3 uppercase tracking-wide">
+              {isEs ? "Ruta de Transferencia" : "Transfer Route"}
+            </p>
+            <TransferRoute
+              fromLocation={locationName(request.fromLocationId)}
+              toLocation={locationName(request.toLocationId)}
+            />
+          </div>
+
+          {/* Metadata Grid */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Created At */}
+            <div className="bg-[#0a0a0a] border border-[#222] rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Calendar size={14} className="text-[#FFD700]" />
+                <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide">
+                  {isEs ? "Solicitado el" : "Requested"}
+                </p>
+              </div>
+              <p className="text-sm text-white font-medium">{createdDate}</p>
+            </div>
+
+            {/* Updated At (if applicable) */}
+            {updatedDate && (
+              <div className="bg-[#0a0a0a] border border-[#222] rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Calendar size={14} className="text-[#FFD700]" />
+                  <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide">
+                    {isEs ? "Actualizado el" : "Updated"}
+                  </p>
+                </div>
+                <p className="text-sm text-white font-medium">{updatedDate}</p>
+              </div>
+            )}
+
+            {/* Requested By */}
+            <div className="bg-[#0a0a0a] border border-[#222] rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <User size={14} className="text-[#FFD700]" />
+                <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide">
+                  {isEs ? "Solicitado por" : "Requested By"}
+                </p>
+              </div>
+              <p className="text-sm text-gray-300 font-mono truncate">{request.requestedBy}</p>
+            </div>
+
+            {/* Item Count */}
+            <div className="bg-[#0a0a0a] border border-[#222] rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Package size={14} className="text-[#FFD700]" />
+                <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide">
+                  {isEs ? "Cantidad de Artículos" : "Item Count"}
+                </p>
+              </div>
+              <p className="text-sm text-white font-medium">{request.items.length}</p>
+            </div>
+          </div>
+
+          {/* Items Section */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Package size={14} className="text-[#FFD700]" />
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                {isEs ? "Artículos Solicitados" : "Requested Items"}
+              </h3>
+            </div>
+            <div className="space-y-3">
+              {Array.from(itemsByType.entries()).map(([materialTypeId, items]) => (
+                <div
+                  key={materialTypeId}
+                  className="bg-[#0a0a0a] border border-[#222] rounded-lg p-4"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-sm font-semibold text-white">
+                      {materialTypeName(materialTypeId)}
+                    </p>
+                    <span className="px-2.5 py-0.5 bg-[#FFD700]/15 text-[#FFD700] rounded text-xs font-bold">
+                      ×{items.reduce((sum, item) => sum + item.quantity, 0)}
+                    </span>
+                  </div>
+                  <div className="space-y-1.5 ml-2 border-l-2 border-[#333] pl-3">
+                    {items.map((item, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between text-sm text-gray-300"
+                      >
+                        <span>
+                          {isEs ? "Cantidad:" : "Quantity:"} <span className="font-mono">{item.quantity}</span>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Notes Section */}
+          {request.notes && (
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <FileText size={14} className="text-[#FFD700]" />
+                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                  {isEs ? "Notas" : "Notes"}
+                </h3>
+              </div>
+              <div className="bg-[#0a0a0a] border border-[#222] rounded-lg p-4">
+                <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">
+                  {request.notes}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-end p-6 border-t border-[#222]">
+          <button
+            onClick={onClose}
+            className="px-5 py-2.5 bg-[#FFD700] text-black font-bold rounded-lg text-sm hover:bg-[#e6c200] transition-colors"
+          >
+            {isEs ? "Cerrar" : "Close"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // ─── Create Request Modal ──────────────────────────────────────────────────
 
@@ -63,16 +273,39 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
   const [requestItems, setRequestItems] = useState<TransferRequestItem[]>([
     { modelId: "", quantity: 1 },
   ]);
-  const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
+  const [materialTypeOptions, setMaterialTypeOptions] = useState<SelectOption[]>([]);
+  const [allMaterialTypeCount, setAllMaterialTypeCount] = useState(0);
+  const [loadingItems, setLoadingItems] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Fetch material types only after fromLocationId is set
   useEffect(() => {
-    getMaterialTypes({ limit: 100 })
-      .then((res) => setMaterialTypes(res.data.materialTypes ?? []))
+    if (!fromLocationId) {
+      setMaterialTypeOptions([]);
+      return;
+    }
+
+    setLoadingItems(true);
+    getCatalogOverview({ locationId: fromLocationId, limit: 100 })
+      .then((res) => {
+        const allTypes = res.data.materialTypes ?? [];
+        setAllMaterialTypeCount(allTypes.length);
+
+        // Filter to only types with one or more instances (regardless of status)
+        const typesWithInstances = allTypes.filter((mt) => mt.totals.totalInstances > 0);
+
+        const options: SelectOption[] = typesWithInstances.map((mt) => ({
+          value: mt.materialTypeId,
+          label: mt.name,
+        }));
+        setMaterialTypeOptions(options);
+      })
       .catch(() => {
         /* non-critical */
-      });
-  }, []);
+        setMaterialTypeOptions([]);
+      })
+      .finally(() => setLoadingItems(false));
+  }, [fromLocationId]);
 
   const addItem = () => setRequestItems((prev) => [...prev, { modelId: "", quantity: 1 }]);
 
@@ -216,29 +449,44 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
               <button
                 type="button"
                 onClick={addItem}
-                className="flex items-center gap-1 text-xs text-[#FFD700] hover:text-[#FFD700]/80 transition-colors"
+                disabled={!fromLocationId}
+                className="flex items-center gap-1 text-xs text-[#FFD700] hover:text-[#FFD700]/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <Plus size={12} />
                 {isEs ? "Agregar artículo" : "Add item"}
               </button>
             </div>
+
+            {!fromLocationId && (
+              <p className="text-xs text-gray-500 mb-2">
+                {isEs
+                  ? "Selecciona una ubicación de origen para ver los tipos de material disponibles."
+                  : "Select an origin location to see available material types."}
+              </p>
+            )}
+
+            {fromLocationId && allMaterialTypeCount > materialTypeOptions.length && (
+              <p className="text-xs text-gray-600 mb-2 italic">
+                {isEs
+                  ? `Solo se muestran tipos de material con instancias disponibles. ${allMaterialTypeCount - materialTypeOptions.length} tipo(s) no aparecen porque no tienen inventario.`
+                  : `Only material types with available instances are shown. ${allMaterialTypeCount - materialTypeOptions.length} type(s) are not displayed because they have no inventory.`}
+              </p>
+            )}
+
             <div className="space-y-2">
               {requestItems.map((item, idx) => (
                 <div key={idx} className="flex items-center gap-2">
-                  <select
-                    value={item.modelId}
-                    onChange={(e) => updateItem(idx, { modelId: e.target.value })}
-                    className="flex-1 h-9 px-2 bg-[#0a0a0a] border border-[#222] rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] transition-all"
-                  >
-                    <option value="">
-                      {isEs ? "Seleccionar tipo de material" : "Select material type"}
-                    </option>
-                    {materialTypes.map((mt) => (
-                      <option key={mt._id} value={mt._id}>
-                        {mt.name}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="flex-1">
+                    <SearchableSelect
+                      options={materialTypeOptions}
+                      value={item.modelId}
+                      onChange={(value) => updateItem(idx, { modelId: value })}
+                      placeholder={
+                        isEs ? "Seleccionar tipo de material" : "Select material type"
+                      }
+                      disabled={!fromLocationId || loadingItems}
+                    />
+                  </div>
                   <input
                     type="number"
                     min={1}

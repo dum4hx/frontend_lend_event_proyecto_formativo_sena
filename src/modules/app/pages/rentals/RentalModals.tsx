@@ -4,7 +4,6 @@ import { Button } from "../../../../components/ui";
 import type { LoanView } from "./types";
 import type { LoanDetailGrouped, LoanMaterialInstanceEntry } from "../../../../types/api";
 import { getLoanDetailGrouped } from "../../../../services/loanService";
-import { getMaterialType } from "../../../../services/materialService";
 import { customerFullName } from "./helpers";
 
 // ─── Props ──────────────────────────────────────────────────────────────
@@ -107,7 +106,6 @@ function formatDateLocal(dateStr: string, locale: string): string {
 export function LoanDetailModal({ show, onClose, target, locale, isEs }: LoanDetailModalProps) {
   const [loanDetail, setLoanDetail] = useState<LoanDetailGrouped | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
-  const [typeNames, setTypeNames] = useState<Record<string, string>>({});
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -119,18 +117,7 @@ export function LoanDetailModal({ show, onClose, target, locale, isEs }: LoanDet
       try {
         const detailRes = await getLoanDetailGrouped(loanId);
         if (cancelled) return;
-        const loan = detailRes.data.loan;
-        setLoanDetail(loan);
-        const typeIds = Object.keys(loan.materialInstancesByType ?? {});
-        const typeResults = await Promise.allSettled(typeIds.map((id) => getMaterialType(id)));
-        if (cancelled) return;
-        const nameMap: Record<string, string> = {};
-        typeResults.forEach((result, idx) => {
-          if (result.status === "fulfilled") {
-            nameMap[typeIds[idx]] = result.value.data.materialType.name;
-          }
-        });
-        setTypeNames(nameMap);
+        setLoanDetail(detailRes.data.loan);
       } catch {
         if (!cancelled) setLoanDetail(null);
       } finally {
@@ -249,7 +236,7 @@ export function LoanDetailModal({ show, onClose, target, locale, isEs }: LoanDet
 
             {typeEntries.map(([typeId, group]) => {
               const instances: LoanMaterialInstanceEntry[] = group.instances;
-              const typeName = typeNames[typeId] ?? typeId.slice(-8).toUpperCase();
+              const typeName = instances[0]?.materialType?.name ?? typeId.slice(-8).toUpperCase();
               const isCollapsed = collapsed[typeId] === true;
               return (
                 <div

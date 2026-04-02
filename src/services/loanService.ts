@@ -12,6 +12,7 @@ import type {
   AssignMaterialPayload,
   AvailableMaterialsResponse,
   Loan,
+  LoanListItem,
   LoanDetail,
   LoanDetailGrouped,
   LoanRequestStatus,
@@ -94,8 +95,8 @@ export async function updateRequest(
 /** List loans with optional filters. */
 export async function getLoans(
   params: LoansQueryParams = {},
-): Promise<ApiSuccessResponse<{ loans: Loan[] } & PaginationMeta>> {
-  return get<{ loans: Loan[] } & PaginationMeta>(
+): Promise<ApiSuccessResponse<{ loans: LoanListItem[] } & PaginationMeta>> {
+  return get<{ loans: LoanListItem[] } & PaginationMeta>(
     "/loans",
     params as Record<string, string | number | boolean | undefined>,
   );
@@ -158,11 +159,4 @@ export async function recordPayment(
   requestId: string,
 ): Promise<ApiSuccessResponse<{ request: LoanRequest }>> {
   return post<{ request: LoanRequest }>(`/requests/${requestId}/record-payment`);
-}
-
-/** Record that the rental fee for a request has been paid manually. */
-export async function recordRentalPayment(
-  requestId: string,
-): Promise<ApiSuccessResponse<{ request: LoanRequest }>> {
-  return post<{ request: LoanRequest }>(`/requests/${requestId}/record-rental-payment`);
 }

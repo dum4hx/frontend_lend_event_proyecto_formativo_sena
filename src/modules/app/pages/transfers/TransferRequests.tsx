@@ -4,6 +4,7 @@ import {
   CheckCircle,
   ChevronDown,
   CircleDashed,
+  Eye,
   Plus,
   RefreshCw,
   Truck,
@@ -12,6 +13,7 @@ import {
 import { useLanguage } from "../../../../contexts/useLanguage";
 import { usePermissions } from "../../../../contexts/usePermissions";
 import { useToast } from "../../../../contexts/ToastContext";
+import { useAuth } from "../../../../contexts/useAuth";
 import {
   getTransferRequests,
   respondToTransferRequest,
@@ -29,7 +31,7 @@ import {
   TRANSFER_STATUS_CLASSES,
   formatDate,
 } from "./helpers";
-import { CreateRequestModal, InitiateShipmentModal, ReceiveTransferModal } from "./TransferModals";
+import { CreateRequestModal, InitiateShipmentModal, ReceiveTransferModal, RequestDetailModal } from "./TransferModals";
 import type {
   TransferRequest,
   TransferRequestStatus,
@@ -61,9 +63,11 @@ export function TransferRequests() {
   const isEs = language === "es";
   const { hasPermission } = usePermissions();
   const { showToast } = useToast();
+  const { user } = useAuth();
 
   const canCreate = hasPermission("transfers:create");
   const canUpdate = hasPermission("transfers:update");
+  const userLocations = user?.locations ?? [];
 
   const [activeTab, setActiveTab] = useState<ActiveTab>("requests");
 
@@ -83,6 +87,7 @@ export function TransferRequests() {
 
   // ── Modals ──
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [viewTarget, setViewTarget] = useState<TransferRequest | null>(null);
   const [shipmentTarget, setShipmentTarget] = useState<TransferRequest | null>(null);
   const [receiveTarget, setReceiveTarget] = useState<Transfer | null>(null);
 
@@ -90,6 +95,14 @@ export function TransferRequests() {
   const locationName = useCallback(
     (id: string) => locations.find((l) => l._id === id)?.name ?? id,
     [locations],
+  );
+
+  const getMaterialTypeName = useCallback(
+    (modelId: string): string => {
+      // Could be enhanced with a lookup from materials service if needed
+      return modelId;
+    },
+    [],
   );
 
   // ── Loaders ──
@@ -189,32 +202,52 @@ export function TransferRequests() {
 
   // ── Render helpers ──
   const renderRequestActions = (req: TransferRequest) => {
+    const canApproveReject = canUpdate && userLocations.includes(req.fromLocationId);
+
     if (req.status === "requested" && canUpdate) {
       return (
         <div className="flex items-center justify-end gap-1.5">
           <button
-            onClick={() => void handleRespond(req._id, "approved")}
-            title={isEs ? "Aprobar" : "Approve"}
-            className="flex items-center gap-1 px-2.5 h-7 bg-green-700/20 hover:bg-green-600/30 text-green-400 hover:text-green-300 border border-green-700/30 rounded text-xs font-medium transition-all"
+            onClick={() => setViewTarget(req)}
+            title={isEs ? "Ver detalles" : "View details"}
+            className="flex items-center gap-1 px-2.5 h-7 bg-blue-700/20 hover:bg-blue-600/30 text-blue-400 hover:text-blue-300 border border-blue-700/30 rounded text-xs font-medium transition-all"
           >
-            <CheckCircle size={12} />
-            {isEs ? "Aprobar" : "Approve"}
+            <Eye size={12} />
           </button>
-          <button
-            onClick={() => void handleRespond(req._id, "rejected")}
-            title={isEs ? "Rechazar" : "Reject"}
-            className="flex items-center gap-1 px-2.5 h-7 bg-red-700/20 hover:bg-red-600/30 text-red-400 hover:text-red-300 border border-red-700/30 rounded text-xs font-medium transition-all"
-          >
-            <XCircle size={12} />
-            {isEs ? "Rechazar" : "Reject"}
-          </button>
+          {canApproveReject && (
+            <>
+              <button
+                onClick={() => void handleRespond(req._id, "approved")}
+                title={isEs ? "Aprobar" : "Approve"}
+                className="flex items-center gap-1 px-2.5 h-7 bg-green-700/20 hover:bg-green-600/30 text-green-400 hover:text-green-300 border border-green-700/30 rounded text-xs font-medium transition-all"
+              >
+                <CheckCircle size={12} />
+                {isEs ? "Aprobar" : "Approve"}
+              </button>
+              <button
+                onClick={() => void handleRespond(req._id, "rejected")}
+                title={isEs ? "Rechazar" : "Reject"}
+                className="flex items-center gap-1 px-2.5 h-7 bg-red-700/20 hover:bg-red-600/30 text-red-400 hover:text-red-300 border border-red-700/30 rounded text-xs font-medium transition-all"
+              >
+                <XCircle size={12} />
+                {isEs ? "Rechazar" : "Reject"}
+              </button>
+            </>
+          )}
         </div>
       );
     }
 
     if (req.status === "approved" && canCreate) {
       return (
-        <div className="flex items-center justify-end">
+        <div className="flex items-center justify-end gap-1.5">
+          <button
+            onClick={() => setViewTarget(req)}
+            title={isEs ? "Ver detalles" : "View details"}
+            className="flex items-center gap-1 px-2.5 h-7 bg-blue-700/20 hover:bg-blue-600/30 text-blue-400 hover:text-blue-300 border border-blue-700/30 rounded text-xs font-medium transition-all"
+          >
+            <Eye size={12} />
+          </button>
           <button
             onClick={() => setShipmentTarget(req)}
             className="flex items-center gap-1 px-2.5 h-7 bg-[#FFD700]/15 hover:bg-[#FFD700]/25 text-[#FFD700] border border-[#FFD700]/30 rounded text-xs font-medium transition-all"
@@ -227,8 +260,14 @@ export function TransferRequests() {
     }
 
     return (
-      <div className="flex items-center justify-center">
-        <span className="text-xs text-gray-600 italic">{isEs ? "Sin acciones" : "No actions"}</span>
+      <div className="flex items-center justify-end">
+        <button
+          onClick={() => setViewTarget(req)}
+          title={isEs ? "Ver detalles" : "View details"}
+          className="flex items-center gap-1 px-2.5 h-7 bg-blue-700/20 hover:bg-blue-600/30 text-blue-400 hover:text-blue-300 border border-blue-700/30 rounded text-xs font-medium transition-all"
+        >
+          <Eye size={12} />
+        </button>
       </div>
     );
   };
@@ -582,6 +621,15 @@ export function TransferRequests() {
               setReceiveTarget(null);
               void loadTransfers();
             }}
+          />
+        )}
+
+        {viewTarget && (
+          <RequestDetailModal
+            request={viewTarget}
+            locationName={locationName}
+            materialTypeName={getMaterialTypeName}
+            onClose={() => setViewTarget(null)}
           />
         )}
       </div>

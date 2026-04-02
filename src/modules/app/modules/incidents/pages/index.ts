@@ -1,0 +1,1 @@
+export { IncidentsCatalog } from "./IncidentsCatalog";

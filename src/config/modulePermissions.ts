@@ -117,6 +117,13 @@ export const allNavItems: NavItem[] = [
     section: "Materials",
   },
   {
+    id: "catalog-overview",
+    label: "Catalog Overview",
+    path: "/app/catalog-overview",
+    requiredPermissions: ["materials:read"],
+    section: "Materials",
+  },
+  {
     id: "attributes",
     label: "Attributes",
     path: "/app/attributes",
@@ -158,6 +165,13 @@ export const allNavItems: NavItem[] = [
     label: "Inspections",
     path: "/app/inspections",
     requiredPermissions: ["inspections:read", "inspections:create"],
+    section: "Warehouse",
+  },
+  {
+    id: "incidents",
+    label: "Incidents",
+    path: "/app/incidents",
+    requiredPermissions: ["incidents:read"],
     section: "Warehouse",
   },
 

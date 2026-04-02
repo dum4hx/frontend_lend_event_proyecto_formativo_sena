@@ -363,6 +363,10 @@ export default function SubscriptionManagement() {
 
   const currentPlan = organization?.subscription?.plan ?? history.find((e) => e.newPlan)?.newPlan;
 
+  const currentPlanDetails = currentPlan
+    ? plans.find((p) => p.name === currentPlan || p.name === currentPlan.toLowerCase())
+    : null;
+
   // ─── Render ────────────────────────────────────────────────────────────────
 
   if (error && !sessionExpired && !loading) {
@@ -471,7 +475,7 @@ export default function SubscriptionManagement() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
             <StatCard
               label={isEs ? "Plan actual" : "Current Plan"}
-              value={currentPlan ? currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1) : "—"}
+              value={currentPlanDetails?.displayName ?? "—"}
               icon={<CreditCard size={20} />}
             />
             <StatCard

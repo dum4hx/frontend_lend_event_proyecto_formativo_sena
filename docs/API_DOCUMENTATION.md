@@ -4484,8 +4484,8 @@ Gets a specific loan with full details. The response includes populated `custome
 
 **Fields populated in response:**
 
-- `materialInstances`: Array of instances (default behavior). Each instance includes `materialInstanceId` (with `serialNumber`, `status`, `modelId`, `name`) and `materialTypeId`.
-- `materialInstancesByType`: Object with material type IDs as keys and arrays of instances as values (only when `groupByMaterialType=true`). The `materialInstances` field is omitted in this case.
+- `materialInstances`: Array of instances (default behavior). Each instance includes `materialInstanceId` (with `serialNumber`, `status`, `modelId`, `name`), `materialTypeId`, and `materialType` (with `_id` and `name`).
+- `materialInstancesByType`: Object with material type IDs as keys and arrays of instances as values (only when `groupByMaterialType=true`). The `materialInstances` field is omitted in this case. Each instance includes the same populated fields as above.
 
 **Example Response (default):**
 
@@ -4498,7 +4498,8 @@ Gets a specific loan with full details. The response includes populated `custome
       "materialInstances": [
         {
           "materialInstanceId": { "_id": "...", "serialNumber": "SN-001", "status": "active", "modelId": "MOD-1", "name": "Projector HD" },
-          "materialTypeId": "type-123"
+          "materialTypeId": "type-123",
+          "materialType": { "_id": "type-123", "name": "Projectors" }
         }
       ],
       "deposit": { ... }
@@ -4519,17 +4520,20 @@ Gets a specific loan with full details. The response includes populated `custome
         "type-123": [
           {
             "materialInstanceId": { "_id": "...", "serialNumber": "SN-001", "status": "active", "modelId": "MOD-1", "name": "Projector HD" },
-            "materialTypeId": "type-123"
+            "materialTypeId": "type-123",
+            "materialType": { "_id": "type-123", "name": "Projectors" }
           },
           {
             "materialInstanceId": { "_id": "...", "serialNumber": "SN-002", "status": "active", "modelId": "MOD-1", "name": "Projector HD" },
-            "materialTypeId": "type-123"
+            "materialTypeId": "type-123",
+            "materialType": { "_id": "type-123", "name": "Projectors" }
           }
         ],
         "type-456": [
           {
             "materialInstanceId": { "_id": "...", "serialNumber": "SP-001", "status": "active", "modelId": "MOD-2", "name": "Speaker System" },
-            "materialTypeId": "type-456"
+            "materialTypeId": "type-456",
+            "materialType": { "_id": "type-456", "name": "Audio Equipment" }
           }
         ]
       },
@@ -5040,6 +5044,323 @@ Checks whether a package can be fulfilled for a given date range. Returns per-it
 
 - `400` — `BAD_REQUEST`: Missing or invalid date parameters, or `endDate` not after `startDate`.
 - `404` — `NOT_FOUND`: Package not found in this organization.
+
+---
+
+### Incident Endpoints
+
+Manage incident reports (novedades) linked to loans. Incidents track damage, loss, overdue, and other notable events in the loan lifecycle. They can be created manually, automatically by inspections, or by the scheduler.
+
+#### GET /incidents
+
+Lists all incidents for the organization with optional filters and pagination.
+
+| Parameter  | Location | Type   | Required | Description                                                              |
+| ---------- | -------- | ------ | -------- | ------------------------------------------------------------------------ |
+| page       | query    | number | No       | Page number (default: 1)                                                 |
+| limit      | query    | number | No       | Page size (default: 20)                                                  |
+| loanId     | query    | string | No       | Filter by loan ID                                                        |
+| type       | query    | string | No       | `damage`, `lost`, `overdue`, `issue`, `replacement`, `extended`, `other` |
+| status     | query    | string | No       | `open`, `acknowledged`, `resolved`, `dismissed`                          |
+| severity   | query    | string | No       | `low`, `medium`, `high`, `critical`                                      |
+| sourceType | query    | string | No       | `inspection`, `scheduler`, `manual`                                      |
+| sortBy     | query    | string | No       | Field to sort by                                                         |
+| sortOrder  | query    | string | No       | `asc` or `desc`                                                          |
+
+**Auth:** `authenticate` + `requireActiveOrganization` + `incidents:read`
+
+**Response:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "incidents": [
+      {
+        "_id": "65e2f3c0e1a2b3c4d5e6f7a1",
+        "organizationId": "65e2f3c0e1a2b3c4d5e6f7b2",
+        "loanId": "65e2f3c0e1a2b3c4d5e6f7c3",
+        "type": "damage",
+        "status": "open",
+        "severity": "medium",
+        "sourceType": "inspection",
+        "sourceId": "65e2f3c0e1a2b3c4d5e6f7d4",
+        "relatedMaterialInstances": ["65e2f3c0e1a2b3c4d5e6f7e5"],
+        "description": "Scratches found on surface during return inspection",
+        "financialImpact": {
+          "estimated": 50000,
+          "currency": "COP"
+        },
+        "createdBy": "65e2f3c0e1a2b3c4d5e6f7f6",
+        "createdAt": "2026-03-10T14:20:00.000Z",
+        "updatedAt": "2026-03-10T14:20:00.000Z"
+      }
+    ],
+    "total": 1,
+    "page": 1,
+    "totalPages": 1
+  }
+}
+```
+
+**Errors:**
+
+- `400` — `BAD_REQUEST`: Invalid query parameters.
+
+---
+
+#### GET /incidents/:id
+
+Gets a specific incident by ID.
+
+| Parameter | Location | Type   | Required | Description |
+| --------- | -------- | ------ | -------- | ----------- |
+| id        | path     | string | Yes      | Incident ID |
+
+**Auth:** `authenticate` + `requireActiveOrganization` + `incidents:read`
+
+**Response:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "incident": {
+      "_id": "65e2f3c0e1a2b3c4d5e6f7a1",
+      "organizationId": "65e2f3c0e1a2b3c4d5e6f7b2",
+      "loanId": "65e2f3c0e1a2b3c4d5e6f7c3",
+      "type": "damage",
+      "status": "acknowledged",
+      "severity": "medium",
+      "sourceType": "inspection",
+      "sourceId": "65e2f3c0e1a2b3c4d5e6f7d4",
+      "relatedMaterialInstances": ["65e2f3c0e1a2b3c4d5e6f7e5"],
+      "description": "Scratches found on surface during return inspection",
+      "financialImpact": {
+        "estimated": 50000,
+        "currency": "COP"
+      },
+      "createdBy": "65e2f3c0e1a2b3c4d5e6f7f6",
+      "resolvedAt": null,
+      "resolvedBy": null,
+      "resolution": null,
+      "createdAt": "2026-03-10T14:20:00.000Z",
+      "updatedAt": "2026-03-10T16:00:00.000Z"
+    }
+  }
+}
+```
+
+**Errors:**
+
+- `404` — `NOT_FOUND`: Incident not found in this organization.
+
+---
+
+#### POST /incidents
+
+Creates a new incident manually.
+
+**Auth:** `authenticate` + `requireActiveOrganization` + `incidents:create`
+
+**Request Body:**
+
+| Field                    | Type     | Required | Description                                                              |
+| ------------------------ | -------- | -------- | ------------------------------------------------------------------------ |
+| loanId                   | string   | Yes      | ID of the related loan                                                   |
+| type                     | string   | Yes      | `damage`, `lost`, `overdue`, `issue`, `replacement`, `extended`, `other` |
+| severity                 | string   | No       | `low`, `medium`, `high`, `critical` (default: `medium`)                  |
+| relatedMaterialInstances | string[] | No       | Array of material instance IDs                                           |
+| description              | string   | No       | Description (max 2000 chars)                                             |
+| financialImpact          | object   | No       | `{ estimated?: number, actual?: number, currency?: string }`             |
+| metadata                 | object   | No       | Arbitrary additional data                                                |
+
+**Example Request:**
+
+```json
+{
+  "loanId": "65e2f3c0e1a2b3c4d5e6f7c3",
+  "type": "damage",
+  "severity": "medium",
+  "relatedMaterialInstances": ["65e2f3c0e1a2b3c4d5e6f7e5"],
+  "description": "Client reported a dent on equipment casing",
+  "financialImpact": {
+    "estimated": 75000,
+    "currency": "COP"
+  }
+}
+```
+
+**Response:** `201 Created`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "incident": {
+      "_id": "65e2f3c0e1a2b3c4d5e6f7a1",
+      "organizationId": "65e2f3c0e1a2b3c4d5e6f7b2",
+      "loanId": "65e2f3c0e1a2b3c4d5e6f7c3",
+      "type": "damage",
+      "status": "open",
+      "severity": "medium",
+      "sourceType": "manual",
+      "relatedMaterialInstances": ["65e2f3c0e1a2b3c4d5e6f7e5"],
+      "description": "Client reported a dent on equipment casing",
+      "financialImpact": {
+        "estimated": 75000,
+        "currency": "COP"
+      },
+      "createdBy": "65e2f3c0e1a2b3c4d5e6f7f6",
+      "createdAt": "2026-03-12T09:00:00.000Z",
+      "updatedAt": "2026-03-12T09:00:00.000Z"
+    }
+  },
+  "message": "Incident created successfully"
+}
+```
+
+**Errors:**
+
+- `400` — `BAD_REQUEST`: Invalid or missing fields.
+- `409` — `CONFLICT`: Duplicate incident (same loanId + type + sourceId combination).
+
+---
+
+#### POST /incidents/:id/acknowledge
+
+Acknowledges an open incident.
+
+| Parameter | Location | Type   | Required | Description |
+| --------- | -------- | ------ | -------- | ----------- |
+| id        | path     | string | Yes      | Incident ID |
+
+**Auth:** `authenticate` + `requireActiveOrganization` + `incidents:update`
+
+**Response:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "incident": {
+      "_id": "65e2f3c0e1a2b3c4d5e6f7a1",
+      "status": "acknowledged",
+      "type": "damage",
+      "severity": "medium",
+      "loanId": "65e2f3c0e1a2b3c4d5e6f7c3",
+      "createdAt": "2026-03-12T09:00:00.000Z",
+      "updatedAt": "2026-03-12T10:30:00.000Z"
+    }
+  },
+  "message": "Incident acknowledged"
+}
+```
+
+**Errors:**
+
+- `404` — `NOT_FOUND`: Incident not found in this organization.
+- `409` — `CONFLICT`: Invalid status transition (e.g., incident is already resolved).
+
+---
+
+#### POST /incidents/:id/resolve
+
+Resolves an incident with a resolution note.
+
+| Parameter  | Location | Type   | Required | Description        |
+| ---------- | -------- | ------ | -------- | ------------------ |
+| id         | path     | string | Yes      | Incident ID        |
+| resolution | body     | string | Yes      | Resolution details |
+
+**Auth:** `authenticate` + `requireActiveOrganization` + `incidents:update`
+
+**Example Request:**
+
+```json
+{
+  "resolution": "Equipment repaired and returned to inventory. Customer charged COP 50,000."
+}
+```
+
+**Response:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "incident": {
+      "_id": "65e2f3c0e1a2b3c4d5e6f7a1",
+      "status": "resolved",
+      "type": "damage",
+      "severity": "medium",
+      "loanId": "65e2f3c0e1a2b3c4d5e6f7c3",
+      "resolution": "Equipment repaired and returned to inventory. Customer charged COP 50,000.",
+      "resolvedAt": "2026-03-15T11:00:00.000Z",
+      "resolvedBy": "65e2f3c0e1a2b3c4d5e6f7f6",
+      "createdAt": "2026-03-12T09:00:00.000Z",
+      "updatedAt": "2026-03-15T11:00:00.000Z"
+    }
+  },
+  "message": "Incident resolved"
+}
+```
+
+**Errors:**
+
+- `400` — `BAD_REQUEST`: Missing resolution text.
+- `404` — `NOT_FOUND`: Incident not found in this organization.
+- `409` — `CONFLICT`: Invalid status transition (e.g., incident is already resolved or dismissed).
+
+---
+
+#### POST /incidents/:id/dismiss
+
+Dismisses an open or acknowledged incident.
+
+| Parameter  | Location | Type   | Required | Description          |
+| ---------- | -------- | ------ | -------- | -------------------- |
+| id         | path     | string | Yes      | Incident ID          |
+| resolution | body     | string | Yes      | Reason for dismissal |
+
+**Auth:** `authenticate` + `requireActiveOrganization` + `incidents:update`
+
+**Example Request:**
+
+```json
+{
+  "resolution": "False alarm — item was misidentified during inspection."
+}
+```
+
+**Response:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "incident": {
+      "_id": "65e2f3c0e1a2b3c4d5e6f7a1",
+      "status": "dismissed",
+      "type": "damage",
+      "severity": "medium",
+      "loanId": "65e2f3c0e1a2b3c4d5e6f7c3",
+      "resolution": "False alarm — item was misidentified during inspection.",
+      "resolvedAt": "2026-03-13T08:00:00.000Z",
+      "resolvedBy": "65e2f3c0e1a2b3c4d5e6f7f6",
+      "createdAt": "2026-03-12T09:00:00.000Z",
+      "updatedAt": "2026-03-13T08:00:00.000Z"
+    }
+  },
+  "message": "Incident dismissed"
+}
+```
+
+**Errors:**
+
+- `400` — `BAD_REQUEST`: Missing resolution text.
+- `404` — `NOT_FOUND`: Incident not found in this organization.
+- `409` — `CONFLICT`: Invalid status transition (e.g., incident is already resolved or dismissed).
 
 ---
 

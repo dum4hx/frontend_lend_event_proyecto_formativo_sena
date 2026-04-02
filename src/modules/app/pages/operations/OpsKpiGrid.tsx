@@ -43,52 +43,54 @@ export function OpsKpiGrid({ data }: OpsKpiGridProps) {
   const cards: KpiCard[] = [
     {
       label: isEs ? "Préstamos Activos" : "Active Loans",
-      value: data.activeLoans ?? 0,
+      value: data.loans?.active ?? 0,
       icon: <Package size={22} />,
       color: "text-blue-400",
       bgGlow: "shadow-blue-500/10",
     },
     {
       label: isEs ? "Inspecciones Pend." : "Pending Inspections",
-      value: data.pendingInspections ?? 0,
+      value: data.loans?.returnPendingInspection ?? 0,
       icon: <ClipboardCheck size={22} />,
       color: "text-amber-400",
       bgGlow: "shadow-amber-500/10",
     },
     {
       label: isEs ? "Facturas Vencidas" : "Overdue Invoices",
-      value: data.overdueInvoices ?? 0,
+      value: data.financials?.overdueInvoices ?? 0,
       icon: <FileWarning size={22} />,
-      color: (data.overdueInvoices ?? 0) > 0 ? "text-red-400" : "text-emerald-400",
-      bgGlow: (data.overdueInvoices ?? 0) > 0 ? "shadow-red-500/10" : "shadow-emerald-500/10",
+      color: (data.financials?.overdueInvoices ?? 0) > 0 ? "text-red-400" : "text-emerald-400",
+      bgGlow:
+        (data.financials?.overdueInvoices ?? 0) > 0 ? "shadow-red-500/10" : "shadow-emerald-500/10",
     },
     {
       label: isEs ? "Dañados" : "Damaged Items",
-      value: data.damagedItems ?? 0,
+      value: data.inventory?.itemsDamaged ?? 0,
       icon: <AlertTriangle size={22} />,
-      color: (data.damagedItems ?? 0) > 0 ? "text-orange-400" : "text-emerald-400",
-      bgGlow: (data.damagedItems ?? 0) > 0 ? "shadow-orange-500/10" : "shadow-emerald-500/10",
+      color: (data.inventory?.itemsDamaged ?? 0) > 0 ? "text-orange-400" : "text-emerald-400",
+      bgGlow:
+        (data.inventory?.itemsDamaged ?? 0) > 0 ? "shadow-orange-500/10" : "shadow-emerald-500/10",
     },
     {
       label: isEs ? "Mantenimiento" : "Maintenance",
-      value: data.maintenanceItems ?? 0,
+      value: data.inventory?.itemsInRepair ?? 0,
       icon: <Wrench size={22} />,
       color: "text-yellow-400",
       bgGlow: "shadow-yellow-500/10",
     },
     {
       label: isEs ? "Transfer. Pend." : "Pending Transfers",
-      value: data.pendingTransfers ?? 0,
+      value: (data.transfers?.incomingPending ?? 0) + (data.transfers?.outgoingPending ?? 0),
       icon: <ArrowLeftRight size={22} />,
       color: "text-purple-400",
       bgGlow: "shadow-purple-500/10",
     },
     {
       label: isEs ? "Vencen Pronto" : "Expiring Soon",
-      value: data.loansExpiringSoon ?? 0,
+      value: data.loans?.dueToday ?? 0,
       icon: <Clock size={22} />,
-      color: (data.loansExpiringSoon ?? 0) > 0 ? "text-amber-400" : "text-emerald-400",
-      bgGlow: (data.loansExpiringSoon ?? 0) > 0 ? "shadow-amber-500/10" : "shadow-emerald-500/10",
+      color: (data.loans?.dueToday ?? 0) > 0 ? "text-amber-400" : "text-emerald-400",
+      bgGlow: (data.loans?.dueToday ?? 0) > 0 ? "shadow-amber-500/10" : "shadow-emerald-500/10",
     },
   ];
 

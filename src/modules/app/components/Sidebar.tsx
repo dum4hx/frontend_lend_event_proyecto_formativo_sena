@@ -30,6 +30,7 @@ import {
   ClipboardList,
   Wallet,
   ClipboardCheck,
+  Eye,
 } from "lucide-react";
 import { ApiError } from "../../../lib/api";
 import { useLogout } from "../../../hooks/useLogout";
@@ -55,6 +56,7 @@ const iconMap: Record<string, React.ReactNode> = {
   "material-categories": <FolderTree size={20} />,
   "material-types": <Package size={20} />,
   "material-instances": <Layers size={20} />,
+  "catalog-overview": <Eye size={20} />,
   attributes: <Tag size={20} />,
   plans: <BookOpen size={20} />,
   "transfer-requests": <ArrowLeftRight size={20} />,

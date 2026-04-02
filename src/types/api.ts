@@ -538,6 +538,11 @@ export interface Loan {
   };
 }
 
+/** Loan from list endpoints (customerId is always populated as Customer). */
+export interface LoanListItem extends Omit<Loan, "customerId"> {
+  customerId: Customer;
+}
+
 /** Populated material instance entry returned by GET /loans/:id */
 export interface LoanMaterialInstanceEntry {
   materialInstanceId: {
@@ -548,6 +553,10 @@ export interface LoanMaterialInstanceEntry {
     name: string;
   };
   materialTypeId: string;
+  materialType: {
+    _id: string;
+    name: string;
+  };
 }
 
 /** Detailed loan response (default — flat list of instances). */
@@ -620,6 +629,76 @@ export interface PendingLoan {
   startDate: string;
   endDate: string;
   status: "returned";
+}
+
+// ─── Incidents ─────────────────────────────────────────────────────────────
+
+export type IncidentType =
+  | "damage"
+  | "lost"
+  | "overdue"
+  | "issue"
+  | "replacement"
+  | "extended"
+  | "other";
+
+export type IncidentStatus = "open" | "acknowledged" | "resolved" | "dismissed";
+
+export type IncidentSeverity = "low" | "medium" | "high" | "critical";
+
+export type IncidentSourceType = "inspection" | "scheduler" | "manual";
+
+export interface IncidentFinancialImpact {
+  estimated?: number;
+  actual?: number;
+  currency?: string;
+}
+
+export interface Incident {
+  _id: string;
+  organizationId: string;
+  loanId: string | Loan;
+  type: IncidentType;
+  status: IncidentStatus;
+  severity: IncidentSeverity;
+  sourceType: IncidentSourceType;
+  sourceId?: string;
+  relatedMaterialInstances: string[];
+  description: string;
+  financialImpact?: IncidentFinancialImpact;
+  createdBy: string;
+  resolvedAt?: string;
+  resolvedBy?: string;
+  resolution?: string;
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateIncidentPayload {
+  loanId: string;
+  type: IncidentType;
+  severity?: IncidentSeverity;
+  relatedMaterialInstances?: string[];
+  description?: string;
+  financialImpact?: IncidentFinancialImpact;
+  metadata?: Record<string, unknown>;
+}
+
+export interface ResolveIncidentPayload {
+  resolution: string;
+}
+
+export interface IncidentQueryParams {
+  page?: number;
+  limit?: number;
+  loanId?: string;
+  type?: IncidentType;
+  status?: IncidentStatus;
+  severity?: IncidentSeverity;
+  sourceType?: IncidentSourceType;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
 }
 
 // ─── Invoices ──────────────────────────────────────────────────────────────
@@ -1168,72 +1247,6 @@ export interface BillingHistoryEntry {
   updatedAt: string;
 }
 
-// ─── Teams ─────────────────────────────────────────────────────────────────
-
-export type TeamMemberStatus = "active" | "inactive";
-
-/** Team entity */
-export interface Team {
-  _id: string;
-  name: string;
-  description?: string;
-  organizationId: string;
-  leaderId?: string;
-  memberCount: number;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-/** Team member */
-export interface TeamMember {
-  userId: string;
-  email: string;
-  name: PersonName;
-  roleName: string;
-  joinedAt: string;
-  status: TeamMemberStatus;
-}
-
-/** Payload to create a new team */
-export interface CreateTeamPayload {
-  name: string;
-  description?: string;
-  leaderId?: string;
-}
-
-/** Payload to update an existing team */
-export interface UpdateTeamPayload {
-  name?: string;
-  description?: string;
-  leaderId?: string;
-  isActive?: boolean;
-}
-
-/** Payload to add a member to a team */
-export interface AddTeamMemberPayload {
-  userId: string;
-}
-
-/** Teams list response */
-export interface TeamsListResponse {
-  items: Team[];
-  pagination: PaginationMeta;
-}
-
-/** Team members list response */
-export interface TeamMembersListResponse {
-  items: TeamMember[];
-  pagination: PaginationMeta;
-}
-
-/** Query params for teams list */
-export interface TeamsQueryParams extends PaginationParams {
-  search?: string;
-  isActive?: boolean;
-  leaderId?: string;
-}
-
 // ─── Events & Rentals ──────────────────────────────────────────────────────
 
 export type EventStatus = "draft" | "confirmed" | "in_progress" | "completed" | "cancelled";
@@ -1750,13 +1763,29 @@ export type OpsTaskType =
 
 /** KPI snapshot from GET /locations/:id/operations/overview */
 export interface OpsOverview {
-  activeLoans: number;
-  pendingInspections: number;
-  overdueInvoices: number;
-  damagedItems: number;
-  maintenanceItems: number;
-  pendingTransfers: number;
-  loansExpiringSoon: number;
+  inventory: {
+    itemsInRepair: number;
+    itemsPendingInspection: number;
+    itemsMissing: number;
+    itemsDamaged: number;
+  };
+  loans: {
+    active: number;
+    dueToday: number;
+    overdue: number;
+    returnPendingInspection: number;
+  };
+  financials: {
+    overdueInvoices: number;
+    pendingDepositsToRefund: number;
+    unresolvedDamageCharges: number;
+  };
+  transfers: {
+    incomingPending: number;
+    outgoingPending: number;
+    transfersInTransit: number;
+  };
+  alerts: unknown[];
 }
 
 /** Individual inspection item in the queue. */
