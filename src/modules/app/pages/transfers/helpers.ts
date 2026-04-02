@@ -12,6 +12,7 @@ export const REQUEST_STATUS_LABEL: Record<TransferRequestStatus, string> = {
   approved: "Approved",
   rejected: "Rejected",
   fulfilled: "Fulfilled",
+  cancelled: "Cancelled",
 };
 
 export const getRequestStatusLabel = (status: TransferRequestStatus, isEs: boolean): string => {
@@ -20,6 +21,7 @@ export const getRequestStatusLabel = (status: TransferRequestStatus, isEs: boole
     approved: isEs ? "Aprobado" : "Approved",
     rejected: isEs ? "Rechazado" : "Rejected",
     fulfilled: isEs ? "Cumplido" : "Fulfilled",
+    cancelled: isEs ? "Cancelado" : "Cancelled",
   };
   return labels[status];
 };
@@ -29,6 +31,7 @@ export const REQUEST_STATUS_CLASSES: Record<TransferRequestStatus, string> = {
   approved: "bg-green-500/15 text-green-400 border-green-500/30",
   rejected: "bg-red-500/15 text-red-400 border-red-500/30",
   fulfilled: "bg-blue-500/15 text-blue-400 border-blue-500/30",
+  cancelled: "bg-gray-500/15 text-gray-400 border-gray-500/30",
 };
 
 export const CONDITION_LABEL: Record<TransferCondition, string> = {

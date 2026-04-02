@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { BookOpenText, ChevronLeft, ChevronRight, CircleHelp, Flag, Lightbulb, TriangleAlert, X } from "lucide-react";
+import { BookOpenText, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, CircleHelp, Flag, ListChecks, Lightbulb, TriangleAlert, X } from "lucide-react";
 import { useHelpPanel } from "./useHelpPanel";
-import type { HelpFormFieldGuide, HelpFormGuide } from "./types";
+import type { HelpContentSection, HelpFormFieldGuide, HelpFormGuide } from "./types";
 
 interface TargetRect {
   top: number;
@@ -94,6 +94,19 @@ export function HelpPanel() {
   const isFirstStep = currentStepIndex === 0;
   const isLastStep = stepCount === 0 || currentStepIndex >= stepCount - 1;
   const [activeFieldTooltip, setActiveFieldTooltip] = useState<ActiveFieldTooltip | null>(null);
+  const [openSectionIds, setOpenSectionIds] = useState<Set<string>>(new Set());
+
+  const toggleSection = (id: string) => {
+    setOpenSectionIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
 
   const targetRect = useTargetRect(activeStep?.targetSelector, isOpen);
 
@@ -122,13 +135,13 @@ export function HelpPanel() {
 
   useEffect(() => {
     if (!isOpen) {
-      setActiveFieldTooltip(null);
+      queueMicrotask(() => setActiveFieldTooltip(null));
       return;
     }
 
     const formGuides = moduleContent?.formGuides;
     if (!formGuides || formGuides.length === 0) {
-      setActiveFieldTooltip(null);
+      queueMicrotask(() => setActiveFieldTooltip(null));
       return;
     }
 
@@ -318,34 +331,98 @@ export function HelpPanel() {
                 </p>
               </section>
 
-              <section className="space-y-3">
-                {moduleContent.sections.map((section) => (
-                  <article key={section.id} className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
-                    <h3 className="text-sm font-semibold text-white">{resolveText(section.title)}</h3>
-                    <p className="mt-1 text-sm text-zinc-300">{resolveText(section.body)}</p>
+              <section className="space-y-2">
+                {moduleContent.sections.map((section: HelpContentSection) => {
+                  const isExpanded = openSectionIds.has(section.id);
+                  const hasExtra =
+                    (section.tips && section.tips.length > 0) ||
+                    (section.warnings && section.warnings.length > 0) ||
+                    (section.bestPractices && section.bestPractices.length > 0) ||
+                    (section.howTo && section.howTo.length > 0);
 
-                    {section.tips?.map((item, index) => (
-                      <p key={`${section.id}-tip-${index}`} className="mt-2 flex items-start gap-2 text-xs text-zinc-300">
-                        <Lightbulb size={14} className="mt-0.5 text-[#FFD700]" />
-                        <span>{resolveText(item)}</span>
-                      </p>
-                    ))}
+                  return (
+                    <article key={section.id} className="rounded-xl border border-zinc-800 bg-zinc-900/40 overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => toggleSection(section.id)}
+                        className="flex w-full items-center justify-between px-4 py-3 text-left transition hover:bg-zinc-800/50"
+                        aria-expanded={isExpanded}
+                      >
+                        <span className="text-sm font-semibold text-white">{resolveText(section.title)}</span>
+                        {hasExtra ? (
+                          isExpanded ? (
+                            <ChevronUp size={14} className="shrink-0 text-zinc-400" />
+                          ) : (
+                            <ChevronDown size={14} className="shrink-0 text-zinc-400" />
+                          )
+                        ) : null}
+                      </button>
 
-                    {section.warnings?.map((item, index) => (
-                      <p key={`${section.id}-warn-${index}`} className="mt-2 flex items-start gap-2 text-xs text-zinc-300">
-                        <TriangleAlert size={14} className="mt-0.5 text-red-400" />
-                        <span>{resolveText(item)}</span>
-                      </p>
-                    ))}
+                      <div className="px-4 pb-3">
+                        <p className="text-sm text-zinc-300">{resolveText(section.body)}</p>
 
-                    {section.bestPractices?.map((item, index) => (
-                      <p key={`${section.id}-practice-${index}`} className="mt-2 flex items-start gap-2 text-xs text-zinc-300">
-                        <Flag size={14} className="mt-0.5 text-emerald-400" />
-                        <span>{resolveText(item)}</span>
-                      </p>
-                    ))}
-                  </article>
-                ))}
+                        {isExpanded && (
+                          <div className="mt-3 space-y-3">
+                            {section.howTo && section.howTo.length > 0 && (
+                              <div>
+                                <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[#FFD700]">
+                                  <ListChecks size={13} />
+                                  How to
+                                </p>
+                                <ol className="space-y-1.5 pl-1">
+                                  {section.howTo.map((step, index) => (
+                                    <li
+                                      key={`${section.id}-howto-${index}`}
+                                      className="flex items-start gap-2 text-xs text-zinc-300"
+                                    >
+                                      <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-[#FFD700]/50 text-[10px] font-bold text-[#FFD700]">
+                                        {index + 1}
+                                      </span>
+                                      <span>{resolveText(step)}</span>
+                                    </li>
+                                  ))}
+                                </ol>
+                              </div>
+                            )}
+
+                            {section.tips && section.tips.length > 0 && (
+                              <div className="space-y-1">
+                                {section.tips.map((item, index) => (
+                                  <p key={`${section.id}-tip-${index}`} className="flex items-start gap-2 text-xs text-zinc-300">
+                                    <Lightbulb size={13} className="mt-0.5 shrink-0 text-[#FFD700]" />
+                                    <span>{resolveText(item)}</span>
+                                  </p>
+                                ))}
+                              </div>
+                            )}
+
+                            {section.warnings && section.warnings.length > 0 && (
+                              <div className="space-y-1">
+                                {section.warnings.map((item, index) => (
+                                  <p key={`${section.id}-warn-${index}`} className="flex items-start gap-2 text-xs text-zinc-300">
+                                    <TriangleAlert size={13} className="mt-0.5 shrink-0 text-red-400" />
+                                    <span>{resolveText(item)}</span>
+                                  </p>
+                                ))}
+                              </div>
+                            )}
+
+                            {section.bestPractices && section.bestPractices.length > 0 && (
+                              <div className="space-y-1">
+                                {section.bestPractices.map((item, index) => (
+                                  <p key={`${section.id}-practice-${index}`} className="flex items-start gap-2 text-xs text-zinc-300">
+                                    <Flag size={13} className="mt-0.5 shrink-0 text-emerald-400" />
+                                    <span>{resolveText(item)}</span>
+                                  </p>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </article>
+                  );
+                })}
               </section>
 
               {moduleContent.formGuides && moduleContent.formGuides.length > 0 && (

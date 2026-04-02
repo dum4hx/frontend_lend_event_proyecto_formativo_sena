@@ -14,6 +14,8 @@ export interface HelpContentSection {
   tips?: HelpText[];
   warnings?: HelpText[];
   bestPractices?: HelpText[];
+  /** Step-by-step how-to instructions shown as a numbered list. */
+  howTo?: HelpText[];
 }
 
 export interface HelpAdvanceOn {

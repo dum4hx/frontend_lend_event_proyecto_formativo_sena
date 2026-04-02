@@ -25,13 +25,17 @@ This document defines:
 
 ## Quick Reference Documentation
 
-| Document                                                    | Purpose                                                                    |
-| ----------------------------------------------------------- | -------------------------------------------------------------------------- |
-| [`docs/API_DOCUMENTATION.md`](../docs/API_DOCUMENTATION.md) | **Single source of truth** for all API endpoints, request/response schemas |
-| [`README.md`](../README.md)                                 | Project setup, available scripts, architecture overview                    |
-| [`src/types/api.ts`](../src/types/api.ts)                   | TypeScript interfaces derived from API documentation                       |
-| [`src/lib/api.ts`](../src/lib/api.ts)                       | Typed fetch wrapper — all HTTP calls must use this                         |
-| [`src/index.css`](../src/index.css)                         | Global styles, Tailwind layers, theme tokens                               |
+| Document                                                                              | Purpose                                                                    |
+| ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| [`docs/API_DOCUMENTATION.md`](../docs/API_DOCUMENTATION.md)                           | **Single source of truth** for all API endpoints, request/response schemas |
+| [`README.md`](../README.md)                                                           | Project setup, available scripts, architecture overview                    |
+| [`src/types/api.ts`](../src/types/api.ts)                                             | TypeScript interfaces derived from API documentation                       |
+| [`src/lib/api.ts`](../src/lib/api.ts)                                                 | Typed fetch wrapper — all HTTP calls must use this                         |
+| [`src/index.css`](../src/index.css)                                                   | Global styles, Tailwind layers, theme tokens                               |
+| [`src/i18n/locales/`](../src/i18n/locales/)                                           | Translation JSON files (`en/` + `es/`) — both must be updated together     |
+| [`src/modules/app/help/types.ts`](../src/modules/app/help/types.ts)                   | TypeScript interfaces for all help content (`HelpModuleContent`, etc.)     |
+| [`src/modules/app/help/moduleResolver.ts`](../src/modules/app/help/moduleResolver.ts) | Maps route prefixes to help module IDs                                     |
+| [`src/modules/app/help/content/`](../src/modules/app/help/content/)                   | One help content file per module — always keep in sync with views          |
 
 ---
 
@@ -70,6 +74,9 @@ Before any PR:
 - `npm run format:check` — code is formatted
 - No `console.log` statements
 - English-only comments and documentation
+- All user-visible strings use `t()` from `useLanguage()`; both `en` and `es` locale files updated
+- Help content file for the modified module is created/updated with bilingual `HelpText` values, walkthrough steps, and form guides
+- JSX elements targeted by help selectors carry `data-help-id` attributes
 
 ---
 
@@ -115,6 +122,75 @@ npm run build && npm run lint && npm run format:check
 
 ---
 
+## Internationalisation (i18n) — MANDATORY on Every View Change
+
+Every view addition or modification **must** fully support the `LanguageContext` (`src/contexts/LanguageContext.tsx`). Failure to do so is a blocking defect.
+
+### How the system works
+
+- `useLanguage()` (`src/contexts/useLanguage.ts`) exposes `t`, `formatDate`, `formatNumber`, `formatCurrency`, `language`, `locale`.
+- Translation keys are defined in JSON locale files under `src/i18n/locales/en/` and `src/i18n/locales/es/`.
+  Supported namespaces: `common`, `nav`, `publicSite`, `settings`, `superAdmin`, `systemSettings`.
+- `TranslationKey` (`src/i18n/translations.ts`) is derived automatically from the English locale — it is the single source of truth.
+- `t(key, params?)` returns the translated string for the active language (`"en"` | `"es"`).
+
+### Rules
+
+1. **No hard-coded user-visible strings.** All labels, titles, placeholders, error messages, and button text must use `t("some.key")`.
+2. **Add both locales together.** When a new key is added to `src/i18n/locales/en/<namespace>.json`, the matching translation must be added to `src/i18n/locales/es/<namespace>.json` in the same commit.
+3. **Use `formatDate`, `formatNumber`, `formatCurrency`** for all formatted values — never `new Intl.*` directly inside components, and never hard-code currency symbols or date formats.
+4. Call `useLanguage()` at the component level; do not pass raw `language` strings down the tree as props unless necessary for serialisation.
+5. Pick the correct namespace (e.g. `common.*` for shared terms, `nav.*` for sidebar labels). Create a new namespace file only when an existing namespace clearly does not fit.
+
+### Checklist for every view change
+
+- [ ] All visible strings go through `t()`
+- [ ] Both `en` and `es` JSON files updated
+- [ ] Dates, numbers, and currencies use the `LanguageContext` formatters
+- [ ] No `console.log` exposes translation state
+
+---
+
+## Contextual Help (HelpPanel) — MANDATORY on Every View Change
+
+Every view addition or modification **must** include or update a corresponding help module so that `HelpPanel` (`src/modules/app/help/HelpPanel.tsx`) shows contextual guidance. Failure to do so is a blocking defect.
+
+### How the system works
+
+- `HelpPanel` reads the active route, resolves the matching `HelpModuleDefinition` in `src/modules/app/help/moduleResolver.ts`, and lazy-loads the corresponding content file from `src/modules/app/help/content/<moduleId>Help.ts`.
+- Each content file exports a `HelpModuleContent` object (typed in `src/modules/app/help/types.ts`) with:
+  - `moduleId` — matches the key in `moduleResolver.ts`.
+  - `title` / `description` — `HelpText` (plain string **or** `{ en: string; es: string }`).
+  - `sections` — array of `HelpContentSection` (id, title, body, tips, warnings, bestPractices).
+  - `walkthrough` — ordered array of `HelpWalkthroughStep` (id, title, body, optional `targetSelector` CSS selector).
+  - `formGuides` — optional array of `HelpFormGuide` describing every interactive form.
+- **`data-help-id` anchors**: interactive elements that a walkthrough step or form-field guide targets must carry a `data-help-id="<unique-id>"` attribute so that `targetSelector` / `selector` values like `[data-help-id="my-form-create"]` resolve correctly at runtime.
+- `HelpPanel` auto-detects focused form fields via `focusin` events and displays an inline field tooltip for any `HelpFormFieldGuide` whose `selector` matches the focused element — so every significant form field should have a `selector`.
+- `HelpPanelContext` (`src/modules/app/help/HelpPanelContext.tsx`) is provided above the router; `useHelpPanel()` is available anywhere inside the app layout.
+
+### Rules
+
+1. **New route/page → new or updated help content file.** If the page belongs to an existing `moduleId`, update the existing file. If it requires a new `moduleId`, add the definition to `moduleResolver.ts` and create `src/modules/app/help/content/<moduleId>Help.ts`.
+2. **Localize all help text.** Use `{ en: "…", es: "…" }` objects (not plain strings) for every `HelpText` field so the panel language switches with `LanguageContext`.
+3. **Walkthrough coverage.** Add at least one `HelpWalkthroughStep` per major UI section. Use `targetSelector: '[data-help-id="<id>"]'` to highlight the relevant element.
+4. **Form guides.** Every create/edit form must have a matching `HelpFormGuide` entry with:
+   - One `HelpFormFieldGuide` per significant input (include `selector`, `required`, `dataType`, and `example`).
+   - One `HelpFormActionGuide` per submit/cancel button.
+   - Use `createCrudFormGuides` from `src/modules/app/help/formGuideTemplates.ts` when both create and edit forms exist.
+5. **`data-help-id` anchors are required** on any element referenced by a `targetSelector` or field `selector`. Add them alongside the JSX change — never as a follow-up.
+6. Do **not** couple help content to API calls. Content files are static typed objects; keep them free of async logic.
+
+### Checklist for every view change
+
+- [ ] `moduleResolver.ts` has a matching `routePrefixes` entry
+- [ ] `src/modules/app/help/content/<moduleId>Help.ts` exists and is updated
+- [ ] All `HelpText` values use `{ en, es }` objects
+- [ ] Every major section has a walkthrough step with a `targetSelector`
+- [ ] Every form has a `HelpFormGuide` with field and action guides
+- [ ] Affected JSX elements carry `data-help-id` anchors
+
+---
+
 ## When in Doubt
 
 1. Check [lend-event-frontend.prompt.md](./instructions/lend-event-frontend.prompt.md) for detailed patterns
@@ -124,7 +200,7 @@ npm run build && npm run lint && npm run format:check
 
 ---
 
-**Last Updated:** March 6, 2026
+**Last Updated:** April 2, 2026
 
 ---
 
