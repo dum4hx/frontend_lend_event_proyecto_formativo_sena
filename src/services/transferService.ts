@@ -12,6 +12,7 @@ import type {
   Transfer,
   CreateTransferRequestPayload,
   RespondTransferRequestPayload,
+  UpdateTransferRequestPayload,
   CreateTransferPayload,
   ReceiveTransferPayload,
   TransferRequestsQueryParams,
@@ -109,6 +110,27 @@ export async function respondToTransferRequest(
   return patch<TransferRequest, RespondTransferRequestPayload>(
     `/transfers/requests/${requestId}/respond`,
     payload,
+  );
+}
+
+/** Update items, notes, and/or neededBy of a transfer request. */
+export async function updateTransferRequest(
+  requestId: string,
+  payload: UpdateTransferRequestPayload,
+): Promise<ApiSuccessResponse<TransferRequest>> {
+  return patch<TransferRequest, UpdateTransferRequestPayload>(
+    `/transfers/requests/${requestId}`,
+    payload,
+  );
+}
+
+/** Cancel a transfer request. */
+export async function cancelTransferRequest(
+  requestId: string,
+): Promise<ApiSuccessResponse<TransferRequest>> {
+  return patch<TransferRequest, Record<string, never>>(
+    `/transfers/requests/${requestId}/cancel`,
+    {},
   );
 }
 

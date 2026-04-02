@@ -18,6 +18,7 @@ import {
   getTransferRequests,
   respondToTransferRequest,
   getTransfers,
+  cancelTransferRequest,
 } from "../../../../services/transferService";
 import { getLocations } from "../../../../services/warehouseOperatorService";
 import { getUser } from "../../../../services/userService";
@@ -33,7 +34,13 @@ import {
   TRANSFER_STATUS_CLASSES,
   formatDate,
 } from "./helpers";
-import { CreateRequestModal, InitiateShipmentModal, ReceiveTransferModal, RequestDetailModal } from "./TransferModals";
+import {
+  CreateRequestModal,
+  InitiateShipmentModal,
+  ReceiveTransferModal,
+  RequestDetailModal,
+  EditRequestModal,
+} from "./TransferModals";
 import type {
   TransferRequest,
   TransferRequestStatus,
@@ -95,8 +102,7 @@ export function TransferRequests() {
 
   // ── Modals ──
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [viewTarget, setViewTarget] = useState<TransferRequest | null>(null);
-  const [shipmentTarget, setShipmentTarget] = useState<TransferRequest | null>(null);
+  const [viewTarget, setViewTarget] = useState<TransferRequest | null>(null);  const [editTarget, setEditTarget] = useState<TransferRequest | null>(null);  const [shipmentTarget, setShipmentTarget] = useState<TransferRequest | null>(null);
   const [receiveTarget, setReceiveTarget] = useState<Transfer | null>(null);
 
   // ── Helpers ──
@@ -111,15 +117,17 @@ export function TransferRequests() {
       const cached = userCache.get(userId);
       if (cached) return cached;
       // Fetch user name asynchronously
-      void getUser(userId).then((res) => {
-        const name = res.data.user?.name
-          ? `${res.data.user.name.firstName} ${res.data.user.name.firstSurname}`.trim()
-          : userId;
-        setUserCache((prev) => new Map(prev).set(userId, name));
-      }).catch(() => {
-        // On error, cache the ID itself
-        setUserCache((prev) => new Map(prev).set(userId, userId));
-      });
+      void getUser(userId)
+        .then((res) => {
+          const name = res.data.user?.name
+            ? `${res.data.user.name.firstName} ${res.data.user.name.firstSurname}`.trim()
+            : userId;
+          setUserCache((prev) => new Map(prev).set(userId, name));
+        })
+        .catch(() => {
+          // On error, cache the ID itself
+          setUserCache((prev) => new Map(prev).set(userId, userId));
+        });
       return userId;
     },
     [userCache],
@@ -131,13 +139,15 @@ export function TransferRequests() {
       const cached = materialTypeCache.get(modelId);
       if (cached) return cached;
       // Fetch material type name asynchronously
-      void getMaterialType(modelId).then((res) => {
-        const name = res.data.materialType?.name ?? modelId;
-        setMaterialTypeCache((prev) => new Map(prev).set(modelId, name));
-      }).catch(() => {
-        // On error, cache the ID itself
-        setMaterialTypeCache((prev) => new Map(prev).set(modelId, modelId));
-      });
+      void getMaterialType(modelId)
+        .then((res) => {
+          const name = res.data.materialType?.name ?? modelId;
+          setMaterialTypeCache((prev) => new Map(prev).set(modelId, name));
+        })
+        .catch(() => {
+          // On error, cache the ID itself
+          setMaterialTypeCache((prev) => new Map(prev).set(modelId, modelId));
+        });
       return modelId;
     },
     [materialTypeCache],
@@ -233,6 +243,29 @@ export function TransferRequests() {
           : isEs
             ? `No se pudo ${status === "approved" ? "aprobar" : "rechazar"} la solicitud`
             : `Failed to ${status} request`,
+        isEs ? "Error" : "Error",
+      );
+    }
+  };
+
+  const handleCancelRequest = async (requestId: string) => {
+    try {
+      await cancelTransferRequest(requestId);
+      showToast(
+        "success",
+        isEs ? "Solicitud cancelada exitosamente" : "Request cancelled successfully",
+        isEs ? "Éxito" : "Success",
+      );
+      setViewTarget(null);
+      void loadRequests();
+    } catch (err: unknown) {
+      showToast(
+        "error",
+        err instanceof Error
+          ? err.message
+          : isEs
+            ? "No se pudo cancelar la solicitud"
+            : "Failed to cancel request",
         isEs ? "Error" : "Error",
       );
     }
@@ -668,7 +701,26 @@ export function TransferRequests() {
             locationName={locationName}
             materialTypeName={getMaterialTypeName}
             userName={getUserName}
+            userId={user?.id}
+            canUpdate={canUpdate}
+            onEdit={() => {
+              setEditTarget(viewTarget);
+              setViewTarget(null);
+            }}
+            onCancel={() => void handleCancelRequest(viewTarget._id)}
             onClose={() => setViewTarget(null)}
+          />
+        )}
+
+        {editTarget && (
+          <EditRequestModal
+            request={editTarget}
+            locations={locations}
+            onClose={() => setEditTarget(null)}
+            onUpdated={() => {
+              setEditTarget(null);
+              void loadRequests();
+            }}
           />
         )}
       </div>

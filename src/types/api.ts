@@ -1461,6 +1461,13 @@ export interface RespondTransferRequestPayload {
   status: "approved" | "rejected";
 }
 
+/** Payload to update an existing transfer request. */
+export interface UpdateTransferRequestPayload {
+  items?: TransferRequestItem[];
+  notes?: string;
+  neededBy?: string;
+}
+
 /** Payload to initiate a physical transfer. */
 export interface CreateTransferPayload {
   requestId?: string;

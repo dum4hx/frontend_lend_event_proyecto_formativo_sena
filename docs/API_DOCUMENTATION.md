@@ -3897,12 +3897,63 @@ Creates a new transfer request to move materials between locations. Items are sp
 
 Lists all transfer requests for the organization. By default, **fulfilled** requests are excluded from the results unless `fulfilled=true` is provided.
 
-| Parameter | Location | Type    | Required | Description                                                   |
-| --------- | -------- | ------- | -------- | ------------------------------------------------------------- |
-| status    | query    | string  | No       | Filter by `requested`, `approved`, `rejected`, or `fulfilled` |
-| fulfilled | query    | boolean | No       | If `true`, includes fulfilled requests. Default: `false`.     |
+| Parameter | Location | Type    | Required | Description                                                                |
+| --------- | -------- | ------- | -------- | -------------------------------------------------------------------------- |
+| status    | query    | string  | No       | Filter by `requested`, `approved`, `rejected`, `fulfilled`, or `cancelled` |
+| fulfilled | query    | boolean | No       | If `true`, includes fulfilled requests. Default: `false`.                  |
 
 **Permission Required:** `transfers:read`
+
+---
+
+#### PATCH /transfers/requests/:id
+
+Edits the `items`, `notes`, and/or `neededBy` of a transfer request. **Only the user who created the request can edit it, and only while its status is `requested`.**
+
+> This endpoint does **not** allow changing the `status` field. To approve/reject, use `/respond`. To cancel, use `/cancel`.
+
+| Parameter | Location | Type   | Required | Description                                                     |
+| --------- | -------- | ------ | -------- | --------------------------------------------------------------- |
+| items     | body     | array  | No       | Replacement list of `{ modelId, quantity }` (min 1 if provided) |
+| notes     | body     | string | No       | Updated request notes (max 500 characters)                      |
+| neededBy  | body     | string | No       | Updated ISO 8601 deadline date                                  |
+
+**Permission Required:** `transfers:update`
+
+**Error Responses:**
+
+- `400` — Request is not in `requested` status
+- `403` — Caller is not the request creator
+- `404` — Transfer request not found
+
+---
+
+#### PATCH /transfers/requests/:id/cancel
+
+Cancels a transfer request. **Only the user who created the request can cancel it, and only while its status is `requested`.** Sets the status to `cancelled`.
+
+> This is distinct from **rejection**, which is performed by a location-assigned user via `/respond`. Cancellation is an action by the requester themselves.
+
+**Permission Required:** `transfers:update`
+
+**Error Responses:**
+
+- `400` — Request is not in `requested` status
+- `403` — Caller is not the request creator
+- `404` — Transfer request not found
+
+**Response (200):**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "_id": "64f1a2...",
+    "status": "cancelled",
+    "...": "..."
+  }
+}
+```
 
 ---
 

@@ -1,5 +1,18 @@
 import React, { useEffect, useState } from "react";
-import { ArrowLeftRight, CheckCircle, Eye, Package, Plus, Send, Truck, X, Calendar, User, FileText, Info } from "lucide-react";
+import {
+  ArrowLeftRight,
+  CheckCircle,
+  Eye,
+  Package,
+  Plus,
+  Send,
+  Truck,
+  X,
+  Calendar,
+  User,
+  FileText,
+  Info,
+} from "lucide-react";
 import { useToast } from "../../../../contexts/ToastContext";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import { SearchableSelect } from "../../../../components/ui";
@@ -8,6 +21,7 @@ import {
   createTransferRequest,
   createTransfer,
   receiveTransfer,
+  updateTransferRequest,
 } from "../../../../services/transferService";
 import { getMaterialInstances, getCatalogOverview } from "../../../../services/materialService";
 import {
@@ -52,6 +66,10 @@ interface RequestDetailModalProps {
   locationName: (id: string) => string;
   materialTypeName: (modelId: string) => string;
   userName: (userId: string) => string;
+  userId?: string;
+  canUpdate?: boolean;
+  onEdit?: () => void;
+  onCancel?: () => void;
   onClose: () => void;
 }
 
@@ -65,6 +83,10 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
   locationName,
   materialTypeName,
   userName,
+  userId,
+  canUpdate,
+  onEdit,
+  onCancel,
   onClose,
 }) => {
   const { language } = useLanguage();
@@ -116,7 +138,9 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
         <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar">
           {/* Status Badge */}
           <div className="flex items-center gap-3">
-            <span className={`inline-flex items-center px-3 py-1 rounded-full border text-xs font-semibold ${statusBadgeClass}`}>
+            <span
+              className={`inline-flex items-center px-3 py-1 rounded-full border text-xs font-semibold ${statusBadgeClass}`}
+            >
               <span className="w-2 h-2 rounded-full bg-current mr-2"></span>
               {statusLabel}
             </span>
@@ -228,7 +252,23 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end p-6 border-t border-[#222]">
+        <div className="flex justify-end gap-2 p-6 border-t border-[#222]">
+          {canUpdate && userId === request.requestedBy && request.status === "requested" && (
+            <>
+              <button
+                onClick={onCancel}
+                className="px-5 py-2.5 bg-red-700/20 hover:bg-red-600/30 text-red-400 hover:text-red-300 border border-red-700/30 rounded-lg text-sm font-medium transition-all"
+              >
+                {isEs ? "Cancelar Solicitud" : "Cancel Request"}
+              </button>
+              <button
+                onClick={onEdit}
+                className="px-5 py-2.5 bg-blue-700/20 hover:bg-blue-600/30 text-blue-400 hover:text-blue-300 border border-blue-700/30 rounded-lg text-sm font-medium transition-all"
+              >
+                {isEs ? "Editar" : "Edit"}
+              </button>
+            </>
+          )}
           <button
             onClick={onClose}
             className="px-5 py-2.5 bg-[#FFD700] text-black font-bold rounded-lg text-sm hover:bg-[#e6c200] transition-colors"
@@ -471,9 +511,7 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                       options={materialTypeOptions}
                       value={item.modelId}
                       onChange={(value) => updateItem(idx, { modelId: value })}
-                      placeholder={
-                        isEs ? "Seleccionar tipo de material" : "Select material type"
-                      }
+                      placeholder={isEs ? "Seleccionar tipo de material" : "Select material type"}
                       disabled={!fromLocationId || loadingItems}
                     />
                   </div>
@@ -539,6 +577,227 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                 : isEs
                   ? "Crear Solicitud"
                   : "Create Request"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// ─── Edit Request Modal ────────────────────────────────────────────────────
+
+interface EditRequestModalProps {
+  request: TransferRequest;
+  locations: WarehouseLocation[];
+  onClose: () => void;
+  onUpdated: () => void;
+}
+
+export const EditRequestModal: React.FC<EditRequestModalProps> = ({
+  request,
+  locations,
+  onClose,
+  onUpdated,
+}) => {
+  const { showToast } = useToast();
+  const { language } = useLanguage();
+  const isEs = language === "es";
+  const [notes, setNotes] = useState(request.notes ?? "");
+  const [requestItems, setRequestItems] = useState<TransferRequestItem[]>([...request.items]);
+  const [materialTypeOptions, setMaterialTypeOptions] = useState<SelectOption[]>([]);
+  const [loadingItems, setLoadingItems] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // Fetch material types once for the from location
+  useEffect(() => {
+    setLoadingItems(true);
+    getCatalogOverview({ locationId: request.fromLocationId, limit: 100 })
+      .then((res) => {
+        const typesWithInstances = (res.data.materialTypes ?? []).filter(
+          (mt) => mt.totals.totalInstances > 0,
+        );
+        const options: SelectOption[] = typesWithInstances.map((mt) => ({
+          value: mt.materialTypeId,
+          label: mt.name,
+        }));
+        setMaterialTypeOptions(options);
+      })
+      .catch(() => {
+        setMaterialTypeOptions([]);
+      })
+      .finally(() => setLoadingItems(false));
+  }, [request.fromLocationId]);
+
+  const addItem = () => setRequestItems((prev) => [...prev, { modelId: "", quantity: 1 }]);
+
+  const removeItem = (index: number) =>
+    setRequestItems((prev) => prev.filter((_, i) => i !== index));
+
+  const updateItem = (index: number, patch: Partial<TransferRequestItem>) =>
+    setRequestItems((prev) => prev.map((item, i) => (i === index ? { ...item, ...patch } : item)));
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const filledItems = requestItems.filter((it) => it.modelId.trim() !== "");
+    if (filledItems.length === 0) {
+      showToast(
+        "error",
+        isEs
+          ? "Agrega al menos un artículo a la solicitud"
+          : "Add at least one material item to the request",
+        isEs ? "Error de Validación" : "Validation Error",
+      );
+      return;
+    }
+    setLoading(true);
+    try {
+      await updateTransferRequest(request._id, {
+        items: filledItems,
+        ...(notes.trim() ? { notes: notes.trim() } : { notes: "" }),
+      });
+      showToast(
+        "success",
+        isEs
+          ? "Solicitud de transferencia actualizada exitosamente"
+          : "Transfer request updated successfully",
+        isEs ? "Éxito" : "Success",
+      );
+      onUpdated();
+    } catch (err: unknown) {
+      showToast(
+        "error",
+        err instanceof Error
+          ? err.message
+          : isEs
+            ? "Error al actualizar la solicitud de transferencia"
+            : "Failed to update transfer request",
+        "Error",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+      <div className="bg-[#111] border border-[#2a2a2a] rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between p-5 border-b border-[#222]">
+          <h2 className="text-base font-bold text-white flex items-center gap-2">
+            <ArrowLeftRight size={18} className="text-[#FFD700]" />
+            {isEs ? "Editar Solicitud de Transferencia" : "Edit Transfer Request"}
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-white transition-colors"
+            aria-label={isEs ? "Cerrar" : "Close"}
+          >
+            <X size={20} />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-5 space-y-4 overflow-y-auto custom-scrollbar">
+          {/* Read-only from location */}
+          <div>
+            <label className="block text-xs font-medium text-gray-400 mb-1.5">
+              {isEs ? "Ubicación de Origen" : "From Location"}
+            </label>
+            <div className="h-10 px-3 bg-[#0a0a0a] border border-[#222] rounded text-sm text-gray-500 flex items-center">
+              {locations.find((l) => l._id === request.fromLocationId)?.name ?? request.fromLocationId}
+            </div>
+          </div>
+
+          {/* Read-only to location */}
+          <div>
+            <label className="block text-xs font-medium text-gray-400 mb-1.5">
+              {isEs ? "Ubicación de Destino" : "To Location"}
+            </label>
+            <div className="h-10 px-3 bg-[#0a0a0a] border border-[#222] rounded text-sm text-gray-500 flex items-center">
+              {locations.find((l) => l._id === request.toLocationId)?.name ?? request.toLocationId}
+            </div>
+          </div>
+
+          {/* Items */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-medium text-gray-400">
+                {isEs ? "Artículos" : "Items"} <span className="text-red-400">*</span>
+              </label>
+              <button
+                type="button"
+                onClick={addItem}
+                className="flex items-center gap-1 text-xs text-[#FFD700] hover:text-[#FFD700]/80 transition-colors"
+              >
+                <Plus size={12} />
+                {isEs ? "Agregar artículo" : "Add item"}
+              </button>
+            </div>
+
+            {loadingItems && <p className="text-xs text-gray-500">{isEs ? "Cargando..." : "Loading..."}</p>}
+
+            {requestItems.map((item, idx) => (
+              <div key={idx} className="flex gap-2 mb-2">
+                <SearchableSelect
+                  options={materialTypeOptions}
+                  value={item.modelId}
+                  onChange={(val) => updateItem(idx, { modelId: val })}
+                  placeholder={isEs ? "Seleccionar tipo" : "Select material type"}
+                  isLoading={loadingItems}
+                  disabled={loadingItems}
+                />
+                <input
+                  type="number"
+                  min="1"
+                  max="9999"
+                  value={item.quantity}
+                  onChange={(e) => updateItem(idx, { quantity: parseInt(e.target.value) || 1 })}
+                  placeholder="Qty"
+                  className="w-16 h-10 px-2 bg-[#0a0a0a] border border-[#222] rounded text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700]"
+                />
+                {requestItems.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeItem(idx)}
+                    className="px-2 h-10 bg-red-700/20 hover:bg-red-600/30 text-red-400 rounded text-xs transition-all"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Notes */}
+          <div>
+            <label className="block text-xs font-medium text-gray-400 mb-1.5">
+              {isEs ? "Notas" : "Notes"}
+            </label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              maxLength={500}
+              placeholder={isEs ? "Notas opcionales..." : "Optional notes..."}
+              className="w-full h-20 px-3 py-2 bg-[#0a0a0a] border border-[#222] rounded text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] resize-none"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              {notes.length}/500
+            </p>
+          </div>
+
+          {/* Buttons */}
+          <div className="flex gap-2 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 h-10 bg-[#1a1a1a] hover:bg-[#222] text-white rounded text-sm font-medium transition-all"
+            >
+              {isEs ? "Cancelar" : "Cancel"}
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 h-10 bg-[#FFD700] hover:bg-[#e6c200] text-black rounded text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? (isEs ? "Guardando..." : "Saving...") : isEs ? "Guardar" : "Save"}
             </button>
           </div>
         </form>
