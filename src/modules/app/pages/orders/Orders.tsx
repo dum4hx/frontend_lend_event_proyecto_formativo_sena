@@ -8,7 +8,6 @@ import type {
   MaterialCategory,
   MaterialInstance,
   MaterialType,
-  OrganizationSettings,
   Package,
 } from "../../../../types/api";
 import {
@@ -400,13 +399,41 @@ export function Orders() {
     setSubmitting(true);
     try {
       await recordPayment(paymentTarget.request._id);
-      showSuccess("Deposit recorded as paid.", "Payment Recorded");
+      showSuccess(
+        isEs ? "Depósito registrado como pagado." : "Deposit recorded as paid.",
+        isEs ? "Pago registrado" : "Payment Recorded",
+      );
       setShowRecordPaymentModal(false);
       setPaymentTarget(null);
       await refreshData();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to record payment";
-      showError(message, "Payment Error");
+      showError(message, isEs ? "Error de pago" : "Payment Error");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleOpenRentalPaymentModal = (order: OrderView) => {
+    setRentalPaymentTarget(order);
+    setShowRentalPaymentModal(true);
+  };
+
+  const handleRecordRentalPayment = async () => {
+    if (!rentalPaymentTarget) return;
+    setSubmitting(true);
+    try {
+      await recordRentalPayment(rentalPaymentTarget.request._id);
+      showSuccess(
+        isEs ? "Pago de renta registrado." : "Rental fee recorded as paid.",
+        isEs ? "Pago registrado" : "Payment Recorded",
+      );
+      setShowRentalPaymentModal(false);
+      setRentalPaymentTarget(null);
+      await refreshData();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to record rental payment";
+      showError(message, isEs ? "Error de pago" : "Payment Error");
     } finally {
       setSubmitting(false);
     }
@@ -555,6 +582,7 @@ export function Orders() {
           onReject={handleOpenRejectModal}
           onReactivate={handleOpenReactivateModal}
           onRecordPayment={handleOpenRecordPaymentModal}
+          onRecordRentalPayment={handleOpenRentalPaymentModal}
           onPrepare={handlePrepareOrder}
           onShip={handleShipOrder}
           onStartLoan={(requestId) => handleStartLoan(requestId)}
@@ -565,6 +593,7 @@ export function Orders() {
           canCreateLoan={canCreateLoan}
           canReturnLoan={canReturnLoan}
           canRecordPayment={canRecordPayment}
+          requireFullPaymentBeforeCheckout={requireFullPayment}
           isEs={isEs}
         />
       </div>
@@ -786,6 +815,64 @@ export function Orders() {
                 onClick={handleRecordPayment}
                 disabled={submitting}
                 className="bg-orange-500 hover:bg-orange-600 text-white border-transparent"
+              >
+                {submitting
+                  ? isEs
+                    ? "Registrando..."
+                    : "Recording..."
+                  : isEs
+                    ? "Registrar Pago"
+                    : "Record Payment"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Record Rental Fee Payment Modal */}
+      {showRentalPaymentModal && rentalPaymentTarget && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={(e) => e.target === e.currentTarget && setShowRentalPaymentModal(false)}
+        >
+          <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-6 w-full max-w-md shadow-2xl">
+            <h2 className="text-xl font-semibold text-white mb-2">
+              {isEs ? "Registrar Pago de Renta" : "Record Rental Fee Payment"}
+            </h2>
+            <p className="text-zinc-400 text-sm mb-4">
+              {isEs
+                ? "¿Registrar el pago de la tarifa de renta del pedido"
+                : "Record the rental fee payment for order"}{" "}
+              <span className="text-white font-medium">
+                #{rentalPaymentTarget.request._id.slice(-6).toUpperCase()}
+              </span>
+              {isEs ? " como pagado?" : " as paid?"}
+            </p>
+            {rentalPaymentTarget.request.totalAmount != null &&
+              rentalPaymentTarget.request.totalAmount > 0 && (
+                <p className="text-purple-300 text-sm mb-6">
+                  {isEs ? "Monto total de renta:" : "Total rental amount:"}{" "}
+                  <span className="font-semibold">
+                    ${rentalPaymentTarget.request.totalAmount.toFixed(2)}
+                  </span>
+                </p>
+              )}
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setShowRentalPaymentModal(false);
+                  setRentalPaymentTarget(null);
+                }}
+                disabled={submitting}
+              >
+                {isEs ? "Cancelar" : "Cancel"}
+              </Button>
+              <Button
+                leftIcon={CreditCard}
+                onClick={handleRecordRentalPayment}
+                disabled={submitting}
+                className="bg-purple-500 hover:bg-purple-600 text-white border-transparent"
               >
                 {submitting
                   ? isEs

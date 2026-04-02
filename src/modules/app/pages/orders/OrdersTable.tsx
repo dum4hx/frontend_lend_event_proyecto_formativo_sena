@@ -7,6 +7,7 @@ import {
   PackageCheck,
   CircleCheck,
   Eye,
+  Banknote,
 } from "lucide-react";
 import { Button, IconButton, EntityLink, type ColumnDef } from "../../../../components/ui";
 import { DataTable } from "../../../../components/ui";
@@ -27,6 +28,7 @@ interface OrdersTableProps {
   onReject: (order: OrderView) => void;
   onReactivate: (order: OrderView) => void;
   onRecordPayment: (order: OrderView) => void;
+  onRecordRentalPayment: (order: OrderView) => void;
   onPrepare: (order: OrderView) => void;
   onShip: (order: OrderView) => void;
   onStartLoan: (requestId: string) => void;
@@ -37,6 +39,7 @@ interface OrdersTableProps {
   canCreateLoan: boolean;
   canReturnLoan: boolean;
   canRecordPayment: boolean;
+  requireFullPaymentBeforeCheckout: boolean;
   isEs: boolean;
 }
 
@@ -53,6 +56,7 @@ export function OrdersTable({
   onReject,
   onReactivate,
   onRecordPayment,
+  onRecordRentalPayment,
   onPrepare,
   onShip,
   onStartLoan,
@@ -63,6 +67,7 @@ export function OrdersTable({
   canCreateLoan,
   canReturnLoan,
   canRecordPayment,
+  requireFullPaymentBeforeCheckout,
   isEs,
 }: OrdersTableProps) {
   const renderActions = (order: OrderView) => (
@@ -130,6 +135,23 @@ export function OrdersTable({
             className="h-8 rounded-md border-orange-500/40 bg-orange-500/8 px-2.5 text-[11px] font-semibold text-orange-300 hover:bg-orange-500/15"
           >
             {isEs ? "Registrar pago" : "Record Payment"}
+          </Button>
+        )}
+
+      {requireFullPaymentBeforeCheckout &&
+        order.request.totalAmount != null &&
+        order.request.totalAmount > 0 &&
+        !order.request.rentalFeePaidAt &&
+        ["approved", "deposit_pending", "assigned", "ready"].includes(order.request.status) && (
+          <Button
+            size="sm"
+            leftIcon={Banknote}
+            onClick={() => onRecordRentalPayment(order)}
+            disabled={submitting || !canRecordPayment}
+            variant="outline"
+            className="h-8 rounded-md border-purple-500/40 bg-purple-500/8 px-2.5 text-[11px] font-semibold text-purple-300 hover:bg-purple-500/15"
+          >
+            {isEs ? "Pago de renta" : "Rental Payment"}
           </Button>
         )}
 
