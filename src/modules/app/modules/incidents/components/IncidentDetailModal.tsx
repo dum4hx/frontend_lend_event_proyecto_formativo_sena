@@ -186,7 +186,25 @@ export const IncidentDetailModal: React.FC<IncidentDetailModalProps> = ({
                     value={formatCurrency(incident.financialImpact.actual)}
                   />
                 )}
+                {incident.financialImpact.currency && (
+                  <InfoField
+                    label={t("incidents.currency")}
+                    value={incident.financialImpact.currency}
+                  />
+                )}
               </div>
+            </div>
+          )}
+
+          {/* Metadata */}
+          {incident.metadata && Object.keys(incident.metadata).length > 0 && (
+            <div>
+              <label className="block text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-2">
+                {t("incidents.metadata")}
+              </label>
+              <pre className="text-sm text-gray-300 bg-[#121212] border border-[#222] rounded-lg p-4 overflow-x-auto whitespace-pre-wrap break-words">
+                {JSON.stringify(incident.metadata, null, 2)}
+              </pre>
             </div>
           )}
 

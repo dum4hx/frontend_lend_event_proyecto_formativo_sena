@@ -301,7 +301,11 @@ export const IncidentsCatalog: React.FC = () => {
                     onClick={() => setSelectedIncident(inc)}
                   >
                     <td className="py-4 px-6">
-                      <StatusBadge status={t(`incidents.contexts.${inc.context}`)} />
+                      {inc.context ? (
+                        <StatusBadge status={t(`incidents.contexts.${inc.context}`)} />
+                      ) : (
+                        <span className="text-xs text-gray-500">—</span>
+                      )}
                     </td>
                     <td className="py-4 px-6">
                       <span className="text-sm text-white font-medium">

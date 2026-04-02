@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { X, AlertTriangle, Plus, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
-import { SearchableSelect } from "../../../../../components/ui";
+import { Plus, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
+import { FormModal, SearchableSelect } from "../../../../../components/ui";
 import type { SelectOption } from "../../../../../components/ui";
 import { useLanguage } from "../../../../../contexts/useLanguage";
 import { getLoans } from "../../../../../services/loanService";
 import { getMaterialInstances } from "../../../../../services/materialService";
+import { getLocations } from "../../../../../services/warehouseOperatorService";
 import type {
   CreateIncidentPayload,
   IncidentType,
@@ -50,11 +51,14 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({ onClos
   const [currentInstance, setCurrentInstance] = useState("");
   const [instancesExpanded, setInstancesExpanded] = useState(true);
   const [estimatedAmount, setEstimatedAmount] = useState("");
+  const [actualAmount, setActualAmount] = useState("");
+  const [currency, setCurrency] = useState("COP");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
 
   const [loanOptions, setLoanOptions] = useState<SelectOption[]>([]);
   const [instanceOptions, setInstanceOptions] = useState<SelectOption[]>([]);
+  const [locationOptions, setLocationOptions] = useState<SelectOption[]>([]);
 
   useEffect(() => {
     getLoans({ limit: 100 })
@@ -95,7 +99,40 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({ onClos
       .catch(() => {
         /* fail silently */
       });
+
+    getLocations({ limit: 100 })
+      .then((res) => {
+        const options = (res.data.items ?? []).map((loc) => ({
+          value: loc._id,
+          label: loc.name,
+        }));
+        setLocationOptions(options);
+      })
+      .catch(() => {
+        /* fail silently */
+      });
   }, []);
+
+  const resetForm = () => {
+    setContext("loan");
+    setLoanId("");
+    setLocationId("");
+    setType("damage");
+    setSeverity("medium");
+    setDescription("");
+    setMaterialInstances([]);
+    setCurrentInstance("");
+    setInstancesExpanded(true);
+    setEstimatedAmount("");
+    setActualAmount("");
+    setCurrency("COP");
+    setFormError("");
+  };
+
+  const handleClose = () => {
+    resetForm();
+    onClose();
+  };
 
   const addInstance = () => {
     if (!currentInstance || materialInstances.includes(currentInstance)) return;
@@ -110,8 +147,7 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({ onClos
   const getInstanceLabel = (id: string) =>
     instanceOptions.find((o) => o.value === id)?.label ?? id.slice(-8);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     setFormError("");
 
     if (context === "loan" && !loanId.trim()) {
@@ -141,17 +177,21 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({ onClos
       payload.relatedMaterialInstances = materialInstances;
     }
 
-    const amount = parseFloat(estimatedAmount);
-    if (!isNaN(amount) && amount > 0) {
+    const estimated = parseFloat(estimatedAmount);
+    const actual = parseFloat(actualAmount);
+    const hasFinancial = (!isNaN(estimated) && estimated > 0) || (!isNaN(actual) && actual > 0);
+    if (hasFinancial) {
       payload.financialImpact = {
-        estimated: amount,
-        currency: "COP",
+        ...(!isNaN(estimated) && estimated > 0 ? { estimated } : {}),
+        ...(!isNaN(actual) && actual > 0 ? { actual } : {}),
+        currency: currency.trim() || "COP",
       };
     }
 
     setSubmitting(true);
     try {
       await onSave(payload);
+      resetForm();
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       setFormError(msg);
@@ -161,237 +201,239 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({ onClos
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div
-        className="bg-[#1a1a1a] border border-[#333] rounded-2xl w-full max-w-lg mx-4 shadow-2xl max-h-[90vh] overflow-y-auto"
-        data-help-id="incidents-create-form"
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#222]">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-[#FFD700]/10 rounded-lg">
-              <AlertTriangle className="w-5 h-5 text-[#FFD700]" />
-            </div>
-            <h2 className="text-lg font-bold text-white">{t("incidents.reportIncident")}</h2>
+    <FormModal
+      open={true}
+      onClose={handleClose}
+      title={t("incidents.reportIncident")}
+      onSubmit={handleSubmit}
+      loading={submitting}
+      submitLabel={t("incidents.report")}
+      cancelLabel={t("common.cancel")}
+      submitDisabled={context === "loan" && !loanId.trim()}
+      size="lg"
+    >
+      <div className="space-y-4" data-help-id="incidents-create-form">
+        {formError && (
+          <div className="bg-red-900/20 border border-red-500/30 rounded-lg px-4 py-3">
+            <p className="text-red-300 text-sm">{formError}</p>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 text-gray-500 hover:text-white hover:bg-[#222] rounded-lg transition-colors"
+        )}
+
+        {/* Context */}
+        <div data-help-id="incidents-context">
+          <label className="form-label" htmlFor="incident-context">
+            {t("incidents.context")} *
+          </label>
+          <select
+            id="incident-context"
+            value={context}
+            onChange={(e) => {
+              setContext(e.target.value as IncidentContext);
+              if (e.target.value !== "loan") {
+                setLoanId("");
+                setMaterialInstances([]);
+              }
+            }}
+            className="form-input"
           >
-            <X size={18} />
-          </button>
+            {CONTEXTS.map((c) => (
+              <option key={c} value={c}>
+                {t(`incidents.contexts.${c}`)}
+              </option>
+            ))}
+          </select>
         </div>
 
-        {/* Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          {formError && (
-            <div className="bg-red-900/20 border border-red-500/30 rounded-lg px-4 py-3">
-              <p className="text-red-300 text-sm">{formError}</p>
-            </div>
-          )}
-
-          {/* Context */}
-          <div data-help-id="incidents-context">
-            <label className="block text-xs text-gray-400 font-semibold mb-1.5">
-              {t("incidents.context")} *
-            </label>
-            <select
-              value={context}
-              onChange={(e) => {
-                setContext(e.target.value as IncidentContext);
-                if (e.target.value !== "loan") {
-                  setLoanId("");
-                  setMaterialInstances([]);
-                }
-              }}
-              className="w-full bg-[#121212] border border-[#333] rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-[#FFD700]"
-            >
-              {CONTEXTS.map((c) => (
-                <option key={c} value={c}>
-                  {t(`incidents.contexts.${c}`)}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Loan (only when context is loan) */}
-          {context === "loan" && (
+        {/* Loan (only when context is loan) */}
+        {context === "loan" && (
+          <div data-help-id="incidents-loan-select">
             <SearchableSelect
               options={loanOptions}
               value={loanId}
               onChange={setLoanId}
               label={`${t("incidents.loan")} *`}
               placeholder={t("incidents.loanPlaceholder")}
-              data-help-id="incidents-loan-select"
             />
+          </div>
+        )}
+
+        {/* Location */}
+        <div data-help-id="incidents-location">
+          <SearchableSelect
+            options={locationOptions}
+            value={locationId}
+            onChange={setLocationId}
+            label={t("incidents.location")}
+            placeholder={t("incidents.location")}
+          />
+        </div>
+
+        {/* Type + Severity */}
+        <div className="grid grid-cols-2 gap-4" data-help-id="incidents-type-severity">
+          <div>
+            <label className="form-label" htmlFor="incident-type">
+              {t("incidents.type")} *
+            </label>
+            <select
+              id="incident-type"
+              value={type}
+              onChange={(e) => setType(e.target.value as IncidentType)}
+              className="form-input"
+            >
+              {INCIDENT_TYPES.map((iType) => (
+                <option key={iType} value={iType}>
+                  {t(`incidents.types.${iType}`)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="form-label" htmlFor="incident-severity">
+              {t("incidents.severity")} *
+            </label>
+            <select
+              id="incident-severity"
+              value={severity}
+              onChange={(e) => setSeverity(e.target.value as IncidentSeverity)}
+              className="form-input"
+            >
+              {SEVERITIES.map((sev) => (
+                <option key={sev} value={sev}>
+                  {t(`incidents.severities.${sev}`)}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Description */}
+        <div data-help-id="incidents-description">
+          <label className="form-label" htmlFor="incident-description">
+            {t("incidents.description")}
+          </label>
+          <textarea
+            id="incident-description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={3}
+            placeholder={t("incidents.descriptionPlaceholder")}
+            className="form-input resize-none"
+          />
+        </div>
+
+        {/* Related Material Instances */}
+        <div data-help-id="incidents-material-instances">
+          <button
+            type="button"
+            onClick={() => setInstancesExpanded((prev) => !prev)}
+            disabled={context === "loan" && !loanId}
+            className="flex items-center gap-2 form-label mb-2 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          >
+            {instancesExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            {t("incidents.materialInstances")}
+            {materialInstances.length > 0 && (
+              <span className="ml-1 px-1.5 py-0.5 bg-[#FFD700]/20 text-[#FFD700] rounded text-[10px] font-bold">
+                {materialInstances.length}
+              </span>
+            )}
+          </button>
+
+          {context === "loan" && !loanId && (
+            <p className="text-xs text-gray-500 mb-3">{t("incidents.materialInstancesNote")}</p>
           )}
 
-          {/* Location */}
-          <div data-help-id="incidents-location">
-            <label className="block text-xs text-gray-400 font-semibold mb-1.5">
-              {t("incidents.location")}
-            </label>
-            <input
-              type="text"
-              value={locationId}
-              onChange={(e) => setLocationId(e.target.value)}
-              placeholder={t("incidents.location")}
-              className="w-full bg-[#121212] border border-[#333] rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-[#FFD700] focus:ring-1 focus:ring-[#FFD700]/20 transition-all"
-            />
-          </div>
-
-          {/* Type + Severity */}
-          <div className="grid grid-cols-2 gap-4" data-help-id="incidents-type-severity">
-            <div>
-              <label className="block text-xs text-gray-400 font-semibold mb-1.5">
-                {t("incidents.type")} *
-              </label>
-              <select
-                value={type}
-                onChange={(e) => setType(e.target.value as IncidentType)}
-                className="w-full bg-[#121212] border border-[#333] rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-[#FFD700]"
-              >
-                {INCIDENT_TYPES.map((iType) => (
-                  <option key={iType} value={iType}>
-                    {t(`incidents.types.${iType}`)}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs text-gray-400 font-semibold mb-1.5">
-                {t("incidents.severity")} *
-              </label>
-              <select
-                value={severity}
-                onChange={(e) => setSeverity(e.target.value as IncidentSeverity)}
-                className="w-full bg-[#121212] border border-[#333] rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-[#FFD700]"
-              >
-                {SEVERITIES.map((sev) => (
-                  <option key={sev} value={sev}>
-                    {t(`incidents.severities.${sev}`)}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Description */}
-          <div data-help-id="incidents-description">
-            <label className="block text-xs text-gray-400 font-semibold mb-1.5">
-              {t("incidents.description")}
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-              placeholder={t("incidents.descriptionPlaceholder")}
-              className="w-full bg-[#121212] border border-[#333] rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-[#FFD700] focus:ring-1 focus:ring-[#FFD700]/20 transition-all resize-none"
-            />
-          </div>
-
-          {/* Related Material Instances */}
-          <div>
-            <button
-              type="button"
-              onClick={() => setInstancesExpanded((prev) => !prev)}
-              disabled={context === "loan" && !loanId}
-              className="flex items-center gap-2 text-xs text-gray-400 font-semibold mb-2 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {instancesExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-              {t("incidents.materialInstances")}
-              {materialInstances.length > 0 && (
-                <span className="ml-1 px-1.5 py-0.5 bg-[#FFD700]/20 text-[#FFD700] rounded text-[10px] font-bold">
-                  {materialInstances.length}
-                </span>
-              )}
-            </button>
-
-            {context === "loan" && !loanId && (
-              <p className="text-xs text-gray-500 mb-3">{t("incidents.materialInstancesNote")}</p>
-            )}
-
-            {instancesExpanded && (context !== "loan" || loanId) && (
-              <div className="space-y-3">
-                <div className="flex items-end gap-2">
-                  <div className="flex-1">
-                    <SearchableSelect
-                      options={instanceOptions.filter((o) => !materialInstances.includes(o.value))}
-                      value={currentInstance}
-                      onChange={setCurrentInstance}
-                      placeholder={t("incidents.materialInstances")}
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={addInstance}
-                    disabled={!currentInstance}
-                    className="p-2.5 bg-[#FFD700] text-black rounded-lg hover:bg-[#e6c200] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    <Plus size={16} />
-                  </button>
+          {instancesExpanded && (context !== "loan" || loanId) && (
+            <div className="space-y-3">
+              <div className="flex items-end gap-2">
+                <div className="flex-1">
+                  <SearchableSelect
+                    options={instanceOptions.filter((o) => !materialInstances.includes(o.value))}
+                    value={currentInstance}
+                    onChange={setCurrentInstance}
+                    placeholder={t("incidents.materialInstances")}
+                  />
                 </div>
-
-                {materialInstances.length > 0 && (
-                  <div className="space-y-1.5">
-                    {materialInstances.map((id) => (
-                      <div
-                        key={id}
-                        className="flex items-center justify-between bg-[#121212] border border-[#333] rounded-lg px-3 py-2"
-                      >
-                        <span className="text-xs text-gray-300 truncate">
-                          {getInstanceLabel(id)}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => removeInstance(id)}
-                          className="p-1 text-gray-500 hover:text-red-400 transition-colors"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <button
+                  type="button"
+                  onClick={addInstance}
+                  disabled={!currentInstance}
+                  className="btn-primary p-2.5 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <Plus size={16} />
+                </button>
               </div>
-            )}
-          </div>
 
-          {/* Financial Impact */}
-          <div data-help-id="incidents-financial-impact">
-            <label className="block text-xs text-gray-400 font-semibold mb-1.5">
-              {t("incidents.estimatedAmount")} (COP)
-            </label>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={estimatedAmount}
-              onChange={(e) => setEstimatedAmount(e.target.value)}
-              placeholder="0.00"
-              className="w-full bg-[#121212] border border-[#333] rounded-lg px-3 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-[#FFD700] focus:ring-1 focus:ring-[#FFD700]/20 transition-all"
-            />
-          </div>
+              {materialInstances.length > 0 && (
+                <div className="space-y-1.5">
+                  {materialInstances.map((id) => (
+                    <div key={id} className="flex items-center justify-between form-input py-2">
+                      <span className="text-xs text-gray-300 truncate">{getInstanceLabel(id)}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeInstance(id)}
+                        className="p-1 text-gray-500 hover:text-red-400 transition-colors"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
-          {/* Actions */}
-          <div className="flex justify-end gap-3 pt-2" data-help-id="incidents-form-actions">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2.5 border border-[#333] text-gray-400 hover:text-white hover:border-[#444] rounded-lg text-sm font-medium transition-colors"
-            >
-              {t("common.cancel")}
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="px-5 py-2.5 bg-[#FFD700] text-black font-bold rounded-lg text-sm hover:bg-[#e6c200] transition-colors disabled:opacity-60"
-            >
-              {submitting ? t("incidents.submitting") : t("incidents.report")}
-            </button>
+        {/* Financial Impact */}
+        <div data-help-id="incidents-financial-impact">
+          <label className="form-label">{t("incidents.financialImpact")}</label>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="form-label text-xs" htmlFor="incident-estimated-amount">
+                {t("incidents.estimatedAmount")}
+              </label>
+              <input
+                id="incident-estimated-amount"
+                type="number"
+                min="0"
+                step="0.01"
+                value={estimatedAmount}
+                onChange={(e) => setEstimatedAmount(e.target.value)}
+                placeholder="0.00"
+                className="form-input font-mono"
+              />
+            </div>
+            <div>
+              <label className="form-label text-xs" htmlFor="incident-actual-amount">
+                {t("incidents.actualAmount")}
+              </label>
+              <input
+                id="incident-actual-amount"
+                type="number"
+                min="0"
+                step="0.01"
+                value={actualAmount}
+                onChange={(e) => setActualAmount(e.target.value)}
+                placeholder="0.00"
+                className="form-input font-mono"
+              />
+            </div>
+            <div>
+              <label className="form-label text-xs" htmlFor="incident-currency">
+                {t("incidents.currency")}
+              </label>
+              <input
+                id="incident-currency"
+                type="text"
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value)}
+                placeholder="COP"
+                maxLength={10}
+                className="form-input"
+              />
+            </div>
           </div>
-        </form>
+        </div>
       </div>
-    </div>
+    </FormModal>
   );
 };
