@@ -174,6 +174,13 @@ export const allNavItems: NavItem[] = [
     requiredPermissions: ["incidents:read"],
     section: "Warehouse",
   },
+  {
+    id: "maintenance",
+    label: "Maintenance",
+    path: "/app/maintenance",
+    requiredPermissions: ["maintenance:read"],
+    section: "Warehouse",
+  },
 
   // -- Commerce --
   {

@@ -65,6 +65,7 @@ import { MaterialTypeCatalog, CreateMaterialType } from "./modules/app/modules/m
 import { MaterialInstanceCatalog } from "./modules/app/modules/material-instances";
 import { InspectionsCatalog } from "./modules/app/modules/inspections";
 import { IncidentsCatalog } from "./modules/app/modules/incidents";
+import { MaintenanceCatalog } from "./modules/app/modules/maintenance";
 import { CatalogOverview } from "./modules/app/modules/catalog-overview";
 import TransferRequests from "./modules/app/pages/TransferRequests";
 import OperationsDashboard from "./modules/app/pages/OperationsDashboard";
@@ -146,6 +147,7 @@ function App() {
                   <Route path="material-instances" element={<MaterialInstanceCatalog />} />
                   <Route path="inspections" element={<InspectionsCatalog />} />
                   <Route path="incidents" element={<IncidentsCatalog />} />
+                  <Route path="maintenance" element={<MaintenanceCatalog />} />
                   <Route path="catalog-overview" element={<CatalogOverview />} />
                   <Route path="transfer-requests" element={<TransferRequests />} />
                   <Route path="operations" element={<OperationsDashboard />} />

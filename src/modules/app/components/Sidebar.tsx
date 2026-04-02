@@ -31,6 +31,7 @@ import {
   Wallet,
   ClipboardCheck,
   Eye,
+  Wrench,
 } from "lucide-react";
 import { ApiError } from "../../../lib/api";
 import { useLogout } from "../../../hooks/useLogout";
@@ -65,6 +66,8 @@ const iconMap: Record<string, React.ReactNode> = {
   inventory: <Package size={20} />,
   locations: <MapPin size={20} />,
   inspections: <ClipboardCheck size={20} />,
+  incidents: <ClipboardList size={20} />,
+  maintenance: <Wrench size={20} />,
   "stock-movements": <TrendingDown size={20} />,
   alerts: <AlertCircle size={20} />,
   // Commerce

@@ -26,6 +26,14 @@ const HELP_MODULE_DEFINITIONS: HelpModuleDefinition[] = [
     routePrefixes: ["/app/inspections"],
   },
   {
+    moduleId: "incidents",
+    routePrefixes: ["/app/incidents"],
+  },
+  {
+    moduleId: "maintenance",
+    routePrefixes: ["/app/maintenance"],
+  },
+  {
     moduleId: "locations",
     routePrefixes: ["/app/locations"],
   },
@@ -97,7 +105,9 @@ export function resolveHelpModuleId(pathname: string): string | null {
   );
 
   for (const definition of ordered) {
-    const hasMatch = definition.routePrefixes.some((routePrefix) => pathname.startsWith(routePrefix));
+    const hasMatch = definition.routePrefixes.some((routePrefix) =>
+      pathname.startsWith(routePrefix),
+    );
     if (hasMatch) {
       return definition.moduleId;
     }
