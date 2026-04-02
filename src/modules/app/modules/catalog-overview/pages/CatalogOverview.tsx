@@ -1,6 +1,8 @@
-import React, { useState, useCallback } from "react";
-import { RefreshCcw } from "lucide-react";
+import React, { useState, useCallback, useMemo } from "react";
+import { RefreshCcw, FileText, Table2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { exportTableToPDF, exportTableToXLSX } from "../../../../../utils/tableExport";
+import type { CatalogMaterialType } from "../../../../../types/api";
 import {
   useCatalogOverview,
   useMaterialCategories,
@@ -46,7 +48,11 @@ export const CatalogOverview: React.FC = () => {
     value: loc._id,
     label: loc.name,
   }));
-
+  // ── Derived data ──────────────────────────────────────────────────
+  const summary = data?.summary;
+  const materialTypes = useMemo(() => data?.materialTypes ?? [], [data?.materialTypes]);
+  const pagination = data?.pagination;
+  const totalPages = pagination?.totalPages ?? 1;
   // ── Handlers ──────────────────────────────────────────────────────────
   const handleSearchChange = useCallback((value: string) => {
     setSearch(value);
@@ -67,6 +73,45 @@ export const CatalogOverview: React.FC = () => {
     queryClient.invalidateQueries({ queryKey: materialKeys.catalogOverview.all });
   }, [queryClient]);
 
+  const buildExportData = useCallback(
+    (items: CatalogMaterialType[]) => {
+      const headers = [
+        "Name",
+        "Price / Day",
+        "Categories",
+        "Instances",
+        "Available",
+        "Availability %",
+        "Utilization %",
+        "Alerts",
+      ];
+      const rows = items.map((mt) => ({
+        Name: mt.name,
+        "Price / Day": mt.pricePerDay,
+        Categories: mt.categories.map((c) => c.name).join(", ") || "—",
+        Instances: mt.totals.totalInstances,
+        Available: mt.totals.available,
+        "Availability %": `${(mt.metrics.availabilityRate * 100).toFixed(1)}%`,
+        "Utilization %": `${(mt.metrics.utilizationRate * 100).toFixed(1)}%`,
+        Alerts: mt.alerts.map((a) => a.type).join(", ") || "—",
+      }));
+      return { headers, rows };
+    },
+    [],
+  );
+
+  const handleExportPDF = useCallback(() => {
+    const date = new Date().toISOString().slice(0, 10);
+    const exportData = buildExportData(materialTypes);
+    exportTableToPDF(exportData, `catalog-overview-${date}.pdf`, "Catalog Overview");
+  }, [materialTypes, buildExportData]);
+
+  const handleExportXLSX = useCallback(() => {
+    const date = new Date().toISOString().slice(0, 10);
+    const exportData = buildExportData(materialTypes);
+    exportTableToXLSX(exportData, `catalog-overview-${date}.xlsx`);
+  }, [materialTypes, buildExportData]);
+
   // ── Loading / Error states ────────────────────────────────────────────
   if (isError) {
     return (
@@ -76,11 +121,6 @@ export const CatalogOverview: React.FC = () => {
       />
     );
   }
-
-  const summary = data?.summary;
-  const materialTypes = data?.materialTypes ?? [];
-  const pagination = data?.pagination;
-  const totalPages = pagination?.totalPages ?? 1;
 
   return (
     <div className="p-6 md:p-10 space-y-10 animate-in fade-in duration-500">
@@ -96,14 +136,34 @@ export const CatalogOverview: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={handleRefresh}
-          disabled={isLoading}
-          className="p-3 bg-[#1a1a1a] border border-[#333] text-gray-400 hover:text-white hover:border-[#444] rounded-xl transition-all disabled:opacity-50 self-start"
-          title="Refresh data"
-        >
-          <RefreshCcw className={`w-5 h-5 ${isLoading ? "animate-spin" : ""}`} />
-        </button>
+        <div className="flex items-center gap-3 self-start">
+          <button
+            onClick={handleExportPDF}
+            disabled={isLoading || materialTypes.length === 0}
+            className="flex items-center gap-2 px-4 py-2 gold-action-btn font-semibold rounded-lg transition disabled:opacity-50"
+            title="Export PDF"
+          >
+            <FileText className="w-4 h-4" />
+            PDF
+          </button>
+          <button
+            onClick={handleExportXLSX}
+            disabled={isLoading || materialTypes.length === 0}
+            className="flex items-center gap-2 px-4 py-2 gold-action-btn font-semibold rounded-lg transition disabled:opacity-50"
+            title="Export Excel"
+          >
+            <Table2 className="w-4 h-4" />
+            XLS
+          </button>
+          <button
+            onClick={handleRefresh}
+            disabled={isLoading}
+            className="p-3 bg-[#1a1a1a] border border-[#333] text-gray-400 hover:text-white hover:border-[#444] rounded-xl transition-all disabled:opacity-50"
+            title="Refresh data"
+          >
+            <RefreshCcw className={`w-5 h-5 ${isLoading ? "animate-spin" : ""}`} />
+          </button>
+        </div>
       </div>
 
       {/* ── Summary Cards ──────────────────────────────────────────────── */}
