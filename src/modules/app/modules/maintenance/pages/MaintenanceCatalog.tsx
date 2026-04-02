@@ -212,8 +212,12 @@ export const MaintenanceCatalog: React.FC = () => {
           loading={loading}
           onView={handleView}
           onEdit={handleEdit}
-          onStart={handleStartBatch}
-          onCancel={handleCancelBatch}
+          onStart={(batch: MaintenanceBatchListItem) => handleStartBatch(batch._id)}
+          onCancel={(batch: MaintenanceBatchListItem) => handleCancelBatch(batch._id)}
+          onAddItems={async (batch: MaintenanceBatchListItem) => {
+            await fetchDetail(batch._id);
+            setShowAddItems(true);
+          }}
         />
       </div>
 

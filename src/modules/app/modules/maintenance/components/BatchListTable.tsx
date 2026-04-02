@@ -4,7 +4,7 @@
  */
 
 import React from "react";
-import { Eye, Pencil, Play, XCircle } from "lucide-react";
+import { Eye, Pencil, Play, Plus, XCircle } from "lucide-react";
 import { DataTable, StatusBadge, type ColumnDef } from "../../../../../components/ui";
 import { useLanguage } from "../../../../../contexts/useLanguage";
 import type { MaintenanceBatchListItem } from "../../../../../types/api";
@@ -18,10 +18,12 @@ interface BatchListTableProps {
   onView: (batch: MaintenanceBatchListItem) => void;
   /** Edit batch callback (draft only). */
   onEdit: (batch: MaintenanceBatchListItem) => void;
-  /** Start batch callback (draft only). */
+  /** Start batch callback (draft only, requires items). */
   onStart: (batch: MaintenanceBatchListItem) => void;
   /** Cancel batch callback (draft | in_progress). */
   onCancel: (batch: MaintenanceBatchListItem) => void;
+  /** Add items callback (draft only). */
+  onAddItems: (batch: MaintenanceBatchListItem) => void;
 }
 
 export function BatchListTable({
@@ -31,6 +33,7 @@ export function BatchListTable({
   onEdit,
   onStart,
   onCancel,
+  onAddItems,
 }: BatchListTableProps) {
   const { t, formatDate, formatCurrency } = useLanguage();
 
@@ -106,15 +109,28 @@ export function BatchListTable({
               </button>
               <button
                 type="button"
-                className="p-1 rounded hover:bg-white/10 text-green-400 hover:text-green-300 transition-colors"
-                title={t("maintenance.action.start")}
+                className="p-1 rounded hover:bg-white/10 text-[#FFD700] hover:text-yellow-300 transition-colors"
+                title={t("maintenance.action.addItems")}
                 onClick={(e) => {
                   e.stopPropagation();
-                  onStart(row);
+                  onAddItems(row);
                 }}
               >
-                <Play size={16} />
+                <Plus size={16} />
               </button>
+              {row.items.length > 0 && (
+                <button
+                  type="button"
+                  className="p-1 rounded hover:bg-white/10 text-green-400 hover:text-green-300 transition-colors"
+                  title={t("maintenance.action.start")}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onStart(row);
+                  }}
+                >
+                  <Play size={16} />
+                </button>
+              )}
             </>
           )}
           {(row.status === "draft" || row.status === "in_progress") && (

@@ -1,11 +1,15 @@
 /**
  * AddItemsModal — Form modal for adding material instances to a draft maintenance batch.
+ *
+ * Uses SearchableSelect to let the user pick from fetched material instances
+ * (filtered to damaged/lost statuses eligible for maintenance).
  */
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Plus, Trash2 } from "lucide-react";
-import { FormModal } from "../../../../../components/ui";
+import { FormModal, SearchableSelect } from "../../../../../components/ui";
 import { useLanguage } from "../../../../../contexts/useLanguage";
+import { useMaterialInstances } from "../../../../../hooks/queries";
 import type {
   AddMaintenanceBatchItemInput,
   AddMaintenanceBatchItemsPayload,
@@ -48,6 +52,21 @@ export function AddItemsModal({ open, onClose, onSubmit }: AddItemsModalProps) {
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<ItemFormRow[]>([{ ...EMPTY_ROW }]);
 
+  // Fetch material instances eligible for maintenance (damaged status)
+  const { data: damagedData } = useMaterialInstances({ status: "damaged" });
+  const { data: lostData } = useMaterialInstances({ status: "lost" });
+
+  const instanceOptions = useMemo(() => {
+    const damaged = damagedData?.instances ?? [];
+    const lost = lostData?.instances ?? [];
+    const all = [...damaged, ...lost];
+
+    return all.map((inst) => ({
+      value: inst._id,
+      label: `${inst.serialNumber} — ${inst.model.name} (${inst.locationId?.name ?? "?"})`,
+    }));
+  }, [damagedData, lostData]);
+
   const resetForm = () => {
     setRows([{ ...EMPTY_ROW }]);
   };
@@ -67,6 +86,15 @@ export function AddItemsModal({ open, onClose, onSubmit }: AddItemsModalProps) {
 
   const removeRow = (index: number) => {
     setRows((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Filter out already-selected instances from other rows
+  const getAvailableOptions = (currentIndex: number) => {
+    const selectedIds = rows
+      .filter((_, i) => i !== currentIndex)
+      .map((r) => r.materialInstanceId)
+      .filter(Boolean);
+    return instanceOptions.filter((opt) => !selectedIds.includes(opt.value));
   };
 
   const isValid = rows.length > 0 && rows.every((r) => r.materialInstanceId.trim());
@@ -121,22 +149,20 @@ export function AddItemsModal({ open, onClose, onSubmit }: AddItemsModalProps) {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {/* Material Instance ID */}
-              <div>
-                <label className="form-label">{t("maintenance.itemSerialNumber")} *</label>
-                <input
-                  type="text"
-                  className="form-input"
+              {/* Material Instance (searchable) */}
+              <div data-help-id="maintenance-add-items-instance-id">
+                <SearchableSelect
+                  label={`${t("maintenance.form.materialInstanceId")} *`}
+                  options={getAvailableOptions(index)}
                   value={row.materialInstanceId}
-                  onChange={(e) => updateRow(index, "materialInstanceId", e.target.value)}
-                  required
-                  data-help-id="maintenance-add-items-instance-id"
+                  onChange={(v) => updateRow(index, "materialInstanceId", v)}
+                  placeholder={t("maintenance.searchInstance")}
                 />
               </div>
 
               {/* Entry Reason */}
               <div>
-                <label className="form-label">{t("maintenance.entryReason")}</label>
+                <label className="form-label">{t("maintenance.form.entryReason")}</label>
                 <select
                   className="form-input"
                   value={row.entryReason}
@@ -145,7 +171,7 @@ export function AddItemsModal({ open, onClose, onSubmit }: AddItemsModalProps) {
                 >
                   {ENTRY_REASONS.map((reason) => (
                     <option key={reason} value={reason}>
-                      {t(`maintenance.entryReasons.${reason}`)}
+                      {t(`maintenance.entryReason.${reason}`)}
                     </option>
                   ))}
                 </select>
@@ -153,7 +179,7 @@ export function AddItemsModal({ open, onClose, onSubmit }: AddItemsModalProps) {
 
               {/* Source Type */}
               <div>
-                <label className="form-label">{t("maintenance.sourceType")}</label>
+                <label className="form-label">{t("maintenance.form.sourceType")}</label>
                 <select
                   className="form-input"
                   value={row.sourceType}
@@ -162,7 +188,7 @@ export function AddItemsModal({ open, onClose, onSubmit }: AddItemsModalProps) {
                 >
                   {SOURCE_TYPES.map((src) => (
                     <option key={src} value={src}>
-                      {t(`maintenance.sourceTypes.${src}`)}
+                      {t(`maintenance.sourceType.${src}`)}
                     </option>
                   ))}
                 </select>
@@ -170,7 +196,7 @@ export function AddItemsModal({ open, onClose, onSubmit }: AddItemsModalProps) {
 
               {/* Estimated Cost */}
               <div>
-                <label className="form-label">{t("maintenance.estimatedCost")}</label>
+                <label className="form-label">{t("maintenance.form.estimatedCost")}</label>
                 <input
                   type="number"
                   className="form-input"
@@ -185,7 +211,7 @@ export function AddItemsModal({ open, onClose, onSubmit }: AddItemsModalProps) {
 
             {/* Repair Notes */}
             <div>
-              <label className="form-label">{t("maintenance.repairNotes")}</label>
+              <label className="form-label">{t("maintenance.form.repairNotes")}</label>
               <textarea
                 className="form-input"
                 value={row.repairNotes}
