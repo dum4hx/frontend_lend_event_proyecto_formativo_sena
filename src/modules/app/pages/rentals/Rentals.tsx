@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatedPage, PageHeader } from "../../../../components/ui";
-import { getLoans, extendLoan, returnLoan, refundDeposit } from "../../../../services/loanService";
+import {
+  getLoans,
+  extendLoan,
+  returnLoan,
+  refundDeposit,
+  completeLoan,
+} from "../../../../services/loanService";
 import { getCustomers } from "../../../../services/customerService";
 import { useAlertModal } from "../../../../hooks/useAlertModal";
 import { usePermissions } from "../../../../contexts/usePermissions";
@@ -12,6 +18,7 @@ import {
   ExtendLoanModal,
   ReturnLoanModal,
   RefundDepositModal,
+  CompleteLoanModal,
 } from "./RentalModals";
 import { customerFullName } from "./helpers";
 import type { LoanView, LoanFilter, Loan, Customer, ExtendLoanPayload } from "./types";
@@ -49,9 +56,13 @@ export function Rentals() {
   const [refundTarget, setRefundTarget] = useState<LoanView | null>(null);
   const [refundNotes, setRefundNotes] = useState("");
 
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [completeTarget, setCompleteTarget] = useState<LoanView | null>(null);
+
   // ── Permissions ──────────────────────────────────────────────────────────
   const canExtend = hasPermission("loans:extend");
   const canReturn = hasPermission("loans:return");
+  const canComplete = hasPermission("loans:update");
 
   // ── Fetch data ───────────────────────────────────────────────────────────
   const fetchData = useCallback(async () => {
@@ -210,6 +221,36 @@ export function Rentals() {
     }
   };
 
+  const handleOpenComplete = (lv: LoanView) => {
+    setCompleteTarget(lv);
+    setShowCompleteModal(true);
+  };
+
+  const handleCompleteLoan = async () => {
+    if (!completeTarget) return;
+    setSubmitting(true);
+    try {
+      await completeLoan(completeTarget.loan._id);
+      showSuccess(
+        isEs ? "Préstamo completado correctamente." : "Loan completed successfully.",
+        isEs ? "Préstamo completado" : "Loan Completed",
+      );
+      setShowCompleteModal(false);
+      setCompleteTarget(null);
+      await fetchData();
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : isEs
+            ? "No se pudo completar el préstamo"
+            : "Failed to complete loan";
+      showError(message, isEs ? "Error al completar" : "Complete Error");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
@@ -245,10 +286,12 @@ export function Rentals() {
             submitting={submitting}
             canExtend={canExtend}
             canReturn={canReturn}
+            canComplete={canComplete}
             onViewDetail={handleOpenDetail}
             onExtend={handleOpenExtend}
             onReturn={handleOpenReturn}
             onRefund={handleOpenRefund}
+            onComplete={handleOpenComplete}
             locale={locale}
             isEs={isEs}
           />
@@ -301,6 +344,18 @@ export function Rentals() {
           notes={refundNotes}
           onNotesChange={setRefundNotes}
           onSubmit={() => void handleRefundDeposit()}
+          submitting={submitting}
+          isEs={isEs}
+        />
+
+        <CompleteLoanModal
+          show={showCompleteModal}
+          onClose={() => {
+            setShowCompleteModal(false);
+            setCompleteTarget(null);
+          }}
+          target={completeTarget}
+          onSubmit={() => void handleCompleteLoan()}
           submitting={submitting}
           isEs={isEs}
         />

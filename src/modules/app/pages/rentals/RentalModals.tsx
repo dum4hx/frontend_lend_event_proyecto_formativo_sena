@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { CalendarRange, X, Package, ChevronDown, ChevronUp } from "lucide-react";
+import { CalendarRange, X, Package, ChevronDown, ChevronUp, CheckCircle } from "lucide-react";
 import { Button } from "../../../../components/ui";
 import type { LoanView } from "./types";
 import type { LoanDetailGrouped, LoanMaterialInstanceEntry } from "../../../../types/api";
@@ -70,6 +70,21 @@ interface RefundDepositModalProps {
   notes: string;
   /** Notes setter. */
   onNotesChange: (value: string) => void;
+  /** Submit callback. */
+  onSubmit: () => void;
+  /** Whether submitting. */
+  submitting: boolean;
+  /** Whether Spanish locale is active. */
+  isEs: boolean;
+}
+
+interface CompleteLoanModalProps {
+  /** Whether the modal is visible. */
+  show: boolean;
+  /** Close callback. */
+  onClose: () => void;
+  /** Target loan view. */
+  target: LoanView | null;
   /** Submit callback. */
   onSubmit: () => void;
   /** Whether submitting. */
@@ -214,6 +229,80 @@ export function LoanDetailModal({ show, onClose, target, locale, isEs }: LoanDet
               </div>
             )}
           </div>
+
+          {/* Financial summary */}
+          {(target.loan.totalAmount != null ||
+            target.loan.deposit?.amount != null ||
+            (target.loan.damageFees ?? 0) > 0 ||
+            (target.loan.lateFees ?? 0) > 0) && (
+            <div className="border border-[#2a2a2a] rounded-xl p-4 bg-[#171717] space-y-3">
+              <p className="text-xs font-semibold text-[#FFD700] uppercase tracking-wider">
+                {isEs ? "Resumen Financiero" : "Financial Summary"}
+              </p>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                {target.loan.totalAmount != null && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-400 mb-0.5 uppercase tracking-wide">
+                      {isEs ? "Total" : "Total Amount"}
+                    </label>
+                    <p className="text-white font-semibold">
+                      ${target.loan.totalAmount.toLocaleString()}
+                    </p>
+                  </div>
+                )}
+                {target.loan.deposit?.amount != null && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-400 mb-0.5 uppercase tracking-wide">
+                      {isEs ? "Depósito" : "Deposit"}
+                    </label>
+                    <p className="text-white font-semibold">
+                      ${target.loan.deposit.amount.toLocaleString()}
+                    </p>
+                  </div>
+                )}
+                {target.loan.deposit?.status && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-400 mb-0.5 uppercase tracking-wide">
+                      {isEs ? "Estado depósito" : "Deposit Status"}
+                    </label>
+                    <p className="text-gray-300 capitalize">
+                      {target.loan.deposit.status.replace(/_/g, " ")}
+                    </p>
+                  </div>
+                )}
+                {target.loan.deposit?.refundAvailable && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-400 mb-0.5 uppercase tracking-wide">
+                      {isEs ? "Devolución disponible" : "Refundable Amount"}
+                    </label>
+                    <p className="text-green-400 font-semibold">
+                      ${(target.loan.deposit.refundableAmount ?? 0).toLocaleString()}
+                    </p>
+                  </div>
+                )}
+                {(target.loan.damageFees ?? 0) > 0 && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-400 mb-0.5 uppercase tracking-wide">
+                      {isEs ? "Cargos por daño" : "Damage Fees"}
+                    </label>
+                    <p className="text-red-400 font-semibold">
+                      ${target.loan.damageFees!.toLocaleString()}
+                    </p>
+                  </div>
+                )}
+                {(target.loan.lateFees ?? 0) > 0 && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-400 mb-0.5 uppercase tracking-wide">
+                      {isEs ? "Cargos por mora" : "Late Fees"}
+                    </label>
+                    <p className="text-red-400 font-semibold">
+                      ${target.loan.lateFees!.toLocaleString()}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Material instances grouped by type */}
           <div className="space-y-4">
@@ -523,6 +612,88 @@ export function RefundDepositModal({
               : isEs
                 ? "Confirmar reembolso"
                 : "Confirm Refund"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Complete Loan Modal ──────────────────────────────────────────────────
+
+export function CompleteLoanModal({
+  show,
+  onClose,
+  target,
+  onSubmit,
+  submitting,
+  isEs,
+}: CompleteLoanModalProps) {
+  if (!show || !target) return null;
+
+  const depositResolved =
+    !target.loan.deposit ||
+    target.loan.deposit.amount === 0 ||
+    target.loan.deposit.status === "applied" ||
+    target.loan.deposit.status === "refunded" ||
+    target.loan.deposit.status === "not_required";
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div
+        className="bg-zinc-900 border border-zinc-700 rounded-xl p-6 w-full max-w-md shadow-2xl space-y-4"
+        data-help-id="rentals-complete-form"
+      >
+        <h2 className="text-xl font-semibold text-white">
+          {isEs ? "Completar préstamo" : "Complete Loan"}
+        </h2>
+        <p className="text-zinc-400 text-sm">
+          {isEs ? "Completar préstamo" : "Complete loan"}{" "}
+          <span className="text-white font-medium">#{target.loan._id.slice(-8).toUpperCase()}</span>{" "}
+          {isEs ? "para" : "for"}{" "}
+          <span className="text-white font-medium">{customerFullName(target.customer)}</span>
+        </p>
+
+        {!depositResolved && (
+          <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-200/80 text-sm">
+            {isEs
+              ? "El depósito de este préstamo no ha sido resuelto. Debe estar en estado 'aplicado' o 'reembolsado' antes de completar."
+              : "The deposit for this loan has not been resolved. It must be 'applied' or 'refunded' before completing."}
+          </div>
+        )}
+
+        <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-blue-200/80 text-sm">
+          {isEs
+            ? "Esta acción cerrará el préstamo definitivamente. Asegúrese de que la inspección esté completa y el depósito resuelto."
+            : "This action will permanently close the loan. Ensure the inspection is complete and the deposit is resolved."}
+        </div>
+
+        <div className="flex gap-3 justify-end">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            disabled={submitting}
+            data-help-id="rentals-complete-cancel"
+          >
+            {isEs ? "Cancelar" : "Cancel"}
+          </Button>
+          <Button
+            leftIcon={CheckCircle}
+            onClick={onSubmit}
+            disabled={submitting || !depositResolved}
+            className="bg-emerald-500 hover:bg-emerald-600 text-white border-transparent"
+            data-help-id="rentals-complete-submit"
+          >
+            {submitting
+              ? isEs
+                ? "Completando..."
+                : "Completing..."
+              : isEs
+                ? "Completar préstamo"
+                : "Complete Loan"}
           </Button>
         </div>
       </div>

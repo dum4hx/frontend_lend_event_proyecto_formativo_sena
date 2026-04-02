@@ -1,4 +1,12 @@
-import { Eye, CalendarRange, RotateCcw, AlertCircle, HandCoins, Loader2 } from "lucide-react";
+import {
+  Eye,
+  CalendarRange,
+  RotateCcw,
+  AlertCircle,
+  HandCoins,
+  CheckCircle,
+  Loader2,
+} from "lucide-react";
 import { Button, EntityLink } from "../../../../components/ui";
 import type { LoanView } from "./types";
 import {
@@ -22,6 +30,8 @@ interface RentalsTableProps {
   canExtend: boolean;
   /** Whether user can return loans. */
   canReturn: boolean;
+  /** Whether user can complete loans. */
+  canComplete: boolean;
   /** Open detail callback. */
   onViewDetail: (lv: LoanView) => void;
   /** Open extend callback. */
@@ -30,6 +40,8 @@ interface RentalsTableProps {
   onReturn: (lv: LoanView) => void;
   /** Open refund callback. */
   onRefund: (lv: LoanView) => void;
+  /** Open complete callback. */
+  onComplete: (lv: LoanView) => void;
   /** Locale string for date formatting. */
   locale: string;
   /** Whether Spanish locale is active. */
@@ -44,10 +56,12 @@ export function RentalsTable({
   submitting,
   canExtend,
   canReturn,
+  canComplete,
   onViewDetail,
   onExtend,
   onReturn,
   onRefund,
+  onComplete,
   locale,
   isEs,
 }: RentalsTableProps) {
@@ -190,6 +204,17 @@ export function RentalsTable({
                         className="bg-yellow-500/15 text-yellow-300 border-yellow-500/40 hover:bg-yellow-500/25"
                       >
                         {isEs ? "Reembolsar" : "Refund"}
+                      </Button>
+                    )}
+                    {lv.loan.status === "returned" && canComplete && (
+                      <Button
+                        size="sm"
+                        leftIcon={CheckCircle}
+                        onClick={() => onComplete(lv)}
+                        disabled={submitting}
+                        className="bg-emerald-500/15 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/25"
+                      >
+                        {isEs ? "Completar" : "Complete"}
                       </Button>
                     )}
                   </div>

@@ -286,6 +286,50 @@ const rentalsHelpContent: HelpModuleContent = {
         },
       ],
     },
+    {
+      id: "rentals-complete-form",
+      title: { es: "Accion: Completar prestamo", en: "Action: Complete loan" },
+      purpose: {
+        es: "Cerrar definitivamente el prestamo despues de inspeccion y resolucion de deposito.",
+        en: "Permanently close the loan after inspection and deposit resolution.",
+      },
+      mode: "edit",
+      selector: '[data-help-id="rentals-complete-form"]',
+      usageFlow: [
+        {
+          es: "Paso 1: valida que el prestamo este en estado 'devuelto'.",
+          en: "Step 1: validate the loan is in 'returned' status.",
+        },
+        {
+          es: "Paso 2: verifica que la inspeccion este completa y el deposito resuelto.",
+          en: "Step 2: verify the inspection is complete and the deposit resolved.",
+        },
+        { es: "Paso 3: confirma la finalizacion.", en: "Step 3: confirm completion." },
+      ],
+      fields: [],
+      actions: [
+        {
+          id: "complete-cancel",
+          label: { es: "Cancelar", en: "Cancel" },
+          purpose: { es: "Salir sin completar", en: "Exit without completing" },
+          consequence: {
+            es: "Prestamo mantiene estado actual",
+            en: "Loan keeps current status",
+          },
+          selector: '[data-help-id="rentals-complete-cancel"]',
+        },
+        {
+          id: "complete-submit",
+          label: { es: "Completar prestamo", en: "Complete loan" },
+          purpose: { es: "Finalizar el prestamo", en: "Finalize the loan" },
+          consequence: {
+            es: "Cierra el prestamo definitivamente",
+            en: "Permanently closes the loan",
+          },
+          selector: '[data-help-id="rentals-complete-submit"]',
+        },
+      ],
+    },
   ],
 };
 
