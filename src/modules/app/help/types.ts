@@ -60,7 +60,7 @@ export interface HelpFormGuide {
   purpose: HelpText;
   mode: HelpFormMode;
   selector?: string;
-  usageFlow: HelpText[];
+  usageFlow?: HelpText[];
   fields: HelpFormFieldGuide[];
   actions: HelpFormActionGuide[];
 }
