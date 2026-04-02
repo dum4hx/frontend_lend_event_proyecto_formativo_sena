@@ -7,7 +7,7 @@
 
 export interface StatusBadgeProps {
   /** Status string value (lowercased internally). */
-  status: string;
+  status: string | undefined;
   /** Custom colour map keyed by status → Tailwind class string. Falls back to neutral. */
   colorMap?: Record<string, string>;
   /** Extra class names on the root element. */
@@ -71,6 +71,7 @@ function formatLabel(status: string): string {
 }
 
 export function StatusBadge({ status, colorMap, className = "" }: StatusBadgeProps) {
+  if (!status) return null;
   const key = status.toLowerCase();
   const merged = colorMap ? { ...defaultColorMap, ...colorMap } : defaultColorMap;
   const badgeClass = merged[key] ?? "badge-neutral";
