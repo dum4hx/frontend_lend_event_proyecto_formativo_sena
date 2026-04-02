@@ -20,6 +20,8 @@ import {
   getTransfers,
 } from "../../../../services/transferService";
 import { getLocations } from "../../../../services/warehouseOperatorService";
+import { getUser } from "../../../../services/userService";
+import { getMaterialType } from "../../../../services/materialService";
 import { Link } from "react-router-dom";
 import { AnimatedPage, PageHeader } from "../../../../components/ui";
 import {
@@ -85,6 +87,12 @@ export function TransferRequests() {
   // ── State: locations (for ID → name lookup) ──
   const [locations, setLocations] = useState<WarehouseLocation[]>([]);
 
+  // ── State: user cache (for ID → name lookup) ──
+  const [userCache, setUserCache] = useState<Map<string, string>>(new Map());
+
+  // ── State: material type cache (for ID → name lookup) ──
+  const [materialTypeCache, setMaterialTypeCache] = useState<Map<string, string>>(new Map());
+
   // ── Modals ──
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [viewTarget, setViewTarget] = useState<TransferRequest | null>(null);
@@ -97,12 +105,42 @@ export function TransferRequests() {
     [locations],
   );
 
+  const getUserName = useCallback(
+    (userId: string): string => {
+      // Return cached name if available
+      const cached = userCache.get(userId);
+      if (cached) return cached;
+      // Fetch user name asynchronously
+      void getUser(userId).then((res) => {
+        const name = res.data.user?.name
+          ? `${res.data.user.name.firstName} ${res.data.user.name.firstSurname}`.trim()
+          : userId;
+        setUserCache((prev) => new Map(prev).set(userId, name));
+      }).catch(() => {
+        // On error, cache the ID itself
+        setUserCache((prev) => new Map(prev).set(userId, userId));
+      });
+      return userId;
+    },
+    [userCache],
+  );
+
   const getMaterialTypeName = useCallback(
     (modelId: string): string => {
-      // Could be enhanced with a lookup from materials service if needed
+      // Return cached name if available
+      const cached = materialTypeCache.get(modelId);
+      if (cached) return cached;
+      // Fetch material type name asynchronously
+      void getMaterialType(modelId).then((res) => {
+        const name = res.data.materialType?.name ?? modelId;
+        setMaterialTypeCache((prev) => new Map(prev).set(modelId, name));
+      }).catch(() => {
+        // On error, cache the ID itself
+        setMaterialTypeCache((prev) => new Map(prev).set(modelId, modelId));
+      });
       return modelId;
     },
-    [],
+    [materialTypeCache],
   );
 
   // ── Loaders ──
@@ -629,6 +667,7 @@ export function TransferRequests() {
             request={viewTarget}
             locationName={locationName}
             materialTypeName={getMaterialTypeName}
+            userName={getUserName}
             onClose={() => setViewTarget(null)}
           />
         )}

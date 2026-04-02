@@ -51,6 +51,7 @@ interface RequestDetailModalProps {
   request: TransferRequest;
   locationName: (id: string) => string;
   materialTypeName: (modelId: string) => string;
+  userName: (userId: string) => string;
   onClose: () => void;
 }
 
@@ -63,6 +64,7 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
   request,
   locationName,
   materialTypeName,
+  userName,
   onClose,
 }) => {
   const { language } = useLanguage();
@@ -165,7 +167,7 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
                   {isEs ? "Solicitado por" : "Requested By"}
                 </p>
               </div>
-              <p className="text-sm text-gray-300 font-mono truncate">{request.requestedBy}</p>
+              <p className="text-sm text-gray-300 font-medium">{userName(request.requestedBy)}</p>
             </div>
 
             {/* Item Count */}
@@ -201,18 +203,6 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
                     <span className="px-2.5 py-0.5 bg-[#FFD700]/15 text-[#FFD700] rounded text-xs font-bold">
                       ×{items.reduce((sum, item) => sum + item.quantity, 0)}
                     </span>
-                  </div>
-                  <div className="space-y-1.5 ml-2 border-l-2 border-[#333] pl-3">
-                    {items.map((item, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center justify-between text-sm text-gray-300"
-                      >
-                        <span>
-                          {isEs ? "Cantidad:" : "Quantity:"} <span className="font-mono">{item.quantity}</span>
-                        </span>
-                      </div>
-                    ))}
                   </div>
                 </div>
               ))}
