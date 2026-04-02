@@ -1436,7 +1436,12 @@ export const ShipmentDetailModal: React.FC<ShipmentDetailModalProps> = ({
                     {isEs ? "Solicitud Asociada" : "Related Request"}
                   </p>
                 </div>
-                <p className="text-xs text-gray-300 font-mono truncate">{shipment.requestId}</p>
+                <EntityLink
+                  entityType="transferRequest"
+                  entityId={shipment.requestId}
+                  label={shipment.requestId.slice(-8).toUpperCase()}
+                  className="text-xs font-mono"
+                />
               </div>
             )}
           </div>

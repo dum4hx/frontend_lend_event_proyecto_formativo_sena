@@ -29,6 +29,9 @@ const MaterialInstanceDetailLauncher = lazy(
 );
 const LocationDetailLauncher = lazy(() => import("./entityDetailLaunchers/LocationDetailLauncher"));
 const CategoryDetailLauncher = lazy(() => import("./entityDetailLaunchers/CategoryDetailLauncher"));
+const TransferRequestDetailLauncher = lazy(
+  () => import("./entityDetailLaunchers/TransferRequestDetailLauncher"),
+);
 
 export function EntityDetailProvider({ children }: { children: React.ReactNode }) {
   const [active, setActive] = useState<ActiveEntity | null>(null);
@@ -66,6 +69,9 @@ export function EntityDetailProvider({ children }: { children: React.ReactNode }
         )}
         {active?.type === "category" && (
           <CategoryDetailLauncher id={active.id} onClose={closeEntityDetail} />
+        )}
+        {active?.type === "transferRequest" && (
+          <TransferRequestDetailLauncher id={active.id} onClose={closeEntityDetail} />
         )}
       </Suspense>
     </EntityDetailContext.Provider>
