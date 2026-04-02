@@ -1,6 +1,6 @@
 # 📖 Manual de Instalación Completo - LendEvent (Frontend + Backend)
 
-**Versión:** 1.0  
+**Versión:** 2.0  
 **Última actualización:** April 2, 2026  
 **Para:** Personas sin experiencia previa - desde cero
 
@@ -10,12 +10,13 @@
 
 1. [Introducción](#introducción)
 2. [Requisitos del Sistema](#requisitos-del-sistema)
-3. [Fase 1: Preparación del Sistema](#fase-1--preparación-del-sistema)
-4. [Fase 2: Descargar los Proyectos](#fase-2--descargar-los-proyectos)
-5. [Fase 3: Configurar Backend](#fase-3--configurar-backend)
-6. [Fase 4: Configurar Frontend](#fase-4--configurar-frontend)
-7. [Fase 5: Ejecutar Ambos Proyectos](#fase-5--ejecutar-ambos-proyectos)
-8. [Solución de Problemas](#solución-de-problemas)
+3. [Fase 0: Herramientas Esenciales](#fase-0--herramientas-esenciales)
+4. [Fase 1: Preparación del Sistema](#fase-1--preparación-del-sistema)
+5. [Fase 2: Descargar los Proyectos](#fase-2--descargar-los-proyectos)
+6. [Fase 3: Configurar Backend](#fase-3--configurar-backend)
+7. [Fase 4: Configurar Frontend](#fase-4--configurar-frontend)
+8. [Fase 5: Ejecutar Ambos Proyectos](#fase-5--ejecutar-ambos-proyectos)
+9. [Solución de Problemas](#solución-de-problemas)
 
 ---
 
@@ -51,6 +52,85 @@ Este manual te guiará para instalar todo desde cero en tu computadora.
 ✅ Windows 10/11  
 ✅ macOS 10.15+  
 ✅ Linux (Ubuntu, Debian, etc.)
+
+---
+
+## 🛠️ Fase 0: Herramientas Esenciales
+
+En esta fase instalaremos el editor de código que usaremos para trabajar con LendEvent.
+
+### Paso 0.1: Instalar Visual Studio Code
+
+Visual Studio Code (VS Code) es el editor de código recomendado para este proyecto.
+
+#### En Windows:
+
+1. Ve a https://code.visualstudio.com/
+
+2. Haz clic en **"Download for Windows"**
+
+3. Ejecuta el instalador `.exe` descargado
+
+4. Sigue los pasos de instalación:
+   - Haz clic en `Next` y acepta los términos
+   - Selecciona "Add to PATH" (importante)
+   - Haz clic en `Install`
+
+5. Abre VS Code después de la instalación
+
+#### En macOS:
+
+1. Ve a https://code.visualstudio.com/
+
+2. Haz clic en **"Download for Mac"**
+
+3. Abre el archivo `.dmg` descargado
+
+4. Arrastra el icono de VS Code a la carpeta "Applications"
+
+5. Abre VS Code desde Applications
+
+#### En Linux (Ubuntu):
+
+1. Abre Terminal
+
+2. Ejecuta:
+   ```bash
+   sudo apt update
+   sudo apt install code -y
+   ```
+
+3. Verifica la instalación:
+   ```bash
+   code --version
+   ```
+
+---
+
+### Paso 0.2: Extensiones Recomendadas para VS Code
+
+Una vez instalado VS Code, instala estas extensiones de desarrollo:
+
+1. Abre VS Code
+
+2. Presiona `Ctrl + Shift + X` (o `Cmd + Shift + X` en macOS) para abrir el Marketplace de extensiones
+
+3. Instala estas extensiones buscando por su nombre:
+
+| Extensión | Propósito |
+|-----------|-----------|
+| **ES7+ React/Redux/React-Native snippets** | Snippets para React |
+| **Prettier - Code formatter** | Formatea código automáticamente |
+| **ESLint** | Valida código TypeScript/JavaScript |
+| **Tailwind CSS IntelliSense** | Autocompletado de Tailwind CSS |
+| **Thunder Client** o **REST Client** | Prueba de APIs REST |
+| **GitLens** | Información de Git mejorada |
+| **MongoDB for VS Code** | Visualiza MongoDB |
+
+**Cómo instalar una extensión:**
+- En el buscador escribe el nombre
+- Haz clic en la primera opción
+- Haz clic en el botón "Install"
 
 ---
 
@@ -314,16 +394,53 @@ Desde ahora, todos los comandos los ejecutaremos dentro de esta carpeta.
 
 ## 📦 Fase 2: Descargar los Proyectos
 
-Vamos a descargar el código del frontend y backend desde GitHub.
+Vamos a descargar el código del frontend y backend desde GitHub. Asegúrate de tener internet disponible.
 
-### Paso 2.1: Descargar el Backend
+### ¿Dónde están los Proyectos?
+
+#### **Backend (API Rest - Node.js + Express)**
+- **Repositorio:** https://github.com/dum4hx/backend_lend_event_proyecto_formativo_sena
+- **Tecnología:** Node.js 22+, Express 5, MongoDB, TypeScript
+- **Puerto:** 8080
+- **Carpeta:** `backend/`
+
+#### **Frontend (Aplicación Web - React + Vite)**
+- **Repositorio:** https://github.com/dum4hx/Frontend_Lend\ Event
+- **Tecnología:** React 19, TypeScript, Vite, Tailwind CSS
+- **Puerto:** 5173
+- **Carpeta:** `frontend/`
+
+### Paso 2.1: Crear Carpeta Principal
+
+Vamos a crear una carpeta raíz donde guardaremos ambos proyectos.
+
+#### En Windows (PowerShell):
+
+```powershell
+# Crear en C:\
+mkdir C:\lendevent-dev
+cd C:\lendevent-dev
+```
+
+#### En macOS/Linux:
+
+```bash
+# Crear en tu home
+mkdir ~/lendevent-dev
+cd ~/lendevent-dev
+```
+
+---
+
+### Paso 2.2: Descargar el Backend
+
+Abre PowerShell/Terminal en la carpeta `C:\lendevent-dev` (o `~/lendevent-dev`):
 
 #### En Windows (PowerShell):
 
 ```powershell
 cd C:\lendevent-dev
 git clone https://github.com/dum4hx/backend_lend_event_proyecto_formativo_sena.git backend
-cd backend
 ```
 
 #### En macOS/Linux:
@@ -331,41 +448,65 @@ cd backend
 ```bash
 cd ~/lendevent-dev
 git clone https://github.com/dum4hx/backend_lend_event_proyecto_formativo_sena.git backend
-cd backend
 ```
 
 **¿Qué pasó?**
-- Git descargó todo el código del backend
-- Se creó una carpeta llamada `backend`
-- Ahora estamos dentro de esa carpeta
+- Git descargó todo el código del backend (repositorio de aproximadamente 150 MB)
+- Se creó una carpeta llamada `backend/` 
+- Contiene: código fuente, configuración, scripts, documentación
+
+**Verifica que se descargó:**
+```powershell
+# Windows
+dir backend
+
+# macOS/Linux
+ls backend
+```
+
+Deberías ver carpetas como: `src/`, `node_modules/`, `package.json`, etc.
 
 ---
 
-### Paso 2.2: Descargar el Frontend
+### Paso 2.3: Descargar el Frontend
 
-Abre una **nueva terminal/PowerShell** (sin cerrar la actual).
+Abre una **segunda PowerShell/Terminal** (sin cerrar la anterior).
 
 #### En Windows (PowerShell):
 
 ```powershell
 cd C:\lendevent-dev
 git clone https://github.com/dum4hx/Frontend_Lend\ Event.git frontend
-cd frontend
 ```
 
 #### En macOS/Linux:
 
 ```bash
 cd ~/lendevent-dev
-git clone https://github.com/dum4hx/Frontend_Lend\ Event.git frontend
-cd frontend
+git clone "https://github.com/dum4hx/Frontend_Lend Event.git" frontend
 ```
+
+**¿Qué pasó?**
+- Git descargó todo el código del frontend (repositorio de aproximadamente 200 MB)
+- Se creó una carpeta llamada `frontend/`
+- Contiene: componentes React, páginas, estilos Tailwind, configuración
+
+**Verifica que se descargó:**
+```powershell
+# Windows
+dir frontend
+
+# macOS/Linux
+ls frontend
+```
+
+Deberías ver carpetas como: `src/`, `public/`, `package.json`, `vite.config.ts`, etc.
 
 ---
 
-### Paso 2.3: Verificar que Ambas Carpetas Existen
+### Paso 2.4: Verificar Estructura de Carpetas
 
-Abre una terminal en tu carpeta `lendevent-dev`:
+Verifica que ambas carpetas existen en la ubicación correcta:
 
 #### En Windows (PowerShell):
 
@@ -376,6 +517,8 @@ dir
 
 Deberías ver:
 ```
+Directorio: C:\lendevent-dev
+
 backend/
 frontend/
 ```
@@ -389,9 +532,31 @@ ls -la
 
 Deberías ver:
 ```
-backend/
-frontend/
+drwxr-xr-x  backend
+drwxr-xr-x  frontend
 ```
+
+---
+
+### Paso 2.5: Abrir el Proyecto en VS Code
+
+Es recomendable abrir el proyecto completo en VS Code para trabajar con ambas carpetas:
+
+#### Desde Windows:
+
+```powershell
+cd C:\lendevent-dev
+code .
+```
+
+#### Desde macOS/Linux:
+
+```bash
+cd ~/lendevent-dev
+code .
+```
+
+Esto abrirá VS Code con la carpeta `lendevent-dev` como workspace, donde verás ambas carpetas (`backend/` y `frontend/`) en el explorador de archivos.
 
 ---
 
@@ -594,66 +759,308 @@ Antes de ejecutar, verifica que:
 
 ## 🎨 Fase 4: Configurar Frontend
 
-El frontend es la interfaz web que los usuarios ven.
+El frontend es la interfaz web que los usuarios ven. Utiliza **Tailwind CSS** para los estilos.
+
+### ¿Qué es Tailwind CSS?
+
+**Tailwind CSS** es un framework de utilidades de CSS que permite crear interfaces modernas usando clases predefinidas en el HTML/JSX. Ejemplos:
+
+```jsx
+// Tailwind CSS usa clases en el HTML
+<button className="bg-yellow-400 text-black px-4 py-2 rounded hover:bg-yellow-500">
+  Enviar
+</button>
+
+// En lugar de escribir CSS tradicional
+<style>
+  button {
+    background-color: #ffd700;
+    padding: 8px 16px;
+    border-radius: 4px;
+  }
+</style>
+```
+
+**Ventajas:**
+- ✅ Proceso de desarrollo más rápido
+- ✅ Estilos consistentes en toda la app
+- ✅ Ficheros CSS más pequeños
+- ✅ Mejor para responsive design
 
 ### Paso 4.1: Instalar Dependencias del Frontend
 
-Abre una **nueva terminal**.
+Abre una **terminal nueva** (diferente a donde está el backend).
+
+#### En Windows (PowerShell):
 
 ```powershell
-# Windows
 cd C:\lendevent-dev\frontend
 npm install
 ```
 
+#### En macOS/Linux:
+
 ```bash
-# macOS/Linux
 cd ~/lendevent-dev/frontend
 npm install
 ```
 
-⏳ **Nota:** Esto también puede tardar 2-5 minutos.
+**¿Qué hace npm install?**
+- Lee `package.json` (lista de dependencias del proyecto)
+- Descarga todas las librerías necesarias:
+  - React 19
+  - TypeScript
+  - Vite (bundler)
+  - Tailwind CSS
+  - Y muchas más...
+- Las guarda en carpeta `node_modules/`
+
+⏳ **Nota:** Esto puede tardar 3-5 minutos. Ten paciencia.
+
+Una vez termine, deberías ver:
+```
+added xxx packages, and audited xxx packages in 2m45s
+```
 
 ---
 
-### Paso 4.2: Crear el Archivo de Configuración del Frontend (.env)
+### Paso 4.2: Verificar que Tailwind CSS está Configurado
+
+Tailwind CSS ya viene preconfigurado en el proyecto. Verifica que los archivos existen:
+
+#### En Windows (PowerShell):
+
+```powershell
+cd C:\lendevent-dev\frontend
+Test-Path "tailwind.config.js"
+Test-Path "postcss.config.js"
+```
+
+#### En macOS/Linux:
+
+```bash
+cd ~/lendevent-dev/frontend
+ls tailwind.config.js postcss.config.js
+```
+
+Deberías ver:
+```
+tailwind.config.js    (archivo de configuración de Tailwind)
+postcss.config.js     (archivo de configuración de PostCSS)
+```
+
+**¿Qué hacen estos archivos?**
+
+- `tailwind.config.js` - Define:
+  - Colores personalizados
+  - Fuentes
+  - Puntos de quiebre (breakpoints para responsive)
+  - Plugins de Tailwind
+  
+  Ejemplo:
+  ```javascript
+  module.exports = {
+    theme: {
+      colors: {
+        primary: '#FFD700',    // Amarillo de LendEvent
+        dark: '#1a1a1a',
+      },
+      extend: {},
+    },
+  }
+  ```
+
+- `postcss.config.js` - Procesa CSS:
+  - Transforma código Tailwind a CSS final
+  - Optimiza y comprime estilos
+
+### Paso 4.3: Crear el Archivo de Configuración del Frontend (.env)
 
 El frontend necesita saber dónde está el backend.
 
+#### En Windows (PowerShell):
+
 ```powershell
-# Windows
 cd C:\lendevent-dev\frontend
-New-Item ".env" -ItemType File
+
+# Si existe .env.example, cópialo
+if (Test-Path ".env.example") {
+    Copy-Item ".env.example" ".env"
+} else {
+    # Si no existe, crea uno vacío
+    New-Item ".env" -ItemType File
+}
 ```
 
+#### En macOS/Linux:
+
 ```bash
-# macOS/Linux
 cd ~/lendevent-dev/frontend
-touch .env
+
+# Si existe .env.example, cópialo
+if [ -f ".env.example" ]; then
+    cp .env.example .env
+else
+    # Si no existe, crea uno vacío
+    touch .env
+fi
 ```
 
 ---
 
-### Paso 4.3: Editar el Archivo .env del Frontend
+### Paso 4.4: Editar el Archivo .env del Frontend
 
 Abre el archivo `.env` y agrega:
+
+**Ruta en Windows:** `C:\lendevent-dev\frontend\.env`  
+**Ruta en macOS/Linux:** `~/lendevent-dev/frontend/.env`
+
+Copia y pega lo siguiente:
 
 ```dotenv
 # ============================================
 # CONFIGURACIÓN DEL FRONTEND
 # ============================================
 
-# URL del Backend
+# URL del Backend (IMPORTANTE - DEBE APUNTAR AL BACKEND)
 VITE_API_URL=http://localhost:8080
 
-# Entorno
+# Entorno (development, production, staging)
 VITE_ENV=development
 
-# Stripe (OPCIONAL)
-VITE_STRIPE_PUBLIC_KEY=pk_test_your_key_here
+# Stripe (OPCIONAL para desarrollo - déjalo con valores dummy)
+VITE_STRIPE_PUBLIC_KEY=pk_test_dummy_key_here
+
+# ============================================
+# NOTA: Este archivo NO debe commitearse a Git
+# Usa .env.example para variables de ejemplo
+# ============================================
 ```
 
-Guarda el archivo.
+**Importante:**
+- `VITE_API_URL` debe apuntar exactamente al backend en desarrollo
+- Si cambias el puerto del backend, también cambia aquí
+- Guarda el archivo después de editar
+
+---
+
+### Paso 4.5: Entender la Estructura del Frontend
+
+Abre VS Code y explora la estructura:
+
+```
+frontend/
+├── src/
+│   ├── components/           # Componentes React reutilizables
+│   │   ├── ui/              # Componentes UI base (Button, Modal, etc)
+│   │   │   └── index.ts     # Exportar todos los componentes
+│   │   ├── Header.tsx
+│   │   └── Footer.tsx
+│   │
+│   ├── pages/               # Páginas principales de la app
+│   │   ├── Dashboard.tsx
+│   │   ├── Login.tsx
+│   │   └── ...
+│   │
+│   ├── modules/             # Módulos por dominio (materiales, facturas, etc)
+│   │   ├── materials/       # Gestión de materiales
+│   │   ├── invoices/        # Sistema de facturación
+│   │   ├── loans/           # Gestión de préstamos
+│   │   └── ...
+│   │
+│   ├── hooks/               # Custom Hooks de React
+│   │   ├── useAuth.ts
+│   │   ├── useApiQuery.ts
+│   │   └── ...
+│   │
+│   ├── services/            # Lógica de negocio y API calls
+│   │   ├── api.ts           # Cliente HTTP tipado
+│   │   ├── authService.ts
+│   │   └── ...
+│   │
+│   ├── i18n/                # Internacionalización (idiomas)
+│   │   ├── translations.ts
+│   │   └── locales/
+│   │       ├── es/
+│   │       └── en/
+│   │
+│   ├── App.tsx              # Componente raíz
+│   ├── App.css              # Estilos globales
+│   ├── index.css            # Estilos base + Tailwind
+│   └── main.tsx             # Punto de entrada
+│
+├── index.html               # HTML principal
+├── tailwind.config.js       # Configuración de Tailwind CSS
+├── postcss.config.js        # Configuración de PostCSS
+├── vite.config.ts           # Configuración de Vite
+├── tsconfig.json            # Configuración de TypeScript
+├── .env                     # Variables de entorno (local)
+├── .env.example             # Plantilla de variables
+├── package.json             # Dependencias del proyecto
+└── package-lock.json        # Lock de versiones exactas
+```
+
+---
+
+### Paso 4.6: Tailwind CSS - Ejemplos Prácticos
+
+Aquí hay ejemplos de cómo se usan las clases Tailwind en el proyecto:
+
+**Botón primario (amarillo de LendEvent):**
+```jsx
+<button className="bg-yellow-400 hover:bg-yellow-500 text-black px-4 py-2 rounded font-semibold">
+  Guardar
+</button>
+```
+
+**Card con sombra:**
+```jsx
+<div className="bg-white shadow-lg rounded-lg p-6">
+  <h2 className="text-xl font-bold mb-4">Título</h2>
+  <p className="text-gray-600">Contenido</p>
+</div>
+```
+
+**Grid responsive (1 columna móvil, 2-3 desktop):**
+```jsx
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+  {items.map(item => <ItemCard key={item.id} item={item} />)}
+</div>
+```
+
+**Formulario con validación:**
+```jsx
+<input 
+  className="border border-gray-300 rounded px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-yellow-400"
+  placeholder="Ingresa tu email"
+/>
+```
+
+**Tabla con estilos:**
+```jsx
+<table className="w-full border-collapse">
+  <thead className="bg-gray-100">
+    <tr>
+      <th className="border px-4 py-2 text-left">Nombre</th>
+      <th className="border px-4 py-2 text-right">Precio</th>
+    </tr>
+  </thead>
+  <tbody>
+    {rows.map(row => (
+      <tr key={row.id} className="hover:bg-yellow-50">
+        <td className="border px-4 py-2">{row.name}</td>
+        <td className="border px-4 py-2 text-right">${row.price}</td>
+      </tr>
+    ))}
+  </tbody>
+</table>
+```
+
+**Recursos de Tailwind CSS:**
+- 📚 Documentación oficial: https://tailwindcss.com/docs
+- 🎨 Color Palette: https://tailwindcss.com/docs/customizing-colors
+- 📱 Responsive Design: https://tailwindcss.com/docs/responsive-design
+- 💡 Cheat Sheet: https://www.tailwindcheatsheet.com/
 
 ---
 
