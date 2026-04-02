@@ -103,7 +103,10 @@ export default function PaymentMethodFormModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-      <div className="bg-[#121212] border border-[#222] rounded-2xl shadow-2xl w-full max-w-md">
+      <div
+        className="bg-[#121212] border border-[#222] rounded-2xl shadow-2xl w-full max-w-md"
+        data-help-id={isEditing ? "payment-method-form-edit" : "payment-method-form-create"}
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-[#222]">
           <div className="flex items-center gap-3">
@@ -142,6 +145,7 @@ export default function PaymentMethodFormModal({
               </div>
             ) : (
               <input
+                data-help-id="payment-method-form-name"
                 type="text"
                 maxLength={100}
                 value={form.name}
@@ -158,6 +162,7 @@ export default function PaymentMethodFormModal({
               {isEs ? "Descripción" : "Description"}
             </label>
             <textarea
+              data-help-id="payment-method-form-description"
               rows={3}
               value={form.description}
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
@@ -173,6 +178,7 @@ export default function PaymentMethodFormModal({
                 {isEs ? "Método activo" : "Active method"}
               </span>
               <button
+                data-help-id="payment-method-form-status"
                 type="button"
                 onClick={() =>
                   setForm((f) => ({
@@ -203,25 +209,32 @@ export default function PaymentMethodFormModal({
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-[#222] flex gap-3">
-          <Button variant="secondary" size="md" className="flex-1" onClick={onClose}>
-            {isEs ? "Cancelar" : "Cancel"}
-          </Button>
-          <Button
-            variant="primary"
-            size="md"
-            className="flex-1"
-            onClick={isEditing ? handleUpdate : handleCreate}
-            disabled={submitting}
-          >
-            {submitting ? <Loader2 size={16} className="animate-spin mr-2" /> : null}
-            {isEditing
-              ? isEs
-                ? "Guardar Cambios"
-                : "Save Changes"
-              : isEs
-                ? "Crear Método"
-                : "Create Method"}
-          </Button>
+              <Button
+                variant="secondary"
+                size="md"
+                className="flex-1"
+                onClick={onClose}
+                data-help-id="payment-method-form-cancel"
+              >
+                {isEs ? "Cancelar" : "Cancel"}
+              </Button>
+              <Button
+                variant="primary"
+                size="md"
+                className="flex-1"
+                onClick={isEditing ? handleUpdate : handleCreate}
+                disabled={submitting}
+                data-help-id="payment-method-form-submit"
+              >
+                {submitting ? <Loader2 size={16} className="animate-spin mr-2" /> : null}
+                {isEditing
+                  ? isEs
+                    ? "Guardar Cambios"
+                    : "Save Changes"
+                  : isEs
+                    ? "Crear Método"
+                    : "Create Method"}
+              </Button>
         </div>
       </div>
     </div>

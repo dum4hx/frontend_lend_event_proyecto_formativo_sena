@@ -318,35 +318,37 @@ export default function PricingConfigs() {
   // ── Render ────────────────────────────────────────────────────────────
   return (
     <div className="page-container">
-      <PageHeader
-        title="Pricing Configurations"
-        subtitle="Manage pricing strategies for materials and packages"
-        actions={
-          <div className="flex gap-3">
-            {canPreview && (
-              <Button
-                leftIcon={Calculator}
-                variant="secondary"
-                onClick={() => {
-                  setPreviewResult(null);
-                  setPreviewForm(EMPTY_PREVIEW_FORM);
-                  setShowPreviewModal(true);
-                }}
-              >
-                Price Preview
-              </Button>
-            )}
-            {canCreate && (
-              <Button leftIcon={Plus} onClick={handleOpenCreate} className="gold-action-btn">
-                New Config
-              </Button>
-            )}
-          </div>
-        }
-      />
+      <div data-help-id="pricing-header">
+        <PageHeader
+          title="Pricing Configurations"
+          subtitle="Manage pricing strategies for materials and packages"
+          actions={
+            <div className="flex gap-3" data-help-id="pricing-actions">
+              {canPreview && (
+                <Button
+                  leftIcon={Calculator}
+                  variant="secondary"
+                  onClick={() => {
+                    setPreviewResult(null);
+                    setPreviewForm(EMPTY_PREVIEW_FORM);
+                    setShowPreviewModal(true);
+                  }}
+                >
+                  Price Preview
+                </Button>
+              )}
+              {canCreate && (
+                <Button leftIcon={Plus} onClick={handleOpenCreate} className="gold-action-btn">
+                  New Config
+                </Button>
+              )}
+            </div>
+          }
+        />
+      </div>
 
       {/* Filters */}
-      <div className="flex gap-4 flex-wrap">
+      <div className="flex gap-4 flex-wrap" data-help-id="pricing-filters">
         <div className="flex-1 min-w-[250px] relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={20} />
           <input
@@ -396,14 +398,16 @@ export default function PricingConfigs() {
       </div>
 
       {/* Table */}
-      <PricingConfigsTable
-        configs={filtered}
-        loading={loading}
-        canEdit={canEdit}
-        canDelete={canDelete}
-        onEdit={handleOpenEdit}
-        onDelete={handleOpenDelete}
-      />
+      <div data-help-id="pricing-table">
+        <PricingConfigsTable
+          configs={filtered}
+          loading={loading}
+          canEdit={canEdit}
+          canDelete={canDelete}
+          onEdit={handleOpenEdit}
+          onDelete={handleOpenDelete}
+        />
+      </div>
 
       {/* ── Create / Edit Modal ───────────────────────────────────────── */}
       {showFormModal && (
@@ -411,7 +415,10 @@ export default function PricingConfigs() {
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto"
           onClick={(e) => e.target === e.currentTarget && setShowFormModal(false)}
         >
-          <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-6 w-full max-w-lg shadow-2xl space-y-5 my-8">
+          <div
+            className="bg-zinc-900 border border-zinc-700 rounded-xl p-6 w-full max-w-lg shadow-2xl space-y-5 my-8"
+            data-help-id={editingConfig ? "pricing-form-edit" : "pricing-form-create"}
+          >
             <div className="flex items-center gap-3">
               <DollarSign size={22} className="text-[#FFD700]" />
               <h2 className="text-xl font-semibold text-white">
@@ -424,6 +431,7 @@ export default function PricingConfigs() {
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Scope</label>
                 <select
+                  data-help-id="pricing-form-scope"
                   value={form.scope}
                   onChange={(e) =>
                     setForm((f) => ({ ...f, scope: e.target.value as PricingScope }))
@@ -441,7 +449,7 @@ export default function PricingConfigs() {
 
             {/* Reference ID — only when scope is not organization */}
             {!editingConfig && form.scope !== "organization" && (
-              <div className="space-y-2">
+              <div className="space-y-2" data-help-id="pricing-form-reference">
                 <label className="block text-sm text-gray-400">
                   {form.scope === "materialType" ? "Material Type" : "Package"}
                 </label>
@@ -492,6 +500,7 @@ export default function PricingConfigs() {
             <div>
               <label className="block text-sm text-gray-400 mb-1">Strategy Type</label>
               <select
+                data-help-id="pricing-form-strategy"
                 value={form.strategyType}
                 onChange={(e) =>
                   setForm((f) => ({
@@ -604,10 +613,16 @@ export default function PricingConfigs() {
                   setEditingConfig(null);
                 }}
                 disabled={submitting}
+                data-help-id="pricing-form-cancel"
               >
                 Cancel
               </Button>
-              <Button onClick={handleSubmit} disabled={submitting} className="gold-action-btn">
+              <Button
+                onClick={handleSubmit}
+                disabled={submitting}
+                className="gold-action-btn"
+                data-help-id="pricing-form-submit"
+              >
                 {submitting ? "Saving..." : editingConfig ? "Save Changes" : "Create Config"}
               </Button>
             </div>
@@ -662,7 +677,10 @@ export default function PricingConfigs() {
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           onClick={(e) => e.target === e.currentTarget && setShowPreviewModal(false)}
         >
-          <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-6 w-full max-w-md shadow-2xl space-y-4">
+          <div
+            className="bg-zinc-900 border border-zinc-700 rounded-xl p-6 w-full max-w-md shadow-2xl space-y-4"
+            data-help-id="pricing-preview-form"
+          >
             <div className="flex items-center gap-3">
               <Calculator size={22} className="text-[#FFD700]" />
               <h2 className="text-xl font-semibold text-white">Price Preview</h2>
@@ -674,6 +692,7 @@ export default function PricingConfigs() {
             <div>
               <label className="block text-sm text-gray-400 mb-1">Item Type</label>
               <select
+                data-help-id="pricing-preview-item-type"
                 value={previewForm.itemType}
                 onChange={(e) =>
                   setPreviewForm((f) => ({
@@ -688,7 +707,7 @@ export default function PricingConfigs() {
               </select>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2" data-help-id="pricing-preview-reference">
               <label className="block text-sm text-gray-400">
                 {previewForm.itemType === "material" ? "Material Type" : "Package"}
               </label>
@@ -797,6 +816,7 @@ export default function PricingConfigs() {
                   setPreviewResult(null);
                 }}
                 disabled={previewLoading}
+                data-help-id="pricing-preview-cancel"
               >
                 Close
               </Button>
@@ -805,6 +825,7 @@ export default function PricingConfigs() {
                 onClick={handlePreview}
                 disabled={previewLoading || !previewForm.referenceId}
                 className="gold-action-btn"
+                data-help-id="pricing-preview-submit"
               >
                 {previewLoading ? "Calculating..." : "Calculate"}
               </Button>

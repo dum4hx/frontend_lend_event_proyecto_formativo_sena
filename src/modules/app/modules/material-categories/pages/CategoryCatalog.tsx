@@ -178,13 +178,13 @@ export const CategoryCatalog: React.FC = () => {
     <div className="min-h-screen bg-[#121212] p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
+        <div data-help-id="material-categories-title" className="mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">Material Categories</h1>
           <p className="text-gray-400">Manage your material category catalog</p>
         </div>
 
         {/* Actions Bar */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <div data-help-id="material-categories-actions" className="flex flex-col sm:flex-row gap-4 mb-6">
           <div className="flex-1 relative">
             <label htmlFor={searchInputId} className="sr-only">
               Search categories
@@ -220,7 +220,7 @@ export const CategoryCatalog: React.FC = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <div data-help-id="material-categories-stats" className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
           <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-6">
             <p className="text-gray-400 text-sm mb-1">Total Categories</p>
             <p className="text-3xl font-bold text-white">{categories.length}</p>
@@ -232,7 +232,7 @@ export const CategoryCatalog: React.FC = () => {
         </div>
 
         {/* Category List */}
-        <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-6">
+        <div data-help-id="material-categories-list" className="bg-[#1a1a1a] border border-[#333] rounded-lg p-6">
           {filteredCategories.length === 0 ? (
             <div className="py-16 text-center">
               <p className="text-lg text-white mb-2">No categories found</p>
@@ -259,14 +259,16 @@ export const CategoryCatalog: React.FC = () => {
                 onEdit={handleEdit}
                 onDelete={handleDelete}
               />
-              <AdminPagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                totalItems={filteredCategories.length}
-                pageSize={pageSize}
-                itemLabel="categories"
-                onPageChange={setPage}
-              />
+              <div data-help-id="material-categories-pagination">
+                <AdminPagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={filteredCategories.length}
+                  pageSize={pageSize}
+                  itemLabel="categories"
+                  onPageChange={setPage}
+                />
+              </div>
             </>
           )}
         </div>

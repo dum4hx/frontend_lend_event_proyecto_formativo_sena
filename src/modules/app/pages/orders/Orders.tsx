@@ -461,25 +461,29 @@ export function Orders() {
 
   return (
     <div className="page-container">
-      <PageHeader
-        title={isEs ? "Pedidos" : "Orders"}
-        subtitle={
-          isEs
-            ? "Cree, apruebe y rastree el ciclo de vida de los pedidos desde un solo lugar"
-            : "Create, approve, and track order lifecycle from one place"
-        }
-        actions={
-          <Button
-            leftIcon={Plus}
-            onClick={() => setShowCreateModal(true)}
-            disabled={!canCreateRequest}
-            variant="outline"
-            className="w-full sm:w-auto border-[#FFD700]/40 text-[#FFD700] bg-[#FFD700]/8 hover:bg-[#FFD700]/16"
-          >
-            {isEs ? "Nuevo Pedido" : "New Order"}
-          </Button>
-        }
-      />
+      <div data-help-id="orders-header">
+        <PageHeader
+          title={isEs ? "Pedidos" : "Orders"}
+          subtitle={
+            isEs
+              ? "Cree, apruebe y rastree el ciclo de vida de los pedidos desde un solo lugar"
+              : "Create, approve, and track order lifecycle from one place"
+          }
+          actions={
+            <div data-help-id="orders-create-action">
+              <Button
+                leftIcon={Plus}
+                onClick={() => setShowCreateModal(true)}
+                disabled={!canCreateRequest}
+                variant="outline"
+                className="w-full sm:w-auto border-[#FFD700]/40 text-[#FFD700] bg-[#FFD700]/8 hover:bg-[#FFD700]/16"
+              >
+                {isEs ? "Nuevo Pedido" : "New Order"}
+              </Button>
+            </div>
+          }
+        />
+      </div>
 
       {loadWarning && (
         <div className="rounded-lg border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-200">
@@ -487,38 +491,42 @@ export function Orders() {
         </div>
       )}
 
-      <OrdersFilters
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-        selectedStatus={selectedStatus}
-        onStatusChange={setSelectedStatus}
-        isEs={isEs}
-      />
+      <div data-help-id="orders-filters">
+        <OrdersFilters
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          selectedStatus={selectedStatus}
+          onStatusChange={setSelectedStatus}
+          isEs={isEs}
+        />
+      </div>
 
-      <OrdersTable
-        orders={filteredOrders}
-        loading={loading}
-        submitting={submitting}
-        page={requestsPage}
-        totalPages={requestsTotalPages}
-        total={requestsTotal}
-        onPageChange={setRequestsPage}
-        onViewDetails={handleViewDetails}
-        onApprove={(requestId) => handleApproveOrder(requestId)}
-        onReject={handleOpenRejectModal}
-        onReactivate={handleOpenReactivateModal}
-        onRecordPayment={handleOpenRecordPaymentModal}
-        onPrepare={handlePrepareOrder}
-        onStartLoan={(requestId) => handleStartLoan(requestId)}
-        onCompleteLoan={(loanId) => handleCompleteLoan(loanId)}
-        canApproveRequest={canApproveRequest}
-        canUpdateRequest={canUpdateRequest}
-        canAssignRequest={canAssignRequest}
-        canCreateLoan={canCreateLoan}
-        canReturnLoan={canReturnLoan}
-        canRecordPayment={canRecordPayment}
-        isEs={isEs}
-      />
+      <div data-help-id="orders-table">
+        <OrdersTable
+          orders={filteredOrders}
+          loading={loading}
+          submitting={submitting}
+          page={requestsPage}
+          totalPages={requestsTotalPages}
+          total={requestsTotal}
+          onPageChange={setRequestsPage}
+          onViewDetails={handleViewDetails}
+          onApprove={(requestId) => handleApproveOrder(requestId)}
+          onReject={handleOpenRejectModal}
+          onReactivate={handleOpenReactivateModal}
+          onRecordPayment={handleOpenRecordPaymentModal}
+          onPrepare={handlePrepareOrder}
+          onStartLoan={(requestId) => handleStartLoan(requestId)}
+          onCompleteLoan={(loanId) => handleCompleteLoan(loanId)}
+          canApproveRequest={canApproveRequest}
+          canUpdateRequest={canUpdateRequest}
+          canAssignRequest={canAssignRequest}
+          canCreateLoan={canCreateLoan}
+          canReturnLoan={canReturnLoan}
+          canRecordPayment={canRecordPayment}
+          isEs={isEs}
+        />
+      </div>
 
       {/* Create Order Modal */}
       <CreateOrderModal

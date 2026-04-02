@@ -394,44 +394,46 @@ export function Locations() {
   return (
     <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
       <div className="page-container">
-        <PageHeader
-          title={isEs ? "Ubicaciones del almacén" : "Warehouse Locations"}
-          subtitle={
-            isEs
-              ? "Gestiona zonas y ubicaciones de almacén"
-              : "Manage warehouse zones and storage locations"
-          }
-          actions={
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setExportOpen(true)}
-                className="export-btn flex items-center gap-2"
-              >
-                <Download size={18} />
-                {isEs ? "Exportar" : "Export"}
-              </button>
-              <button
-                onClick={() => setShowImportModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-[#1a1a1a] border border-[#333] text-gray-300 rounded-lg hover:bg-[#222] hover:border-[#444] hover:text-white transition-all"
-              >
-                <Upload size={18} />
-                {isEs ? "Importar" : "Import"}
-              </button>
-              {hasPermission("locations:create") && (
+        <div data-help-id="locations-title">
+          <PageHeader
+            title={isEs ? "Ubicaciones del almacén" : "Warehouse Locations"}
+            subtitle={
+              isEs
+                ? "Gestiona zonas y ubicaciones de almacén"
+                : "Manage warehouse zones and storage locations"
+            }
+            actions={
+              <div className="flex items-center gap-3">
                 <button
-                  onClick={() => setCreateOpen(true)}
-                  className="flex items-center gap-2 bg-[#FFD700] text-black font-semibold px-4 py-2 rounded-lg hover:bg-[#FFC107] transition-all"
+                  onClick={() => setExportOpen(true)}
+                  className="export-btn flex items-center gap-2"
                 >
-                  <Plus size={20} />
-                  {isEs ? "Agregar ubicación" : "Add Location"}
+                  <Download size={18} />
+                  {isEs ? "Exportar" : "Export"}
                 </button>
-              )}
-            </div>
-          }
-        />
+                <button
+                  onClick={() => setShowImportModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#1a1a1a] border border-[#333] text-gray-300 rounded-lg hover:bg-[#222] hover:border-[#444] hover:text-white transition-all"
+                >
+                  <Upload size={18} />
+                  {isEs ? "Importar" : "Import"}
+                </button>
+                {hasPermission("locations:create") && (
+                  <button
+                    onClick={() => setCreateOpen(true)}
+                    className="flex items-center gap-2 bg-[#FFD700] text-black font-semibold px-4 py-2 rounded-lg hover:bg-[#FFC107] transition-all"
+                  >
+                    <Plus size={20} />
+                    {isEs ? "Agregar ubicación" : "Add Location"}
+                  </button>
+                )}
+              </div>
+            }
+          />
+        </div>
 
         {/* Stats */}
-        <div className="stat-grid">
+        <div data-help-id="locations-stats" className="stat-grid">
           <div className="depth-card p-4">
             <p className="text-gray-400 text-sm">
               {isEs ? "Ubicaciones totales" : "Total Locations"}
@@ -453,18 +455,20 @@ export function Locations() {
         </div>
 
         {/* Filters */}
-        <LocationsFilters
-          search={filters.search}
-          onSearchChange={(search) => {
-            setFilters((prev) => ({ ...prev, search }));
-            setPage(1);
-          }}
-          statusFilter={filters.status}
-          onStatusFilterChange={(status) => {
-            setFilters((prev) => ({ ...prev, status }));
-            setPage(1);
-          }}
-        />
+        <div data-help-id="locations-filters">
+          <LocationsFilters
+            search={filters.search}
+            onSearchChange={(search) => {
+              setFilters((prev) => ({ ...prev, search }));
+              setPage(1);
+            }}
+            statusFilter={filters.status}
+            onStatusFilterChange={(status) => {
+              setFilters((prev) => ({ ...prev, status }));
+              setPage(1);
+            }}
+          />
+        </div>
 
         {/* Loading / Error */}
         {loading && (
@@ -484,25 +488,27 @@ export function Locations() {
         {/* Table */}
         {!loading && !error && (
           <>
-            <LocationsTable
-              data={paginatedLocations}
-              loading={false}
-              onView={(loc) => {
-                setDetailLocation(loc);
-                setDetailOpen(true);
-              }}
-              onEdit={(loc) => {
-                setEditingLocation(loc);
-                setEditOpen(true);
-              }}
-              onDelete={(id) => handleDelete(id)}
-              canEdit={hasPermission("locations:update")}
-              canDelete={hasPermission("locations:delete")}
-            />
+            <div data-help-id="locations-table">
+              <LocationsTable
+                data={paginatedLocations}
+                loading={false}
+                onView={(loc) => {
+                  setDetailLocation(loc);
+                  setDetailOpen(true);
+                }}
+                onEdit={(loc) => {
+                  setEditingLocation(loc);
+                  setEditOpen(true);
+                }}
+                onDelete={(id) => handleDelete(id)}
+                canEdit={hasPermission("locations:update")}
+                canDelete={hasPermission("locations:delete")}
+              />
+            </div>
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex justify-center items-center gap-2 pt-4">
+              <div data-help-id="locations-pagination" className="flex justify-center items-center gap-2 pt-4">
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
@@ -594,7 +600,7 @@ export function Locations() {
 
         {/* Import modal */}
         {showImportModal && (
-          <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/60 backdrop-blur-sm">
+          <div data-help-id="locations-import-modal" className="fixed inset-0 flex items-center justify-center z-50 bg-black/60 backdrop-blur-sm">
             <div className="bg-[#1a1a1a] border border-[#333] rounded-xl p-6 w-full max-w-md shadow-2xl">
               <h3 className="text-lg font-bold text-white mb-4">
                 {isEs ? "Importar ubicaciones" : "Import Locations"}

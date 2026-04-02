@@ -5,9 +5,10 @@ import type { Package } from "../../../../types/api";
 interface PackageDetailModalProps {
   pkg: Package;
   onClose: () => void;
+  onEdit: (pkg: Package) => void;
 }
 
-export default function PackageDetailModal({ pkg, onClose }: PackageDetailModalProps) {
+export default function PackageDetailModal({ pkg, onClose, onEdit }: PackageDetailModalProps) {
   const { language } = useLanguage();
   const isEs = language === "es";
 
@@ -85,6 +86,17 @@ export default function PackageDetailModal({ pkg, onClose }: PackageDetailModalP
                 {isEs ? "Sin materiales asignados." : "No materials assigned."}
               </p>
             )}
+          </div>
+
+          <div className="pt-2 border-t border-[#333] flex justify-end">
+            <button
+              type="button"
+              onClick={() => onEdit(pkg)}
+              data-help-id="plans-open-edit"
+              className="px-4 py-2 text-sm font-semibold rounded-lg transition gold-action-btn"
+            >
+              {isEs ? "Editar" : "Edit"}
+            </button>
           </div>
         </div>
       </div>

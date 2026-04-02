@@ -77,7 +77,11 @@ export const MaterialAttributeForm: React.FC<MaterialAttributeFormProps> = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-6"
+      data-help-id={isEditing ? "attributes-form-edit" : "attributes-form-create"}
+    >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -85,6 +89,7 @@ export const MaterialAttributeForm: React.FC<MaterialAttributeFormProps> = ({
           </label>
           <input
             type="text"
+            data-help-id="attributes-form-name"
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-lg text-white focus:outline-none focus:border-[#FFD700]"
@@ -99,6 +104,7 @@ export const MaterialAttributeForm: React.FC<MaterialAttributeFormProps> = ({
           </label>
           <input
             type="text"
+            data-help-id="attributes-form-unit"
             value={formData.unit}
             onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
             className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-lg text-white focus:outline-none focus:border-[#FFD700]"
@@ -114,6 +120,7 @@ export const MaterialAttributeForm: React.FC<MaterialAttributeFormProps> = ({
         <div className="flex gap-2 mb-3">
           <input
             type="text"
+            data-help-id="attributes-form-new-allowed-value"
             value={newValue}
             onChange={(e) => setNewValue(e.target.value)}
             onKeyPress={(e) => e.key === "Enter" && handleAddValue(e)}
@@ -129,7 +136,10 @@ export const MaterialAttributeForm: React.FC<MaterialAttributeFormProps> = ({
             <Plus size={20} />
           </Button>
         </div>
-        <div className="flex flex-wrap gap-2 min-h-[40px] p-2 bg-[#121212] border border-[#333] rounded-lg">
+        <div
+          className="flex flex-wrap gap-2 min-h-[40px] p-2 bg-[#121212] border border-[#333] rounded-lg"
+          data-help-id="attributes-form-allowed-values"
+        >
           {formData.allowedValues?.map((val: string) => (
             <span
               key={val}
@@ -153,10 +163,16 @@ export const MaterialAttributeForm: React.FC<MaterialAttributeFormProps> = ({
       </div>
 
       <div className="flex justify-end gap-3 pt-4">
-        <Button type="button" variant="secondary" onClick={onCancel} disabled={isSubmitting}>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={onCancel}
+          disabled={isSubmitting}
+          data-help-id="attributes-form-cancel"
+        >
           Cancel
         </Button>
-        <Button type="submit" loading={isSubmitting}>
+        <Button type="submit" loading={isSubmitting} data-help-id="attributes-form-submit">
           {isSubmitting ? "Saving..." : isEditing ? "Update Attribute" : "Create Attribute"}
         </Button>
       </div>

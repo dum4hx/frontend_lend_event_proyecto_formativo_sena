@@ -336,9 +336,11 @@ export default function Settings() {
 
   return (
     <div className="page-container">
-      <PageHeader title={t("settings.title")} subtitle={t("settings.description")} />
+      <div data-help-id="settings-title">
+        <PageHeader title={t("settings.title")} subtitle={t("settings.description")} />
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div data-help-id="settings-stats" className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <StatCard
           label={t("settings.sections")}
           value={accessibleModules.length}
@@ -355,7 +357,7 @@ export default function Settings() {
         <div className="card bg-red-900/20 border-red-600/70 p-4 text-red-200">{error}</div>
       )}
 
-      <div>
+      <div data-help-id="settings-modules">
         <h2 className="text-xl font-semibold text-white mb-4">{t("settings.modulesTitle")}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {SETTING_MODULES.map((setting) => (
@@ -385,20 +387,22 @@ export default function Settings() {
         </div>
       </div>
 
-      <SettingsModulePanel
-        activeModule={activeModule}
-        hasAccess={moduleAccess[activeModule]}
-        preferences={preferences}
-        onPreferencesChange={setPreferences}
-        orgData={orgData}
-        onOrgDataChange={setOrgData}
-        accountTouched={accountTouched}
-        onAccountTouchedChange={setAccountTouched}
-        accountErrors={accountErrors}
-        orgSettings={orgSettings}
-        orgSettingsLoading={orgSettingsLoading}
-        onOrgSettingsChange={setOrgSettings}
-      />
+      <div data-help-id="settings-panel">
+        <SettingsModulePanel
+          activeModule={activeModule}
+          hasAccess={moduleAccess[activeModule]}
+          preferences={preferences}
+          onPreferencesChange={setPreferences}
+          orgData={orgData}
+          onOrgDataChange={setOrgData}
+          accountTouched={accountTouched}
+          onAccountTouchedChange={setAccountTouched}
+          accountErrors={accountErrors}
+          orgSettings={orgSettings}
+          orgSettingsLoading={orgSettingsLoading}
+          onOrgSettingsChange={setOrgSettings}
+        />
+      </div>
 
       <ConfirmDialog
         isOpen={confirmModuleSwitchOpen}
@@ -436,7 +440,7 @@ export default function Settings() {
       />
 
       {/* Save Button */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
+      <div data-help-id="settings-actions" className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
         <div className="text-sm text-gray-400">
           {hasUnsavedChanges ? t("settings.unsaved") : t("settings.savedState")}
         </div>

@@ -183,7 +183,7 @@ export function InviteUserModal({
       cancelLabel={isEs ? "Cancelar" : "Cancel"}
       size="md"
     >
-      <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-5" data-help-id="team-form-create">
         {formError && (
           <div className="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-sm text-red-400">
             {formError}
@@ -194,6 +194,7 @@ export function InviteUserModal({
           <div>
             <label className="block text-xs text-zinc-400 mb-1.5">{isEs ? "Nombre *" : "First Name *"}</label>
             <input
+              data-help-id="team-form-first-name"
               className={inputClass("firstName")}
               value={form.firstName}
               onChange={(e) => handleChange("firstName", e.target.value)}
@@ -207,6 +208,7 @@ export function InviteUserModal({
           <div>
             <label className="block text-xs text-zinc-400 mb-1.5">{isEs ? "Apellido *" : "Last Name *"}</label>
             <input
+              data-help-id="team-form-last-name"
               className={inputClass("firstSurname")}
               value={form.firstSurname}
               onChange={(e) => handleChange("firstSurname", e.target.value)}
@@ -223,6 +225,7 @@ export function InviteUserModal({
           <label className="block text-xs text-zinc-400 mb-1.5">{isEs ? "Correo Electrónico *" : "Email Address *"}</label>
           <input
             type="email"
+            data-help-id="team-form-email"
             className={inputClass("email")}
             value={form.email}
             onChange={(e) => handleChange("email", e.target.value)}
@@ -243,6 +246,7 @@ export function InviteUserModal({
             <input
               type="tel"
               inputMode="numeric"
+              data-help-id="team-form-phone"
               className={`flex-1 bg-zinc-900 border rounded-xl py-3 px-4 text-sm text-white outline-none transition focus:ring-1 ${
                 touched.phone && errors.phone
                   ? "border-red-500 focus:ring-red-500/40"
@@ -259,7 +263,7 @@ export function InviteUserModal({
           )}
         </div>
 
-        <div>
+        <div data-help-id="team-form-role">
           <label className="block text-xs text-zinc-400 mb-1.5">{isEs ? "Rol *" : "Role *"}</label>
           <SearchableSelect
             options={roleOptions}
@@ -270,7 +274,7 @@ export function InviteUserModal({
         </div>
 
         {availableLocations.length > 0 && (
-          <div>
+          <div data-help-id="team-form-locations">
             <label className="block text-xs text-zinc-400 mb-2">{isEs ? "Ubicaciones *" : "Locations *"}</label>
             <div className="flex flex-wrap gap-2">
               {availableLocations.map((loc) => {

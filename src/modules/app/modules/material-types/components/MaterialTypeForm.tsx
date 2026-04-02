@@ -311,7 +311,12 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-          <form id="material-type-form" onSubmit={handleSubmit} className="space-y-10">
+          <form
+            id="material-type-form"
+            onSubmit={handleSubmit}
+            className="space-y-10"
+            data-help-id={isEditing ? "material-types-form-edit" : "material-types-form-create"}
+          >
             {/* Basic Info Section */}
             <div className="space-y-6">
               <div className="flex items-center space-x-3 mb-2">
@@ -322,7 +327,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-2">
+                <div className="space-y-2" data-help-id="material-types-form-categories">
                   <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] ml-1">
                     Categories *
                   </label>
@@ -330,6 +335,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
                     {/* Category Selector Input */}
                     <div className="flex gap-2">
                       <select
+                        data-help-id="material-types-form-category-selector"
                         value={categorySearchInput}
                         onChange={(e) => setCategorySearchInput(e.target.value)}
                         className="flex-1 px-5 py-4 bg-[#1a1a1a] border border-[#222] rounded-xl text-white focus:outline-none focus:border-[#FFD700] focus:ring-1 focus:ring-[#FFD700]/20 transition-all"
@@ -364,6 +370,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
                           }
                         }}
                         disabled={!categorySearchInput || isSubmitting}
+                        data-help-id="material-types-form-add-category"
                         className="px-5 py-4 bg-[#FFD700] hover:bg-[#FFD700]/90 disabled:bg-gray-600 disabled:cursor-not-allowed text-black font-bold rounded-xl transition-all flex items-center justify-center"
                       >
                         <Plus size={20} />
@@ -373,6 +380,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
                           type="button"
                           onClick={() => setShowQuickCreateCategory(true)}
                           disabled={isSubmitting}
+                          data-help-id="material-types-form-quick-create-category"
                           className="px-4 py-4 bg-[#1a1a1a] border border-[#FFD700]/40 hover:border-[#FFD700] text-[#FFD700] font-bold rounded-xl transition-all flex items-center justify-center gap-1"
                           title="Create new category"
                         >
@@ -421,6 +429,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
                   </label>
                   <input
                     type="text"
+                    data-help-id="material-types-form-name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className="w-full px-5 py-4 bg-[#1a1a1a] border border-[#222] rounded-xl text-white focus:outline-none focus:border-[#FFD700] focus:ring-1 focus:ring-[#FFD700]/20 transition-all"
@@ -437,6 +446,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
                     <input
                       type="text"
                       inputMode="decimal"
+                      data-help-id="material-types-form-price-per-day"
                       value={pricePerDayInput.displayValue}
                       onChange={pricePerDayInput.handleChange}
                       className="w-full px-5 py-4 bg-[#1a1a1a] border border-[#222] rounded-xl text-[#FFD700] font-mono text-lg focus:outline-none focus:border-[#FFD700] focus:ring-1 focus:ring-[#FFD700]/20 transition-all"
@@ -452,6 +462,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
                   </label>
                   <input
                     type="text"
+                    data-help-id="material-types-form-description"
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     className="w-full px-5 py-4 bg-[#1a1a1a] border border-[#222] rounded-xl text-white focus:outline-none focus:border-[#FFD700] focus:ring-1 focus:ring-[#FFD700]/20 transition-all"
@@ -463,7 +474,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
             </div>
 
             {/* Attributes Section */}
-            <div className="space-y-6 pt-4">
+            <div className="space-y-6 pt-4" data-help-id="material-types-form-attributes-section">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-3">
                   <div className="w-1 h-6 bg-[#FFD700] rounded-full shadow-[0_0_8px_#FFD700]" />
@@ -476,6 +487,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
                   variant="secondary"
                   size="sm"
                   onClick={() => setShowAttributeForm(true)}
+                  data-help-id="material-types-form-new-attribute"
                   className="bg-[#1a1a1a] border-[#333] text-gray-300 hover:text-white hover:border-[#FFD700] transition-all"
                 >
                   <Plus size={16} className="mr-2" />
@@ -602,6 +614,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
             variant="secondary"
             onClick={onCancel}
             disabled={isSubmitting}
+            data-help-id="material-types-form-cancel"
             className="px-8 border-[#333] text-gray-400 hover:text-white"
           >
             Discard Changes
@@ -610,6 +623,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
             form="material-type-form"
             type="submit"
             loading={isSubmitting}
+            data-help-id="material-types-form-submit"
             className="px-10 bg-[#FFD700] text-black font-black uppercase tracking-widest hover:shadow-[0_0_20px_rgba(255,215,0,0.3)]"
           >
             {isEditing ? "Update Item" : "Save Entry"}

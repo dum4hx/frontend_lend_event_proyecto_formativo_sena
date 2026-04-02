@@ -22,18 +22,18 @@ export default function IASettings() {
 
   return (
     <div className="space-y-8">
-      <div>
+      <div data-help-id="ia-settings-title">
         <h1 className="text-3xl font-bold text-white">{isEs ? 'Configuración de IA' : 'AI Settings'}</h1>
         <p className="text-gray-400">{isEs ? 'Configura las funciones de inteligencia artificial' : 'Configure artificial intelligence features'}</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div data-help-id="ia-settings-stats" className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard label={isEs ? 'Total de Funciones' : 'Total Features'} value={aiSettings.length} icon={<Bot size={28} />} />
         <StatCard label={isEs ? 'Habilitadas' : 'Enabled'} value={aiSettings.filter(s => s.enabled).length} icon={<Zap size={28} />} />
         <StatCard label={isEs ? 'Deshabilitadas' : 'Disabled'} value={aiSettings.filter(s => !s.enabled).length} icon={<SettingsIcon size={28} />} />
       </div>
 
-      <div>
+      <div data-help-id="ia-settings-features">
         <h2 className="text-xl font-semibold text-white mb-4">{isEs ? 'Funciones de IA' : 'AI Features'}</h2>
         <div className="space-y-4">
           {aiSettings.map((setting) => (
@@ -42,7 +42,7 @@ export default function IASettings() {
                 <h3 className="text-white font-semibold mb-1">{setting.name}</h3>
                 <p className="text-gray-400 text-sm">{setting.description}</p>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
+              <label data-help-id="ia-settings-switch" className="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" defaultChecked={setting.enabled} className="sr-only peer" />
                 <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#FFD700] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#FFD700]"></div>
               </label>

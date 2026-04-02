@@ -2,26 +2,70 @@ import { useState, useEffect } from "react";
 import { Plus, X, Loader2, AlertCircle } from "lucide-react";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import { useCurrencyInput } from "../../../../hooks/useCurrencyInput";
-import { createPackage, getMaterialTypes } from "../../../../services/materialService";
+import { createPackage, getMaterialTypes, updatePackage } from "../../../../services/materialService";
 import { normalizeError, logError } from "../../../../utils/errorHandling";
 import type {
   PackageMaterialEntry,
   MaterialType,
   CreatePackagePayload,
+  Package,
 } from "../../../../types/api";
 import { DEFAULT_FORM, type PackageFormData } from "./types";
 
 interface CreatePackageModalProps {
   onClose: () => void;
   onSaved: () => void;
+  initialPackage?: Package;
 }
 
-export default function CreatePackageModal({ onClose, onSaved }: CreatePackageModalProps) {
+export default function CreatePackageModal({
+  onClose,
+  onSaved,
+  initialPackage,
+}: CreatePackageModalProps) {
   const { language } = useLanguage();
   const isEs = language === "es";
+  const isEditMode = Boolean(initialPackage);
   const [form, setForm] = useState<PackageFormData>(DEFAULT_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!initialPackage) {
+      setForm(DEFAULT_FORM);
+      return;
+    }
+
+    const normalizedEntries = initialPackage.items.length
+      ? initialPackage.items.map((entry) => {
+          const materialRef = entry.materialTypeId as unknown;
+          let materialTypeId = "";
+
+          if (typeof materialRef === "string") {
+            materialTypeId = materialRef;
+          } else if (
+            materialRef &&
+            typeof materialRef === "object" &&
+            "_id" in materialRef &&
+            typeof (materialRef as Record<string, unknown>)._id === "string"
+          ) {
+            materialTypeId = (materialRef as { _id: string })._id;
+          }
+
+          return {
+            materialTypeId,
+            quantity: Math.max(1, Number(entry.quantity) || 1),
+          };
+        })
+      : DEFAULT_FORM.entries;
+
+    setForm({
+      name: initialPackage.name,
+      description: initialPackage.description ?? "",
+      pricePerDay: initialPackage.pricePerDay != null ? String(initialPackage.pricePerDay) : "",
+      entries: normalizedEntries,
+    });
+  }, [initialPackage]);
 
   // ── Currency input hook for pricePerDay ───────────────────────────────
   const pricePerDayInput = useCurrencyInput(
@@ -104,7 +148,11 @@ export default function CreatePackageModal({ onClose, onSaved }: CreatePackageMo
 
     setSubmitting(true);
     try {
-      await createPackage(payload);
+      if (initialPackage?._id) {
+        await updatePackage(initialPackage._id, payload);
+      } else {
+        await createPackage(payload);
+      }
       onSaved();
       onClose();
     } catch (err: unknown) {
@@ -119,7 +167,15 @@ export default function CreatePackageModal({ onClose, onSaved }: CreatePackageMo
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-[#121212] border border-[#333] rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-[#121212] border-b border-[#333] p-5 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-white">{isEs ? "Nuevo Paquete" : "New Package"}</h2>
+          <h2 className="text-lg font-bold text-white">
+            {isEditMode
+              ? isEs
+                ? "Editar Paquete"
+                : "Edit Package"
+              : isEs
+                ? "Nuevo Paquete"
+                : "New Package"}
+          </h2>
           <button
             type="button"
             onClick={onClose}
@@ -130,13 +186,18 @@ export default function CreatePackageModal({ onClose, onSaved }: CreatePackageMo
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+        <form
+          onSubmit={handleSubmit}
+          className="p-5 space-y-4"
+          data-help-id={isEditMode ? "plans-form-edit" : "plans-form-create"}
+        >
           <div>
             <label className="block text-xs font-semibold text-gray-400 mb-1">
               {isEs ? "Nombre" : "Name"} <span className="text-[#FFD700]">*</span>
             </label>
             <input
               required
+              data-help-id="plans-form-name"
               value={form.name}
               onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
               placeholder={isEs ? "ej. Paquete Empresarial" : "e.g. Office Starter Pack"}
@@ -150,6 +211,7 @@ export default function CreatePackageModal({ onClose, onSaved }: CreatePackageMo
               {isEs ? "Descripción" : "Description"}
             </label>
             <textarea
+              data-help-id="plans-form-description"
               value={form.description}
               onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
               rows={2}
@@ -168,6 +230,7 @@ export default function CreatePackageModal({ onClose, onSaved }: CreatePackageMo
             <input
               type="text"
               inputMode="decimal"
+              data-help-id="plans-form-price-per-day"
               value={pricePerDayInput.displayValue}
               onChange={pricePerDayInput.handleChange}
               placeholder={isEs ? "Anulación opcional" : "Optional override"}
@@ -176,7 +239,7 @@ export default function CreatePackageModal({ onClose, onSaved }: CreatePackageMo
             />
           </div>
 
-          <div>
+          <div data-help-id="plans-form-entries">
             <div className="flex items-center justify-between mb-2">
               <label className="text-xs font-semibold text-gray-400">
                 {isEs ? "Tipos de Material" : "Material Types"}{" "}
@@ -196,6 +259,7 @@ export default function CreatePackageModal({ onClose, onSaved }: CreatePackageMo
                 <div key={idx} className="flex gap-2 items-center">
                   {materialTypes.length > 0 ? (
                     <select
+                      data-help-id={`plans-form-entry-material-${idx}`}
                       value={entry.materialTypeId}
                       onChange={(e) => updateEntry(idx, "materialTypeId", e.target.value)}
                       disabled={submitting || typesLoading}
@@ -230,6 +294,7 @@ export default function CreatePackageModal({ onClose, onSaved }: CreatePackageMo
                   <input
                     type="number"
                     min={1}
+                    data-help-id={`plans-form-entry-quantity-${idx}`}
                     value={entry.quantity}
                     onChange={(e) =>
                       updateEntry(idx, "quantity", parseInt(e.target.value, 10) || 1)
@@ -264,6 +329,7 @@ export default function CreatePackageModal({ onClose, onSaved }: CreatePackageMo
               type="button"
               onClick={onClose}
               disabled={submitting}
+              data-help-id="plans-form-cancel"
               className="px-4 py-2 border border-[#333] text-gray-300 rounded-lg hover:bg-[#1a1a1a] transition text-sm disabled:opacity-50"
             >
               {isEs ? "Cancelar" : "Cancel"}
@@ -271,17 +337,30 @@ export default function CreatePackageModal({ onClose, onSaved }: CreatePackageMo
             <button
               type="submit"
               disabled={submitting}
+              data-help-id="plans-form-submit"
               className="flex items-center gap-2 px-4 py-2 font-semibold rounded-lg transition text-sm gold-action-btn disabled:opacity-50"
             >
               {submitting ? (
                 <>
                   <Loader2 size={14} className="animate-spin" />
-                  {isEs ? "Creando..." : "Creating..."}
+                  {isEditMode
+                    ? isEs
+                      ? "Guardando..."
+                      : "Saving..."
+                    : isEs
+                      ? "Creando..."
+                      : "Creating..."}
                 </>
               ) : (
                 <>
                   <Plus size={14} />
-                  {isEs ? "Crear" : "Create"}
+                  {isEditMode
+                    ? isEs
+                      ? "Guardar"
+                      : "Save"
+                    : isEs
+                      ? "Crear"
+                      : "Create"}
                 </>
               )}
             </button>

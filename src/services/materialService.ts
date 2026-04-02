@@ -24,6 +24,7 @@ import type {
   MaterialInstancesQueryParams,
   Package,
   CreatePackagePayload,
+  UpdatePackagePayload,
   PackageMaterialEntry,
   PaginationMeta,
   CatalogOverviewQueryParams,
@@ -346,6 +347,14 @@ export async function createPackage(
   };
 
   return post<{ package: Package }, typeof body>("/packages", body);
+}
+
+/** Update an existing package (bundle of materials). */
+export async function updatePackage(
+  packageId: string,
+  payload: UpdatePackagePayload,
+): Promise<ApiSuccessResponse<{ package: Package }>> {
+  return patch<{ package: Package }, UpdatePackagePayload>(`/packages/${packageId}`, payload);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

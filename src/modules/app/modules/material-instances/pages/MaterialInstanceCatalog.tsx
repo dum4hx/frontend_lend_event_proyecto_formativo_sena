@@ -98,6 +98,19 @@ export const MaterialInstanceCatalog: React.FC = () => {
     [filteredInstances, selectedInstanceIds],
   );
 
+  const exportRows = useMemo<Record<string, unknown>[]>(
+    () =>
+      filteredInstances.map((instance) => ({
+        _id: instance._id,
+        serialNumber: instance.serialNumber,
+        barcode: instance.barcode ?? "",
+        materialType: instance.model?.name ?? "",
+        location: instance.locationId?.name ?? "",
+        status: instance.status,
+      })),
+    [filteredInstances],
+  );
+
   useEffect(() => {
     setSelectedInstanceIds((current) =>
       current.filter((instanceId) => instances.some((instance) => instance._id === instanceId)),
@@ -398,13 +411,13 @@ export const MaterialInstanceCatalog: React.FC = () => {
     <div className="min-h-screen bg-[#121212] p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
+        <div data-help-id="material-instances-title" className="mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">Material Instances</h1>
           <p className="text-gray-400">Manage your physical inventory of material items</p>
         </div>
 
         {/* Actions Bar */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <div data-help-id="material-instances-actions" className="flex flex-col sm:flex-row gap-4 mb-6">
           <div className="flex-1 relative">
             <label htmlFor={searchInputId} className="sr-only">
               Search material instances by serial number, barcode, material type, or location
@@ -450,7 +463,7 @@ export const MaterialInstanceCatalog: React.FC = () => {
               Print Selected ({selectedInstances.length})
             </button>
             <ExcelExportImport
-              data={filteredInstances}
+              data={exportRows}
               filename="material-instances"
               onImport={handleImportInstances}
               showLabels={true}
@@ -466,7 +479,7 @@ export const MaterialInstanceCatalog: React.FC = () => {
         </div>
 
         {/* Barcode Scanner */}
-        <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-5 mb-6 space-y-4">
+        <div data-help-id="material-instances-scanner" className="bg-[#1a1a1a] border border-[#333] rounded-lg p-5 mb-6 space-y-4">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div className="flex items-center gap-2">
               <Barcode size={18} className="text-[#FFD700]" />
@@ -562,7 +575,7 @@ export const MaterialInstanceCatalog: React.FC = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
+        <div data-help-id="material-instances-stats" className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
           <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-6">
             <p className="text-gray-400 text-sm mb-1">Total Instances</p>
             <p className="text-3xl font-bold text-white">{instances.length}</p>
@@ -586,7 +599,7 @@ export const MaterialInstanceCatalog: React.FC = () => {
         </div>
 
         {/* Instance List */}
-        <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-6">
+        <div data-help-id="material-instances-list" className="bg-[#1a1a1a] border border-[#333] rounded-lg p-6">
           {selectedInstances.length > 0 && (
             <div className="mb-4 flex flex-col gap-3 rounded-lg border border-[#3b3320] bg-[#1b1710] px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
               <p className="text-[#FFD700]">
@@ -629,14 +642,16 @@ export const MaterialInstanceCatalog: React.FC = () => {
             onToggleSelect={handleToggleInstanceSelection}
             onToggleSelectAll={handleToggleSelectAllVisible}
           />
-          <AdminPagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalItems={filteredInstances.length}
-            pageSize={pageSize}
-            itemLabel="instances"
-            onPageChange={setPage}
-          />
+          <div data-help-id="material-instances-pagination">
+            <AdminPagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={filteredInstances.length}
+              pageSize={pageSize}
+              itemLabel="instances"
+              onPageChange={setPage}
+            />
+          </div>
         </div>
 
         {/* Form Modal */}

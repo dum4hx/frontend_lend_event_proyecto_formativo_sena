@@ -18,6 +18,7 @@ export default function MaterialPlans() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [showCreate, setShowCreate] = useState(false);
+  const [editingPkg, setEditingPkg] = useState<Package | null>(null);
   const [viewPkg, setViewPkg] = useState<Package | null>(null);
 
   const filtered = packages.filter((pkg) =>
@@ -49,26 +50,28 @@ export default function MaterialPlans() {
 
   return (
     <div className="page-container">
-      <PageHeader
-        title={isEs ? "Planes de Material" : "Material Plans"}
-        subtitle={
-          isEs
-            ? "Crea y gestiona planes para paquetes de materiales"
-            : "Create and manage rental plans for material bundles"
-        }
-        actions={
-          <button
-            onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-[8px] font-semibold transition-all gold-action-btn"
-          >
-            <Plus size={20} />
-            {isEs ? "Agregar Plan" : "Add Plan"}
-          </button>
-        }
-      />
+      <div data-help-id="plans-title">
+        <PageHeader
+          title={isEs ? "Planes de Material" : "Material Plans"}
+          subtitle={
+            isEs
+              ? "Crea y gestiona planes para paquetes de materiales"
+              : "Create and manage rental plans for material bundles"
+          }
+          actions={
+            <button
+              onClick={() => setShowCreate(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-[8px] font-semibold transition-all gold-action-btn"
+            >
+              <Plus size={20} />
+              {isEs ? "Agregar Plan" : "Add Plan"}
+            </button>
+          }
+        />
+      </div>
 
       {/* Search */}
-      <div className="flex-1 max-w-sm relative">
+      <div data-help-id="plans-search" className="flex-1 max-w-sm relative">
         <Search
           className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"
           size={20}
@@ -83,10 +86,11 @@ export default function MaterialPlans() {
       </div>
 
       {/* Plans Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+      <div data-help-id="plans-grid" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
         {filtered.map((pkg) => (
           <div
             key={pkg._id}
+            data-help-id="plans-card"
             className="bg-[#1a1a1a] border border-[#333] rounded-[12px] p-6 hover:border-[#FFD700] transition-all"
           >
             <div className="flex items-start justify-between mb-4">
@@ -143,7 +147,26 @@ export default function MaterialPlans() {
       {showCreate && (
         <CreatePackageModal onClose={() => setShowCreate(false)} onSaved={() => void refetch()} />
       )}
-      {viewPkg && <PackageDetailModal pkg={viewPkg} onClose={() => setViewPkg(null)} />}
+      {editingPkg && (
+        <CreatePackageModal
+          initialPackage={editingPkg}
+          onClose={() => setEditingPkg(null)}
+          onSaved={() => {
+            setEditingPkg(null);
+            void refetch();
+          }}
+        />
+      )}
+      {viewPkg && (
+        <PackageDetailModal
+          pkg={viewPkg}
+          onClose={() => setViewPkg(null)}
+          onEdit={(pkg) => {
+            setViewPkg(null);
+            setEditingPkg(pkg);
+          }}
+        />
+      )}
     </div>
   );
 }

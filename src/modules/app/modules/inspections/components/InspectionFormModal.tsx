@@ -74,7 +74,10 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div
+      className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      data-help-id="inspections-form-create"
+    >
       <div className="bg-[#121212] border border-[#333] rounded-xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl">
         {/* Header */}
         <div className="p-6 border-b border-[#333] flex items-center justify-between bg-[#1a1a1a] rounded-t-xl">
@@ -104,7 +107,7 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
             </div>
           )}
 
-          <div className="space-y-6">
+          <div className="space-y-6" data-help-id="inspections-form-items">
             <h3 className="text-sm font-semibold text-[#FFD700] uppercase tracking-wider">
               Material Instances ({loan.materialInstances.length})
             </h3>
@@ -135,6 +138,7 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
                           Damage Description <span className="text-red-500">*</span>
                         </label>
                         <textarea
+                          data-help-id="inspections-form-damage-description"
                           placeholder="Describe the damage or reason for loss..."
                           className="w-full bg-[#0a0a0a] border border-[#333] rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-[#FFD700] min-h-[60px]"
                           value={items[index].damageDescription || ""}
@@ -149,6 +153,7 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
                           Damage Cost (COP)
                         </label>
                         <input
+                          data-help-id="inspections-form-damage-cost"
                           type="number"
                           placeholder="0"
                           className="w-full bg-[#0a0a0a] border border-[#333] rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-[#FFD700]"
@@ -167,6 +172,7 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
                       Item Notes
                     </label>
                     <input
+                      data-help-id="inspections-form-item-notes"
                       type="text"
                       placeholder="Optional notes for this item..."
                       className="w-full bg-[#0a0a0a] border border-[#333] rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-[#FFD700]"
@@ -185,6 +191,7 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
                 Overall Inspection Notes
               </label>
               <textarea
+                data-help-id="inspections-form-overall-notes"
                 placeholder="Record any general observations about the loan return..."
                 className="w-full bg-[#1a1a1a] border border-[#333] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#FFD700] min-h-[100px]"
                 value={overallNotes}
@@ -203,6 +210,7 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
                   from creation.
                 </p>
                 <input
+                  data-help-id="inspections-form-due-date"
                   type="datetime-local"
                   placeholder="Select due date and time"
                   className="w-full bg-[#0a0a0a] border border-[#333] rounded-md px-4 py-2 text-sm text-white focus:outline-none focus:border-[#FFD700]"
@@ -220,6 +228,7 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
             variant="outline"
             onClick={onClose}
             disabled={isSubmitting}
+            data-help-id="inspections-form-cancel"
             className="border-[#444] text-gray-300 hover:bg-[#333] hover:text-white"
           >
             Cancel
@@ -228,6 +237,7 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
             type="submit"
             onClick={handleSubmit}
             disabled={isSubmitting}
+            data-help-id="inspections-form-submit"
             className="bg-[#FFD700] text-black hover:bg-[#e6c200] font-bold"
           >
             {isSubmitting ? "Saving..." : "Complete Inspection"}
