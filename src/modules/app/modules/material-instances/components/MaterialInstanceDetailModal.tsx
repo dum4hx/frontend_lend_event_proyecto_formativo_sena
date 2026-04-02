@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { X, Info } from "lucide-react";
-import { type MaterialInstance, MATERIAL_INSTANCE_STATUS_LABELS, type MaterialAttribute, type MaterialType } from "../../../../../types/api";
+import {
+  type MaterialInstance,
+  MATERIAL_INSTANCE_STATUS_LABELS,
+  type MaterialAttribute,
+  type MaterialType,
+} from "../../../../../types/api";
 import { MaterialBarcode } from "./MaterialBarcode";
 import { getMaterialAttributes, getMaterialTypes } from "../../../../../services/materialService";
+import { EntityLink } from "../../../../../components/ui";
 
 interface MaterialInstanceDetailModalProps {
   instance: MaterialInstance;
@@ -21,10 +27,7 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
     async function loadResources() {
       setLoadingAttributes(true);
       try {
-        const [attrRes, typeRes] = await Promise.all([
-          getMaterialAttributes(),
-          getMaterialTypes()
-        ]);
+        const [attrRes, typeRes] = await Promise.all([getMaterialAttributes(), getMaterialTypes()]);
         setAttributeDefinitions(attrRes.data.attributes);
         setMaterialTypes(typeRes.data.materialTypes || []);
       } catch (error) {
@@ -37,10 +40,9 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
   }, []);
 
   // Use instance attributes if present, otherwise fallback to material type attributes
-  const typeAttributes = materialTypes.find(t => t._id === instance.model?._id)?.attributes || [];
-  const activeAttributes = (instance.attributes && instance.attributes.length > 0) 
-    ? instance.attributes 
-    : typeAttributes;
+  const typeAttributes = materialTypes.find((t) => t._id === instance.model?._id)?.attributes || [];
+  const activeAttributes =
+    instance.attributes && instance.attributes.length > 0 ? instance.attributes : typeAttributes;
 
   const resolvedCode = instance.barcode?.trim() || instance.serialNumber.trim();
 
@@ -110,12 +112,20 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
           <div className="grid grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-2">Material Type</label>
-              <p className="text-white">{instance.model?.name || "Unknown"}</p>
+              <EntityLink
+                entityType="materialType"
+                entityId={instance.model?._id ?? ""}
+                label={instance.model?.name || "Unknown"}
+              />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-2">Location</label>
-              <p className="text-white">{instance.locationId?.name || "Unknown"}</p>
+              <EntityLink
+                entityType="location"
+                entityId={instance.locationId?._id ?? ""}
+                label={instance.locationId?.name || "Unknown"}
+              />
             </div>
           </div>
 

@@ -23,8 +23,7 @@ import {
 import { getLocations } from "../../../../services/warehouseOperatorService";
 import { getUser } from "../../../../services/userService";
 import { getMaterialType } from "../../../../services/materialService";
-import { Link } from "react-router-dom";
-import { AnimatedPage, PageHeader } from "../../../../components/ui";
+import { AnimatedPage, PageHeader, EntityLink } from "../../../../components/ui";
 import {
   REQUEST_STATUS_LABEL,
   getRequestStatusLabel,
@@ -532,16 +531,19 @@ export function TransferRequests() {
                         <tr key={req._id} className="hover:bg-white/3 transition-colors group">
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
-                              <Link
-                                to="/app/locations"
-                                className="entity-link font-medium whitespace-nowrap"
-                              >
-                                {locationName(req.fromLocationId)}
-                              </Link>
+                              <EntityLink
+                                entityType="location"
+                                entityId={req.fromLocationId}
+                                label={locationName(req.fromLocationId)}
+                                className="font-medium whitespace-nowrap"
+                              />
                               <ArrowLeftRight size={14} className="text-[#FFD700] shrink-0" />
-                              <Link to="/app/locations" className="entity-link whitespace-nowrap">
-                                {locationName(req.toLocationId)}
-                              </Link>
+                              <EntityLink
+                                entityType="location"
+                                entityId={req.toLocationId}
+                                label={locationName(req.toLocationId)}
+                                className="whitespace-nowrap"
+                              />
                             </div>
                           </td>
                           <td className="px-4 py-3 text-gray-400 whitespace-nowrap">
@@ -646,16 +648,19 @@ export function TransferRequests() {
                         <tr key={tr._id} className="hover:bg-white/3 transition-colors">
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
-                              <Link
-                                to="/app/locations"
-                                className="entity-link font-medium whitespace-nowrap"
-                              >
-                                {locationName(tr.fromLocationId)}
-                              </Link>
+                              <EntityLink
+                                entityType="location"
+                                entityId={tr.fromLocationId}
+                                label={locationName(tr.fromLocationId)}
+                                className="font-medium whitespace-nowrap"
+                              />
                               <ArrowLeftRight size={14} className="text-[#FFD700] shrink-0" />
-                              <Link to="/app/locations" className="entity-link whitespace-nowrap">
-                                {locationName(tr.toLocationId)}
-                              </Link>
+                              <EntityLink
+                                entityType="location"
+                                entityId={tr.toLocationId}
+                                label={locationName(tr.toLocationId)}
+                                className="whitespace-nowrap"
+                              />
                             </div>
                           </td>
                           <td className="px-4 py-3 text-gray-400">

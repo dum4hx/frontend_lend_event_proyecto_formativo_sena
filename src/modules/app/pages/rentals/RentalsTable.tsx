@@ -1,6 +1,5 @@
 import { Eye, CalendarRange, RotateCcw, AlertCircle, HandCoins, Loader2 } from "lucide-react";
-import { Link } from "react-router-dom";
-import { Button } from "../../../../components/ui";
+import { Button, EntityLink } from "../../../../components/ui";
 import type { LoanView } from "./types";
 import {
   getLoanStatusBadgeStyle,
@@ -101,9 +100,12 @@ export function RentalsTable({
                   </span>
                 </td>
                 <td className="px-4 py-3">
-                  <Link to="/app/customers" className="entity-link font-medium">
-                    {customerFullName(lv.customer)}
-                  </Link>
+                  <EntityLink
+                    entityType="customer"
+                    entityId={lv.customer?._id ?? ""}
+                    label={customerFullName(lv.customer)}
+                    className="font-medium"
+                  />
                 </td>
                 <td className="px-4 py-3 text-gray-300">{formatDate(lv.loan.startDate, locale)}</td>
                 <td className="px-4 py-3 text-gray-300">{formatDate(lv.loan.endDate, locale)}</td>

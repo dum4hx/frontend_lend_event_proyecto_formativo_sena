@@ -77,6 +77,9 @@ export type { PaginationProps } from "./Pagination";
 export { LinkedEntity } from "./LinkedEntity";
 export type { LinkedEntityProps } from "./LinkedEntity";
 
+export { EntityLink } from "./EntityLink";
+export type { EntityLinkProps } from "./EntityLink";
+
 export { PermissionGuardedButton } from "./PermissionGuardedButton";
 export type { PermissionGuardedButtonProps } from "./PermissionGuardedButton";
 

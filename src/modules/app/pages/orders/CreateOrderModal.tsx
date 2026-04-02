@@ -79,7 +79,7 @@ export function CreateOrderModal({
   // ── Currency input hook for depositAmount ─────────────────────────────
   const depositAmountInput = useCurrencyInput(
     formData.depositAmount ? Number(formData.depositAmount) : "",
-    (val) => setFormData((prev) => ({ ...prev, depositAmount: val || undefined })),
+    (val) => setFormData((prev) => ({ ...prev, depositAmount: val ?? "" })),
   );
 
   const [formItems, setFormItems] = useState<FormDraftItem[]>([

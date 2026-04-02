@@ -19,9 +19,18 @@ const invoicesHelpContent: HelpModuleContent = {
         en: "This area centralizes billing management for orders and services, with visibility into pending, paid, and overdue invoices.",
       },
       howTo: [
-        { es: "Abre el modulo desde el menu lateral en Facturacion > Facturas.", en: "Open the module from the sidebar under Billing > Invoices." },
-        { es: "Revisa las tarjetas de metricas para tener una vista rapida del estado de cobros.", en: "Review the metrics cards for a quick view of billing status." },
-        { es: "Usa los filtros de pestana y estado para navegar hacia el grupo de facturas que necesitas gestionar.", en: "Use the tab and status filters to navigate to the invoice group you need to manage." },
+        {
+          es: "Abre el modulo desde el menu lateral en Facturacion > Facturas.",
+          en: "Open the module from the sidebar under Billing > Invoices.",
+        },
+        {
+          es: "Revisa las tarjetas de metricas para tener una vista rapida del estado de cobros.",
+          en: "Review the metrics cards for a quick view of billing status.",
+        },
+        {
+          es: "Usa los filtros de pestana y estado para navegar hacia el grupo de facturas que necesitas gestionar.",
+          en: "Use the tab and status filters to navigate to the invoice group you need to manage.",
+        },
       ],
       tips: [
         {
@@ -38,9 +47,18 @@ const invoicesHelpContent: HelpModuleContent = {
         en: "You can refresh data, review billing metrics, apply status/type filters, search by customer or invoice number, and execute actions on each record.",
       },
       howTo: [
-        { es: "Para registrar pago: localiza la factura pendiente y usa la accion de pago de la fila.", en: "To record a payment: locate the pending invoice and use the payment action in the row." },
-        { es: "Para anular: localiza la factura y selecciona la accion de anulacion, indicando el motivo.", en: "To void: locate the invoice and select the void action, indicating the reason." },
-        { es: "Para refrescar: usa el boton de actualizacion del encabezado para sincronizar datos.", en: "To refresh: use the header update button to sync data." },
+        {
+          es: "Para registrar pago: localiza la factura pendiente y usa la accion de pago de la fila.",
+          en: "To record a payment: locate the pending invoice and use the payment action in the row.",
+        },
+        {
+          es: "Para anular: localiza la factura y selecciona la accion de anulacion, indicando el motivo.",
+          en: "To void: locate the invoice and select the void action, indicating the reason.",
+        },
+        {
+          es: "Para refrescar: usa el boton de actualizacion del encabezado para sincronizar datos.",
+          en: "To refresh: use the header update button to sync data.",
+        },
       ],
       bestPractices: [
         {
@@ -57,10 +75,22 @@ const invoicesHelpContent: HelpModuleContent = {
         en: "Start by reviewing metrics, apply filters to locate the right invoice, open details, and then record payment or void as needed.",
       },
       howTo: [
-        { es: "Revisa las tarjetas de resumen para identificar prioridades de cobro (vencidas o pendientes).", en: "Review the summary cards to identify billing priorities (overdue or pending)." },
-        { es: "Filtra por la pestana correcta (pendiente, pagada, vencida) y busca por cliente o numero.", en: "Filter by the correct tab (pending, paid, overdue) and search by customer or number." },
-        { es: "Abre el detalle de la factura para confirmar el cliente y monto antes de ejecutar acciones.", en: "Open the invoice detail to confirm customer and amount before executing actions." },
-        { es: "Registra el pago o la anulacion con los datos requeridos y confirma la operacion.", en: "Record the payment or void with the required data and confirm the operation." },
+        {
+          es: "Revisa las tarjetas de resumen para identificar prioridades de cobro (vencidas o pendientes).",
+          en: "Review the summary cards to identify billing priorities (overdue or pending).",
+        },
+        {
+          es: "Filtra por la pestana correcta (pendiente, pagada, vencida) y busca por cliente o numero.",
+          en: "Filter by the correct tab (pending, paid, overdue) and search by customer or number.",
+        },
+        {
+          es: "Abre el detalle de la factura para confirmar el cliente y monto antes de ejecutar acciones.",
+          en: "Open the invoice detail to confirm customer and amount before executing actions.",
+        },
+        {
+          es: "Registra el pago o la anulacion con los datos requeridos y confirma la operacion.",
+          en: "Record the payment or void with the required data and confirm the operation.",
+        },
       ],
       warnings: [
         {
@@ -77,9 +107,18 @@ const invoicesHelpContent: HelpModuleContent = {
         en: "A common mistake is not filtering by status and acting on already closed invoices. Filter first and confirm the customer before executing actions.",
       },
       howTo: [
-        { es: "Usa siempre la pestana y el filtro de estado para evitar trabajar sobre facturas cerradas.", en: "Always use the tab and status filter to avoid working on closed invoices." },
-        { es: "Verifica el nombre del cliente y el numero de factura antes de registrar cualquier pago.", en: "Verify the customer name and invoice number before recording any payment." },
-        { es: "Si una factura no aparece en la lista, cambia de pestana o ajusta el filtro de estado.", en: "If an invoice doesn't appear in the list, switch tabs or adjust the status filter." },
+        {
+          es: "Usa siempre la pestana y el filtro de estado para evitar trabajar sobre facturas cerradas.",
+          en: "Always use the tab and status filter to avoid working on closed invoices.",
+        },
+        {
+          es: "Verifica el nombre del cliente y el numero de factura antes de registrar cualquier pago.",
+          en: "Verify the customer name and invoice number before recording any payment.",
+        },
+        {
+          es: "Si una factura no aparece en la lista, cambia de pestana o ajusta el filtro de estado.",
+          en: "If an invoice doesn't appear in the list, switch tabs or adjust the status filter.",
+        },
       ],
     },
   ],
@@ -141,7 +180,10 @@ const invoicesHelpContent: HelpModuleContent = {
       selector: '[data-help-id="invoice-payment-form"]',
       usageFlow: [
         { es: "Paso 1: verifica saldo pendiente.", en: "Step 1: verify remaining balance." },
-        { es: "Paso 2: ingresa monto, metodo y referencia.", en: "Step 2: enter amount, method, and reference." },
+        {
+          es: "Paso 2: ingresa monto, metodo y referencia.",
+          en: "Step 2: enter amount, method, and reference.",
+        },
         { es: "Paso 3: confirma registro de pago.", en: "Step 3: confirm payment record." },
       ],
       fields: [
@@ -160,7 +202,10 @@ const invoicesHelpContent: HelpModuleContent = {
         {
           id: "invoice-payment-method",
           label: { es: "Metodo de pago", en: "Payment method" },
-          purpose: { es: "Selecciona el medio usado para el pago.", en: "Select payment channel used." },
+          purpose: {
+            es: "Selecciona el medio usado para el pago.",
+            en: "Select payment channel used.",
+          },
           dataType: { es: "Seleccion", en: "Selection" },
           required: true,
           selector: '[data-help-id="invoice-payment-method"]',

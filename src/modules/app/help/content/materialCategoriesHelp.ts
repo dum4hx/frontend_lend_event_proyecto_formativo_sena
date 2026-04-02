@@ -140,9 +140,18 @@ const materialCategoriesHelpContent: HelpModuleContent = {
         en: "Here you can search, create, import, and manage material catalog categories.",
       },
       howTo: [
-        { es: "Abre el modulo desde el menu lateral en Materiales > Categorias.", en: "Open the module from the sidebar under Materials > Categories." },
-        { es: "Usa la barra de busqueda para localizar una categoria existente antes de crear una nueva.", en: "Use the search bar to locate an existing category before creating a new one." },
-        { es: "Haz clic en un registro para ver detalles, editar atributos o eliminar la categoria.", en: "Click a record to view details, edit attributes, or delete the category." },
+        {
+          es: "Abre el modulo desde el menu lateral en Materiales > Categorias.",
+          en: "Open the module from the sidebar under Materials > Categories.",
+        },
+        {
+          es: "Usa la barra de busqueda para localizar una categoria existente antes de crear una nueva.",
+          en: "Use the search bar to locate an existing category before creating a new one.",
+        },
+        {
+          es: "Haz clic en un registro para ver detalles, editar atributos o eliminar la categoria.",
+          en: "Click a record to view details, edit attributes, or delete the category.",
+        },
       ],
       tips: [
         {
@@ -159,10 +168,22 @@ const materialCategoriesHelpContent: HelpModuleContent = {
         en: "You can filter by text, export/import categories, create new ones, and manage each list entry.",
       },
       howTo: [
-        { es: "Para crear: haz clic en 'Nueva categoria', ingresa nombre, descripcion y atributos, y guarda.", en: "To create: click 'New category', enter name, description, and attributes, then save." },
-        { es: "Para exportar: haz clic en el boton Exportar para descargar el listado en CSV.", en: "To export: click the Export button to download the list as CSV." },
-        { es: "Para importar: descarga la plantilla, completa los campos y carga el archivo.", en: "To import: download the template, fill in the fields, and upload the file." },
-        { es: "Para eliminar: selecciona la categoria, abre acciones y confirma la eliminacion.", en: "To delete: select the category, open actions, and confirm deletion." },
+        {
+          es: "Para crear: haz clic en 'Nueva categoria', ingresa nombre, descripcion y atributos, y guarda.",
+          en: "To create: click 'New category', enter name, description, and attributes, then save.",
+        },
+        {
+          es: "Para exportar: haz clic en el boton Exportar para descargar el listado en CSV.",
+          en: "To export: click the Export button to download the list as CSV.",
+        },
+        {
+          es: "Para importar: descarga la plantilla, completa los campos y carga el archivo.",
+          en: "To import: download the template, fill in the fields, and upload the file.",
+        },
+        {
+          es: "Para eliminar: selecciona la categoria, abre acciones y confirma la eliminacion.",
+          en: "To delete: select the category, open actions, and confirm deletion.",
+        },
       ],
       bestPractices: [
         {
@@ -179,10 +200,22 @@ const materialCategoriesHelpContent: HelpModuleContent = {
         en: "Recommended flow: search for an existing category, review stats, import or create new ones, then validate the final list.",
       },
       howTo: [
-        { es: "Escribe parte del nombre en el buscador para verificar duplicados.", en: "Type part of the name in the search box to check for duplicates." },
-        { es: "Revisa las tarjetas de estadisticas para ver el total y los visibles con filtro activo.", en: "Review the stats cards to see total and visible counts with active filter." },
-        { es: "Si no existe, usa 'Nueva categoria' para crear con nombre y atributos correctos.", en: "If none exists, use 'New category' to create with the correct name and attributes." },
-        { es: "Verifica el listado final para confirmar que la nueva categoria aparece correctamente.", en: "Verify the final list to confirm the new category appears correctly." },
+        {
+          es: "Escribe parte del nombre en el buscador para verificar duplicados.",
+          en: "Type part of the name in the search box to check for duplicates.",
+        },
+        {
+          es: "Revisa las tarjetas de estadisticas para ver el total y los visibles con filtro activo.",
+          en: "Review the stats cards to see total and visible counts with active filter.",
+        },
+        {
+          es: "Si no existe, usa 'Nueva categoria' para crear con nombre y atributos correctos.",
+          en: "If none exists, use 'New category' to create with the correct name and attributes.",
+        },
+        {
+          es: "Verifica el listado final para confirmar que la nueva categoria aparece correctamente.",
+          en: "Verify the final list to confirm the new category appears correctly.",
+        },
       ],
       warnings: [
         {
@@ -199,9 +232,18 @@ const materialCategoriesHelpContent: HelpModuleContent = {
         en: "Common mistake: creating duplicate categories with similar names. Use search before adding new ones.",
       },
       howTo: [
-        { es: "Antes de crear, busca el nombre exacto o variantes en el campo de busqueda.", en: "Before creating, search for the exact name or variations in the search field." },
-        { es: "Si el resultado muestra una categoria similar, edita la existente en lugar de crear una nueva.", en: "If the result shows a similar category, edit the existing one instead of creating a new one." },
-        { es: "Usa nombres claros y estandarizados para reducir confusion futura.", en: "Use clear, standardized names to reduce future confusion." },
+        {
+          es: "Antes de crear, busca el nombre exacto o variantes en el campo de busqueda.",
+          en: "Before creating, search for the exact name or variations in the search field.",
+        },
+        {
+          es: "Si el resultado muestra una categoria similar, edita la existente en lugar de crear una nueva.",
+          en: "If the result shows a similar category, edit the existing one instead of creating a new one.",
+        },
+        {
+          es: "Usa nombres claros y estandarizados para reducir confusion futura.",
+          en: "Use clear, standardized names to reduce future confusion.",
+        },
       ],
     },
   ],

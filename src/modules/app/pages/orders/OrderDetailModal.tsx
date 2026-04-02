@@ -1,5 +1,5 @@
 import { X } from "lucide-react";
-import { IconButton } from "../../../../components/ui";
+import { IconButton, EntityLink } from "../../../../components/ui";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import type { OrderView } from "./types";
 import { WORKFLOW_STEPS } from "./types";
@@ -11,11 +11,7 @@ interface OrderDetailModalProps {
   order: OrderView;
 }
 
-export function OrderDetailModal({
-  open,
-  onClose,
-  order,
-}: OrderDetailModalProps) {
+export function OrderDetailModal({ open, onClose, order }: OrderDetailModalProps) {
   const { language } = useLanguage();
   const isEs = language === "es";
 
@@ -24,10 +20,7 @@ export function OrderDetailModal({
   const activeStepIndex = getStepIndex(order.workflowStatus);
 
   return (
-    <div
-      className="modal-overlay"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
+    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-content max-w-5xl max-h-[92vh] overflow-hidden">
         <div className="modal-header">
           <div>
@@ -43,11 +36,7 @@ export function OrderDetailModal({
           <IconButton
             icon={X}
             onClick={onClose}
-            ariaLabel={
-              isEs
-                ? "Cerrar modal de detalles"
-                : "Close order details modal"
-            }
+            ariaLabel={isEs ? "Cerrar modal de detalles" : "Close order details modal"}
             intent="secondary"
           />
         </div>
@@ -57,36 +46,25 @@ export function OrderDetailModal({
             <div className="p-6 md:p-7 space-y-5 max-h-[calc(92vh-84px)] overflow-y-auto">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <p className="text-gray-500 text-sm">
-                    {isEs ? "ID de Solicitud" : "Request ID"}
-                  </p>
-                  <p className="text-white font-semibold break-all">
-                    {order.request._id}
-                  </p>
+                  <p className="text-gray-500 text-sm">{isEs ? "ID de Solicitud" : "Request ID"}</p>
+                  <p className="text-white font-semibold break-all">{order.request._id}</p>
                 </div>
                 <div>
-                  <p className="text-gray-500 text-sm">
-                    {isEs ? "Cliente" : "Customer"}
-                  </p>
-                  <p className="text-white font-semibold">
-                    {order.customerName}
-                  </p>
+                  <p className="text-gray-500 text-sm">{isEs ? "Cliente" : "Customer"}</p>
+                  <EntityLink
+                    entityType="customer"
+                    entityId={order.request.customerId ?? ""}
+                    label={order.customerName}
+                    className="font-semibold"
+                  />
                 </div>
                 <div>
-                  <p className="text-gray-500 text-sm">
-                    {isEs ? "Fecha de Inicio" : "Start Date"}
-                  </p>
-                  <p className="text-gray-300">
-                    {formatDate(order.request.startDate)}
-                  </p>
+                  <p className="text-gray-500 text-sm">{isEs ? "Fecha de Inicio" : "Start Date"}</p>
+                  <p className="text-gray-300">{formatDate(order.request.startDate)}</p>
                 </div>
                 <div>
-                  <p className="text-gray-500 text-sm">
-                    {isEs ? "Fecha de Fin" : "End Date"}
-                  </p>
-                  <p className="text-gray-300">
-                    {formatDate(order.request.endDate)}
-                  </p>
+                  <p className="text-gray-500 text-sm">{isEs ? "Fecha de Fin" : "End Date"}</p>
+                  <p className="text-gray-300">{formatDate(order.request.endDate)}</p>
                 </div>
               </div>
 
@@ -108,12 +86,8 @@ export function OrderDetailModal({
 
               {order.request.notes && (
                 <div>
-                  <p className="text-gray-500 text-sm">
-                    {isEs ? "Notas" : "Notes"}
-                  </p>
-                  <p className="text-gray-300 text-sm whitespace-pre-wrap">
-                    {order.request.notes}
-                  </p>
+                  <p className="text-gray-500 text-sm">{isEs ? "Notas" : "Notes"}</p>
+                  <p className="text-gray-300 text-sm whitespace-pre-wrap">{order.request.notes}</p>
                 </div>
               )}
             </div>
@@ -121,9 +95,7 @@ export function OrderDetailModal({
             <aside className="border-t lg:border-t-0 lg:border-l border-[#333] bg-[#151515] p-6 space-y-4">
               <div>
                 <p className="text-gray-500 text-sm mb-2">
-                  {isEs
-                    ? "Seguimiento del Flujo"
-                    : "Workflow Tracking"}
+                  {isEs ? "Seguimiento del Flujo" : "Workflow Tracking"}
                 </p>
                 <div className="space-y-2">
                   {WORKFLOW_STEPS.map((step, index) => {

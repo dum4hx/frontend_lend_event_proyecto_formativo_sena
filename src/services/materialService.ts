@@ -263,6 +263,21 @@ export async function deleteMaterialInstance(
 // Material Instances
 // ═══════════════════════════════════════════════════════════════════════════
 
+/** Get a single material instance by ID. */
+export async function getMaterialInstance(
+  instanceId: string,
+): Promise<ApiSuccessResponse<{ instance: MaterialInstance }>> {
+  const response = await get<{ instance: MaterialInstanceApiPayload }>(
+    `/materials/instances/${instanceId}`,
+  );
+  return {
+    ...response,
+    data: {
+      instance: normalizeMaterialInstance(response.data.instance),
+    },
+  };
+}
+
 /** List material instances with optional filtering. */
 export async function getMaterialInstances(
   params: MaterialInstancesQueryParams = {},

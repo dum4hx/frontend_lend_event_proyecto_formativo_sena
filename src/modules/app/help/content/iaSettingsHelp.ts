@@ -19,9 +19,18 @@ const iaSettingsHelpContent: HelpModuleContent = {
         en: "Here you manage intelligent features such as auto responses, scheduling, and recommendations.",
       },
       howTo: [
-        { es: "Abre Configuracion de IA desde el menu de configuracion o el panel lateral.", en: "Open AI Settings from the settings menu or sidebar panel." },
-        { es: "Revisa las tarjetas de metricas para ver cuantas funciones estan activas y cuantas inactivas.", en: "Review the metrics cards to see how many features are active and how many are inactive." },
-        { es: "Lee la descripcion de cada funcion antes de activar o desactivar para evaluar su impacto.", en: "Read each feature's description before toggling to evaluate its impact." },
+        {
+          es: "Abre Configuracion de IA desde el menu de configuracion o el panel lateral.",
+          en: "Open AI Settings from the settings menu or sidebar panel.",
+        },
+        {
+          es: "Revisa las tarjetas de metricas para ver cuantas funciones estan activas y cuantas inactivas.",
+          en: "Review the metrics cards to see how many features are active and how many are inactive.",
+        },
+        {
+          es: "Lee la descripcion de cada funcion antes de activar o desactivar para evaluar su impacto.",
+          en: "Read each feature's description before toggling to evaluate its impact.",
+        },
       ],
       tips: [
         {
@@ -38,9 +47,18 @@ const iaSettingsHelpContent: HelpModuleContent = {
         en: "You can review AI feature status and adjust activation using per-capability toggles.",
       },
       howTo: [
-        { es: "Revisa la descripcion funcional de cada capacidad antes de cambiarla.", en: "Review each capability's functional description before changing it." },
-        { es: "Activa o desactiva el interruptor de la funcion deseada y confirma el cambio.", en: "Toggle the switch for the desired feature and confirm the change." },
-        { es: "Valida el impacto en el equipo antes de continuar con la siguiente funcion.", en: "Validate the impact on the team before proceeding to the next feature." },
+        {
+          es: "Revisa la descripcion funcional de cada capacidad antes de cambiarla.",
+          en: "Review each capability's functional description before changing it.",
+        },
+        {
+          es: "Activa o desactiva el interruptor de la funcion deseada y confirma el cambio.",
+          en: "Toggle the switch for the desired feature and confirm the change.",
+        },
+        {
+          es: "Valida el impacto en el equipo antes de continuar con la siguiente funcion.",
+          en: "Validate the impact on the team before proceeding to the next feature.",
+        },
       ],
       bestPractices: [
         {
@@ -57,9 +75,18 @@ const iaSettingsHelpContent: HelpModuleContent = {
         en: "Recommended flow: review global metrics, inspect each feature, and apply controlled adjustments.",
       },
       howTo: [
-        { es: "Revisa las tarjetas de metricas globales para entender el estado general de la IA.", en: "Review global metrics cards to understand the overall AI status." },
-        { es: "Inspecciona cada funcion individualmente: lee su descripcion y evalua si debe estar activa.", en: "Inspect each feature individually: read its description and evaluate whether it should be active." },
-        { es: "Aplica los cambios de mayor impacto primero y valida con el equipo antes de continuar.", en: "Apply highest-impact changes first and validate with the team before continuing." },
+        {
+          es: "Revisa las tarjetas de metricas globales para entender el estado general de la IA.",
+          en: "Review global metrics cards to understand the overall AI status.",
+        },
+        {
+          es: "Inspecciona cada funcion individualmente: lee su descripcion y evalua si debe estar activa.",
+          en: "Inspect each feature individually: read its description and evaluate whether it should be active.",
+        },
+        {
+          es: "Aplica los cambios de mayor impacto primero y valida con el equipo antes de continuar.",
+          en: "Apply highest-impact changes first and validate with the team before continuing.",
+        },
       ],
       warnings: [
         {
@@ -76,9 +103,18 @@ const iaSettingsHelpContent: HelpModuleContent = {
         en: "Common mistake: changing multiple toggles without evaluating results. Apply one change at a time and validate.",
       },
       howTo: [
-        { es: "Cambia un solo interruptor a la vez para mantener trazabilidad de los cambios.", en: "Change only one toggle at a time to maintain change traceability." },
-        { es: "Valida el impacto en flujos del equipo antes de desactivar una funcion en uso.", en: "Validate the impact on team flows before disabling a feature in use." },
-        { es: "Documenta cada cambio con fecha y motivo para facilitar futuras auditorias.", en: "Document each change with date and reason to ease future audits." },
+        {
+          es: "Cambia un solo interruptor a la vez para mantener trazabilidad de los cambios.",
+          en: "Change only one toggle at a time to maintain change traceability.",
+        },
+        {
+          es: "Valida el impacto en flujos del equipo antes de desactivar una funcion en uso.",
+          en: "Validate the impact on team flows before disabling a feature in use.",
+        },
+        {
+          es: "Documenta cada cambio con fecha y motivo para facilitar futuras auditorias.",
+          en: "Document each change with date and reason to ease future audits.",
+        },
       ],
     },
   ],

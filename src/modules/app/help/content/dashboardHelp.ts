@@ -19,9 +19,18 @@ const dashboardHelpContent: HelpModuleContent = {
         en: "Here you get a quick view of users, loans, requests, and billing to support daily decisions.",
       },
       howTo: [
-        { es: "Abre el dashboard desde el menu principal al iniciar sesion.", en: "Open the dashboard from the main menu when logging in." },
-        { es: "Revisa las tarjetas de metricas para detectar desviaciones en prestamos, solicitudes y cobros.", en: "Review the metrics cards to detect deviations in loans, requests, and billing." },
-        { es: "Usa los enlaces directos de cada seccion para navegar al modulo de detalle correspondiente.", en: "Use the direct links in each section to navigate to the corresponding detail module." },
+        {
+          es: "Abre el dashboard desde el menu principal al iniciar sesion.",
+          en: "Open the dashboard from the main menu when logging in.",
+        },
+        {
+          es: "Revisa las tarjetas de metricas para detectar desviaciones en prestamos, solicitudes y cobros.",
+          en: "Review the metrics cards to detect deviations in loans, requests, and billing.",
+        },
+        {
+          es: "Usa los enlaces directos de cada seccion para navegar al modulo de detalle correspondiente.",
+          en: "Use the direct links in each section to navigate to the corresponding detail module.",
+        },
       ],
       tips: [
         {
@@ -38,9 +47,18 @@ const dashboardHelpContent: HelpModuleContent = {
         en: "You can validate pending requests, review billing, and jump to detail modules using direct links.",
       },
       howTo: [
-        { es: "Para ver solicitudes pendientes: haz clic en 'Ver todo' en la seccion de solicitudes.", en: "To view pending requests: click 'View all' in the requests section." },
-        { es: "Para revisar facturacion: consulta la seccion de resumen de facturas en el panel inferior.", en: "To review billing: check the invoice summary section in the lower panel." },
-        { es: "Para navegar a detalle: usa los enlaces o botones de cada tarjeta para ir directamente al modulo.", en: "To navigate to detail: use the links or buttons on each card to go directly to the module." },
+        {
+          es: "Para ver solicitudes pendientes: haz clic en 'Ver todo' en la seccion de solicitudes.",
+          en: "To view pending requests: click 'View all' in the requests section.",
+        },
+        {
+          es: "Para revisar facturacion: consulta la seccion de resumen de facturas en el panel inferior.",
+          en: "To review billing: check the invoice summary section in the lower panel.",
+        },
+        {
+          es: "Para navegar a detalle: usa los enlaces o botones de cada tarjeta para ir directamente al modulo.",
+          en: "To navigate to detail: use the links or buttons on each card to go directly to the module.",
+        },
       ],
       bestPractices: [
         {
@@ -57,9 +75,18 @@ const dashboardHelpContent: HelpModuleContent = {
         en: "Suggested flow: review overdue loans, open pending requests, and finish by checking invoice summary.",
       },
       howTo: [
-        { es: "Revisa la tarjeta de prestamos vencidos para detectar casos criticos del dia.", en: "Review the overdue loans card to detect critical cases for the day." },
-        { es: "Abre la lista de solicitudes pendientes y prioriza por fecha mas cercana.", en: "Open the pending requests list and prioritize by nearest date." },
-        { es: "Revisa el resumen de facturas para verificar flujo de caja del periodo actual.", en: "Review the invoice summary to verify cash flow for the current period." },
+        {
+          es: "Revisa la tarjeta de prestamos vencidos para detectar casos criticos del dia.",
+          en: "Review the overdue loans card to detect critical cases for the day.",
+        },
+        {
+          es: "Abre la lista de solicitudes pendientes y prioriza por fecha mas cercana.",
+          en: "Open the pending requests list and prioritize by nearest date.",
+        },
+        {
+          es: "Revisa el resumen de facturas para verificar flujo de caja del periodo actual.",
+          en: "Review the invoice summary to verify cash flow for the current period.",
+        },
       ],
       warnings: [
         {
@@ -76,9 +103,18 @@ const dashboardHelpContent: HelpModuleContent = {
         en: "Common mistake: checking only request volume and not delivery date. Prioritize by date and status.",
       },
       howTo: [
-        { es: "Ordena las solicitudes por fecha de inicio para visualizar las mas urgentes primero.", en: "Sort requests by start date to see the most urgent ones first." },
-        { es: "Revisa el estado de cada solicitud ademas de la fecha para evitar trabajar en las ya procesadas.", en: "Check each request's status in addition to the date to avoid working on already processed ones." },
-        { es: "Si la metrica de prestamos vencidos crece, abre el modulo de operaciones para gestion detallada.", en: "If the overdue loans metric grows, open the operations module for detailed management." },
+        {
+          es: "Ordena las solicitudes por fecha de inicio para visualizar las mas urgentes primero.",
+          en: "Sort requests by start date to see the most urgent ones first.",
+        },
+        {
+          es: "Revisa el estado de cada solicitud ademas de la fecha para evitar trabajar en las ya procesadas.",
+          en: "Check each request's status in addition to the date to avoid working on already processed ones.",
+        },
+        {
+          es: "Si la metrica de prestamos vencidos crece, abre el modulo de operaciones para gestion detallada.",
+          en: "If the overdue loans metric grows, open the operations module for detailed management.",
+        },
       ],
     },
   ],

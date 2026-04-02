@@ -194,9 +194,18 @@ const customersHelpContent: HelpModuleContent = {
         en: "Use this screen to keep customer data clean and up-to-date for commerce and rental operations.",
       },
       howTo: [
-        { es: "Abre el modulo desde el menu lateral en Clientes.", en: "Open the module from the sidebar under Customers." },
-        { es: "Usa el buscador para verificar si el cliente ya existe antes de crear uno nuevo.", en: "Use the search box to verify the customer doesn't already exist before creating a new one." },
-        { es: "Haz clic en 'Nuevo Cliente' para abrir el formulario de alta y registrar los datos.", en: "Click 'New Customer' to open the creation form and record the data." },
+        {
+          es: "Abre el modulo desde el menu lateral en Clientes.",
+          en: "Open the module from the sidebar under Customers.",
+        },
+        {
+          es: "Usa el buscador para verificar si el cliente ya existe antes de crear uno nuevo.",
+          en: "Use the search box to verify the customer doesn't already exist before creating a new one.",
+        },
+        {
+          es: "Haz clic en 'Nuevo Cliente' para abrir el formulario de alta y registrar los datos.",
+          en: "Click 'New Customer' to open the creation form and record the data.",
+        },
       ],
       tips: [
         {
@@ -213,10 +222,22 @@ const customersHelpContent: HelpModuleContent = {
         en: "You can filter by status and document type, inspect details, edit, activate/deactivate, block, and delete customers.",
       },
       howTo: [
-        { es: "Para filtrar: usa los selectores de estado y tipo de documento en la barra de filtros.", en: "To filter: use the status and document type selectors in the filter bar." },
-        { es: "Para editar: localiza el cliente y haz clic en el icono de edicion para actualizar datos.", en: "To edit: locate the customer and click the edit icon to update data." },
-        { es: "Para bloquear/desactivar: usa las acciones de estado disponibles en la fila del cliente.", en: "To block/deactivate: use the status actions available in the customer row." },
-        { es: "Para eliminar permanentemente: confirma bien el cliente objetivo antes de confirmar la accion.", en: "To permanently delete: double-check the target customer before confirming the action." },
+        {
+          es: "Para filtrar: usa los selectores de estado y tipo de documento en la barra de filtros.",
+          en: "To filter: use the status and document type selectors in the filter bar.",
+        },
+        {
+          es: "Para editar: localiza el cliente y haz clic en el icono de edicion para actualizar datos.",
+          en: "To edit: locate the customer and click the edit icon to update data.",
+        },
+        {
+          es: "Para bloquear/desactivar: usa las acciones de estado disponibles en la fila del cliente.",
+          en: "To block/deactivate: use the status actions available in the customer row.",
+        },
+        {
+          es: "Para eliminar permanentemente: confirma bien el cliente objetivo antes de confirmar la accion.",
+          en: "To permanently delete: double-check the target customer before confirming the action.",
+        },
       ],
       bestPractices: [
         {
@@ -233,10 +254,22 @@ const customersHelpContent: HelpModuleContent = {
         en: "Recommended flow: filter by status, inspect details, correct data, then activate or deactivate according to policy.",
       },
       howTo: [
-        { es: "Filtra por estado 'Activo' o 'Bloqueado' para identificar casos que necesitan revision.", en: "Filter by 'Active' or 'Blocked' status to identify cases that need review." },
-        { es: "Abre el detalle del cliente para ver relaciones con pedidos y prestamos activos.", en: "Open the customer detail to see relations with active orders and loans." },
-        { es: "Corrige datos desactualizados y guarda cambios usando el formulario de edicion.", en: "Correct outdated data and save changes using the edit form." },
-        { es: "Activa o desactiva el cliente usando las acciones de estado segun la politica interna.", en: "Activate or deactivate the customer using status actions per internal policy." },
+        {
+          es: "Filtra por estado 'Activo' o 'Bloqueado' para identificar casos que necesitan revision.",
+          en: "Filter by 'Active' or 'Blocked' status to identify cases that need review.",
+        },
+        {
+          es: "Abre el detalle del cliente para ver relaciones con pedidos y prestamos activos.",
+          en: "Open the customer detail to see relations with active orders and loans.",
+        },
+        {
+          es: "Corrige datos desactualizados y guarda cambios usando el formulario de edicion.",
+          en: "Correct outdated data and save changes using the edit form.",
+        },
+        {
+          es: "Activa o desactiva el cliente usando las acciones de estado segun la politica interna.",
+          en: "Activate or deactivate the customer using status actions per internal policy.",
+        },
       ],
       warnings: [
         {
@@ -253,9 +286,18 @@ const customersHelpContent: HelpModuleContent = {
         en: "Common mistake: editing or deleting without checking active relations. Validate ongoing operations before destructive actions.",
       },
       howTo: [
-        { es: "Antes de eliminar, abre el detalle del cliente y revisa pedidos o prestamos relacionados.", en: "Before deleting, open the customer detail and review related orders or loans." },
-        { es: "Usa la busqueda para verificar duplicados antes de crear un nuevo registro.", en: "Use search to verify duplicates before creating a new record." },
-        { es: "Para bloquear en lugar de eliminar: usa la accion de bloqueo que preserva el historial del cliente.", en: "To block instead of delete: use the block action that preserves the customer history." },
+        {
+          es: "Antes de eliminar, abre el detalle del cliente y revisa pedidos o prestamos relacionados.",
+          en: "Before deleting, open the customer detail and review related orders or loans.",
+        },
+        {
+          es: "Usa la busqueda para verificar duplicados antes de crear un nuevo registro.",
+          en: "Use search to verify duplicates before creating a new record.",
+        },
+        {
+          es: "Para bloquear en lugar de eliminar: usa la accion de bloqueo que preserva el historial del cliente.",
+          en: "To block instead of delete: use the block action that preserves the customer history.",
+        },
       ],
     },
   ],

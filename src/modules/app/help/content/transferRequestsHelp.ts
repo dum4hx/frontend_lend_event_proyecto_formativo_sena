@@ -200,9 +200,18 @@ const transferRequestsHelpContent: HelpModuleContent = {
         en: "Here you manage two connected flows: transfer requests and physical shipments between sites or locations.",
       },
       howTo: [
-        { es: "Abre el modulo desde Operaciones > Transferencias.", en: "Open the module from Operations > Transfers." },
-        { es: "Usa la pestana 'Solicitudes' para crear o gestionar pedidos de traslado.", en: "Use the 'Requests' tab to create or manage transfer requests." },
-        { es: "Cambia a la pestana 'Envios' para ver transferencias en transito y registrar recepciones.", en: "Switch to the 'Shipments' tab to view in-transit transfers and register receipts." },
+        {
+          es: "Abre el modulo desde Operaciones > Transferencias.",
+          en: "Open the module from Operations > Transfers.",
+        },
+        {
+          es: "Usa la pestana 'Solicitudes' para crear o gestionar pedidos de traslado.",
+          en: "Use the 'Requests' tab to create or manage transfer requests.",
+        },
+        {
+          es: "Cambia a la pestana 'Envios' para ver transferencias en transito y registrar recepciones.",
+          en: "Switch to the 'Shipments' tab to view in-transit transfers and register receipts.",
+        },
       ],
       tips: [
         {
@@ -219,10 +228,22 @@ const transferRequestsHelpContent: HelpModuleContent = {
         en: "You can create requests, filter them by status, approve or reject them, initiate shipments, and receive in-transit transfers.",
       },
       howTo: [
-        { es: "Para crear solicitud: haz clic en 'Nueva solicitud', selecciona origen, destino, items y agrega notas.", en: "To create a request: click 'New request', select origin, destination, items, and add notes." },
-        { es: "Para aprobar/rechazar: localiza la solicitud en la tabla y usa las acciones disponibles segun permisos.", en: "To approve/reject: locate the request in the table and use available actions per your permissions." },
-        { es: "Para iniciar envio: una vez aprobada la solicitud, selecciona instancias fisicas y confirma despacho.", en: "To initiate shipment: once the request is approved, select physical instances and confirm dispatch." },
-        { es: "Para recibir: en la pestana Envios, localiza la transferencia en transito y registra la recepcion.", en: "To receive: on the Shipments tab, locate the in-transit transfer and register receipt." },
+        {
+          es: "Para crear solicitud: haz clic en 'Nueva solicitud', selecciona origen, destino, items y agrega notas.",
+          en: "To create a request: click 'New request', select origin, destination, items, and add notes.",
+        },
+        {
+          es: "Para aprobar/rechazar: localiza la solicitud en la tabla y usa las acciones disponibles segun permisos.",
+          en: "To approve/reject: locate the request in the table and use available actions per your permissions.",
+        },
+        {
+          es: "Para iniciar envio: una vez aprobada la solicitud, selecciona instancias fisicas y confirma despacho.",
+          en: "To initiate shipment: once the request is approved, select physical instances and confirm dispatch.",
+        },
+        {
+          es: "Para recibir: en la pestana Envios, localiza la transferencia en transito y registra la recepcion.",
+          en: "To receive: on the Shipments tab, locate the in-transit transfer and register receipt.",
+        },
       ],
       bestPractices: [
         {
@@ -239,10 +260,22 @@ const transferRequestsHelpContent: HelpModuleContent = {
         en: "Recommended flow: create request, review status, approve, initiate shipment, and finally register receipt.",
       },
       howTo: [
-        { es: "Crea la solicitud con origen, destino e items requeridos.", en: "Create the request with origin, destination, and required items." },
-        { es: "Cambia el filtro a 'Pendiente' para encontrar la solicitud y aprobarla.", en: "Change the filter to 'Pending' to find the request and approve it." },
-        { es: "Despues de aprobar, inicia el envio seleccionando las instancias fisicas.", en: "After approving, initiate the shipment by selecting physical instances." },
-        { es: "Cambia a la pestana Envios y registra la recepcion cuando el material llega al destino.", en: "Switch to the Shipments tab and register receipt when the material arrives at destination." },
+        {
+          es: "Crea la solicitud con origen, destino e items requeridos.",
+          en: "Create the request with origin, destination, and required items.",
+        },
+        {
+          es: "Cambia el filtro a 'Pendiente' para encontrar la solicitud y aprobarla.",
+          en: "Change the filter to 'Pending' to find the request and approve it.",
+        },
+        {
+          es: "Despues de aprobar, inicia el envio seleccionando las instancias fisicas.",
+          en: "After approving, initiate the shipment by selecting physical instances.",
+        },
+        {
+          es: "Cambia a la pestana Envios y registra la recepcion cuando el material llega al destino.",
+          en: "Switch to the Shipments tab and register receipt when the material arrives at destination.",
+        },
       ],
       warnings: [
         {
@@ -259,9 +292,18 @@ const transferRequestsHelpContent: HelpModuleContent = {
         en: "Common mistake: reviewing only requests and not the shipments tab. Both flows should be monitored together.",
       },
       howTo: [
-        { es: "Revisa siempre ambas pestanas: Solicitudes y Envios para tener vision completa del proceso.", en: "Always check both tabs: Requests and Shipments for a complete view of the process." },
-        { es: "Verifica el estado de la solicitud antes de intentar aprobar o iniciar envio.", en: "Verify the request status before trying to approve or initiate a shipment." },
-        { es: "Si el inventario destino no se actualiza, confirma que la recepcion fue registrada en la pestana Envios.", en: "If destination inventory does not update, confirm receipt was registered in the Shipments tab." },
+        {
+          es: "Revisa siempre ambas pestanas: Solicitudes y Envios para tener vision completa del proceso.",
+          en: "Always check both tabs: Requests and Shipments for a complete view of the process.",
+        },
+        {
+          es: "Verifica el estado de la solicitud antes de intentar aprobar o iniciar envio.",
+          en: "Verify the request status before trying to approve or initiate a shipment.",
+        },
+        {
+          es: "Si el inventario destino no se actualiza, confirma que la recepcion fue registrada en la pestana Envios.",
+          en: "If destination inventory does not update, confirm receipt was registered in the Shipments tab.",
+        },
       ],
     },
   ],

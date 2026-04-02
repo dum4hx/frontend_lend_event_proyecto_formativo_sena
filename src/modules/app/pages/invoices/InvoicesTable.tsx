@@ -1,6 +1,5 @@
 import { FileText, DollarSign, Eye, Download, Trash2 } from "lucide-react";
-import { Link } from "react-router-dom";
-import { EmptyState } from "../../../../components/ui";
+import { EmptyState, EntityLink } from "../../../../components/ui";
 import type { Invoice } from "./types";
 import {
   getStatusColor,
@@ -104,9 +103,16 @@ export function InvoicesTable({
                       <span className="text-white font-mono text-xs block">
                         {invoice.invoiceNumber}
                       </span>
-                      <Link to="/app/customers" className="entity-link text-xs">
-                        {getCustomerName(invoice.customerId)}
-                      </Link>
+                      <EntityLink
+                        entityType="customer"
+                        entityId={
+                          typeof invoice.customerId === "object"
+                            ? invoice.customerId._id
+                            : invoice.customerId
+                        }
+                        label={getCustomerName(invoice.customerId)}
+                        className="text-xs"
+                      />
                     </div>
                   </div>
                 </td>

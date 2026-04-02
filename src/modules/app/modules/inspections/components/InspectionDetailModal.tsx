@@ -1,6 +1,7 @@
 import React from "react";
 import { X, CheckCircle, AlertTriangle, XCircle, FileText } from "lucide-react";
 import type { Inspection } from "../../../../../types/api";
+import { EntityLink } from "../../../../../components/ui";
 
 interface InspectionDetailModalProps {
   inspection: Inspection;
@@ -81,9 +82,20 @@ export const InspectionDetailModal: React.FC<InspectionDetailModalProps> = ({
                           <p className="text-white font-medium capitalize">{status.label}</p>
                           <p className="text-xs text-gray-500 font-mono mt-0.5">
                             ID:{" "}
-                            {typeof item.materialInstanceId === "string"
-                              ? item.materialInstanceId
-                              : (item.materialInstanceId as unknown as { _id: string })._id}
+                            <EntityLink
+                              entityType="materialInstance"
+                              entityId={
+                                typeof item.materialInstanceId === "string"
+                                  ? item.materialInstanceId
+                                  : (item.materialInstanceId as unknown as { _id: string })._id
+                              }
+                              label={
+                                typeof item.materialInstanceId === "string"
+                                  ? item.materialInstanceId
+                                  : (item.materialInstanceId as unknown as { _id: string })._id
+                              }
+                              className="font-mono text-xs"
+                            />
                           </p>
                         </div>
                       </div>

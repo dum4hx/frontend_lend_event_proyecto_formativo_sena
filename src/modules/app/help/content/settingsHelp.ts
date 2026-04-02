@@ -19,9 +19,18 @@ const settingsHelpContent: HelpModuleContent = {
         en: "Here you can manage organization information, system preferences, and operational parameters by category.",
       },
       howTo: [
-        { es: "Abre Configuracion desde el menu lateral.", en: "Open Settings from the sidebar menu." },
-        { es: "Revisa las categorias disponibles y verifica el rol activo con el que operas.", en: "Review available categories and verify the active role you are operating with." },
-        { es: "Selecciona la categoria que deseas configurar desde la grilla principal.", en: "Select the category you want to configure from the main grid." },
+        {
+          es: "Abre Configuracion desde el menu lateral.",
+          en: "Open Settings from the sidebar menu.",
+        },
+        {
+          es: "Revisa las categorias disponibles y verifica el rol activo con el que operas.",
+          en: "Review available categories and verify the active role you are operating with.",
+        },
+        {
+          es: "Selecciona la categoria que deseas configurar desde la grilla principal.",
+          en: "Select the category you want to configure from the main grid.",
+        },
       ],
       tips: [
         {
@@ -38,10 +47,22 @@ const settingsHelpContent: HelpModuleContent = {
         en: "You can switch categories, edit data, reset active-module changes, and save only when validation is correct.",
       },
       howTo: [
-        { es: "Selecciona una categoria de la grilla para abrir su panel de edicion.", en: "Select a category from the grid to open its editing panel." },
-        { es: "Edita los campos deseados en el panel activo y observa el estado de validacion.", en: "Edit the desired fields in the active panel and observe the validation status." },
-        { es: "Usa 'Restablecer' si cometiste un error y deseas revertir los cambios no guardados.", en: "Use 'Reset' if you made a mistake and want to revert unsaved changes." },
-        { es: "Guarda solo cuando el indicador muestre que todos los campos son validos.", en: "Save only when the indicator shows all fields are valid." },
+        {
+          es: "Selecciona una categoria de la grilla para abrir su panel de edicion.",
+          en: "Select a category from the grid to open its editing panel.",
+        },
+        {
+          es: "Edita los campos deseados en el panel activo y observa el estado de validacion.",
+          en: "Edit the desired fields in the active panel and observe the validation status.",
+        },
+        {
+          es: "Usa 'Restablecer' si cometiste un error y deseas revertir los cambios no guardados.",
+          en: "Use 'Reset' if you made a mistake and want to revert unsaved changes.",
+        },
+        {
+          es: "Guarda solo cuando el indicador muestre que todos los campos son validos.",
+          en: "Save only when the indicator shows all fields are valid.",
+        },
       ],
       bestPractices: [
         {
@@ -58,10 +79,22 @@ const settingsHelpContent: HelpModuleContent = {
         en: "Recommended flow: review summary, enter the right category, apply changes, validate errors, and save.",
       },
       howTo: [
-        { es: "Revisa las tarjetas de resumen para identificar cuantas secciones tienes disponibles.", en: "Review summary cards to identify how many sections are available to you." },
-        { es: "Selecciona la categoria correcta segun el tipo de cambio que deseas hacer.", en: "Select the correct category based on the type of change you want to make." },
-        { es: "Aplica los ajustes en el panel activo y corrige cualquier error de validacion antes de continuar.", en: "Apply adjustments in the active panel and fix any validation errors before continuing." },
-        { es: "Guarda los cambios cuando el indicador muestre que todo es correcto.", en: "Save changes when the indicator shows everything is correct." },
+        {
+          es: "Revisa las tarjetas de resumen para identificar cuantas secciones tienes disponibles.",
+          en: "Review summary cards to identify how many sections are available to you.",
+        },
+        {
+          es: "Selecciona la categoria correcta segun el tipo de cambio que deseas hacer.",
+          en: "Select the correct category based on the type of change you want to make.",
+        },
+        {
+          es: "Aplica los ajustes en el panel activo y corrige cualquier error de validacion antes de continuar.",
+          en: "Apply adjustments in the active panel and fix any validation errors before continuing.",
+        },
+        {
+          es: "Guarda los cambios cuando el indicador muestre que todo es correcto.",
+          en: "Save changes when the indicator shows everything is correct.",
+        },
       ],
       warnings: [
         {
@@ -78,9 +111,18 @@ const settingsHelpContent: HelpModuleContent = {
         en: "Common mistake: editing account fields without checking validations. Fix errors before saving.",
       },
       howTo: [
-        { es: "Antes de guardar, revisa si hay mensajes de error debajo de cada campo editado.", en: "Before saving, check if there are error messages below each edited field." },
-        { es: "Corrige todos los errores de validacion antes de intentar guardar la configuracion.", en: "Fix all validation errors before attempting to save the configuration." },
-        { es: "Si cambias de categoria con cambios pendientes, confirma o descarta para evitar perdida de trabajo.", en: "If you switch categories with pending changes, confirm or discard to avoid losing work." },
+        {
+          es: "Antes de guardar, revisa si hay mensajes de error debajo de cada campo editado.",
+          en: "Before saving, check if there are error messages below each edited field.",
+        },
+        {
+          es: "Corrige todos los errores de validacion antes de intentar guardar la configuracion.",
+          en: "Fix all validation errors before attempting to save the configuration.",
+        },
+        {
+          es: "Si cambias de categoria con cambios pendientes, confirma o descarta para evitar perdida de trabajo.",
+          en: "If you switch categories with pending changes, confirm or discard to avoid losing work.",
+        },
       ],
     },
   ],

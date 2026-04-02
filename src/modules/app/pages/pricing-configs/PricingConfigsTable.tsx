@@ -1,6 +1,5 @@
 import { Pencil, Trash2, Loader2 } from "lucide-react";
-import { Link } from "react-router-dom";
-import { IconButton } from "../../../../components/ui";
+import { IconButton, EntityLink } from "../../../../components/ui";
 import { SCOPE_LABELS, STRATEGY_LABELS, getScopeBadgeStyle, formatStrategyParams } from "./helpers";
 import type { PricingConfig } from "./types";
 
@@ -63,9 +62,12 @@ export function PricingConfigsTable({
                 {config.scope === "organization" ? (
                   <span className="font-mono text-xs text-gray-300">—</span>
                 ) : config.scope === "materialType" ? (
-                  <Link to="/app/material-types" className="entity-link font-mono text-xs">
-                    {config.referenceId.slice(-8).toUpperCase()}
-                  </Link>
+                  <EntityLink
+                    entityType="materialType"
+                    entityId={config.referenceId}
+                    label={config.referenceId.slice(-8).toUpperCase()}
+                    className="font-mono text-xs"
+                  />
                 ) : (
                   <span className="font-mono text-xs text-gray-300">
                     {config.referenceId.slice(-8).toUpperCase()}

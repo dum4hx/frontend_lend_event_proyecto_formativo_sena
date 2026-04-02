@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { X, AlertTriangle, CheckCircle, XCircle, Eye } from "lucide-react";
 import type { Incident, IncidentType } from "../../../../../types/api";
+import { EntityLink } from "../../../../../components/ui";
 
 interface IncidentDetailModalProps {
   /** The incident to display */
@@ -182,12 +183,13 @@ export const IncidentDetailModal: React.FC<IncidentDetailModalProps> = ({
               </label>
               <div className="flex flex-wrap gap-2">
                 {incident.relatedMaterialInstances.map((id) => (
-                  <span
+                  <EntityLink
                     key={id}
-                    className="px-2.5 py-1 bg-[#121212] border border-[#333] rounded-lg text-xs text-gray-400 font-mono"
-                  >
-                    {id}
-                  </span>
+                    entityType="materialInstance"
+                    entityId={id}
+                    label={id}
+                    className="font-mono"
+                  />
                 ))}
               </div>
             </div>

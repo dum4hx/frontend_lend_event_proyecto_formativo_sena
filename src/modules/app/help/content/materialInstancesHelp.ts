@@ -75,7 +75,10 @@ const materialInstancesFormGuides = createCrudFormGuides({
       },
       dataType: { es: "Seleccion", en: "Select" },
       required: true,
-      example: { es: "Bodega A - Estante 3, Deposito principal", en: "Warehouse A - Shelf 3, Main storage" },
+      example: {
+        es: "Bodega A - Estante 3, Deposito principal",
+        en: "Warehouse A - Shelf 3, Main storage",
+      },
       selector: '[data-help-id="material-instances-form-location"]',
     },
   ],

@@ -153,9 +153,18 @@ const rolesHelpContent: HelpModuleContent = {
         en: "Here you can create, edit, and delete custom roles, and review permission coverage against the available catalog.",
       },
       howTo: [
-        { es: "Abre el modulo desde Gestion > Roles.", en: "Open the module from Management > Roles." },
-        { es: "Revisa las tarjetas de metricas para entender cobertura y salud del modelo de permisos.", en: "Review the metrics cards to understand permission model health and coverage." },
-        { es: "Haz clic en 'Nuevo rol' para abrir el formulario y definir nombre y permisos del rol.", en: "Click 'New role' to open the form and define the role name and permissions." },
+        {
+          es: "Abre el modulo desde Gestion > Roles.",
+          en: "Open the module from Management > Roles.",
+        },
+        {
+          es: "Revisa las tarjetas de metricas para entender cobertura y salud del modelo de permisos.",
+          en: "Review the metrics cards to understand permission model health and coverage.",
+        },
+        {
+          es: "Haz clic en 'Nuevo rol' para abrir el formulario y definir nombre y permisos del rol.",
+          en: "Click 'New role' to open the form and define the role name and permissions.",
+        },
       ],
       tips: [
         {
@@ -172,9 +181,18 @@ const rolesHelpContent: HelpModuleContent = {
         en: "You can search roles, sort by name/type/permissions, adjust pagination, and preview role permissions.",
       },
       howTo: [
-        { es: "Para ver permisos: haz clic en el icono de vista de un rol para ver su cobertura detallada.", en: "To view permissions: click the view icon on a role to see its detailed coverage." },
-        { es: "Para editar: localiza el rol custom y usa la accion de edicion para actualizar nombre o permisos.", en: "To edit: locate the custom role and use the edit action to update name or permissions." },
-        { es: "Para eliminar: confirma que el rol no tiene usuarios asignados antes de proceder.", en: "To delete: confirm the role has no assigned users before proceeding." },
+        {
+          es: "Para ver permisos: haz clic en el icono de vista de un rol para ver su cobertura detallada.",
+          en: "To view permissions: click the view icon on a role to see its detailed coverage.",
+        },
+        {
+          es: "Para editar: localiza el rol custom y usa la accion de edicion para actualizar nombre o permisos.",
+          en: "To edit: locate the custom role and use the edit action to update name or permissions.",
+        },
+        {
+          es: "Para eliminar: confirma que el rol no tiene usuarios asignados antes de proceder.",
+          en: "To delete: confirm the role has no assigned users before proceeding.",
+        },
       ],
       bestPractices: [
         {
@@ -191,10 +209,22 @@ const rolesHelpContent: HelpModuleContent = {
         en: "Recommended flow: review metrics, filter and sort, validate role permissions, then apply edit or creation.",
       },
       howTo: [
-        { es: "Revisa las tarjetas de metricas para detectar cobertura baja o roles sin permisos.", en: "Review the metrics cards to detect low coverage or roles without permissions." },
-        { es: "Filtra por tipo (sistema/custom) para enfocar la revision donde apliques cambios.", en: "Filter by type (system/custom) to focus review where you apply changes." },
-        { es: "Abre el detalle de permisos del rol antes de editar para entender su alcance actual.", en: "Open the role permissions detail before editing to understand its current scope." },
-        { es: "Aplica la edicion o crea un nuevo rol con los permisos necesarios.", en: "Apply the edit or create a new role with the required permissions." },
+        {
+          es: "Revisa las tarjetas de metricas para detectar cobertura baja o roles sin permisos.",
+          en: "Review the metrics cards to detect low coverage or roles without permissions.",
+        },
+        {
+          es: "Filtra por tipo (sistema/custom) para enfocar la revision donde apliques cambios.",
+          en: "Filter by type (system/custom) to focus review where you apply changes.",
+        },
+        {
+          es: "Abre el detalle de permisos del rol antes de editar para entender su alcance actual.",
+          en: "Open the role permissions detail before editing to understand its current scope.",
+        },
+        {
+          es: "Aplica la edicion o crea un nuevo rol con los permisos necesarios.",
+          en: "Apply the edit or create a new role with the required permissions.",
+        },
       ],
       warnings: [
         {
@@ -211,9 +241,18 @@ const rolesHelpContent: HelpModuleContent = {
         en: "Common mistake: creating highly similar roles. Prefer consolidation to reduce operational complexity.",
       },
       howTo: [
-        { es: "Busca por nombre antes de crear para verificar que no exista un rol equivalente.", en: "Search by name before creating to verify an equivalent role doesn't already exist." },
-        { es: "Compara permisos entre roles similares antes de consolidar; usa la vista de permisos para hacerlo.", en: "Compare permissions between similar roles before consolidating; use the permissions view to do so." },
-        { es: "Si identificas duplicados, asigna los usuarios al rol que continuara y elimina el redundante.", en: "If you identify duplicates, reassign users to the surviving role and delete the redundant one." },
+        {
+          es: "Busca por nombre antes de crear para verificar que no exista un rol equivalente.",
+          en: "Search by name before creating to verify an equivalent role doesn't already exist.",
+        },
+        {
+          es: "Compara permisos entre roles similares antes de consolidar; usa la vista de permisos para hacerlo.",
+          en: "Compare permissions between similar roles before consolidating; use the permissions view to do so.",
+        },
+        {
+          es: "Si identificas duplicados, asigna los usuarios al rol que continuara y elimina el redundante.",
+          en: "If you identify duplicates, reassign users to the surviving role and delete the redundant one.",
+        },
       ],
     },
   ],

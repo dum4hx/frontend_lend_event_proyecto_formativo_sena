@@ -763,7 +763,6 @@ export const EditRequestModal: React.FC<EditRequestModalProps> = ({
                   value={item.modelId}
                   onChange={(val) => updateItem(idx, { modelId: val })}
                   placeholder={isEs ? "Seleccionar tipo" : "Select material type"}
-                  isLoading={loadingItems}
                   disabled={loadingItems}
                 />
                 <input

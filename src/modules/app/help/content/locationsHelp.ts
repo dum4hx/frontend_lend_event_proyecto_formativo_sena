@@ -154,9 +154,18 @@ const locationsHelpContent: HelpModuleContent = {
         en: "Here you control warehouse zones and locations to organize inventory and operational capacity.",
       },
       howTo: [
-        { es: "Abre el modulo desde el menu lateral en Inventario > Ubicaciones.", en: "Open the module from the sidebar under Inventory > Locations." },
-        { es: "Usa la barra de busqueda y los filtros de estado para localizar una ubicacion.", en: "Use the search bar and status filters to locate a location." },
-        { es: "Haz clic en una fila de la tabla para ver detalle, editar o eliminar.", en: "Click a table row to view details, edit, or delete." },
+        {
+          es: "Abre el modulo desde el menu lateral en Inventario > Ubicaciones.",
+          en: "Open the module from the sidebar under Inventory > Locations.",
+        },
+        {
+          es: "Usa la barra de busqueda y los filtros de estado para localizar una ubicacion.",
+          en: "Use the search bar and status filters to locate a location.",
+        },
+        {
+          es: "Haz clic en una fila de la tabla para ver detalle, editar o eliminar.",
+          en: "Click a table row to view details, edit, or delete.",
+        },
       ],
       tips: [
         {
@@ -173,10 +182,22 @@ const locationsHelpContent: HelpModuleContent = {
         en: "You can export, import, create, edit, and delete locations, while reviewing capacity and utilization.",
       },
       howTo: [
-        { es: "Para crear: haz clic en 'Nueva ubicacion', completa datos de direccion y capacidad, y guarda.", en: "To create: click 'New location', fill in address and capacity data, then save." },
-        { es: "Para configurar capacidad masiva: usa la herramienta de capacidad en el formulario para asignar cantidades a varios tipos a la vez.", en: "To configure bulk capacity: use the capacity tool in the form to assign quantities to multiple types at once." },
-        { es: "Para importar: descarga la plantilla, completa los campos y sube el archivo.", en: "To import: download the template, fill in the fields, and upload the file." },
-        { es: "Para eliminar: verifica que no haya inventario activo en la ubicacion antes de confirmar.", en: "To delete: verify there is no active inventory at the location before confirming." },
+        {
+          es: "Para crear: haz clic en 'Nueva ubicacion', completa datos de direccion y capacidad, y guarda.",
+          en: "To create: click 'New location', fill in address and capacity data, then save.",
+        },
+        {
+          es: "Para configurar capacidad masiva: usa la herramienta de capacidad en el formulario para asignar cantidades a varios tipos a la vez.",
+          en: "To configure bulk capacity: use the capacity tool in the form to assign quantities to multiple types at once.",
+        },
+        {
+          es: "Para importar: descarga la plantilla, completa los campos y sube el archivo.",
+          en: "To import: download the template, fill in the fields, and upload the file.",
+        },
+        {
+          es: "Para eliminar: verifica que no haya inventario activo en la ubicacion antes de confirmar.",
+          en: "To delete: verify there is no active inventory at the location before confirming.",
+        },
       ],
       bestPractices: [
         {
@@ -193,10 +214,22 @@ const locationsHelpContent: HelpModuleContent = {
         en: "Recommended flow: review metrics, apply filters, validate the table, then create or import new locations.",
       },
       howTo: [
-        { es: "Revisa las metricas del encabezado para ver utilizacion total del almacen.", en: "Review the header metrics to see total warehouse utilization." },
-        { es: "Aplica filtros de texto o estado para acotar la tabla a la ubicacion deseada.", en: "Apply text or status filters to narrow the table to the desired location." },
-        { es: "Si no existe, usa 'Nueva ubicacion' y completa el formulario con direccion y capacidad.", en: "If none exists, use 'New location' and complete the form with address and capacity." },
-        { es: "Verifica que la ubicacion aparece en la tabla con el estado correcto.", en: "Verify that the location appears in the table with the correct status." },
+        {
+          es: "Revisa las metricas del encabezado para ver utilizacion total del almacen.",
+          en: "Review the header metrics to see total warehouse utilization.",
+        },
+        {
+          es: "Aplica filtros de texto o estado para acotar la tabla a la ubicacion deseada.",
+          en: "Apply text or status filters to narrow the table to the desired location.",
+        },
+        {
+          es: "Si no existe, usa 'Nueva ubicacion' y completa el formulario con direccion y capacidad.",
+          en: "If none exists, use 'New location' and complete the form with address and capacity.",
+        },
+        {
+          es: "Verifica que la ubicacion aparece en la tabla con el estado correcto.",
+          en: "Verify that the location appears in the table with the correct status.",
+        },
       ],
       warnings: [
         {
@@ -213,9 +246,18 @@ const locationsHelpContent: HelpModuleContent = {
         en: "Common mistake: importing files with invalid format or capacities not aligned to material types. Review the template before uploading.",
       },
       howTo: [
-        { es: "Descarga la plantilla oficial desde el boton de importacion.", en: "Download the official template from the import button." },
-        { es: "Verifica que los nombres de columna coincidan y que cada fila tenga todos los campos requeridos.", en: "Verify that column names match and each row has all required fields." },
-        { es: "Sube el archivo y lee el resumen de errores para corregir antes de reintentar.", en: "Upload the file and read the error summary to correct issues before retrying." },
+        {
+          es: "Descarga la plantilla oficial desde el boton de importacion.",
+          en: "Download the official template from the import button.",
+        },
+        {
+          es: "Verifica que los nombres de columna coincidan y que cada fila tenga todos los campos requeridos.",
+          en: "Verify that column names match and each row has all required fields.",
+        },
+        {
+          es: "Sube el archivo y lee el resumen de errores para corregir antes de reintentar.",
+          en: "Upload the file and read the error summary to correct issues before retrying.",
+        },
       ],
     },
   ],

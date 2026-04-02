@@ -17,11 +17,22 @@ const subscriptionHelpContent: HelpModuleContent = {
       body: {
         es: "Aqui controlas el estado de tu plan y su impacto economico y operativo.",
         en: "Here you control plan status and its financial and operational impact.",
-      },      howTo: [
-        { es: "Abre el modulo de Suscripcion desde el menu de configuracion.", en: "Open the Subscription module from the settings menu." },
-        { es: "Revisa las tarjetas de metricas: plan actual, asientos y fecha de renovacion.", en: "Review the metrics cards: current plan, seats, and renewal date." },
-        { es: "Consulta el historial de facturacion antes de hacer cualquier cambio de plan.", en: "Check billing history before making any plan changes." },
-      ],      tips: [
+      },
+      howTo: [
+        {
+          es: "Abre el modulo de Suscripcion desde el menu de configuracion.",
+          en: "Open the Subscription module from the settings menu.",
+        },
+        {
+          es: "Revisa las tarjetas de metricas: plan actual, asientos y fecha de renovacion.",
+          en: "Review the metrics cards: current plan, seats, and renewal date.",
+        },
+        {
+          es: "Consulta el historial de facturacion antes de hacer cualquier cambio de plan.",
+          en: "Check billing history before making any plan changes.",
+        },
+      ],
+      tips: [
         {
           es: "Revisa el historial antes de cambiar plan para entender tendencia de costos.",
           en: "Review billing history before changing plans to understand cost trends.",
@@ -34,11 +45,22 @@ const subscriptionHelpContent: HelpModuleContent = {
       body: {
         es: "Puedes exportar historial, abrir portal de facturacion, ajustar asientos, cambiar plan y cancelar suscripcion.",
         en: "You can export history, open billing portal, adjust seats, change plan, and cancel subscription.",
-      },      howTo: [
-        { es: "Para ajustar asientos: usa el control de asientos en las opciones del plan activo.", en: "To adjust seats: use the seat control in the active plan options." },
-        { es: "Para ver historial de facturacion: haz clic en exportar historial y guarda el CSV.", en: "To view billing history: click export history and save the CSV." },
-        { es: "Para cambiar de plan: usa la seccion de comparacion de planes y selecciona el nuevo.", en: "To change plan: use the plan comparison section and select the new one." },
-      ],      bestPractices: [
+      },
+      howTo: [
+        {
+          es: "Para ajustar asientos: usa el control de asientos en las opciones del plan activo.",
+          en: "To adjust seats: use the seat control in the active plan options.",
+        },
+        {
+          es: "Para ver historial de facturacion: haz clic en exportar historial y guarda el CSV.",
+          en: "To view billing history: click export history and save the CSV.",
+        },
+        {
+          es: "Para cambiar de plan: usa la seccion de comparacion de planes y selecciona el nuevo.",
+          en: "To change plan: use the plan comparison section and select the new one.",
+        },
+      ],
+      bestPractices: [
         {
           es: "Ajusta asientos segun uso real para optimizar costo mensual.",
           en: "Adjust seats according to real usage to optimize monthly cost.",
@@ -51,12 +73,26 @@ const subscriptionHelpContent: HelpModuleContent = {
       body: {
         es: "Flujo recomendado: revisa metricas, ajusta asientos, compara planes y finalmente valida historial exportado.",
         en: "Recommended flow: review metrics, adjust seats, compare plans, then validate exported billing history.",
-      },      howTo: [
-        { es: "Revisa las tarjetas de metricas para entender el uso actual de asientos y costo.", en: "Review the metrics cards to understand current seat usage and cost." },
-        { es: "Ajusta el numero de asientos al uso real del equipo para evitar sobrecostos.", en: "Adjust the number of seats to actual team usage to avoid overcharges." },
-        { es: "Compara las opciones de plan disponibles antes de tomar la decision de cambio.", en: "Compare available plan options before making the change decision." },
-        { es: "Exporta el historial de facturacion y guardalo como respaldo despues de los cambios.", en: "Export the billing history and save it as a backup after the changes." },
-      ],      warnings: [
+      },
+      howTo: [
+        {
+          es: "Revisa las tarjetas de metricas para entender el uso actual de asientos y costo.",
+          en: "Review the metrics cards to understand current seat usage and cost.",
+        },
+        {
+          es: "Ajusta el numero de asientos al uso real del equipo para evitar sobrecostos.",
+          en: "Adjust the number of seats to actual team usage to avoid overcharges.",
+        },
+        {
+          es: "Compara las opciones de plan disponibles antes de tomar la decision de cambio.",
+          en: "Compare available plan options before making the change decision.",
+        },
+        {
+          es: "Exporta el historial de facturacion y guardalo como respaldo despues de los cambios.",
+          en: "Export the billing history and save it as a backup after the changes.",
+        },
+      ],
+      warnings: [
         {
           es: "Cambios de plan y cancelacion pueden afectar acceso a funciones premium.",
           en: "Plan changes and cancellation may affect premium feature access.",
@@ -69,11 +105,22 @@ const subscriptionHelpContent: HelpModuleContent = {
       body: {
         es: "Error frecuente: aumentar asientos sin evaluar demanda real. Usa historial y uso actual como referencia.",
         en: "Common mistake: increasing seats without evaluating real demand. Use history and current usage as reference.",
-      },      howTo: [
-        { es: "Antes de agregar asientos, revisa cuantos estan actualmente en uso en las metricas.", en: "Before adding seats, review how many are currently in use in the metrics." },
-        { es: "Consulta el historial exportado para ver si el uso ha sido consistente en periodos anteriores.", en: "Check the exported history to see if usage has been consistent in previous periods." },
-        { es: "Para cancelacion: confirma el impacto en automatizaciones y acceso antes de proceder.", en: "For cancellation: confirm the impact on automations and access before proceeding." },
-      ],    },
+      },
+      howTo: [
+        {
+          es: "Antes de agregar asientos, revisa cuantos estan actualmente en uso en las metricas.",
+          en: "Before adding seats, review how many are currently in use in the metrics.",
+        },
+        {
+          es: "Consulta el historial exportado para ver si el uso ha sido consistente en periodos anteriores.",
+          en: "Check the exported history to see if usage has been consistent in previous periods.",
+        },
+        {
+          es: "Para cancelacion: confirma el impacto en automatizaciones y acceso antes de proceder.",
+          en: "For cancellation: confirm the impact on automations and access before proceeding.",
+        },
+      ],
+    },
   ],
   walkthrough: [
     {

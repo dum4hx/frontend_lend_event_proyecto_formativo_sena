@@ -5,6 +5,7 @@ import { ToastContainer } from "../../../components/ui/ToastContainer";
 import { ToastProvider, useToast } from "../../../contexts/ToastContext";
 import { AnimatedPage } from "../../../components/ui";
 import { HelpPanel, HelpPanelProvider, useHelpPanel } from "../help";
+import { EntityDetailProvider } from "../../../contexts/EntityDetailContext";
 
 function AppLayoutContent() {
   const { toasts, dismissToast } = useToast();
@@ -38,7 +39,9 @@ export default function AppLayout() {
   return (
     <ToastProvider>
       <HelpPanelProvider>
-        <AppLayoutContent />
+        <EntityDetailProvider>
+          <AppLayoutContent />
+        </EntityDetailProvider>
       </HelpPanelProvider>
     </ToastProvider>
   );
