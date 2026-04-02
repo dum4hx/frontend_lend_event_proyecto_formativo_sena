@@ -4,13 +4,15 @@ import { Sidebar } from "../components";
 import { ToastContainer } from "../../../components/ui/ToastContainer";
 import { ToastProvider, useToast } from "../../../contexts/ToastContext";
 import { AnimatedPage } from "../../../components/ui";
-import { HelpPanel, HelpPanelProvider } from "../help";
+import { HelpPanel, HelpPanelProvider, useHelpPanel } from "../help";
 
 function AppLayoutContent() {
   const { toasts, dismissToast } = useToast();
+  const { isOpen: isHelpPanelOpen } = useHelpPanel();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const sidebarMargin = isSidebarCollapsed ? "ml-20" : "ml-64";
+  const helpPanelMargin = isHelpPanelOpen ? "md:mr-[28rem]" : "";
 
   return (
     <div className="app-shell min-h-screen bg-[#121212] text-white">
@@ -18,7 +20,7 @@ function AppLayoutContent() {
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
       />
-      <div className={`transition-all duration-300 ${sidebarMargin}`}>
+      <div className={`transition-all duration-300 ${sidebarMargin} ${helpPanelMargin}`}>
         <main className="p-8 min-h-screen">
           <AnimatedPage>
             <Outlet />
