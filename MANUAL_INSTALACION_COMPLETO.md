@@ -1393,8 +1393,3 @@ Ahora puedes:
 - ✅ Inspeccionar materiales
 - ✅ Y mucho más...
 
-**Hecho con ❤️ para la plataforma LendEvent**
-
----
-
-**¿Necesitas ayuda?** Revisa la sección de Solución de Problemas o contacta al equipo de desarrollo.
