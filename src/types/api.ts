@@ -477,19 +477,31 @@ export interface LoanRequestItem {
   materialTypeId?: string;
   packageId?: string;
   quantity?: number;
+  pricePerDay?: number;
+  pricingConfigId?: string;
+  pricingStrategyType?: string;
+  totalPrice?: number;
 }
 
 export interface LoanRequest {
   _id: string;
-  customerId: string;
+  customerId: {
+    _id?: string;
+    email: string;
+    name: PersonName;
+  };
   items: LoanRequestItem[];
   startDate: string;
   endDate: string;
   status: LoanRequestStatus;
   notes?: string;
   depositAmount?: number;
+  depositDueDate?: string;
   depositPaidAt?: string;
+  subtotal?: number;
   totalAmount?: number;
+  discountAmount?: number;
+  totalDays?: number;
   rentalFeePaidAt?: string;
   loanId?: string;
 }
@@ -514,7 +526,7 @@ export interface AssignMaterialPayload {
 export type LoanStatus = "active" | "overdue" | "returned" | "closed";
 
 export type DepositStatus =
-  | "pending"
+  | "not_required"
   | "held"
   | "partially_applied"
   | "applied"
@@ -535,7 +547,11 @@ export interface Loan {
   status: LoanStatus;
   startDate: string;
   endDate: string;
+  returnedAt?: string;
   notes?: string;
+  totalAmount?: number;
+  damageFees?: number;
+  lateFees?: number;
   deposit: {
     amount: number;
     status: DepositStatus;
@@ -587,52 +603,83 @@ export interface ExtendLoanPayload {
 
 export type InspectionCondition = "good" | "damaged" | "lost";
 
-export interface InspectionItem {
+/** Request-side item shape for POST /inspections. */
+export interface InspectionItemInput {
   materialInstanceId: string;
   condition: InspectionCondition;
+  notes?: string;
+  damageDescription?: string;
+  damageCost?: number;
+}
+
+/** Response-side item shape returned by GET /inspections/:id. */
+export interface InspectionItemResponse {
+  materialInstanceId: {
+    _id: string;
+    serialNumber: string;
+    modelId: string;
+  };
   conditionBefore?: InspectionCondition;
+  conditionAfter: InspectionCondition;
   conditionDegraded?: boolean;
   notes?: string;
-  damageDescription: string;
-  damageCost?: number;
+  damageDescription?: string;
+  chargeToCustomer?: number;
+  repairRequired?: boolean;
 }
 
 export interface Inspection {
   _id: string;
+  organizationId: string;
   loanId: string;
-  items: InspectionItem[];
-  overallNotes?: string;
+  inspectedBy: {
+    email: string;
+    profile: { firstName: string };
+  };
+  items: InspectionItemResponse[];
+  notes?: string;
+  status: "completed";
+  createdAt: string;
+}
+
+/** Shape returned by GET /inspections list (loanId is populated). */
+export interface InspectionListItem extends Omit<Inspection, "loanId"> {
+  loanId: {
+    _id: string;
+    customerId: string;
+    startDate: string;
+    endDate: string;
+  };
 }
 
 export interface CreateInspectionPayload {
   loanId: string;
-  items: InspectionItem[];
+  items: InspectionItemInput[];
   overallNotes?: string;
   dueDate?: string;
+}
+
+export interface InspectionsQueryParams {
+  page?: number;
+  limit?: number;
+  loanId?: string;
 }
 
 export interface PendingLoan {
   _id: string;
   customerId: {
-    _id: string;
+    _id?: string;
     email: string;
-    name: {
-      firstName: string;
-      firstSurname: string;
-      secondName?: string;
-      secondSurname?: string;
-    };
+    name: PersonName;
   };
-  materialInstances: {
+  materialInstances: Array<{
     materialInstanceId: {
       _id: string;
       serialNumber: string;
+      modelId: string;
     };
-    materialTypeId: {
-      _id: string;
-      name: string;
-    };
-  }[];
+    materialTypeId: string;
+  }>;
   startDate: string;
   endDate: string;
   status: "returned";
@@ -655,6 +702,8 @@ export type IncidentSeverity = "low" | "medium" | "high" | "critical";
 
 export type IncidentSourceType = "inspection" | "scheduler" | "manual";
 
+export type IncidentContext = "loan" | "transit" | "storage" | "maintenance" | "other";
+
 export interface IncidentFinancialImpact {
   estimated?: number;
   actual?: number;
@@ -664,7 +713,9 @@ export interface IncidentFinancialImpact {
 export interface Incident {
   _id: string;
   organizationId: string;
-  loanId: string | Loan;
+  context: IncidentContext;
+  loanId?: string | Loan;
+  locationId?: string;
   type: IncidentType;
   status: IncidentStatus;
   severity: IncidentSeverity;
@@ -683,7 +734,9 @@ export interface Incident {
 }
 
 export interface CreateIncidentPayload {
-  loanId: string;
+  context: IncidentContext;
+  loanId?: string;
+  locationId?: string;
   type: IncidentType;
   severity?: IncidentSeverity;
   relatedMaterialInstances?: string[];
@@ -699,7 +752,9 @@ export interface ResolveIncidentPayload {
 export interface IncidentQueryParams {
   page?: number;
   limit?: number;
+  context?: IncidentContext;
   loanId?: string;
+  locationId?: string;
   type?: IncidentType;
   status?: IncidentStatus;
   severity?: IncidentSeverity;
@@ -804,6 +859,129 @@ export interface UpdatePaymentMethodPayload {
   name?: string;
   description?: string;
   status?: "active" | "inactive";
+}
+
+// ─── Maintenance Batches ───────────────────────────────────────────────────
+
+/** Possible statuses for a maintenance batch. */
+export type MaintenanceBatchStatus = "draft" | "in_progress" | "completed" | "cancelled";
+
+/** Possible statuses for an individual maintenance item. */
+export type MaintenanceItemStatus = "pending" | "in_repair" | "repaired" | "unrecoverable";
+
+/** Reason an item entered maintenance. */
+export type MaintenanceEntryReason = "damaged" | "lost" | "other";
+
+/** Source that originated the maintenance item. */
+export type MaintenanceSourceType = "inspection" | "incident" | "manual";
+
+/** Final resolution of a maintenance item. */
+export type MaintenanceResolution = "repaired" | "unrecoverable";
+
+/** Populated material instance reference within a maintenance item. */
+export interface MaintenanceMaterialInstanceRef {
+  _id: string;
+  serialNumber: string;
+}
+
+/** A single item within a maintenance batch. */
+export interface MaintenanceBatchItem {
+  _id: string;
+  materialInstanceId: MaintenanceMaterialInstanceRef | string;
+  entryReason: MaintenanceEntryReason;
+  itemStatus: MaintenanceItemStatus;
+  sourceType: MaintenanceSourceType;
+  sourceId?: string;
+  sourceItemIndex?: number;
+  estimatedCost?: number;
+  actualCost?: number;
+  repairNotes?: string;
+  resolvedAt?: string;
+}
+
+/** Full maintenance batch with populated references (detail view). */
+export interface MaintenanceBatch {
+  _id: string;
+  name: string;
+  status: MaintenanceBatchStatus;
+  items: MaintenanceBatchItem[];
+  organizationId: string;
+  createdBy: string;
+  description?: string;
+  scheduledStartDate?: string;
+  scheduledEndDate?: string;
+  assignedTo?: { _id: string; email: string };
+  locationId?: string;
+  notes?: string;
+  totalEstimatedCost: number;
+  totalActualCost: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Slim batch representation used in list responses. */
+export interface MaintenanceBatchListItem {
+  _id: string;
+  name: string;
+  status: MaintenanceBatchStatus;
+  items: MaintenanceBatchItem[];
+  totalEstimatedCost: number;
+  totalActualCost: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Query parameters for listing maintenance batches. */
+export interface MaintenanceBatchQueryParams {
+  page?: number;
+  limit?: number;
+  status?: MaintenanceBatchStatus;
+  assignedTo?: string;
+}
+
+/** Payload for creating a new maintenance batch. */
+export interface CreateMaintenanceBatchPayload {
+  name: string;
+  description?: string;
+  scheduledStartDate?: string;
+  scheduledEndDate?: string;
+  assignedTo?: string;
+  locationId?: string;
+  notes?: string;
+}
+
+/** Payload for updating a draft maintenance batch. */
+export interface UpdateMaintenanceBatchPayload {
+  name?: string;
+  description?: string;
+  scheduledStartDate?: string;
+  scheduledEndDate?: string;
+  assignedTo?: string;
+  locationId?: string;
+  notes?: string;
+}
+
+/** Single item input when adding items to a batch. */
+export interface AddMaintenanceBatchItemInput {
+  materialInstanceId: string;
+  entryReason: MaintenanceEntryReason;
+  sourceType: MaintenanceSourceType;
+  sourceId?: string;
+  sourceItemIndex?: number;
+  estimatedCost?: number;
+  repairNotes?: string;
+}
+
+/** Payload for adding items to a maintenance batch. */
+export interface AddMaintenanceBatchItemsPayload {
+  items: AddMaintenanceBatchItemInput[];
+}
+
+/** Payload for resolving a single maintenance item. */
+export interface ResolveMaintenanceBatchItemPayload {
+  resolution: MaintenanceResolution;
+  actualCost?: number;
+  repairNotes?: string;
 }
 
 // ─── Billing ───────────────────────────────────────────────────────────────
