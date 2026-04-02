@@ -274,6 +274,12 @@ export function TransferRequests() {
   // ── Render helpers ──
   const renderRequestActions = (req: TransferRequest) => {
     const canApproveReject = canUpdate && userLocations.includes(req.fromLocationId);
+    const isCreator = user?._id === req.requestedBy;
+    const canEdit = canUpdate && isCreator && req.status === "requested";
+
+    console.log(
+      `[renderRequestActions] Request ${req._id} - user._id: ${user?._id}, requestedBy: ${req.requestedBy}, isCreator: ${isCreator}, canUpdate: ${canUpdate}, status: ${req.status}, canEdit: ${canEdit}`,
+    );
 
     if (req.status === "requested" && canUpdate) {
       return (
@@ -285,6 +291,24 @@ export function TransferRequests() {
           >
             <Eye size={12} />
           </button>
+          {canEdit && (
+            <>
+              <button
+                onClick={() => setEditTarget(req)}
+                title={isEs ? "Editar" : "Edit"}
+                className="flex items-center gap-1 px-2.5 h-7 bg-blue-700/20 hover:bg-blue-600/30 text-blue-400 hover:text-blue-300 border border-blue-700/30 rounded text-xs font-medium transition-all"
+              >
+                {isEs ? "Editar" : "Edit"}
+              </button>
+              <button
+                onClick={() => void handleCancelRequest(req._id)}
+                title={isEs ? "Cancelar" : "Cancel"}
+                className="flex items-center gap-1 px-2.5 h-7 bg-red-700/20 hover:bg-red-600/30 text-red-400 hover:text-red-300 border border-red-700/30 rounded text-xs font-medium transition-all"
+              >
+                {isEs ? "Cancelar" : "Cancel"}
+              </button>
+            </>
+          )}
           {canApproveReject && (
             <>
               <button
@@ -701,7 +725,7 @@ export function TransferRequests() {
             locationName={locationName}
             materialTypeName={getMaterialTypeName}
             userName={getUserName}
-            userId={user?.id}
+            userId={user?._id}
             canUpdate={canUpdate}
             onEdit={() => {
               setEditTarget(viewTarget);

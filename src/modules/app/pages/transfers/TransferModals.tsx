@@ -253,22 +253,31 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
 
         {/* Footer */}
         <div className="flex justify-end gap-2 p-6 border-t border-[#222]">
-          {canUpdate && userId === request.requestedBy && request.status === "requested" && (
-            <>
-              <button
-                onClick={onCancel}
-                className="px-5 py-2.5 bg-red-700/20 hover:bg-red-600/30 text-red-400 hover:text-red-300 border border-red-700/30 rounded-lg text-sm font-medium transition-all"
-              >
-                {isEs ? "Cancelar Solicitud" : "Cancel Request"}
-              </button>
-              <button
-                onClick={onEdit}
-                className="px-5 py-2.5 bg-blue-700/20 hover:bg-blue-600/30 text-blue-400 hover:text-blue-300 border border-blue-700/30 rounded-lg text-sm font-medium transition-all"
-              >
-                {isEs ? "Editar" : "Edit"}
-              </button>
-            </>
-          )}
+          {(() => {
+            console.log(
+              `[RequestDetailModal] Conditions - canUpdate: ${canUpdate}, userId: ${userId}, requestedBy: ${request.requestedBy}, status: ${request.status}`,
+            );
+            return (
+              canUpdate &&
+              userId === request.requestedBy &&
+              request.status === "requested" && (
+                <>
+                  <button
+                    onClick={onCancel}
+                    className="px-5 py-2.5 bg-red-700/20 hover:bg-red-600/30 text-red-400 hover:text-red-300 border border-red-700/30 rounded-lg text-sm font-medium transition-all"
+                  >
+                    {isEs ? "Cancelar Solicitud" : "Cancel Request"}
+                  </button>
+                  <button
+                    onClick={onEdit}
+                    className="px-5 py-2.5 bg-blue-700/20 hover:bg-blue-600/30 text-blue-400 hover:text-blue-300 border border-blue-700/30 rounded-lg text-sm font-medium transition-all"
+                  >
+                    {isEs ? "Editar" : "Edit"}
+                  </button>
+                </>
+              )
+            );
+          })()}
           <button
             onClick={onClose}
             className="px-5 py-2.5 bg-[#FFD700] text-black font-bold rounded-lg text-sm hover:bg-[#e6c200] transition-colors"
