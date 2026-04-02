@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { useToast } from "../../../../contexts/ToastContext";
 import { useLanguage } from "../../../../contexts/useLanguage";
-import { SearchableSelect } from "../../../../components/ui";
+import { SearchableSelect, EntityLink } from "../../../../components/ui";
 import type { SelectOption } from "../../../../components/ui";
 import {
   createTransferRequest,
@@ -151,10 +151,21 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
             <p className="text-xs text-gray-500 font-semibold mb-3 uppercase tracking-wide">
               {isEs ? "Ruta de Transferencia" : "Transfer Route"}
             </p>
-            <TransferRoute
-              fromLocation={locationName(request.fromLocationId)}
-              toLocation={locationName(request.toLocationId)}
-            />
+            <div className="flex items-center gap-3 text-sm">
+              <EntityLink
+                entityType="location"
+                entityId={request.fromLocationId}
+                label={locationName(request.fromLocationId)}
+                className="font-medium"
+              />
+              <ArrowLeftRight size={14} className="text-[#FFD700] shrink-0" />
+              <EntityLink
+                entityType="location"
+                entityId={request.toLocationId}
+                label={locationName(request.toLocationId)}
+                className="font-medium"
+              />
+            </div>
           </div>
 
           {/* Metadata Grid */}
@@ -221,9 +232,12 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
                   className="bg-[#0a0a0a] border border-[#222] rounded-lg p-4"
                 >
                   <div className="flex items-center justify-between mb-3">
-                    <p className="text-sm font-semibold text-white">
-                      {materialTypeName(materialTypeId)}
-                    </p>
+                    <EntityLink
+                      entityType="materialType"
+                      entityId={materialTypeId}
+                      label={materialTypeName(materialTypeId)}
+                      className="text-sm font-semibold"
+                    />
                     <span className="px-2.5 py-0.5 bg-[#FFD700]/15 text-[#FFD700] rounded text-xs font-bold">
                       ×{items.reduce((sum, item) => sum + item.quantity, 0)}
                     </span>
