@@ -11,6 +11,7 @@ import {
   Boxes,
   Send,
   ShoppingCart,
+  Table2,
 } from "lucide-react";
 import { StatCard } from "../../components";
 import { PageHeader } from "../../../../components/ui";
@@ -27,6 +28,7 @@ import { getLocations } from "../../../../services/warehouseOperatorService";
 import { commercialAdvisorService } from "../../../../services/commercialAdvisorService";
 import { ApiError } from "../../../../lib/api";
 import { useLanguage } from "../../../../contexts/useLanguage";
+import { exportTableToPDF, exportTableToXLSX } from "../../../../utils/tableExport";
 import {
   fmtCurrency,
   fmtDate,
@@ -784,6 +786,25 @@ export default function Reports() {
     exportToCSV(headers, rows, filename);
   };
 
+  const handleExportPDF = () => {
+    const date = new Date().toISOString().slice(0, 10);
+    const exportData = {
+      headers,
+      rows: rows.map((r) => r.columns),
+    };
+    const title = `${moduleConfig[activeModule].label} Report`;
+    exportTableToPDF(exportData, `report_${activeModule}_${date}.pdf`, title);
+  };
+
+  const handleExportXLSX = () => {
+    const date = new Date().toISOString().slice(0, 10);
+    const exportData = {
+      headers,
+      rows: rows.map((r) => r.columns),
+    };
+    exportTableToXLSX(exportData, `report_${activeModule}_${date}.xlsx`);
+  };
+
   // ─── Render ────────────────────────────────────────────────────────────
 
   return (
@@ -803,12 +824,28 @@ export default function Reports() {
                 {isEs ? "Actualizar" : "Refresh"}
               </button>
               <button
+                onClick={handleExportPDF}
+                disabled={loading || rows.length === 0}
+                className="flex items-center gap-2 px-4 py-2 gold-action-btn font-semibold rounded-lg transition disabled:opacity-50"
+              >
+                <FileText size={16} />
+                PDF
+              </button>
+              <button
+                onClick={handleExportXLSX}
+                disabled={loading || rows.length === 0}
+                className="flex items-center gap-2 px-4 py-2 gold-action-btn font-semibold rounded-lg transition disabled:opacity-50"
+              >
+                <Table2 size={16} />
+                XLS
+              </button>
+              <button
                 onClick={handleExport}
                 disabled={loading || rows.length === 0}
                 className="flex items-center gap-2 px-4 py-2 gold-action-btn font-semibold rounded-lg transition disabled:opacity-50"
               >
                 <Download size={16} />
-                {isEs ? "Exportar CSV" : "Export CSV"}
+                CSV
               </button>
             </div>
           }

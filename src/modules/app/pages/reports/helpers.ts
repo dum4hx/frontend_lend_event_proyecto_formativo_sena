@@ -27,7 +27,9 @@ export const fmtId = (id: string | undefined): string => {
   return id;
 };
 
-export function getReferenceId(value: string | Customer | undefined): string | undefined {
+export function getReferenceId(
+  value: string | { _id?: string } | undefined,
+): string | undefined {
   if (!value) return undefined;
   return typeof value === "string" ? value : value._id;
 }
