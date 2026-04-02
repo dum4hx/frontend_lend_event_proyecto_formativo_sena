@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 import { LoadingSpinner, ErrorDisplay } from "../../components/ui";
 import { RequestDetailModal } from "../../modules/app/pages/transfers/TransferModals";
-import { getTransferRequests } from "../../services/transferService";
+import { getTransferRequest } from "../../services/transferService";
 import { getMaterialType } from "../../services/materialService";
-import { getLocations, type WarehouseLocation } from "../../services/warehouseOperatorService";
 import type { TransferRequest } from "../../types/api";
 
 interface Props {
@@ -13,20 +12,18 @@ interface Props {
 
 export default function TransferRequestDetailLauncher({ id, onClose }: Props) {
   const [request, setRequest] = useState<TransferRequest | null>(null);
-  const [locations, setLocations] = useState<WarehouseLocation[]>([]);
+  const [locationNames, setLocationNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [materialTypeCache] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([getTransferRequests(), getLocations()])
-      .then(([reqRes, locRes]) => {
+    getTransferRequest(id)
+      .then(({ request: req, locationNames: names }) => {
         if (cancelled) return;
-        const found = reqRes.data.requests.find((r) => r._id === id) ?? null;
-        setLocations(locRes.data.items ?? []);
-        setRequest(found);
-        if (!found) setError("Transfer request not found.");
+        setRequest(req);
+        setLocationNames(names);
       })
       .catch((err: unknown) => {
         if (cancelled) return;
@@ -42,8 +39,7 @@ export default function TransferRequestDetailLauncher({ id, onClose }: Props) {
     };
   }, [id]);
 
-  const locationName = (locationId: string) =>
-    locations.find((l) => l._id === locationId)?.name ?? locationId;
+  const locationName = (locationId: string) => locationNames[locationId] ?? locationId;
 
   const materialTypeName = (modelId: string): string => {
     const cached = materialTypeCache.get(modelId);

@@ -1429,6 +1429,7 @@ export interface TransferRequest {
   status: TransferRequestStatus;
   items: TransferRequestItem[];
   notes?: string;
+  neededBy?: string;
   createdAt: string;
   updatedAt?: string;
 }

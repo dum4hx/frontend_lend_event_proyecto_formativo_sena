@@ -95,6 +95,60 @@ export async function getTransferRequests(
   } as ApiSuccessResponse<{ requests: TransferRequest[] }>;
 }
 
+/** Get a single transfer request by ID. Returns the normalized request and extracted location names. */
+export async function getTransferRequest(
+  id: string,
+): Promise<{ request: TransferRequest; locationNames: Record<string, string> }> {
+  const res = await get<unknown>(`/transfers/requests/${id}`);
+
+  type PopulatedRef = { _id?: string; name?: string };
+  type RawSingle = {
+    _id?: string;
+    fromLocationId?: string | PopulatedRef;
+    toLocationId?: string | PopulatedRef;
+    requestedBy?: string | { _id?: string; name?: unknown };
+    status?: TransferRequest["status"];
+    items?: TransferRequestItem[];
+    notes?: string;
+    neededBy?: string;
+    createdAt?: string;
+    updatedAt?: string;
+  };
+
+  const raw = (
+    res.data !== null &&
+    typeof res.data === "object" &&
+    "data" in (res.data as Record<string, unknown>)
+      ? (res.data as Record<string, unknown>).data
+      : res.data
+  ) as RawSingle;
+
+  const fromRef = raw.fromLocationId;
+  const toRef = raw.toLocationId;
+  const requesterRef = raw.requestedBy;
+
+  const locationNames: Record<string, string> = {};
+  const fromId = typeof fromRef === "string" ? fromRef : (fromRef?._id ?? "");
+  const toId = typeof toRef === "string" ? toRef : (toRef?._id ?? "");
+  if (typeof fromRef === "object" && fromRef?.name) locationNames[fromId] = fromRef.name;
+  if (typeof toRef === "object" && toRef?.name) locationNames[toId] = toRef.name;
+
+  const request: TransferRequest = {
+    _id: raw._id ?? id,
+    fromLocationId: fromId,
+    toLocationId: toId,
+    requestedBy: typeof requesterRef === "string" ? requesterRef : (requesterRef?._id ?? ""),
+    status: raw.status ?? "requested",
+    items: raw.items ?? [],
+    notes: raw.notes,
+    neededBy: raw.neededBy,
+    createdAt: raw.createdAt ?? new Date().toISOString(),
+    updatedAt: raw.updatedAt,
+  };
+
+  return { request, locationNames };
+}
+
 /** Create a new transfer request. */
 export async function createTransferRequest(
   payload: CreateTransferRequestPayload,
