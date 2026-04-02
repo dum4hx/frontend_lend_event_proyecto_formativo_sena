@@ -141,38 +141,40 @@ export function Team() {
         exit="exit"
         className="page-container"
       >
-        <PageHeader
-          title={isEs ? "Equipo" : "Team"}
-          subtitle={
-            isEs
-              ? "Gestiona los miembros de tu organización."
-              : "Manage your organization's members."
-          }
-          actions={
-            <button
-              onClick={guard(
-                "users:create",
-                () => setShowInvite(true),
-                isEs
-                  ? "Necesitas el permiso users:create para invitar miembros."
-                  : "You need users:create permission to invite members.",
-              )}
-              aria-disabled={!canInvite}
-              title={
-                canInvite
-                  ? (isEs ? "Invitar miembro" : "Invite Member")
-                  : (isEs ? "Sin permiso: users:create" : "Missing permission: users:create")
-              }
-              className={`gold-action-btn flex items-center gap-2 transition-opacity ${!canInvite ? "opacity-50 cursor-not-allowed" : ""}`}
-            >
-              <UserPlus size={16} />
-              {isEs ? "Invitar miembro" : "Invite Member"}
-            </button>
-          }
-        />
+        <div data-help-id="team-title">
+          <PageHeader
+            title={isEs ? "Equipo" : "Team"}
+            subtitle={
+              isEs
+                ? "Gestiona los miembros de tu organización."
+                : "Manage your organization's members."
+            }
+            actions={
+              <button
+                onClick={guard(
+                  "users:create",
+                  () => setShowInvite(true),
+                  isEs
+                    ? "Necesitas el permiso users:create para invitar miembros."
+                    : "You need users:create permission to invite members.",
+                )}
+                aria-disabled={!canInvite}
+                title={
+                  canInvite
+                    ? (isEs ? "Invitar miembro" : "Invite Member")
+                    : (isEs ? "Sin permiso: users:create" : "Missing permission: users:create")
+                }
+                className={`gold-action-btn flex items-center gap-2 transition-opacity ${!canInvite ? "opacity-50 cursor-not-allowed" : ""}`}
+              >
+                <UserPlus size={16} />
+                {isEs ? "Invitar miembro" : "Invite Member"}
+              </button>
+            }
+          />
+        </div>
 
         {/* Stats Bar */}
-        <div className="stat-grid">
+        <div data-help-id="team-stats" className="stat-grid">
           {stats.map((s) => (
             <div key={s.label} className="depth-card rounded-xl p-4">
               <p className="text-xs text-zinc-500 mb-1">{s.label}</p>
@@ -182,33 +184,39 @@ export function Team() {
         </div>
 
         {/* Filters */}
-        <TeamFilters
-          search={search}
-          onSearchChange={handleFilterChange(setSearch, true)}
-          roleId={roleId}
-          onRoleChange={handleFilterChange(setRoleId, true)}
-          status={status}
-          onStatusChange={handleFilterChange(setStatus, true)}
-          availableRoles={rolesQuery.data?.items ?? []}
-        />
+        <div data-help-id="team-filters">
+          <TeamFilters
+            search={search}
+            onSearchChange={handleFilterChange(setSearch, true)}
+            roleId={roleId}
+            onRoleChange={handleFilterChange(setRoleId, true)}
+            status={status}
+            onStatusChange={handleFilterChange(setStatus, true)}
+            availableRoles={rolesQuery.data?.items ?? []}
+          />
+        </div>
 
         {/* Table */}
-        <TeamMemberTable
-          members={members}
-          isLoading={usersQuery.isLoading}
-          onView={(m) => setViewingMember(m)}
-          onEdit={(m) => setEditingMember(m)}
-          onDeactivate={handleDeactivate}
-          onReactivate={handleReactivate}
-        />
+        <div data-help-id="team-table">
+          <TeamMemberTable
+            members={members}
+            isLoading={usersQuery.isLoading}
+            onView={(m) => setViewingMember(m)}
+            onEdit={(m) => setEditingMember(m)}
+            onDeactivate={handleDeactivate}
+            onReactivate={handleReactivate}
+          />
+        </div>
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <Pagination
-            page={page}
-            totalPages={totalPages}
-            onPageChange={setPage}
-          />
+          <div data-help-id="team-pagination">
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+            />
+          </div>
         )}
 
         {/* Summary */}

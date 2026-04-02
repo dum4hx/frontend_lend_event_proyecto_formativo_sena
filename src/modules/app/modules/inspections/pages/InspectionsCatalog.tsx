@@ -54,7 +54,7 @@ export const InspectionsCatalog: React.FC = () => {
     <div className="p-6 md:p-10 space-y-10 animate-in fade-in duration-500">
       {/* Header & Stats */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
+        <div data-help-id="inspections-title">
           <h1 className="text-3xl font-extrabold text-white tracking-tight">
             Inspections <span className="text-[#FFD700]">Hub</span>
           </h1>
@@ -64,7 +64,7 @@ export const InspectionsCatalog: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-4" data-help-id="inspections-stats">
           <div className="bg-[#1a1a1a] border border-[#222] px-6 py-3 rounded-xl shadow-lg">
             <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">
               Pending Tasks
@@ -85,7 +85,7 @@ export const InspectionsCatalog: React.FC = () => {
       {/* Tabs & Filters */}
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#222] pb-1">
-          <div className="flex space-x-10">
+          <div className="flex space-x-10" data-help-id="inspections-tabs">
             <button
               onClick={() => setActiveTab("pending")}
               className={`pb-4 text-sm font-bold tracking-wide transition-all relative ${
@@ -116,7 +116,7 @@ export const InspectionsCatalog: React.FC = () => {
             </button>
           </div>
 
-          <div className="relative w-full md:w-80 group mb-2">
+          <div className="relative w-full md:w-80 group mb-2" data-help-id="inspections-search">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 group-focus-within:text-[#FFD700] transition-colors" />
             <input
               type="text"
@@ -129,7 +129,10 @@ export const InspectionsCatalog: React.FC = () => {
         </div>
 
         {/* Dynamic Content */}
-        <div className="bg-[#121212] border border-[#222] rounded-2xl overflow-hidden shadow-2xl">
+        <div
+          className="bg-[#121212] border border-[#222] rounded-2xl overflow-hidden shadow-2xl"
+          data-help-id="inspections-content"
+        >
           {activeTab === "pending" ? (
             <PendingLoansTable loans={filteredPending} onInspect={setSelectedLoan} />
           ) : (

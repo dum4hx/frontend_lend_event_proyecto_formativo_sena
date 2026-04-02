@@ -92,34 +92,36 @@ export default function PaymentMethods() {
 
   return (
     <div className="page-container">
-      <PageHeader
-        title={isEs ? "Métodos de" : "Payment"}
-        titleAccent={isEs ? "Pago" : "Methods"}
-        subtitle={
-          isEs
-            ? "Gestiona los métodos de pago aceptados por la organización."
-            : "Manage the payment methods accepted by your organization."
-        }
-        actions={
-          <div className="flex items-center gap-3">
-            <button
-              onClick={load}
-              disabled={loading}
-              className="p-3 bg-[#1a1a1a] border border-[#333] text-gray-400 hover:text-white hover:border-[#444] rounded-xl transition-all disabled:opacity-50"
-              title={isEs ? "Actualizar" : "Refresh"}
-            >
-              <RefreshCcw className={`w-5 h-5 ${loading ? "animate-spin" : ""}`} />
-            </button>
-            <Button variant="primary" size="md" onClick={() => setShowCreate(true)}>
-              <Plus size={16} className="mr-2" />
-              {isEs ? "Nuevo Método" : "New Method"}
-            </Button>
-          </div>
-        }
-      />
+      <div data-help-id="payment-methods-header">
+        <PageHeader
+          title={isEs ? "Métodos de" : "Payment"}
+          titleAccent={isEs ? "Pago" : "Methods"}
+          subtitle={
+            isEs
+              ? "Gestiona los métodos de pago aceptados por la organización."
+              : "Manage the payment methods accepted by your organization."
+          }
+          actions={
+            <div className="flex items-center gap-3" data-help-id="payment-methods-actions">
+              <button
+                onClick={load}
+                disabled={loading}
+                className="p-3 bg-[#1a1a1a] border border-[#333] text-gray-400 hover:text-white hover:border-[#444] rounded-xl transition-all disabled:opacity-50"
+                title={isEs ? "Actualizar" : "Refresh"}
+              >
+                <RefreshCcw className={`w-5 h-5 ${loading ? "animate-spin" : ""}`} />
+              </button>
+              <Button variant="primary" size="md" onClick={() => setShowCreate(true)}>
+                <Plus size={16} className="mr-2" />
+                {isEs ? "Nuevo Método" : "New Method"}
+              </Button>
+            </div>
+          }
+        />
+      </div>
 
       {/* Search */}
-      <div className="relative w-full group">
+      <div className="relative w-full group" data-help-id="payment-methods-search">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 group-focus-within:text-[#FFD700] transition-colors" />
         <input
           type="text"
@@ -138,7 +140,10 @@ export default function PaymentMethods() {
       )}
 
       {/* Table */}
-      <div className="bg-[#121212] border border-[#222] rounded-2xl overflow-hidden shadow-2xl">
+      <div
+        className="bg-[#121212] border border-[#222] rounded-2xl overflow-hidden shadow-2xl"
+        data-help-id="payment-methods-table"
+      >
         {loading && methods.length === 0 ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-8 h-8 text-[#FFD700] animate-spin" />

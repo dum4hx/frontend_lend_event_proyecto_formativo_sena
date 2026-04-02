@@ -67,7 +67,10 @@ export function VoidInvoiceModal({
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-[#121212] border border-[#333] rounded-2xl shadow-2xl max-w-md w-full animate-in fade-in zoom-in-95 duration-200">
+      <div
+        className="bg-[#121212] border border-[#333] rounded-2xl shadow-2xl max-w-md w-full animate-in fade-in zoom-in-95 duration-200"
+        data-help-id="invoice-void-form"
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-[#333]">
           <div className="flex items-center gap-3">
@@ -162,6 +165,7 @@ export function VoidInvoiceModal({
               {isEs ? "Razón de Anulación" : "Void Reason"} *
             </label>
             <textarea
+              data-help-id="invoice-void-reason"
               placeholder={
                 isEs
                   ? "Ej: Factura duplicada, error administrativo..."
@@ -194,6 +198,7 @@ export function VoidInvoiceModal({
               type="button"
               onClick={onClose}
               disabled={submitting || isLoading}
+              data-help-id="invoice-void-cancel"
               className="flex-1 px-4 py-3 rounded-lg font-semibold transition-all bg-[#1a1a1a] border border-[#333] text-gray-300 hover:bg-[#252525] disabled:opacity-50"
             >
               {isEs ? "Cancelar" : "Cancel"}
@@ -201,6 +206,7 @@ export function VoidInvoiceModal({
             <button
               type="submit"
               disabled={!reason.trim() || submitting || isLoading}
+              data-help-id="invoice-void-submit"
               className="flex-1 px-4 py-3 rounded-lg font-semibold transition-all bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {submitting || isLoading ? (

@@ -196,29 +196,31 @@ export function Invoices() {
   return (
     <AnimatedPage>
       <div className="page-container">
-        <PageHeader
-          title="Invoices"
-          titleAccent="Dashboard"
-          subtitle={
-            isEs
-              ? "Gestiona, rastrea y procesa pagos de facturas. Genera reportes de ingresos."
-              : "Manage, track, and process invoice payments. Generate income reports."
-          }
-          actions={
-            <button
-              onClick={() => refetch()}
-              disabled={loading}
-              className="p-3 bg-[#1a1a1a] border border-[#333] text-gray-400 hover:text-white hover:border-[#444] rounded-xl transition-all disabled:opacity-50"
-              title={isEs ? "Actualizar" : "Refresh"}
-            >
-              <RefreshCcw className={`w-5 h-5 ${loading ? "animate-spin" : ""}`} />
-            </button>
-          }
-        />
+        <div data-help-id="invoices-header">
+          <PageHeader
+            title="Invoices"
+            titleAccent="Dashboard"
+            subtitle={
+              isEs
+                ? "Gestiona, rastrea y procesa pagos de facturas. Genera reportes de ingresos."
+                : "Manage, track, and process invoice payments. Generate income reports."
+            }
+            actions={
+              <button
+                onClick={() => refetch()}
+                disabled={loading}
+                className="p-3 bg-[#1a1a1a] border border-[#333] text-gray-400 hover:text-white hover:border-[#444] rounded-xl transition-all disabled:opacity-50"
+                title={isEs ? "Actualizar" : "Refresh"}
+              >
+                <RefreshCcw className={`w-5 h-5 ${loading ? "animate-spin" : ""}`} />
+              </button>
+            }
+          />
+        </div>
 
         {/* Summary Stats */}
         {summary && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4" data-help-id="invoices-stats">
             <StatCard
               label={isEs ? "Facturas Pendientes" : "Pending Invoices"}
               value={summary.pending.count}
@@ -241,30 +243,34 @@ export function Invoices() {
         )}
 
         {/* Filters & Table */}
-        <InvoicesFilters
-          activeTab={activeTab}
-          onTabChange={handleTabChange}
-          searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
-          statusFilter={statusFilter}
-          onStatusFilterChange={setStatusFilter}
-          typeFilter={typeFilter}
-          onTypeFilterChange={setTypeFilter}
-          overdueOnly={overdueOnly}
-          onOverdueChange={setOverdueOnly}
-          isEs={isEs}
-        />
+        <div data-help-id="invoices-filters">
+          <InvoicesFilters
+            activeTab={activeTab}
+            onTabChange={handleTabChange}
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+            statusFilter={statusFilter}
+            onStatusFilterChange={setStatusFilter}
+            typeFilter={typeFilter}
+            onTypeFilterChange={setTypeFilter}
+            overdueOnly={overdueOnly}
+            onOverdueChange={setOverdueOnly}
+            isEs={isEs}
+          />
+        </div>
 
-        <InvoicesTable
-          invoices={filteredInvoices}
-          actionLoading={actionLoading}
-          loading={loading}
-          onViewDetail={(id) => setSelectedInvoiceIdForDetail(id)}
-          onRecordPayment={(inv) => setSelectedInvoiceForPayment(inv)}
-          onVoidInvoice={(inv) => setSelectedInvoiceForVoid(inv)}
-          locale={locale}
-          isEs={isEs}
-        />
+        <div data-help-id="invoices-table">
+          <InvoicesTable
+            invoices={filteredInvoices}
+            actionLoading={actionLoading}
+            loading={loading}
+            onViewDetail={(id) => setSelectedInvoiceIdForDetail(id)}
+            onRecordPayment={(inv) => setSelectedInvoiceForPayment(inv)}
+            onVoidInvoice={(inv) => setSelectedInvoiceForVoid(inv)}
+            locale={locale}
+            isEs={isEs}
+          />
+        </div>
       </div>
 
       {/* Modals */}

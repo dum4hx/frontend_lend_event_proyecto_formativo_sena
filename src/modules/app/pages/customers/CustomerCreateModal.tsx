@@ -82,12 +82,14 @@ export function CustomerCreateModal({
       cancelLabel={isEs ? "Cancelar" : "Cancel"}
       size="lg"
     >
+      <div data-help-id="customers-form-create" className="space-y-5">
       {/* Name */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="form-group">
           <label className="form-label">{isEs ? "Primer nombre *" : "First Name *"}</label>
           <input
             type="text"
+            data-help-id="customers-form-first-name"
             value={form.formData.name.firstName}
             onChange={(e) => {
               form.markTouched("firstName");
@@ -108,6 +110,7 @@ export function CustomerCreateModal({
           <label className="form-label">{isEs ? "Segundo nombre" : "Middle Name"}</label>
           <input
             type="text"
+            data-help-id="customers-form-middle-name"
             value={form.formData.name.secondName || ""}
             onChange={(e) =>
               form.setFormData({
@@ -126,6 +129,7 @@ export function CustomerCreateModal({
           <label className="form-label">{isEs ? "Primer apellido *" : "Last Name *"}</label>
           <input
             type="text"
+            data-help-id="customers-form-last-name"
             value={form.formData.name.firstSurname}
             onChange={(e) => {
               form.markTouched("firstSurname");
@@ -146,6 +150,7 @@ export function CustomerCreateModal({
           <label className="form-label">{isEs ? "Segundo apellido" : "Second Last Name"}</label>
           <input
             type="text"
+            data-help-id="customers-form-second-last-name"
             value={form.formData.name.secondSurname || ""}
             onChange={(e) =>
               form.setFormData({
@@ -165,6 +170,7 @@ export function CustomerCreateModal({
           <label className="form-label">{isEs ? "Correo electrónico *" : "Email *"}</label>
           <input
             type="email"
+            data-help-id="customers-form-email"
             value={form.formData.email}
             autoCapitalize="none"
             autoCorrect="off"
@@ -194,6 +200,7 @@ export function CustomerCreateModal({
                 pattern="[0-9]*"
                 maxLength={10}
                 placeholder="3001234567"
+                data-help-id="customers-form-phone"
                 value={form.formData.phone}
                 onChange={(e) => {
                   form.markTouched("phone");
@@ -213,7 +220,7 @@ export function CustomerCreateModal({
 
       {/* Document */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="form-group">
+        <div className="form-group" data-help-id="customers-form-document-type">
           <SearchableSelect
             label={isEs ? "Tipo de documento *" : "Document Type *"}
             options={docTypeOptions}
@@ -233,6 +240,7 @@ export function CustomerCreateModal({
             type="text"
             minLength={8}
             maxLength={11}
+            data-help-id="customers-form-document-number"
             value={form.formData.documentNumber}
             onChange={(e) => {
               form.markTouched("documentNumber");
@@ -256,6 +264,7 @@ export function CustomerCreateModal({
         <button
           type="button"
           onClick={() => form.setShowAddress((v) => !v)}
+          data-help-id="customers-form-toggle-address"
           className="text-xs text-yellow-400 hover:text-yellow-300 transition border border-yellow-400/30 hover:border-yellow-400/60 rounded-lg px-3 py-1"
           disabled={loading}
         >
@@ -270,6 +279,7 @@ export function CustomerCreateModal({
       </div>
 
       {form.showAddress && (
+        <div data-help-id="customers-form-address-section">
         <CustomerAddressFields
           streetType={form.streetType}
           onStreetTypeChange={form.setStreetType}
@@ -296,7 +306,9 @@ export function CustomerCreateModal({
           formattedStreet={form.formattedStreet}
           disabled={loading}
         />
+        </div>
       )}
+      </div>
     </FormModal>
   );
 }

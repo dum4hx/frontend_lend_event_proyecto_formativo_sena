@@ -254,16 +254,18 @@ export default function Customers() {
   return (
     <div className="page-container">
       {/* Header */}
-      <PageHeader
-        title={isEs ? "Clientes" : "Customers"}
-        titleAccent=""
-        subtitle={
-          isEs ? "Gestiona los clientes de tu organización" : "Manage your organization's customers"
-        }
-      />
+      <div data-help-id="customers-title">
+        <PageHeader
+          title={isEs ? "Clientes" : "Customers"}
+          titleAccent=""
+          subtitle={
+            isEs ? "Gestiona los clientes de tu organización" : "Manage your organization's customers"
+          }
+        />
+      </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div data-help-id="customers-stat-cards" className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard
           icon={Users}
           label={isEs ? "Total" : "Total"}
@@ -304,16 +306,18 @@ export default function Customers() {
       )}
 
       {/* Filters */}
-      <CustomerFilters
-        search={search}
-        onSearchChange={handleSearchChange}
-        statusFilter={statusFilter}
-        onStatusChange={handleStatusChange}
-        documentTypeFilter={docTypeFilter}
-        onDocumentTypeChange={handleDocTypeChange}
-        documentTypes={documentTypes}
-        onCreateClick={() => setShowCreate(true)}
-      />
+      <div data-help-id="customers-filters">
+        <CustomerFilters
+          search={search}
+          onSearchChange={handleSearchChange}
+          statusFilter={statusFilter}
+          onStatusChange={handleStatusChange}
+          documentTypeFilter={docTypeFilter}
+          onDocumentTypeChange={handleDocTypeChange}
+          documentTypes={documentTypes}
+          onCreateClick={() => setShowCreate(true)}
+        />
+      </div>
 
       {/* Table / Loading / Empty */}
       {loading ? (
@@ -324,13 +328,13 @@ export default function Customers() {
           </p>
         </div>
       ) : customers.length === 0 ? (
-        <div className="depth-card text-center py-12">
+        <div data-help-id="customers-table" className="depth-card text-center py-12">
           <p className="text-gray-500 text-sm">
             {isEs ? "No se encontraron clientes" : "No customers found"}
           </p>
         </div>
       ) : (
-        <div className="depth-card">
+        <div data-help-id="customers-table" className="depth-card">
           <CustomerTable
             customers={customers}
             loading={loading}
@@ -347,7 +351,9 @@ export default function Customers() {
 
       {/* Pagination */}
       {!loading && totalPages > 1 && (
-        <Pagination page={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+        <div data-help-id="customers-pagination">
+          <Pagination page={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+        </div>
       )}
 
       {/* ----- Modals ----- */}

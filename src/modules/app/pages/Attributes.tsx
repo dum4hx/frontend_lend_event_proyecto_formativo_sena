@@ -107,31 +107,33 @@ export default function Attributes() {
 
   return (
     <div className="page-container">
-      <PageHeader
-        title={isEs ? "Atributos de Materiales" : "Material Attributes"}
-        subtitle={
-          isEs
-            ? "Define métricas reutilizables para el catálogo"
-            : "Define reusable metrics for material catalog items"
-        }
-        actions={
-          canCreate ? (
-            <button
-              onClick={() => {
-                setSelectedAttribute(undefined);
-                setIsModalOpen(true);
-              }}
-              className="flex items-center gap-2 px-4 py-2 bg-[#FFD700] text-black rounded-[8px] font-semibold hover:bg-[#FFC700] transition-all"
-            >
-              <Plus size={20} />
-              {isEs ? "Agregar Atributo" : "Add Attribute"}
-            </button>
-          ) : undefined
-        }
-      />
+      <div data-help-id="attributes-title">
+        <PageHeader
+          title={isEs ? "Atributos de Materiales" : "Material Attributes"}
+          subtitle={
+            isEs
+              ? "Define métricas reutilizables para el catálogo"
+              : "Define reusable metrics for material catalog items"
+          }
+          actions={
+            canCreate ? (
+              <button
+                onClick={() => {
+                  setSelectedAttribute(undefined);
+                  setIsModalOpen(true);
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-[#FFD700] text-black rounded-[8px] font-semibold hover:bg-[#FFC700] transition-all"
+              >
+                <Plus size={20} />
+                {isEs ? "Agregar Atributo" : "Add Attribute"}
+              </button>
+            ) : undefined
+          }
+        />
+      </div>
 
       {/* Search */}
-      <div className="relative">
+      <div data-help-id="attributes-search" className="relative">
         <Search
           className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"
           size={20}
@@ -146,7 +148,7 @@ export default function Attributes() {
       </div>
 
       {/* Attributes List */}
-      <div className="space-y-4">
+      <div data-help-id="attributes-list" className="space-y-4">
         {filtered.map((attribute) => (
           <div
             key={attribute._id}
@@ -219,7 +221,7 @@ export default function Attributes() {
 
       {/* Empty State */}
       {filtered.length === 0 && (
-        <div className="text-center py-12 bg-[#1a1a1a] rounded-[12px] border border-dashed border-[#333]">
+        <div data-help-id="attributes-empty" className="text-center py-12 bg-[#1a1a1a] rounded-[12px] border border-dashed border-[#333]">
           <p className="text-gray-400">
             {isEs ? "No se encontraron atributos" : "No attributes found"}
           </p>

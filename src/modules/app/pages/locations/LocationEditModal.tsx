@@ -297,6 +297,7 @@ export function LocationEditModal({
           e.preventDefault();
           void handleSubmit();
         }}
+        data-help-id="locations-form-edit"
         className="space-y-8"
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -313,6 +314,7 @@ export function LocationEditModal({
                 <span className="text-red-400">*</span>
               </label>
               <input
+                data-help-id="locations-form-name"
                 value={form.name}
                 onChange={(e) => {
                   updateForm("name", e.target.value);
@@ -355,6 +357,7 @@ export function LocationEditModal({
                 <label className="form-label">
                   {isEs ? "Departamento" : "Department"} <span className="text-red-400">*</span>
                 </label>
+                <div data-help-id="locations-form-department">
                 <SearchableSelect
                   options={departmentOptions}
                   value={colombia.selectedDepartment}
@@ -373,11 +376,13 @@ export function LocationEditModal({
                   disabled={colombia.loadingDepartments}
                   error={fieldErrors["address.state"]}
                 />
+                </div>
               </div>
               <div>
                 <label className="form-label">
                   {isEs ? "Ciudad" : "City"} <span className="text-red-400">*</span>
                 </label>
+                <div data-help-id="locations-form-city">
                 <SearchableSelect
                   options={cityOptions}
                   value={form.address.city}
@@ -398,12 +403,13 @@ export function LocationEditModal({
                   disabled={!colombia.selectedDepartment || colombia.loadingCities}
                   error={fieldErrors["address.city"]}
                 />
+                </div>
               </div>
             </div>
 
             {/* Street fields */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div>
+              <div data-help-id="locations-form-street-type">
                 <label className="form-label">
                   {isEs ? "Tipo de calle" : "Street Type"} <span className="text-red-400">*</span>
                 </label>
@@ -422,6 +428,7 @@ export function LocationEditModal({
                   {isEs ? "Número" : "Number"} <span className="text-red-400">*</span>
                 </label>
                 <input
+                  data-help-id="locations-form-primary-number"
                   value={form.address.primaryNumber}
                   onChange={(e) => {
                     updateAddress("primaryNumber", e.target.value);
@@ -435,6 +442,7 @@ export function LocationEditModal({
                   {isEs ? "Propiedad #" : "Property #"} <span className="text-red-400">*</span>
                 </label>
                 <input
+                  data-help-id="locations-form-secondary-number"
                   value={form.address.secondaryNumber}
                   onChange={(e) => {
                     updateAddress("secondaryNumber", e.target.value);
@@ -451,6 +459,7 @@ export function LocationEditModal({
                   Comp. <span className="text-red-400">*</span>
                 </label>
                 <input
+                  data-help-id="locations-form-complementary-number"
                   value={form.address.complementaryNumber}
                   onChange={(e) => {
                     updateAddress("complementaryNumber", e.target.value);
@@ -473,6 +482,7 @@ export function LocationEditModal({
                 {isEs ? "Detalles adicionales" : "Additional Details"}
               </label>
               <textarea
+                data-help-id="locations-form-additional-info"
                 value={form.address.additionalInfo}
                 onChange={(e) => updateAddress("additionalInfo", e.target.value)}
                 rows={2}
@@ -502,7 +512,10 @@ export function LocationEditModal({
             </div>
 
             {/* Bulk tool */}
-            <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-5 shadow-sm">
+            <div
+              className="bg-[#1a1a1a] border border-[#333] rounded-lg p-5 shadow-sm"
+              data-help-id="locations-form-bulk-capacity"
+            >
               <div className="flex items-center gap-2 text-[#FFD700] mb-4 pb-3 border-b border-[#2a2a2a]">
                 <Zap size={18} className="animate-pulse" />
                 <span className="text-sm font-bold uppercase tracking-wider">
@@ -527,6 +540,7 @@ export function LocationEditModal({
                   <input
                     type="number"
                     min={0}
+                    data-help-id="locations-form-bulk-quantity"
                     value={bulkQtyInput}
                     onChange={(e) => setBulkQtyInput(e.target.value)}
                     className="input"
@@ -535,6 +549,7 @@ export function LocationEditModal({
                 <button
                   type="button"
                   onClick={handleBulkApply}
+                  data-help-id="locations-form-bulk-apply"
                   className="h-10 px-6 bg-[#FFD700] hover:bg-[#FFD700]/90 text-black font-semibold rounded text-sm transition-all shadow-md hover:shadow-lg active:scale-95"
                 >
                   {isEs ? "Aplicar" : "Apply"}
@@ -569,6 +584,7 @@ export function LocationEditModal({
                       <input
                         type="number"
                         min={0}
+                        data-help-id={`locations-form-capacity-${type._id}`}
                         value={capacity?.maxQuantity ?? ""}
                         onChange={(e) => updateCapacity(type._id, e.target.value)}
                         className={`w-full h-9 px-2 bg-[#0a0a0a] border rounded text-right text-sm text-white focus:outline-none focus:ring-1 ${
@@ -633,6 +649,7 @@ export function LocationEditModal({
           <button
             type="button"
             onClick={onClose}
+            data-help-id="locations-form-cancel"
             className="px-6 py-2.5 text-sm font-semibold text-gray-400 hover:text-white transition-colors"
           >
             {isEs ? "Cancelar" : "Cancel"}
@@ -640,6 +657,7 @@ export function LocationEditModal({
           <button
             type="submit"
             disabled={submitting}
+            data-help-id="locations-form-submit"
             className="px-8 py-2.5 bg-[#FFD700] text-black font-bold rounded-lg hover:bg-[#FFC700] transition-transform active:scale-95 shadow-[0_0_20px_rgba(255,215,0,0.2)] disabled:opacity-50"
           >
             {submitting

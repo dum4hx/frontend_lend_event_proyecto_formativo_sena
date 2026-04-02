@@ -133,13 +133,18 @@ export default function RoleFormModal({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-5">
+        <form
+          onSubmit={handleSubmit}
+          className="p-4 sm:p-6 space-y-5"
+          data-help-id={mode === "create" ? "roles-form-create" : "roles-form-edit"}
+        >
           {/* Role name */}
           <div>
             <label className="block text-sm font-semibold text-gray-400 mb-1">
               Role name <span className="text-[#FFD700]">*</span>
             </label>
             <input
+              data-help-id="roles-form-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. auditor"
@@ -152,6 +157,7 @@ export default function RoleFormModal({
           <div>
             <label className="block text-sm font-semibold text-gray-400 mb-1">Description</label>
             <textarea
+              data-help-id="roles-form-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Optional description..."
@@ -189,7 +195,7 @@ export default function RoleFormModal({
             </div>
 
             {/* Permission search */}
-            <div className="relative mb-2">
+            <div className="relative mb-2" data-help-id="roles-form-permissions-search">
               <Search
                 size={14}
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
@@ -204,7 +210,10 @@ export default function RoleFormModal({
             </div>
 
             {/* Permission grid grouped by category */}
-            <div className="max-h-60 overflow-auto bg-[#0f0f0f] rounded-lg border border-[#222] p-2 space-y-3">
+            <div
+              className="max-h-60 overflow-auto bg-[#0f0f0f] rounded-lg border border-[#222] p-2 space-y-3"
+              data-help-id="roles-form-permissions"
+            >
               {Object.entries(grouped).map(([category, perms]) => (
                 <div key={category}>
                   <p className="text-xs font-bold text-gray-500 uppercase tracking-wider px-1 mb-1">
@@ -247,6 +256,7 @@ export default function RoleFormModal({
               type="button"
               onClick={onClose}
               disabled={submitting}
+              data-help-id="roles-form-cancel"
               className="px-4 py-2 border border-[#333] text-gray-300 rounded-lg hover:bg-[#1a1a1a] transition text-sm disabled:opacity-50"
             >
               Cancel
@@ -254,6 +264,7 @@ export default function RoleFormModal({
             <button
               type="submit"
               disabled={submitting}
+              data-help-id="roles-form-submit"
               className="px-5 py-2 font-semibold rounded-lg transition flex items-center gap-2 text-sm gold-action-btn disabled:opacity-50"
             >
               <Plus size={14} />

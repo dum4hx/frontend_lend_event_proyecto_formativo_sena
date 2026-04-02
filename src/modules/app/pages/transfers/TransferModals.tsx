@@ -428,7 +428,11 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
             <X size={20} />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="p-5 space-y-4 overflow-y-auto custom-scrollbar">
+        <form
+          onSubmit={handleSubmit}
+          className="p-5 space-y-4 overflow-y-auto custom-scrollbar"
+          data-help-id="transfer-requests-form-create-request"
+        >
           {/* From location */}
           <div>
             <label className="block text-xs font-medium text-gray-400 mb-1.5">
@@ -436,6 +440,7 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
               <span className="text-red-400">*</span>
             </label>
             <select
+              data-help-id="transfer-requests-form-from-location"
               value={fromLocationId}
               onChange={(e) => {
                 setFromLocationId(e.target.value);
@@ -462,6 +467,7 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
               <span className="text-red-400">*</span>
             </label>
             <select
+              data-help-id="transfer-requests-form-to-location"
               value={toLocationId}
               onChange={(e) => setToLocationId(e.target.value)}
               required
@@ -480,7 +486,7 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
           </div>
 
           {/* Items */}
-          <div>
+          <div data-help-id="transfer-requests-form-items">
             <div className="flex items-center justify-between mb-2">
               <label className="block text-xs font-medium text-gray-400">
                 {isEs ? "Artículos" : "Items"} <span className="text-red-400">*</span>
@@ -527,6 +533,7 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                   <input
                     type="number"
                     min={1}
+                    data-help-id={`transfer-requests-form-item-quantity-${idx}`}
                     value={item.quantity}
                     onChange={(e) =>
                       updateItem(idx, { quantity: Math.max(1, Number(e.target.value)) })
@@ -557,6 +564,7 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
               {isEs ? "Notas" : "Notes"}
             </label>
             <textarea
+              data-help-id="transfer-requests-form-notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
@@ -570,6 +578,7 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
               type="button"
               onClick={onClose}
               disabled={loading}
+              data-help-id="transfer-requests-form-cancel"
               className="px-4 h-9 rounded text-sm text-gray-400 hover:text-white border border-[#333] hover:border-[#555] transition-all"
             >
               {isEs ? "Cancelar" : "Cancel"}
@@ -577,6 +586,7 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
             <button
               type="submit"
               disabled={loading || !fromLocationId || !toLocationId}
+              data-help-id="transfer-requests-form-submit"
               className="px-5 h-9 bg-[#FFD700] hover:bg-[#FFD700]/90 text-black font-semibold rounded text-sm transition-all disabled:opacity-50"
             >
               {loading
@@ -711,7 +721,8 @@ export const EditRequestModal: React.FC<EditRequestModalProps> = ({
               {isEs ? "Ubicación de Origen" : "From Location"}
             </label>
             <div className="h-10 px-3 bg-[#0a0a0a] border border-[#222] rounded text-sm text-gray-500 flex items-center">
-              {locations.find((l) => l._id === request.fromLocationId)?.name ?? request.fromLocationId}
+              {locations.find((l) => l._id === request.fromLocationId)?.name ??
+                request.fromLocationId}
             </div>
           </div>
 
@@ -741,7 +752,9 @@ export const EditRequestModal: React.FC<EditRequestModalProps> = ({
               </button>
             </div>
 
-            {loadingItems && <p className="text-xs text-gray-500">{isEs ? "Cargando..." : "Loading..."}</p>}
+            {loadingItems && (
+              <p className="text-xs text-gray-500">{isEs ? "Cargando..." : "Loading..."}</p>
+            )}
 
             {requestItems.map((item, idx) => (
               <div key={idx} className="flex gap-2 mb-2">
@@ -787,9 +800,7 @@ export const EditRequestModal: React.FC<EditRequestModalProps> = ({
               placeholder={isEs ? "Notas opcionales..." : "Optional notes..."}
               className="w-full h-20 px-3 py-2 bg-[#0a0a0a] border border-[#222] rounded text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#FFD700] resize-none"
             />
-            <p className="text-xs text-gray-500 mt-1">
-              {notes.length}/500
-            </p>
+            <p className="text-xs text-gray-500 mt-1">{notes.length}/500</p>
           </div>
 
           {/* Buttons */}
@@ -961,7 +972,11 @@ export const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 space-y-4 overflow-y-auto custom-scrollbar">
+        <form
+          onSubmit={handleSubmit}
+          className="p-5 space-y-4 overflow-y-auto custom-scrollbar"
+          data-help-id="transfer-requests-form-initiate-shipment"
+        >
           {/* Route summary */}
           <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-4 py-3 flex items-center gap-3 text-sm">
             <span className="text-white font-medium">{locationName(request.fromLocationId)}</span>
@@ -970,7 +985,7 @@ export const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
           </div>
 
           {/* Item selection */}
-          <div>
+          <div data-help-id="transfer-requests-form-shipment-items">
             <label className="block text-xs font-medium text-gray-400 mb-2">
               {isEs ? "Artículos Disponibles en Origen" : "Available Items at Origin"}{" "}
               <span className="text-gray-500">
@@ -1048,6 +1063,7 @@ export const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
               {isEs ? "Notas del Remitente" : "Sender Notes"}
             </label>
             <textarea
+              data-help-id="transfer-requests-form-sender-notes"
               value={senderNotes}
               onChange={(e) => setSenderNotes(e.target.value)}
               rows={2}
@@ -1063,6 +1079,7 @@ export const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
               type="button"
               onClick={onClose}
               disabled={loading}
+              data-help-id="transfer-requests-form-shipment-cancel"
               className="px-4 h-9 rounded text-sm text-gray-400 hover:text-white border border-[#333] hover:border-[#555] transition-all"
             >
               {isEs ? "Cancelar" : "Cancel"}
@@ -1074,6 +1091,7 @@ export const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
                 setShowPreview(true);
               }}
               disabled={loading || selectedItems.length === 0}
+              data-help-id="transfer-requests-form-shipment-preview"
               className="px-5 h-9 bg-[#FFD700] hover:bg-[#FFD700]/90 text-black font-semibold rounded text-sm transition-all disabled:opacity-50 flex items-center gap-2"
             >
               <Eye size={14} />
@@ -1238,6 +1256,7 @@ export const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
                 type="button"
                 onClick={handleSubmit}
                 disabled={loading}
+                data-help-id="transfer-requests-form-shipment-submit"
                 className="px-5 h-9 bg-[#FFD700] hover:bg-[#FFD700]/90 text-black font-semibold rounded text-sm transition-all disabled:opacity-50 flex items-center gap-2"
               >
                 <Send size={14} />
@@ -1337,7 +1356,11 @@ export const ReceiveTransferModal: React.FC<ReceiveTransferModalProps> = ({
             <X size={20} />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="p-5 space-y-4 overflow-y-auto custom-scrollbar">
+        <form
+          onSubmit={handleSubmit}
+          className="p-5 space-y-4 overflow-y-auto custom-scrollbar"
+          data-help-id="transfer-requests-form-receive-shipment"
+        >
           <p className="text-sm text-gray-300">
             {isEs ? "Confirma la recepción del envío desde" : "Confirm receipt of shipment from"}{" "}
             <span className="text-white font-medium">{locationName(transfer.fromLocationId)}</span>{" "}
@@ -1350,7 +1373,7 @@ export const ReceiveTransferModal: React.FC<ReceiveTransferModalProps> = ({
 
           {/* Per-item condition */}
           {transfer.items.length > 0 && (
-            <div>
+            <div data-help-id="transfer-requests-form-receive-items">
               <label className="block text-xs font-medium text-gray-400 mb-2">
                 {isEs ? "Condición Recibida por Artículo" : "Received Condition per Item"}
               </label>
@@ -1392,6 +1415,7 @@ export const ReceiveTransferModal: React.FC<ReceiveTransferModalProps> = ({
               {isEs ? "Notas del Receptor" : "Receiver Notes"}
             </label>
             <textarea
+              data-help-id="transfer-requests-form-receiver-notes"
               value={receiverNotes}
               onChange={(e) => setReceiverNotes(e.target.value)}
               rows={3}
@@ -1406,6 +1430,7 @@ export const ReceiveTransferModal: React.FC<ReceiveTransferModalProps> = ({
               type="button"
               onClick={onClose}
               disabled={loading}
+              data-help-id="transfer-requests-form-receive-cancel"
               className="px-4 h-9 rounded text-sm text-gray-400 hover:text-white border border-[#333] hover:border-[#555] transition-all"
             >
               {isEs ? "Cancelar" : "Cancel"}
@@ -1413,6 +1438,7 @@ export const ReceiveTransferModal: React.FC<ReceiveTransferModalProps> = ({
             <button
               type="submit"
               disabled={loading}
+              data-help-id="transfer-requests-form-receive-submit"
               className="px-5 h-9 bg-green-600 hover:bg-green-500 text-white font-semibold rounded text-sm transition-all disabled:opacity-50 flex items-center gap-2"
             >
               <CheckCircle size={14} />

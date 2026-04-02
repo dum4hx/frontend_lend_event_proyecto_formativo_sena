@@ -318,7 +318,10 @@ export function ExtendLoanModal({
       className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-6 w-full max-w-md shadow-2xl space-y-4">
+      <div
+        className="bg-zinc-900 border border-zinc-700 rounded-xl p-6 w-full max-w-md shadow-2xl space-y-4"
+        data-help-id="rentals-extend-form"
+      >
         <h2 className="text-xl font-semibold text-white">
           {isEs ? "Extender prestamo" : "Extend Loan"}
         </h2>
@@ -334,6 +337,7 @@ export function ExtendLoanModal({
               {isEs ? "Nueva fecha fin" : "New End Date"}
             </label>
             <input
+              data-help-id="rentals-extend-end-date"
               type="date"
               value={newEndDate}
               min={target.loan.endDate.slice(0, 10)}
@@ -347,6 +351,7 @@ export function ExtendLoanModal({
               <span className="text-gray-600 text-xs">{isEs ? "(opcional)" : "(optional)"}</span>
             </label>
             <textarea
+              data-help-id="rentals-extend-notes"
               value={notes}
               onChange={(e) => onNotesChange(e.target.value)}
               rows={3}
@@ -356,7 +361,12 @@ export function ExtendLoanModal({
           </div>
         </div>
         <div className="flex gap-3 justify-end">
-          <Button variant="outline" onClick={onClose} disabled={submitting}>
+          <Button
+            variant="outline"
+            onClick={onClose}
+            disabled={submitting}
+            data-help-id="rentals-extend-cancel"
+          >
             {isEs ? "Cancelar" : "Cancel"}
           </Button>
           <Button
@@ -364,6 +374,7 @@ export function ExtendLoanModal({
             onClick={onSubmit}
             disabled={submitting || !newEndDate}
             className="bg-blue-500 hover:bg-blue-600 text-white border-transparent"
+            data-help-id="rentals-extend-submit"
           >
             {submitting
               ? isEs
@@ -396,7 +407,10 @@ export function ReturnLoanModal({
       className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-6 w-full max-w-md shadow-2xl space-y-4">
+      <div
+        className="bg-zinc-900 border border-zinc-700 rounded-xl p-6 w-full max-w-md shadow-2xl space-y-4"
+        data-help-id="rentals-return-form"
+      >
         <h2 className="text-xl font-semibold text-white">
           {isEs ? "Confirmar devolucion" : "Confirm Return"}
         </h2>
@@ -406,13 +420,19 @@ export function ReturnLoanModal({
           {isEs ? "como devuelto?" : "as returned?"}
         </p>
         <div className="flex gap-3 justify-end">
-          <Button variant="outline" onClick={onClose} disabled={submitting}>
+          <Button
+            variant="outline"
+            onClick={onClose}
+            disabled={submitting}
+            data-help-id="rentals-return-cancel"
+          >
             {isEs ? "Cancelar" : "Cancel"}
           </Button>
           <Button
             onClick={onSubmit}
             disabled={submitting}
             className="bg-green-500 hover:bg-green-600 text-white border-transparent"
+            data-help-id="rentals-return-submit"
           >
             {submitting
               ? isEs
@@ -447,7 +467,10 @@ export function RefundDepositModal({
       className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-6 w-full max-w-md shadow-2xl space-y-4">
+      <div
+        className="bg-zinc-900 border border-zinc-700 rounded-xl p-6 w-full max-w-md shadow-2xl space-y-4"
+        data-help-id="rentals-refund-form"
+      >
         <h2 className="text-xl font-semibold text-white">
           {isEs ? "Reembolsar depósito" : "Refund Deposit"}
         </h2>
@@ -468,6 +491,7 @@ export function RefundDepositModal({
             {isEs ? "Notas de reembolso" : "Refund Notes"}
           </label>
           <textarea
+            data-help-id="rentals-refund-notes"
             value={notes}
             onChange={(e) => onNotesChange(e.target.value)}
             rows={3}
@@ -478,13 +502,19 @@ export function RefundDepositModal({
           />
         </div>
         <div className="flex gap-3 justify-end pt-2">
-          <Button variant="outline" onClick={onClose} disabled={submitting}>
+          <Button
+            variant="outline"
+            onClick={onClose}
+            disabled={submitting}
+            data-help-id="rentals-refund-cancel"
+          >
             {isEs ? "Cancelar" : "Cancel"}
           </Button>
           <Button
             onClick={onSubmit}
             disabled={submitting}
             className="bg-yellow-500 hover:bg-yellow-600 text-black border-transparent font-semibold"
+            data-help-id="rentals-refund-submit"
           >
             {submitting
               ? isEs

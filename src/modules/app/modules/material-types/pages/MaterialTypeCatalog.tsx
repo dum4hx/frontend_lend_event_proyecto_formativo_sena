@@ -250,13 +250,13 @@ export const MaterialTypeCatalog: React.FC = () => {
     <div className="min-h-screen bg-[#121212] p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
+        <div data-help-id="material-types-title" className="mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">Material Types</h1>
           <p className="text-gray-400">Manage your material type catalog (items for rental)</p>
         </div>
 
         {/* Actions Bar */}
-        <div className="flex flex-col gap-4 mb-6">
+        <div data-help-id="material-types-actions" className="flex flex-col gap-4 mb-6">
           {/* Search + buttons row */}
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1 relative">
@@ -298,7 +298,7 @@ export const MaterialTypeCatalog: React.FC = () => {
 
           {/* Category filter pills */}
           {categories.length > 0 && (
-            <div className="flex flex-wrap gap-2 items-center">
+            <div data-help-id="material-types-category-filters" className="flex flex-wrap gap-2 items-center">
               <span className="flex items-center gap-1 text-gray-400 text-sm mr-1">
                 <Tag size={14} /> Filtrar:
               </span>
@@ -358,7 +358,7 @@ export const MaterialTypeCatalog: React.FC = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <div data-help-id="material-types-stats" className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
           <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-6">
             <p className="text-gray-400 text-sm mb-1">Total Material Types</p>
             <p className="text-3xl font-bold text-white">{materialTypes.length}</p>
@@ -370,7 +370,7 @@ export const MaterialTypeCatalog: React.FC = () => {
         </div>
 
         {/* Material Type List */}
-        <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-6">
+        <div data-help-id="material-types-list" className="bg-[#1a1a1a] border border-[#333] rounded-lg p-6">
           {filteredMaterialTypes.length === 0 ? (
             <div className="py-16 text-center">
               <p className="text-lg text-white mb-2">No material types found</p>
@@ -399,14 +399,16 @@ export const MaterialTypeCatalog: React.FC = () => {
                 onEdit={handleEdit}
                 onDelete={handleDelete}
               />
-              <AdminPagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                totalItems={filteredMaterialTypes.length}
-                pageSize={pageSize}
-                itemLabel="types"
-                onPageChange={setPage}
-              />
+              <div data-help-id="material-types-pagination">
+                <AdminPagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={filteredMaterialTypes.length}
+                  pageSize={pageSize}
+                  itemLabel="types"
+                  onPageChange={setPage}
+                />
+              </div>
             </>
           )}
         </div>

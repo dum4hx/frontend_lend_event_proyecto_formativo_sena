@@ -450,6 +450,13 @@ export interface CreatePackagePayload {
   pricePerDay?: number;
 }
 
+export interface UpdatePackagePayload {
+  name?: string;
+  description?: string;
+  items?: PackageMaterialEntry[];
+  pricePerDay?: number;
+}
+
 // ─── Loan Requests ─────────────────────────────────────────────────────────
 
 export type LoanRequestStatus =

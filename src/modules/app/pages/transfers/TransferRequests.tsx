@@ -102,7 +102,9 @@ export function TransferRequests() {
 
   // ── Modals ──
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [viewTarget, setViewTarget] = useState<TransferRequest | null>(null);  const [editTarget, setEditTarget] = useState<TransferRequest | null>(null);  const [shipmentTarget, setShipmentTarget] = useState<TransferRequest | null>(null);
+  const [viewTarget, setViewTarget] = useState<TransferRequest | null>(null);
+  const [editTarget, setEditTarget] = useState<TransferRequest | null>(null);
+  const [shipmentTarget, setShipmentTarget] = useState<TransferRequest | null>(null);
   const [receiveTarget, setReceiveTarget] = useState<Transfer | null>(null);
 
   // ── Helpers ──
@@ -371,28 +373,33 @@ export function TransferRequests() {
   return (
     <AnimatedPage>
       <div className="page-container">
-        <PageHeader
-          title={isEs ? "Solicitudes de Transferencia" : "Transfer Requests"}
-          subtitle={
-            isEs
-              ? "Gestiona transferencias de material entre ubicaciones"
-              : "Manage material transfers between locations"
-          }
-          actions={
-            canCreate ? (
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="flex items-center gap-2 h-10 px-5 bg-[#FFD700] hover:bg-[#FFD700]/90 text-black font-semibold rounded text-sm transition-all shadow-md hover:shadow-lg active:scale-95 shrink-0"
-              >
-                <Plus size={16} />
-                {isEs ? "Nueva Solicitud" : "New Request"}
-              </button>
-            ) : undefined
-          }
-        />
+        <div data-help-id="transfer-requests-title">
+          <PageHeader
+            title={isEs ? "Solicitudes de Transferencia" : "Transfer Requests"}
+            subtitle={
+              isEs
+                ? "Gestiona transferencias de material entre ubicaciones"
+                : "Manage material transfers between locations"
+            }
+            actions={
+              canCreate ? (
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="flex items-center gap-2 h-10 px-5 bg-[#FFD700] hover:bg-[#FFD700]/90 text-black font-semibold rounded text-sm transition-all shadow-md hover:shadow-lg active:scale-95 shrink-0"
+                >
+                  <Plus size={16} />
+                  {isEs ? "Nueva Solicitud" : "New Request"}
+                </button>
+              ) : undefined
+            }
+          />
+        </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 bg-[#111] border border-[#222] rounded-lg p-1 w-fit">
+        <div
+          data-help-id="transfer-requests-tabs"
+          className="flex gap-1 bg-[#111] border border-[#222] rounded-lg p-1 w-fit"
+        >
           {(["requests", "shipments"] as ActiveTab[]).map((tab) => (
             <button
               key={tab}
@@ -418,7 +425,10 @@ export function TransferRequests() {
         {activeTab === "requests" && (
           <div className="space-y-4">
             {/* Filters row */}
-            <div className="flex items-center gap-3 flex-wrap">
+            <div
+              data-help-id="transfer-requests-request-filters"
+              className="flex items-center gap-3 flex-wrap"
+            >
               <div className="relative">
                 <select
                   value={requestStatusFilter}
@@ -478,7 +488,10 @@ export function TransferRequests() {
             </div>
 
             {/* Table */}
-            <div className="bg-[#111] border border-[#222] rounded-xl overflow-hidden">
+            <div
+              data-help-id="transfer-requests-request-table"
+              className="bg-[#111] border border-[#222] rounded-xl overflow-hidden"
+            >
               {requestsLoading ? (
                 <div className="flex items-center justify-center py-16 text-gray-500">
                   <RefreshCw size={20} className="animate-spin mr-2" />
@@ -561,7 +574,10 @@ export function TransferRequests() {
         {activeTab === "shipments" && (
           <div className="space-y-4">
             {/* Filters row */}
-            <div className="flex items-center gap-3 flex-wrap">
+            <div
+              data-help-id="transfer-requests-shipment-filters"
+              className="flex items-center gap-3 flex-wrap"
+            >
               <div className="relative">
                 <select
                   value={transferStatusFilter}
@@ -594,7 +610,10 @@ export function TransferRequests() {
             </div>
 
             {/* Table */}
-            <div className="bg-[#111] border border-[#222] rounded-xl overflow-hidden">
+            <div
+              data-help-id="transfer-requests-shipment-table"
+              className="bg-[#111] border border-[#222] rounded-xl overflow-hidden"
+            >
               {transfersLoading ? (
                 <div className="flex items-center justify-center py-16 text-gray-500">
                   <RefreshCw size={20} className="animate-spin mr-2" />

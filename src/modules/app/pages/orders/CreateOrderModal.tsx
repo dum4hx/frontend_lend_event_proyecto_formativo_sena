@@ -634,7 +634,10 @@ export function CreateOrderModal({
         className="modal-overlay items-start md:items-center overflow-y-auto"
         onClick={(e) => e.target === e.currentTarget && closeModal()}
       >
-        <div className="modal-content max-w-6xl w-full max-h-[calc(100vh-1rem)] md:max-h-[94vh] overflow-y-auto my-2 md:my-0">
+        <div
+          className="modal-content max-w-6xl w-full max-h-[calc(100vh-1rem)] md:max-h-[94vh] overflow-y-auto my-2 md:my-0"
+          data-help-id="orders-form-create"
+        >
           <div className="modal-header">
             <div>
               <h2 className="text-2xl font-bold text-white">
@@ -671,6 +674,7 @@ export function CreateOrderModal({
                   <div className="form-group md:col-span-2">
                     <label className="form-label">{isEs ? "Cliente *" : "Customer *"}</label>
                     <select
+                      data-help-id="orders-form-customer"
                       value={formData.customerId}
                       onChange={(e) =>
                         setFormData((prev) => ({
@@ -699,6 +703,7 @@ export function CreateOrderModal({
                       {isEs ? "Fecha de inicio *" : "Start Date *"}
                     </label>
                     <input
+                      data-help-id="orders-form-start-date"
                       type="datetime-local"
                       value={formData.startDate}
                       min={getTodayLocalDatetimeString()}
@@ -727,6 +732,7 @@ export function CreateOrderModal({
                   <div className="form-group">
                     <label className="form-label">{isEs ? "Fecha de fin *" : "End Date *"}</label>
                     <input
+                      data-help-id="orders-form-end-date"
                       type="datetime-local"
                       value={formData.endDate}
                       min={formData.startDate || getTodayLocalDatetimeString()}
@@ -769,6 +775,7 @@ export function CreateOrderModal({
                       {isEs ? "Monto del depósito (COP) *" : "Deposit Amount (COP) *"}
                     </label>
                     <input
+                      data-help-id="orders-form-deposit-amount"
                       type="text"
                       inputMode="decimal"
                       placeholder="e.g. 50.000,00"
@@ -1302,13 +1309,19 @@ export function CreateOrderModal({
           </div>
 
           <div className="modal-footer">
-            <Button variant="secondary" onClick={closeModal} disabled={submitting}>
+            <Button
+              variant="secondary"
+              onClick={closeModal}
+              disabled={submitting}
+              data-help-id="orders-form-cancel"
+            >
               {isEs ? "Cancelar" : "Cancel"}
             </Button>
             <Button
               onClick={handleCreateOrder}
               loading={submitting}
               disabled={!hasCustomers || !hasSelectableItems}
+              data-help-id="orders-form-submit"
             >
               {submitting
                 ? isEs

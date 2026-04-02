@@ -434,24 +434,26 @@ export default function SubscriptionManagement() {
         onCancel={handleCancelExport}
       />
 
-      <PageHeader
-        title={isEs ? "Gestion de suscripcion" : "Subscription Management"}
-        subtitle={
-          isEs
-            ? "Gestiona tu plan, asientos e historial de facturacion"
-            : "Manage your plan, seats, and billing history"
-        }
-        actions={
-          <button
-            onClick={() => setExportOpen(true)}
-            className="export-btn w-full sm:w-auto flex items-center justify-center gap-2"
-            disabled={history.length === 0}
-          >
-            <Download size={18} />
-            {isEs ? "Exportar historial" : "Export History"}
-          </button>
-        }
-      />
+      <div data-help-id="subscription-title">
+        <PageHeader
+          title={isEs ? "Gestion de suscripcion" : "Subscription Management"}
+          subtitle={
+            isEs
+              ? "Gestiona tu plan, asientos e historial de facturacion"
+              : "Manage your plan, seats, and billing history"
+          }
+          actions={
+            <button
+              onClick={() => setExportOpen(true)}
+              className="export-btn w-full sm:w-auto flex items-center justify-center gap-2"
+              disabled={history.length === 0}
+            >
+              <Download size={18} />
+              {isEs ? "Exportar historial" : "Export History"}
+            </button>
+          }
+        />
+      </div>
 
       {loading ? (
         <div className="space-y-6">
@@ -472,7 +474,7 @@ export default function SubscriptionManagement() {
       ) : (
         <>
           {/* Stat Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+          <div data-help-id="subscription-stats" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
             <StatCard
               label={isEs ? "Plan actual" : "Current Plan"}
               value={currentPlanDetails?.displayName ?? "—"}
@@ -494,7 +496,7 @@ export default function SubscriptionManagement() {
 
           {/* Actions — owner only */}
           {isOwner && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div data-help-id="subscription-actions" className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
               {/* Manage via Stripe Portal */}
               <div className="bg-[#121212] border border-[#333] rounded-xl p-6">
                 <h2 className="text-lg font-bold text-white mb-2">
@@ -553,7 +555,7 @@ export default function SubscriptionManagement() {
 
           {/* Available Plans — owner only */}
           {isOwner && (
-            <div className="bg-[#121212] border border-[#333] rounded-xl p-6 mb-8">
+            <div data-help-id="subscription-plans" className="bg-[#121212] border border-[#333] rounded-xl p-6 mb-8">
               <h2 className="text-lg font-bold text-white mb-4">
                 {isEs ? "Planes disponibles" : "Available Plans"}
               </h2>
@@ -569,7 +571,7 @@ export default function SubscriptionManagement() {
 
           {/* Cancel Subscription — owner only */}
           {isOwner && (
-            <div className="bg-[#121212] border border-red-900/40 rounded-xl p-6 mb-8">
+            <div data-help-id="subscription-danger" className="bg-[#121212] border border-red-900/40 rounded-xl p-6 mb-8">
               <div className="flex items-start justify-between">
                 <div>
                   <h2 className="text-lg font-bold text-white mb-1">
@@ -593,7 +595,9 @@ export default function SubscriptionManagement() {
           )}
 
           {/* Billing History */}
-          <BillingHistorySection history={history} isEs={isEs} locale={locale} />
+          <div data-help-id="subscription-history">
+            <BillingHistorySection history={history} isEs={isEs} locale={locale} />
+          </div>
         </>
       )}
     </div>

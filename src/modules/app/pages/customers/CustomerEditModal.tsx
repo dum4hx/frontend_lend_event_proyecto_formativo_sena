@@ -102,12 +102,14 @@ export function CustomerEditModal({
       cancelLabel={isEs ? "Cancelar" : "Cancel"}
       size="lg"
     >
+      <div data-help-id="customers-form-edit" className="space-y-5">
       {/* Name */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="form-group">
           <label className="form-label">{isEs ? "Primer nombre *" : "First Name *"}</label>
           <input
             type="text"
+            data-help-id="customers-form-first-name"
             value={form.formData.name.firstName}
             onChange={(e) => {
               form.markTouched("firstName");
@@ -128,6 +130,7 @@ export function CustomerEditModal({
           <label className="form-label">{isEs ? "Segundo nombre" : "Middle Name"}</label>
           <input
             type="text"
+            data-help-id="customers-form-middle-name"
             value={form.formData.name.secondName || ""}
             onChange={(e) =>
               form.setFormData({
@@ -146,6 +149,7 @@ export function CustomerEditModal({
           <label className="form-label">{isEs ? "Primer apellido *" : "Last Name *"}</label>
           <input
             type="text"
+            data-help-id="customers-form-last-name"
             value={form.formData.name.firstSurname}
             onChange={(e) => {
               form.markTouched("firstSurname");
@@ -166,6 +170,7 @@ export function CustomerEditModal({
           <label className="form-label">{isEs ? "Segundo apellido" : "Second Last Name"}</label>
           <input
             type="text"
+            data-help-id="customers-form-second-last-name"
             value={form.formData.name.secondSurname || ""}
             onChange={(e) =>
               form.setFormData({
@@ -185,6 +190,7 @@ export function CustomerEditModal({
           <label className="form-label">{isEs ? "Correo electrónico *" : "Email *"}</label>
           <input
             type="email"
+            data-help-id="customers-form-email"
             value={form.formData.email}
             autoCapitalize="none"
             autoCorrect="off"
@@ -214,6 +220,7 @@ export function CustomerEditModal({
                 pattern="[0-9]*"
                 maxLength={10}
                 placeholder="3001234567"
+                data-help-id="customers-form-phone"
                 value={form.formData.phone}
                 onChange={(e) => {
                   form.markTouched("phone");
@@ -233,7 +240,7 @@ export function CustomerEditModal({
 
       {/* Document (read-only) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="form-group">
+        <div className="form-group" data-help-id="customers-form-document-type">
           <label className="form-label">{isEs ? "Tipo de documento" : "Document Type"}</label>
           <input
             type="text"
@@ -242,7 +249,7 @@ export function CustomerEditModal({
             disabled
           />
         </div>
-        <div className="form-group opacity-50">
+        <div className="form-group opacity-50" data-help-id="customers-form-document-number">
           <label className="form-label">{isEs ? "Número de documento" : "Document Number"}</label>
           <input
             type="text"
@@ -261,6 +268,7 @@ export function CustomerEditModal({
         <button
           type="button"
           onClick={() => form.setShowAddress((v) => !v)}
+          data-help-id="customers-form-toggle-address"
           className="text-xs text-yellow-400 hover:text-yellow-300 transition border border-yellow-400/30 hover:border-yellow-400/60 rounded-lg px-3 py-1"
           disabled={loading}
         >
@@ -275,6 +283,7 @@ export function CustomerEditModal({
       </div>
 
       {form.showAddress && (
+        <div data-help-id="customers-form-address-section">
         <CustomerAddressFields
           streetType={form.streetType}
           onStreetTypeChange={form.setStreetType}
@@ -301,7 +310,9 @@ export function CustomerEditModal({
           formattedStreet={form.formattedStreet}
           disabled={loading}
         />
+        </div>
       )}
+      </div>
     </FormModal>
   );
 }
