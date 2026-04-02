@@ -18,6 +18,11 @@ const reportsHelpContent: HelpModuleContent = {
         es: "Aqui puedes explorar datos por modulo, detectar tendencias y exportar informacion para auditoria, seguimiento o toma de decisiones.",
         en: "Here you can explore module-level data, detect trends, and export information for audit, follow-up, or decision making.",
       },
+      howTo: [
+        { es: "Abre el modulo desde el menu lateral en Reportes.", en: "Open the module from the sidebar under Reports." },
+        { es: "Selecciona el modulo de negocio (pestana) que deseas analizar.", en: "Select the business module (tab) you want to analyze." },
+        { es: "Define el rango de fechas y aplica filtros antes de revisar la tabla o exportar datos.", en: "Set the date range and apply filters before reviewing the table or exporting data." },
+      ],
       tips: [
         {
           es: "Define primero el modulo y el rango de fechas para reducir ruido y obtener analisis mas accionable.",
@@ -32,6 +37,11 @@ const reportsHelpContent: HelpModuleContent = {
         es: "Puedes cambiar entre modulos de negocio, refrescar datos, revisar KPIs, aplicar filtros avanzados y exportar resultados en CSV.",
         en: "You can switch between business modules, refresh data, review KPIs, apply advanced filters, and export results to CSV.",
       },
+      howTo: [
+        { es: "Para cambiar modulo: usa las pestanas en la parte superior para seleccionar el dominio de negocio.", en: "To switch module: use the tabs at the top to select the business domain." },
+        { es: "Para exportar: haz clic en el boton de exportar CSV despues de aplicar los filtros necesarios.", en: "To export: click the export CSV button after applying the necessary filters." },
+        { es: "Para refrescar: usa el boton de actualizacion del encabezado para sincronizar datos recientes.", en: "To refresh: use the header update button to sync recent data." },
+      ],
       bestPractices: [
         {
           es: "Antes de exportar, valida que filtros, modulo activo y rango de fechas correspondan al analisis requerido.",
@@ -46,6 +56,12 @@ const reportsHelpContent: HelpModuleContent = {
         es: "Selecciona modulo, revisa KPIs, aplica filtros y rango de fechas, valida tabla y finalmente exporta el corte necesario.",
         en: "Select module, review KPIs, apply filters and date range, validate the table, and finally export the needed snapshot.",
       },
+      howTo: [
+        { es: "Selecciona el modulo de negocio que corresponde al analisis requerido.", en: "Select the business module that corresponds to the required analysis." },
+        { es: "Revisa los KPIs del modulo activo para entender el contexto del periodo.", en: "Review the KPIs of the active module to understand the period context." },
+        { es: "Aplica filtros y define el rango de fechas para acotar los datos al segmento requerido.", en: "Apply filters and set the date range to narrow data to the required segment." },
+        { es: "Valida los resultados en la tabla y luego exporta en CSV si necesitas compartir o analizar externamente.", en: "Validate results in the table and then export to CSV if you need to share or analyze externally." },
+      ],
       warnings: [
         {
           es: "Exportar sin revisar contexto puede mezclar datos de modulos o periodos no deseados.",
@@ -60,6 +76,11 @@ const reportsHelpContent: HelpModuleContent = {
         es: "Un error frecuente es interpretar KPIs sin considerar el modulo activo. Cada modulo cambia metricas, columnas y logica de filtros.",
         en: "A common mistake is interpreting KPIs without considering the active module. Each module changes metrics, columns, and filter logic.",
       },
+      howTo: [
+        { es: "Siempre verifica la pestana activa antes de interpretar KPIs o exportar datos.", en: "Always verify the active tab before interpreting KPIs or exporting data." },
+        { es: "Si los datos no corresponden al analisis esperado, revisa modulo y rango de fechas primero.", en: "If data doesn't match the expected analysis, review module and date range first." },
+        { es: "Para analisis multi-modulo, exporta y combina los CSV fuera de esta herramienta.", en: "For multi-module analysis, export and combine CSVs outside this tool." },
+      ],
     },
   ],
   walkthrough: [

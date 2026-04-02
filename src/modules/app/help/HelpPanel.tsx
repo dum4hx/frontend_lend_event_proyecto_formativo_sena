@@ -1,7 +1,48 @@
 import { useEffect, useMemo, useState } from "react";
 import { BookOpenText, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, CircleHelp, Flag, ListChecks, Lightbulb, TriangleAlert, X } from "lucide-react";
 import { useHelpPanel } from "./useHelpPanel";
-import type { HelpContentSection, HelpFormFieldGuide, HelpFormGuide } from "./types";
+import type { HelpContentSection, HelpFormFieldGuide, HelpFormGuide, HelpLocalizedText } from "./types";
+
+const PANEL_LABELS: Record<string, HelpLocalizedText> = {
+  header: { en: "Interactive Help", es: "Ayuda interactiva" },
+  fallbackTitle: { en: "Contextual Guide", es: "Guía contextual" },
+  loading: { en: "Loading help content...", es: "Cargando contenido de ayuda..." },
+  noContent: {
+    en: "This module does not have help content yet. Add a new module configuration to scale coverage.",
+    es: "Este módulo aún no tiene contenido de ayuda. Agrega una configuración de módulo para ampliar la cobertura.",
+  },
+  overview: { en: "Overview", es: "Resumen" },
+  seenBefore: { en: "You have already completed this guide before.", es: "Ya completaste esta guía antes." },
+  notSeenYet: { en: "You have not completed this guide yet.", es: "Aún no has completado esta guía." },
+  howTo: { en: "How to", es: "Cómo hacerlo" },
+  formAssistant: { en: "Form Assistant", es: "Asistente de formulario" },
+  formAssistantHint: {
+    en: "Focus any input inside highlighted forms to get contextual field help.",
+    es: "Enfoca cualquier campo dentro de los formularios resaltados para obtener ayuda contextual.",
+  },
+  usageFlow: { en: "Usage flow", es: "Flujo de uso" },
+  fields: { en: "Fields", es: "Campos" },
+  actions: { en: "Actions", es: "Acciones" },
+  typeLabel: { en: "Type:", es: "Tipo:" },
+  required: { en: "Required", es: "Requerido" },
+  validation: { en: "Validation:", es: "Validación:" },
+  exampleLabel: { en: "Example:", es: "Ejemplo:" },
+  dataType: { en: "Data type:", es: "Tipo de dato:" },
+  requiredField: { en: "Required field", es: "Campo requerido" },
+  tipLabel: { en: "Tip:", es: "Consejo:" },
+  warningLabel: { en: "Warning:", es: "Advertencia:" },
+  bestPracticeLabel: { en: "Best practice:", es: "Buena práctica:" },
+  advanceHint: {
+    en: "This step can advance when you click the highlighted area.",
+    es: "Este paso avanza cuando haces clic en el área resaltada.",
+  },
+  noSteps: { en: "No walkthrough steps configured.", es: "No hay pasos de guía configurados." },
+  walkthrough: { en: "Walkthrough", es: "Guía paso a paso" },
+  previous: { en: "Previous", es: "Anterior" },
+  next: { en: "Next", es: "Siguiente" },
+  finish: { en: "Finish", es: "Finalizar" },
+  helpButton: { en: "Help", es: "Ayuda" },
+};
 
 interface TargetRect {
   top: number;
@@ -220,7 +261,7 @@ export function HelpPanel() {
           aria-label="Toggle contextual help panel"
         >
           <CircleHelp size={18} />
-          <span className="hidden sm:inline">Help</span>
+          <span className="hidden sm:inline">{resolveText(PANEL_LABELS.helpButton)}</span>
         </button>
       )}
 
@@ -269,14 +310,14 @@ export function HelpPanel() {
           </p>
           <p className="mt-1 text-zinc-300">{resolveText(activeFieldTooltip.field.purpose)}</p>
           <p className="mt-1 text-xs text-zinc-400">
-            <span className="font-semibold text-zinc-300">Data type:</span> {resolveText(activeFieldTooltip.field.dataType)}
+            <span className="font-semibold text-zinc-300">{resolveText(PANEL_LABELS.dataType)}</span> {resolveText(activeFieldTooltip.field.dataType)}
           </p>
           {activeFieldTooltip.field.required && (
-            <p className="mt-1 text-xs text-amber-300">Required field</p>
+            <p className="mt-1 text-xs text-amber-300">{resolveText(PANEL_LABELS.requiredField)}</p>
           )}
           {activeFieldTooltip.field.example && (
             <p className="mt-1 text-xs text-zinc-400">
-              <span className="font-semibold text-zinc-300">Example:</span> {resolveText(activeFieldTooltip.field.example)}
+              <span className="font-semibold text-zinc-300">{resolveText(PANEL_LABELS.exampleLabel)}</span> {resolveText(activeFieldTooltip.field.example)}
             </p>
           )}
         </div>
@@ -290,9 +331,9 @@ export function HelpPanel() {
       >
         <header className="flex items-start justify-between border-b border-zinc-800 px-5 py-4">
           <div>
-            <p className="text-xs uppercase tracking-[0.18em] text-zinc-400">Interactive Help</p>
+            <p className="text-xs uppercase tracking-[0.18em] text-zinc-400">{resolveText(PANEL_LABELS.header)}</p>
             <h2 className="mt-1 text-lg font-semibold text-[#FFD700]">
-              {moduleContent ? resolveText(moduleContent.title) : "Contextual Guide"}
+              {moduleContent ? resolveText(moduleContent.title) : resolveText(PANEL_LABELS.fallbackTitle)}
             </h2>
           </div>
           <button
@@ -306,13 +347,11 @@ export function HelpPanel() {
         </header>
 
         <div className="h-[calc(100%-75px)] overflow-y-auto px-5 py-4">
-          {isLoading && <p className="text-sm text-zinc-400">Loading help content...</p>}
+          {isLoading && <p className="text-sm text-zinc-400">{resolveText(PANEL_LABELS.loading)}</p>}
 
           {!isLoading && !moduleContent && (
             <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
-              <p className="text-sm text-zinc-300">
-                This module does not have help content yet. Add a new module configuration to scale coverage.
-              </p>
+              <p className="text-sm text-zinc-300">{resolveText(PANEL_LABELS.noContent)}</p>
             </div>
           )}
 
@@ -321,13 +360,11 @@ export function HelpPanel() {
               <section className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
                 <div className="flex items-center gap-2 text-[#FFD700]">
                   <BookOpenText size={16} />
-                  <p className="text-sm font-semibold">Overview</p>
+                  <p className="text-sm font-semibold">{resolveText(PANEL_LABELS.overview)}</p>
                 </div>
                 <p className="mt-2 text-sm text-zinc-300">{resolveText(moduleContent.description)}</p>
                 <p className="mt-2 text-xs text-zinc-400">
-                  {hasSeenCurrentModule
-                    ? "You have already completed this guide before."
-                    : "You have not completed this guide yet."}
+                  {resolveText(hasSeenCurrentModule ? PANEL_LABELS.seenBefore : PANEL_LABELS.notSeenYet)}
                 </p>
               </section>
 
@@ -367,7 +404,7 @@ export function HelpPanel() {
                               <div>
                                 <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[#FFD700]">
                                   <ListChecks size={13} />
-                                  How to
+                                  {resolveText(PANEL_LABELS.howTo)}
                                 </p>
                                 <ol className="space-y-1.5 pl-1">
                                   {section.howTo.map((step, index) => (
@@ -428,9 +465,9 @@ export function HelpPanel() {
               {moduleContent.formGuides && moduleContent.formGuides.length > 0 && (
                 <section className="space-y-3">
                   <article className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
-                    <h3 className="text-sm font-semibold text-white">Form Assistant</h3>
+                    <h3 className="text-sm font-semibold text-white">{resolveText(PANEL_LABELS.formAssistant)}</h3>
                     <p className="mt-1 text-xs text-zinc-400">
-                      Focus any input inside highlighted forms to get contextual field help.
+                      {resolveText(PANEL_LABELS.formAssistantHint)}
                     </p>
                   </article>
 
@@ -454,36 +491,38 @@ export function HelpPanel() {
                         </div>
                         <p className="mt-1 text-sm text-zinc-300">{resolveText(formGuide.purpose)}</p>
 
-                        <div className="mt-3">
-                          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Usage flow</p>
-                          <div className="mt-2 space-y-1">
-                            {formGuide.usageFlow.map((step, index) => (
-                              <p key={`${formGuide.id}-flow-${index}`} className="text-xs text-zinc-300">
-                                {resolveText(step)}
-                              </p>
-                            ))}
+                        {formGuide.usageFlow.length > 0 && (
+                          <div className="mt-3">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">{resolveText(PANEL_LABELS.usageFlow)}</p>
+                            <div className="mt-2 space-y-1">
+                              {formGuide.usageFlow.map((step, index) => (
+                                <p key={`${formGuide.id}-flow-${index}`} className="text-xs text-zinc-300">
+                                  {resolveText(step)}
+                                </p>
+                              ))}
+                            </div>
                           </div>
-                        </div>
+                        )}
 
                         <div className="mt-3">
-                          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Fields</p>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">{resolveText(PANEL_LABELS.fields)}</p>
                           <div className="mt-2 space-y-2">
                             {formGuide.fields.map((field) => (
                               <div key={field.id} className="rounded-md border border-zinc-800 bg-zinc-950/40 px-3 py-2">
                                 <p className="text-xs font-semibold text-zinc-200">{resolveText(field.label)}</p>
                                 <p className="mt-1 text-xs text-zinc-400">{resolveText(field.purpose)}</p>
                                 <p className="mt-1 text-[11px] text-zinc-500">
-                                  Type: {resolveText(field.dataType)}
-                                  {field.required ? " · Required" : ""}
+                                  {resolveText(PANEL_LABELS.typeLabel)} {resolveText(field.dataType)}
+                                  {field.required ? ` · ${resolveText(PANEL_LABELS.required)}` : ""}
                                 </p>
                                 {field.validations && field.validations.length > 0 && (
                                   <p className="mt-1 text-[11px] text-zinc-500">
-                                    Validation: {field.validations.map((v) => resolveText(v)).join(" | ")}
+                                    {resolveText(PANEL_LABELS.validation)} {field.validations.map((v) => resolveText(v)).join(" | ")}
                                   </p>
                                 )}
                                 {field.example && (
                                   <p className="mt-1 text-[11px] text-zinc-500">
-                                    Example: {resolveText(field.example)}
+                                    {resolveText(PANEL_LABELS.exampleLabel)} {resolveText(field.example)}
                                   </p>
                                 )}
                               </div>
@@ -492,7 +531,7 @@ export function HelpPanel() {
                         </div>
 
                         <div className="mt-3">
-                          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Actions</p>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">{resolveText(PANEL_LABELS.actions)}</p>
                           <div className="mt-2 space-y-1">
                             {formGuide.actions.map((action) => (
                               <p key={action.id} className="text-xs text-zinc-300">
@@ -510,7 +549,7 @@ export function HelpPanel() {
 
               <section className="rounded-xl border border-zinc-800 bg-[#0d0d0d] p-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-white">Walkthrough</h3>
+                  <h3 className="text-sm font-semibold text-white">{resolveText(PANEL_LABELS.walkthrough)}</h3>
                   <span className="text-xs text-zinc-400">
                     {stepCount === 0 ? "0/0" : `${currentStepIndex + 1}/${stepCount}`}
                   </span>
@@ -523,30 +562,30 @@ export function HelpPanel() {
 
                     {activeStep.tip && (
                       <p className="text-xs text-zinc-300">
-                        <span className="font-semibold text-[#FFD700]">Tip:</span> {resolveText(activeStep.tip)}
+                        <span className="font-semibold text-[#FFD700]">{resolveText(PANEL_LABELS.tipLabel)}</span> {resolveText(activeStep.tip)}
                       </p>
                     )}
 
                     {activeStep.warning && (
                       <p className="text-xs text-zinc-300">
-                        <span className="font-semibold text-red-400">Warning:</span> {resolveText(activeStep.warning)}
+                        <span className="font-semibold text-red-400">{resolveText(PANEL_LABELS.warningLabel)}</span> {resolveText(activeStep.warning)}
                       </p>
                     )}
 
                     {activeStep.bestPractice && (
                       <p className="text-xs text-zinc-300">
-                        <span className="font-semibold text-emerald-400">Best practice:</span> {resolveText(activeStep.bestPractice)}
+                        <span className="font-semibold text-emerald-400">{resolveText(PANEL_LABELS.bestPracticeLabel)}</span> {resolveText(activeStep.bestPractice)}
                       </p>
                     )}
 
                     {activeStep.advanceOn && (
                       <p className="rounded-md border border-[#FFD700]/40 bg-[#FFD700]/10 px-2 py-1 text-xs text-[#FFD700]">
-                        This step can advance when you click the highlighted area.
+                        {resolveText(PANEL_LABELS.advanceHint)}
                       </p>
                     )}
                   </div>
                 ) : (
-                  <p className="mt-2 text-sm text-zinc-400">No walkthrough steps configured.</p>
+                  <p className="mt-2 text-sm text-zinc-400">{resolveText(PANEL_LABELS.noSteps)}</p>
                 )}
 
                 <div className="mt-4 flex items-center justify-between gap-2">
@@ -557,7 +596,7 @@ export function HelpPanel() {
                     className="inline-flex items-center gap-1 rounded-lg border border-zinc-700 px-3 py-2 text-xs font-medium text-zinc-200 transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     <ChevronLeft size={14} />
-                    Previous
+                    {resolveText(PANEL_LABELS.previous)}
                   </button>
 
                   {!isLastStep ? (
@@ -567,7 +606,7 @@ export function HelpPanel() {
                       disabled={stepCount === 0}
                       className="inline-flex items-center gap-1 rounded-lg border border-[#FFD700]/70 bg-[#121212] px-3 py-2 text-xs font-semibold text-[#FFD700] transition hover:bg-[#1b1b1b] disabled:cursor-not-allowed disabled:opacity-40"
                     >
-                      Next
+                      {resolveText(PANEL_LABELS.next)}
                       <ChevronRight size={14} />
                     </button>
                   ) : (
@@ -576,7 +615,7 @@ export function HelpPanel() {
                       onClick={finishWalkthrough}
                       className="rounded-lg border border-emerald-500/60 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/20"
                     >
-                      Finish
+                      {resolveText(PANEL_LABELS.finish)}
                     </button>
                   )}
                 </div>

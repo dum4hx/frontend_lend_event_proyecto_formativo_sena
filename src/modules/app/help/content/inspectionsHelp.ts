@@ -90,6 +90,12 @@ const inspectionsHelpContent: HelpModuleContent = {
         es: "Aqui el operador valida el estado del material al regreso del prestamo y detecta danos o novedades antes de cerrar el proceso.",
         en: "Here the operator validates material condition at loan return and detects damage or findings before closing the process.",
       },
+      howTo: [
+        { es: "Abre el modulo desde Operaciones > Inspecciones.", en: "Open the module from Operations > Inspections." },
+        { es: "Ve a la pestana 'Pendientes' para ver devoluciones que requieren inspeccion.", en: "Go to the 'Pending' tab to see returns that need inspection." },
+        { es: "Localiza el prestamo usando el buscador por cliente o identificador.", en: "Locate the loan using the search bar by customer or identifier." },
+        { es: "Abre el formulario de inspeccion y registra el estado de cada item.", en: "Open the inspection form and record each item's condition." },
+      ],
       tips: [
         {
           es: "Registrar la inspeccion apenas llega el material evita diferencias entre el estado real y el historico.",
@@ -104,6 +110,11 @@ const inspectionsHelpContent: HelpModuleContent = {
         es: "Puedes alternar entre devoluciones pendientes e historial, buscar por prestamo o cliente, refrescar datos y abrir el formulario de inspeccion o el detalle historico.",
         en: "You can switch between pending returns and history, search by loan or customer, refresh data, and open the inspection form or historical detail.",
       },
+      howTo: [
+        { es: "Para registrar nueva inspeccion: ve a 'Pendientes', localiza el prestamo y haz clic en Inspeccionar.", en: "To register a new inspection: go to 'Pending', locate the loan, and click Inspect." },
+        { es: "Para consultar historial: cambia a la pestana 'Historial' y busca la inspeccion por ID o cliente.", en: "To review history: switch to the 'History' tab and search the inspection by ID or customer." },
+        { es: "Para refrescar: haz clic en el boton de actualizacion para sincronizar con el servidor.", en: "To refresh: click the update button to sync with the server." },
+      ],
       bestPractices: [
         {
           es: "Antes de guardar una inspeccion, confirma el prestamo correcto y documenta danos con suficiente detalle para facturacion posterior.",
@@ -118,6 +129,12 @@ const inspectionsHelpContent: HelpModuleContent = {
         es: "Revisa la carga pendiente, filtra el prestamo que acaba de llegar, completa la inspeccion y luego valida el registro en el historial.",
         en: "Review the pending queue, filter the loan that just arrived, complete the inspection, and then validate the record in history.",
       },
+      howTo: [
+        { es: "Abre la pestana Pendientes y revisa el contador de tareas.", en: "Open the Pending tab and review the task counter." },
+        { es: "Busca el prestamo del cliente que acaba de llegar.", en: "Search for the loan of the customer who just arrived." },
+        { es: "Abre el formulario, registra condicion de cada item y agrega notas si hay danos.", en: "Open the form, register each item's condition, and add notes if there is damage." },
+        { es: "Guarda la inspeccion y verifica que aparece en el historial con estado correcto.", en: "Save the inspection and verify it appears in history with the correct status." },
+      ],
       warnings: [
         {
           es: "Si inspeccionas el prestamo equivocado, puedes generar observaciones o cobros sobre un retorno distinto.",
@@ -132,6 +149,11 @@ const inspectionsHelpContent: HelpModuleContent = {
         es: "Un error frecuente es buscar solo por el identificador de inspeccion cuando el registro aun no existe. Para devoluciones nuevas, usa la pestaña de pendientes y filtra por prestamo o cliente.",
         en: "A common mistake is searching only by inspection ID when the record does not exist yet. For new returns, use the pending tab and filter by loan or customer.",
       },
+      howTo: [
+        { es: "Para devoluciones nuevas, ve a la pestana Pendientes antes de buscar por ID.", en: "For new returns, go to the Pending tab before searching by ID." },
+        { es: "Busca por nombre de cliente o numero de prestamo para localizar la devolucion.", en: "Search by customer name or loan number to locate the return." },
+        { es: "Una vez iniciada la inspeccion, el registro aparecera en el historial con su ID asignado.", en: "Once the inspection is initiated, the record will appear in history with its assigned ID." },
+      ],
     },
   ],
   walkthrough: [

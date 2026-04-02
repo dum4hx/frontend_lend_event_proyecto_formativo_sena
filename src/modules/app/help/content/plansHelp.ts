@@ -131,6 +131,11 @@ const plansHelpContent: HelpModuleContent = {
         es: "Aqui puedes definir planes compuestos por varios tipos de material para facilitar cotizacion y operacion comercial.",
         en: "Here you can define plans composed of multiple material types to simplify quoting and commercial operations.",
       },
+      howTo: [
+        { es: "Abre el modulo de Planes desde el menu de materiales o comercial.", en: "Open the Plans module from the materials or commercial menu." },
+        { es: "Busca si ya existe un plan similar antes de crear uno nuevo.", en: "Search for an existing similar plan before creating a new one." },
+        { es: "Usa el boton 'Nuevo Plan' para iniciar el formulario de creacion de paquete.", en: "Use the 'New Plan' button to start the package creation form." },
+      ],
       tips: [
         {
           es: "Usa nombres claros y descripciones breves para distinguir paquetes similares.",
@@ -145,6 +150,11 @@ const plansHelpContent: HelpModuleContent = {
         es: "Puedes buscar planes existentes, crear nuevos paquetes y revisar el detalle de sus componentes y precio diario.",
         en: "You can search existing plans, create new bundles, and inspect component and daily price details.",
       },
+      howTo: [
+        { es: "Para buscar: ingresa el nombre o parte del nombre en el campo de busqueda del listado.", en: "To search: enter the name or part of the name in the listing search field." },
+        { es: "Para ver detalle: haz clic en la tarjeta del plan para expandir materiales y precio incluidos.", en: "To view detail: click the plan card to expand included materials and price." },
+        { es: "Para crear: haz clic en 'Nuevo Plan', completa nombre, materiales y precio diario, luego guarda.", en: "To create: click 'New Plan', fill in name, materials, and daily price, then save." },
+      ],
       bestPractices: [
         {
           es: "Mantén una estrategia de precios consistente entre el valor del bundle y la suma de materiales.",
@@ -159,6 +169,12 @@ const plansHelpContent: HelpModuleContent = {
         es: "Flujo recomendado: busca si el plan ya existe, revisa tarjetas actuales, abre el detalle y luego crea un nuevo paquete si hace falta.",
         en: "Recommended flow: search whether the plan already exists, review current cards, open details, then create a new bundle if needed.",
       },
+      howTo: [
+        { es: "Busca el plan por nombre para verificar si ya hay uno similar en el catalogo.", en: "Search the plan by name to check if there's already a similar one in the catalog." },
+        { es: "Revisa las tarjetas existentes para evaluar el contenido y precio de planes actuales.", en: "Review existing cards to evaluate the content and price of current plans." },
+        { es: "Abre el detalle del plan mas similar y compara antes de decidir crear uno nuevo.", en: "Open the detail of the most similar plan and compare before deciding to create a new one." },
+        { es: "Si no existe ninguno adecuado, usa 'Nuevo Plan' con nombre unico y materiales correctos.", en: "If none are suitable, use 'New Plan' with a unique name and correct materials." },
+      ],
       warnings: [
         {
           es: "Crear bundles duplicados o muy parecidos complica ventas y mantenimiento del catalogo.",
@@ -173,6 +189,11 @@ const plansHelpContent: HelpModuleContent = {
         es: "Error frecuente: definir un plan sin revisar materiales incluidos o el criterio de precio por dia. Verifica ambos antes de publicar.",
         en: "Common mistake: defining a plan without reviewing included materials or daily-price criteria. Verify both before publishing.",
       },
+      howTo: [
+        { es: "Antes de guardar, revisa la lista de materiales incluidos y confirma que sean correctos.", en: "Before saving, review the list of included materials and confirm they are correct." },
+        { es: "Verifica el precio diario y asegurate de que refleje la estrategia comercial definida.", en: "Verify the daily price and make sure it reflects the defined commercial strategy." },
+        { es: "Usa la busqueda para confirmar que no existe un plan duplicado antes de finalizar.", en: "Use the search to confirm no duplicate plan exists before finalizing." },
+      ],
     },
   ],
   walkthrough: [

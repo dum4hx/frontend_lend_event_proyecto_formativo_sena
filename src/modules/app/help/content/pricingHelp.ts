@@ -171,6 +171,11 @@ const pricingHelpContent: HelpModuleContent = {
         es: "Aqui administras reglas de precios que impactan cotizaciones y operaciones de alquiler en todo el sistema.",
         en: "Here you manage pricing rules that impact quotes and rental operations across the system.",
       },
+      howTo: [
+        { es: "Abre el modulo desde Configuracion > Precios.", en: "Open the module from Settings > Pricing." },
+        { es: "Usa los filtros de alcance y estrategia para revisar configuraciones existentes.", en: "Use the scope and strategy filters to review existing configurations." },
+        { es: "Haz clic en 'Nueva configuracion' para definir una estrategia de precio para un material o paquete.", en: "Click 'New configuration' to define a pricing strategy for a material or package." },
+      ],
       tips: [
         {
           es: "Mantener estrategias consistentes por alcance evita discrepancias entre precio esperado y precio calculado.",
@@ -185,6 +190,11 @@ const pricingHelpContent: HelpModuleContent = {
         es: "Puedes crear, editar y eliminar configuraciones, filtrar por alcance o estrategia, y usar la vista previa para validar montos antes de guardar.",
         en: "You can create, edit, and delete configurations, filter by scope or strategy, and use preview to validate amounts before saving.",
       },
+      howTo: [
+        { es: "Para crear: haz clic en 'Nueva configuracion', selecciona alcance, estrategia y define los parametros.", en: "To create: click 'New configuration', select scope, strategy, and define parameters." },
+        { es: "Para simular: abre la herramienta de vista previa, ingresa valores de prueba y valida el calculo.", en: "To simulate: open the preview tool, enter test values, and validate the calculation." },
+        { es: "Para editar: localiza la configuracion en la tabla y usa la accion de edicion.", en: "To edit: locate the configuration in the table and use the edit action." },
+      ],
       bestPractices: [
         {
           es: "Usa Price Preview antes de publicar cambios en estrategias semanales o mensuales para verificar umbrales y montos efectivos.",
@@ -199,6 +209,11 @@ const pricingHelpContent: HelpModuleContent = {
         es: "Filtra configuraciones existentes, valida impacto con la simulacion, ajusta parametros y luego crea o actualiza la estrategia correspondiente.",
         en: "Filter existing configurations, validate impact with simulation, adjust parameters, then create or update the corresponding strategy.",
       },
+      howTo: [
+        { es: "Filtra por alcance (global, tipo de material, paquete) para revisar reglas existentes.", en: "Filter by scope (global, material type, package) to review existing rules." },
+        { es: "Usa Price Preview para simular el calculo antes de guardar cambios.", en: "Use Price Preview to simulate the calculation before saving changes." },
+        { es: "Ajusta los parametros segun el resultado esperado y guarda la configuracion.", en: "Adjust parameters based on the expected result and save the configuration." },
+      ],
       warnings: [
         {
           es: "Editar una configuracion global puede afectar precios de multiples productos al mismo tiempo.",
@@ -213,6 +228,11 @@ const pricingHelpContent: HelpModuleContent = {
         es: "Un error comun es guardar estrategias sin revisar referencia o alcance. Confirma siempre scope, strategyType y item objetivo antes de crear o actualizar.",
         en: "A common mistake is saving strategies without reviewing reference or scope. Always confirm scope, strategyType, and target item before creating or updating.",
       },
+      howTo: [
+        { es: "Revisa el campo 'Alcance' y el item objetivo antes de guardar cualquier estrategia.", en: "Review the 'Scope' field and target item before saving any strategy." },
+        { es: "Simula el precio con la herramienta de vista previa para confirmar el resultado esperado.", en: "Simulate the price with the preview tool to confirm the expected result." },
+        { es: "Si el precio calculado es incorrecto, verifica que la estrategia no este duplicada con diferente alcance.", en: "If the calculated price is incorrect, verify the strategy is not duplicated with different scope." },
+      ],
     },
   ],
   walkthrough: [

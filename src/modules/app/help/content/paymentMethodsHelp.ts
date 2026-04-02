@@ -153,6 +153,11 @@ const paymentMethodsHelpContent: HelpModuleContent = {
         es: "Aqui puedes crear, editar y desactivar metodos de pago para mantener el flujo de cobro alineado con la operacion.",
         en: "Here you can create, edit, and deactivate payment methods to keep the billing flow aligned with operations.",
       },
+      howTo: [
+        { es: "Abre el modulo desde Configuracion > Metodos de pago.", en: "Open the module from Settings > Payment methods." },
+        { es: "Usa el buscador para verificar si el metodo ya existe antes de crear uno nuevo.", en: "Use the search box to verify the method doesn't already exist before creating a new one." },
+        { es: "Haz clic en 'Nuevo metodo' para abrir el formulario y registrar el metodo de pago.", en: "Click 'New method' to open the form and register the payment method." },
+      ],
       tips: [
         {
           es: "Conserva nombres claros y consistentes para evitar errores al registrar pagos en pedidos y facturas.",
@@ -167,6 +172,11 @@ const paymentMethodsHelpContent: HelpModuleContent = {
         es: "Puedes actualizar la lista, buscar metodos por nombre o descripcion, crear nuevos metodos y gestionar cambios sobre registros existentes.",
         en: "You can refresh the list, search methods by name or description, create new methods, and manage changes on existing records.",
       },
+      howTo: [
+        { es: "Para crear: haz clic en 'Nuevo metodo', ingresa nombre y descripcion, y confirma el registro.", en: "To create: click 'New method', enter name and description, and confirm the record." },
+        { es: "Para editar: localiza el metodo en la tabla y usa el icono de edicion para actualizar datos.", en: "To edit: locate the method in the table and use the edit icon to update data." },
+        { es: "Para desactivar: usa la accion de estado disponible en la fila del metodo de pago.", en: "To deactivate: use the status action available in the payment method row." },
+      ],
       bestPractices: [
         {
           es: "Antes de desactivar un metodo, valida si hay procesos activos que dependan de ese medio de pago.",
@@ -181,6 +191,11 @@ const paymentMethodsHelpContent: HelpModuleContent = {
         es: "Revisa el listado actual, filtra por busqueda, abre creacion o edicion y confirma el estado final del metodo en la tabla.",
         en: "Review the current list, filter by search, open create or edit, and confirm final method status in the table.",
       },
+      howTo: [
+        { es: "Busca el metodo por nombre para confirmar que no existe antes de crear uno nuevo.", en: "Search the method by name to confirm it doesn't exist before creating a new one." },
+        { es: "Si necesitas actualizar datos, abre el formulario de edicion desde la fila del metodo.", en: "If you need to update data, open the edit form from the method row." },
+        { es: "Confirma el estado final del metodo en la tabla despues de guardar los cambios.", en: "Confirm the final method status in the table after saving changes." },
+      ],
       warnings: [
         {
           es: "Eliminar o desactivar un metodo sin evaluar impacto puede afectar registro de pagos en otras areas.",
@@ -195,6 +210,11 @@ const paymentMethodsHelpContent: HelpModuleContent = {
         es: "Un error frecuente es crear metodos duplicados con variaciones de nombre. Usa la busqueda antes de crear nuevos registros.",
         en: "A common mistake is creating duplicate methods with name variations. Use search before creating new records.",
       },
+      howTo: [
+        { es: "Antes de crear, busca por nombre exacto y variaciones posibles para evitar duplicados.", en: "Before creating, search by exact name and possible variations to avoid duplicates." },
+        { es: "Si encuentras un duplicado, desactiva o elimina el menos usado antes de continuar.", en: "If you find a duplicate, deactivate or delete the least-used one before continuing." },
+        { es: "Para verificar dependencias, revisa pedidos o facturas recientes que usen ese metodo.", en: "To check dependencies, review recent orders or invoices using that payment method." },
+      ],
     },
   ],
   walkthrough: [

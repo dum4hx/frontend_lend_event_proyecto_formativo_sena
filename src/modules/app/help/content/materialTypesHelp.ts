@@ -151,6 +151,12 @@ const materialTypesHelpContent: HelpModuleContent = {
         es: "Aqui puedes buscar, filtrar por categoria, importar, crear y mantener tipos de material.",
         en: "Here you can search, filter by category, import, create, and maintain material types.",
       },
+      howTo: [
+        { es: "Abre el modulo desde el menu lateral en Materiales > Tipos.", en: "Open the module from the sidebar under Materials > Types." },
+        { es: "Usa la barra de busqueda para encontrar un tipo por nombre.", en: "Use the search bar to find a type by name." },
+        { es: "Aplica filtros de categoria para acotar los resultados.", en: "Apply category filters to narrow the results." },
+        { es: "Haz clic en un registro para ver detalles, editar o eliminar.", en: "Click a record to view details, edit, or delete." },
+      ],
       tips: [
         {
           es: "Relaciona siempre cada tipo con una categoria correcta para facilitar reportes y busquedas.",
@@ -165,6 +171,12 @@ const materialTypesHelpContent: HelpModuleContent = {
         es: "Puedes buscar por nombre, filtrar por categoria, importar datos y administrar cada tipo desde el listado.",
         en: "You can search by name, filter by category, import data, and manage each type from the list.",
       },
+      howTo: [
+        { es: "Para crear: haz clic en 'Nuevo tipo', completa nombre, categoria y precio, y guarda.", en: "To create: click 'New type', fill in name, category, and price, then save." },
+        { es: "Para importar: descarga la plantilla, llena los campos y sube el archivo CSV/Excel.", en: "To import: download the template, fill in the fields, and upload the CSV/Excel file." },
+        { es: "Para editar: localiza el tipo, abre el menu de acciones y selecciona Editar.", en: "To edit: locate the type, open the action menu, and select Edit." },
+        { es: "Para eliminar: confirma que el tipo no tenga instancias activas antes de proceder.", en: "To delete: confirm the type has no active instances before proceeding." },
+      ],
       bestPractices: [
         {
           es: "Antes de importar, valida que las categorias referenciadas existan en el sistema.",
@@ -179,6 +191,12 @@ const materialTypesHelpContent: HelpModuleContent = {
         es: "Flujo recomendado: busca un tipo, aplica filtros por categoria, revisa metricas y luego crea o edita registros.",
         en: "Recommended flow: search for a type, apply category filters, review metrics, then create or edit records.",
       },
+      howTo: [
+        { es: "Escribe el nombre del tipo en la barra de busqueda.", en: "Type the type name in the search bar." },
+        { es: "Selecciona una categoria en el filtro para reducir resultados.", en: "Select a category in the filter to narrow results." },
+        { es: "Revisa las tarjetas de metricas para ver totales y resultados filtrados.", en: "Check the metrics cards to see totals and filtered results." },
+        { es: "Haz clic en '+ Nuevo tipo' para crear un nuevo registro con los datos requeridos.", en: "Click '+ New type' to create a new record with the required data." },
+      ],
       warnings: [
         {
           es: "Eliminar tipos de material puede afectar flujos ligados a catalogo e inventario.",
@@ -193,6 +211,11 @@ const materialTypesHelpContent: HelpModuleContent = {
         es: "Error frecuente: importar tipos con categoryId invalido o no existente. Verifica categorias antes del proceso.",
         en: "Common mistake: importing types with invalid or missing categoryId. Verify categories before the process.",
       },
+      howTo: [
+        { es: "Ve a Categorias, verifica que las categorias necesarias existan y copia sus IDs.", en: "Go to Categories, verify the required categories exist, and copy their IDs." },
+        { es: "Descarga la plantilla de importacion y nsertalos en la columna categoryId.", en: "Download the import template and insert them in the categoryId column." },
+        { es: "Sube el archivo y revisa el mensaje de resultado para confirmar que no hubo errores.", en: "Upload the file and review the result message to confirm there were no errors." },
+      ],
     },
   ],
   walkthrough: [
