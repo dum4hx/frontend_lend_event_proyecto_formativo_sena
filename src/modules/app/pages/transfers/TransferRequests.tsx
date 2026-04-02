@@ -39,6 +39,7 @@ import {
   ReceiveTransferModal,
   RequestDetailModal,
   EditRequestModal,
+  ShipmentDetailModal,
 } from "./TransferModals";
 import type {
   TransferRequest,
@@ -105,6 +106,7 @@ export function TransferRequests() {
   const [editTarget, setEditTarget] = useState<TransferRequest | null>(null);
   const [shipmentTarget, setShipmentTarget] = useState<TransferRequest | null>(null);
   const [receiveTarget, setReceiveTarget] = useState<Transfer | null>(null);
+  const [viewShipmentTarget, setViewShipmentTarget] = useState<Transfer | null>(null);
 
   // ── Helpers ──
   const locationName = useCallback(
@@ -679,8 +681,15 @@ export function TransferRequests() {
                             {formatDate(tr.createdAt, isEs)}
                           </td>
                           <td className="px-4 py-3 text-center">
-                            {tr.status === "in_transit" && canUpdate ? (
-                              <div className="flex items-center justify-end">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => setViewShipmentTarget(tr)}
+                                title={isEs ? "Ver detalles" : "View details"}
+                                className="flex items-center gap-1 px-2.5 h-7 bg-blue-700/20 hover:bg-blue-600/30 text-blue-400 hover:text-blue-300 border border-blue-700/30 rounded text-xs font-medium transition-all"
+                              >
+                                <Eye size={12} />
+                              </button>
+                              {tr.status === "in_transit" && canUpdate && (
                                 <button
                                   onClick={() => setReceiveTarget(tr)}
                                   className="flex items-center gap-1 px-2.5 h-7 bg-green-700/20 hover:bg-green-600/30 text-green-400 hover:text-green-300 border border-green-700/30 rounded text-xs font-medium transition-all"
@@ -688,12 +697,8 @@ export function TransferRequests() {
                                   <CheckCircle size={12} />
                                   {isEs ? "Recibir" : "Receive"}
                                 </button>
-                              </div>
-                            ) : (
-                              <div className="flex items-center justify-center">
-                                <span className="text-xs text-gray-600 italic">—</span>
-                              </div>
-                            )}
+                              )}
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -740,6 +745,18 @@ export function TransferRequests() {
               setReceiveTarget(null);
               void loadTransfers();
             }}
+          />
+        )}
+
+        {viewShipmentTarget && (
+          <ShipmentDetailModal
+            shipment={viewShipmentTarget}
+            locationName={locationName}
+            onReceive={() => {
+              setReceiveTarget(viewShipmentTarget);
+              setViewShipmentTarget(null);
+            }}
+            onClose={() => setViewShipmentTarget(null)}
           />
         )}
 

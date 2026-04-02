@@ -31,6 +31,8 @@ import {
   getInstanceModelName,
   REQUEST_STATUS_CLASSES,
   getRequestStatusLabel,
+  TRANSFER_STATUS_CLASSES,
+  getTransferStatusLabel,
   formatDate,
 } from "./helpers";
 import type {
@@ -1285,6 +1287,261 @@ export const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
           </div>
         </div>
       )}
+    </div>
+  );
+};
+
+// ─── Shipment Detail Modal ────────────────────────────────────────────────
+
+interface ShipmentDetailModalProps {
+  shipment: Transfer;
+  locationName: (id: string) => string;
+  onClose: () => void;
+  onReceive?: () => void;
+}
+
+/**
+ * Detailed view modal for shipments (transfers).
+ * Displays comprehensive information about a transfer including
+ * status, locations, items with conditions, notes, timestamps.
+ */
+export const ShipmentDetailModal: React.FC<ShipmentDetailModalProps> = ({
+  shipment,
+  locationName,
+  onClose,
+  onReceive,
+}) => {
+  const { language } = useLanguage();
+  const isEs = language === "es";
+
+  const statusBadgeClass = TRANSFER_STATUS_CLASSES[shipment.status];
+  const statusLabel = getTransferStatusLabel(shipment.status, isEs);
+  const createdDate = formatDate(shipment.createdAt, isEs);
+  const updatedDate = shipment.updatedAt ? formatDate(shipment.updatedAt, isEs) : null;
+
+  // Group items by condition for better readability
+  const itemsByCondition = new Map<string, TransferItem[]>();
+  shipment.items.forEach((item) => {
+    const key = item.sentCondition ?? "unknown";
+    if (!itemsByCondition.has(key)) {
+      itemsByCondition.set(key, []);
+    }
+    itemsByCondition.get(key)!.push(item);
+  });
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+      <div className="bg-[#111] border border-[#2a2a2a] rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-[#222]">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-[#FFD700]/10 rounded-lg">
+              <Truck className="w-5 h-5 text-[#FFD700]" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-white">
+                {isEs ? "Detalles del Envío" : "Shipment Details"}
+              </h2>
+              <p className="text-xs text-gray-500 font-mono mt-1">
+                {isEs ? "ID:" : "ID:"} {shipment._id}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 text-gray-500 hover:text-white hover:bg-[#222] rounded-lg transition-colors"
+            aria-label={isEs ? "Cerrar" : "Close"}
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar">
+          {/* Status Badge */}
+          <div className="flex items-center gap-3">
+            <span
+              className={`inline-flex items-center px-3 py-1 rounded-full border text-xs font-semibold ${statusBadgeClass}`}
+            >
+              <span className="w-2 h-2 rounded-full bg-current mr-2"></span>
+              {statusLabel}
+            </span>
+          </div>
+
+          {/* Transfer Route */}
+          <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-4">
+            <p className="text-xs text-gray-500 font-semibold mb-3 uppercase tracking-wide">
+              {isEs ? "Ruta de Transferencia" : "Transfer Route"}
+            </p>
+            <div className="flex items-center gap-3 text-sm">
+              <EntityLink
+                entityType="location"
+                entityId={shipment.fromLocationId}
+                label={locationName(shipment.fromLocationId)}
+                className="font-medium"
+              />
+              <ArrowLeftRight size={14} className="text-[#FFD700] shrink-0" />
+              <EntityLink
+                entityType="location"
+                entityId={shipment.toLocationId}
+                label={locationName(shipment.toLocationId)}
+                className="font-medium"
+              />
+            </div>
+          </div>
+
+          {/* Metadata Grid */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Created At */}
+            <div className="bg-[#0a0a0a] border border-[#222] rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Calendar size={14} className="text-[#FFD700]" />
+                <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide">
+                  {isEs ? "Iniciado el" : "Initiated"}
+                </p>
+              </div>
+              <p className="text-sm text-white font-medium">{createdDate}</p>
+            </div>
+
+            {/* Updated At (if applicable) */}
+            {updatedDate && (
+              <div className="bg-[#0a0a0a] border border-[#222] rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Calendar size={14} className="text-[#FFD700]" />
+                  <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide">
+                    {isEs ? "Actualizado el" : "Updated"}
+                  </p>
+                </div>
+                <p className="text-sm text-white font-medium">{updatedDate}</p>
+              </div>
+            )}
+
+            {/* Item Count */}
+            <div className="bg-[#0a0a0a] border border-[#222] rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Package size={14} className="text-[#FFD700]" />
+                <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide">
+                  {isEs ? "Cantidad de Artículos" : "Item Count"}
+                </p>
+              </div>
+              <p className="text-sm text-white font-medium">{shipment.items.length}</p>
+            </div>
+
+            {/* Request ID (if linked) */}
+            {shipment.requestId && (
+              <div className="bg-[#0a0a0a] border border-[#222] rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <FileText size={14} className="text-[#FFD700]" />
+                  <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide">
+                    {isEs ? "Solicitud Asociada" : "Related Request"}
+                  </p>
+                </div>
+                <p className="text-xs text-gray-300 font-mono truncate">{shipment.requestId}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Items Section */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Package size={14} className="text-[#FFD700]" />
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                {isEs ? "Artículos en Tránsito" : "Shipped Items"}
+              </h3>
+            </div>
+            <div className="space-y-3">
+              {shipment.items.map((item, idx) => (
+                <div key={idx} className="bg-[#0a0a0a] border border-[#222] rounded-lg p-4">
+                  <div className="flex items-start justify-between mb-2">
+                    <p className="text-sm font-medium text-white">
+                      {isEs ? "Artículo" : "Item"} #{idx + 1}
+                    </p>
+                    <p className="text-xs text-gray-500 font-mono">{item.instanceId}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    {item.sentCondition && (
+                      <div>
+                        <p className="text-gray-500 mb-1">
+                          {isEs ? "Condición Enviada" : "Sent Condition"}
+                        </p>
+                        <p className="px-2 py-1 bg-[#1a1a1a] text-gray-300 rounded w-fit">
+                          {getConditionLabel(item.sentCondition, isEs)}
+                        </p>
+                      </div>
+                    )}
+                    {item.receivedCondition && (
+                      <div>
+                        <p className="text-gray-500 mb-1">
+                          {isEs ? "Condición Recibida" : "Received Condition"}
+                        </p>
+                        <p className="px-2 py-1 bg-[#1a1a1a] text-gray-300 rounded w-fit">
+                          {getConditionLabel(item.receivedCondition, isEs)}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  {item.notes && (
+                    <div className="mt-2 pt-2 border-t border-[#222]">
+                      <p className="text-xs text-gray-500 mb-1">{isEs ? "Notas" : "Notes"}</p>
+                      <p className="text-xs text-gray-300">{item.notes}</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Sender Notes (if applicable) */}
+          {shipment.senderNotes && (
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <FileText size={14} className="text-[#FFD700]" />
+                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                  {isEs ? "Notas del Remitente" : "Sender Notes"}
+                </h3>
+              </div>
+              <div className="bg-[#0a0a0a] border border-[#222] rounded-lg p-4">
+                <p className="text-sm text-gray-300 whitespace-pre-wrap">{shipment.senderNotes}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Receiver Notes (if applicable) */}
+          {shipment.receiverNotes && (
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <FileText size={14} className="text-[#FFD700]" />
+                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                  {isEs ? "Notas del Receptor" : "Receiver Notes"}
+                </h3>
+              </div>
+              <div className="bg-[#0a0a0a] border border-[#222] rounded-lg p-4">
+                <p className="text-sm text-gray-300 whitespace-pre-wrap">
+                  {shipment.receiverNotes}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-end gap-2 p-6 border-t border-[#222]">
+          {onReceive && shipment.status === "in_transit" && (
+            <button
+              onClick={onReceive}
+              className="px-5 py-2.5 bg-blue-700/20 hover:bg-blue-600/30 text-blue-400 hover:text-blue-300 border border-blue-700/30 rounded-lg text-sm font-medium transition-all"
+            >
+              {isEs ? "Marcar como Recibido" : "Mark as Received"}
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            className="px-5 py-2.5 bg-[#FFD700] text-black font-bold rounded-lg text-sm hover:bg-[#e6c200] transition-colors"
+          >
+            {isEs ? "Cerrar" : "Close"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 };
