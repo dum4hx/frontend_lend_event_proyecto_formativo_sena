@@ -3906,6 +3906,47 @@ Lists all transfer requests for the organization. By default, **fulfilled** requ
 
 ---
 
+#### GET /transfers/requests/:id
+
+Returns the details of a single transfer request, with populated references for the requesting user and both locations.
+
+| Parameter | Location | Type   | Required | Description               |
+| --------- | -------- | ------ | -------- | ------------------------- |
+| id        | path     | string | Yes      | Transfer request ObjectId |
+
+**Permission Required:** `transfers:read`
+
+**Response (200):**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "_id": "64f1a2...",
+    "organizationId": "64e9b1...",
+    "status": "approved",
+    "requestedBy": {
+      "_id": "64e9c3...",
+      "name": "Ana López",
+      "email": "ana@example.com"
+    },
+    "fromLocationId": { "_id": "64ea01...", "name": "Bodega Central" },
+    "toLocationId": { "_id": "64ea02...", "name": "Sede Norte" },
+    "items": [{ "modelId": "64eb11...", "quantity": 3, "fulfilledQuantity": 0 }],
+    "notes": "Urgente para evento del viernes",
+    "neededBy": "2026-04-05T00:00:00.000Z",
+    "createdAt": "2026-04-02T10:00:00.000Z",
+    "updatedAt": "2026-04-02T11:30:00.000Z"
+  }
+}
+```
+
+**Error Responses:**
+
+- `404` — Transfer request not found or does not belong to the organization
+
+---
+
 #### PATCH /transfers/requests/:id
 
 Edits the `items`, `notes`, and/or `neededBy` of a transfer request. **Only the user who created the request can edit it, and only while its status is `requested`.**
@@ -4724,7 +4765,7 @@ Gets a specific inspection by ID with full item details.
 
 #### POST /inspections
 
-Creates an inspection for a returned loan. If damages or lost items are reported with a cost, a "damage" invoice is automatically generated for the customer.
+Creates an inspection for a returned loan. If damages or lost items are reported with a cost, a "damage" invoice is automatically generated for the customer. The inspection document itself is the authoritative damage record for the loan — no incident is auto-created.
 
 The server automatically populates `conditionBefore` from the material instance's `conditionAtCheckout` recorded when the loan was created, and computes `conditionDegraded` (boolean) by comparing the severity index of `conditionBefore` against the submitted `condition`. If no damages are found, the loan is auto-transitioned to `inspected` status.
 
@@ -4845,7 +4886,8 @@ This endpoint records a `refund` deposit transaction, sets `deposit.status` to `
 **Preconditions:**
 
 1. Loan must exist for the organization.
-2. `deposit.status` must be `"refund_pending"` or `"partially_applied"`.
+2. A completed inspection must exist for the loan.
+3. `deposit.status` must be `"refund_pending"` or `"partially_applied"`.
 
 **Response:** `200 OK`
 
@@ -4884,6 +4926,7 @@ This endpoint records a `refund` deposit transaction, sets `deposit.status` to `
 | Code              | Condition                                                        |
 | ----------------- | ---------------------------------------------------------------- |
 | `400 BAD_REQUEST` | Loan has no deposit (`deposit.amount === 0`)                     |
+| `400 BAD_REQUEST` | No completed inspection exists for the loan                      |
 | `400 BAD_REQUEST` | Deposit is not in `refund_pending` or `partially_applied` status |
 | `404 NOT_FOUND`   | Loan not found                                                   |
 
@@ -5100,7 +5143,7 @@ Checks whether a package can be fulfilled for a given date range. Returns per-it
 
 ### Incident Endpoints
 
-Manage incident reports (novedades) linked to loans. Incidents track damage, loss, overdue, and other notable events in the loan lifecycle. They can be created manually, automatically by inspections, or by the scheduler.
+Manage incident reports (novedades) for operational events. Incidents track damage, loss, overdue, and other notable events across different contexts: loan operations, transit, storage, maintenance, or other scenarios. Each incident requires a `context` field identifying where/why it occurred. They can be created manually or by the scheduler. Note: inspections are the authoritative damage record for loan contexts and no longer auto-create incidents.
 
 #### GET /incidents
 
@@ -5111,6 +5154,8 @@ Lists all incidents for the organization with optional filters and pagination.
 | page       | query    | number | No       | Page number (default: 1)                                                 |
 | limit      | query    | number | No       | Page size (default: 20)                                                  |
 | loanId     | query    | string | No       | Filter by loan ID                                                        |
+| locationId | query    | string | No       | Filter by location ID                                                    |
+| context    | query    | string | No       | `transit`, `storage`, `loan`, `maintenance`, `other`                     |
 | type       | query    | string | No       | `damage`, `lost`, `overdue`, `issue`, `replacement`, `extended`, `other` |
 | status     | query    | string | No       | `open`, `acknowledged`, `resolved`, `dismissed`                          |
 | severity   | query    | string | No       | `low`, `medium`, `high`, `critical`                                      |
@@ -5131,6 +5176,8 @@ Lists all incidents for the organization with optional filters and pagination.
         "_id": "65e2f3c0e1a2b3c4d5e6f7a1",
         "organizationId": "65e2f3c0e1a2b3c4d5e6f7b2",
         "loanId": "65e2f3c0e1a2b3c4d5e6f7c3",
+        "locationId": null,
+        "context": "loan",
         "type": "damage",
         "status": "open",
         "severity": "medium",
@@ -5180,6 +5227,8 @@ Gets a specific incident by ID.
       "_id": "65e2f3c0e1a2b3c4d5e6f7a1",
       "organizationId": "65e2f3c0e1a2b3c4d5e6f7b2",
       "loanId": "65e2f3c0e1a2b3c4d5e6f7c3",
+      "locationId": null,
+      "context": "loan",
       "type": "damage",
       "status": "acknowledged",
       "severity": "medium",
@@ -5218,7 +5267,9 @@ Creates a new incident manually.
 
 | Field                    | Type     | Required | Description                                                              |
 | ------------------------ | -------- | -------- | ------------------------------------------------------------------------ |
-| loanId                   | string   | Yes      | ID of the related loan                                                   |
+| loanId                   | string   | No       | ID of the related loan (required when `context` is `"loan"`)             |
+| locationId               | string   | No       | ID of the related location (useful for `transit`/`storage` context)      |
+| context                  | string   | Yes      | `transit`, `storage`, `loan`, `maintenance`, `other`                     |
 | type                     | string   | Yes      | `damage`, `lost`, `overdue`, `issue`, `replacement`, `extended`, `other` |
 | severity                 | string   | No       | `low`, `medium`, `high`, `critical` (default: `medium`)                  |
 | relatedMaterialInstances | string[] | No       | Array of material instance IDs                                           |
@@ -5231,6 +5282,7 @@ Creates a new incident manually.
 ```json
 {
   "loanId": "65e2f3c0e1a2b3c4d5e6f7c3",
+  "context": "loan",
   "type": "damage",
   "severity": "medium",
   "relatedMaterialInstances": ["65e2f3c0e1a2b3c4d5e6f7e5"],
@@ -5242,6 +5294,8 @@ Creates a new incident manually.
 }
 ```
 
+**Note:** `loanId` is required when `context` is `"loan"`. For non-loan incidents (e.g., transit damage, warehouse storage issues), use the appropriate `context` value and optionally provide `locationId`.
+
 **Response:** `201 Created`
 
 ```json
@@ -5252,6 +5306,8 @@ Creates a new incident manually.
       "_id": "65e2f3c0e1a2b3c4d5e6f7a1",
       "organizationId": "65e2f3c0e1a2b3c4d5e6f7b2",
       "loanId": "65e2f3c0e1a2b3c4d5e6f7c3",
+      "locationId": null,
+      "context": "loan",
       "type": "damage",
       "status": "open",
       "severity": "medium",
@@ -5274,7 +5330,7 @@ Creates a new incident manually.
 **Errors:**
 
 - `400` — `BAD_REQUEST`: Invalid or missing fields.
-- `409` — `CONFLICT`: Duplicate incident (same loanId + type + sourceId combination).
+- `409` — `CONFLICT`: Duplicate incident (same organizationId + sourceType + sourceId + type combination).
 
 ---
 
@@ -7056,5 +7112,267 @@ Deactivates a payment method (soft delete -- sets status to `"inactive"`).
 
 - `400` -- Payment method is already inactive.
 - `404` -- Payment method not found.
+
+---
+
+## Maintenance Batches
+
+Base path: `/api/v1/maintenance`
+
+All endpoints require `authenticate` + active organization middleware.
+
+### GET /maintenance
+
+Lists maintenance batches for the organization with pagination and optional filters.
+
+**Permissions:** `maintenance:read`
+
+**Query params:**
+
+| Param      | Type   | Required | Description                      |
+| ---------- | ------ | -------- | -------------------------------- |
+| page       | number | No       | Page number (default 1)          |
+| limit      | number | No       | Items per page (default 20)      |
+| status     | string | No       | Filter by batch status           |
+| assignedTo | string | No       | Filter by assigned user ObjectId |
+
+**Response `200`:**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "batches": [
+      {
+        "_id": "...",
+        "name": "March Repairs",
+        "status": "draft",
+        "items": [],
+        "totalEstimatedCost": 0,
+        "totalActualCost": 0,
+        "createdAt": "2026-03-10T...",
+        "updatedAt": "2026-03-10T..."
+      }
+    ],
+    "pagination": { "total": 1, "page": 1, "limit": 20, "pages": 1 }
+  }
+}
+```
+
+---
+
+### POST /maintenance
+
+Creates a new maintenance batch in `draft` status.
+
+**Permissions:** `maintenance:create`
+
+**Request body:**
+
+| Field              | Type   | Required | Description                     |
+| ------------------ | ------ | -------- | ------------------------------- |
+| name               | string | Yes      | Batch name (max 200)            |
+| description        | string | No       | Description (max 1000)          |
+| scheduledStartDate | string | No       | ISO date                        |
+| scheduledEndDate   | string | No       | ISO date                        |
+| assignedTo         | string | No       | ObjectId of assigned technician |
+| locationId         | string | No       | ObjectId of repair location     |
+| notes              | string | No       | Additional notes (max 1000)     |
+
+**Response `201`:**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "_id": "...",
+    "name": "March Repairs",
+    "status": "draft",
+    "items": [],
+    "organizationId": "...",
+    "createdBy": "..."
+  }
+}
+```
+
+---
+
+### GET /maintenance/:id
+
+Gets a single maintenance batch with populated references.
+
+**Permissions:** `maintenance:read`
+
+**URL params:** `id` -- ObjectId of the batch.
+
+**Response `200`:**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "_id": "...",
+    "name": "March Repairs",
+    "status": "in_progress",
+    "items": [
+      {
+        "_id": "...",
+        "materialInstanceId": { "_id": "...", "serialNumber": "SN-001" },
+        "entryReason": "damaged",
+        "itemStatus": "in_repair",
+        "sourceType": "inspection",
+        "sourceId": "..."
+      }
+    ],
+    "assignedTo": { "_id": "...", "email": "tech@example.com" },
+    "totalEstimatedCost": 150,
+    "totalActualCost": 0
+  }
+}
+```
+
+**Errors:**
+
+- `404` -- Batch not found.
+
+---
+
+### PATCH /maintenance/:id
+
+Updates batch metadata. Only allowed while batch is in `draft` status.
+
+**Permissions:** `maintenance:update`
+
+**Request body:** Same fields as POST (all optional).
+
+**Errors:**
+
+- `404` -- Batch not found.
+- `409` -- Batch is not in draft status.
+
+---
+
+### POST /maintenance/:id/start
+
+Starts a maintenance batch (`draft` → `in_progress`). Transitions all pending items to `in_repair` and syncs material instance statuses to `maintenance`.
+
+**Permissions:** `maintenance:update`
+
+**URL params:** `id` -- ObjectId of the batch.
+
+**Errors:**
+
+- `404` -- Batch not found.
+- `409` -- Batch has no items, or invalid status transition.
+
+---
+
+### POST /maintenance/:id/cancel
+
+Cancels a batch from `draft` or `in_progress`. For active batches, reverts `in_repair` items back to `damaged` status.
+
+**Permissions:** `maintenance:update`
+
+**URL params:** `id` -- ObjectId of the batch.
+
+**Errors:**
+
+- `404` -- Batch not found.
+- `409` -- Invalid status transition (e.g., already completed).
+
+---
+
+### POST /maintenance/:id/items
+
+Adds items to a `draft` maintenance batch.
+
+**Permissions:** `maintenance:update`
+
+**Request body:**
+
+| Field | Type  | Required | Description           |
+| ----- | ----- | -------- | --------------------- |
+| items | array | Yes      | Array of item objects |
+
+Each item:
+
+| Field              | Type   | Required | Description                                   |
+| ------------------ | ------ | -------- | --------------------------------------------- |
+| materialInstanceId | string | Yes      | ObjectId of the material instance             |
+| entryReason        | string | Yes      | `"damaged"`, `"lost"`, or `"other"`           |
+| sourceType         | string | Yes      | `"inspection"`, `"incident"`, or `"manual"`   |
+| sourceId           | string | No       | ObjectId of the source inspection or incident |
+| sourceItemIndex    | number | No       | Index of the item in the source document      |
+| estimatedCost      | number | No       | Estimated repair cost                         |
+| repairNotes        | string | No       | Notes about the item (max 500)                |
+
+**Errors:**
+
+- `404` -- Batch or material instance not found.
+- `409` -- Batch not in draft, or instance already in an active batch.
+
+---
+
+### DELETE /maintenance/:id/items/:instanceId
+
+Removes an item from a `draft` batch.
+
+**Permissions:** `maintenance:update`
+
+**URL params:**
+
+- `id` -- ObjectId of the batch.
+- `instanceId` -- ObjectId of the material instance to remove.
+
+**Errors:**
+
+- `404` -- Batch or item not found.
+- `409` -- Batch not in draft status.
+
+---
+
+### PATCH /maintenance/:id/items/:instanceId
+
+Resolves a single item as `repaired` or `unrecoverable`. Syncs the material instance status accordingly (`available` or `retired`). If all items are resolved, auto-completes the batch.
+
+**Permissions:** `maintenance:resolve`
+
+**URL params:**
+
+- `id` -- ObjectId of the batch.
+- `instanceId` -- ObjectId of the material instance.
+
+**Request body:**
+
+| Field       | Type   | Required | Description                       |
+| ----------- | ------ | -------- | --------------------------------- |
+| resolution  | string | Yes      | `"repaired"` or `"unrecoverable"` |
+| actualCost  | number | No       | Actual repair cost                |
+| repairNotes | string | No       | Resolution notes (max 500)        |
+
+**Response `200`:**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "_id": "...",
+    "status": "in_progress",
+    "items": [
+      {
+        "materialInstanceId": "...",
+        "itemStatus": "repaired",
+        "resolvedAt": "2026-03-12T...",
+        "actualCost": 85
+      }
+    ]
+  }
+}
+```
+
+**Errors:**
+
+- `404` -- Batch or item not found.
+- `409` -- Batch not in `in_progress`, or item not in `in_repair` status.
 
 ---
