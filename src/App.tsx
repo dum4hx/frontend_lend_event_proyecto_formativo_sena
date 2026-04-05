@@ -17,6 +17,7 @@ import SignUp from "./pages/SignUp";
 import PasswordRecovery from "./pages/PasswordRecovery";
 import AcceptInvite from "./pages/AcceptInvite";
 import EmailVerification from "./pages/EmailVerification";
+import LoginOtp from "./pages/LoginOtp";
 import Checkout from "./pages/Checkout";
 import CheckoutSuccess from "./pages/CheckoutSuccess";
 import {
@@ -100,6 +101,7 @@ function App() {
                 <Route path="/password-recovery" element={<PasswordRecovery />} />
                 <Route path="/accept-invite" element={<AcceptInvite />} />
                 <Route path="/verify-email" element={<EmailVerification />} />
+                <Route path="/auth/verify-otp" element={<LoginOtp />} />
                 <Route path="/checkout" element={<Checkout />} />
                 <Route path="/checkout/success" element={<CheckoutSuccess />} />
                 <Route path="/export-demo" element={<ExportDemo />} />

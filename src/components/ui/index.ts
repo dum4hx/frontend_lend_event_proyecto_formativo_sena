@@ -88,3 +88,5 @@ export type { Toast, ToastType } from "./ToastContainer";
 
 export { GreetingCard } from "./GreetingCard";
 export type { GreetingCardProps } from "./GreetingCard";
+
+export { BackupCodesModal } from "./BackupCodesModal";

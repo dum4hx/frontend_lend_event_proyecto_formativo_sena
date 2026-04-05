@@ -11,6 +11,7 @@ const HELP_LOADERS: Record<string, HelpLoader> = {
   invoices: () => import("./invoicesHelp"),
   inspections: () => import("./inspectionsHelp"),
   locations: () => import("./locationsHelp"),
+  login: () => import("./loginHelp"),
   maintenance: () => import("./maintenanceHelp"),
   "material-categories": () => import("./materialCategoriesHelp"),
   "material-instances": () => import("./materialInstancesHelp"),

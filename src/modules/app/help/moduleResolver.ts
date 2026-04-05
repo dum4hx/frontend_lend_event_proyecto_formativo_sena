@@ -2,6 +2,10 @@ import type { HelpModuleDefinition } from "./types";
 
 const HELP_MODULE_DEFINITIONS: HelpModuleDefinition[] = [
   {
+    moduleId: "login",
+    routePrefixes: ["/login", "/auth/verify-otp"],
+  },
+  {
     moduleId: "operations",
     routePrefixes: ["/app/operations"],
   },

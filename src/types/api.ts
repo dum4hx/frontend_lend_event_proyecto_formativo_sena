@@ -1219,6 +1219,44 @@ export interface LoginPayload {
   password: string;
 }
 
+export interface LoginPendingOtpResponseData {
+  pendingOtp: true;
+  email: string;
+}
+
+export interface VerifyLoginOtpPayload {
+  email: string;
+  code: string;
+}
+
+export interface VerifyLoginOtpResponseData {
+  user: User;
+  permissions: string[];
+  /** Only present on the very first 2FA login — 10 single-use backup codes. */
+  backupCodes?: string[];
+}
+
+export interface VerifyBackupCodePayload {
+  email: string;
+  backupCode: string;
+}
+
+export interface VerifyBackupCodeResponseData {
+  user: User;
+  permissions: string[];
+  remainingBackupCodes: number;
+}
+
+export interface ResendLoginOtpPayload {
+  email: string;
+  password: string;
+}
+
+export interface ResendLoginOtpResponseData {
+  pendingOtp: true;
+  email: string;
+}
+
 export interface ChangePasswordPayload {
   currentPassword: string;
   newPassword: string;
@@ -1268,6 +1306,7 @@ export interface RegisterResponseData {
   permissions: string[];
 }
 
+/** @deprecated Use VerifyLoginOtpResponseData — login now requires OTP verification. */
 export interface LoginResponseData {
   user: User;
   permissions: string[];

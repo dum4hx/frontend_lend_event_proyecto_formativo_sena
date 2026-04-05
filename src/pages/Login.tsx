@@ -2,14 +2,9 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import { loginUser, refreshToken, getPaymentStatus } from "../services/authService";
+import { loginUser } from "../services/authService";
 import { ApiError } from "../lib/api";
 import { validateLoginForm, validateEmail } from "../utils/validators";
-import {
-  getDashboardUrlByPermissions,
-  requiresActiveSubscriptionByPermissions,
-} from "../utils/roleRouting";
-import { useAuth } from "../contexts/useAuth";
 import { useLanguage } from "../contexts/useLanguage";
 import styles from "./Login.module.css";
 
@@ -17,12 +12,6 @@ export default function Login() {
   const { language } = useLanguage();
   const isEs = language === "es";
   const navigate = useNavigate();
-  const { checkAuth } = useAuth();
-
-  // Helper to format PersonName to display string
-  const formatPersonName = (name: { firstName: string; firstSurname: string }) => {
-    return `${name.firstName} ${name.firstSurname}`.trim();
-  };
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
@@ -30,7 +19,6 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [showPassword, setShowPassword] = useState(false);
-  const [showNoSubModal, setShowNoSubModal] = useState(false);
 
   const setErrorFor = (field: string, message?: string) => {
     setFieldErrors((prev) => {
@@ -69,103 +57,13 @@ export default function Login() {
 
     try {
       await loginUser({ email: normalisedEmail, password: normalisedPassword });
-
-      // Verify authentication after login
-      const { user: loggedUser, permissions } = await checkAuth();
-
-      if (!loggedUser) {
-        console.error("❌ [Login] checkAuth() returned null after login");
-        setError(
-          isEs
-            ? "Fallo la autenticacion. Intenta de nuevo."
-            : "Authentication failed. Please try again.",
-        );
-        return;
-      }
-
-      if (permissions.length === 0) {
-        console.error("❌ [Login] User has no permissions assigned:", loggedUser);
-        setError(
-          isEs
-            ? "No tienes permisos asignados. Contacta a tu administrador."
-            : "No permissions assigned. Please contact your administrator.",
-        );
-        return;
-      }
-
-      // For roles that require subscription, check subscription status
-      if (requiresActiveSubscriptionByPermissions(permissions)) {
-        try {
-          const status = await getPaymentStatus();
-          if (!status.data.isActive) {
-            setShowNoSubModal(true);
-            return;
-          }
-        } catch {
-          // If status check fails, proceed normally
-          console.warn("⚠️ Could not verify subscription status");
-        }
-      }
-
-      // Navigate based on the user's permissions
-      const dashboardUrl = getDashboardUrlByPermissions(permissions);
-
-      // Navigate to dashboard immediately with greeting info
-      navigate(dashboardUrl, {
-        state: {
-          showGreeting: true,
-          greetingName: formatPersonName(loggedUser.name),
-        },
+      navigate("/auth/verify-otp", {
+        state: { email: normalisedEmail, password: normalisedPassword },
       });
     } catch (err: unknown) {
-      // Generic error message for invalid credentials; do not reveal which field
       if (err instanceof ApiError && err.statusCode === 401) {
-        try {
-          await refreshToken();
-          const { user: refreshedUser, permissions: refreshedPermissions } = await checkAuth();
-
-          if (!refreshedUser) {
-            setError(
-              isEs
-                ? "Fallo la autenticacion tras refrescar el token. Intenta de nuevo."
-                : "Authentication failed after token refresh. Please try again.",
-            );
-            return;
-          }
-
-          if (refreshedPermissions.length === 0) {
-            console.error("❌ [Login] Refreshed user has no permissions:", refreshedUser);
-            setError(
-              isEs
-                ? "No tienes permisos asignados. Contacta a tu administrador."
-                : "No permissions assigned. Please contact your administrator.",
-            );
-            return;
-          }
-
-          if (requiresActiveSubscriptionByPermissions(refreshedPermissions)) {
-            try {
-              const status = await getPaymentStatus();
-              if (!status.data.isActive) {
-                setShowNoSubModal(true);
-                return;
-              }
-            } catch {
-              // proceed normally on failure
-            }
-          }
-          const dashboardUrl = getDashboardUrlByPermissions(refreshedPermissions);
-          navigate(dashboardUrl, {
-            state: {
-              showGreeting: true,
-              greetingName: formatPersonName(refreshedUser.name),
-            },
-          });
-          return;
-        } catch {
-          setError(isEs ? "Credenciales invalidas" : "Invalid credentials");
-          return;
-        }
+        setError(isEs ? "Credenciales invalidas" : "Invalid credentials");
+        return;
       }
       const message =
         err instanceof ApiError
@@ -181,51 +79,6 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex flex-col bg-black">
-      {/* No-subscription modal */}
-      {showNoSubModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
-          <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-8 max-w-md w-full shadow-2xl">
-            <div className="flex items-center justify-center w-14 h-14 bg-yellow-400/10 border border-yellow-400/30 rounded-full mx-auto mb-5">
-              <svg
-                className="w-7 h-7 text-yellow-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-                />
-              </svg>
-            </div>
-            <h2 className="text-2xl font-extrabold text-white text-center mb-3">
-              {isEs ? "Suscripcion requerida" : "Subscription Required"}
-            </h2>
-            <p className="text-gray-400 text-center text-sm mb-8 leading-relaxed">
-              {isEs
-                ? "Tu cuenta no tiene una suscripcion activa. Necesitas comprar un plan antes de acceder a tu panel. Elige el plan que mejor se ajuste a tus necesidades y comienza de inmediato."
-                : "Your account does not have an active subscription. You need to purchase a plan before you can access your dashboard. Choose a plan that fits your needs and get started right away."}
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <button
-                onClick={() => setShowNoSubModal(false)}
-                className="flex-1 py-3 rounded-xl border border-zinc-700 text-gray-300 font-semibold hover:bg-zinc-800 hover:text-white transition"
-              >
-                {isEs ? "Cerrar" : "Close"}
-              </button>
-              <button
-                onClick={() => navigate("/packages")}
-                className="flex-1 py-3 rounded-xl bg-yellow-400 text-black font-extrabold hover:bg-yellow-300 transition"
-              >
-                {isEs ? "Comprar suscripcion" : "Buy Subscription"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <Header />
 
       <main className="flex-grow flex flex-col md:flex-row">
@@ -349,6 +202,7 @@ export default function Login() {
                     placeholder="name@company.com"
                     value={email}
                     maxLength={254}
+                    data-help-id="login-email-input"
                     onChange={(e) => {
                       const v = e.target.value.trim(); // disallow leading/trailing spaces
                       const lower = v.toLowerCase(); // normalize
@@ -391,6 +245,7 @@ export default function Login() {
                       placeholder="••••••••••••"
                       value={password}
                       maxLength={128}
+                      data-help-id="login-password-input"
                       onChange={(e) => {
                         const v = e.target.value.replace(/^\s+|\s+$/g, ""); // trim both ends
                         setPassword(v);
@@ -489,6 +344,7 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={loading || Object.keys(fieldErrors).length > 0}
+                data-help-id="login-submit-button"
                 className={`w-full bg-yellow-400 text-black font-extrabold py-4 rounded-xl text-lg ${styles.glowButton} mt-4 shadow-xl hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed transition`}
               >
                 {loading
