@@ -133,9 +133,8 @@ export default function LoginOtp() {
     if (err instanceof ApiError) {
       const details = err.details as Record<string, unknown> | undefined;
       const errorCode = details?.code as string | undefined;
-      const attemptsLeft = typeof details?.attemptsLeft === "number"
-        ? details.attemptsLeft
-        : undefined;
+      const attemptsLeft =
+        typeof details?.attemptsLeft === "number" ? details.attemptsLeft : undefined;
 
       switch (errorCode) {
         case "OTP_INVALID":
@@ -274,8 +273,7 @@ export default function LoginOtp() {
   };
 
   // ── Derived UI values ────────────────────────────────────────────────────
-  const attemptsUsed =
-    error?.attemptsLeft != null ? MAX_ATTEMPTS - error.attemptsLeft : 0;
+  const attemptsUsed = error?.attemptsLeft != null ? MAX_ATTEMPTS - error.attemptsLeft : 0;
   const isMaxAttemptsReached = error?.code === "OTP_MAX_ATTEMPTS" || error?.attemptsLeft === 0;
   const isExpired = secondsLeft <= 0 || error?.code === "OTP_EXPIRED";
 

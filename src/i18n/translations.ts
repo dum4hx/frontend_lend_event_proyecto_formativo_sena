@@ -59,7 +59,6 @@ const NAV_ITEM_KEYS: Partial<Record<string, TranslationKey>> = {
   team: "nav.item.team",
   roles: "nav.item.roles",
   subscription: "nav.item.subscription",
-  "ia-settings": "nav.item.ia-settings",
   settings: "nav.item.settings",
   "material-categories": "nav.item.material-categories",
   "material-types": "nav.item.material-types",
@@ -93,7 +92,11 @@ const NAV_SECTION_KEYS: Partial<Record<string, TranslationKey>> = {
   Configuration: "nav.section.configuration",
 };
 
-export function translate(language: SupportedLanguage, key: TranslationKey, params?: TranslationParams) {
+export function translate(
+  language: SupportedLanguage,
+  key: TranslationKey,
+  params?: TranslationParams,
+) {
   const template = TRANSLATIONS[language][key] ?? EN_TRANSLATIONS[key];
   if (!params) return template;
 

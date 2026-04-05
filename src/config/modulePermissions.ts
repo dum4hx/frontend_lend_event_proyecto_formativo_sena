@@ -80,13 +80,6 @@ export const allNavItems: NavItem[] = [
     section: "Organization",
   },
   {
-    id: "ia-settings",
-    label: "IA Settings",
-    path: "/app/ia-settings",
-    requiredPermissions: ["organization:update"],
-    section: "Organization",
-  },
-  {
     id: "settings",
     label: "Settings",
     path: "/app/settings",

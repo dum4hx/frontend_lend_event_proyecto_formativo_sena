@@ -81,10 +81,7 @@ export function BackupCodesModal({ isOpen, codes, onClose }: BackupCodesModalPro
           </svg>
         </div>
 
-        <h2
-          id="backup-codes-title"
-          className="text-xl font-extrabold text-white text-center mb-2"
-        >
+        <h2 id="backup-codes-title" className="text-xl font-extrabold text-white text-center mb-2">
           {t("publicSite.login.backupCodes.modalTitle")}
         </h2>
 
@@ -106,9 +103,7 @@ export function BackupCodesModal({ isOpen, codes, onClose }: BackupCodesModalPro
               key={idx}
               className="flex items-center gap-2 font-mono text-sm text-white bg-zinc-800/60 rounded-lg px-3 py-2"
             >
-              <span className="text-gray-500 text-xs w-5 text-right shrink-0">
-                {idx + 1}.
-              </span>
+              <span className="text-gray-500 text-xs w-5 text-right shrink-0">{idx + 1}.</span>
               <span className="tracking-wider">{code}</span>
             </div>
           ))}
@@ -138,9 +133,7 @@ export function BackupCodesModal({ isOpen, codes, onClose }: BackupCodesModalPro
                     d="M5 13l4 4L19 7"
                   />
                 </svg>
-                <span className="text-green-400">
-                  {t("publicSite.login.backupCodes.copied")}
-                </span>
+                <span className="text-green-400">{t("publicSite.login.backupCodes.copied")}</span>
               </>
             ) : (
               <>

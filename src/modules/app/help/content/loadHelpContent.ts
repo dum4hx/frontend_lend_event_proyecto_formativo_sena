@@ -6,7 +6,6 @@ const HELP_LOADERS: Record<string, HelpLoader> = {
   "admin-dashboard": () => import("./dashboardHelp"),
   attributes: () => import("./attributesHelp"),
   customers: () => import("./customersHelp"),
-  "ia-settings": () => import("./iaSettingsHelp"),
   incidents: () => import("./incidentsHelp"),
   invoices: () => import("./invoicesHelp"),
   inspections: () => import("./inspectionsHelp"),

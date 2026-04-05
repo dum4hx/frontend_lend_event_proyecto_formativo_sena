@@ -168,10 +168,10 @@ export async function forgotPassword(
 export async function verifyResetCode(
   payload: VerifyResetCodePayload,
 ): Promise<ApiSuccessResponse<VerifyResetCodeResponseData>> {
-  return post<VerifyResetCodeResponseData, VerifyResetCodePayload>(
-    "/auth/verify-reset-code",
-    { email: payload.email.toLowerCase(), code: payload.code },
-  );
+  return post<VerifyResetCodeResponseData, VerifyResetCodePayload>("/auth/verify-reset-code", {
+    email: payload.email.toLowerCase(),
+    code: payload.code,
+  });
 }
 
 // --- Reset Password ---------------------------------------------------------

@@ -6,7 +6,6 @@ import {
   Users,
   ShieldCheck,
   Settings,
-  Bot,
   LogOut,
   UserCircle,
   CreditCard,
@@ -51,7 +50,6 @@ const iconMap: Record<string, React.ReactNode> = {
   team: <Users size={20} />,
   roles: <ShieldCheck size={20} />,
   subscription: <CreditCard size={20} />,
-  "ia-settings": <Bot size={20} />,
   settings: <Settings size={20} />,
   // Materials
   "material-categories": <FolderTree size={20} />,

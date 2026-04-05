@@ -46,7 +46,6 @@ import AppLayout from "./modules/app/layouts/AppLayout";
 import AdminDashboard from "./modules/app/pages/AdminDashboard";
 import Customers from "./modules/app/pages/Customers";
 import Team from "./modules/app/pages/Team";
-import IASettings from "./modules/app/pages/IA_Settings";
 import Settings from "./modules/app/pages/Settings";
 import SubscriptionManagement from "./modules/app/pages/SubscriptionManagement";
 import RoleManagement from "./modules/app/pages/RoleManagement";
@@ -161,7 +160,6 @@ function App() {
                   <Route path="invoices" element={<Invoices />} />
                   <Route path="payment-methods" element={<PaymentMethods />} />
                   <Route path="reports" element={<Reports />} />
-                  <Route path="ia-settings" element={<IASettings />} />
                   <Route path="settings" element={<Settings />} />
                   <Route path="subscription" element={<SubscriptionManagement />} />
                 </Route>

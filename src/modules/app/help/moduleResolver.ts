@@ -66,10 +66,6 @@ const HELP_MODULE_DEFINITIONS: HelpModuleDefinition[] = [
     routePrefixes: ["/app/material-categories"],
   },
   {
-    moduleId: "ia-settings",
-    routePrefixes: ["/app/ia-settings"],
-  },
-  {
     moduleId: "subscription",
     routePrefixes: ["/app/subscription"],
   },
