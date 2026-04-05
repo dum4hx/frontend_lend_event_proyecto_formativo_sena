@@ -200,14 +200,16 @@ export function LoanDetailModal({ show, onClose, target, locale, isEs }: LoanDet
               </label>
               <p className="text-white">{customerFullName(target.customer)}</p>
             </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1 uppercase tracking-wide">
-                {isEs ? "ID solicitud" : "Request ID"}
-              </label>
-              <p className="text-white font-mono text-xs">
-                #{target.loan.requestId.slice(-8).toUpperCase()}
-              </p>
-            </div>
+            {target.loan.requestId && (
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1 uppercase tracking-wide">
+                  {isEs ? "ID solicitud" : "Request ID"}
+                </label>
+                <p className="text-white font-mono text-xs">
+                  #{String(target.loan.requestId).slice(-8).toUpperCase()}
+                </p>
+              </div>
+            )}
             <div>
               <label className="block text-xs font-medium text-gray-400 mb-1 uppercase tracking-wide">
                 {isEs ? "Fecha inicio" : "Start Date"}

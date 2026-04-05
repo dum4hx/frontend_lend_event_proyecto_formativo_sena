@@ -543,7 +543,7 @@ export interface DepositTransaction {
 export interface Loan {
   _id: string;
   customerId: string | Customer;
-  requestId: string;
+  requestId?: string;
   status: LoanStatus;
   startDate: string;
   endDate: string;
@@ -2027,20 +2027,20 @@ export interface OpsOverview {
 
 /** Individual inspection item in the queue. */
 export interface OpsInspectionItem {
+  _id: string;
   loanId: string;
-  customerId: string;
+  instanceId: string;
+  materialTypeName: string;
+  serialNumber: string;
+  returnedAt: string;
+  timeWaitingMinutes: number;
+  loanEndDate: string;
   customerName: string;
-  itemCount: number;
-  returnDate: string;
-  status: "pending" | "in-progress";
+  priority: "low" | "medium" | "high";
 }
 
-/** Grouped inspection queue from GET /locations/:id/operations/inspections */
-export interface OpsInspectionsResponse {
-  pending: OpsInspectionItem[];
-  inProgress: OpsInspectionItem[];
-  total: number;
-}
+/** Flat inspection queue from GET /locations/:id/operations/inspections */
+export type OpsInspectionsResponse = OpsInspectionItem[];
 
 /** Overdue invoice entry from GET /locations/:id/operations/financials/overdue */
 export interface OpsOverdueInvoice {
