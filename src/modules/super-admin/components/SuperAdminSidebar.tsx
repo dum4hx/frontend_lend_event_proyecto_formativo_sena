@@ -4,7 +4,6 @@ import {
   BarChart3,
   Users,
   CreditCard,
-  Bot,
   Settings,
   LogOut,
   Building2,
@@ -33,7 +32,6 @@ const iconMap: Record<string, React.ReactNode> = {
   organizations: <Building2 size={20} />,
   plans: <CreditCard size={20} />,
   "sa-plans": <CreditCard size={20} />,
-  "ai-monitor": <Bot size={20} />,
   "sa-settings": <Settings size={20} />,
 };
 

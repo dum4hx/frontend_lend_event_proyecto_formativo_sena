@@ -77,7 +77,6 @@ const UserManagement = lazy(() => import("./modules/super-admin/pages/UserManage
 const SuperAdminSubscriptionManagement = lazy(
   () => import("./modules/super-admin/pages/SubscriptionManagement"),
 );
-const AIChatbotMonitor = lazy(() => import("./modules/super-admin/pages/AIChatbotMonitor"));
 const SystemSettings = lazy(() => import("./modules/super-admin/pages/SystemSettings"));
 const OrganizationManagement = lazy(
   () => import("./modules/super-admin/pages/OrganizationManagement"),
@@ -180,7 +179,6 @@ function App() {
                   <Route path="clients" element={<UserManagement />} />
                   <Route path="organizations" element={<OrganizationManagement />} />
                   <Route path="subscriptions" element={<SuperAdminSubscriptionManagement />} />
-                  <Route path="ai-monitor" element={<AIChatbotMonitor />} />
                   <Route path="settings" element={<SystemSettings />} />
                 </Route>
 

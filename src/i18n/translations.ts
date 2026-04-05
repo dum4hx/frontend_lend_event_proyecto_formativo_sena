@@ -79,7 +79,6 @@ const NAV_ITEM_KEYS: Partial<Record<string, TranslationKey>> = {
   clients: "nav.item.clients",
   organizations: "nav.item.organizations",
   "sa-plans": "nav.item.sa-plans",
-  "ai-monitor": "nav.item.ai-monitor",
   "sa-settings": "nav.item.sa-settings",
 };
 

@@ -256,13 +256,6 @@ export const allNavItems: NavItem[] = [
     section: "Management",
   },
   {
-    id: "ai-monitor",
-    label: "AI Chatbot Monitor",
-    path: "/super-admin/ai-monitor",
-    requiredPermissions: ["platform:manage"],
-    section: "Monitoring",
-  },
-  {
     id: "sa-settings",
     label: "System Settings",
     path: "/super-admin/settings",
