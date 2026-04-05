@@ -50,6 +50,8 @@
   "settings.appearance.compactMode": "Compact mode",
   "settings.appearance.showAnimations": "Enable interface animations",
   "settings.appearance.highContrast": "High contrast mode",
+  "settings.appearance.lightModeUpcomingTitle": "Light Mode — Coming Soon",
+  "settings.appearance.lightModeUpcomingMessage": "Light mode is not yet available. We are working on it and it will be released in a future update.",
   "settings.appearance.languageTitle": "Language",
   "settings.appearance.languageDescription": "Choose the language used by the administration modules.",
   "settings.account.organizationInfo": "Organization Information",

@@ -1,6 +1,7 @@
 # REPORTE TÉCNICO: Funcionalidad de Lector de Código de Barras - LendEvent Frontend
 
 ## 📋 Tabla de Contenidos
+
 1. [Resumen Ejecutivo](#resumen-ejecutivo)
 2. [Stack Tecnológico](#stack-tecnológico)
 3. [Arquitectura General](#arquitectura-general)
@@ -31,19 +32,20 @@ La funcionalidad de lector de códigos de barras en LendEvent es un sistema comp
 
 ## Stack Tecnológico
 
-| Tecnología | Versión | Propósito |
-|---|---|---|
-| **React** | 19.x | Framework frontend |
-| **TypeScript** | 5.x | Type safety |
-| **jsbarcode** | ^3.11.x | Generación de códigos de barras (formato CODE128) |
-| **Lucide Icons** | ^0.x | Iconografía (Printer, X, etc.) |
-| **Vite** | ^5.x | Build tool |
-| **Tailwind CSS** | ^3.4.x | Estilos de UI |
-| **React Query** | (queryClient) | Data fetching y caching |
-| **Vitest** | Testing framework |
-| **MSW** | Mock Service Worker para testing |
+| Tecnología       | Versión                          | Propósito                                         |
+| ---------------- | -------------------------------- | ------------------------------------------------- |
+| **React**        | 19.x                             | Framework frontend                                |
+| **TypeScript**   | 5.x                              | Type safety                                       |
+| **jsbarcode**    | ^3.11.x                          | Generación de códigos de barras (formato CODE128) |
+| **Lucide Icons** | ^0.x                             | Iconografía (Printer, X, etc.)                    |
+| **Vite**         | ^5.x                             | Build tool                                        |
+| **Tailwind CSS** | ^3.4.x                           | Estilos de UI                                     |
+| **React Query**  | (queryClient)                    | Data fetching y caching                           |
+| **Vitest**       | Testing framework                |
+| **MSW**          | Mock Service Worker para testing |
 
 **Dependencias del servidor:**
+
 - Backend: MongoDB + Express.js
 - Endpoints: REST API con validación de tenancia per organización
 
@@ -67,6 +69,7 @@ La funcionalidad de lector de códigos de barras en LendEvent es un sistema comp
 ```
 
 **Integración de servicios:**
+
 - `src/services/materialService.ts` → Capa de API
 - `src/lib/api.ts` → Cliente HTTP centralizado
 - `src/types/api.ts` → Interfaces TypeScript
@@ -82,17 +85,19 @@ La funcionalidad de lector de códigos de barras en LendEvent es un sistema comp
 **Propósito:** Captura entrada de scanners de código de barras tipo "keyboard-wedge"
 
 **Interfaz:**
+
 ```typescript
 interface UseBarcodeScannerOptions {
-  onScan: (code: string) => void;    // Callback cuando se completa el escaneo
-  enabled?: boolean;                  // Habilitar/deshabilitar el listener (default: true)
-  minLength?: number;                 // Longitud mínima de caracteres (default: 4)
-  idleResetMs?: number;               // Tiempo en ms de inactividad para resetear buffer (default: 80)
-  maxScanDurationMs?: number;         // Duración máxima del escaneo (default: 350ms)
+  onScan: (code: string) => void; // Callback cuando se completa el escaneo
+  enabled?: boolean; // Habilitar/deshabilitar el listener (default: true)
+  minLength?: number; // Longitud mínima de caracteres (default: 4)
+  idleResetMs?: number; // Tiempo en ms de inactividad para resetear buffer (default: 80)
+  maxScanDurationMs?: number; // Duración máxima del escaneo (default: 350ms)
 }
 ```
 
 **Lógica interna:**
+
 ```
 1. Escucha eventos globales `keydown`
 2. Acumula caracteres en un buffer interno mientras se presionan teclas rápidamente
@@ -105,12 +110,14 @@ interface UseBarcodeScannerOptions {
 ```
 
 **Detalles técnicos:**
+
 - Usa `useRef` para mantener estado persistente entre renders sin causar re-renders
 - Filtra teclas de modificadores (Ctrl, Cmd, Alt) para evitar falsos positivos
 - Solo procesa teclas de carácter único (`.key.length === 1`)
 - El buffer se resetea silenciosamente después de cada escaneo exitoso
 
 **Ejemplo de uso:**
+
 ```typescript
 useBarcodeScanner({
   onScan: (code: string) => {
@@ -133,6 +140,7 @@ useBarcodeScanner({
 **Propósito:** Formulario reactivo para crear/editar instancias de material
 
 **Props:**
+
 ```typescript
 interface MaterialInstanceFormProps {
   onSubmit: (data: CreateMaterialInstancePayload) => Promise<void>;
@@ -143,6 +151,7 @@ interface MaterialInstanceFormProps {
 ```
 
 **Campos del formulario:**
+
 - **Model (Tipo de Material):** selector dropdown (requerido)
 - **Serial Number:** texto (requerido, max 100 chars)
 - **Barcode:** texto (opcional, max 120 chars)
@@ -152,6 +161,7 @@ interface MaterialInstanceFormProps {
 - **Use Barcode as Serial:** checkbox booleano
 
 **Lógica especial:**
+
 ```typescript
 // Si el formulario se abre con un barcode pre-rellenado del scanner:
 if (initialData?.barcode && !initialData?.serialNumber) {
@@ -178,19 +188,21 @@ if (!useBarcodeAsSerial) {
 **Propósito:** Renderiza un código de barras CODE128 usando jsbarcode
 
 **Props:**
+
 ```typescript
 interface MaterialBarcodeProps {
-  value?: string;           // Código a renderizar (prioridad 1)
-  fallbackValue?: string;   // Fallback si value está vacío (prioridad 2)
-  height?: number;          // Alto en píxeles (default: 44)
-  width?: number;           // Ancho de barras (default: 1.2)
-  compact?: boolean;        // Modo compacto
-  showCodeLabel?: boolean;  // Mostrar valor debajo (default: true)
-  className?: string;       // Clases Tailwind
+  value?: string; // Código a renderizar (prioridad 1)
+  fallbackValue?: string; // Fallback si value está vacío (prioridad 2)
+  height?: number; // Alto en píxeles (default: 44)
+  width?: number; // Ancho de barras (default: 1.2)
+  compact?: boolean; // Modo compacto
+  showCodeLabel?: boolean; // Mostrar valor debajo (default: true)
+  className?: string; // Clases Tailwind
 }
 ```
 
 **Lógica:**
+
 ```typescript
 const resolvedValue = value?.trim() || fallbackValue?.trim() || "";
 
@@ -203,15 +215,16 @@ const resolvedValue = value?.trim() || fallbackValue?.trim() || "";
 ```
 
 **Configuración jsbarcode:**
+
 ```typescript
 JsBarcode(element, value, {
-  format: "CODE128",        // Formato estándar de códigos de barras
-  displayValue: false,      // No mostrar valor debajo del barcode
-  margin: 0,                // Sin espacios en blanco
-  width: 1.2,               // Ancho de barras (ajustable)
-  height: 44,               // Alto del barcode (ajustable)
+  format: "CODE128", // Formato estándar de códigos de barras
+  displayValue: false, // No mostrar valor debajo del barcode
+  margin: 0, // Sin espacios en blanco
+  width: 1.2, // Ancho de barras (ajustable)
+  height: 44, // Alto del barcode (ajustable)
   background: "transparent", // Fondo transparente
-  lineColor: "#111111",     // Líneas negras
+  lineColor: "#111111", // Líneas negras
 });
 ```
 
@@ -224,6 +237,7 @@ JsBarcode(element, value, {
 **Propósito:** Modal para impresión masiva de etiquetas con códigos de barras
 
 **Props:**
+
 ```typescript
 interface BarcodePrintModalProps {
   isOpen: boolean;
@@ -234,13 +248,14 @@ interface BarcodePrintModalProps {
 
 **Presets de impresora:**
 
-| Preset | Dimensiones | Tipo | Uso típico |
-|---|---|---|---|
-| `zebra-4x6` | 100 × 150 mm | Etiqueta discreta | Etiquetas grandes de inventario |
-| `thermal-58` | 58 mm continuo | Rollo térmico | Impresoras portátiles compactas |
-| `thermal-80` | 80 mm continuo | Rollo térmico | Impresoras térmicas estándar POS |
+| Preset       | Dimensiones    | Tipo              | Uso típico                       |
+| ------------ | -------------- | ----------------- | -------------------------------- |
+| `zebra-4x6`  | 100 × 150 mm   | Etiqueta discreta | Etiquetas grandes de inventario  |
+| `thermal-58` | 58 mm continuo | Rollo térmico     | Impresoras portátiles compactas  |
+| `thermal-80` | 80 mm continuo | Rollo térmico     | Impresoras térmicas estándar POS |
 
 **Configuración por preset:**
+
 ```typescript
 {
   "zebra-4x6": {
@@ -271,6 +286,7 @@ interface BarcodePrintModalProps {
 ```
 
 **Features:**
+
 - Selección de preset guardada en localStorage
 - Múltiples copias por etiqueta (1-20)
 - Vista previa en tiempo real
@@ -279,15 +295,12 @@ interface BarcodePrintModalProps {
 - Markup HTML completo generado para impresión
 
 **Contenido de cada etiqueta:**
+
 ```html
 <article class="barcode-card">
   <h3 class="barcode-title">{model.name}</h3>
-  <p class="barcode-meta">
-    Serial: {serialNumber} | Location: {locationName}
-  </p>
-  <div class="barcode-wrap">
-    {CODE128 SVG barcode}
-  </div>
+  <p class="barcode-meta">Serial: {serialNumber} | Location: {locationName}</p>
+  <div class="barcode-wrap">{CODE128 SVG barcode}</div>
   <p class="code">{BARCODE or SERIAL uppercase}</p>
   {si hay múltiples copias:}
   <p class="copy-mark">Copy {copyIndex} / {totalCopies}</p>
@@ -304,41 +317,43 @@ interface BarcodePrintModalProps {
 
 ```typescript
 export interface MaterialInstance {
-  _id: string;                          // ID MongoDB de la instancia
-  serialNumber: string;                 // Identificador único por organización (max 100 chars)
-  barcode?: string;                     // Código de barras físico (opcional, max 120 chars)
-  status: MaterialInstanceStatus;       // Estado actual (available, loaned, maintenance, etc.)
-  
-  model: {                              // Tipo de material (referencia a MaterialType)
+  _id: string; // ID MongoDB de la instancia
+  serialNumber: string; // Identificador único por organización (max 100 chars)
+  barcode?: string; // Código de barras físico (opcional, max 120 chars)
+  status: MaterialInstanceStatus; // Estado actual (available, loaned, maintenance, etc.)
+
+  model: {
+    // Tipo de material (referencia a MaterialType)
     _id: string;
     name: string;
     description?: string;
-    pricePerDay: number;                // Precio de renta en centavos COP
+    pricePerDay: number; // Precio de renta en centavos COP
   };
-  
-  locationId: {                         // Ubicación de almacenamiento
+
+  locationId: {
+    // Ubicación de almacenamiento
     _id: string;
     id: string;
     name: string;
   };
-  
-  organizationId: string;               // Organización propietaria
+
+  organizationId: string; // Organización propietaria
   attributes: MaterialTypeAttribute[]; // Atributos del material (ej: color, capacidad)
-  createdAt: string;                    // ISO 8601 timestamp
-  updatedAt: string;                    // ISO 8601 timestamp
-  __v: number;                          // Versionado MongoDB
+  createdAt: string; // ISO 8601 timestamp
+  updatedAt: string; // ISO 8601 timestamp
+  __v: number; // Versionado MongoDB
 }
 ```
 
 ### Tipo: `MaterialInstanceStatus`
 
 ```typescript
-export type MaterialInstanceStatus = 
-  | "available"      // Disponible para renta
-  | "loaned"         // En préstamo activo
-  | "maintenance"    // En mantenimiento
-  | "damaged"        // Dañado, no rentable
-  | "retired";       // Retirado del inventario
+export type MaterialInstanceStatus =
+  | "available" // Disponible para renta
+  | "loaned" // En préstamo activo
+  | "maintenance" // En mantenimiento
+  | "damaged" // Dañado, no rentable
+  | "retired"; // Retirado del inventario
 ```
 
 ### Interfaz: `CreateMaterialInstancePayload`
@@ -347,13 +362,13 @@ export type MaterialInstanceStatus =
 
 ```typescript
 export interface CreateMaterialInstancePayload {
-  modelId: string;              // ID del tipo de material (requerido)
-  serialNumber: string;         // Serial único (requerido o auto-calculado)
-  barcode?: string;             // Código de barras (opcional en cliente, validado en servidor)
-  locationId: string;           // ID de la ubicación (requerido)
-  purchaseDate?: string;        // Fecha de compra ISO 8601 (opcional)
-  purchaseCost?: number;        // Costo en centavos COP (opcional)
-  
+  modelId: string; // ID del tipo de material (requerido)
+  serialNumber: string; // Serial único (requerido o auto-calculado)
+  barcode?: string; // Código de barras (opcional en cliente, validado en servidor)
+  locationId: string; // ID de la ubicación (requerido)
+  purchaseDate?: string; // Fecha de compra ISO 8601 (opcional)
+  purchaseCost?: number; // Costo en centavos COP (opcional)
+
   // Campo NO tipado en la interfaz pero usado en llamadas:
   // useBarcodeAsSerial?: boolean  // Flag para que server copie barcode → serialNumber
 }
@@ -363,8 +378,8 @@ export interface CreateMaterialInstancePayload {
 
 ```typescript
 export interface UpdateMaterialInstanceStatusPayload {
-  status: MaterialInstanceStatus;        // Nuevo estado
-  notes?: string;                         // Notas de auditoría (usado para trail de scaneo)
+  status: MaterialInstanceStatus; // Nuevo estado
+  notes?: string; // Notas de auditoría (usado para trail de scaneo)
 }
 ```
 
@@ -374,15 +389,15 @@ export interface UpdateMaterialInstanceStatusPayload {
 
 ```typescript
 export interface MaterialInstancesQueryParams {
-  page?: number;              // Paginación (default: 1)
-  limit?: number;             // Items por página (default: 20)
-  searchTerm?: string;        // Búsqueda por serial O barcode (case-insensitive)
-  sortBy?: string;            // Campo para ordenar
+  page?: number; // Paginación (default: 1)
+  limit?: number; // Items por página (default: 20)
+  searchTerm?: string; // Búsqueda por serial O barcode (case-insensitive)
+  sortBy?: string; // Campo para ordenar
   sortOrder?: "asc" | "desc"; // Dirección de ordenamiento
-  groupBy?: "location";       // Agrupar resultados por ubicación
-  locationId?: string;        // Filtrar por ubicación
+  groupBy?: "location"; // Agrupar resultados por ubicación
+  locationId?: string; // Filtrar por ubicación
   status?: MaterialInstanceStatus[] | MaterialInstanceStatus;
-  materialTypeId?: string;    // Filtrar por tipo
+  materialTypeId?: string; // Filtrar por tipo
 }
 ```
 
@@ -538,6 +553,7 @@ export interface MaterialInstancesQueryParams {
 ### Payload 1: Crear Instancia (Barcode "Zebra Scanner")
 
 **Request:**
+
 ```json
 POST /materials/instances
 
@@ -553,6 +569,7 @@ POST /materials/instances
 ```
 
 **Response (201 Created):**
+
 ```json
 {
   "instance": {
@@ -596,6 +613,7 @@ POST /materials/instances
 ### Payload 2: Crear Instancia (Barcode as Serial)
 
 **Request:**
+
 ```json
 POST /materials/instances
 
@@ -610,6 +628,7 @@ POST /materials/instances
 ```
 
 **Response (201 Created):**
+
 ```json
 {
   "instance": {
@@ -641,6 +660,7 @@ POST /materials/instances
 ### Payload 3: Cambiar Estado (Desde Scanner Workflow)
 
 **Request:**
+
 ```json
 PATCH /materials/instances/60d5ec42f3b14a2c98a5e1a1/status
 
@@ -651,6 +671,7 @@ PATCH /materials/instances/60d5ec42f3b14a2c98a5e1a1/status
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "instance": {
@@ -674,11 +695,13 @@ PATCH /materials/instances/60d5ec42f3b14a2c98a5e1a1/status
 ### Payload 4: Query de Búsqueda (Por Barcode o Serial)
 
 **Request:**
+
 ```
 GET /materials/instances?searchTerm=8718473649283&groupBy=location&limit=50
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "byLocation": [
@@ -722,6 +745,7 @@ GET /materials/instances?searchTerm=8718473649283&groupBy=location&limit=50
 **Escenario:** Operador de bodega recibe equipo devuelto de una renta
 
 **Pasos:**
+
 1. Operador activa "Scanner Enabled" en la interfaz
 2. Escanea el código de barras del equipo con su lector
 3. Sistema busca inmediatamente en la base de datos local
@@ -735,6 +759,7 @@ GET /materials/instances?searchTerm=8718473649283&groupBy=location&limit=50
 8. Vuelve a estar listo para el siguiente escaneo
 
 **Beneficios:**
+
 - ⚡ 2-3 segundos por equipo
 - ✅ Auditoría automática del código escaneado
 - 🎯 Cero entrada manual de serial
@@ -746,6 +771,7 @@ GET /materials/instances?searchTerm=8718473649283&groupBy=location&limit=50
 **Escenario:** Empresa recibe 20 nuevos proyectores con códigos de barras EAN
 
 **Pasos:**
+
 1. Head de almacén abre "Material Instances" → "New Instance"
 2. Selecciona "Create from Barcode Scan"
 3. Selecciona modelo: "Projector 4K Professional"
@@ -759,6 +785,7 @@ GET /materials/instances?searchTerm=8718473649283&groupBy=location&limit=50
 11. Repite para los 20 proyectores
 
 **Beneficios:**
+
 - 📊 Ingesta masiva sin errores de transcripción
 - 🎯 Serial = Barcode para rastreabilidad física
 - ✅ Auditoría de fecha/hora de ingreso
@@ -770,6 +797,7 @@ GET /materials/instances?searchTerm=8718473649283&groupBy=location&limit=50
 **Escenario:** Empresa necesita imprimir etiquetas de reemplazo para 10 cámaras
 
 **Pasos:**
+
 1. Head de almacén, en "Material Instances", selecciona 10 cámaras
 2. Hace clic en "Print Barcodes" → abre BarcodePrintModal
 3. Selecciona preset: "Thermal 80 mm" (su impresora estándar)
@@ -788,6 +816,7 @@ GET /materials/instances?searchTerm=8718473649283&groupBy=location&limit=50
 8. Coloca etiquetas en las cámaras
 
 **Beneficios:**
+
 - 🏭 Integración con impresoras térmicas existentes
 - 📦 Múltiples formatos por necesidad
 - 💾 Preset guardado en localStorage (rápida reutilización)
@@ -799,6 +828,7 @@ GET /materials/instances?searchTerm=8718473649283&groupBy=location&limit=50
 **Escenario:** Cliente no devuelve proyector, empresa necesita localizarlo por serial
 
 **Pasos:**
+
 1. Operador, en "Material Instances", activa "Scanner Enabled"
 2. Obtiene serial del contrato: "PROJ-4K-2024-045"
 3. Escanea manualmente código de barras del serial grabado
@@ -813,6 +843,7 @@ GET /materials/instances?searchTerm=8718473649283&groupBy=location&limit=50
 9. Operador contacta al cliente con información de ubicación
 
 **Beneficios:**
+
 - 🔍 Búsqueda hybrid (serial O barcode)
 - 📍 Localización rápida
 - 📊 Auditoría de quién buscó y cuándo
@@ -823,30 +854,30 @@ GET /materials/instances?searchTerm=8718473649283&groupBy=location&limit=50
 
 ### Validaciones Cliente-Side
 
-| Campo | Regla | Implementación |
-|---|---|---|
-| **useBarcodeScanner - minLength** | Mínimo 4 caracteres | `if (code.length >= 4)` |
-| **useBarcodeScanner - maxScanDurationMs** | Escaneo debe tardar ≤ 350ms | `if (now - startedAt <= 350)` |
-| **useBarcodeScanner - idleResetMs** | Reset buffer si pasa 80ms sin tecla | `if (now - lastKeyAt > 80)` |
-| **MaterialInstanceForm - serialNumber** | No vacío | `required: true` |
-| **MaterialInstanceForm - barcode** | Máx 120 caracteres | `value.length <= 120` |
-| **MaterialInstanceForm - modelId** | Debe existir | Select populated from DB |
-| **MaterialInstanceForm - locationId** | Debe existir | Select populated from DB |
-| **BarcodePrintModal - copiesPerLabel** | 1-20 copias | `copiesPerLabel >= 1 && <= 20` |
+| Campo                                     | Regla                               | Implementación                 |
+| ----------------------------------------- | ----------------------------------- | ------------------------------ |
+| **useBarcodeScanner - minLength**         | Mínimo 4 caracteres                 | `if (code.length >= 4)`        |
+| **useBarcodeScanner - maxScanDurationMs** | Escaneo debe tardar ≤ 350ms         | `if (now - startedAt <= 350)`  |
+| **useBarcodeScanner - idleResetMs**       | Reset buffer si pasa 80ms sin tecla | `if (now - lastKeyAt > 80)`    |
+| **MaterialInstanceForm - serialNumber**   | No vacío                            | `required: true`               |
+| **MaterialInstanceForm - barcode**        | Máx 120 caracteres                  | `value.length <= 120`          |
+| **MaterialInstanceForm - modelId**        | Debe existir                        | Select populated from DB       |
+| **MaterialInstanceForm - locationId**     | Debe existir                        | Select populated from DB       |
+| **BarcodePrintModal - copiesPerLabel**    | 1-20 copias                         | `copiesPerLabel >= 1 && <= 20` |
 
 ### Validaciones Servidor-Side
 
-| Campo | Regla | Error |
-|---|---|---|
-| **serialNumber** | Única por org | 409 Conflict |
-| **serialNumber** | Máx 100 chars | 400 Bad Request |
-| **barcode** | Única por org (si presente) | 409 Conflict |
-| **barcode** | Máx 120 chars | 400 Bad Request |
-| **modelId** | Debe existir en org | 404 Not Found |
-| **locationId** | Debe existir en org | 404 Not Found |
-| **locationId** | Capacidad no excedida | 409 Conflict (con opción override) |
-| **status** | Valor válido | 400 Bad Request |
-| **organizationId** | Autenticación OK | 401 Unauthorized |
+| Campo              | Regla                       | Error                              |
+| ------------------ | --------------------------- | ---------------------------------- |
+| **serialNumber**   | Única por org               | 409 Conflict                       |
+| **serialNumber**   | Máx 100 chars               | 400 Bad Request                    |
+| **barcode**        | Única por org (si presente) | 409 Conflict                       |
+| **barcode**        | Máx 120 chars               | 400 Bad Request                    |
+| **modelId**        | Debe existir en org         | 404 Not Found                      |
+| **locationId**     | Debe existir en org         | 404 Not Found                      |
+| **locationId**     | Capacidad no excedida       | 409 Conflict (con opción override) |
+| **status**         | Valor válido                | 400 Bad Request                    |
+| **organizationId** | Autenticación OK            | 401 Unauthorized                   |
 
 ### Reglas de Negocio
 
@@ -925,22 +956,20 @@ GET /materials/instances?searchTerm=8718473649283&groupBy=location&limit=50
 <article class="barcode-card">
   <!-- Título: Nombre del material o Serial (según preset) -->
   <h3 class="barcode-title compact">Projector 4K</h3>
-  
+
   <!-- Metadata: Serial + Ubicación -->
-  <p class="barcode-meta compact">
-    Serial: PROJ-4K-2024-045 | Location: Bodega Principal - Cali
-  </p>
-  
+  <p class="barcode-meta compact">Serial: PROJ-4K-2024-045 | Location: Bodega Principal - Cali</p>
+
   <!-- SVG del código de barras CODE128 -->
   <div class="barcode-wrap compact">
     <svg xmlns="http://www.w3.org/2000/svg" ...>
       <!-- Barras generadas por jsbarcode -->
     </svg>
   </div>
-  
+
   <!-- Código en texto legible -->
   <p class="code compact">PROJ-4K-2024-045</p>
-  
+
   <!-- Si hay múltiples copias -->
   <p class="copy-mark">Copy 1 / 3</p>
 </article>
@@ -970,14 +999,14 @@ GET /materials/instances?searchTerm=8718473649283&groupBy=location&limit=50
 ✅ **Impresión multi-formato:** Soporta Zebra, thermal 58mm, thermal 80mm  
 ✅ **Type-safety:** Interfaces TypeScript exhaustivas (sin `any`)  
 ✅ **Validación bidireccional:** Cliente + servidor  
-✅ **UX responsivo:** Toasts, modales, validación visual  
+✅ **UX responsivo:** Toasts, modales, validación visual
 
 ### Limitaciones
 
 ⚠️ Requiere scanner de teclado (no soporta USB HID scanner puro sin simulación)  
 ⚠️ Impresión depende de navegador + SO (variaciones por driver)  
 ⚠️ Capacidad de ubicación es límite blando (flag `force` puede bypass)  
-⚠️ No hay soporte para códigos QR (solo CODE128)  
+⚠️ No hay soporte para códigos QR (solo CODE128)
 
 ### Recomendaciones
 

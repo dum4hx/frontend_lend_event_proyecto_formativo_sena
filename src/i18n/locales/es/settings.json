@@ -50,6 +50,8 @@
   "settings.appearance.compactMode": "Modo compacto",
   "settings.appearance.showAnimations": "Activar animaciones de interfaz",
   "settings.appearance.highContrast": "Modo de alto contraste",
+  "settings.appearance.lightModeUpcomingTitle": "Modo claro — Proximamente",
+  "settings.appearance.lightModeUpcomingMessage": "El modo claro aun no esta disponible. Estamos trabajando en ello y se incluira en una actualizacion futura.",
   "settings.appearance.languageTitle": "Idioma",
   "settings.appearance.languageDescription": "Elige el idioma usado por los modulos de administracion.",
   "settings.account.organizationInfo": "Informacion de la organizacion",

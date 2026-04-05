@@ -1,12 +1,134 @@
+import { useState } from "react";
 import { Languages, Moon, Sun } from "lucide-react";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import { useTheme } from "../../../../contexts/useTheme";
+import { AlertCard } from "../../../../components/ui";
 import { normalizePhoneInput, normalizeTaxIdInput } from "./helpers";
 import ToggleRow from "./ToggleRow";
 import { LANGUAGE_OPTIONS } from "./types";
 import type { SettingsModuleId, SettingsPreferences, AccountField } from "./types";
 
 import type { OrganizationSettings } from "../../../../types/api";
+
+// ─── Appearance sub-panel ─────────────────────────────────────────────────
+
+interface AppearancePanelProps {
+  preferences: SettingsPreferences;
+  onPreferencesChange: React.Dispatch<React.SetStateAction<SettingsPreferences>>;
+}
+
+function AppearancePanel({ preferences, onPreferencesChange }: AppearancePanelProps) {
+  const { language, setLanguage, t } = useLanguage();
+  const { theme, setTheme } = useTheme();
+  const [showLightModeNotice, setShowLightModeNotice] = useState(false);
+
+  return (
+    <div className="bg-[#121212] border border-[#333] rounded-[12px] p-6 space-y-4">
+      <h2 className="text-xl font-semibold text-white">{t("settings.appearance.title")}</h2>
+      <p className="text-gray-400 text-sm">{t("settings.appearance.description")}</p>
+
+      {/* Theme toggle */}
+      <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-4">
+        <p className="text-gray-200 mb-3 text-sm font-medium">
+          {t("settings.appearance.interfaceTheme")}
+        </p>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setTheme("dark")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition ${
+              theme === "dark"
+                ? "border-[#FFD700] bg-[rgba(255,215,0,0.1)] text-[#FFD700]"
+                : "border-[#333] text-gray-400 hover:border-[#FFD700]/50"
+            }`}
+          >
+            <Moon size={15} />
+            {t("common.dark")}
+          </button>
+          {/* Light mode — upcoming feature */}
+          <button
+            type="button"
+            onClick={() => setShowLightModeNotice(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition border-dashed border-[#555] text-gray-600 hover:border-gray-500 hover:text-gray-500 cursor-not-allowed"
+            aria-disabled="true"
+          >
+            <Sun size={15} />
+            {t("common.light")}
+          </button>
+        </div>
+        <p className="text-gray-500 text-xs mt-2">{t("settings.appearance.appliedImmediately")}</p>
+      </div>
+
+      {/* Upcoming feature notice */}
+      {showLightModeNotice && (
+        <AlertCard
+          type="info"
+          title={t("settings.appearance.lightModeUpcomingTitle")}
+          message={t("settings.appearance.lightModeUpcomingMessage")}
+          onDismiss={() => setShowLightModeNotice(false)}
+        />
+      )}
+
+      {/* Language selector */}
+      <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-4">
+        <div className="flex items-center gap-2 text-gray-200 mb-3 text-sm font-medium">
+          <Languages size={16} className="text-[#FFD700]" />
+          <span>{t("settings.appearance.languageTitle")}</span>
+        </div>
+        <p className="text-gray-400 text-sm mb-4">{t("settings.appearance.languageDescription")}</p>
+        <div className="flex gap-3 flex-wrap">
+          {LANGUAGE_OPTIONS.map((option) => {
+            const isActive = language === option;
+            return (
+              <button
+                key={option}
+                type="button"
+                onClick={() => setLanguage(option)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition ${
+                  isActive
+                    ? "border-[#FFD700] bg-[rgba(255,215,0,0.1)] text-[#FFD700]"
+                    : "border-[#333] text-gray-400 hover:border-[#FFD700]/50"
+                }`}
+              >
+                {option === "es" ? t("common.spanish") : t("common.english")}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <ToggleRow
+        label={t("settings.appearance.compactMode")}
+        checked={preferences.appearance.compactMode}
+        onChange={(value) =>
+          onPreferencesChange((prev) => ({
+            ...prev,
+            appearance: { ...prev.appearance, compactMode: value },
+          }))
+        }
+      />
+      <ToggleRow
+        label={t("settings.appearance.showAnimations")}
+        checked={preferences.appearance.showAnimations}
+        onChange={(value) =>
+          onPreferencesChange((prev) => ({
+            ...prev,
+            appearance: { ...prev.appearance, showAnimations: value },
+          }))
+        }
+      />
+      <ToggleRow
+        label={t("settings.appearance.highContrast")}
+        checked={preferences.appearance.highContrast}
+        onChange={(value) =>
+          onPreferencesChange((prev) => ({
+            ...prev,
+            appearance: { ...prev.appearance, highContrast: value },
+          }))
+        }
+      />
+    </div>
+  );
+}
 
 interface OrgData {
   name: string;
@@ -59,8 +181,7 @@ export default function SettingsModulePanel({
   orgSettingsLoading,
   onOrgSettingsChange,
 }: SettingsModulePanelProps) {
-  const { language, setLanguage, t } = useLanguage();
-  const { theme, setTheme } = useTheme();
+  const { t } = useLanguage();
 
   if (!hasAccess) {
     return (
@@ -175,107 +296,7 @@ export default function SettingsModulePanel({
   }
 
   if (activeModule === "appearance") {
-    return (
-      <div className="bg-[#121212] border border-[#333] rounded-[12px] p-6 space-y-4">
-        <h2 className="text-xl font-semibold text-white">{t("settings.appearance.title")}</h2>
-        <p className="text-gray-400 text-sm">{t("settings.appearance.description")}</p>
-
-        {/* Theme toggle */}
-        <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-4">
-          <p className="text-gray-200 mb-3 text-sm font-medium">
-            {t("settings.appearance.interfaceTheme")}
-          </p>
-          <div className="flex gap-3">
-            <button
-              onClick={() => setTheme("dark")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition ${
-                theme === "dark"
-                  ? "border-[#FFD700] bg-[rgba(255,215,0,0.1)] text-[#FFD700]"
-                  : "border-[#333] text-gray-400 hover:border-[#FFD700]/50"
-              }`}
-            >
-              <Moon size={15} />
-              {t("common.dark")}
-            </button>
-            <button
-              onClick={() => setTheme("light")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition ${
-                theme === "light"
-                  ? "border-[#FFD700] bg-[rgba(255,215,0,0.1)] text-[#FFD700]"
-                  : "border-[#333] text-gray-400 hover:border-[#FFD700]/50"
-              }`}
-            >
-              <Sun size={15} />
-              {t("common.light")}
-            </button>
-          </div>
-          <p className="text-gray-500 text-xs mt-2">
-            {t("settings.appearance.appliedImmediately")}
-          </p>
-        </div>
-
-        {/* Language selector */}
-        <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-4">
-          <div className="flex items-center gap-2 text-gray-200 mb-3 text-sm font-medium">
-            <Languages size={16} className="text-[#FFD700]" />
-            <span>{t("settings.appearance.languageTitle")}</span>
-          </div>
-          <p className="text-gray-400 text-sm mb-4">
-            {t("settings.appearance.languageDescription")}
-          </p>
-          <div className="flex gap-3 flex-wrap">
-            {LANGUAGE_OPTIONS.map((option) => {
-              const isActive = language === option;
-              return (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => setLanguage(option)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition ${
-                    isActive
-                      ? "border-[#FFD700] bg-[rgba(255,215,0,0.1)] text-[#FFD700]"
-                      : "border-[#333] text-gray-400 hover:border-[#FFD700]/50"
-                  }`}
-                >
-                  {option === "es" ? t("common.spanish") : t("common.english")}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <ToggleRow
-          label={t("settings.appearance.compactMode")}
-          checked={preferences.appearance.compactMode}
-          onChange={(value) =>
-            onPreferencesChange((prev) => ({
-              ...prev,
-              appearance: { ...prev.appearance, compactMode: value },
-            }))
-          }
-        />
-        <ToggleRow
-          label={t("settings.appearance.showAnimations")}
-          checked={preferences.appearance.showAnimations}
-          onChange={(value) =>
-            onPreferencesChange((prev) => ({
-              ...prev,
-              appearance: { ...prev.appearance, showAnimations: value },
-            }))
-          }
-        />
-        <ToggleRow
-          label={t("settings.appearance.highContrast")}
-          checked={preferences.appearance.highContrast}
-          onChange={(value) =>
-            onPreferencesChange((prev) => ({
-              ...prev,
-              appearance: { ...prev.appearance, highContrast: value },
-            }))
-          }
-        />
-      </div>
-    );
+    return <AppearancePanel preferences={preferences} onPreferencesChange={onPreferencesChange} />;
   }
 
   if (activeModule === "organization") {
