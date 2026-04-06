@@ -162,18 +162,21 @@ export const MaintenanceCatalog: React.FC = () => {
             {t("maintenance.stats.totalBatches")}
           </p>
           <p className="text-2xl font-black text-[#FFD700]">{pagination.total}</p>
+          <p className="text-xs text-gray-500 mt-1">{t("maintenance.stats.totalBatchesDesc")}</p>
         </div>
         <div className="bg-[#1a1a1a] border border-[#222] px-6 py-4 rounded-xl shadow-lg">
           <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">
             {t("maintenance.stats.estimatedCost")}
           </p>
           <p className="text-2xl font-black text-white">{formatCurrency(totalEstimated)}</p>
+          <p className="text-xs text-gray-500 mt-1">{t("maintenance.stats.estimatedCostDesc")}</p>
         </div>
         <div className="bg-[#1a1a1a] border border-[#222] px-6 py-4 rounded-xl shadow-lg">
           <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">
             {t("maintenance.stats.actualCost")}
           </p>
           <p className="text-2xl font-black text-white">{formatCurrency(totalActual)}</p>
+          <p className="text-xs text-gray-500 mt-1">{t("maintenance.stats.actualCostDesc")}</p>
         </div>
       </div>
 

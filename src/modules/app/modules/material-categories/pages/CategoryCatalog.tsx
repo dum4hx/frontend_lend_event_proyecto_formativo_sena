@@ -6,6 +6,7 @@ import { CategoryList, CategoryDetailModal } from "../components";
 import { AdminPagination } from "../../../components";
 import { ExcelExportImport } from "../../../../../components/export/ExcelExportImport";
 import { useToast } from "../../../../../contexts/ToastContext";
+import { useLanguage } from "../../../../../contexts/useLanguage";
 import type { MaterialCategory } from "../../../../../types/api";
 
 const CATALOG_STORAGE_KEY = "materialCategories.catalog.v1";
@@ -31,6 +32,7 @@ export const CategoryCatalog: React.FC = () => {
   const navigate = useNavigate();
   const { categories, loading, error, removeCategory, addCategory, refetch } = useCategories();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [searchTerm, setSearchTerm] = useState(() => readStoredCatalogState().searchTerm);
   const [page, setPage] = useState(() => readStoredCatalogState().page);
   const [selectedCategory, setSelectedCategory] = useState<MaterialCategory | null>(null);
@@ -43,8 +45,7 @@ export const CategoryCatalog: React.FC = () => {
   }, [searchTerm, page]);
 
   const filteredCategories = useMemo(
-    () =>
-      categories.filter((cat) => cat.name.toLowerCase().includes(searchTerm.toLowerCase())),
+    () => categories.filter((cat) => cat.name.toLowerCase().includes(searchTerm.toLowerCase())),
     [categories, searchTerm],
   );
 
@@ -64,19 +65,27 @@ export const CategoryCatalog: React.FC = () => {
   const handleDelete = (category: MaterialCategory) => {
     showToast(
       "warning",
-      `Do you want to delete "${category.name}"? This action cannot be undone.`,
-      "Confirm Deletion",
+      t("materialCategories.toast.deleteConfirmMessage", { name: category.name }),
+      t("materialCategories.toast.deleteConfirmTitle"),
       {
         duration: Infinity,
         action: {
-          label: "Confirm",
+          label: t("materialCategories.toast.deleteConfirmBtn"),
           onClick: async () => {
             try {
               await removeCategory(category._id);
-              showToast("success", "Category deleted successfully", "Success");
+              showToast(
+                "success",
+                t("materialCategories.toast.deleteSuccess"),
+                t("common.success"),
+              );
             } catch (error) {
               const err = error as Error;
-              showToast("error", err.message || "Failed to delete category", "Error");
+              showToast(
+                "error",
+                err.message || t("materialCategories.toast.deleteError"),
+                t("common.error"),
+              );
             }
           },
         },
@@ -111,8 +120,11 @@ export const CategoryCatalog: React.FC = () => {
       if (successCount > 0 && failedCount === 0) {
         showToast(
           "success",
-          `Imported ${successCount}/${data.length} categories`,
-          "Import Complete",
+          t("materialCategories.toast.importSuccessMsg", {
+            success: String(successCount),
+            total: String(data.length),
+          }),
+          t("materialCategories.toast.importComplete"),
         );
         return;
       }
@@ -120,16 +132,28 @@ export const CategoryCatalog: React.FC = () => {
       if (successCount > 0 && failedCount > 0) {
         showToast(
           "warning",
-          `Imported ${successCount}/${data.length}. ${failedCount} rows were skipped due to invalid or duplicate data.`,
-          "Import Partial",
+          t("materialCategories.toast.importPartialMsg", {
+            success: String(successCount),
+            total: String(data.length),
+            failed: String(failedCount),
+          }),
+          t("materialCategories.toast.importPartial"),
         );
         return;
       }
 
-      showToast("error", "No valid categories were imported", "Import Failed");
+      showToast(
+        "error",
+        t("materialCategories.toast.importNoValid"),
+        t("materialCategories.toast.importFailed"),
+      );
     } catch (error) {
       const err = error as Error;
-      showToast("error", err.message || "Error importing categories", "Import Failed");
+      showToast(
+        "error",
+        err.message || t("materialCategories.toast.importError"),
+        t("materialCategories.toast.importFailed"),
+      );
     }
   };
 
@@ -161,13 +185,15 @@ export const CategoryCatalog: React.FC = () => {
     return (
       <div className="min-h-screen bg-[#121212] p-8 flex items-center justify-center">
         <div className="bg-[#1a1a1a] border border-red-900/70 rounded-xl p-6 max-w-lg w-full">
-          <h2 className="text-xl font-semibold text-red-300 mb-2">Unable to load categories</h2>
+          <h2 className="text-xl font-semibold text-red-300 mb-2">
+            {t("materialCategories.errorLoadTitle")}
+          </h2>
           <p className="text-sm text-red-200/80 mb-4">{error}</p>
           <button
             onClick={() => void refetch()}
             className="px-4 py-2 rounded-lg border border-[#B88A00] text-[#FFD700] hover:bg-[#FFD700]/10 transition-colors"
           >
-            Retry
+            {t("materialCategories.retry")}
           </button>
         </div>
       </div>
@@ -179,21 +205,24 @@ export const CategoryCatalog: React.FC = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div data-help-id="material-categories-title" className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Material Categories</h1>
-          <p className="text-gray-400">Manage your material category catalog</p>
+          <h1 className="text-3xl font-bold text-white mb-2">{t("materialCategories.title")}</h1>
+          <p className="text-gray-400">{t("materialCategories.description")}</p>
         </div>
 
         {/* Actions Bar */}
-        <div data-help-id="material-categories-actions" className="flex flex-col sm:flex-row gap-4 mb-6">
+        <div
+          data-help-id="material-categories-actions"
+          className="flex flex-col sm:flex-row gap-4 mb-6"
+        >
           <div className="flex-1 relative">
             <label htmlFor={searchInputId} className="sr-only">
-              Search categories
+              {t("materialCategories.searchLabel")}
             </label>
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
             <input
               id={searchInputId}
               type="text"
-              placeholder="Search categories..."
+              placeholder={t("materialCategories.searchPlaceholder")}
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
@@ -214,32 +243,38 @@ export const CategoryCatalog: React.FC = () => {
               className="flex items-center gap-2 px-6 py-3 font-semibold rounded-lg transition-colors whitespace-nowrap border border-[#B88A00] text-[#FFD700] hover:bg-[#FFD700]/10"
             >
               <Plus size={20} />
-              New Category
+              {t("materialCategories.newCategory")}
             </button>
           </div>
         </div>
 
         {/* Stats */}
-        <div data-help-id="material-categories-stats" className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <div
+          data-help-id="material-categories-stats"
+          className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6"
+        >
           <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-6">
-            <p className="text-gray-400 text-sm mb-1">Total Categories</p>
+            <p className="text-gray-400 text-sm mb-1">{t("materialCategories.totalCategories")}</p>
             <p className="text-3xl font-bold text-white">{categories.length}</p>
           </div>
           <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-6">
-            <p className="text-gray-400 text-sm mb-1">Search Results</p>
+            <p className="text-gray-400 text-sm mb-1">{t("materialCategories.searchResults")}</p>
             <p className="text-3xl font-bold text-white">{filteredCategories.length}</p>
           </div>
         </div>
 
         {/* Category List */}
-        <div data-help-id="material-categories-list" className="bg-[#1a1a1a] border border-[#333] rounded-lg p-6">
+        <div
+          data-help-id="material-categories-list"
+          className="bg-[#1a1a1a] border border-[#333] rounded-lg p-6"
+        >
           {filteredCategories.length === 0 ? (
             <div className="py-16 text-center">
-              <p className="text-lg text-white mb-2">No categories found</p>
+              <p className="text-lg text-white mb-2">{t("materialCategories.noResults")}</p>
               <p className="text-sm text-gray-400 mb-6">
                 {searchTerm
-                  ? "Try changing your search term or clear filters."
-                  : "Create your first category to start organizing materials."}
+                  ? t("materialCategories.noResultsSearchHint")
+                  : t("materialCategories.noResultsEmptyHint")}
               </p>
               {!searchTerm && (
                 <button
@@ -247,7 +282,7 @@ export const CategoryCatalog: React.FC = () => {
                   className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-[#B88A00] text-[#FFD700] hover:bg-[#FFD700]/10 transition-colors"
                 >
                   <Plus size={18} />
-                  Create Category
+                  {t("materialCategories.createCategory")}
                 </button>
               )}
             </div>
@@ -265,7 +300,7 @@ export const CategoryCatalog: React.FC = () => {
                   totalPages={totalPages}
                   totalItems={filteredCategories.length}
                   pageSize={pageSize}
-                  itemLabel="categories"
+                  itemLabel={t("materialCategories.paginationLabel")}
                   onPageChange={setPage}
                 />
               </div>

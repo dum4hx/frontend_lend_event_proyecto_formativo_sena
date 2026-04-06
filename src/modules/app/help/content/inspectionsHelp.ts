@@ -14,7 +14,7 @@ const inspectionsCreateFormGuide = {
       id: "field-items",
       label: { es: "Items inspeccionados", en: "Inspected items" },
       purpose: {
-        es: "Define condicion por material y evidencia de danos cuando aplique.",
+        es: "Define condicion por material y evidencia de daños cuando aplique.",
         en: "Sets per-item condition and damage evidence when applicable.",
       },
       dataType: { es: "Lista de items", en: "Item list" },
@@ -35,7 +35,7 @@ const inspectionsCreateFormGuide = {
       id: "field-due-date",
       label: { es: "Fecha de vencimiento", en: "Due date" },
       purpose: {
-        es: "Programa el vencimiento de cobro cuando existan danos o perdidas.",
+        es: "Programa el vencimiento de cobro cuando existan daños o perdidas.",
         en: "Schedules charge due date when there are damages or losses.",
       },
       dataType: { es: "Fecha y hora", en: "Date and time" },
@@ -87,7 +87,7 @@ const inspectionsHelpContent: HelpModuleContent = {
       id: "introduction",
       title: { es: "Introduccion", en: "Introduction" },
       body: {
-        es: "Aqui el operador valida el estado del material al regreso del prestamo y detecta danos o novedades antes de cerrar el proceso.",
+        es: "Aqui el operador valida el estado del material al regreso del prestamo y detecta daños o novedades antes de cerrar el proceso.",
         en: "Here the operator validates material condition at loan return and detects damage or findings before closing the process.",
       },
       howTo: [
@@ -138,7 +138,7 @@ const inspectionsHelpContent: HelpModuleContent = {
       ],
       bestPractices: [
         {
-          es: "Antes de guardar una inspeccion, confirma el prestamo correcto y documenta danos con suficiente detalle para facturacion posterior.",
+          es: "Antes de guardar una inspeccion, confirma el prestamo correcto y documenta daños con suficiente detalle para facturacion posterior.",
           en: "Before saving an inspection, confirm the correct loan and document damage with enough detail for later billing.",
         },
       ],
@@ -160,7 +160,7 @@ const inspectionsHelpContent: HelpModuleContent = {
           en: "Search for the loan of the customer who just arrived.",
         },
         {
-          es: "Abre el formulario, registra condicion de cada item y agrega notas si hay danos.",
+          es: "Abre el formulario, registra condicion de cada item y agrega notas si hay daños.",
           en: "Open the form, register each item's condition, and add notes if there is damage.",
         },
         {
@@ -248,7 +248,7 @@ const inspectionsHelpContent: HelpModuleContent = {
       },
       targetSelector: '[data-help-id="inspections-content"]',
       warning: {
-        es: "Verifica siempre el identificador del prestamo antes de registrar danos o cerrar una revision.",
+        es: "Verifica siempre el identificador del prestamo antes de registrar daños o cerrar una revision.",
         en: "Always verify the loan identifier before recording damage or closing a review.",
       },
     },

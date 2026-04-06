@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Plus, Search, ChevronDown, DollarSign, Calculator, Loader2, Trash2 } from "lucide-react";
+import { useLanguage } from "../../../../contexts/useLanguage";
 import { Button, PageHeader } from "../../../../components/ui";
 import {
   getPricingConfigs,
@@ -39,6 +40,7 @@ interface FormItem {
 export default function PricingConfigs() {
   const { hasPermission } = usePermissions();
   const { showError, showSuccess, AlertModal } = useAlertModal();
+  const { t } = useLanguage();
 
   // ── Data ──────────────────────────────────────────────────────────────
   const [configs, setConfigs] = useState<PricingConfig[]>([]);
@@ -170,8 +172,8 @@ export default function PricingConfigs() {
         setConfigs([]);
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to load pricing configs";
-      showError(message, "Load Error");
+      const message = error instanceof Error ? error.message : t("pricing.error.failedLoad");
+      showError(message, t("pricing.error.loadError"));
     } finally {
       setLoading(false);
     }
@@ -206,7 +208,7 @@ export default function PricingConfigs() {
   const handleOpenEdit = async (config: PricingConfig) => {
     try {
       const configId = config._id || (config as unknown as { id?: string }).id;
-      if (!configId) throw new Error("Missing configuration ID");
+      if (!configId) throw new Error(t("pricing.error.missingId"));
 
       const res = await getPricingConfig(configId);
       const data = res.data as unknown as { config?: PricingConfig };
@@ -228,13 +230,13 @@ export default function PricingConfigs() {
     try {
       if (editingConfig) {
         const configId = editingConfig._id || (editingConfig as unknown as { id?: string }).id;
-        if (!configId) throw new Error("Missing ID for update");
+        if (!configId) throw new Error(t("pricing.error.missingIdForUpdate"));
 
         const payload: UpdatePricingConfigPayload = buildPayload(
           form,
         ) as UpdatePricingConfigPayload;
         await updatePricingConfig(configId, payload);
-        showSuccess("Pricing configuration updated.", "Config Updated");
+        showSuccess(t("pricing.success.updated"));
       } else {
         const payload = {
           scope: form.scope,
@@ -242,14 +244,14 @@ export default function PricingConfigs() {
           ...buildPayload(form),
         } as CreatePricingConfigPayload;
         await createPricingConfig(payload);
-        showSuccess("Pricing configuration created.", "Config Created");
+        showSuccess(t("pricing.success.created"));
       }
       setShowFormModal(false);
       setEditingConfig(null);
       await fetchConfigs();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to save pricing config";
-      showError(message, "Save Error");
+      const message = error instanceof Error ? error.message : t("pricing.error.failedSave");
+      showError(message, t("pricing.error.saveError"));
     } finally {
       setSubmitting(false);
     }
@@ -265,13 +267,13 @@ export default function PricingConfigs() {
     setSubmitting(true);
     try {
       await deletePricingConfig(deleteTarget._id);
-      showSuccess("Pricing configuration deleted.", "Config Deleted");
+      showSuccess(t("pricing.success.deleted"));
       setShowDeleteModal(false);
       setDeleteTarget(null);
       await fetchConfigs();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to delete pricing config";
-      showError(message, "Delete Error");
+      const message = error instanceof Error ? error.message : t("pricing.error.failedDelete");
+      showError(message, t("pricing.error.deleteError"));
     } finally {
       setSubmitting(false);
     }
@@ -290,8 +292,8 @@ export default function PricingConfigs() {
       const res = await previewPricing(params);
       setPreviewResult(res.data);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to calculate preview";
-      showError(message, "Preview Error");
+      const message = error instanceof Error ? error.message : t("pricing.error.failedPreview");
+      showError(message, t("pricing.error.previewError"));
     } finally {
       setPreviewLoading(false);
     }
@@ -320,8 +322,8 @@ export default function PricingConfigs() {
     <div className="page-container">
       <div data-help-id="pricing-header">
         <PageHeader
-          title="Pricing Configurations"
-          subtitle="Manage pricing strategies for materials and packages"
+          title={t("pricing.title")}
+          subtitle={t("pricing.description")}
           actions={
             <div className="flex gap-3" data-help-id="pricing-actions">
               {canPreview && (
@@ -334,12 +336,12 @@ export default function PricingConfigs() {
                     setShowPreviewModal(true);
                   }}
                 >
-                  Price Preview
+                  {t("pricing.previewButton")}
                 </Button>
               )}
               {canCreate && (
                 <Button leftIcon={Plus} onClick={handleOpenCreate} className="gold-action-btn">
-                  New Config
+                  {t("pricing.createButton")}
                 </Button>
               )}
             </div>
@@ -353,7 +355,7 @@ export default function PricingConfigs() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={20} />
           <input
             type="text"
-            placeholder="Search by scope or reference..."
+            placeholder={t("pricing.searchPlaceholder")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 bg-[#1a1a1a] border border-[#333] rounded-[8px] text-white placeholder-gray-600 focus:outline-none focus:border-[#FFD700] transition-all"
@@ -365,7 +367,7 @@ export default function PricingConfigs() {
             onChange={(e) => setScopeFilter(e.target.value as PricingScope | "all")}
             className="appearance-none px-4 py-2 bg-[#1a1a1a] border border-[#333] rounded-[8px] text-white focus:outline-none focus:border-[#FFD700] transition-all cursor-pointer pr-10"
           >
-            <option value="all">All Scopes</option>
+            <option value="all">{t("pricing.allScopes")}</option>
             {(Object.keys(SCOPE_LABELS) as PricingScope[]).map((s) => (
               <option key={s} value={s}>
                 {SCOPE_LABELS[s]}
@@ -383,7 +385,7 @@ export default function PricingConfigs() {
             onChange={(e) => setStrategyFilter(e.target.value as PricingStrategyType | "all")}
             className="appearance-none px-4 py-2 bg-[#1a1a1a] border border-[#333] rounded-[8px] text-white focus:outline-none focus:border-[#FFD700] transition-all cursor-pointer pr-10"
           >
-            <option value="all">All Strategies</option>
+            <option value="all">{t("pricing.allStrategies")}</option>
             {(Object.keys(STRATEGY_LABELS) as PricingStrategyType[]).map((s) => (
               <option key={s} value={s}>
                 {STRATEGY_LABELS[s]}
@@ -422,14 +424,16 @@ export default function PricingConfigs() {
             <div className="flex items-center gap-3">
               <DollarSign size={22} className="text-[#FFD700]" />
               <h2 className="text-xl font-semibold text-white">
-                {editingConfig ? "Edit Pricing Config" : "New Pricing Config"}
+                {editingConfig ? t("pricing.edit.title") : t("pricing.create.title")}
               </h2>
             </div>
 
             {/* Scope — only on create */}
             {!editingConfig && (
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Scope</label>
+                <label className="block text-sm text-gray-400 mb-1">
+                  {t("pricing.form.scope")}
+                </label>
                 <select
                   data-help-id="pricing-form-scope"
                   value={form.scope}
@@ -451,7 +455,9 @@ export default function PricingConfigs() {
             {!editingConfig && form.scope !== "organization" && (
               <div className="space-y-2" data-help-id="pricing-form-reference">
                 <label className="block text-sm text-gray-400">
-                  {form.scope === "materialType" ? "Material Type" : "Package"}
+                  {form.scope === "materialType"
+                    ? t("pricing.form.materialType")
+                    : t("pricing.form.package")}
                 </label>
                 <div className="relative">
                   <Search
@@ -460,7 +466,11 @@ export default function PricingConfigs() {
                   />
                   <input
                     type="text"
-                    placeholder={`Search ${form.scope === "materialType" ? "material types" : "packages"}...`}
+                    placeholder={
+                      form.scope === "materialType"
+                        ? t("pricing.form.searchMaterials")
+                        : t("pricing.form.searchPackages")
+                    }
                     value={formItemSearch}
                     onChange={(e) => setFormItemSearch(e.target.value)}
                     className="w-full pl-9 pr-4 py-2 bg-[#1a1a1a] border border-[#333] rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-[#FFD700] transition-all text-sm"
@@ -469,7 +479,7 @@ export default function PricingConfigs() {
                 {formItemsLoading ? (
                   <div className="flex items-center gap-2 text-gray-400 text-sm py-1">
                     <Loader2 className="animate-spin" size={14} />
-                    Loading...
+                    {t("pricing.loading")}
                   </div>
                 ) : (
                   <select
@@ -484,7 +494,9 @@ export default function PricingConfigs() {
                     className="w-full px-3 py-1 bg-[#1a1a1a] border border-[#333] rounded-lg text-white focus:outline-none focus:border-[#FFD700] transition-all text-sm"
                   >
                     <option value="" disabled>
-                      Select {form.scope === "materialType" ? "a material type" : "a package"}
+                      {form.scope === "materialType"
+                        ? t("pricing.form.selectMaterial")
+                        : t("pricing.form.selectPackage")}
                     </option>
                     {filteredFormItems.map((item) => (
                       <option key={item._id} value={item._id}>
@@ -498,7 +510,9 @@ export default function PricingConfigs() {
 
             {/* Strategy */}
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Strategy Type</label>
+              <label className="block text-sm text-gray-400 mb-1">
+                {t("pricing.form.strategyType")}
+              </label>
               <select
                 data-help-id="pricing-form-strategy"
                 value={form.strategyType}
@@ -522,8 +536,10 @@ export default function PricingConfigs() {
             {form.strategyType === "per_day" && (
               <div>
                 <label className="block text-sm text-gray-400 mb-1">
-                  Override price per day (COP){" "}
-                  <span className="text-gray-600 text-xs">(leave blank for default)</span>
+                  {t("pricing.form.overridePrice")}{" "}
+                  <span className="text-gray-600 text-xs">
+                    ({t("pricing.form.overridePriceHint")})
+                  </span>
                 </label>
                 <input
                   type="text"
@@ -540,7 +556,9 @@ export default function PricingConfigs() {
             {form.strategyType === "weekly_monthly" && (
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Weekly price (COP)</label>
+                  <label className="block text-sm text-gray-400 mb-1">
+                    {t("pricing.form.weeklyPrice")}
+                  </label>
                   <input
                     type="text"
                     inputMode="decimal"
@@ -552,7 +570,7 @@ export default function PricingConfigs() {
                 </div>
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">
-                    Weekly threshold (days)
+                    {t("pricing.form.weeklyThreshold")}
                   </label>
                   <input
                     type="number"
@@ -564,7 +582,9 @@ export default function PricingConfigs() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Monthly price (COP)</label>
+                  <label className="block text-sm text-gray-400 mb-1">
+                    {t("pricing.form.monthlyPrice")}
+                  </label>
                   <input
                     type="text"
                     inputMode="decimal"
@@ -576,7 +596,7 @@ export default function PricingConfigs() {
                 </div>
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">
-                    Monthly threshold (days)
+                    {t("pricing.form.monthlyThreshold")}
                   </label>
                   <input
                     type="number"
@@ -593,7 +613,9 @@ export default function PricingConfigs() {
             {/* Fixed Params */}
             {form.strategyType === "fixed" && (
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Flat price (COP)</label>
+                <label className="block text-sm text-gray-400 mb-1">
+                  {t("pricing.form.flatPrice")}
+                </label>
                 <input
                   type="text"
                   inputMode="decimal"
@@ -615,7 +637,7 @@ export default function PricingConfigs() {
                 disabled={submitting}
                 data-help-id="pricing-form-cancel"
               >
-                Cancel
+                {t("pricing.form.cancel")}
               </Button>
               <Button
                 onClick={handleSubmit}
@@ -623,7 +645,11 @@ export default function PricingConfigs() {
                 className="gold-action-btn"
                 data-help-id="pricing-form-submit"
               >
-                {submitting ? "Saving..." : editingConfig ? "Save Changes" : "Create Config"}
+                {submitting
+                  ? t("pricing.form.saving")
+                  : editingConfig
+                    ? t("pricing.edit.submit")
+                    : t("pricing.create.submit")}
               </Button>
             </div>
           </div>
@@ -637,15 +663,11 @@ export default function PricingConfigs() {
           onClick={(e) => e.target === e.currentTarget && setShowDeleteModal(false)}
         >
           <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-6 w-full max-w-md shadow-2xl space-y-4">
-            <h2 className="text-xl font-semibold text-white">Delete Pricing Config</h2>
+            <h2 className="text-xl font-semibold text-white">{t("pricing.delete.title")}</h2>
             <p className="text-zinc-400 text-sm">
-              Delete the{" "}
-              <span className="text-white font-medium">{SCOPE_LABELS[deleteTarget.scope]}</span>{" "}
-              configuration with{" "}
-              <span className="text-white font-medium">
-                {STRATEGY_LABELS[deleteTarget.strategyType]}
-              </span>{" "}
-              strategy? This cannot be undone.
+              {t("pricing.delete.confirm")
+                .replace("{scope}", SCOPE_LABELS[deleteTarget.scope])
+                .replace("{strategy}", STRATEGY_LABELS[deleteTarget.strategyType])}
             </p>
             <div className="flex gap-3 justify-end">
               <Button
@@ -656,7 +678,7 @@ export default function PricingConfigs() {
                 }}
                 disabled={submitting}
               >
-                Cancel
+                {t("pricing.form.cancel")}
               </Button>
               <Button
                 leftIcon={Trash2}
@@ -664,7 +686,7 @@ export default function PricingConfigs() {
                 disabled={submitting}
                 className="bg-red-500 hover:bg-red-600 text-white border-transparent"
               >
-                {submitting ? "Deleting..." : "Delete"}
+                {submitting ? t("pricing.delete.deleting") : t("pricing.delete.submit")}
               </Button>
             </div>
           </div>
@@ -683,14 +705,14 @@ export default function PricingConfigs() {
           >
             <div className="flex items-center gap-3">
               <Calculator size={22} className="text-[#FFD700]" />
-              <h2 className="text-xl font-semibold text-white">Price Preview</h2>
+              <h2 className="text-xl font-semibold text-white">{t("pricing.preview.title")}</h2>
             </div>
-            <p className="text-zinc-400 text-sm">
-              Calculate an estimated price for a material type or package.
-            </p>
+            <p className="text-zinc-400 text-sm">{t("pricing.preview.description")}</p>
 
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Item Type</label>
+              <label className="block text-sm text-gray-400 mb-1">
+                {t("pricing.preview.itemType")}
+              </label>
               <select
                 data-help-id="pricing-preview-item-type"
                 value={previewForm.itemType}
@@ -702,14 +724,16 @@ export default function PricingConfigs() {
                 }
                 className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded-lg text-white focus:outline-none focus:border-[#FFD700] transition-all"
               >
-                <option value="material">Material Type</option>
-                <option value="package">Package</option>
+                <option value="material">{t("pricing.form.materialType")}</option>
+                <option value="package">{t("pricing.form.package")}</option>
               </select>
             </div>
 
             <div className="space-y-2" data-help-id="pricing-preview-reference">
               <label className="block text-sm text-gray-400">
-                {previewForm.itemType === "material" ? "Material Type" : "Package"}
+                {previewForm.itemType === "material"
+                  ? t("pricing.form.materialType")
+                  : t("pricing.form.package")}
               </label>
               <div className="relative">
                 <Search
@@ -718,7 +742,11 @@ export default function PricingConfigs() {
                 />
                 <input
                   type="text"
-                  placeholder={`Search ${previewForm.itemType === "material" ? "material types" : "packages"}...`}
+                  placeholder={
+                    previewForm.itemType === "material"
+                      ? t("pricing.form.searchMaterials")
+                      : t("pricing.form.searchPackages")
+                  }
                   value={previewItemSearch}
                   onChange={(e) => setPreviewItemSearch(e.target.value)}
                   className="w-full pl-9 pr-4 py-2 bg-[#1a1a1a] border border-[#333] rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-[#FFD700] transition-all text-sm"
@@ -727,7 +755,7 @@ export default function PricingConfigs() {
               {previewItemsLoading ? (
                 <div className="flex items-center gap-2 text-gray-400 text-sm py-1">
                   <Loader2 className="animate-spin" size={14} />
-                  Loading...
+                  {t("pricing.loading")}
                 </div>
               ) : (
                 <select
@@ -742,7 +770,9 @@ export default function PricingConfigs() {
                   className="w-full px-3 py-1 bg-[#1a1a1a] border border-[#333] rounded-lg text-white focus:outline-none focus:border-[#FFD700] transition-all text-sm"
                 >
                   <option value="" disabled>
-                    Select {previewForm.itemType === "material" ? "a material type" : "a package"}
+                    {previewForm.itemType === "material"
+                      ? t("pricing.form.selectMaterial")
+                      : t("pricing.form.selectPackage")}
                   </option>
                   {filteredPreviewItems.map((item) => (
                     <option key={item._id} value={item._id}>
@@ -755,7 +785,9 @@ export default function PricingConfigs() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Quantity</label>
+                <label className="block text-sm text-gray-400 mb-1">
+                  {t("pricing.preview.quantity")}
+                </label>
                 <input
                   type="number"
                   min="1"
@@ -765,7 +797,9 @@ export default function PricingConfigs() {
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Duration (days)</label>
+                <label className="block text-sm text-gray-400 mb-1">
+                  {t("pricing.preview.duration")}
+                </label>
                 <input
                   type="number"
                   min="1"
@@ -781,26 +815,28 @@ export default function PricingConfigs() {
             {previewResult && (
               <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-4 space-y-2">
                 <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">
-                  Result
+                  {t("pricing.preview.result")}
                 </p>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Strategy</span>
+                  <span className="text-gray-400">{t("pricing.preview.strategy")}</span>
                   <span className="text-white">{STRATEGY_LABELS[previewResult.strategyType]}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Unit price</span>
+                  <span className="text-gray-400">{t("pricing.preview.unitPrice")}</span>
                   <span className="text-white">${previewResult.unitPrice?.toFixed(2) ?? "—"}</span>
                 </div>
                 {previewResult.effectivePricePerDay != null && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Effective per day</span>
+                    <span className="text-gray-400">{t("pricing.preview.effectivePerDay")}</span>
                     <span className="text-white">
                       ${previewResult.effectivePricePerDay.toFixed(2)}
                     </span>
                   </div>
                 )}
                 <div className="flex justify-between text-sm border-t border-[#333] pt-2 mt-1">
-                  <span className="text-gray-300 font-semibold">Total price</span>
+                  <span className="text-gray-300 font-semibold">
+                    {t("pricing.preview.totalPrice")}
+                  </span>
                   <span className="text-[#FFD700] font-bold text-base">
                     ${previewResult.totalPrice?.toFixed(2) ?? "—"}
                   </span>
@@ -818,7 +854,7 @@ export default function PricingConfigs() {
                 disabled={previewLoading}
                 data-help-id="pricing-preview-cancel"
               >
-                Close
+                {t("pricing.preview.close")}
               </Button>
               <Button
                 leftIcon={Calculator}
@@ -827,7 +863,7 @@ export default function PricingConfigs() {
                 className="gold-action-btn"
                 data-help-id="pricing-preview-submit"
               >
-                {previewLoading ? "Calculating..." : "Calculate"}
+                {previewLoading ? t("pricing.preview.calculating") : t("pricing.preview.calculate")}
               </Button>
             </div>
           </div>

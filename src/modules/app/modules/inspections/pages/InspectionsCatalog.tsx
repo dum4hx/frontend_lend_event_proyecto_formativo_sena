@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { ClipboardCheck, History, Search, RefreshCcw } from "lucide-react";
+import { useLanguage } from "../../../../../contexts/useLanguage";
 import { useInspections } from "../hooks/useInspections";
 import {
   PendingLoansTable,
@@ -15,6 +16,7 @@ import type { PendingLoan, InspectionListItem } from "../../../../../types/api";
  * High-impact UI with tabs, metrics, and real-time list updates.
  */
 export const InspectionsCatalog: React.FC = () => {
+  const { t } = useLanguage();
   const { inspections, pendingLoans, loading, error, recordInspection, refetch } = useInspections();
 
   const [activeTab, setActiveTab] = useState<"pending" | "history">("pending");
@@ -56,18 +58,15 @@ export const InspectionsCatalog: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div data-help-id="inspections-title">
           <h1 className="text-3xl font-extrabold text-white tracking-tight">
-            Inspections <span className="text-[#FFD700]">Hub</span>
+            {t("inspections.title")} <span className="text-[#FFD700]">Hub</span>
           </h1>
-          <p className="text-gray-400 mt-2 text-sm max-w-lg">
-            Assess material status upon return and automatically generate damage invoices for
-            customers.
-          </p>
+          <p className="text-gray-400 mt-2 text-sm max-w-lg">{t("inspections.description")}</p>
         </div>
 
         <div className="flex items-center space-x-4" data-help-id="inspections-stats">
           <div className="bg-[#1a1a1a] border border-[#222] px-6 py-3 rounded-xl shadow-lg">
             <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">
-              Pending Tasks
+              {t("inspections.tabPending")}
             </p>
             <p className="text-2xl font-black text-[#FFD700]">{pendingLoans.length}</p>
           </div>
@@ -94,7 +93,7 @@ export const InspectionsCatalog: React.FC = () => {
             >
               <div className="flex items-center">
                 <ClipboardCheck className="w-4 h-4 mr-2" />
-                Pending Inspections
+                {t("inspections.tabPending")}
               </div>
               {activeTab === "pending" && (
                 <div className="absolute bottom-0 left-0 right-0 h-1 bg-[#FFD700] rounded-t-full shadow-[0_-2px_6px_rgba(255,215,0,0.4)]" />
@@ -108,7 +107,7 @@ export const InspectionsCatalog: React.FC = () => {
             >
               <div className="flex items-center">
                 <History className="w-4 h-4 mr-2" />
-                Completed History
+                {t("inspections.tabCompleted")}
               </div>
               {activeTab === "history" && (
                 <div className="absolute bottom-0 left-0 right-0 h-1 bg-[#FFD700] rounded-t-full shadow-[0_-2px_6px_rgba(255,215,0,0.4)]" />

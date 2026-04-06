@@ -1,5 +1,6 @@
 import React from "react";
 import { SearchInput, SearchableSelect, type SelectOption } from "../../../../../components/ui";
+import { useLanguage } from "../../../../../contexts/useLanguage";
 import type { MaterialCategory } from "../../../../../types/api";
 
 interface CatalogFiltersProps {
@@ -35,8 +36,9 @@ export const CatalogFilters: React.FC<CatalogFiltersProps> = ({
   onLocationChange,
   locationOptions,
 }) => {
+  const { t } = useLanguage();
   const categoryOptions: SelectOption[] = [
-    { value: "", label: "All Categories" },
+    { value: "", label: t("catalogOverview.filters.allCategories") },
     ...categories.map((cat) => ({ value: cat._id, label: cat.name })),
   ];
 
@@ -45,7 +47,7 @@ export const CatalogFilters: React.FC<CatalogFiltersProps> = ({
       <SearchInput
         value={search}
         onChange={onSearchChange}
-        placeholder="Search material types…"
+        placeholder={t("catalogOverview.filters.searchPlaceholder")}
         className="w-full md:w-80"
       />
 
@@ -53,15 +55,22 @@ export const CatalogFilters: React.FC<CatalogFiltersProps> = ({
         options={categoryOptions}
         value={categoryId}
         onChange={onCategoryChange}
-        placeholder="All Categories"
+        placeholder={t("catalogOverview.filters.allCategories")}
+        searchPlaceholder={t("catalogOverview.filters.typeToSearch")}
+        noResultsText={t("catalogOverview.filters.noResults")}
         className="w-full md:w-56"
       />
 
       <SearchableSelect
-        options={[{ value: "", label: "All Locations" }, ...locationOptions]}
+        options={[
+          { value: "", label: t("catalogOverview.filters.allLocations") },
+          ...locationOptions,
+        ]}
         value={locationId}
         onChange={onLocationChange}
-        placeholder="All Locations"
+        placeholder={t("catalogOverview.filters.allLocations")}
+        searchPlaceholder={t("catalogOverview.filters.typeToSearch")}
+        noResultsText={t("catalogOverview.filters.noResults")}
         className="w-full md:w-56"
       />
     </div>

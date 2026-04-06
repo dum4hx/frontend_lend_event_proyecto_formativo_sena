@@ -34,6 +34,10 @@ export interface SearchableSelectProps {
   error?: string;
   /** Extra class names on the root wrapper. */
   className?: string;
+  /** Placeholder shown in the search input inside the dropdown. */
+  searchPlaceholder?: string;
+  /** Text shown when no options match the search query. */
+  noResultsText?: string;
 }
 
 export function SearchableSelect({
@@ -46,6 +50,8 @@ export function SearchableSelect({
   disabled = false,
   error,
   className = "",
+  searchPlaceholder = "Type to search…",
+  noResultsText = "No results found",
 }: SearchableSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -169,7 +175,7 @@ export function SearchableSelect({
                 ref={inputRef}
                 type="text"
                 className="w-full bg-transparent border-none outline-none text-xs text-white py-2.5 pl-2"
-                placeholder="Type to search…"
+                placeholder={searchPlaceholder}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={handleKeyDown}
@@ -191,7 +197,7 @@ export function SearchableSelect({
             {/* Options list */}
             <ul ref={listRef} className="max-h-52 overflow-y-auto custom-scrollbar" role="listbox">
               {filtered.length === 0 ? (
-                <li className="px-4 py-3 text-xs text-gray-500 text-center">No results found</li>
+                <li className="px-4 py-3 text-xs text-gray-500 text-center">{noResultsText}</li>
               ) : (
                 filtered.map((opt, idx) => (
                   <li

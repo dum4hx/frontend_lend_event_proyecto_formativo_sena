@@ -2,6 +2,7 @@ import React from "react";
 import { Eye, Edit, Trash2 } from "lucide-react";
 import type { MaterialCategory } from "../../../../../types/api";
 import { AdminTable } from "../../../components";
+import { useLanguage } from "../../../../../contexts/useLanguage";
 
 interface CategoryListProps {
   categories: MaterialCategory[];
@@ -16,10 +17,12 @@ export const CategoryList: React.FC<CategoryListProps> = ({
   onEdit,
   onDelete,
 }) => {
+  const { t } = useLanguage();
+
   if (categories.length === 0) {
     return (
       <div className="text-center py-12 text-gray-400">
-        <p>No categories found. Create your first category to get started.</p>
+        <p>{t("materialCategories.list.emptyMessage")}</p>
       </div>
     );
   }
@@ -28,10 +31,18 @@ export const CategoryList: React.FC<CategoryListProps> = ({
     <AdminTable>
       <thead className="bg-[#0f0f0f] border-b border-[#333]">
         <tr>
-          <th className="text-left py-4 px-4 text-gray-400 font-semibold">Name</th>
-          <th className="text-left py-4 px-4 text-gray-400 font-semibold">Description</th>
-          <th className="text-left py-4 px-4 text-gray-400 font-semibold">Attributes</th>
-          <th className="text-right py-4 px-4 text-gray-400 font-semibold">Actions</th>
+          <th className="text-left py-4 px-4 text-gray-400 font-semibold">
+            {t("materialCategories.list.name")}
+          </th>
+          <th className="text-left py-4 px-4 text-gray-400 font-semibold">
+            {t("materialCategories.list.description")}
+          </th>
+          <th className="text-left py-4 px-4 text-gray-400 font-semibold">
+            {t("materialCategories.list.attributes")}
+          </th>
+          <th className="text-right py-4 px-4 text-gray-400 font-semibold">
+            {t("materialCategories.list.actions")}
+          </th>
         </tr>
       </thead>
       <tbody>
@@ -40,10 +51,15 @@ export const CategoryList: React.FC<CategoryListProps> = ({
           const totalCount = (category.attributes || []).length;
           const attributeLabel =
             totalCount === 0
-              ? "No attributes"
+              ? t("materialCategories.list.noAttributes")
               : totalCount === 1
-                ? `1 attribute${requiredCount === 1 ? " (required)" : ""}`
-                : `${totalCount} attributes (${requiredCount} required)`;
+                ? requiredCount === 1
+                  ? t("materialCategories.list.oneAttributeRequired")
+                  : t("materialCategories.list.oneAttribute")
+                : t("materialCategories.list.attributeCount", {
+                    count: String(totalCount),
+                    required: String(requiredCount),
+                  });
 
           return (
             <tr
@@ -64,7 +80,15 @@ export const CategoryList: React.FC<CategoryListProps> = ({
                             ? "bg-red-500/20 border border-red-500/40 text-red-300"
                             : "bg-blue-500/20 border border-blue-500/40 text-blue-300"
                         }`}
-                        title={`Attribute ID: ${attr.attributeId}${attr.isRequired ? " (Required)" : ""}`}
+                        title={
+                          attr.isRequired
+                            ? t("materialCategories.list.attributeIdRequired", {
+                                id: attr.attributeId,
+                              })
+                            : t("materialCategories.list.attributeIdOptional", {
+                                id: attr.attributeId,
+                              })
+                        }
                       >
                         {attr.isRequired ? "■" : "□"} {attr.attributeId.substring(0, 8)}...
                       </span>
@@ -78,8 +102,10 @@ export const CategoryList: React.FC<CategoryListProps> = ({
                     type="button"
                     onClick={() => onView(category)}
                     className="p-2 text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors"
-                    title="View Details"
-                    aria-label={`View details for ${category.name}`}
+                    title={t("materialCategories.list.viewDetails")}
+                    aria-label={t("materialCategories.list.viewDetailsAria", {
+                      name: category.name,
+                    })}
                   >
                     <Eye size={18} />
                   </button>
@@ -87,8 +113,8 @@ export const CategoryList: React.FC<CategoryListProps> = ({
                     type="button"
                     onClick={() => onEdit(category)}
                     className="p-2 text-[#FFD700] hover:bg-[#FFD700]/10 rounded-lg transition-colors"
-                    title="Edit Category"
-                    aria-label={`Edit ${category.name}`}
+                    title={t("materialCategories.list.editCategory")}
+                    aria-label={t("materialCategories.list.editAria", { name: category.name })}
                   >
                     <Edit size={18} />
                   </button>
@@ -96,8 +122,8 @@ export const CategoryList: React.FC<CategoryListProps> = ({
                     type="button"
                     onClick={() => onDelete(category)}
                     className="p-2 text-red-300 border border-red-500/40 hover:bg-red-500/15 rounded-lg transition-colors"
-                    title="Delete Category"
-                    aria-label={`Delete ${category.name}`}
+                    title={t("materialCategories.list.deleteCategory")}
+                    aria-label={t("materialCategories.list.deleteAria", { name: category.name })}
                   >
                     <Trash2 size={18} />
                   </button>

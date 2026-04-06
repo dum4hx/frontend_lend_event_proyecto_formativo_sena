@@ -73,19 +73,17 @@ export function ResolveItemModal({ open, onClose, item, onSubmit }: ResolveItemM
     <FormModal
       open={open}
       onClose={handleClose}
-      title={t("maintenance.action.resolveItem")}
+      title={t("maintenance.action.resolve")}
       onSubmit={handleSubmit}
       loading={loading}
-      submitLabel={t("maintenance.action.resolveItem")}
+      submitLabel={t("maintenance.action.resolve")}
       cancelLabel={t("common.cancel")}
     >
       <div className="space-y-4" data-help-id="maintenance-resolve-item-form">
         {/* Item info */}
         {serialNumber && (
           <div className="p-3 bg-[#1a1a1a] rounded-lg border border-[#333]">
-            <span className="text-xs text-gray-400 uppercase">
-              {t("maintenance.itemSerialNumber")}
-            </span>
+            <span className="text-xs text-gray-400 uppercase">{t("maintenance.serialNumber")}</span>
             <p className="text-white font-mono">{serialNumber}</p>
           </div>
         )}
@@ -93,7 +91,7 @@ export function ResolveItemModal({ open, onClose, item, onSubmit }: ResolveItemM
         {/* Resolution */}
         <div>
           <label className="form-label" htmlFor="resolve-resolution">
-            {t("maintenance.resolution")} *
+            {t("maintenance.form.resolution")} *
           </label>
           <select
             id="resolve-resolution"
@@ -104,7 +102,7 @@ export function ResolveItemModal({ open, onClose, item, onSubmit }: ResolveItemM
           >
             {RESOLUTIONS.map((r) => (
               <option key={r} value={r}>
-                {t(`maintenance.resolutions.${r}`)}
+                {t(`maintenance.resolution.${r}`)}
               </option>
             ))}
           </select>
@@ -113,7 +111,7 @@ export function ResolveItemModal({ open, onClose, item, onSubmit }: ResolveItemM
         {/* Actual Cost */}
         <div>
           <label className="form-label" htmlFor="resolve-actual-cost">
-            {t("maintenance.actualCost")}
+            {t("maintenance.form.actualCost")}
           </label>
           <input
             id="resolve-actual-cost"
@@ -130,7 +128,7 @@ export function ResolveItemModal({ open, onClose, item, onSubmit }: ResolveItemM
         {/* Repair Notes */}
         <div>
           <label className="form-label" htmlFor="resolve-repair-notes">
-            {t("maintenance.repairNotes")}
+            {t("maintenance.form.repairNotes")}
           </label>
           <textarea
             id="resolve-repair-notes"

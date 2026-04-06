@@ -1,5 +1,6 @@
 import React from "react";
 import { History, Eye, CheckCircle, AlertTriangle, XCircle, FileText } from "lucide-react";
+import { useLanguage } from "../../../../../contexts/useLanguage";
 import type { InspectionListItem, InspectionItemResponse } from "../../../../../types/api";
 
 interface CompletedInspectionsTableProps {
@@ -14,22 +15,24 @@ export const CompletedInspectionsTable: React.FC<CompletedInspectionsTableProps>
   inspections,
   onView,
 }) => {
+  const { t } = useLanguage();
+
   if (inspections.length === 0) {
     return (
       <div className="text-center py-24 bg-[#1a1a1a] rounded-xl border border-dashed border-[#333]">
         <History className="w-16 h-16 text-gray-700 mx-auto mb-6" />
-        <h3 className="text-xl font-medium text-white mb-2">History is empty</h3>
-        <p className="text-gray-400">Complete your first inspection to see it here.</p>
+        <h3 className="text-xl font-medium text-white mb-2">{t("inspections.historyEmpty")}</h3>
+        <p className="text-gray-400">{t("inspections.noCompleted")}</p>
       </div>
     );
   }
 
   const getOverallCondition = (items: InspectionItemResponse[]) => {
     if (items.some((i) => i.conditionAfter === "lost"))
-      return { icon: XCircle, color: "text-red-500", text: "Loss Report" };
+      return { icon: XCircle, color: "text-red-500", text: t("inspections.lossReport") };
     if (items.some((i) => i.conditionAfter === "damaged"))
-      return { icon: AlertTriangle, color: "text-yellow-500", text: "Damages Found" };
-    return { icon: CheckCircle, color: "text-green-500", text: "All Good" };
+      return { icon: AlertTriangle, color: "text-yellow-500", text: t("inspections.damagesFound") };
+    return { icon: CheckCircle, color: "text-green-500", text: t("inspections.allGood") };
   };
 
   return (
@@ -38,19 +41,19 @@ export const CompletedInspectionsTable: React.FC<CompletedInspectionsTableProps>
         <thead>
           <tr className="bg-[#0f0f0f] border-b border-[#333]">
             <th className="text-left py-4 px-6 text-gray-400 font-semibold text-xs uppercase tracking-wider font-mono">
-              Inspection ID
+              {t("inspections.inspectionId")}
             </th>
             <th className="text-left py-4 px-6 text-gray-400 font-semibold text-xs uppercase tracking-wider font-mono">
-              Loan Ref
+              {t("inspections.loanRef")}
             </th>
             <th className="text-left py-4 px-6 text-gray-400 font-semibold text-xs uppercase tracking-wider">
-              Status Summary
+              {t("inspections.statusSummary")}
             </th>
             <th className="text-left py-4 px-6 text-gray-400 font-semibold text-xs uppercase tracking-wider">
-              Notes Preview
+              {t("inspections.notesPreview")}
             </th>
             <th className="text-right py-4 px-6 text-gray-400 font-semibold text-xs uppercase tracking-wider">
-              View Detail
+              {t("inspections.viewDetail")}
             </th>
           </tr>
         </thead>
@@ -89,7 +92,7 @@ export const CompletedInspectionsTable: React.FC<CompletedInspectionsTableProps>
                 <td className="py-5 px-6">
                   <div className="flex items-center text-gray-500 text-xs italic line-clamp-1 max-w-[200px]">
                     <FileText className="w-3 h-3 mr-1.5 flex-shrink-0" />
-                    {inspection.notes || "No notes registered."}
+                    {inspection.notes || t("inspections.noNotes")}
                   </div>
                 </td>
                 <td className="py-5 px-6 text-right">

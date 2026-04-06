@@ -165,6 +165,8 @@ export default function OperationsDashboard() {
                     value={selectedLocation}
                     onChange={setSelectedLocation}
                     placeholder={isEs ? "Seleccionar ubicación" : "Select location"}
+                    searchPlaceholder={isEs ? "Escribe para buscar…" : "Type to search…"}
+                    noResultsText={isEs ? "Sin resultados" : "No results found"}
                   />
                 </div>
               )}
@@ -201,7 +203,10 @@ export default function OperationsDashboard() {
       ) : null}
 
       {/* Tab Navigation */}
-      <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none" data-help-id="operations-tabs">
+      <div
+        className="flex gap-1 overflow-x-auto pb-1 scrollbar-none"
+        data-help-id="operations-tabs"
+      >
         {TABS.map((tab) => (
           <button
             key={tab.key}

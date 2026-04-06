@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { useCategories } from "../hooks";
 import { CategoryForm } from "../components";
 import { useToast } from "../../../../../contexts/ToastContext";
+import { useLanguage } from "../../../../../contexts/useLanguage";
 import type { CreateMaterialCategoryPayload } from "../../../../../types/api";
 
 export const CreateCategory: React.FC = () => {
@@ -11,6 +12,7 @@ export const CreateCategory: React.FC = () => {
   const location = useLocation();
   const { addCategory, updateCategory } = useCategories();
   const { showToast } = useToast();
+  const { t } = useLanguage();
 
   const editingCategory = location.state?.category;
   const isEditing = !!editingCategory;
@@ -19,15 +21,15 @@ export const CreateCategory: React.FC = () => {
     try {
       if (isEditing) {
         await updateCategory(editingCategory._id, data);
-        showToast("success", "Category updated successfully!");
+        showToast("success", t("materialCategories.toast.updateSuccess"));
       } else {
         await addCategory(data);
-        showToast("success", "Category created successfully!");
+        showToast("success", t("materialCategories.toast.createSuccess"));
       }
       navigate("/app/material-categories");
     } catch (error) {
       const err = error as Error;
-      showToast("error", err.message || "Error saving category");
+      showToast("error", err.message || t("materialCategories.toast.saveError"));
       throw err;
     }
   };
@@ -41,17 +43,19 @@ export const CreateCategory: React.FC = () => {
           className="flex items-center gap-2 text-gray-400 hover:text-white mb-6 transition-colors"
         >
           <ArrowLeft size={20} />
-          Back to Categories
+          {t("materialCategories.backToCategories")}
         </button>
 
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">
-            {isEditing ? "Edit Category" : "Create New Category"}
+            {isEditing
+              ? t("materialCategories.editCategory")
+              : t("materialCategories.createNewCategory")}
           </h1>
           <p className="text-gray-400">
             {isEditing
-              ? "Update the category information below"
-              : "Add a new material category to your catalog"}
+              ? t("materialCategories.editDescription")
+              : t("materialCategories.createDescription")}
           </p>
         </div>
 

@@ -4,6 +4,9 @@ import publicSiteEn from "./locales/en/publicSite.json";
 import settingsEn from "./locales/en/settings.json";
 import superAdminEn from "./locales/en/superAdmin.json";
 import systemSettingsEn from "./locales/en/systemSettings.json";
+import catalogOverviewEn from "./locales/en/catalogOverview.json";
+import inspectionsEn from "./locales/en/inspections.json";
+import pricingEn from "./locales/en/pricing.json";
 
 import commonEs from "./locales/es/common.json";
 import navEs from "./locales/es/nav.json";
@@ -11,6 +14,9 @@ import publicSiteEs from "./locales/es/publicSite.json";
 import settingsEs from "./locales/es/settings.json";
 import superAdminEs from "./locales/es/superAdmin.json";
 import systemSettingsEs from "./locales/es/systemSettings.json";
+import catalogOverviewEs from "./locales/es/catalogOverview.json";
+import inspectionsEs from "./locales/es/inspections.json";
+import pricingEs from "./locales/es/pricing.json";
 
 export type SupportedLanguage = "en" | "es";
 
@@ -28,6 +34,9 @@ export const EN_TRANSLATIONS = mergeTranslations(
   settingsEn,
   superAdminEn,
   systemSettingsEn,
+  catalogOverviewEn,
+  inspectionsEn,
+  pricingEn,
 );
 
 export const ES_TRANSLATIONS: Record<keyof typeof EN_TRANSLATIONS, string> = mergeTranslations(
@@ -37,6 +46,9 @@ export const ES_TRANSLATIONS: Record<keyof typeof EN_TRANSLATIONS, string> = mer
   settingsEs,
   superAdminEs,
   systemSettingsEs,
+  catalogOverviewEs,
+  inspectionsEs,
+  pricingEs,
 );
 
 export type TranslationKey = keyof typeof EN_TRANSLATIONS;
@@ -63,10 +75,15 @@ const NAV_ITEM_KEYS: Partial<Record<string, TranslationKey>> = {
   "material-categories": "nav.item.material-categories",
   "material-types": "nav.item.material-types",
   "material-instances": "nav.item.material-instances",
+  "catalog-overview": "nav.item.catalog-overview",
   attributes: "nav.item.attributes",
   plans: "nav.item.plans",
   "transfer-requests": "nav.item.transfer-requests",
+  operations: "nav.item.operations",
   locations: "nav.item.locations",
+  inspections: "nav.item.inspections",
+  incidents: "nav.item.incidents",
+  maintenance: "nav.item.maintenance",
   "stock-movements": "nav.item.stock-movements",
   alerts: "nav.item.alerts",
   orders: "nav.item.orders",
@@ -74,6 +91,8 @@ const NAV_ITEM_KEYS: Partial<Record<string, TranslationKey>> = {
   rentals: "nav.item.rentals",
   invoices: "nav.item.invoices",
   reports: "nav.item.reports",
+  pricing: "nav.item.pricing",
+  "payment-methods": "nav.item.payment-methods",
   overview: "nav.item.overview",
   clients: "nav.item.clients",
   organizations: "nav.item.organizations",

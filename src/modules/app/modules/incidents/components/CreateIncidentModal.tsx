@@ -92,7 +92,7 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({ onClos
       .then((res) => {
         const options = (res.data.instances ?? []).map((inst) => ({
           value: inst._id,
-          label: `${inst.serialNumber} — ${inst.model.name}`,
+          label: `${inst.serialNumber} — ${inst.model.name} — ${inst.status}`,
         }));
         setInstanceOptions(options);
       })

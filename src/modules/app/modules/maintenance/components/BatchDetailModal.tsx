@@ -116,13 +116,21 @@ export function BatchDetailModal({
                 <span className="block text-xs text-gray-400 uppercase mb-1">
                   {t("maintenance.stats.estimatedCost")}
                 </span>
-                <p className="text-white">{formatCurrency(batch.totalEstimatedCost)}</p>
+                <p className="text-white text-lg font-semibold">
+                  {formatCurrency(batch.totalEstimatedCost)}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {t("maintenance.batchEstimatedCostDesc")}
+                </p>
               </div>
               <div>
                 <span className="block text-xs text-gray-400 uppercase mb-1">
                   {t("maintenance.stats.actualCost")}
                 </span>
-                <p className="text-white">{formatCurrency(batch.totalActualCost)}</p>
+                <p className="text-white text-lg font-semibold">
+                  {formatCurrency(batch.totalActualCost)}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">{t("maintenance.batchActualCostDesc")}</p>
               </div>
               {batch.notes && (
                 <div className="col-span-2">

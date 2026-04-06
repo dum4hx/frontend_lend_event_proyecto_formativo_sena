@@ -7,6 +7,7 @@ import { MaterialTypeList, MaterialTypeDetailModal, MaterialTypeForm } from "../
 import { AdminPagination } from "../../../components";
 import { ExcelExportImport } from "../../../../../components/export/ExcelExportImport";
 import { useToast } from "../../../../../contexts/ToastContext";
+import { useLanguage } from "../../../../../contexts/useLanguage";
 import type {
   MaterialType,
   CreateMaterialTypePayload,
@@ -18,6 +19,7 @@ type MaterialWithCategory = MaterialType & {
 };
 
 export const MaterialTypeCatalog: React.FC = () => {
+  const { t } = useLanguage();
   const {
     materialTypes,
     loading,
@@ -81,16 +83,16 @@ export const MaterialTypeCatalog: React.FC = () => {
     try {
       if (editingType) {
         await updateMaterialTypeData(editingType._id, payload as UpdateMaterialTypePayload);
-        showToast("success", "Material type updated successfully", "Success");
+        showToast("success", t("materialTypes.toast.updateSuccess"), t("common.success"));
       } else {
         await addMaterialType(payload);
-        showToast("success", "Material type created successfully", "Success");
+        showToast("success", t("materialTypes.toast.createSuccess"), t("common.success"));
       }
       setIsFormOpen(false);
       setEditingType(null);
     } catch (err) {
       const error = err as Error;
-      showToast("error", error.message || "Failed to save material type", "Error");
+      showToast("error", error.message || t("materialTypes.toast.saveError"), t("common.error"));
       throw err;
     }
   };
@@ -107,19 +109,23 @@ export const MaterialTypeCatalog: React.FC = () => {
   const handleDelete = (type: MaterialType) => {
     showToast(
       "warning",
-      `Do you want to delete "${type.name}"? This action cannot be undone.`,
-      "Confirm Deletion",
+      t("materialTypes.toast.deleteConfirm", { name: type.name }),
+      t("materialTypes.toast.deleteConfirmTitle"),
       {
         duration: Infinity,
         action: {
-          label: "Confirm",
+          label: t("materialTypes.toast.deleteConfirmBtn"),
           onClick: async () => {
             try {
               await removeMaterialType(type._id);
-              showToast("success", "Material type deleted successfully", "Success");
+              showToast("success", t("materialTypes.toast.deleteSuccess"), t("common.success"));
             } catch (error) {
               const err = error as Error;
-              showToast("error", err.message || "Failed to delete material type", "Error");
+              showToast(
+                "error",
+                err.message || t("materialTypes.toast.deleteError"),
+                t("common.error"),
+              );
             }
           },
         },
@@ -186,15 +192,26 @@ export const MaterialTypeCatalog: React.FC = () => {
         console.warn(`[Import] ${rejectedCount} rejected record(s):`, rejected);
         showToast(
           successCount > 0 ? "warning" : "error",
-          `${successCount} imported, ${rejectedCount} rejected due to invalid categoryId. Check console for details.`,
-          `Import: ${successCount}/${total}`,
+          t("materialTypes.toast.importPartial", {
+            success: successCount,
+            rejected: rejectedCount,
+          }),
+          t("materialTypes.toast.importPartialTitle", { success: successCount, total }),
         );
       } else {
-        showToast("success", `${successCount}/${total} material types imported`, "Import complete");
+        showToast(
+          "success",
+          t("materialTypes.toast.importSuccess", { success: successCount, total }),
+          t("materialTypes.toast.importSuccessTitle"),
+        );
       }
     } catch (error) {
       const err = error as Error;
-      showToast("error", err.message || "Error importing material types", "Import Failed");
+      showToast(
+        "error",
+        err.message || t("materialTypes.toast.importError"),
+        t("materialTypes.toast.importErrorTitle"),
+      );
     }
   };
 
@@ -232,14 +249,16 @@ export const MaterialTypeCatalog: React.FC = () => {
     return (
       <div className="min-h-screen bg-[#121212] p-8 flex items-center justify-center">
         <div className="bg-[#1a1a1a] border border-red-900/70 rounded-xl p-6 max-w-lg w-full">
-          <h2 className="text-xl font-semibold text-red-300 mb-2">Unable to load material types</h2>
+          <h2 className="text-xl font-semibold text-red-300 mb-2">
+            {t("materialTypes.errorLoad")}
+          </h2>
           <p className="text-sm text-red-200/80 mb-4">{error}</p>
           <button
             type="button"
             onClick={() => window.location.reload()}
             className="px-4 py-2 rounded-lg border border-[#B88A00] text-[#FFD700] hover:bg-[#FFD700]/10 transition-colors"
           >
-            Retry
+            {t("materialTypes.retry")}
           </button>
         </div>
       </div>
@@ -251,8 +270,8 @@ export const MaterialTypeCatalog: React.FC = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div data-help-id="material-types-title" className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Material Types</h1>
-          <p className="text-gray-400">Manage your material type catalog (items for rental)</p>
+          <h1 className="text-3xl font-bold text-white mb-2">{t("materialTypes.title")}</h1>
+          <p className="text-gray-400">{t("materialTypes.description")}</p>
         </div>
 
         {/* Actions Bar */}
@@ -261,7 +280,7 @@ export const MaterialTypeCatalog: React.FC = () => {
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1 relative">
               <label htmlFor={searchInputId} className="sr-only">
-                Search material types
+                {t("materialTypes.searchLabel")}
               </label>
               <Search
                 className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
@@ -270,7 +289,7 @@ export const MaterialTypeCatalog: React.FC = () => {
               <input
                 id={searchInputId}
                 type="text"
-                placeholder="Search material types..."
+                placeholder={t("materialTypes.searchPlaceholder")}
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
@@ -291,16 +310,19 @@ export const MaterialTypeCatalog: React.FC = () => {
                 className="flex items-center gap-2 px-6 py-3 font-semibold rounded-lg transition-colors whitespace-nowrap border border-[#B88A00] text-[#FFD700] hover:bg-[#FFD700]/10"
               >
                 <Plus size={20} />
-                New Material Type
+                {t("materialTypes.newMaterialType")}
               </button>
             </div>
           </div>
 
           {/* Category filter pills */}
           {categories.length > 0 && (
-            <div data-help-id="material-types-category-filters" className="flex flex-wrap gap-2 items-center">
+            <div
+              data-help-id="material-types-category-filters"
+              className="flex flex-wrap gap-2 items-center"
+            >
               <span className="flex items-center gap-1 text-gray-400 text-sm mr-1">
-                <Tag size={14} /> Filtrar:
+                <Tag size={14} /> {t("materialTypes.filterLabel")}
               </span>
               <button
                 onClick={() => {
@@ -313,7 +335,7 @@ export const MaterialTypeCatalog: React.FC = () => {
                     : "bg-[#1a1a1a] border border-[#333] text-gray-400 hover:border-[#FFD700] hover:text-white"
                 }`}
               >
-                Todas
+                {t("materialTypes.filterAll")}
               </button>
               {categories.map((cat) => {
                 const isActive = selectedCategoryIds.has(cat._id);
@@ -348,9 +370,9 @@ export const MaterialTypeCatalog: React.FC = () => {
                     setPage(1);
                   }}
                   className="flex items-center gap-1 px-2 py-1.5 text-gray-500 hover:text-white text-sm transition-colors"
-                  title="Limpiar filtros"
+                  title={t("materialTypes.clearFiltersTitle")}
                 >
-                  <X size={14} /> Limpiar ({selectedCategoryIds.size})
+                  <X size={14} /> {t("materialTypes.clearFilters")} ({selectedCategoryIds.size})
                 </button>
               )}
             </div>
@@ -358,26 +380,32 @@ export const MaterialTypeCatalog: React.FC = () => {
         </div>
 
         {/* Stats */}
-        <div data-help-id="material-types-stats" className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <div
+          data-help-id="material-types-stats"
+          className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6"
+        >
           <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-6">
-            <p className="text-gray-400 text-sm mb-1">Total Material Types</p>
+            <p className="text-gray-400 text-sm mb-1">{t("materialTypes.totalMaterialTypes")}</p>
             <p className="text-3xl font-bold text-white">{materialTypes.length}</p>
           </div>
           <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-6">
-            <p className="text-gray-400 text-sm mb-1">Search Results</p>
+            <p className="text-gray-400 text-sm mb-1">{t("materialTypes.searchResults")}</p>
             <p className="text-3xl font-bold text-white">{filteredMaterialTypes.length}</p>
           </div>
         </div>
 
         {/* Material Type List */}
-        <div data-help-id="material-types-list" className="bg-[#1a1a1a] border border-[#333] rounded-lg p-6">
+        <div
+          data-help-id="material-types-list"
+          className="bg-[#1a1a1a] border border-[#333] rounded-lg p-6"
+        >
           {filteredMaterialTypes.length === 0 ? (
             <div className="py-16 text-center">
-              <p className="text-lg text-white mb-2">No material types found</p>
+              <p className="text-lg text-white mb-2">{t("materialTypes.noFound")}</p>
               <p className="text-sm text-gray-400 mb-6">
                 {searchTerm || selectedCategoryIds.size > 0
-                  ? "Try changing your search term or clearing the filters."
-                  : "Create your first material type to start building your catalog."}
+                  ? t("materialTypes.noFoundSearch")
+                  : t("materialTypes.noFoundEmpty")}
               </p>
               {!searchTerm && selectedCategoryIds.size === 0 && (
                 <button
@@ -386,7 +414,7 @@ export const MaterialTypeCatalog: React.FC = () => {
                   className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-[#B88A00] text-[#FFD700] hover:bg-[#FFD700]/10 transition-colors"
                 >
                   <Plus size={18} />
-                  Create Material Type
+                  {t("materialTypes.createMaterialType")}
                 </button>
               )}
             </div>
@@ -405,7 +433,7 @@ export const MaterialTypeCatalog: React.FC = () => {
                   totalPages={totalPages}
                   totalItems={filteredMaterialTypes.length}
                   pageSize={pageSize}
-                  itemLabel="types"
+                  itemLabel={t("materialTypes.paginationLabel")}
                   onPageChange={setPage}
                 />
               </div>

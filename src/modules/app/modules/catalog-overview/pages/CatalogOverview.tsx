@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useMemo } from "react";
 import { RefreshCcw, FileText, Table2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useLanguage } from "../../../../../contexts/useLanguage";
 import { exportTableToPDF, exportTableToXLSX } from "../../../../../utils/tableExport";
 import type { CatalogMaterialType } from "../../../../../types/api";
 import {
@@ -23,6 +24,7 @@ import type { SelectOption } from "../../../../../components/ui";
  */
 export const CatalogOverview: React.FC = () => {
   const queryClient = useQueryClient();
+  const { t } = useLanguage();
 
   // ── Filter state ──────────────────────────────────────────────────────
   const [search, setSearch] = useState("");
@@ -76,14 +78,14 @@ export const CatalogOverview: React.FC = () => {
   const buildExportData = useCallback(
     (items: CatalogMaterialType[]) => {
       const headers = [
-        "Name",
-        "Price / Day",
-        "Categories",
-        "Instances",
-        "Available",
-        "Availability %",
-        "Utilization %",
-        "Alerts",
+        t("catalogOverview.table.name"),
+        t("catalogOverview.table.pricePerDay"),
+        t("catalogOverview.table.categories"),
+        t("catalogOverview.table.instances"),
+        t("catalogOverview.table.available"),
+        t("catalogOverview.table.availability"),
+        t("catalogOverview.table.utilization"),
+        t("catalogOverview.table.alerts"),
       ];
       const rows = items.map((mt) => ({
         Name: mt.name,
@@ -97,7 +99,7 @@ export const CatalogOverview: React.FC = () => {
       }));
       return { headers, rows };
     },
-    [],
+    [t],
   );
 
   const handleExportPDF = useCallback(() => {
@@ -116,7 +118,7 @@ export const CatalogOverview: React.FC = () => {
   if (isError) {
     return (
       <ErrorDisplay
-        error={error?.message ?? "Failed to load catalog overview"}
+        error={error?.message ?? t("catalogOverview.errorLoad")}
         onRetry={handleRefresh}
       />
     );
@@ -128,12 +130,10 @@ export const CatalogOverview: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-3xl font-extrabold text-white tracking-tight">
-            Catalog <span className="text-[#FFD700]">Overview</span>
+            {t("catalogOverview.title")}{" "}
+            <span className="text-[#FFD700]">{t("catalogOverview.titleHighlight")}</span>
           </h1>
-          <p className="text-gray-400 mt-2 text-sm max-w-lg">
-            Aggregated operational view of your material catalog — availability, utilization, and
-            alerts at a glance.
-          </p>
+          <p className="text-gray-400 mt-2 text-sm max-w-lg">{t("catalogOverview.description")}</p>
         </div>
 
         <div className="flex items-center gap-3 self-start">
@@ -141,7 +141,7 @@ export const CatalogOverview: React.FC = () => {
             onClick={handleExportPDF}
             disabled={isLoading || materialTypes.length === 0}
             className="flex items-center gap-2 px-4 py-2 gold-action-btn font-semibold rounded-lg transition disabled:opacity-50"
-            title="Export PDF"
+            title={t("catalogOverview.exportPdf")}
           >
             <FileText className="w-4 h-4" />
             PDF
@@ -150,7 +150,7 @@ export const CatalogOverview: React.FC = () => {
             onClick={handleExportXLSX}
             disabled={isLoading || materialTypes.length === 0}
             className="flex items-center gap-2 px-4 py-2 gold-action-btn font-semibold rounded-lg transition disabled:opacity-50"
-            title="Export Excel"
+            title={t("catalogOverview.exportExcel")}
           >
             <Table2 className="w-4 h-4" />
             XLS
@@ -159,7 +159,7 @@ export const CatalogOverview: React.FC = () => {
             onClick={handleRefresh}
             disabled={isLoading}
             className="p-3 bg-[#1a1a1a] border border-[#333] text-gray-400 hover:text-white hover:border-[#444] rounded-xl transition-all disabled:opacity-50"
-            title="Refresh data"
+            title={t("catalogOverview.refresh")}
           >
             <RefreshCcw className={`w-5 h-5 ${isLoading ? "animate-spin" : ""}`} />
           </button>
@@ -184,8 +184,8 @@ export const CatalogOverview: React.FC = () => {
       {/* ── Table ──────────────────────────────────────────────────────── */}
       {materialTypes.length === 0 && !isLoading ? (
         <EmptyState
-          title="No material types found"
-          description="Try adjusting your search or category filter."
+          title={t("catalogOverview.empty")}
+          description={t("catalogOverview.emptyHint")}
         />
       ) : (
         <CatalogTable data={materialTypes} loading={isLoading} />
@@ -198,7 +198,7 @@ export const CatalogOverview: React.FC = () => {
           totalPages={totalPages}
           totalItems={pagination.total}
           pageSize={limit}
-          itemLabel="material types"
+          itemLabel={t("catalogOverview.paginationLabel")}
           onPageChange={setPage}
         />
       )}

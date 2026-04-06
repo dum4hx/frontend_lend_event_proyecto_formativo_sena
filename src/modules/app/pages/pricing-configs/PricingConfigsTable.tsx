@@ -1,5 +1,6 @@
 import { Pencil, Trash2, Loader2 } from "lucide-react";
 import { IconButton, EntityLink } from "../../../../components/ui";
+import { useLanguage } from "../../../../contexts/useLanguage";
 import { SCOPE_LABELS, STRATEGY_LABELS, getScopeBadgeStyle, formatStrategyParams } from "./helpers";
 import type { PricingConfig } from "./types";
 
@@ -21,6 +22,7 @@ export function PricingConfigsTable({
   onEdit,
   onDelete,
 }: PricingConfigsTableProps) {
+  const { t } = useLanguage();
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -30,7 +32,7 @@ export function PricingConfigsTable({
   }
 
   if (configs.length === 0) {
-    return <div className="text-center py-12 text-gray-400">No pricing configurations found</div>;
+    return <div className="text-center py-12 text-gray-400">{t("pricing.empty")}</div>;
   }
 
   return (
@@ -38,11 +40,19 @@ export function PricingConfigsTable({
       <table className="w-full text-sm">
         <thead>
           <tr className="bg-[#1a1a1a] text-gray-400 border-b border-[#333]">
-            <th className="text-left px-4 py-3 font-semibold">Scope</th>
-            <th className="text-left px-4 py-3 font-semibold">Reference ID</th>
-            <th className="text-left px-4 py-3 font-semibold">Strategy</th>
-            <th className="text-left px-4 py-3 font-semibold">Parameters</th>
-            <th className="text-left px-4 py-3 font-semibold">Actions</th>
+            <th className="text-left px-4 py-3 font-semibold">{t("pricing.tableHeader.scope")}</th>
+            <th className="text-left px-4 py-3 font-semibold">
+              {t("pricing.tableHeader.referenceId")}
+            </th>
+            <th className="text-left px-4 py-3 font-semibold">
+              {t("pricing.tableHeader.strategy")}
+            </th>
+            <th className="text-left px-4 py-3 font-semibold">
+              {t("pricing.tableHeader.parameters")}
+            </th>
+            <th className="text-left px-4 py-3 font-semibold">
+              {t("pricing.tableHeader.actions")}
+            </th>
           </tr>
         </thead>
         <tbody>
