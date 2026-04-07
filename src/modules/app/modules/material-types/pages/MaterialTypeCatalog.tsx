@@ -8,6 +8,9 @@ import { AdminPagination } from "../../../components";
 import { ExcelExportImport } from "../../../../../components/export/ExcelExportImport";
 import { useToast } from "../../../../../contexts/ToastContext";
 import { useLanguage } from "../../../../../contexts/useLanguage";
+import { usePermissions } from "../../../../../contexts/usePermissions";
+import { useActionPermission } from "../../../../../hooks/useActionPermission";
+import Unauthorized from "../../../../../pages/Unauthorized";
 import type {
   MaterialType,
   CreateMaterialTypePayload,
@@ -19,7 +22,10 @@ type MaterialWithCategory = MaterialType & {
 };
 
 export const MaterialTypeCatalog: React.FC = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const { hasPermission } = usePermissions();
+  const isEs = language === "es";
+  const { guard, isAllowed } = useActionPermission(isEs ? "es" : "en");
   const {
     materialTypes,
     loading,
@@ -265,6 +271,10 @@ export const MaterialTypeCatalog: React.FC = () => {
     );
   }
 
+  if (!hasPermission("materials:read")) {
+    return <Unauthorized />;
+  }
+
   return (
     <div className="min-h-screen bg-[#121212] p-8">
       <div className="max-w-7xl mx-auto">
@@ -303,11 +313,14 @@ export const MaterialTypeCatalog: React.FC = () => {
                 data={filteredMaterialTypes as unknown as Record<string, unknown>[]}
                 filename="material-types"
                 onImport={handleImportMaterialTypes}
+                importDisabled={!isAllowed("materials:create")}
+                onImportDenied={guard("materials:create", () => {})}
                 showLabels={true}
               />
               <button
-                onClick={() => setIsFormOpen(true)}
-                className="flex items-center gap-2 px-6 py-3 font-semibold rounded-lg transition-colors whitespace-nowrap border border-[#B88A00] text-[#FFD700] hover:bg-[#FFD700]/10"
+                onClick={guard("materials:create", () => setIsFormOpen(true))}
+                aria-disabled={!isAllowed("materials:create")}
+                className={`flex items-center gap-2 px-6 py-3 font-semibold rounded-lg transition-colors whitespace-nowrap border border-[#B88A00] text-[#FFD700] hover:bg-[#FFD700]/10 ${!isAllowed("materials:create") ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 <Plus size={20} />
                 {t("materialTypes.newMaterialType")}
@@ -410,8 +423,9 @@ export const MaterialTypeCatalog: React.FC = () => {
               {!searchTerm && selectedCategoryIds.size === 0 && (
                 <button
                   type="button"
-                  onClick={() => setIsFormOpen(true)}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-[#B88A00] text-[#FFD700] hover:bg-[#FFD700]/10 transition-colors"
+                  onClick={guard("materials:create", () => setIsFormOpen(true))}
+                  aria-disabled={!isAllowed("materials:create")}
+                  className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-[#B88A00] text-[#FFD700] hover:bg-[#FFD700]/10 transition-colors ${!isAllowed("materials:create") ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   <Plus size={18} />
                   {t("materialTypes.createMaterialType")}

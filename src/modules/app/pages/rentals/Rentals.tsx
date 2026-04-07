@@ -22,6 +22,7 @@ import {
 } from "./RentalModals";
 import { customerFullName } from "./helpers";
 import type { LoanView, LoanFilter, Loan, Customer, ExtendLoanPayload } from "./types";
+import Unauthorized from "../../../../pages/Unauthorized";
 
 // ─── Component ──────────────────────────────────────────────────────────
 
@@ -250,6 +251,8 @@ export function Rentals() {
       setSubmitting(false);
     }
   };
+
+  if (!hasPermission("loans:read")) return <Unauthorized />;
 
   // ── Render ────────────────────────────────────────────────────────────────
 

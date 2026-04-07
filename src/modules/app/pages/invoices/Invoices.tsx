@@ -13,6 +13,8 @@ import InvoiceDetailModal from "../../components/InvoiceDetailModal";
 import { useInvoices } from "../../hooks/useInvoices";
 import { getPaymentMethods } from "../../../../services/paymentMethodService";
 import { useLanguage } from "../../../../contexts/useLanguage";
+import { usePermissions } from "../../../../contexts/usePermissions";
+import Unauthorized from "../../../../pages/Unauthorized";
 import { useToast } from "../../../../hooks/useToast";
 import { InvoicesFilters } from "./InvoicesFilters";
 import { InvoicesTable } from "./InvoicesTable";
@@ -24,6 +26,7 @@ import type { Invoice, InvoiceStatus, InvoiceType, InvoiceTab, PaymentMethod } f
 export function Invoices() {
   const { language, locale } = useLanguage();
   const isEs = language === "es";
+  const { hasPermission } = usePermissions();
   const { showToast } = useToast();
 
   // Data & API
@@ -190,6 +193,8 @@ export function Invoices() {
       </AnimatedPage>
     );
   }
+
+  if (!hasPermission("invoices:read")) return <Unauthorized />;
 
   // ── Render ──────────────────────────────────────────────────────────────
 

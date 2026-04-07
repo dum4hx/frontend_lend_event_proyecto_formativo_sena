@@ -25,6 +25,7 @@ import { getLocations } from "../../../../services/warehouseOperatorService";
 import { getUser } from "../../../../services/userService";
 import { getMaterialType } from "../../../../services/materialService";
 import { AnimatedPage, PageHeader, EntityLink } from "../../../../components/ui";
+import Unauthorized from "../../../../pages/Unauthorized";
 import {
   REQUEST_STATUS_LABEL,
   getRequestStatusLabel,
@@ -370,6 +371,8 @@ export function TransferRequests() {
       </div>
     );
   };
+
+  if (!hasPermission("transfers:read")) return <Unauthorized />;
 
   // ── Render ──
   return (

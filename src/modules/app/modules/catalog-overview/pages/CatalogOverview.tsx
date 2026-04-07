@@ -2,6 +2,7 @@ import React, { useState, useCallback, useMemo } from "react";
 import { RefreshCcw, FileText, Table2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLanguage } from "../../../../../contexts/useLanguage";
+import { usePermissions } from "../../../../../contexts/usePermissions";
 import { exportTableToPDF, exportTableToXLSX } from "../../../../../utils/tableExport";
 import type { CatalogMaterialType } from "../../../../../types/api";
 import {
@@ -15,6 +16,7 @@ import { AdminPagination } from "../../../components";
 import { CatalogSummaryCards, CatalogFilters, CatalogTable } from "../components";
 import type { CatalogOverviewQueryParams } from "../../../../../types/api";
 import type { SelectOption } from "../../../../../components/ui";
+import Unauthorized from "../../../../../pages/Unauthorized";
 
 /**
  * CatalogOverview — Aggregated operational view of the material catalog.
@@ -25,6 +27,7 @@ import type { SelectOption } from "../../../../../components/ui";
 export const CatalogOverview: React.FC = () => {
   const queryClient = useQueryClient();
   const { t } = useLanguage();
+  const { hasPermission } = usePermissions();
 
   // ── Filter state ──────────────────────────────────────────────────────
   const [search, setSearch] = useState("");
@@ -123,6 +126,8 @@ export const CatalogOverview: React.FC = () => {
       />
     );
   }
+
+  if (!hasPermission("materials:read")) return <Unauthorized />;
 
   return (
     <div className="p-6 md:p-10 space-y-10 animate-in fade-in duration-500">

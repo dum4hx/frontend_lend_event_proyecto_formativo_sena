@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { RefreshCw, MapPin } from "lucide-react";
 import { useAuth } from "../../../contexts/useAuth";
 import { useLanguage } from "../../../contexts/useLanguage";
+import { usePermissions } from "../../../contexts/usePermissions";
 import { LoadingSpinner, SearchableSelect, PageHeader } from "../../../components/ui";
 import { pageVariants } from "../../../lib/animations";
 import { getLocation as fetchLocationById } from "../../../services/warehouseOperatorService";
@@ -33,6 +34,7 @@ import { OpsDeadlinesPanel } from "./operations/OpsDeadlinesPanel";
 import { OpsDamagesPanel } from "./operations/OpsDamagesPanel";
 import { useQueryClient } from "@tanstack/react-query";
 import { OPERATIONS_KEYS } from "../../../hooks/queries/useOperationsQueries";
+import Unauthorized from "../../../pages/Unauthorized";
 
 type TabKey =
   | "overview"
@@ -79,6 +81,7 @@ export default function OperationsDashboard() {
   const { user } = useAuth();
   const { language } = useLanguage();
   const isEs = language === "es";
+  const { hasPermission } = usePermissions();
   const queryClient = useQueryClient();
 
   // If user has multiple locations, let them pick one
@@ -134,6 +137,8 @@ export default function OperationsDashboard() {
   if (!locationIds.length) {
     return <NoLocationState isEs={isEs} />;
   }
+
+  if (!hasPermission("operations:read")) return <Unauthorized />;
 
   const locationOptions = locationIds.map((id) => ({
     value: id,

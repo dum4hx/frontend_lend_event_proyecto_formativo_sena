@@ -35,6 +35,7 @@ import { useActionPermission } from "../../../../hooks/useActionPermission";
 import { usePermissions } from "../../../../contexts/usePermissions";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import PrepareOrderModal from "../PrepareOrderModal";
+import Unauthorized from "../../../../pages/Unauthorized";
 
 import type { OrderView, WorkflowFilter } from "./types";
 import {
@@ -525,6 +526,8 @@ export function Orders() {
     setActiveOrder(order);
     setShowDetailsModal(true);
   };
+
+  if (!hasPermission("requests:read")) return <Unauthorized />;
 
   /* ── Render ─────────────────────────────────────────── */
 

@@ -90,9 +90,12 @@ export function LocationsTable({
 
             {/* Header */}
             <div className="mb-5 pr-24">
-              <h3 className="text-xl font-bold text-white mb-2 group-hover:text-[#FFD700] transition-colors">
+              <h3 className="text-xl font-bold text-white mb-1 group-hover:text-[#FFD700] transition-colors">
                 {location.name}
               </h3>
+              {location.code && (
+                <p className="text-xs font-mono text-[#FFD700]/80 mb-2">{location.code}</p>
+              )}
               <div className="flex items-start gap-2 text-gray-400">
                 <MapPin size={16} className="mt-0.5 flex-shrink-0 text-[#FFD700]/70" />
                 <div className="text-sm leading-relaxed">

@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Plus, Search, Pencil, Trash2, Loader2, CreditCard, RefreshCcw, Lock } from "lucide-react";
 import { Button, IconButton, PageHeader } from "../../../../components/ui";
 import { useLanguage } from "../../../../contexts/useLanguage";
+import { usePermissions } from "../../../../contexts/usePermissions";
+import Unauthorized from "../../../../pages/Unauthorized";
 import { useToast } from "../../../../hooks/useToast";
 import { getPaymentMethods, deletePaymentMethod } from "../../../../services/paymentMethodService";
 import type { PaymentMethod } from "../../../../types/api";
@@ -14,6 +16,7 @@ import PaymentMethodFormModal from "./PaymentMethodFormModal";
 export default function PaymentMethods() {
   const { language } = useLanguage();
   const isEs = language === "es";
+  const { hasPermission } = usePermissions();
   const { showToast } = useToast();
 
   const [methods, setMethods] = useState<PaymentMethod[]>([]);
@@ -89,6 +92,8 @@ export default function PaymentMethods() {
   };
 
   const isModalOpen = showCreate || editingMethod !== null;
+
+  if (!hasPermission("payment_methods:read")) return <Unauthorized />;
 
   return (
     <div className="page-container">

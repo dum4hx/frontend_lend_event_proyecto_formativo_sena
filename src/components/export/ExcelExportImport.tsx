@@ -17,6 +17,10 @@ interface ExcelExportImportProps {
   filename: string;
   onImport?: (data: Record<string, unknown>[]) => void;
   showLabels?: boolean;
+  /** When true the import button is visually and functionally disabled. */
+  importDisabled?: boolean;
+  /** Callback fired when the disabled import button is clicked (e.g. to show a toast). */
+  onImportDenied?: () => void;
 }
 
 /**
@@ -53,6 +57,8 @@ export const ExcelExportImport: React.FC<ExcelExportImportProps> = ({
   filename,
   onImport,
   showLabels = true,
+  importDisabled = false,
+  onImportDenied,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -144,7 +150,18 @@ export const ExcelExportImport: React.FC<ExcelExportImportProps> = ({
       {/* Import Button - Unified Design System */}
       {onImport && (
         <>
-          <Button onClick={() => fileInputRef.current?.click()} title="Import data from Excel">
+          <Button
+            onClick={() => {
+              if (importDisabled) {
+                onImportDenied?.();
+                return;
+              }
+              fileInputRef.current?.click();
+            }}
+            aria-disabled={importDisabled}
+            className={importDisabled ? "opacity-50 cursor-not-allowed" : ""}
+            title="Import data from Excel"
+          >
             <Upload size={18} />
             {showLabels && "Import"}
           </Button>

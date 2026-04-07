@@ -85,6 +85,14 @@ export function LocationDetailModal({
                 {isEs ? "Información básica" : "Basic Information"}
               </h3>
               <div className="space-y-4">
+                {location.code && (
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase font-semibold">
+                      {isEs ? "C\u00f3digo" : "Code"}
+                    </p>
+                    <p className="text-white font-mono font-medium mt-1">{location.code}</p>
+                  </div>
+                )}
                 <div>
                   <p className="text-xs text-gray-500 uppercase font-semibold">
                     {isEs ? "Estado" : "Status"}

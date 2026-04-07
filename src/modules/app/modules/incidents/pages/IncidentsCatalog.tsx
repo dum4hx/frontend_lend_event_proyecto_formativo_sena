@@ -12,6 +12,8 @@ import {
 } from "../../../../../components/ui";
 import { useLanguage } from "../../../../../contexts/useLanguage";
 import { usePermissions } from "../../../../../contexts/usePermissions";
+import { useActionPermission } from "../../../../../hooks/useActionPermission";
+import Unauthorized from "../../../../../pages/Unauthorized";
 import { useToast } from "../../../../../hooks/useToast";
 import type {
   Incident,
@@ -27,8 +29,9 @@ import type {
  * loans, transit, storage, maintenance, and other operational contexts.
  */
 export const IncidentsCatalog: React.FC = () => {
-  const { t, formatDate } = useLanguage();
+  const { t, formatDate, language } = useLanguage();
   const { hasPermission } = usePermissions();
+  const { guard, isAllowed } = useActionPermission(language === "es" ? "es" : "en");
   const { showToast } = useToast();
 
   const [statusFilter, setStatusFilter] = useState<IncidentStatus | "">("");
@@ -103,6 +106,8 @@ export const IncidentsCatalog: React.FC = () => {
     return <ErrorDisplay error={error} onRetry={refetch} />;
   }
 
+  if (!hasPermission("incidents:read")) return <Unauthorized />;
+
   return (
     <div className="p-6 md:p-10 space-y-10 animate-in fade-in duration-500">
       {/* Header */}
@@ -132,8 +137,9 @@ export const IncidentsCatalog: React.FC = () => {
           </div>
           {canCreate && (
             <button
-              onClick={() => setShowCreate(true)}
-              className="flex items-center gap-2 px-4 py-3 bg-[#FFD700] text-black font-bold text-sm rounded-xl hover:bg-[#e6c200] transition-colors"
+              onClick={guard("incidents:create", () => setShowCreate(true))}
+              aria-disabled={!isAllowed("incidents:create")}
+              className={`flex items-center gap-2 px-4 py-3 bg-[#FFD700] text-black font-bold text-sm rounded-xl hover:bg-[#e6c200] transition-colors ${!isAllowed("incidents:create") ? "opacity-50 cursor-not-allowed" : ""}`}
               data-help-id="incidents-create-btn"
             >
               <Plus size={18} />
@@ -379,16 +385,22 @@ export const IncidentsCatalog: React.FC = () => {
           canUpdate={canUpdate}
           onClose={() => setSelectedIncident(null)}
           onAcknowledge={async (id: string) => {
+            const allowed = isAllowed("incidents:acknowledge");
+            if (!allowed) { guard("incidents:acknowledge", () => {})(); return; }
             await acknowledge(id);
             setSelectedIncident(null);
             showToast("success", t("incidents.acknowledged"));
           }}
           onResolve={async (id: string, resolution: string) => {
+            const allowed = isAllowed("incidents:resolve");
+            if (!allowed) { guard("incidents:resolve", () => {})(); return; }
             await resolve(id, { resolution });
             setSelectedIncident(null);
             showToast("success", t("incidents.resolved"));
           }}
           onDismiss={async (id: string, resolution: string) => {
+            const allowed = isAllowed("incidents:dismiss");
+            if (!allowed) { guard("incidents:dismiss", () => {})(); return; }
             await dismiss(id, { resolution });
             setSelectedIncident(null);
             showToast("success", t("incidents.dismissed"));

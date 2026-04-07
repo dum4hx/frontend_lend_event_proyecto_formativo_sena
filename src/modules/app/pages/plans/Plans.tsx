@@ -13,6 +13,7 @@ import {
 import { useApiQuery } from "../../../../hooks/useApiQuery";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import { useActionPermission } from "../../../../hooks/useActionPermission";
+import { usePermissions } from "../../../../contexts/usePermissions";
 import { useToast } from "../../../../contexts/ToastContext";
 import { PageHeader, ConfirmDialog, PermissionGuardedButton } from "../../../../components/ui";
 import {
@@ -22,12 +23,14 @@ import {
   deactivatePackage,
 } from "../../../../services/materialService";
 import type { Package } from "../../../../types/api";
+import Unauthorized from "../../../../pages/Unauthorized";
 import CreatePackageModal from "./CreatePackageModal";
 import PackageDetailModal from "./PackageDetailModal";
 
 export default function MaterialPlans() {
   const { t, language } = useLanguage();
   const { guard, isAllowed } = useActionPermission(language === "es" ? "es" : "en");
+  const { hasPermission } = usePermissions();
   const { showToast } = useToast();
 
   const { data, isLoading, error, refetch } = useApiQuery(() => getPackages(), {
@@ -102,6 +105,8 @@ export default function MaterialPlans() {
       </div>
     );
   }
+
+  if (!hasPermission("packages:read")) return <Unauthorized />;
 
   return (
     <div className="page-container">

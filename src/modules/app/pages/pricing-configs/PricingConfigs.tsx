@@ -2,6 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Plus, Search, ChevronDown, DollarSign, Calculator, Loader2, Trash2 } from "lucide-react";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import { Button, PageHeader } from "../../../../components/ui";
+import { usePermissions } from "../../../../contexts/usePermissions";
+import { useActionPermission } from "../../../../hooks/useActionPermission";
+import Unauthorized from "../../../../pages/Unauthorized";
 import {
   getPricingConfigs,
   getPricingConfig,
@@ -13,7 +16,6 @@ import {
 import { getMaterialTypes, getPackages } from "../../../../services/materialService";
 import { useAlertModal } from "../../../../hooks/useAlertModal";
 import { useCurrencyInput } from "../../../../hooks/useCurrencyInput";
-import { usePermissions } from "../../../../contexts/usePermissions";
 import { PricingConfigsTable } from "./PricingConfigsTable";
 import { configToForm, buildPayload } from "./helpers";
 import { SCOPE_LABELS, STRATEGY_LABELS, EMPTY_FORM, EMPTY_PREVIEW_FORM } from "./types";
@@ -40,7 +42,8 @@ interface FormItem {
 export default function PricingConfigs() {
   const { hasPermission } = usePermissions();
   const { showError, showSuccess, AlertModal } = useAlertModal();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const { guard, isAllowed } = useActionPermission(language === "es" ? "es" : "en");
 
   // ── Data ──────────────────────────────────────────────────────────────
   const [configs, setConfigs] = useState<PricingConfig[]>([]);
@@ -318,6 +321,9 @@ export default function PricingConfigs() {
   );
 
   // ── Render ────────────────────────────────────────────────────────────
+
+  if (!hasPermission("pricing:read")) return <Unauthorized />;
+
   return (
     <div className="page-container">
       <div data-help-id="pricing-header">
@@ -330,17 +336,24 @@ export default function PricingConfigs() {
                 <Button
                   leftIcon={Calculator}
                   variant="secondary"
-                  onClick={() => {
+                  onClick={guard("pricing:read", () => {
                     setPreviewResult(null);
                     setPreviewForm(EMPTY_PREVIEW_FORM);
                     setShowPreviewModal(true);
-                  }}
+                  })}
+                  aria-disabled={!isAllowed("pricing:read")}
+                  className={!isAllowed("pricing:read") ? "opacity-50 cursor-not-allowed" : ""}
                 >
                   {t("pricing.previewButton")}
                 </Button>
               )}
               {canCreate && (
-                <Button leftIcon={Plus} onClick={handleOpenCreate} className="gold-action-btn">
+                <Button
+                  leftIcon={Plus}
+                  onClick={guard("pricing:manage", handleOpenCreate)}
+                  aria-disabled={!isAllowed("pricing:manage")}
+                  className={`gold-action-btn ${!isAllowed("pricing:manage") ? "opacity-50 cursor-not-allowed" : ""}`}
+                >
                   {t("pricing.createButton")}
                 </Button>
               )}

@@ -11,6 +11,18 @@ const locationCreateFormGuide = {
   selector: '[data-help-id="locations-form-create"]',
   fields: [
     {
+      id: "field-code",
+      label: { es: "Código", en: "Code" },
+      purpose: {
+        es: "Identificador alfanumérico único de la ubicación (1-10 caracteres, mayúsculas).",
+        en: "Unique alphanumeric location identifier (1-10 characters, uppercase).",
+      },
+      dataType: { es: "Texto", en: "Text" },
+      required: true,
+      example: "BOG01",
+      selector: '[data-help-id="locations-form-code"]',
+    },
+    {
       id: "field-name",
       label: { es: "Nombre", en: "Name" },
       purpose: {

@@ -13,6 +13,9 @@ import { AdminPagination } from "../../../components";
 import { ExcelExportImport } from "../../../../../components/export/ExcelExportImport";
 import { useToast } from "../../../../../contexts/ToastContext";
 import { useLanguage } from "../../../../../contexts/useLanguage";
+import { usePermissions } from "../../../../../contexts/usePermissions";
+import { useActionPermission } from "../../../../../hooks/useActionPermission";
+import Unauthorized from "../../../../../pages/Unauthorized";
 import {
   getLocations,
   type WarehouseLocation,
@@ -24,7 +27,10 @@ import type {
 } from "../../../../../types/api";
 
 export const MaterialInstanceCatalog: React.FC = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const { hasPermission } = usePermissions();
+  const isEs = language === "es";
+  const { guard, isAllowed } = useActionPermission(isEs ? "es" : "en");
   const navigate = useNavigate();
   const { instances, loading, error, removeInstance, addInstance, updateInstanceStatus, refetch } =
     useMaterialInstances();
@@ -417,6 +423,10 @@ export const MaterialInstanceCatalog: React.FC = () => {
     {} as Record<string, number>,
   );
 
+  if (!hasPermission("materials:read")) {
+    return <Unauthorized />;
+  }
+
   return (
     <div className="min-h-screen bg-[#121212] p-8">
       <div className="max-w-7xl mx-auto">
@@ -481,11 +491,14 @@ export const MaterialInstanceCatalog: React.FC = () => {
               data={exportRows}
               filename="material-instances"
               onImport={handleImportInstances}
+              importDisabled={!isAllowed("materials:create")}
+              onImportDenied={guard("materials:create", () => {})}
               showLabels={true}
             />
             <button
-              onClick={handleOpenCreateModal}
-              className="flex items-center gap-2 px-6 py-3 font-semibold rounded-lg transition-colors whitespace-nowrap gold-action-btn"
+              onClick={guard("materials:create", handleOpenCreateModal)}
+              aria-disabled={!isAllowed("materials:create")}
+              className={`flex items-center gap-2 px-6 py-3 font-semibold rounded-lg transition-colors whitespace-nowrap gold-action-btn ${!isAllowed("materials:create") ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               <Plus size={20} />
               {t("materialInstances.newInstance")}
@@ -558,7 +571,7 @@ export const MaterialInstanceCatalog: React.FC = () => {
               <button
                 type="button"
                 disabled={!selectedInstance || statusUpdateLoading}
-                onClick={() => void handleQuickStatusChange("loaned")}
+                onClick={guard("materials:update", () => void handleQuickStatusChange("loaned"))}
                 className="px-3 py-1.5 text-xs rounded border border-yellow-600/40 text-yellow-300 bg-yellow-700/10 hover:bg-yellow-700/20 transition-colors disabled:opacity-50"
               >
                 {t("materialInstances.markLoaned")}
@@ -566,7 +579,7 @@ export const MaterialInstanceCatalog: React.FC = () => {
               <button
                 type="button"
                 disabled={!selectedInstance || statusUpdateLoading}
-                onClick={() => void handleQuickStatusChange("returned")}
+                onClick={guard("materials:update", () => void handleQuickStatusChange("returned"))}
                 className="px-3 py-1.5 text-xs rounded border border-blue-600/40 text-blue-300 bg-blue-700/10 hover:bg-blue-700/20 transition-colors disabled:opacity-50"
               >
                 {t("materialInstances.markReturned")}
@@ -574,7 +587,7 @@ export const MaterialInstanceCatalog: React.FC = () => {
               <button
                 type="button"
                 disabled={!selectedInstance || statusUpdateLoading}
-                onClick={() => void handleQuickStatusChange("available")}
+                onClick={guard("materials:update", () => void handleQuickStatusChange("available"))}
                 className="px-3 py-1.5 text-xs rounded border border-green-600/40 text-green-300 bg-green-700/10 hover:bg-green-700/20 transition-colors disabled:opacity-50"
               >
                 {t("materialInstances.markAvailable")}
@@ -582,7 +595,10 @@ export const MaterialInstanceCatalog: React.FC = () => {
               <button
                 type="button"
                 disabled={!selectedInstance || statusUpdateLoading}
-                onClick={() => void handleQuickStatusChange("maintenance")}
+                onClick={guard(
+                  "materials:update",
+                  () => void handleQuickStatusChange("maintenance"),
+                )}
                 className="px-3 py-1.5 text-xs rounded border border-orange-600/40 text-orange-300 bg-orange-700/10 hover:bg-orange-700/20 transition-colors disabled:opacity-50"
               >
                 {t("materialInstances.markMaintenance")}

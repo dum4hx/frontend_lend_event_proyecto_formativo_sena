@@ -10,8 +10,12 @@ import {
   Star,
   StarOff,
 } from "lucide-react";
-import { Button, IconButton, PageHeader } from "../../../../components/ui";
+import { Button, PageHeader } from "../../../../components/ui";
+import { PermissionGuardedButton } from "../../../../components/ui/PermissionGuardedButton";
 import { useLanguage } from "../../../../contexts/useLanguage";
+import { usePermissions } from "../../../../contexts/usePermissions";
+import { useActionPermission } from "../../../../hooks/useActionPermission";
+import Unauthorized from "../../../../pages/Unauthorized";
 import { useToast } from "../../../../hooks/useToast";
 import { useConfirmModal } from "../../../../hooks/useConfirmModal";
 import {
@@ -32,6 +36,8 @@ const ENTITY_TABS: CodeSchemeEntityType[] = ["loan", "loan_request"];
 export default function CodeSchemes() {
   const { t, language } = useLanguage();
   const isEs = language === "es";
+  const { hasPermission } = usePermissions();
+  const { guard, isAllowed } = useActionPermission(isEs ? "es" : "en");
   const { showToast } = useToast();
   const { showConfirm, ConfirmModal } = useConfirmModal();
 
@@ -158,6 +164,8 @@ export default function CodeSchemes() {
 
   // ── Render ────────────────────────────────────────────────────────────
 
+  if (!hasPermission("code_schemes:read")) return <Unauthorized />;
+
   return (
     <div className="page-container">
       <div data-help-id="code-schemes-header">
@@ -175,7 +183,13 @@ export default function CodeSchemes() {
               >
                 <RefreshCcw className={`w-5 h-5 ${isLoading ? "animate-spin" : ""}`} />
               </button>
-              <Button variant="primary" size="md" onClick={() => setShowCreate(true)}>
+              <Button
+                variant="primary"
+                size="md"
+                onClick={guard("code_schemes:create", () => setShowCreate(true))}
+                aria-disabled={!isAllowed("code_schemes:create")}
+                className={!isAllowed("code_schemes:create") ? "opacity-50 cursor-not-allowed" : ""}
+              >
                 <Plus size={16} className="mr-2" />
                 {t("settings.codeSchemes.createScheme")}
               </Button>
@@ -289,9 +303,10 @@ export default function CodeSchemes() {
                     <td className="px-6 py-4 text-center">
                       <button
                         type="button"
-                        onClick={() => void handleToggleActive(scheme)}
+                        onClick={guard("code_schemes:update", () => void handleToggleActive(scheme))}
+                        aria-disabled={!isAllowed("code_schemes:update")}
                         disabled={updateMutation.isPending}
-                        className={`relative inline-flex w-9 h-5 rounded-full transition-colors ${
+                        className={`relative inline-flex w-9 h-5 rounded-full transition-colors ${!isAllowed("code_schemes:update") ? "opacity-50 cursor-not-allowed" : ""} ${
                           scheme.isActive ? "bg-green-500" : "bg-[#333]"
                         }`}
                         title={
@@ -320,12 +335,12 @@ export default function CodeSchemes() {
                           {t("settings.codeSchemes.isDefault")}
                         </span>
                       ) : (
-                        <IconButton
+                        <PermissionGuardedButton
                           icon={StarOff}
                           ariaLabel={t("settings.codeSchemes.setDefault")}
                           intent="neutral"
+                          requiredPermission="code_schemes:update"
                           onClick={() => void handleSetDefault(scheme)}
-                          disabled={setDefaultMutation.isPending}
                         />
                       )}
                     </td>
@@ -333,18 +348,22 @@ export default function CodeSchemes() {
                     {/* Actions */}
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <IconButton
+                        <PermissionGuardedButton
                           icon={Pencil}
                           ariaLabel={t("settings.codeSchemes.editScheme")}
                           intent="edit"
+                          requiredPermission="code_schemes:update"
                           onClick={() => setEditingScheme(scheme)}
                         />
-                        <IconButton
+                        <PermissionGuardedButton
                           icon={Trash2}
                           ariaLabel={t("settings.codeSchemes.deleteScheme")}
                           intent="delete"
-                          onClick={() => void handleDelete(scheme)}
-                          disabled={scheme.isDefault || deleteMutation.isPending}
+                          requiredPermission="code_schemes:delete"
+                          onClick={() => {
+                            if (scheme.isDefault || deleteMutation.isPending) return;
+                            void handleDelete(scheme);
+                          }}
                         />
                       </div>
                     </td>

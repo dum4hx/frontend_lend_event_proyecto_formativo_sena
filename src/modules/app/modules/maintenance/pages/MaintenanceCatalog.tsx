@@ -18,6 +18,9 @@ import {
 } from "../components";
 import { LoadingSpinner, ErrorDisplay, Pagination } from "../../../../../components/ui";
 import { useLanguage } from "../../../../../contexts/useLanguage";
+import { usePermissions } from "../../../../../contexts/usePermissions";
+import { useActionPermission } from "../../../../../hooks/useActionPermission";
+import Unauthorized from "../../../../../pages/Unauthorized";
 import type {
   MaintenanceBatchListItem,
   MaintenanceBatchItem,
@@ -37,7 +40,9 @@ const STATUS_TABS: Array<{ key: MaintenanceBatchStatus | "all"; icon: React.Reac
 ];
 
 export const MaintenanceCatalog: React.FC = () => {
-  const { t, formatCurrency } = useLanguage();
+  const { t, formatCurrency, language } = useLanguage();
+  const { hasPermission } = usePermissions();
+  const { guard, isAllowed } = useActionPermission(language === "es" ? "es" : "en");
 
   const {
     batches,
@@ -119,6 +124,8 @@ export const MaintenanceCatalog: React.FC = () => {
     return <ErrorDisplay error={error} onRetry={refetch} />;
   }
 
+  if (!hasPermission("maintenance:read")) return <Unauthorized />;
+
   // ── Computed stats ────────────────────────────────────────────────────
 
   const totalEstimated = batches.reduce((sum, b) => sum + b.totalEstimatedCost, 0);
@@ -137,8 +144,9 @@ export const MaintenanceCatalog: React.FC = () => {
 
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setShowCreate(true)}
-            className="btn-primary flex items-center gap-2"
+            onClick={guard("maintenance:create", () => setShowCreate(true))}
+            aria-disabled={!isAllowed("maintenance:create")}
+            className={`btn-primary flex items-center gap-2 ${!isAllowed("maintenance:create") ? "opacity-50 cursor-not-allowed" : ""}`}
             data-help-id="maintenance-create-btn"
           >
             <Plus size={16} />
@@ -214,12 +222,18 @@ export const MaintenanceCatalog: React.FC = () => {
           batches={batches}
           loading={loading}
           onView={handleView}
-          onEdit={handleEdit}
-          onStart={(batch: MaintenanceBatchListItem) => handleStartBatch(batch._id)}
-          onCancel={(batch: MaintenanceBatchListItem) => handleCancelBatch(batch._id)}
+          onEdit={(batch) => guard("maintenance:update", () => void handleEdit(batch))()}
+          onStart={(batch: MaintenanceBatchListItem) =>
+            guard("maintenance:update", () => void handleStartBatch(batch._id))()
+          }
+          onCancel={(batch: MaintenanceBatchListItem) =>
+            guard("maintenance:update", () => void handleCancelBatch(batch._id))()
+          }
           onAddItems={async (batch: MaintenanceBatchListItem) => {
-            await fetchDetail(batch._id);
-            setShowAddItems(true);
+            guard("maintenance:update", async () => {
+              await fetchDetail(batch._id);
+              setShowAddItems(true);
+            })();
           }}
         />
       </div>
@@ -269,9 +283,11 @@ export const MaintenanceCatalog: React.FC = () => {
           onClose={clearSelectedBatch}
           onStart={handleStartBatch}
           onCancel={handleCancelBatch}
-          onAddItems={() => setShowAddItems(true)}
-          onRemoveItem={handleRemoveItem}
-          onResolveItem={setResolveTarget}
+          onAddItems={() => guard("maintenance:update", () => setShowAddItems(true))()}
+          onRemoveItem={(instanceId) =>
+            guard("maintenance:update", () => void handleRemoveItem(instanceId))()
+          }
+          onResolveItem={(item) => guard("maintenance:resolve", () => setResolveTarget(item))()}
         />
       )}
 

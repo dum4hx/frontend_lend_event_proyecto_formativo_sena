@@ -28,6 +28,8 @@ import { getLocations } from "../../../../services/warehouseOperatorService";
 import { commercialAdvisorService } from "../../../../services/commercialAdvisorService";
 import { ApiError } from "../../../../lib/api";
 import { useLanguage } from "../../../../contexts/useLanguage";
+import { usePermissions } from "../../../../contexts/usePermissions";
+import Unauthorized from "../../../../pages/Unauthorized";
 import { exportTableToPDF, exportTableToXLSX } from "../../../../utils/tableExport";
 import {
   fmtCurrency,
@@ -110,6 +112,7 @@ const MODULE_CONFIG: Record<
 export default function Reports() {
   const { language } = useLanguage();
   const isEs = language === "es";
+  const { hasPermission } = usePermissions();
 
   const moduleConfig = useMemo(() => {
     if (!isEs) return MODULE_CONFIG;
@@ -808,6 +811,8 @@ export default function Reports() {
   };
 
   // ─── Render ────────────────────────────────────────────────────────────
+
+  if (!hasPermission("reports:read")) return <Unauthorized />;
 
   return (
     <div className="page-container">

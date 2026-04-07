@@ -330,6 +330,7 @@ export function Locations() {
               parsedComp = m[4] || "";
             }
             payload = {
+              code: row[h("code")]?.trim().toUpperCase() || "",
               name: row[h("name")]?.trim() || "",
               organizationId: user?.organizationId ?? "",
               materialCapacities: rowCaps,
@@ -344,17 +345,18 @@ export function Locations() {
             };
           } else {
             payload = {
-              name: row[0]?.trim() || "",
+              code: row[0]?.trim().toUpperCase() || "",
+              name: row[1]?.trim() || "",
               organizationId: user?.organizationId ?? "",
               materialCapacities: rowCaps,
               address: {
-                streetType: row[1]?.trim() || "",
-                primaryNumber: row[2]?.trim() || "",
-                secondaryNumber: row[3]?.trim() || "",
-                complementaryNumber: row[4]?.trim() || "",
-                department: row[5]?.trim() || "",
-                city: row[6]?.trim() || "",
-                additionalDetails: row[7]?.trim() || undefined,
+                streetType: row[2]?.trim() || "",
+                primaryNumber: row[3]?.trim() || "",
+                secondaryNumber: row[4]?.trim() || "",
+                complementaryNumber: row[5]?.trim() || "",
+                department: row[6]?.trim() || "",
+                city: row[7]?.trim() || "",
+                additionalDetails: row[8]?.trim() || undefined,
               },
             };
           }

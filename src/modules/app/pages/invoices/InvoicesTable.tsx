@@ -1,5 +1,6 @@
 import { FileText, DollarSign, Eye, Download, Trash2 } from "lucide-react";
 import { EmptyState, EntityLink } from "../../../../components/ui";
+import { useActionPermission } from "../../../../hooks/useActionPermission";
 import type { Invoice } from "./types";
 import {
   getStatusColor,
@@ -42,6 +43,8 @@ export function InvoicesTable({
   locale,
   isEs,
 }: InvoicesTableProps) {
+  const { guard, isAllowed } = useActionPermission(isEs ? "es" : "en");
+
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat(locale, {
       style: "currency",
@@ -145,9 +148,10 @@ export function InvoicesTable({
 
                     {invoice.status !== "paid" && invoice.status !== "cancelled" && (
                       <button
-                        onClick={() => onRecordPayment(invoice)}
+                        onClick={guard("invoices:update", () => onRecordPayment(invoice))}
+                        aria-disabled={!isAllowed("invoices:update")}
                         disabled={loading || actionLoading}
-                        className="p-2 hover:bg-[#1a1a1a] rounded-lg text-gray-400 hover:text-[#FFD700] transition-all disabled:opacity-50"
+                        className={`p-2 hover:bg-[#1a1a1a] rounded-lg text-gray-400 hover:text-[#FFD700] transition-all disabled:opacity-50 ${!isAllowed("invoices:update") ? "opacity-50 cursor-not-allowed" : ""}`}
                         title={isEs ? "Registrar pago" : "Record payment"}
                       >
                         <DollarSign size={16} />
@@ -156,9 +160,10 @@ export function InvoicesTable({
 
                     {invoice.status !== "cancelled" && (
                       <button
-                        onClick={() => onVoidInvoice(invoice)}
+                        onClick={guard("invoices:update", () => onVoidInvoice(invoice))}
+                        aria-disabled={!isAllowed("invoices:update")}
                         disabled={loading || actionLoading}
-                        className="p-2 hover:bg-[#1a1a1a] rounded-lg text-gray-400 hover:text-red-500 transition-all disabled:opacity-50"
+                        className={`p-2 hover:bg-[#1a1a1a] rounded-lg text-gray-400 hover:text-red-500 transition-all disabled:opacity-50 ${!isAllowed("invoices:update") ? "opacity-50 cursor-not-allowed" : ""}`}
                         title={isEs ? "Anular factura" : "Void invoice"}
                       >
                         <Trash2 size={16} />

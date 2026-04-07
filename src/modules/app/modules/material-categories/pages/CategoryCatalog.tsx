@@ -7,6 +7,9 @@ import { AdminPagination } from "../../../components";
 import { ExcelExportImport } from "../../../../../components/export/ExcelExportImport";
 import { useToast } from "../../../../../contexts/ToastContext";
 import { useLanguage } from "../../../../../contexts/useLanguage";
+import { usePermissions } from "../../../../../contexts/usePermissions";
+import { useActionPermission } from "../../../../../hooks/useActionPermission";
+import Unauthorized from "../../../../../pages/Unauthorized";
 import type { MaterialCategory } from "../../../../../types/api";
 
 const CATALOG_STORAGE_KEY = "materialCategories.catalog.v1";
@@ -32,7 +35,10 @@ export const CategoryCatalog: React.FC = () => {
   const navigate = useNavigate();
   const { categories, loading, error, removeCategory, addCategory, refetch } = useCategories();
   const { showToast } = useToast();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const isEs = language === "es";
+  const { hasPermission } = usePermissions();
+  const { guard, isAllowed } = useActionPermission(isEs ? "es" : "en");
   const [searchTerm, setSearchTerm] = useState(() => readStoredCatalogState().searchTerm);
   const [page, setPage] = useState(() => readStoredCatalogState().page);
   const [selectedCategory, setSelectedCategory] = useState<MaterialCategory | null>(null);
@@ -200,6 +206,8 @@ export const CategoryCatalog: React.FC = () => {
     );
   }
 
+  if (!hasPermission("materials:read")) return <Unauthorized />;
+
   return (
     <div className="min-h-screen bg-[#121212] p-8">
       <div className="max-w-7xl mx-auto">
@@ -236,11 +244,14 @@ export const CategoryCatalog: React.FC = () => {
               data={filteredCategories as unknown as Record<string, unknown>[]}
               filename="material-categories"
               onImport={handleImportCategories}
+              importDisabled={!isAllowed("materials:create")}
+              onImportDenied={guard("materials:create", () => {})}
               showLabels={true}
             />
             <button
-              onClick={() => navigate("create")}
-              className="flex items-center gap-2 px-6 py-3 font-semibold rounded-lg transition-colors whitespace-nowrap border border-[#B88A00] text-[#FFD700] hover:bg-[#FFD700]/10"
+              onClick={guard("materials:create", () => navigate("create"))}
+              aria-disabled={!isAllowed("materials:create")}
+              className={`flex items-center gap-2 px-6 py-3 font-semibold rounded-lg transition-colors whitespace-nowrap border border-[#B88A00] text-[#FFD700] hover:bg-[#FFD700]/10 ${!isAllowed("materials:create") ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               <Plus size={20} />
               {t("materialCategories.newCategory")}
@@ -278,8 +289,9 @@ export const CategoryCatalog: React.FC = () => {
               </p>
               {!searchTerm && (
                 <button
-                  onClick={() => navigate("create")}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-[#B88A00] text-[#FFD700] hover:bg-[#FFD700]/10 transition-colors"
+                  onClick={guard("materials:create", () => navigate("create"))}
+                  aria-disabled={!isAllowed("materials:create")}
+                  className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-[#B88A00] text-[#FFD700] hover:bg-[#FFD700]/10 transition-colors ${!isAllowed("materials:create") ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   <Plus size={18} />
                   {t("materialCategories.createCategory")}

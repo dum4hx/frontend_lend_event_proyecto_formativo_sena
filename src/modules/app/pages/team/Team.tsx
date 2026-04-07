@@ -21,6 +21,7 @@ import {
 import { useRoles } from "../../../../hooks/queries/useRoleQueries";
 import { useConfirmModal } from "../../../../hooks/useConfirmModal";
 import { useActionPermission } from "../../../../hooks/useActionPermission";
+import { usePermissions } from "../../../../contexts/usePermissions";
 import { useToast } from "../../../../contexts/ToastContext";
 import { TeamFilters } from "./TeamFilters";
 import { TeamMemberTable } from "./TeamMemberTable";
@@ -29,6 +30,7 @@ import { InviteUserModal } from "./InviteUserModal";
 import { EditUserModal } from "./EditUserModal";
 import type { TeamMember } from "./types";
 import type { User, UserStatus } from "../../../../types/api";
+import Unauthorized from "../../../../pages/Unauthorized";
 
 const PAGE_SIZE = 15;
 
@@ -52,6 +54,7 @@ function toTeamMember(u: User): TeamMember {
 export function Team() {
   const { language } = useLanguage();
   const isEs = language === "es";
+  const { hasPermission } = usePermissions();
 
   // ── Filter state ──────────────────────────────────────────────────────
   const [search, setSearch] = useState("");
@@ -170,6 +173,8 @@ export function Team() {
     { label: isEs ? "Inactivos" : "Inactive", value: inactiveCount },
     { label: isEs ? "Roles" : "Roles", value: rolesQuery.data?.items.length ?? 0 },
   ];
+
+  if (!hasPermission("users:read")) return <Unauthorized />;
 
   return (
     <AnimatedPage>

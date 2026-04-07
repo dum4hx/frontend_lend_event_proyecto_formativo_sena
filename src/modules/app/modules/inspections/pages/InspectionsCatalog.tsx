@@ -1,6 +1,9 @@
 import React, { useState } from "react";
 import { ClipboardCheck, History, Search, RefreshCcw } from "lucide-react";
 import { useLanguage } from "../../../../../contexts/useLanguage";
+import { usePermissions } from "../../../../../contexts/usePermissions";
+import { useActionPermission } from "../../../../../hooks/useActionPermission";
+import Unauthorized from "../../../../../pages/Unauthorized";
 import { useInspections } from "../hooks/useInspections";
 import {
   PendingLoansTable,
@@ -17,6 +20,8 @@ import type { PendingLoan, InspectionListItem } from "../../../../../types/api";
  */
 export const InspectionsCatalog: React.FC = () => {
   const { t } = useLanguage();
+  const { hasPermission } = usePermissions();
+  const { guard } = useActionPermission("en");
   const { inspections, pendingLoans, loading, error, recordInspection, refetch } = useInspections();
 
   const [activeTab, setActiveTab] = useState<"pending" | "history">("pending");
@@ -51,6 +56,8 @@ export const InspectionsCatalog: React.FC = () => {
   if (error) {
     return <ErrorDisplay error={error} onRetry={refetch} />;
   }
+
+  if (!hasPermission("inspections:read")) return <Unauthorized />;
 
   return (
     <div className="p-6 md:p-10 space-y-10 animate-in fade-in duration-500">
@@ -133,7 +140,10 @@ export const InspectionsCatalog: React.FC = () => {
           data-help-id="inspections-content"
         >
           {activeTab === "pending" ? (
-            <PendingLoansTable loans={filteredPending} onInspect={setSelectedLoan} />
+            <PendingLoansTable
+              loans={filteredPending}
+              onInspect={(loan) => guard("inspections:create", () => setSelectedLoan(loan))()}
+            />
           ) : (
             <CompletedInspectionsTable
               inspections={filteredHistory}

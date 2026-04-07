@@ -50,6 +50,7 @@ export interface LocationFormAddress {
 }
 
 export interface LocationFormData {
+  code: string;
   name: string;
   status: LocationStatus;
   address: LocationFormAddress;
@@ -75,6 +76,7 @@ export const STATUS_OPTIONS: { value: LocationStatus; labelEn: string; labelEs: 
 
 // ─── Initial Form State ───────────────────────────────────────
 export const INITIAL_FORM: LocationFormData = {
+  code: "",
   name: "",
   status: "available",
   address: {

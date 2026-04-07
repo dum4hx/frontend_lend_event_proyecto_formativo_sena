@@ -24,6 +24,8 @@ import { ApiError } from "../../../../lib/api";
 import { useAlerts } from "../../../../hooks/useAlerts";
 import { useAuth } from "../../../../contexts/useAuth";
 import { useLanguage } from "../../../../contexts/useLanguage";
+import { usePermissions } from "../../../../contexts/usePermissions";
+import Unauthorized from "../../../../pages/Unauthorized";
 import { ExportSettingsModal } from "../../../../components/export/ExportSettingsModal";
 import { exportService, BILLING_HISTORY_POLICY } from "../../../../services/export";
 import { formatEventType, formatCurrency } from "./helpers";
@@ -71,6 +73,7 @@ export default function SubscriptionManagement() {
 
   const { user } = useAuth();
   const { alerts, showAlert, dismissAlert } = useAlerts();
+  const { hasPermission } = usePermissions();
 
   // ─── Data Fetching ─────────────────────────────────────────────────────────
 
@@ -374,6 +377,8 @@ export default function SubscriptionManagement() {
   }
 
   const isOwner = user?.roleName === "owner";
+
+  if (!hasPermission("subscription:manage")) return <Unauthorized />;
 
   return (
     <div className="page-container">

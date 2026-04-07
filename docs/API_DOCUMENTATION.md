@@ -2620,6 +2620,8 @@ curl -X DELETE https://api.test.local/api/v1/customers/507f1f77bcf86cd799439011 
 
 Manage physical locations such as warehouses, offices, and operation points within an organization.
 
+**Location Code:** Each location has a unique alphanumeric `code` (1-10 characters, uppercase) that serves as a business identifier and can be referenced in loan and request documents. This code must be provided by the user when creating or updating a location and is unique within the organization.
+
 ### GET /locations
 
 Retrieves a paginated list of all locations in the organization.
@@ -2647,6 +2649,7 @@ Retrieves a paginated list of all locations in the organization.
     "items": [
       {
         "_id": "507f1f77bcf86cd799439011",
+        "code": "BOG01",
         "name": "Bodega Principal",
         "organizationId": "507f1f77bcf86cd799439012",
         "address": {
@@ -2696,6 +2699,7 @@ Retrieves a single location by its ID.
   "message": "Location fetched successfully",
   "data": {
     "_id": "507f1f77bcf86cd799439011",
+    "code": "BOG01",
     "name": "Bodega Principal",
     "organizationId": "507f1f77bcf86cd799439012",
     "address": {
@@ -2730,6 +2734,7 @@ Creates a new location in the organization.
 
 | Field                               | Type     | Required | Constraints        | Description                                                                                           |
 | ----------------------------------- | -------- | -------- | ------------------ | ----------------------------------------------------------------------------------------------------- |
+| code                                | string   | Yes      | 1-10 chars, regex  | Unique alphanumeric code (uppercase only, pattern `^[A-Z0-9]+$`). Business identifier for location.   |
 | name                                | string   | Yes      | 1-100 characters   | Location name                                                                                         |
 | address.streetType                  | string   | Yes      | Enum (9 values)    | One of: Calle, Carrera, Avenida, Avenida Calle, Avenida Carrera, Diagonal, Transversal, Circular, Via |
 | address.primaryNumber               | string   | Yes      | 1-20 characters    | Primary street/road number                                                                            |
@@ -2749,6 +2754,7 @@ Creates a new location in the organization.
 
 ```json
 {
+  "code": "MDE01",
   "name": "Bodega Norte",
   "address": {
     "streetType": "Carrera",
@@ -2776,6 +2782,7 @@ Creates a new location in the organization.
   "message": "Location created successfully",
   "data": {
     "_id": "507f1f77bcf86cd799439013",
+    "code": "MDE01",
     "name": "Bodega Norte",
     "organizationId": "507f1f77bcf86cd799439012",
     "address": {
@@ -2794,8 +2801,8 @@ Creates a new location in the organization.
 
 #### Error Responses
 
-- **400 Bad Request** – Validation errors (missing required fields, invalid format)
-- **409 Conflict** – Location with the same name already exists in the organization
+- **400 Bad Request** – Validation errors (missing required fields, invalid format, invalid code format)
+- **409 Conflict** – Location with the same name or code already exists in the organization
 
 ---
 
@@ -2816,10 +2823,18 @@ Updates an existing location (partial update).
 
 Same fields as POST, but all are optional. Only provided fields will be updated.
 
+| Field              | Type     | Required | Constraints       | Description                                                                                                    |
+| ------------------ | -------- | -------- | ----------------- | -------------------------------------------------------------------------------------------------------------- |
+| code               | string   | No       | 1-10 chars, regex | Unique alphanumeric code (uppercase only). If provided and conflicts with another location, returns 409 error. |
+| name               | string   | No       | 1-100 characters  | Location name                                                                                                  |
+| address            | object   | No       | -                 | Address fields (all optional)                                                                                  |
+| materialCapacities | object[] | No       | -                 | Array of material capacity mappings                                                                            |
+
 #### Example Request
 
 ```json
 {
+  "code": "MDE02",
   "address": {
     "state": "Cundinamarca",
     "additionalInfo": "Piso 3, oficina 301"
@@ -2835,6 +2850,7 @@ Same fields as POST, but all are optional. Only provided fields will be updated.
   "message": "Location updated successfully",
   "data": {
     "_id": "507f1f77bcf86cd799439011",
+    "code": "BOG01",
     "name": "Bodega Principal",
     "organizationId": "507f1f77bcf86cd799439012",
     "address": {
@@ -2853,8 +2869,9 @@ Same fields as POST, but all are optional. Only provided fields will be updated.
 
 #### Error Responses
 
-- **400 Bad Request** – Invalid location ID or validation errors
+- **400 Bad Request** – Invalid location ID, validation errors, or invalid code format
 - **404 Not Found** – Location does not exist
+- **409 Conflict** – Code already exists in the organization (when updating code field)
 
 ---
 

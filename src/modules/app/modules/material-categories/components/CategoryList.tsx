@@ -2,6 +2,7 @@ import React from "react";
 import { Eye, Edit, Trash2 } from "lucide-react";
 import type { MaterialCategory } from "../../../../../types/api";
 import { AdminTable } from "../../../components";
+import { PermissionGuardedButton } from "../../../../../components/ui";
 import { useLanguage } from "../../../../../contexts/useLanguage";
 
 interface CategoryListProps {
@@ -70,31 +71,6 @@ export const CategoryList: React.FC<CategoryListProps> = ({
               <td className="py-4 px-4 text-gray-400">{category.description || "-"}</td>
               <td className="py-4 px-4">
                 <span className="text-sm text-gray-400">{attributeLabel}</span>
-                {totalCount > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {(category.attributes || []).map((attr) => (
-                      <span
-                        key={attr.attributeId}
-                        className={`inline-block text-xs px-2 py-1 rounded ${
-                          attr.isRequired
-                            ? "bg-red-500/20 border border-red-500/40 text-red-300"
-                            : "bg-blue-500/20 border border-blue-500/40 text-blue-300"
-                        }`}
-                        title={
-                          attr.isRequired
-                            ? t("materialCategories.list.attributeIdRequired", {
-                                id: attr.attributeId,
-                              })
-                            : t("materialCategories.list.attributeIdOptional", {
-                                id: attr.attributeId,
-                              })
-                        }
-                      >
-                        {attr.isRequired ? "■" : "□"} {attr.attributeId.substring(0, 8)}...
-                      </span>
-                    ))}
-                  </div>
-                )}
               </td>
               <td className="py-4 px-4">
                 <div className="flex gap-2 justify-end">
@@ -109,24 +85,20 @@ export const CategoryList: React.FC<CategoryListProps> = ({
                   >
                     <Eye size={18} />
                   </button>
-                  <button
-                    type="button"
+                  <PermissionGuardedButton
+                    icon={Edit}
+                    intent="edit"
+                    ariaLabel={t("materialCategories.list.editAria", { name: category.name })}
+                    requiredPermission="materials:update"
                     onClick={() => onEdit(category)}
-                    className="p-2 text-[#FFD700] hover:bg-[#FFD700]/10 rounded-lg transition-colors"
-                    title={t("materialCategories.list.editCategory")}
-                    aria-label={t("materialCategories.list.editAria", { name: category.name })}
-                  >
-                    <Edit size={18} />
-                  </button>
-                  <button
-                    type="button"
+                  />
+                  <PermissionGuardedButton
+                    icon={Trash2}
+                    intent="delete"
+                    ariaLabel={t("materialCategories.list.deleteAria", { name: category.name })}
+                    requiredPermission="materials:delete"
                     onClick={() => onDelete(category)}
-                    className="p-2 text-red-300 border border-red-500/40 hover:bg-red-500/15 rounded-lg transition-colors"
-                    title={t("materialCategories.list.deleteCategory")}
-                    aria-label={t("materialCategories.list.deleteAria", { name: category.name })}
-                  >
-                    <Trash2 size={18} />
-                  </button>
+                  />
                 </div>
               </td>
             </tr>
