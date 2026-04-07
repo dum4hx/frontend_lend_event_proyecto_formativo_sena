@@ -1122,12 +1122,12 @@ The roles API manages organization-scoped roles and permissions. All routes requ
 
 When an organization is registered, four default roles are seeded automatically:
 
-| Role                 | Type     | Read-only | Notes                                 |
-| -------------------- | -------- | --------- | ------------------------------------- |
-| `owner`              | `SYSTEM` | Yes       | Cannot be renamed, edited, or deleted |
-| `manager`            | `CUSTOM` | No        | Editable default role                 |
-| `warehouse_operator` | `CUSTOM` | No        | Editable default role                 |
-| `commercial_advisor` | `CUSTOM` | No        | Editable default role                 |
+| Role                 | Type     | Read-only | Display Name (ES)   | Notes                                 |
+| -------------------- | -------- | --------- | ------------------- | ------------------------------------- |
+| `owner`              | `SYSTEM` | Yes       | Propietario         | Cannot be renamed, edited, or deleted |
+| `manager`            | `CUSTOM` | No        | Gerente             | Editable default role                 |
+| `warehouse_operator` | `CUSTOM` | No        | Operador de Almacén | Editable default role                 |
+| `commercial_advisor` | `CUSTOM` | No        | Asesor Comercial    | Editable default role                 |
 
 Roles with `isReadOnly: true` (`type: "SYSTEM"`) are protected at the API level — any attempt to `PATCH` or `DELETE` them returns `403 Forbidden`.
 
@@ -1149,6 +1149,7 @@ List roles for the current organization. Supports pagination and sorting (see pa
       {
         "_id": "507f1f77bcf86cd799439012",
         "name": "owner",
+        "displayName": "Propietario",
         "permissions": ["organization:read", "users:create"],
         "description": "Organization owner — full access. System role, non-editable and non-deletable.",
         "isReadOnly": true,
@@ -1157,6 +1158,7 @@ List roles for the current organization. Supports pagination and sorting (see pa
       {
         "_id": "507f1f77bcf86cd799439013",
         "name": "manager",
+        "displayName": "Gerente",
         "permissions": ["materials:read", "requests:approve"],
         "description": "Default manager role — can be customized by the owner.",
         "isReadOnly": false,
@@ -1191,6 +1193,7 @@ Get details for a single role within the organization.
     "role": {
       "_id": "507f1f77bcf86cd799439012",
       "name": "owner",
+      "displayName": "Propietario",
       "permissions": ["organization:read", "users:create"],
       "description": "Organization owner — full access. System role, non-editable and non-deletable.",
       "isReadOnly": true,
@@ -1206,11 +1209,12 @@ Get details for a single role within the organization.
 
 Create a new custom role for the current organization.
 
-| Parameter   | Location | Type     | Required | Description                                                              |
-| ----------- | -------- | -------- | -------- | ------------------------------------------------------------------------ |
-| name        | body     | string   | Yes      | Role name (3–50 chars, any value except `super_admin`)                   |
-| permissions | body     | string[] | Yes      | Array of permission strings (use `GET /permissions` to get valid values) |
-| description | body     | string   | No       | Human-readable description (max 500)                                     |
+| Parameter   | Location | Type     | Required | Description                                                                                        |
+| ----------- | -------- | -------- | -------- | -------------------------------------------------------------------------------------------------- |
+| name        | body     | string   | Yes      | Role name (3–50 chars, any value except `super_admin`)                                             |
+| displayName | body     | string   | No       | Human-readable display name (2–100 chars). Defaults to `name` with underscores replaced by spaces. |
+| permissions | body     | string[] | Yes      | Array of permission strings (use `GET /permissions` to get valid values)                           |
+| description | body     | string   | No       | Human-readable description (max 500)                                                               |
 
 **Permission Required:** `roles:create`
 
@@ -1245,6 +1249,7 @@ When the frontend allows users to assign permissions to a role, it should:
     "role": {
       "_id": "507f1f77bcf86cd799439014",
       "name": "auditor",
+      "displayName": "auditor",
       "permissions": ["materials:read", "reports:read"],
       "description": "Read-only auditor role",
       "isReadOnly": false,
@@ -1274,6 +1279,7 @@ Update an existing custom role. Only provided fields are updated.
 | ----------- | -------- | -------- | -------- | ----------------------------------------------- |
 | id          | path     | string   | Yes      | Role MongoDB ObjectId                           |
 | name        | body     | string   | No       | New role name (cannot be `super_admin`)         |
+| displayName | body     | string   | No       | Updated display name (2–100 chars)              |
 | permissions | body     | string[] | No       | Updated permissions (no super_admin-only perms) |
 | description | body     | string   | No       | Updated description                             |
 
@@ -1307,6 +1313,7 @@ When updating the `permissions` array, the same dependency validation applies as
     "role": {
       "_id": "507f1f77bcf86cd799439014",
       "name": "auditor",
+      "displayName": "auditor",
       "permissions": ["materials:read"],
       "description": "Updated",
       "isReadOnly": false,

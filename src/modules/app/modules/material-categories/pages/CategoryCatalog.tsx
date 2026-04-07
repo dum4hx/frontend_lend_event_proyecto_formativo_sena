@@ -106,15 +106,17 @@ export const CategoryCatalog: React.FC = () => {
       for (const item of data) {
         try {
           const name = typeof item.name === "string" ? item.name.trim() : "";
+          const code = typeof item.code === "string" ? item.code.trim() : "";
           const description = typeof item.description === "string" ? item.description.trim() : "";
 
-          if (!name) {
+          if (!name || !code) {
             failedCount++;
             continue;
           }
 
           await addCategory({
             name,
+            code,
             description,
           });
           successCount++;

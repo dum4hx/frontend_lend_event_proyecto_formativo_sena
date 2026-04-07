@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Plus,
   Search,
@@ -25,10 +25,22 @@ import {
   useSetDefaultCodeScheme,
   useUpdateCodeScheme,
 } from "../../../../hooks/queries/useCodeSchemeQueries";
+import {
+  useMaterialTypes,
+  useMaterialCategories,
+} from "../../../../hooks/queries/useMaterialQueries";
 import type { CodeScheme, CodeSchemeEntityType } from "../../../../types/api";
 import CodeSchemeFormModal from "./CodeSchemeFormModal";
 
-const ENTITY_TABS: CodeSchemeEntityType[] = ["loan", "loan_request"];
+const ENTITY_TABS: CodeSchemeEntityType[] = [
+  "loan",
+  "loan_request",
+  "invoice",
+  "inspection",
+  "incident",
+  "maintenance_batch",
+  "material_instance",
+];
 
 /**
  * CodeSchemes — CRUD management page with entity-type tabs, inline
@@ -47,6 +59,23 @@ export default function CodeSchemes() {
 
   // Query
   const { data: schemes, isLoading, isError, error, refetch } = useCodeSchemes(activeTab);
+
+  // Material lookups for scope column (only used on material_instance tab)
+  const { data: materialTypesData } = useMaterialTypes();
+  const { data: categories } = useMaterialCategories();
+
+  const typeNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    const types = materialTypesData?.materialTypes ?? [];
+    for (const mt of types) map.set(mt._id, mt.name);
+    return map;
+  }, [materialTypesData]);
+
+  const categoryNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const c of categories ?? []) map.set(c._id, c.name);
+    return map;
+  }, [categories]);
 
   // Mutations
   const deleteMutation = useDeleteCodeScheme();
@@ -160,8 +189,18 @@ export default function CodeSchemes() {
     setEditingScheme(null);
   };
 
-  const tabLabel = (et: CodeSchemeEntityType) =>
-    et === "loan" ? t("settings.codeSchemes.tabLoan") : t("settings.codeSchemes.tabLoanRequest");
+  const tabLabel = (et: CodeSchemeEntityType): string => {
+    const map: Record<CodeSchemeEntityType, string> = {
+      loan: t("settings.codeSchemes.tabLoan"),
+      loan_request: t("settings.codeSchemes.tabLoanRequest"),
+      invoice: t("settings.codeSchemes.tabInvoice"),
+      inspection: t("settings.codeSchemes.tabInspection"),
+      incident: t("settings.codeSchemes.tabIncident"),
+      maintenance_batch: t("settings.codeSchemes.tabMaintenanceBatch"),
+      material_instance: t("settings.codeSchemes.tabMaterialInstance"),
+    };
+    return map[et];
+  };
 
   // ── Render ────────────────────────────────────────────────────────────
 
@@ -201,7 +240,7 @@ export default function CodeSchemes() {
 
       {/* Tabs */}
       <div
-        className="flex gap-1 bg-[#0d0d0d] border border-[#222] rounded-xl p-1 w-fit"
+        className="flex gap-1 bg-[#0d0d0d] border border-[#222] rounded-xl p-1 overflow-x-auto scrollbar-thin"
         data-help-id="code-schemes-tabs"
       >
         {ENTITY_TABS.map((et) => (
@@ -211,7 +250,7 @@ export default function CodeSchemes() {
               setActiveTab(et);
               setSearchTerm("");
             }}
-            className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${
+            className={`px-4 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap shrink-0 ${
               activeTab === et
                 ? "bg-[#FFD700]/10 text-[#FFD700] border border-[#FFD700]/30"
                 : "text-gray-400 hover:text-white border border-transparent"
@@ -271,6 +310,11 @@ export default function CodeSchemes() {
                   <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
                     {t("settings.codeSchemes.pattern")}
                   </th>
+                  {activeTab === "material_instance" && (
+                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                      {t("settings.codeSchemes.scope")}
+                    </th>
+                  )}
                   <th className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">
                     {t("settings.codeSchemes.isActive")}
                   </th>
@@ -299,6 +343,19 @@ export default function CodeSchemes() {
                         {scheme.pattern}
                       </code>
                     </td>
+
+                    {/* Scope (material_instance only) */}
+                    {activeTab === "material_instance" && (
+                      <td className="px-6 py-4">
+                        <span className="text-xs text-gray-400">
+                          {scheme.materialTypeId
+                            ? `${t("settings.codeSchemes.scopeTypeName")}: ${typeNameById.get(scheme.materialTypeId) ?? scheme.materialTypeId}`
+                            : scheme.categoryId
+                              ? `${t("settings.codeSchemes.scopeCategoryName")}: ${categoryNameById.get(scheme.categoryId) ?? scheme.categoryId}`
+                              : t("settings.codeSchemes.scopeGlobalShort")}
+                        </span>
+                      </td>
+                    )}
 
                     {/* Active toggle */}
                     <td className="px-6 py-4 text-center">

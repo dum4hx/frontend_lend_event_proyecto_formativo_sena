@@ -7,11 +7,12 @@ import { ApiError } from "../lib/api";
 import { useAlertModal } from "../hooks/useAlertModal";
 import { validateEmail, validateCode, validatePassword } from "../utils/validators";
 import { useLanguage } from "../contexts/useLanguage";
+import type { TranslationKey } from "../i18n/translations";
 import styles from "./PasswordRecovery.module.css";
 
 export default function PasswordRecovery() {
   const navigate = useNavigate();
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const isEs = language === "es";
   const { showSuccess, AlertModal } = useAlertModal();
   const [paso, setPaso] = useState(1);
@@ -24,36 +25,11 @@ export default function PasswordRecovery() {
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const mapValidationMessage = (message?: string) => {
-    if (!isEs || !message) return message;
-
-    const validationMap: Record<string, string> = {
-      "Email is required": "El correo es obligatorio",
-      "Enter a valid email address": "Ingresa un correo valido",
-      "Code is required": "El codigo es obligatorio",
-      "Code must be exactly 6 digits": "El codigo debe tener exactamente 6 digitos",
-      "Password is required": "La contraseña es obligatoria",
-      "Password must be at least 8 characters": "La contraseña debe tener al menos 8 caracteres",
-      "Password must contain at least one uppercase letter":
-        "La contraseña debe incluir al menos una letra mayuscula",
-      "Password must contain at least one lowercase letter":
-        "La contraseña debe incluir al menos una letra minuscula",
-      "Password must contain at least one number": "La contraseña debe incluir al menos un numero",
-      "Password must contain at least one special character (!@#$%^&*.)":
-        "La contraseña debe incluir al menos un caracter especial (!@#$%^&*.)",
-    };
-
-    return validationMap[message] ?? message;
-  };
-
   // Step 1: POST /auth/forgot-password
   const handleSendCode = async () => {
     const emailValidation = validateEmail(email);
     if (!emailValidation.isValid) {
-      setError(
-        mapValidationMessage(emailValidation.message) ||
-          (isEs ? "Validacion fallida" : "Validation failed"),
-      );
+      setError(t(emailValidation.message as TranslationKey));
       return;
     }
 
@@ -85,10 +61,7 @@ export default function PasswordRecovery() {
   const handleVerifyCode = async () => {
     const codeValidation = validateCode(codigo);
     if (!codeValidation.isValid) {
-      setError(
-        mapValidationMessage(codeValidation.message) ||
-          (isEs ? "Validacion fallida" : "Validation failed"),
-      );
+      setError(t(codeValidation.message as TranslationKey));
       return;
     }
 
@@ -117,10 +90,7 @@ export default function PasswordRecovery() {
   const handleResetPassword = async () => {
     const passwordValidation = validatePassword(newPassword);
     if (!passwordValidation.isValid) {
-      setError(
-        mapValidationMessage(passwordValidation.message) ||
-          (isEs ? "Validacion fallida" : "Validation failed"),
-      );
+      setError(t(passwordValidation.message as TranslationKey));
       return;
     }
 

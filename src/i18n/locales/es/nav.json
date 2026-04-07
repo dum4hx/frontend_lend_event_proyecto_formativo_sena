@@ -40,6 +40,5 @@
   "nav.item.organizations": "Gestion de organizaciones",
   "nav.item.sa-plans": "Configuracion de planes",
   "nav.item.sa-settings": "Configuracion del sistema",
-  "nav.item.maintenance": "Mantenimiento",
   "superAdmin.badge": "Super administrador"
 }

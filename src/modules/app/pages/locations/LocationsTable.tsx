@@ -7,6 +7,7 @@ import type { WarehouseLocation } from "../../../../services/warehouseOperatorSe
 import { StatusBadge, LoadingSpinner } from "../../../../components/ui";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import { useActionPermission } from "../../../../hooks/useActionPermission";
+import { getLocationStatusLabel } from "../../../../utils/statusLabels";
 import { formatAddress, calculateLocationCapacity, calculateOccupied } from "./helpers";
 import { LOCATION_STATUS_COLORS } from "./types";
 
@@ -85,7 +86,7 @@ export function LocationsTable({
           >
             {/* Status Badge */}
             <div className="absolute top-4 right-4">
-              <StatusBadge status={location.status} colorMap={LOCATION_STATUS_COLORS} />
+              <StatusBadge status={location.status} colorMap={LOCATION_STATUS_COLORS} label={getLocationStatusLabel(location.status as "available" | "full_capacity" | "maintenance" | "inactive", language as "en" | "es")} />
             </div>
 
             {/* Header */}

@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
 import { IconButton, EntityLink } from "../../../../components/ui";
 import { useLanguage } from "../../../../contexts/useLanguage";
+import { getWorkflowStatusLabel } from "../../../../utils/statusLabels";
 import type { OrderView } from "./types";
 import { WORKFLOW_STEPS } from "./types";
 import { formatDate, getStatusBadgeStyle, getStepIndex } from "./helpers";
@@ -243,7 +244,7 @@ export function OrderDetailModal({ open, onClose, order }: OrderDetailModalProps
                             : "border-[#333] text-gray-500"
                         }`}
                       >
-                        {step.label}
+                        {isEs ? step.labelEs : step.labelEn}
                       </div>
                     );
                   })}
@@ -257,7 +258,7 @@ export function OrderDetailModal({ open, onClose, order }: OrderDetailModalProps
                 <span
                   className={`inline-flex mt-2 px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadgeStyle(order.workflowStatus)}`}
                 >
-                  {order.workflowLabel}
+                  {getWorkflowStatusLabel(order.workflowStatus, language as "en" | "es")}
                 </span>
               </div>
 
@@ -265,8 +266,8 @@ export function OrderDetailModal({ open, onClose, order }: OrderDetailModalProps
                 order.workflowStatus === "order_cancelled") && (
                 <p className="text-red-300 text-sm">
                   {isEs
-                    ? `Este pedido está en estado terminal: ${order.workflowLabel}`
-                    : `This order is in a terminal state: ${order.workflowLabel}`}
+                    ? `Este pedido está en estado terminal: ${getWorkflowStatusLabel(order.workflowStatus, "es")}`
+                    : `This order is in a terminal state: ${getWorkflowStatusLabel(order.workflowStatus, "en")}`}
                 </p>
               )}
             </aside>

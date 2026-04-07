@@ -13,9 +13,15 @@ import { useLanguage } from "../../../../../contexts/useLanguage";
 import { useToast } from "../../../../../contexts/ToastContext";
 import { usePermissions } from "../../../../../contexts/usePermissions";
 import { useActionPermission } from "../../../../../hooks/useActionPermission";
-import { getMaintenanceBatch, resolveMaintenanceBatchItem } from "../../../../../services/maintenanceService";
+import {
+  getMaintenanceBatch,
+  resolveMaintenanceBatchItem,
+} from "../../../../../services/maintenanceService";
 import { ResolveItemModal } from "../components";
-import { getItemStatusLabel } from "../utils/statusMapper";
+import {
+  getMaintenanceBatchStatusLabel,
+  getMaintenanceItemStatusLabel,
+} from "../../../../../utils/statusLabels";
 import Unauthorized from "../../../../../pages/Unauthorized";
 import type {
   MaintenanceBatch,
@@ -135,7 +141,7 @@ export function BatchRepairView() {
           <div className="flex items-center gap-3">
             <StatusBadge
               status={batch.status}
-              label={lang === "es" ? "En Progreso" : "In Progress"}
+              label={getMaintenanceBatchStatusLabel(batch.status, lang)}
             />
             <span className="text-xs text-gray-500">
               {t("maintenance.createdAt")}: {formatDate(batch.createdAt)}
@@ -145,7 +151,10 @@ export function BatchRepairView() {
       </div>
 
       {/* Progress stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4" data-help-id="maintenance-repair-stats">
+      <div
+        className="grid grid-cols-1 sm:grid-cols-3 gap-4"
+        data-help-id="maintenance-repair-stats"
+      >
         <div className="bg-[#1a1a1a] border border-[#222] px-6 py-4 rounded-xl shadow-lg">
           <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">
             {t("maintenance.repairView.totalItems")}
@@ -194,17 +203,14 @@ export function BatchRepairView() {
                   const canResolve =
                     batch.status === "in_progress" && item.itemStatus === "in_repair";
                   return (
-                    <tr
-                      key={item._id}
-                      className="hover:bg-[#1a1a1a] transition-colors"
-                    >
+                    <tr key={item._id} className="hover:bg-[#1a1a1a] transition-colors">
                       <td className="px-6 py-4 text-white font-mono text-xs">
                         {getSerialNumber(item)}
                       </td>
                       <td className="px-6 py-4">
                         <StatusBadge
                           status={item.itemStatus as MaintenanceItemStatus}
-                          label={getItemStatusLabel(item.itemStatus, lang)}
+                          label={getMaintenanceItemStatusLabel(item.itemStatus, lang)}
                         />
                       </td>
                       <td className="px-6 py-4 text-gray-300">

@@ -6,6 +6,10 @@ import React from "react";
 import { X, Play, XCircle, Plus, Trash2, Wrench } from "lucide-react";
 import { StatusBadge } from "../../../../../components/ui";
 import { useLanguage } from "../../../../../contexts/useLanguage";
+import {
+  getMaintenanceBatchStatusLabel,
+  getMaintenanceItemStatusLabel,
+} from "../../../../../utils/statusLabels";
 import type {
   MaintenanceBatch,
   MaintenanceBatchItem,
@@ -39,7 +43,7 @@ export function BatchDetailModal({
   onRemoveItem,
   onResolveItem,
 }: BatchDetailModalProps) {
-  const { t, formatDate, formatCurrency } = useLanguage();
+  const { t, formatDate, formatCurrency, language } = useLanguage();
 
   if (!batch) return null;
 
@@ -68,7 +72,15 @@ export function BatchDetailModal({
           <div>
             <h2 className="text-2xl font-bold text-white">{batch.name}</h2>
             <div className="flex items-center gap-3 mt-1">
-              <StatusBadge status={batch.status as MaintenanceBatchStatus} />
+              {batch.batchNumber && (
+                <span className="text-xs font-mono text-[#FFD700] bg-[#FFD700]/10 px-2 py-0.5 rounded">
+                  {batch.batchNumber}
+                </span>
+              )}
+              <StatusBadge
+                status={batch.status as MaintenanceBatchStatus}
+                label={getMaintenanceBatchStatusLabel(batch.status as MaintenanceBatchStatus, language)}
+              />
               <span className="text-sm text-gray-400">{formatDate(batch.createdAt)}</span>
             </div>
           </div>
@@ -209,7 +221,10 @@ export function BatchDetailModal({
                             {t(`maintenance.entryReasons.${item.entryReason}`)}
                           </td>
                           <td className="p-3">
-                            <StatusBadge status={item.itemStatus as MaintenanceItemStatus} />
+                            <StatusBadge
+                              status={item.itemStatus as MaintenanceItemStatus}
+                              label={getMaintenanceItemStatusLabel(item.itemStatus as MaintenanceItemStatus, language)}
+                            />
                           </td>
                           <td className="p-3 text-gray-300">
                             {t(`maintenance.sourceTypes.${item.sourceType}`)}

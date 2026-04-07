@@ -244,7 +244,7 @@ export function CustomerCreateModal({
             value={form.formData.documentNumber}
             onChange={(e) => {
               form.markTouched("documentNumber");
-              form.setFormData({ ...form.formData, documentNumber: e.target.value });
+              form.setFormData({ ...form.formData, documentNumber: e.target.value.replace(/\D/g, "") });
             }}
             onBlur={() => form.blurField("documentNumber")}
             className={inputClass(!!form.fieldErrors.documentNumber)}

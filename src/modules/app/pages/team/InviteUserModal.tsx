@@ -17,7 +17,13 @@ import {
 } from "../../../../utils/validators";
 import type { Role } from "../../../../types/api";
 import type { WarehouseLocation } from "../../../../services/warehouseOperatorService";
-import { TEAM_PHONE_PREFIX, formatPhoneDigits, toColombianPhone, type TeamFormValues } from "./types";
+import type { TranslationKey } from "../../../../i18n/translations";
+import {
+  TEAM_PHONE_PREFIX,
+  formatPhoneDigits,
+  toColombianPhone,
+  type TeamFormValues,
+} from "./types";
 
 interface InviteUserModalProps {
   open: boolean;
@@ -54,7 +60,7 @@ export function InviteUserModal({
     staleTime: 1000 * 60 * 5,
   });
   const availableLocations: WarehouseLocation[] = locationsProp ?? locationsQuery.data ?? [];
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const isEs = language === "es";
 
   const [form, setForm] = useState<TeamFormValues>(EMPTY_FORM);
@@ -77,11 +83,24 @@ export function InviteUserModal({
 
   function validateField(field: FieldKey, value = form[field] as string): string | undefined {
     switch (field) {
-      case "firstName": return validateFirstName(value).isValid ? undefined : validateFirstName(value).message;
-      case "firstSurname": return validateLastName(value).isValid ? undefined : validateLastName(value).message;
-      case "email": return validateEmail(value).isValid ? undefined : validateEmail(value).message;
-      case "phone": return validateRequiredPhone(toColombianPhone(value)).isValid ? undefined : validateRequiredPhone(toColombianPhone(value)).message;
-      default: return undefined;
+      case "firstName": {
+        const r = validateFirstName(value);
+        return r.isValid ? undefined : t(r.message as TranslationKey);
+      }
+      case "firstSurname": {
+        const r = validateLastName(value);
+        return r.isValid ? undefined : t(r.message as TranslationKey);
+      }
+      case "email": {
+        const r = validateEmail(value);
+        return r.isValid ? undefined : t(r.message as TranslationKey);
+      }
+      case "phone": {
+        const r = validateRequiredPhone(toColombianPhone(value));
+        return r.isValid ? undefined : t(r.message as TranslationKey);
+      }
+      default:
+        return undefined;
     }
   }
 
@@ -130,9 +149,7 @@ export function InviteUserModal({
     }
     if (form.locations.length === 0) {
       setFormError(
-        isEs
-          ? "Selecciona al menos una ubicación."
-          : "Please select at least one location.",
+        isEs ? "Selecciona al menos una ubicación." : "Please select at least one location.",
       );
       return;
     }
@@ -156,7 +173,9 @@ export function InviteUserModal({
         }
         setFormError(err.message);
       } else {
-        setFormError(isEs ? "Error inesperado. Inténtalo de nuevo." : "Unexpected error. Please try again.");
+        setFormError(
+          isEs ? "Error inesperado. Inténtalo de nuevo." : "Unexpected error. Please try again.",
+        );
       }
     } finally {
       setSubmitting(false);
@@ -192,7 +211,9 @@ export function InviteUserModal({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs text-zinc-400 mb-1.5">{isEs ? "Nombre *" : "First Name *"}</label>
+            <label className="block text-xs text-zinc-400 mb-1.5">
+              {isEs ? "Nombre *" : "First Name *"}
+            </label>
             <input
               data-help-id="team-form-first-name"
               className={inputClass("firstName")}
@@ -206,7 +227,9 @@ export function InviteUserModal({
             )}
           </div>
           <div>
-            <label className="block text-xs text-zinc-400 mb-1.5">{isEs ? "Apellido *" : "Last Name *"}</label>
+            <label className="block text-xs text-zinc-400 mb-1.5">
+              {isEs ? "Apellido *" : "Last Name *"}
+            </label>
             <input
               data-help-id="team-form-last-name"
               className={inputClass("firstSurname")}
@@ -222,7 +245,9 @@ export function InviteUserModal({
         </div>
 
         <div>
-          <label className="block text-xs text-zinc-400 mb-1.5">{isEs ? "Correo Electrónico *" : "Email Address *"}</label>
+          <label className="block text-xs text-zinc-400 mb-1.5">
+            {isEs ? "Correo Electrónico *" : "Email Address *"}
+          </label>
           <input
             type="email"
             data-help-id="team-form-email"
@@ -238,7 +263,9 @@ export function InviteUserModal({
         </div>
 
         <div>
-          <label className="block text-xs text-zinc-400 mb-1.5">{isEs ? "Teléfono *" : "Phone *"}</label>
+          <label className="block text-xs text-zinc-400 mb-1.5">
+            {isEs ? "Teléfono *" : "Phone *"}
+          </label>
           <div className="flex items-center gap-2">
             <span className="px-3 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-sm text-zinc-400 shrink-0">
               {TEAM_PHONE_PREFIX}
@@ -275,7 +302,9 @@ export function InviteUserModal({
 
         {availableLocations.length > 0 && (
           <div data-help-id="team-form-locations">
-            <label className="block text-xs text-zinc-400 mb-2">{isEs ? "Ubicaciones *" : "Locations *"}</label>
+            <label className="block text-xs text-zinc-400 mb-2">
+              {isEs ? "Ubicaciones *" : "Locations *"}
+            </label>
             <div className="flex flex-wrap gap-2">
               {availableLocations.map((loc) => {
                 const selected = form.locations.includes(loc._id);

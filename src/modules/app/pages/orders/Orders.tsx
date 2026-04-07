@@ -245,8 +245,8 @@ export function Orders() {
   }, [selectedStatus]);
 
   const allOrders = useMemo(
-    () => buildOrderViewModel(requests, [], customers, packages, materialTypes),
-    [requests, customers, packages, materialTypes],
+    () => buildOrderViewModel(requests, [], customers, packages, materialTypes, language as "en" | "es"),
+    [requests, customers, packages, materialTypes, language],
   );
 
   const filteredOrders = useMemo(

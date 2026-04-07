@@ -440,13 +440,21 @@ export function CreateOrderModal({
 
   const handleAddPlanToDraft = () => {
     if (!selectedPlan) {
-      showError("Select a material plan first.", "Material Plan");
+      showError(
+        isEs ? "Selecciona un plan de materiales primero." : "Select a material plan first.",
+        isEs ? "Plan de materiales" : "Material Plan",
+      );
       return;
     }
     const planEntries =
       (selectedPlan.items?.length ? selectedPlan.items : selectedPlan.materialTypes) ?? [];
     if (planEntries.length === 0) {
-      showError("The selected plan does not contain material types.", "Material Plan");
+      showError(
+        isEs
+          ? "El plan seleccionado no contiene tipos de material."
+          : "The selected plan does not contain material types.",
+        isEs ? "Plan de materiales" : "Material Plan",
+      );
       return;
     }
 
@@ -477,24 +485,32 @@ export function CreateOrderModal({
 
     if (selections.length === 0) {
       showError(
-        "No materials from this plan can be added right now. Check stock and plan configuration.",
-        "Material Plan",
+        isEs
+          ? "Ningún material de este plan puede agregarse ahora. Revisa el stock y la configuración del plan."
+          : "No materials from this plan can be added right now. Check stock and plan configuration.",
+        isEs ? "Plan de materiales" : "Material Plan",
       );
       return;
     }
 
     insertMaterialsIntoDraft(selections);
     showSuccess(
-      `Added ${selections.length} material row${selections.length === 1 ? "" : "s"} from ${selectedPlan.name}.`,
-      "Material Plan Added",
+      isEs
+        ? `Se agregaron ${selections.length} fila${selections.length === 1 ? "" : "s"} de material desde ${selectedPlan.name}.`
+        : `Added ${selections.length} material row${selections.length === 1 ? "" : "s"} from ${selectedPlan.name}.`,
+      isEs ? "Plan de materiales agregado" : "Material Plan Added",
     );
 
     if (missingCatalogCount > 0 || outOfStockCount > 0) {
       showError(
-        `${missingCatalogCount > 0 ? `${missingCatalogCount} not found in catalog` : ""}${
-          missingCatalogCount > 0 && outOfStockCount > 0 ? " and " : ""
-        }${outOfStockCount > 0 ? `${outOfStockCount} out of stock` : ""}.`,
-        "Plan Added with Warnings",
+        isEs
+          ? `${missingCatalogCount > 0 ? `${missingCatalogCount} no encontrado${missingCatalogCount === 1 ? "" : "s"} en el catálogo` : ""}${
+              missingCatalogCount > 0 && outOfStockCount > 0 ? " y " : ""
+            }${outOfStockCount > 0 ? `${outOfStockCount} sin stock` : ""}.`
+          : `${missingCatalogCount > 0 ? `${missingCatalogCount} not found in catalog` : ""}${
+              missingCatalogCount > 0 && outOfStockCount > 0 ? " and " : ""
+            }${outOfStockCount > 0 ? `${outOfStockCount} out of stock` : ""}.`,
+        isEs ? "Plan agregado con advertencias" : "Plan Added with Warnings",
       );
     }
   };
@@ -503,58 +519,85 @@ export function CreateOrderModal({
     const nextErrors: CreateOrderValidationErrors = { rows: {} };
 
     if (!formData.customerId) {
-      nextErrors.customerId = "Select the customer for this order.";
+      nextErrors.customerId = isEs
+        ? "Selecciona el cliente para este pedido."
+        : "Select the customer for this order.";
     }
 
     const isDatetimeIncomplete = (val: string) => val && val.length < 16 && val.includes("T");
 
     if (!formData.startDate) {
-      nextErrors.startDate = "Select a start date.";
+      nextErrors.startDate = isEs ? "Selecciona una fecha de inicio." : "Select a start date.";
     } else if (isDatetimeIncomplete(formData.startDate)) {
-      nextErrors.startDate = "Please set both date and hour for the start time.";
+      nextErrors.startDate = isEs
+        ? "Establece tanto la fecha como la hora de inicio."
+        : "Please set both date and hour for the start time.";
     } else {
       const startDateTime = new Date(formData.startDate);
       const now = new Date();
       if (startDateTime <= now) {
-        nextErrors.startDate = "Start date and time must be in the future.";
+        nextErrors.startDate = isEs
+          ? "La fecha y hora de inicio deben ser en el futuro."
+          : "Start date and time must be in the future.";
       }
     }
 
     if (!formData.endDate) {
-      nextErrors.endDate = "Select an end date.";
+      nextErrors.endDate = isEs ? "Selecciona una fecha de fin." : "Select an end date.";
     } else if (isDatetimeIncomplete(formData.endDate)) {
-      nextErrors.endDate = "Please set both date and hour for the end time.";
+      nextErrors.endDate = isEs
+        ? "Establece tanto la fecha como la hora de fin."
+        : "Please set both date and hour for the end time.";
     } else if (!formData.startDate) {
-      nextErrors.endDate = "Please select a start date before choosing an end date.";
+      nextErrors.endDate = isEs
+        ? "Selecciona una fecha de inicio antes de elegir la fecha de fin."
+        : "Please select a start date before choosing an end date.";
     } else if (formData.endDate < formData.startDate) {
-      nextErrors.endDate = "End date and time must be after the start date and time.";
+      nextErrors.endDate = isEs
+        ? "La fecha y hora de fin deben ser posteriores a las de inicio."
+        : "End date and time must be after the start date and time.";
     }
 
     if (!formData.depositDueDate) {
-      nextErrors.depositDueDate = "Select a deposit due date.";
+      nextErrors.depositDueDate = isEs
+        ? "Selecciona la fecha límite del depósito."
+        : "Select a deposit due date.";
     } else if (isDatetimeIncomplete(formData.depositDueDate)) {
-      nextErrors.depositDueDate = "Please set both date and hour for the deposit due date.";
+      nextErrors.depositDueDate = isEs
+        ? "Establece tanto la fecha como la hora límite del depósito."
+        : "Please set both date and hour for the deposit due date.";
     } else if (formData.depositDueDate > formData.startDate) {
-      nextErrors.depositDueDate = "Deposit due date must be before or on the start date.";
+      nextErrors.depositDueDate = isEs
+        ? "La fecha límite del depósito debe ser anterior o igual a la fecha de inicio."
+        : "Deposit due date must be before or on the start date.";
     }
 
     if (formData.depositAmount === "") {
-      nextErrors.depositAmount = "Please enter a deposit amount (or 0 for no deposit conditions).";
+      nextErrors.depositAmount = isEs
+        ? "Ingresa el monto del depósito (o 0 si no aplica)."
+        : "Please enter a deposit amount (or 0 for no deposit conditions).";  
     }
 
     const draftRowsToValidate = formItems.filter((item) => !isFormDraftItemEmpty(item));
 
     draftRowsToValidate.forEach((item) => {
       const rowErrors: DraftItemValidationErrors = {};
-      if (!item.categoryId) rowErrors.categoryId = "Select a category.";
+      if (!item.categoryId)
+        rowErrors.categoryId = isEs ? "Selecciona una categoría." : "Select a category.";
       if (!item.materialTypeId) {
-        rowErrors.materialTypeId = "Select a material type.";
+        rowErrors.materialTypeId = isEs
+          ? "Selecciona un tipo de material."
+          : "Select a material type.";
       } else if (!isMaterialSelectable(item.materialTypeId)) {
-        rowErrors.materialTypeId = "This material is currently out of stock.";
+        rowErrors.materialTypeId = isEs
+          ? "Este material no tiene stock disponible."
+          : "This material is currently out of stock.";
       }
       const quantityValue = Number(item.quantity);
       if (!Number.isFinite(quantityValue) || quantityValue <= 0) {
-        rowErrors.quantity = "Quantity must be greater than 0.";
+        rowErrors.quantity = isEs
+          ? "La cantidad debe ser mayor a 0."
+          : "Quantity must be greater than 0.";
       }
       if (Object.keys(rowErrors).length > 0) {
         nextErrors.rows[item.localId] = rowErrors;
@@ -565,11 +608,13 @@ export function CreateOrderModal({
     const hasPackageItem = Boolean(selectedPlanId);
 
     if (!hasMaterialItems && !hasPackageItem) {
-      nextErrors.items = "Add at least one product or service item.";
+      nextErrors.items = isEs
+        ? "Agrega al menos un producto o servicio."
+        : "Add at least one product or service item.";
     }
 
     return nextErrors;
-  }, [formData, formItems, isMaterialSelectable, selectedPlanId]);
+  }, [formData, formItems, isMaterialSelectable, isEs, selectedPlanId]);
 
   const createErrors = useMemo(() => {
     if (!showValidationErrors) return { rows: {} } as CreateOrderValidationErrors;

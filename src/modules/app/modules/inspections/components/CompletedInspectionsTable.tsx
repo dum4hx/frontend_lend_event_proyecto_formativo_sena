@@ -70,7 +70,7 @@ export const CompletedInspectionsTable: React.FC<CompletedInspectionsTableProps>
                 <td className="py-5 px-6">
                   <div className="flex flex-col">
                     <span className="text-white font-mono text-xs group-hover:text-[#FFD700] transition-colors">
-                      {inspection._id}
+                      {inspection.inspectionNumber ?? `#${inspection._id.slice(-8).toUpperCase()}`}
                     </span>
                   </div>
                 </td>

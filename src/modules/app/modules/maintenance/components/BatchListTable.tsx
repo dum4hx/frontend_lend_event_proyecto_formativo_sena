@@ -7,6 +7,7 @@ import React from "react";
 import { Eye, Pencil, Play, Plus, XCircle, Wrench } from "lucide-react";
 import { DataTable, StatusBadge, type ColumnDef } from "../../../../../components/ui";
 import { useLanguage } from "../../../../../contexts/useLanguage";
+import { getMaintenanceBatchStatusLabel } from "../../../../../utils/statusLabels";
 import type { MaintenanceBatchListItem } from "../../../../../types/api";
 
 interface BatchListTableProps {
@@ -38,7 +39,7 @@ export function BatchListTable({
   onAddItems,
   onRepairItems,
 }: BatchListTableProps) {
-  const { t, formatDate, formatCurrency } = useLanguage();
+  const { t, formatDate, formatCurrency, language } = useLanguage();
 
   const columns: ColumnDef<MaintenanceBatchListItem>[] = [
     {
@@ -49,7 +50,12 @@ export function BatchListTable({
     {
       key: "status",
       header: "Status",
-      render: (row) => <StatusBadge status={row.status} />,
+      render: (row) => (
+        <StatusBadge
+          status={row.status}
+          label={getMaintenanceBatchStatusLabel(row.status, language)}
+        />
+      ),
       width: "w-32",
     },
     {

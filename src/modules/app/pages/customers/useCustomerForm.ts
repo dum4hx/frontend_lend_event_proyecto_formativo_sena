@@ -13,7 +13,10 @@ import {
   validateRequiredPhone,
   validatePostalCode,
   validateState,
+  validateDocumentNumber,
 } from "../../../../utils/validators";
+import { useLanguage } from "../../../../contexts/useLanguage";
+import type { TranslationKey } from "../../../../i18n/translations";
 
 // ─── Colombia API types ────────────────────────────────────────────────────
 
@@ -187,6 +190,7 @@ interface UseCustomerFormOptions {
 }
 
 export function useCustomerForm({ initialCustomer }: UseCustomerFormOptions = {}) {
+  const { t } = useLanguage();
   // ── Core form data ──────────────────────────────────────────────────────
   const [formData, setFormData] = useState<CreateCustomerPayload>({
     name: { firstName: "", firstSurname: "" },
@@ -312,27 +316,21 @@ export function useCustomerForm({ initialCustomer }: UseCustomerFormOptions = {}
         : touched;
 
       const fnV = validateFirstName(formData.name.firstName);
-      if (!fnV.isValid && fnV.message) nextErrors.firstName = fnV.message;
+      if (!fnV.isValid && fnV.message) nextErrors.firstName = t(fnV.message as TranslationKey);
 
       const lnV = validateLastName(formData.name.firstSurname);
-      if (!lnV.isValid && lnV.message) nextErrors.firstSurname = lnV.message;
+      if (!lnV.isValid && lnV.message) nextErrors.firstSurname = t(lnV.message as TranslationKey);
 
       const emailV = validateEmail(formData.email);
-      if (!emailV.isValid && emailV.message) nextErrors.email = emailV.message;
+      if (!emailV.isValid && emailV.message) nextErrors.email = t(emailV.message as TranslationKey);
 
       const phoneV = validateRequiredPhone(
         formData.phone ? `${COLOMBIA_PHONE_PREFIX}${formData.phone}` : "",
       );
-      if (!phoneV.isValid && phoneV.message) nextErrors.phone = phoneV.message;
+      if (!phoneV.isValid && phoneV.message) nextErrors.phone = t(phoneV.message as TranslationKey);
 
-      const docNum = formData.documentNumber.trim();
-      if (!docNum) {
-        nextErrors.documentNumber = "Document number is required";
-      } else if (docNum.length < 8) {
-        nextErrors.documentNumber = "Document number must be at least 8 characters";
-      } else if (docNum.length > 11) {
-        nextErrors.documentNumber = "Document number must not exceed 11 characters";
-      }
+      const docNumV = validateDocumentNumber(formData.documentNumber);
+      if (!docNumV.isValid && docNumV.message) nextErrors.documentNumber = t(docNumV.message as TranslationKey);
 
       if (showAddress) {
         if (!streetType) nextErrors.streetType = "Street type is required";
@@ -345,13 +343,13 @@ export function useCustomerForm({ initialCustomer }: UseCustomerFormOptions = {}
         if (additionalDetails.length > ADDRESS_DETAILS_MAX_LENGTH)
           nextErrors.additionalDetails = `Must not exceed ${ADDRESS_DETAILS_MAX_LENGTH} characters`;
         const stV = validateState(stateQuery, !!stateQuery.trim());
-        if (!stV.isValid && stV.message) nextErrors.stateQuery = stV.message;
+        if (!stV.isValid && stV.message) nextErrors.stateQuery = t(stV.message as TranslationKey);
         if (!cityQuery.trim()) nextErrors.cityQuery = "City is required";
         if (selectedCity && !selectedCity.postalCode && !postalCodeField.trim()) {
           nextErrors.postalCode = "Postal code is required";
         } else {
           const pcV = validatePostalCode(postalCodeField);
-          if (!pcV.isValid && pcV.message) nextErrors.postalCode = pcV.message;
+          if (!pcV.isValid && pcV.message) nextErrors.postalCode = t(pcV.message as TranslationKey);
         }
       }
 
@@ -363,6 +361,7 @@ export function useCustomerForm({ initialCustomer }: UseCustomerFormOptions = {}
       return nextErrors;
     },
     [
+      t,
       formData,
       touched,
       submitted,

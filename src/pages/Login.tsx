@@ -6,10 +6,11 @@ import { loginUser } from "../services/authService";
 import { ApiError } from "../lib/api";
 import { validateLoginForm, validateEmail } from "../utils/validators";
 import { useLanguage } from "../contexts/useLanguage";
+import type { TranslationKey } from "../i18n/translations";
 import styles from "./Login.module.css";
 
 export default function Login() {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const isEs = language === "es";
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -43,7 +44,7 @@ export default function Login() {
     // Frontend validation
     const validation = validateLoginForm({ email: normalisedEmail, password: normalisedPassword });
     if (!validation.isValid) {
-      setError(validation.message || (isEs ? "Validacion fallida" : "Validation failed"));
+      setError(t(validation.message as TranslationKey));
       return;
     }
 

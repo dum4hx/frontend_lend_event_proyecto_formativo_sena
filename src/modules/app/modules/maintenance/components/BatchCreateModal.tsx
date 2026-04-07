@@ -26,6 +26,13 @@ export function BatchCreateModal({ open, onClose, onSubmit }: BatchCreateModalPr
   const [scheduledEndDate, setScheduledEndDate] = useState("");
   const [notes, setNotes] = useState("");
 
+  const handleStartDateChange = (value: string) => {
+    setScheduledStartDate(value);
+    if (scheduledEndDate && value > scheduledEndDate) {
+      setScheduledEndDate("");
+    }
+  };
+
   const resetForm = () => {
     setName("");
     setDescription("");
@@ -112,7 +119,7 @@ export function BatchCreateModal({ open, onClose, onSubmit }: BatchCreateModalPr
               type="date"
               className={`form-input ${styles.dateInput}`}
               value={scheduledStartDate}
-              onChange={(e) => setScheduledStartDate(e.target.value)}
+              onChange={(e) => handleStartDateChange(e.target.value)}
               data-help-id="maintenance-batch-form-start-date"
             />
           </div>
@@ -126,6 +133,7 @@ export function BatchCreateModal({ open, onClose, onSubmit }: BatchCreateModalPr
               className={`form-input ${styles.dateInput}`}
               value={scheduledEndDate}
               onChange={(e) => setScheduledEndDate(e.target.value)}
+              min={scheduledStartDate || undefined}
               data-help-id="maintenance-batch-form-end-date"
             />
           </div>
