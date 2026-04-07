@@ -120,14 +120,14 @@ export const allNavItems: NavItem[] = [
     id: "attributes",
     label: "Attributes",
     path: "/app/attributes",
-    requiredPermissions: ["materials:read"],
+    requiredPermissions: ["material_attributes:read"],
     section: "Materials",
   },
   {
     id: "plans",
     label: "Material Plans",
     path: "/app/plans",
-    requiredPermissions: ["materials:read"],
+    requiredPermissions: ["packages:read"],
     section: "Materials",
   },
   {
@@ -150,8 +150,7 @@ export const allNavItems: NavItem[] = [
     id: "locations",
     label: "Locations",
     path: "/app/locations",
-    // No dedicated locations:read permission exists — materials:read is the closest match
-    requiredPermissions: ["materials:read"],
+    requiredPermissions: ["locations:read"],
     section: "Warehouse",
   },
   {

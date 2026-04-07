@@ -549,6 +549,7 @@ export interface Loan {
   code?: string;
   customerId: string | Customer;
   requestId?: string;
+  requestCode?: string;
   status: LoanStatus;
   startDate: string;
   endDate: string;
@@ -805,6 +806,7 @@ export interface InvoiceCustomer {
 
 export interface InvoiceLoan {
   _id: string;
+  code?: string;
   startDate?: string;
   endDate?: string;
 }
