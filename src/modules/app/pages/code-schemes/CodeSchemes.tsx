@@ -13,6 +13,7 @@ import {
 import { Button, PageHeader } from "../../../../components/ui";
 import { PermissionGuardedButton } from "../../../../components/ui/PermissionGuardedButton";
 import { useLanguage } from "../../../../contexts/useLanguage";
+import { getPaymentMethodStatusLabel } from "../../../../utils/statusLabels";
 import { usePermissions } from "../../../../contexts/usePermissions";
 import { useActionPermission } from "../../../../hooks/useActionPermission";
 import Unauthorized from "../../../../pages/Unauthorized";
@@ -303,21 +304,19 @@ export default function CodeSchemes() {
                     <td className="px-6 py-4 text-center">
                       <button
                         type="button"
-                        onClick={guard("code_schemes:update", () => void handleToggleActive(scheme))}
+                        onClick={guard(
+                          "code_schemes:update",
+                          () => void handleToggleActive(scheme),
+                        )}
                         aria-disabled={!isAllowed("code_schemes:update")}
                         disabled={updateMutation.isPending}
                         className={`relative inline-flex w-9 h-5 rounded-full transition-colors ${!isAllowed("code_schemes:update") ? "opacity-50 cursor-not-allowed" : ""} ${
                           scheme.isActive ? "bg-green-500" : "bg-[#333]"
                         }`}
-                        title={
-                          scheme.isActive
-                            ? isEs
-                              ? "Activo"
-                              : "Active"
-                            : isEs
-                              ? "Inactivo"
-                              : "Inactive"
-                        }
+                        title={getPaymentMethodStatusLabel(
+                          scheme.isActive ? "active" : "inactive",
+                          language,
+                        )}
                       >
                         <span
                           className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform shadow-sm ${
@@ -361,7 +360,7 @@ export default function CodeSchemes() {
                           intent="delete"
                           requiredPermission="code_schemes:delete"
                           onClick={() => {
-                            if (scheme.isDefault || deleteMutation.isPending) return;
+                            if (deleteMutation.isPending) return;
                             void handleDelete(scheme);
                           }}
                         />

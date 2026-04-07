@@ -1,18 +1,18 @@
 import type { LoanStatus, LoanFilter, Customer } from "./types";
 
 /** Localized status label. */
-export function getStatusLabel(status: LoanFilter, isEs: boolean): string {
+export function getStatusLabel(status: LoanFilter, language: "en" | "es"): string {
   switch (status) {
     case "all":
-      return isEs ? "Todos los estados" : "All Status";
+      return language === "es" ? "Todos los estados" : "All Status";
     case "active":
-      return isEs ? "Activo" : "Active";
+      return language === "es" ? "Activo" : "Active";
     case "overdue":
-      return isEs ? "Vencido" : "Overdue";
+      return language === "es" ? "Vencido" : "Overdue";
     case "returned":
-      return isEs ? "Devuelto" : "Returned";
+      return language === "es" ? "Devuelto" : "Returned";
     case "closed":
-      return isEs ? "Cerrado" : "Closed";
+      return language === "es" ? "Cerrado" : "Closed";
     default:
       return status;
   }

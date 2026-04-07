@@ -121,7 +121,7 @@ export function InvoicesTable({
                 </td>
                 <td className="px-6 py-4">
                   <span className="px-2 py-1 bg-[#1a1a1a] text-gray-300 text-xs rounded">
-                    {getTypeLabel(invoice.type, isEs)}
+                    {getTypeLabel(invoice.type, isEs ? "es" : "en")}
                   </span>
                 </td>
                 <td className="px-6 py-4 text-right">
@@ -133,7 +133,7 @@ export function InvoicesTable({
                   <span
                     className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(invoice.status)}`}
                   >
-                    {getStatusLabel(invoice.status, isEs)}
+                    {getStatusLabel(invoice.status, isEs ? "es" : "en")}
                   </span>
                 </td>
                 <td className="px-6 py-4 text-right">

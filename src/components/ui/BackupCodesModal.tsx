@@ -56,13 +56,13 @@ export function BackupCodesModal({ isOpen, codes, onClose }: BackupCodesModalPro
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4 py-8"
       role="dialog"
       aria-modal="true"
       aria-labelledby="backup-codes-title"
       data-help-id="backup-codes-modal"
     >
-      <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-8 max-w-lg w-full shadow-2xl">
+      <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-8 max-w-lg w-full shadow-2xl max-h-full overflow-y-auto">
         {/* Warning icon */}
         <div className="flex items-center justify-center w-14 h-14 bg-yellow-400/10 border border-yellow-400/30 rounded-full mx-auto mb-5">
           <svg

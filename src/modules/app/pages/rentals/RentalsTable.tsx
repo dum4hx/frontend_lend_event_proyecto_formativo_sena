@@ -157,7 +157,7 @@ export function RentalsTable({
                     <span
                       className={`px-2 py-0.5 rounded-full text-xs font-semibold capitalize ${getLoanStatusBadgeStyle(lv.loan.status)}`}
                     >
-                      {getStatusLabel(lv.loan.status, isEs)}
+                      {getStatusLabel(lv.loan.status, isEs ? "es" : "en")}
                     </span>
                     {lv.loan.status === "overdue" && (
                       <AlertCircle size={14} className="text-red-400" />

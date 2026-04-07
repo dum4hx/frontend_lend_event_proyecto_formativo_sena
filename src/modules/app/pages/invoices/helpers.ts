@@ -1,4 +1,5 @@
 import type { Invoice, InvoiceStatus, InvoiceType, InvoiceCustomer } from "./types";
+import { getInvoiceStatusLabel, getInvoiceTypeLabel } from "../../../../utils/statusLabels";
 
 /** Status → Tailwind badge classes. */
 export function getStatusColor(status: InvoiceStatus): string {
@@ -15,31 +16,13 @@ export function getStatusColor(status: InvoiceStatus): string {
 }
 
 /** Localized status label. */
-export function getStatusLabel(status: InvoiceStatus, isEs: boolean): string {
-  switch (status) {
-    case "paid":
-      return isEs ? "Pagado" : "Paid";
-    case "pending":
-      return isEs ? "Pendiente" : "Pending";
-    case "cancelled":
-      return isEs ? "Cancelado" : "Cancelled";
-    default:
-      return status;
-  }
+export function getStatusLabel(status: InvoiceStatus, language: "en" | "es"): string {
+  return getInvoiceStatusLabel(status, language);
 }
 
 /** Localized invoice type label. */
-export function getTypeLabel(type: InvoiceType, isEs: boolean): string {
-  switch (type) {
-    case "rental":
-      return isEs ? "Alquiler" : "Rental";
-    case "damage":
-      return isEs ? "Daño" : "Damage";
-    case "deposit":
-      return isEs ? "Depósito" : "Deposit";
-    default:
-      return type;
-  }
+export function getTypeLabel(type: InvoiceType, language: "en" | "es"): string {
+  return getInvoiceTypeLabel(type, language);
 }
 
 /** Row left-border color based on invoice status. */

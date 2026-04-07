@@ -9,11 +9,18 @@ import {
   Moon,
   Palette,
   Sun,
+  UserCog,
+  Lock,
 } from "lucide-react";
 import { fetchPlatformHealth, fetchOverview } from "../../../services/superAdminService";
+import { updateUser } from "../../../services/userService";
+import { changePassword } from "../../../services/authService";
 import { useLanguage } from "../../../contexts/useLanguage";
+import { useAuth } from "../../../contexts/useAuth";
 import { logError, normalizeError } from "../../../utils/errorHandling";
 import { useTheme } from "../../../contexts/useTheme";
+import { isApiError } from "../../../lib/api";
+import type { ApiResponse, ApiErrorResponse } from "../../../lib/api";
 import type { PlatformHealth, PlatformOverview } from "../../../types/api";
 import type { SupportedLanguage } from "../../../i18n/translations";
 
@@ -70,11 +77,58 @@ function hasErrors(errors: SettingsValidationErrors): boolean {
   return Object.values(errors).some(Boolean);
 }
 
+// --- Account section validation helpers ------------------------------------
+
+interface AccountProfileErrors {
+  firstName?: string;
+  firstSurname?: string;
+  email?: string;
+}
+
+interface AccountPasswordErrors {
+  currentPassword?: string;
+  newPassword?: string;
+  confirmPassword?: string;
+}
+
+function validateAccountProfile(
+  fields: { firstName: string; firstSurname: string; email: string },
+  t: ReturnType<typeof useLanguage>["t"],
+): AccountProfileErrors {
+  const errors: AccountProfileErrors = {};
+  if (!fields.firstName.trim()) errors.firstName = t("systemSettings.validation.firstNameRequired");
+  if (!fields.firstSurname.trim())
+    errors.firstSurname = t("systemSettings.validation.firstSurnameRequired");
+  if (!fields.email.trim()) errors.email = t("systemSettings.validation.emailRequired");
+  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fields.email))
+    errors.email = t("systemSettings.validation.emailInvalid");
+  return errors;
+}
+
+function validateAccountPassword(
+  fields: { currentPassword: string; newPassword: string; confirmPassword: string },
+  t: ReturnType<typeof useLanguage>["t"],
+): AccountPasswordErrors {
+  const errors: AccountPasswordErrors = {};
+  if (!fields.currentPassword.trim())
+    errors.currentPassword = t("systemSettings.validation.currentPasswordRequired");
+  if (fields.newPassword.length < 8)
+    errors.newPassword = t("systemSettings.validation.newPasswordTooShort");
+  if (fields.newPassword !== fields.confirmPassword)
+    errors.confirmPassword = t("systemSettings.validation.passwordsMustMatch");
+  return errors;
+}
+
+function hasAccountErrors(errors: AccountProfileErrors | AccountPasswordErrors): boolean {
+  return Object.values(errors).some(Boolean);
+}
+
 // ---------------------------------------------------------------------------
 
 export default function SystemSettings() {
   const { theme, setTheme } = useTheme();
   const { language, setLanguage, t } = useLanguage();
+  const { user, checkAuth } = useAuth();
 
   // General
   const [platformName, setPlatformName] = useState("Lend Event");
@@ -101,6 +155,26 @@ export default function SystemSettings() {
   const [overview, setOverview] = useState<PlatformOverview | null>(null);
   const [healthLoading, setHealthLoading] = useState(true);
 
+  // Account — Profile
+  const [acctFirstName, setAcctFirstName] = useState("");
+  const [acctSecondName, setAcctSecondName] = useState("");
+  const [acctFirstSurname, setAcctFirstSurname] = useState("");
+  const [acctSecondSurname, setAcctSecondSurname] = useState("");
+  const [acctEmail, setAcctEmail] = useState("");
+  const [acctPhone, setAcctPhone] = useState("");
+  const [profileErrors, setProfileErrors] = useState<AccountProfileErrors>({});
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileSaved, setProfileSaved] = useState(false);
+
+  // Account — Password
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordErrors, setPasswordErrors] = useState<AccountPasswordErrors>({});
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordSaved, setPasswordSaved] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
+
   const loadHealth = useCallback(async () => {
     try {
       setHealthLoading(true);
@@ -117,6 +191,75 @@ export default function SystemSettings() {
   useEffect(() => {
     void loadHealth();
   }, [loadHealth]);
+
+  // Sync profile fields when user is available
+  useEffect(() => {
+    if (user) {
+      setAcctFirstName(user.name.firstName);
+      setAcctSecondName(user.name.secondName ?? "");
+      setAcctFirstSurname(user.name.firstSurname);
+      setAcctSecondSurname(user.name.secondSurname ?? "");
+      setAcctEmail(user.email);
+      setAcctPhone(user.phone ?? "");
+    }
+  }, [user]);
+
+  const handleSaveProfile = async () => {
+    const errors = validateAccountProfile(
+      { firstName: acctFirstName, firstSurname: acctFirstSurname, email: acctEmail },
+      t,
+    );
+    setProfileErrors(errors);
+    if (hasAccountErrors(errors)) return;
+
+    try {
+      setProfileSaving(true);
+      setProfileSaved(false);
+      await updateUser(user!._id, {
+        name: {
+          firstName: acctFirstName.trim(),
+          secondName: acctSecondName.trim() || undefined,
+          firstSurname: acctFirstSurname.trim(),
+          secondSurname: acctSecondSurname.trim() || undefined,
+        },
+        email: acctEmail.trim(),
+        phone: acctPhone.trim() || undefined,
+      });
+      await checkAuth();
+      setProfileSaved(true);
+      setTimeout(() => setProfileSaved(false), 3000);
+    } catch (err: unknown) {
+      logError(err, "SystemSettings.handleSaveProfile");
+    } finally {
+      setProfileSaving(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    setPasswordError("");
+    const errors = validateAccountPassword({ currentPassword, newPassword, confirmPassword }, t);
+    setPasswordErrors(errors);
+    if (hasAccountErrors(errors)) return;
+
+    try {
+      setPasswordSaving(true);
+      setPasswordSaved(false);
+      await changePassword({ currentPassword, newPassword });
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setPasswordSaved(true);
+      setTimeout(() => setPasswordSaved(false), 3000);
+    } catch (err: unknown) {
+      if (err && typeof err === "object" && "success" in err && isApiError(err as ApiResponse<unknown>)) {
+        setPasswordError((err as ApiErrorResponse).message);
+      } else {
+        logError(err, "SystemSettings.handleChangePassword");
+      }
+    } finally {
+      setPasswordSaving(false);
+    }
+  };
 
   const handleSave = () => {
     const errors = validateSettings(
@@ -354,6 +497,161 @@ export default function SystemSettings() {
                   </button>
                 );
               })}
+            </div>
+          </div>
+        </SettingsSection>
+
+        {/* Account */}
+        <SettingsSection
+          icon={<UserCog size={20} className="text-[#FFD700]" />}
+          title={t("systemSettings.account.title")}
+          description={t("systemSettings.account.description")}
+        >
+          <div data-help-id="sa-account-section">
+            {/* Profile */}
+            <h3 className="text-sm font-semibold text-white mb-3">
+              {t("systemSettings.account.profile.title")}
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FieldGroup
+                label={t("systemSettings.account.profile.firstName")}
+                error={profileErrors.firstName}
+              >
+                <input
+                  data-help-id="sa-account-first-name"
+                  value={acctFirstName}
+                  onChange={(e) => setAcctFirstName(e.target.value)}
+                  className="setting-input"
+                />
+              </FieldGroup>
+              <FieldGroup label={t("systemSettings.account.profile.secondName")}>
+                <input
+                  value={acctSecondName}
+                  onChange={(e) => setAcctSecondName(e.target.value)}
+                  className="setting-input"
+                />
+              </FieldGroup>
+              <FieldGroup
+                label={t("systemSettings.account.profile.firstSurname")}
+                error={profileErrors.firstSurname}
+              >
+                <input
+                  data-help-id="sa-account-first-surname"
+                  value={acctFirstSurname}
+                  onChange={(e) => setAcctFirstSurname(e.target.value)}
+                  className="setting-input"
+                />
+              </FieldGroup>
+              <FieldGroup label={t("systemSettings.account.profile.secondSurname")}>
+                <input
+                  value={acctSecondSurname}
+                  onChange={(e) => setAcctSecondSurname(e.target.value)}
+                  className="setting-input"
+                />
+              </FieldGroup>
+              <FieldGroup
+                label={t("systemSettings.account.profile.email")}
+                error={profileErrors.email}
+              >
+                <input
+                  data-help-id="sa-account-email"
+                  type="email"
+                  value={acctEmail}
+                  onChange={(e) => setAcctEmail(e.target.value)}
+                  className="setting-input"
+                />
+              </FieldGroup>
+              <FieldGroup label={t("systemSettings.account.profile.phone")}>
+                <input
+                  data-help-id="sa-account-phone"
+                  type="tel"
+                  value={acctPhone}
+                  onChange={(e) => setAcctPhone(e.target.value)}
+                  className="setting-input"
+                />
+              </FieldGroup>
+            </div>
+            <div className="mt-4 flex justify-end">
+              <button
+                data-help-id="sa-account-save-profile"
+                onClick={() => void handleSaveProfile()}
+                disabled={profileSaving}
+                className="flex items-center gap-2 font-semibold px-5 py-2 rounded-lg transition disabled:opacity-50 gold-action-btn text-sm"
+              >
+                <Save size={16} />
+                {profileSaving
+                  ? t("systemSettings.account.profile.saving")
+                  : profileSaved
+                    ? `${t("systemSettings.account.profile.saved")} ✓`
+                    : t("systemSettings.account.profile.save")}
+              </button>
+            </div>
+
+            {/* Password */}
+            <div className="mt-6 border-t border-[#222] pt-5">
+              <div className="flex items-center gap-2 mb-3">
+                <Lock size={16} className="text-[#FFD700]" />
+                <h3 className="text-sm font-semibold text-white">
+                  {t("systemSettings.account.password.title")}
+                </h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FieldGroup
+                  label={t("systemSettings.account.password.current")}
+                  error={passwordErrors.currentPassword}
+                >
+                  <input
+                    data-help-id="sa-account-current-password"
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    className="setting-input"
+                    autoComplete="current-password"
+                  />
+                </FieldGroup>
+                <FieldGroup
+                  label={t("systemSettings.account.password.new")}
+                  error={passwordErrors.newPassword}
+                >
+                  <input
+                    data-help-id="sa-account-new-password"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="setting-input"
+                    autoComplete="new-password"
+                  />
+                </FieldGroup>
+                <FieldGroup
+                  label={t("systemSettings.account.password.confirm")}
+                  error={passwordErrors.confirmPassword}
+                >
+                  <input
+                    data-help-id="sa-account-confirm-password"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="setting-input"
+                    autoComplete="new-password"
+                  />
+                </FieldGroup>
+              </div>
+              {passwordError && <p className="text-red-400 text-xs mt-2">{passwordError}</p>}
+              <div className="mt-4 flex justify-end">
+                <button
+                  data-help-id="sa-account-change-password"
+                  onClick={() => void handleChangePassword()}
+                  disabled={passwordSaving}
+                  className="flex items-center gap-2 font-semibold px-5 py-2 rounded-lg transition disabled:opacity-50 gold-action-btn text-sm"
+                >
+                  <Lock size={16} />
+                  {passwordSaving
+                    ? t("systemSettings.account.password.changing")
+                    : passwordSaved
+                      ? `${t("systemSettings.account.password.changed")} ✓`
+                      : t("systemSettings.account.password.change")}
+                </button>
+              </div>
             </div>
           </div>
         </SettingsSection>

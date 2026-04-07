@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Plus, Search, Pencil, Trash2, Loader2, CreditCard, RefreshCcw, Lock } from "lucide-react";
 import { Button, IconButton, PageHeader } from "../../../../components/ui";
 import { useLanguage } from "../../../../contexts/useLanguage";
+import { getPaymentMethodStatusLabel } from "../../../../utils/statusLabels";
 import { usePermissions } from "../../../../contexts/usePermissions";
 import Unauthorized from "../../../../pages/Unauthorized";
 import { useToast } from "../../../../hooks/useToast";
@@ -203,13 +204,7 @@ export default function PaymentMethods() {
                             : "text-gray-400 bg-gray-500/10"
                         }`}
                       >
-                        {method.status === "active"
-                          ? isEs
-                            ? "Activo"
-                            : "Active"
-                          : isEs
-                            ? "Inactivo"
-                            : "Inactive"}
+                        {getPaymentMethodStatusLabel(method.status, language)}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">

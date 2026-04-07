@@ -29,6 +29,7 @@ import {
 } from "../../../components/ui";
 import { AdminPagination, AdminTable } from "../../app/components";
 import { normalizeError, logError } from "../../../utils/errorHandling";
+import { getSubscriptionStatusLabel } from "../../../utils/statusLabels";
 import {
   validatePlanIdentifier,
   validatePlanDisplayName,
@@ -894,9 +895,9 @@ export default function PlanConfiguration() {
     { value: "free", label: isEs ? "Gratis (sin costos)" : "Free (no cost fields)" },
   ];
   const statusOptions: { value: SubscriptionStatus; label: string }[] = [
-    { value: "active", label: isEs ? "Activo" : "Active" },
-    { value: "inactive", label: isEs ? "Inactivo" : "Inactive" },
-    { value: "deprecated", label: isEs ? "Obsoleto" : "Deprecated" },
+    { value: "active", label: getSubscriptionStatusLabel("active", language) },
+    { value: "inactive", label: getSubscriptionStatusLabel("inactive", language) },
+    { value: "deprecated", label: getSubscriptionStatusLabel("deprecated", language) },
   ];
 
   return (

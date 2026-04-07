@@ -70,6 +70,7 @@ const locations: WarehouseLocation[] = [
     _id: "location-main",
     id: "location-main",
     name: "Main Warehouse",
+    code: "WH-MAIN",
     organizationId: "org-1",
     address: {},
     capacity: 100,

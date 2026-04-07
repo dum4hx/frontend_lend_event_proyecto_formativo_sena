@@ -101,6 +101,10 @@ const HELP_MODULE_DEFINITIONS: HelpModuleDefinition[] = [
     moduleId: "settings",
     routePrefixes: ["/app/settings"],
   },
+  {
+    moduleId: "super-admin-settings",
+    routePrefixes: ["/super-admin/settings"],
+  },
 ];
 
 export function resolveHelpModuleId(pathname: string): string | null {

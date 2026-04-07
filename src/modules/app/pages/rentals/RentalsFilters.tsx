@@ -51,7 +51,7 @@ export function RentalsFilters({
         >
           {STATUS_OPTIONS.map((opt) => (
             <option key={opt} value={opt}>
-              {getStatusLabel(opt, isEs)}
+              {getStatusLabel(opt, isEs ? "es" : "en")}
             </option>
           ))}
         </select>

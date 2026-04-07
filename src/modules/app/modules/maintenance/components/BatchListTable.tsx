@@ -4,7 +4,7 @@
  */
 
 import React from "react";
-import { Eye, Pencil, Play, Plus, XCircle } from "lucide-react";
+import { Eye, Pencil, Play, Plus, XCircle, Wrench } from "lucide-react";
 import { DataTable, StatusBadge, type ColumnDef } from "../../../../../components/ui";
 import { useLanguage } from "../../../../../contexts/useLanguage";
 import type { MaintenanceBatchListItem } from "../../../../../types/api";
@@ -24,6 +24,8 @@ interface BatchListTableProps {
   onCancel: (batch: MaintenanceBatchListItem) => void;
   /** Add items callback (draft only). */
   onAddItems: (batch: MaintenanceBatchListItem) => void;
+  /** Repair materials callback (in_progress only). */
+  onRepairItems: (batch: MaintenanceBatchListItem) => void;
 }
 
 export function BatchListTable({
@@ -34,6 +36,7 @@ export function BatchListTable({
   onStart,
   onCancel,
   onAddItems,
+  onRepairItems,
 }: BatchListTableProps) {
   const { t, formatDate, formatCurrency } = useLanguage();
 
@@ -132,6 +135,19 @@ export function BatchListTable({
                 </button>
               )}
             </>
+          )}
+          {row.status === "in_progress" && (
+            <button
+              type="button"
+              className="p-1 rounded hover:bg-white/10 text-[#FFD700] hover:text-yellow-300 transition-colors"
+              title={t("maintenance.action.repairItems")}
+              onClick={(e) => {
+                e.stopPropagation();
+                onRepairItems(row);
+              }}
+            >
+              <Wrench size={16} />
+            </button>
           )}
           {(row.status === "draft" || row.status === "in_progress") && (
             <button

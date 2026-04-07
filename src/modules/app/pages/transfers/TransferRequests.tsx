@@ -444,7 +444,7 @@ export function TransferRequests() {
                   <option value="">{isEs ? "Todos los estados" : "All statuses"}</option>
                   {(Object.keys(REQUEST_STATUS_LABEL) as TransferRequestStatus[]).map((s) => (
                     <option key={s} value={s}>
-                      {getRequestStatusLabel(s, isEs)}
+                      {getRequestStatusLabel(s, language)}
                     </option>
                   ))}
                 </select>
@@ -555,7 +555,7 @@ export function TransferRequests() {
                           </td>
                           <td className="px-4 py-3">
                             <StatusBadge
-                              label={getRequestStatusLabel(req.status, isEs)}
+                              label={getRequestStatusLabel(req.status, language)}
                               className={REQUEST_STATUS_CLASSES[req.status]}
                             />
                           </td>
@@ -593,7 +593,7 @@ export function TransferRequests() {
                   <option value="">{isEs ? "Todos los estados" : "All statuses"}</option>
                   {(Object.keys(TRANSFER_STATUS_LABEL) as TransferStatus[]).map((s) => (
                     <option key={s} value={s}>
-                      {getTransferStatusLabel(s, isEs)}
+                      {getTransferStatusLabel(s, language)}
                     </option>
                   ))}
                 </select>
@@ -672,7 +672,7 @@ export function TransferRequests() {
                           </td>
                           <td className="px-4 py-3">
                             <StatusBadge
-                              label={getTransferStatusLabel(tr.status, isEs)}
+                              label={getTransferStatusLabel(tr.status, isEs ? "es" : "en")}
                               className={TRANSFER_STATUS_CLASSES[tr.status]}
                             />
                           </td>

@@ -12,6 +12,7 @@ import {
 import IconButton from "../../../../components/ui/IconButton";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import type { Customer, DocumentTypeInfo } from "../../../../types/api";
+import { getCustomerStatusLabel } from "../../../../utils/statusLabels";
 
 interface CustomerTableProps {
   /** Customer rows. */
@@ -95,7 +96,12 @@ export function CustomerTable({
     {
       key: "status",
       header: isEs ? "Estado" : "Status",
-      render: (row) => <StatusBadge status={row.status} />,
+      render: (row) => (
+        <StatusBadge
+          status={row.status}
+          label={getCustomerStatusLabel(row.status, language)}
+        />
+      ),
     },
     {
       key: "actions",

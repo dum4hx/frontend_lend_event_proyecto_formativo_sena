@@ -15,13 +15,13 @@ export const REQUEST_STATUS_LABEL: Record<TransferRequestStatus, string> = {
   cancelled: "Cancelled",
 };
 
-export const getRequestStatusLabel = (status: TransferRequestStatus, isEs: boolean): string => {
+export const getRequestStatusLabel = (status: TransferRequestStatus, language: "en" | "es"): string => {
   const labels: Record<TransferRequestStatus, string> = {
-    requested: isEs ? "Solicitado" : "Requested",
-    approved: isEs ? "Aprobado" : "Approved",
-    rejected: isEs ? "Rechazado" : "Rejected",
-    fulfilled: isEs ? "Cumplido" : "Fulfilled",
-    cancelled: isEs ? "Cancelado" : "Cancelled",
+    requested: language === "es" ? "Solicitado" : "Requested",
+    approved: language === "es" ? "Aprobado" : "Approved",
+    rejected: language === "es" ? "Rechazado" : "Rejected",
+    fulfilled: language === "es" ? "Cumplido" : "Fulfilled",
+    cancelled: language === "es" ? "Cancelado" : "Cancelled",
   };
   return labels[status];
 };
@@ -43,14 +43,14 @@ export const CONDITION_LABEL: Record<TransferCondition, string> = {
   LOST: "Lost",
 };
 
-export const getConditionLabel = (condition: TransferCondition, isEs: boolean): string => {
+export const getConditionLabel = (condition: TransferCondition, language: "en" | "es"): string => {
   const labels: Record<TransferCondition, string> = {
     OK: "OK",
-    DAMAGED: isEs ? "Dañado" : "Damaged",
-    MISSING_PARTS: isEs ? "Piezas Faltantes" : "Missing Parts",
-    DIRTY: isEs ? "Sucio" : "Dirty",
-    REPAIR_REQUIRED: isEs ? "Reparación Requerida" : "Repair Required",
-    LOST: isEs ? "Perdido" : "Lost",
+    DAMAGED: language === "es" ? "Dañado" : "Damaged",
+    MISSING_PARTS: language === "es" ? "Piezas Faltantes" : "Missing Parts",
+    DIRTY: language === "es" ? "Sucio" : "Dirty",
+    REPAIR_REQUIRED: language === "es" ? "Reparación Requerida" : "Repair Required",
+    LOST: language === "es" ? "Perdido" : "Lost",
   };
   return labels[condition];
 };
@@ -62,12 +62,12 @@ export const TRANSFER_STATUS_LABEL: Record<TransferStatus, string> = {
   received: "Received",
 };
 
-export const getTransferStatusLabel = (status: TransferStatus, isEs: boolean): string => {
+export const getTransferStatusLabel = (status: TransferStatus, language: "en" | "es"): string => {
   const labels: Record<TransferStatus, string> = {
-    in_transit: isEs ? "En Tránsito" : "In Transit",
-    completed: isEs ? "Completado" : "Completed",
-    cancelled: isEs ? "Cancelado" : "Cancelled",
-    received: isEs ? "Recibido" : "Received",
+    in_transit: language === "es" ? "En Tránsito" : "In Transit",
+    completed: language === "es" ? "Completado" : "Completed",
+    cancelled: language === "es" ? "Cancelado" : "Cancelled",
+    received: language === "es" ? "Recibido" : "Received",
   };
   return labels[status];
 };

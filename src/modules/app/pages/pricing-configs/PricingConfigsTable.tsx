@@ -1,8 +1,15 @@
-import { Pencil, Trash2, Loader2 } from "lucide-react";
+import { Pencil, Trash2, Loader2, Building2, Layers, Package, Lock } from "lucide-react";
 import { IconButton, EntityLink } from "../../../../components/ui";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import { SCOPE_LABELS, STRATEGY_LABELS, getScopeBadgeStyle, formatStrategyParams } from "./helpers";
 import type { PricingConfig } from "./types";
+import type { PricingScope } from "./types";
+
+const SCOPE_ICONS: Record<PricingScope, typeof Building2> = {
+  organization: Building2,
+  materialType: Layers,
+  package: Package,
+};
 
 /** Props for PricingConfigsTable */
 interface PricingConfigsTableProps {
@@ -22,7 +29,8 @@ export function PricingConfigsTable({
   onEdit,
   onDelete,
 }: PricingConfigsTableProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const isEs = language === "es";
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -62,11 +70,21 @@ export function PricingConfigsTable({
               className="border-b border-[#333] hover:bg-[#1a1a1a] transition-colors"
             >
               <td className="px-4 py-3">
-                <span
-                  className={`px-2 py-0.5 rounded-full text-xs font-semibold ${getScopeBadgeStyle(config.scope)}`}
-                >
-                  {SCOPE_LABELS[config.scope]}
-                </span>
+                <div className="flex items-center gap-2">
+                  {(() => {
+                    const ScopeIcon = SCOPE_ICONS[config.scope];
+                    return <ScopeIcon size={14} className="text-[#FFD700]" />;
+                  })()}
+                  <span className="text-white font-medium text-sm">
+                    {SCOPE_LABELS[config.scope].replace(/\s*\(default\)/i, "")}
+                  </span>
+                  {config.scope === "organization" && (
+                    <span className="ml-1 px-2 py-0.5 bg-[#FFD700]/10 text-[#FFD700] text-xs rounded-full font-semibold flex items-center gap-1">
+                      <Lock size={10} />
+                      {isEs ? "Predeterminado" : "Default"}
+                    </span>
+                  )}
+                </div>
               </td>
               <td className="px-4 py-3">
                 {config.scope === "organization" ? (

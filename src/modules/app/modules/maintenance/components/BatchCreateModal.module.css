@@ -1,0 +1,5 @@
+/* Styles the native browser date picker calendar icon to match the #FFD700 primary colour. */
+.dateInput::-webkit-calendar-picker-indicator {
+  filter: invert(83%) sepia(95%) saturate(556%) hue-rotate(5deg) brightness(103%) contrast(104%);
+  cursor: pointer;
+}

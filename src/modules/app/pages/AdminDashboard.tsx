@@ -17,6 +17,7 @@ import { StatCard, AdminTable } from "../components";
 import { PageHeader, GreetingCard } from "../../../components/ui";
 import { useDashboardStats } from "../hooks/useDashboardStats";
 import { useLanguage } from "../../../contexts/useLanguage";
+import { getLoanRequestStatusLabel, getLoanStatusLabel } from "../../../utils/statusLabels";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -221,17 +222,7 @@ export default function AdminDashboard() {
                       <span
                         className={`text-xs px-2 py-0.5 rounded-full font-medium ${REQUEST_BADGE[req.status] ?? "bg-gray-500/20 text-gray-400"}`}
                       >
-                        {isEs
-                          ? req.status === "pending"
-                            ? "pendiente"
-                            : req.status === "approved"
-                              ? "aprobado"
-                              : req.status === "rejected"
-                                ? "rechazado"
-                                : req.status === "ready"
-                                  ? "listo"
-                                  : "cancelado"
-                          : req.status}
+                        {getLoanRequestStatusLabel(req.status, language)}
                       </span>
                     </td>
                   </tr>
@@ -401,15 +392,7 @@ export default function AdminDashboard() {
                     <span
                       className={`text-xs px-2 py-0.5 rounded-full font-medium ${LOAN_BADGE[loan.status] ?? "bg-gray-500/20 text-gray-400"}`}
                     >
-                      {isEs
-                        ? loan.status === "active"
-                          ? "activo"
-                          : loan.status === "overdue"
-                            ? "vencido"
-                            : loan.status === "returned"
-                              ? "devuelto"
-                              : "cerrado"
-                        : loan.status}
+                      {getLoanStatusLabel(loan.status, language)}
                     </span>
                   </td>
                 </tr>

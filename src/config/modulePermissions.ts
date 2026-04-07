@@ -150,7 +150,7 @@ export const allNavItems: NavItem[] = [
     id: "locations",
     label: "Locations",
     path: "/app/locations",
-    requiredPermissions: ["locations:read"],
+    requiredPermissions: ["locations:read", "locations:create", "locations:update"],
     section: "Warehouse",
   },
   {
