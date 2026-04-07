@@ -156,7 +156,7 @@
   "incidents.loan": "Prestamo",
   "incidents.loanPlaceholder": "Buscar prestamo...",
   "incidents.location": "Ubicacion",
-  "incidents.loanId": "ID del Prestamo",
+  "incidents.loanId": "Código del Préstamo",
   "incidents.materialInstances": "Instancias de Material",
   "incidents.materialInstancesNote": "Selecciona un prestamo primero para agregar instancias de material.",
   "incidents.financialImpact": "Impacto Financiero",

@@ -156,7 +156,7 @@
   "incidents.loan": "Loan",
   "incidents.loanPlaceholder": "Search loan...",
   "incidents.location": "Location",
-  "incidents.loanId": "Loan ID",
+  "incidents.loanId": "Loan Code",
   "incidents.materialInstances": "Material Instances",
   "incidents.materialInstancesNote": "Select a loan first to add material instances.",
   "incidents.financialImpact": "Financial Impact",
