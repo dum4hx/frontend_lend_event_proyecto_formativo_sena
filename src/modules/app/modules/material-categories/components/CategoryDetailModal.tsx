@@ -74,9 +74,9 @@ export const CategoryDetailModal: React.FC<CategoryDetailModalProps> = ({ catego
 
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-2">
-                {t("materialCategories.detail.categoryId")}
+                {t("materialCategories.form.categoryCode")}
               </label>
-              <p className="text-gray-400 text-sm font-mono">{category._id}</p>
+              <p className="text-white font-semibold text-lg font-mono">{category.code}</p>
             </div>
           </div>
 

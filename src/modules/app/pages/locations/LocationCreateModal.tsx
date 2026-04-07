@@ -10,6 +10,7 @@ import { useLanguage } from "../../../../contexts/useLanguage";
 import { useToast } from "../../../../contexts/ToastContext";
 import { useAuth } from "../../../../contexts/useAuth";
 import { validateLocationV2 } from "../../../../utils/validators";
+import type { TranslationKey } from "../../../../i18n/translations";
 import { createLocation as apiCreateLocation } from "../../../../services/warehouseOperatorService";
 import { useColombiaAddress } from "./useColombiaAddress";
 import { resolveCategoryName, buildCapacitiesFromTypes, applyBulkCapacityToRows } from "./helpers";
@@ -38,7 +39,7 @@ export function LocationCreateModal({
   materialTypes,
   categories,
 }: LocationCreateModalProps) {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const isEs = language === "es";
   const { showToast } = useToast();
   const { user } = useAuth();
@@ -94,12 +95,12 @@ export function LocationCreateModal({
     ...STREET_TYPES.map((st) => ({ value: st, label: st })),
   ];
 
-  const departmentOptions: SelectOption[] = colombia.filteredDepartments.map((d) => ({
+  const departmentOptions: SelectOption[] = colombia.departments.map((d) => ({
     value: d.id.toString(),
     label: d.name,
   }));
 
-  const cityOptions: SelectOption[] = colombia.filteredCities.map((c) => ({
+  const cityOptions: SelectOption[] = colombia.cities.map((c) => ({
     value: c.name,
     label: c.name,
   }));
@@ -186,11 +187,14 @@ export function LocationCreateModal({
       form.materialCapacities.forEach((c) => {
         if (c.maxQuantity === "") capErrors[`capacity_${c.materialTypeId}`] = "Required";
       });
+      const translatedValidationErrors = Object.fromEntries(
+        Object.entries(validation.errors).map(([k, v]) => [k, t(v as TranslationKey)]),
+      );
       const stateError = !form.address.state.trim()
         ? { "address.state": isEs ? "El departamento es obligatorio" : "Department is required" }
         : {};
       setFieldErrors({
-        ...validation.errors,
+        ...translatedValidationErrors,
         ...capErrors,
         ...stateError,
         ...(codeError ? { code: codeError } : {}),
@@ -360,9 +364,7 @@ export function LocationCreateModal({
                       const dept = colombia.departments.find((d) => d.id.toString() === v);
                       if (dept) {
                         colombia.setSelectedDepartment(v);
-                        colombia.setDepartmentQuery(dept.name);
                         updateAddress("state", dept.name);
-                        colombia.setCityQuery("");
                         updateAddress("city", "");
                         setFieldErrors((s) => ({ ...s, "address.state": undefined }));
                       }
@@ -384,7 +386,6 @@ export function LocationCreateModal({
                     value={form.address.city}
                     onChange={(v) => {
                       updateAddress("city", v);
-                      colombia.setCityQuery(v);
                       setFieldErrors((s) => ({ ...s, "address.city": undefined }));
                     }}
                     placeholder={

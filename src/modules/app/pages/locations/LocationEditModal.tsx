@@ -11,6 +11,7 @@ import { updateLocation as apiUpdateLocation } from "../../../../services/wareho
 import { useLanguage } from "../../../../contexts/useLanguage";
 import { useToast } from "../../../../contexts/ToastContext";
 import { validateLocationV2 } from "../../../../utils/validators";
+import type { TranslationKey } from "../../../../i18n/translations";
 import { useColombiaAddress } from "./useColombiaAddress";
 import { resolveCategoryName, applyBulkCapacityToRows, parseLegacyStreet } from "./helpers";
 import { STREET_TYPES, STATUS_OPTIONS } from "./types";
@@ -41,7 +42,7 @@ export function LocationEditModal({
   materialTypes,
   categories,
 }: LocationEditModalProps) {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const isEs = language === "es";
   const { showToast } = useToast();
 
@@ -249,11 +250,14 @@ export function LocationEditModal({
       form.materialCapacities.forEach((c) => {
         if (c.maxQuantity === "") capErrors[`capacity_${c.materialTypeId}`] = "Required";
       });
+      const translatedValidationErrors = Object.fromEntries(
+        Object.entries(validation.errors).map(([k, v]) => [k, t(v as TranslationKey)]),
+      );
       const stateError = !form.address.state.trim()
         ? { "address.state": isEs ? "El departamento es obligatorio" : "Department is required" }
         : {};
       setFieldErrors({
-        ...validation.errors,
+        ...translatedValidationErrors,
         ...capErrors,
         ...stateError,
         ...(codeError ? { code: codeError } : {}),

@@ -8,6 +8,7 @@ import { useAuth } from "../contexts/useAuth";
 import { getFirstAccessibleUrl } from "../utils/roleRouting";
 import { validateCode } from "../utils/validators";
 import { useLanguage } from "../contexts/useLanguage";
+import type { TranslationKey } from "../i18n/translations";
 import styles from "./SignUp.module.css";
 
 const OTP_LENGTH = 6;
@@ -16,7 +17,7 @@ const EXPIRY_SECONDS = 5 * 60; // 5 minutes
 export default function EmailVerification() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const isEs = language === "es";
   const { checkAuth } = useAuth();
 
@@ -29,16 +30,6 @@ export default function EmailVerification() {
   const [loading, setLoading] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(EXPIRY_SECONDS);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-
-  const mapValidationMessage = (message?: string) => {
-    if (!isEs || !message) return message;
-    const validationMap: Record<string, string> = {
-      "Code is required": "El codigo es obligatorio",
-      "Code must be exactly 6 digits": "El codigo debe tener exactamente 6 digitos",
-    };
-
-    return validationMap[message] ?? message;
-  };
 
   // Redirect to sign-up if no email in state
   useEffect(() => {
@@ -109,10 +100,7 @@ export default function EmailVerification() {
   const handleVerify = async () => {
     const validation = validateCode(code);
     if (!validation.isValid) {
-      setError(
-        mapValidationMessage(validation.message) ||
-          (isEs ? "Ingresa un codigo valido de 6 digitos" : "Please enter a valid 6-digit code"),
-      );
+      setError(t(validation.message as TranslationKey));
       return;
     }
 

@@ -79,7 +79,9 @@ export const IncidentDetailModal: React.FC<IncidentDetailModalProps> = ({
             </div>
             <div>
               <h2 className="text-lg font-bold text-white">{t("incidents.detail")}</h2>
-              <p className="text-xs text-gray-500 font-mono">{incident._id}</p>
+              <p className="text-xs text-gray-500 font-mono">
+                {incident.incidentNumber ?? `#${incident._id.slice(-8).toUpperCase()}`}
+              </p>
             </div>
           </div>
           <button

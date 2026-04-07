@@ -1,4 +1,5 @@
 import type { LoanRequest, Loan } from "../../../../types/api";
+import { getWorkflowStatusLabel } from "../../../../utils/statusLabels";
 
 export type WorkflowStatus =
   | "order_created"
@@ -46,43 +47,38 @@ export type MaterialAvailability = {
   available: number;
 };
 
-export const WORKFLOW_STEPS: Array<{ status: WorkflowStatus; label: string }> = [
-  { status: "order_created", label: "Order Created" },
-  { status: "order_deposit_pending", label: "Deposit Pending" },
-  { status: "order_approved", label: "Order Approved" },
-  { status: "order_assigned", label: "Materials Assigned" },
-  { status: "order_shipped", label: "Ready for Checkout" },
-  { status: "order_in_use", label: "Order In Use / Loaned" },
-  { status: "order_completed", label: "Order Completed / Delivered" },
+export const WORKFLOW_STEPS: Array<{ status: WorkflowStatus; labelEn: string; labelEs: string }> = [
+  { status: "order_created", labelEn: "Order Created", labelEs: "Pedido creado" },
+  { status: "order_deposit_pending", labelEn: "Deposit Pending", labelEs: "Depósito pendiente" },
+  { status: "order_approved", labelEn: "Order Approved", labelEs: "Pedido aprobado" },
+  { status: "order_assigned", labelEn: "Materials Assigned", labelEs: "Materiales asignados" },
+  { status: "order_shipped", labelEn: "Ready for Checkout", labelEs: "Listo para despacho" },
+  { status: "order_in_use", labelEn: "Order In Use / Loaned", labelEs: "Pedido en uso / prestado" },
+  {
+    status: "order_completed",
+    labelEn: "Order Completed / Delivered",
+    labelEs: "Pedido completado / entregado",
+  },
 ];
 
-export function getFilterOptions(isEs: boolean): Array<{ value: WorkflowFilter; label: string }> {
+export function getFilterOptions(
+  language: "en" | "es",
+): Array<{ value: WorkflowFilter; label: string }> {
+  const allLabel = language === "es" ? "Todos los estados" : "All Status";
   return [
-    { value: "all", label: isEs ? "Todos los estados" : "All Status" },
-    { value: "order_created", label: isEs ? "Pedido creado" : "Order Created" },
+    { value: "all", label: allLabel },
+    { value: "order_created", label: getWorkflowStatusLabel("order_created", language) },
     {
       value: "order_deposit_pending",
-      label: isEs ? "Deposito pendiente" : "Deposit Pending",
+      label: getWorkflowStatusLabel("order_deposit_pending", language),
     },
-    { value: "order_approved", label: isEs ? "Pedido aprobado" : "Order Approved" },
-    {
-      value: "order_assigned",
-      label: isEs ? "Materiales asignados" : "Materials Assigned",
-    },
-    {
-      value: "order_shipped",
-      label: isEs ? "Listo para despacho" : "Ready for Checkout",
-    },
-    {
-      value: "order_in_use",
-      label: isEs ? "Pedido en uso / prestado" : "Order In Use / Loaned",
-    },
-    {
-      value: "order_completed",
-      label: isEs ? "Pedido completado / entregado" : "Order Completed / Delivered",
-    },
-    { value: "order_rejected", label: isEs ? "Rechazado" : "Rejected" },
-    { value: "order_cancelled", label: isEs ? "Cancelado" : "Cancelled" },
+    { value: "order_approved", label: getWorkflowStatusLabel("order_approved", language) },
+    { value: "order_assigned", label: getWorkflowStatusLabel("order_assigned", language) },
+    { value: "order_shipped", label: getWorkflowStatusLabel("order_shipped", language) },
+    { value: "order_in_use", label: getWorkflowStatusLabel("order_in_use", language) },
+    { value: "order_completed", label: getWorkflowStatusLabel("order_completed", language) },
+    { value: "order_rejected", label: getWorkflowStatusLabel("order_rejected", language) },
+    { value: "order_cancelled", label: getWorkflowStatusLabel("order_cancelled", language) },
   ];
 }
 

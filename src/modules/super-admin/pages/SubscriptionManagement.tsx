@@ -42,6 +42,7 @@ import {
 } from "../../../utils/validators";
 import { useAuth } from "../../../contexts/useAuth";
 import { useLanguage } from "../../../contexts/useLanguage";
+import type { TranslationKey } from "../../../i18n/translations";
 import { useAlerts } from "../../../hooks/useAlerts";
 import { useAlertModal } from "../../../hooks/useAlertModal";
 import { ExportSettingsModal } from "../../../components/export/ExportSettingsModal";
@@ -436,7 +437,7 @@ type EditFields = Partial<Omit<SubscriptionType, "_id" | "plan">>;
 // ---------------------------------------------------------------------------
 
 export default function PlanConfiguration() {
-  const { language, locale } = useLanguage();
+  const { language, locale, t } = useLanguage();
   const isEs = language === "es";
   const [plans, setPlans] = useState<SubscriptionType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -586,9 +587,10 @@ export default function PlanConfiguration() {
     (key: keyof PlanValidationErrors, nextFields: Partial<CreateSubscriptionTypePayload>) => {
       const isCreateField = key === "plan" || key === "durationDays" || key === "billingModel";
       const errs = validatePlanFields(nextFields, isCreateField);
-      setCreateErrors((prev) => ({ ...prev, [key]: errs[key] }));
+      const raw = errs[key];
+      setCreateErrors((prev) => ({ ...prev, [key]: raw ? t(raw as TranslationKey) : raw }));
     },
-    [],
+    [t],
   );
 
   /**
@@ -597,9 +599,10 @@ export default function PlanConfiguration() {
   const liveEditField = useCallback(
     (key: keyof PlanValidationErrors, nextFields: Partial<CreateSubscriptionTypePayload>) => {
       const errs = validatePlanFields(nextFields, false);
-      setValidationErrors((prev) => ({ ...prev, [key]: errs[key] }));
+      const raw = errs[key];
+      setValidationErrors((prev) => ({ ...prev, [key]: raw ? t(raw as TranslationKey) : raw }));
     },
-    [],
+    [t],
   );
 
   // Start editing a plan — populate ALL patchable fields
@@ -634,7 +637,10 @@ export default function PlanConfiguration() {
   const saveEdit = async () => {
     if (!editingPlan) return;
 
-    const errors = validatePlanFields(editFields, false);
+    const rawErrors = validatePlanFields(editFields, false);
+    const errors = Object.fromEntries(
+      Object.entries(rawErrors).map(([k, v]) => [k, v ? t(v as TranslationKey) : v]),
+    ) as PlanValidationErrors;
     setValidationErrors(errors);
     if (hasErrors(errors)) return;
 
@@ -670,7 +676,10 @@ export default function PlanConfiguration() {
 
   // Create new plan
   const handleCreate = async () => {
-    const errors = validatePlanFields(createFields, true);
+    const rawErrors = validatePlanFields(createFields, true);
+    const errors = Object.fromEntries(
+      Object.entries(rawErrors).map(([k, v]) => [k, v ? t(v as TranslationKey) : v]),
+    ) as PlanValidationErrors;
     setCreateErrors(errors);
     if (hasErrors(errors)) return;
 

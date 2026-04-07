@@ -18,7 +18,7 @@ export function OrdersFilters({
   onStatusChange,
   isEs,
 }: OrdersFiltersProps) {
-  const filterOptions = getFilterOptions(isEs);
+  const filterOptions = getFilterOptions(isEs ? "es" : "en");
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_220px] gap-3 md:gap-4">

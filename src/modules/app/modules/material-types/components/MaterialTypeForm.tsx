@@ -13,6 +13,8 @@ import type {
   MaterialType,
 } from "../../../../../types/api";
 import { Button, IconButton, QuickCreateModal } from "../../../../../components/ui";
+import { validateMaterialTypeCode, validateCategoryCode } from "../../../../../utils/validators";
+import { useLanguage } from "../../../../../contexts/useLanguage";
 
 interface MaterialTypeFormProps {
   categories: MaterialCategory[];
@@ -38,6 +40,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
   onAttributeCreated,
 }) => {
   const [formData, setFormData] = useState<CreateMaterialTypePayload>({
+    code: "",
     name: "",
     description: "",
     categoryId: [],
@@ -47,17 +50,20 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAttributeForm, setShowAttributeForm] = useState(false);
   const [categorySearchInput, setCategorySearchInput] = useState("");
+  const [codeTouched, setCodeTouched] = useState(false);
 
   // Quick-create category modal state
   const [showQuickCreateCategory, setShowQuickCreateCategory] = useState(false);
   const [quickCategoryName, setQuickCategoryName] = useState("");
   const [quickCategoryDescription, setQuickCategoryDescription] = useState("");
+  const [quickCategoryCode, setQuickCategoryCode] = useState("");
   const [quickCategoryLoading, setQuickCategoryLoading] = useState(false);
   /** Locally-appended categories created via QuickCreateModal (merged with prop list). */
   const [localCategories, setLocalCategories] = useState<MaterialCategory[]>([]);
 
   const { showToast } = useToast();
   const { hasPermission } = usePermissions();
+  const { t } = useLanguage();
   const {
     attributes: allAttributes,
     addAttribute,
@@ -131,6 +137,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
       }
 
       setFormData({
+        code: (initialData as MaterialType).code || "",
         name: initialData.name || "",
         description: initialData.description || "",
         categoryId: categoryIds,
@@ -142,6 +149,11 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
 
   const handleQuickCreateCategory = async (e: React.FormEvent) => {
     e.preventDefault();
+    const codeResult = validateCategoryCode(quickCategoryCode);
+    if (!codeResult.isValid) {
+      showToast("error", t(codeResult.message!));
+      return;
+    }
     if (!quickCategoryName.trim() || !quickCategoryDescription.trim()) {
       showToast("error", "Name and description are required");
       return;
@@ -149,6 +161,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
     setQuickCategoryLoading(true);
     try {
       const res = await createMaterialCategory({
+        code: quickCategoryCode.trim(),
         name: quickCategoryName.trim(),
         description: quickCategoryDescription.trim(),
       });
@@ -164,6 +177,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
       setShowQuickCreateCategory(false);
       setQuickCategoryName("");
       setQuickCategoryDescription("");
+      setQuickCategoryCode("");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to create category";
       showToast("error", message);
@@ -174,6 +188,14 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setCodeTouched(true);
+    if (!isEditing) {
+      const codeResult = validateMaterialTypeCode(formData.code);
+      if (!codeResult.isValid) {
+        showToast("error", t(codeResult.message!));
+        return;
+      }
+    }
     if (!formData.name.trim()) {
       showToast("error", "Material name is required");
       return;
@@ -438,6 +460,47 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
                   />
                 </div>
 
+                {!isEditing && (
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] ml-1">
+                      {t("materialTypes.form.materialTypeCode")} *
+                    </label>
+                    <input
+                      type="text"
+                      data-help-id="material-types-form-code"
+                      value={formData.code}
+                      onChange={(e) => {
+                        const filtered = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+                        setFormData({ ...formData, code: filtered });
+                        setCodeTouched(true);
+                      }}
+                      maxLength={10}
+                      className={`w-full px-5 py-4 bg-[#1a1a1a] border rounded-xl text-white focus:outline-none focus:border-[#FFD700] focus:ring-1 focus:ring-[#FFD700]/20 transition-all ${
+                        codeTouched && !validateMaterialTypeCode(formData.code).isValid
+                          ? "border-red-500 bg-red-500/10"
+                          : "border-[#222]"
+                      }`}
+                      placeholder={t("materialTypes.form.codePlaceholder")}
+                      aria-invalid={codeTouched && !validateMaterialTypeCode(formData.code).isValid}
+                      aria-describedby={
+                        codeTouched && !validateMaterialTypeCode(formData.code).isValid
+                          ? "material-type-code-error"
+                          : undefined
+                      }
+                      required
+                    />
+                    {codeTouched && !validateMaterialTypeCode(formData.code).isValid ? (
+                      <p id="material-type-code-error" className="text-red-400 text-xs mt-1">
+                        {t(validateMaterialTypeCode(formData.code).message!)}
+                      </p>
+                    ) : (
+                      <p className="text-gray-500 text-xs mt-1">
+                        {t("materialTypes.form.codeHint")}
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] ml-1">
                     Daily Price (COP) *
@@ -638,6 +701,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
           setShowQuickCreateCategory(false);
           setQuickCategoryName("");
           setQuickCategoryDescription("");
+          setQuickCategoryCode("");
         }}
         title="New Category"
         hint="Create a category without leaving this form."
@@ -658,6 +722,36 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
               placeholder="e.g., Lighting"
               required
             />
+          </div>
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] ml-1">
+              {t("materialCategories.form.categoryCode")} *
+            </label>
+            <input
+              type="text"
+              value={quickCategoryCode}
+              onChange={(e) => {
+                const filtered = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+                setQuickCategoryCode(filtered);
+              }}
+              maxLength={10}
+              className={`w-full px-4 py-3 bg-[#1a1a1a] border rounded-xl text-white focus:outline-none focus:border-[#FFD700] focus:ring-1 focus:ring-[#FFD700]/20 transition-all ${
+                quickCategoryCode && !validateCategoryCode(quickCategoryCode).isValid
+                  ? "border-red-500 bg-red-500/10"
+                  : "border-[#222]"
+              }`}
+              placeholder={t("materialCategories.form.codePlaceholder")}
+              required
+            />
+            {quickCategoryCode && !validateCategoryCode(quickCategoryCode).isValid ? (
+              <p className="text-red-400 text-xs mt-1">
+                {t(validateCategoryCode(quickCategoryCode).message!)}
+              </p>
+            ) : (
+              <p className="text-gray-500 text-xs mt-1">
+                {t("materialCategories.form.codeHint")}
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] ml-1">

@@ -25,6 +25,7 @@ import {
   validatePhone,
   validateTaxId,
 } from "../../../../utils/validators";
+import type { TranslationKey } from "../../../../i18n/translations";
 import { loadPreferences, cloneDefaultPreferences, arePreferencesEqual } from "./helpers";
 import SettingsModulePanel from "./SettingsModulePanel";
 import { SETTING_MODULES, SETTINGS_STORAGE_KEY, ACTIVE_MODULE_STORAGE_KEY } from "./types";
@@ -194,21 +195,21 @@ export default function Settings() {
     const next: Partial<Record<AccountField, string>> = {};
 
     const firstNameV = validateFirstName(userData.firstName);
-    if (!firstNameV.isValid) next.firstName = firstNameV.message;
+    if (!firstNameV.isValid) next.firstName = t(firstNameV.message as TranslationKey);
 
     const firstSurnameV = validateLastName(userData.firstSurname);
-    if (!firstSurnameV.isValid) next.firstSurname = firstSurnameV.message;
+    if (!firstSurnameV.isValid) next.firstSurname = t(firstSurnameV.message as TranslationKey);
 
     const emailV = validateEmail(userData.email);
-    if (!emailV.isValid) next.email = emailV.message;
+    if (!emailV.isValid) next.email = t(emailV.message as TranslationKey);
 
     if (userData.phone) {
       const phoneV = validatePhone(userData.phone);
-      if (!phoneV.isValid) next.phone = phoneV.message;
+      if (!phoneV.isValid) next.phone = t(phoneV.message as TranslationKey);
     }
 
     return next;
-  }, [userData]);
+  }, [t, userData]);
 
   const isAccountValid = useMemo(() => Object.keys(accountErrors).length === 0, [accountErrors]);
 
@@ -217,25 +218,25 @@ export default function Settings() {
     const next: Partial<Record<OrgProfileField, string>> = {};
 
     const orgName = validateOrganizationName(orgData.name);
-    if (!orgName.isValid) next.name = orgName.message;
+    if (!orgName.isValid) next.name = t(orgName.message as TranslationKey);
 
     const legalName = validateLegalName(orgData.legalName);
-    if (!legalName.isValid) next.legalName = legalName.message;
+    if (!legalName.isValid) next.legalName = t(legalName.message as TranslationKey);
 
     const emailV = validateEmail(orgData.email);
-    if (!emailV.isValid) next.email = emailV.message;
+    if (!emailV.isValid) next.email = t(emailV.message as TranslationKey);
 
     const taxValue = orgData.taxId.trim();
     if (taxValue) {
       const taxV = validateTaxId(taxValue);
-      if (!taxV.isValid) next.taxId = taxV.message;
+      if (!taxV.isValid) next.taxId = t(taxV.message as TranslationKey);
     }
 
     const phoneV = validatePhone(orgData.phone || undefined);
-    if (!phoneV.isValid) next.phone = phoneV.message;
+    if (!phoneV.isValid) next.phone = t(phoneV.message as TranslationKey);
 
     return next;
-  }, [orgData]);
+  }, [t, orgData]);
 
   const isOrgProfileValid = useMemo(
     () => Object.keys(orgProfileErrors).length === 0,

@@ -263,6 +263,7 @@ export interface MaterialCategory {
   _id: string;
   organizationId: string;
   name: string;
+  code: string;
   description?: string;
   attributes: CategoryAttribute[];
   createdAt: string;
@@ -272,6 +273,7 @@ export interface MaterialCategory {
 /** Payload to create a new material category. */
 export interface CreateMaterialCategoryPayload {
   name: string;
+  code: string;
   description?: string;
   attributes?: CategoryAttribute[];
 }
@@ -294,6 +296,7 @@ export interface MaterialTypeAttribute {
 export interface MaterialType {
   _id: string;
   organizationId: string;
+  code: string;
   name: string;
   description: string;
   categoryId:
@@ -310,6 +313,7 @@ export interface MaterialType {
 
 /** Payload to create a new material type. */
 export interface CreateMaterialTypePayload {
+  code: string;
   name: string;
   description?: string;
   categoryId: string[];
@@ -637,6 +641,8 @@ export interface InspectionItemResponse {
 export interface Inspection {
   _id: string;
   organizationId: string;
+  /** Auto-generated inspection code from the active code scheme. */
+  inspectionNumber?: string;
   loanId: string;
   inspectedBy: {
     email: string;
@@ -720,6 +726,8 @@ export interface IncidentFinancialImpact {
 export interface Incident {
   _id: string;
   organizationId: string;
+  /** Auto-generated incident code from the active code scheme. */
+  incidentNumber?: string;
   context: IncidentContext;
   loanId?: string | Loan;
   locationId?: string;
@@ -910,6 +918,8 @@ export interface MaintenanceBatchItem {
 /** Full maintenance batch with populated references (detail view). */
 export interface MaintenanceBatch {
   _id: string;
+  /** Auto-generated batch code from the active code scheme. */
+  batchNumber?: string;
   name: string;
   status: MaintenanceBatchStatus;
   items: MaintenanceBatchItem[];
@@ -930,6 +940,8 @@ export interface MaintenanceBatch {
 /** Slim batch representation used in list responses. */
 export interface MaintenanceBatchListItem {
   _id: string;
+  /** Auto-generated batch code from the active code scheme. */
+  batchNumber?: string;
   name: string;
   status: MaintenanceBatchStatus;
   items: MaintenanceBatchItem[];
@@ -2260,7 +2272,14 @@ export interface CatalogOverviewResponse {
 // ─── Code Schemes ──────────────────────────────────────────────────────────
 
 /** The entity types a code scheme can target. */
-export type CodeSchemeEntityType = "loan" | "loan_request";
+export type CodeSchemeEntityType =
+  | "loan"
+  | "loan_request"
+  | "invoice"
+  | "inspection"
+  | "incident"
+  | "maintenance_batch"
+  | "material_instance";
 
 /** A code scheme returned by the API. */
 export interface CodeScheme {
@@ -2271,6 +2290,10 @@ export interface CodeScheme {
   pattern: string;
   isActive: boolean;
   isDefault: boolean;
+  /** Only for material_instance — scoped to a specific material type. */
+  materialTypeId: string | null;
+  /** Only for material_instance — scoped to a specific category. */
+  categoryId: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -2282,6 +2305,10 @@ export interface CreateCodeSchemePayload {
   pattern: string;
   isActive?: boolean;
   isDefault?: boolean;
+  /** Only for material_instance — scoped to a specific material type. */
+  materialTypeId?: string;
+  /** Only for material_instance — scoped to a specific category. */
+  categoryId?: string;
 }
 
 /** Payload for PUT /code-schemes/:id. Cannot change entityType. */

@@ -15,6 +15,10 @@ import { usePermissions } from "../../../../../contexts/usePermissions";
 import { useActionPermission } from "../../../../../hooks/useActionPermission";
 import Unauthorized from "../../../../../pages/Unauthorized";
 import { useToast } from "../../../../../hooks/useToast";
+import {
+  getIncidentStatusLabel,
+  getIncidentSeverityLabel,
+} from "../../../../../utils/statusLabels";
 import type {
   Incident,
   IncidentStatus,
@@ -319,10 +323,10 @@ export const IncidentsCatalog: React.FC = () => {
                       </span>
                     </td>
                     <td className="py-4 px-6">
-                      <StatusBadge status={inc.status} />
+                      <StatusBadge status={inc.status} label={getIncidentStatusLabel(inc.status, language as "en" | "es")} />
                     </td>
                     <td className="py-4 px-6">
-                      <StatusBadge status={inc.severity} />
+                      <StatusBadge status={inc.severity} label={getIncidentSeverityLabel(inc.severity, language as "en" | "es")} />
                     </td>
                     <td className="py-4 px-6">
                       <span className="text-xs text-gray-400 capitalize">

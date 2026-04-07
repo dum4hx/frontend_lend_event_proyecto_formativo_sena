@@ -2,7 +2,7 @@
  * statusLabels.ts — Central source of truth for bilingual status labels and
  * badge colour maps across the entire application.
  *
- * Pattern (mirrors maintenance/utils/statusMapper.ts — canonical):
+ * Pattern:
  *   Record<Status, { en: string; es: string }> + getXLabel(status, language)
  *
  * Color maps use `badge-*` utility classes expected by StatusBadge's colorMap prop.
@@ -36,6 +36,8 @@ import type {
   TransferCondition,
   CodeSchemeEntityType,
   OpsTaskPriority,
+  MaintenanceBatchStatus,
+  MaintenanceItemStatus,
 } from "../types/api";
 
 // ─── Primitives ────────────────────────────────────────────────────────────
@@ -500,6 +502,11 @@ export function getPaymentMethodStatusLabel(
 export const CODE_SCHEME_ENTITY_TYPE_MAP: Record<CodeSchemeEntityType, StatusLocale> = {
   loan: { en: "Loan", es: "Préstamo" },
   loan_request: { en: "Loan Request", es: "Solicitud de Préstamo" },
+  invoice: { en: "Invoice", es: "Factura" },
+  inspection: { en: "Inspection", es: "Inspección" },
+  incident: { en: "Incident", es: "Incidente" },
+  maintenance_batch: { en: "Maintenance Batch", es: "Lote de Mantenimiento" },
+  material_instance: { en: "Material Instance", es: "Instancia de Material" },
 };
 
 export function getCodeSchemeEntityTypeLabel(
@@ -527,4 +534,106 @@ export const OPS_TASK_PRIORITY_COLORS: Record<OpsTaskPriority, string> = {
 
 export function getOpsTaskPriorityLabel(priority: OpsTaskPriority, language: "en" | "es"): string {
   return getLabel(OPS_TASK_PRIORITY_MAP, priority, language);
+}
+
+// ─── Workflow Status (Orders module) ───────────────────────────────────────
+
+/** Composite workflow status for the Orders pipeline. */
+export type WorkflowStatus =
+  | "order_created"
+  | "order_deposit_pending"
+  | "order_approved"
+  | "order_assigned"
+  | "order_shipped"
+  | "order_in_use"
+  | "order_completed"
+  | "order_rejected"
+  | "order_cancelled";
+
+export const WORKFLOW_STATUS_MAP: Record<WorkflowStatus, StatusLocale> = {
+  order_created: { en: "Order Created", es: "Pedido creado" },
+  order_deposit_pending: { en: "Deposit Pending", es: "Depósito pendiente" },
+  order_approved: { en: "Order Approved", es: "Pedido aprobado" },
+  order_assigned: { en: "Materials Assigned", es: "Materiales asignados" },
+  order_shipped: { en: "Ready for Checkout", es: "Listo para despacho" },
+  order_in_use: { en: "Order In Use / Loaned", es: "Pedido en uso / prestado" },
+  order_completed: { en: "Order Completed / Delivered", es: "Pedido completado / entregado" },
+  order_rejected: { en: "Rejected", es: "Rechazado" },
+  order_cancelled: { en: "Cancelled", es: "Cancelado" },
+};
+
+export function getWorkflowStatusLabel(status: WorkflowStatus, language: "en" | "es"): string {
+  return getLabel(WORKFLOW_STATUS_MAP, status, language);
+}
+
+// ─── Location Status ───────────────────────────────────────────────────────
+
+export type LocationStatus = "available" | "full_capacity" | "maintenance" | "inactive";
+
+export const LOCATION_STATUS_MAP: Record<LocationStatus, StatusLocale> = {
+  available: { en: "Available", es: "Disponible" },
+  full_capacity: { en: "Full Capacity", es: "Capacidad llena" },
+  maintenance: { en: "Maintenance", es: "Mantenimiento" },
+  inactive: { en: "Inactive", es: "Inactivo" },
+};
+
+export const LOCATION_STATUS_COLORS: Record<LocationStatus, string> = {
+  available: "green",
+  full_capacity: "red",
+  maintenance: "yellow",
+  inactive: "gray",
+};
+
+export function getLocationStatusLabel(status: LocationStatus, language: "en" | "es"): string {
+  return getLabel(LOCATION_STATUS_MAP, status, language);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Maintenance Batch Status                                          */
+/* ------------------------------------------------------------------ */
+
+export const MAINTENANCE_BATCH_STATUS_MAP: Record<MaintenanceBatchStatus, StatusLocale> = {
+  draft: { en: "Draft", es: "Borrador" },
+  in_progress: { en: "In Progress", es: "En Progreso" },
+  completed: { en: "Completed", es: "Completado" },
+  cancelled: { en: "Cancelled", es: "Cancelado" },
+};
+
+export const MAINTENANCE_BATCH_STATUS_COLORS: Record<MaintenanceBatchStatus, string> = {
+  draft: "gray",
+  in_progress: "blue",
+  completed: "green",
+  cancelled: "red",
+};
+
+export function getMaintenanceBatchStatusLabel(
+  status: MaintenanceBatchStatus,
+  language: "en" | "es",
+): string {
+  return getLabel(MAINTENANCE_BATCH_STATUS_MAP, status, language);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Maintenance Item Status                                           */
+/* ------------------------------------------------------------------ */
+
+export const MAINTENANCE_ITEM_STATUS_MAP: Record<MaintenanceItemStatus, StatusLocale> = {
+  pending: { en: "Pending", es: "Pendiente" },
+  in_repair: { en: "In Repair", es: "En Reparación" },
+  repaired: { en: "Repaired", es: "Reparado" },
+  unrecoverable: { en: "Unrecoverable", es: "Irrecuperable" },
+};
+
+export const MAINTENANCE_ITEM_STATUS_COLORS: Record<MaintenanceItemStatus, string> = {
+  pending: "yellow",
+  in_repair: "blue",
+  repaired: "green",
+  unrecoverable: "red",
+};
+
+export function getMaintenanceItemStatusLabel(
+  status: MaintenanceItemStatus,
+  language: "en" | "es",
+): string {
+  return getLabel(MAINTENANCE_ITEM_STATUS_MAP, status, language);
 }

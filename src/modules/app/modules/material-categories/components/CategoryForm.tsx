@@ -4,7 +4,12 @@ import { useToast } from "../../../../../contexts/ToastContext";
 import { useLanguage } from "../../../../../contexts/useLanguage";
 import type { CreateMaterialCategoryPayload } from "../../../../../types/api";
 import { Button } from "../../../../../components/ui";
-import { validateCategoryName, validateCategoryDescription } from "../../../../../utils/validators";
+import {
+  validateCategoryName,
+  validateCategoryCode,
+  validateCategoryDescription,
+} from "../../../../../utils/validators";
+import type { TranslationKey } from "../../../../../i18n/translations";
 import { useMaterialAttributes } from "../../material-attributes/hooks/useMaterialAttributes";
 
 interface CategoryFormProps {
@@ -14,7 +19,7 @@ interface CategoryFormProps {
   isEditing?: boolean;
 }
 
-type CategoryFormField = "name" | "description";
+type CategoryFormField = "name" | "code" | "description";
 
 export const CategoryForm: React.FC<CategoryFormProps> = ({
   onSubmit,
@@ -24,11 +29,13 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
 }) => {
   const [formData, setFormData] = useState<CreateMaterialCategoryPayload>({
     name: "",
+    code: "",
     description: "",
     attributes: [],
   });
   const [touched, setTouched] = useState<Record<CategoryFormField, boolean>>({
     name: false,
+    code: false,
     description: false,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,6 +48,7 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
     if (initialData) {
       setFormData({
         name: initialData.name || "",
+        code: initialData.code || "",
         description: initialData.description || "",
         attributes: initialData.attributes || [],
       });
@@ -50,31 +58,40 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
   const fieldErrors = useMemo(() => {
     const errors: Record<CategoryFormField, string | null> = {
       name: null,
+      code: null,
       description: null,
     };
 
     if (touched.name) {
       const validation = validateCategoryName(formData.name);
       if (!validation.isValid) {
-        errors.name = validation.message ?? "Invalid category name";
+        errors.name = t(validation.message as TranslationKey);
+      }
+    }
+
+    if (touched.code && !isEditing) {
+      const validation = validateCategoryCode(formData.code);
+      if (!validation.isValid) {
+        errors.code = t(validation.message as TranslationKey);
       }
     }
 
     if (touched.description) {
       const validation = validateCategoryDescription(formData.description);
       if (!validation.isValid) {
-        errors.description = validation.message ?? "Invalid description";
+        errors.description = t(validation.message as TranslationKey);
       }
     }
 
     return errors;
-  }, [formData, touched]);
+  }, [formData, touched, isEditing]);
 
   const isFormValid = useMemo(() => {
     const nameValidation = validateCategoryName(formData.name);
+    const codeValidation = isEditing ? { isValid: true } : validateCategoryCode(formData.code);
     const descriptionValidation = validateCategoryDescription(formData.description);
-    return nameValidation.isValid && descriptionValidation.isValid;
-  }, [formData]);
+    return nameValidation.isValid && codeValidation.isValid && descriptionValidation.isValid;
+  }, [formData, isEditing]);
 
   const handleBlur = (field: CategoryFormField) => {
     setTouched((prev) => ({ ...prev, [field]: true }));
@@ -118,6 +135,7 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
 
     setTouched({
       name: true,
+      code: true,
       description: true,
     });
 
@@ -171,6 +189,46 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
           })}
         </p>
       </div>
+
+      {/* Code (create only — immutable after creation) */}
+      {!isEditing && (
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            {t("materialCategories.form.categoryCode")} <span className="text-red-400">*</span>
+          </label>
+          <input
+            type="text"
+            data-help-id="material-categories-form-code"
+            value={formData.code}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""),
+              })
+            }
+            onBlur={() => handleBlur("code")}
+            maxLength={10}
+            className={`w-full px-4 py-3 bg-[#1a1a1a] border rounded-lg text-white font-mono uppercase focus:outline-none transition-colors ${
+              touched.code && fieldErrors.code
+                ? "border-red-500 focus:border-red-500"
+                : "border-[#333] focus:border-[#FFD700]"
+            }`}
+            placeholder={t("materialCategories.form.codePlaceholder")}
+            disabled={isSubmitting}
+            aria-invalid={!!(touched.code && fieldErrors.code)}
+            aria-describedby={touched.code && fieldErrors.code ? "code-error" : "code-hint"}
+          />
+          {touched.code && fieldErrors.code ? (
+            <p id="code-error" className="mt-1 text-sm text-red-400">
+              {fieldErrors.code}
+            </p>
+          ) : (
+            <p id="code-hint" className="mt-1 text-xs text-gray-500">
+              {t("materialCategories.form.codeHint")}
+            </p>
+          )}
+        </div>
+      )}
 
       <div>
         <label className="block text-sm font-medium text-gray-300 mb-2">

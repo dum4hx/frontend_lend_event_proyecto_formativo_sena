@@ -1,6 +1,7 @@
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 import { X } from "lucide-react";
 import { useLanguage } from "../../../../contexts/useLanguage";
+import type { CodeSchemeEntityType } from "../../../../types/api";
 
 /** A token that can be inserted into the pattern. */
 interface PatternToken {
@@ -10,15 +11,20 @@ interface PatternToken {
   labelKey: string;
   /** Sample output for the preview */
   sample: string;
+  /** If true, only shown when entityType === "material_instance" */
+  materialOnly?: boolean;
 }
 
-const TOKENS: PatternToken[] = [
+const ALL_TOKENS: PatternToken[] = [
   { value: "{SEQ:4}", labelKey: "SEQ", sample: "0001" },
+  { value: "{SEQ}", labelKey: "SEQ_UNPADDED", sample: "1" },
   { value: "{YYYY}", labelKey: "YEAR", sample: "2026" },
   { value: "{YY}", labelKey: "YEAR", sample: "26" },
   { value: "{MM}", labelKey: "MONTH", sample: "04" },
   { value: "{DD}", labelKey: "DAY", sample: "06" },
   { value: "{LOCATION_CODE}", labelKey: "PREFIX", sample: "ABC" },
+  { value: "{TYPE_CODE}", labelKey: "TYPE_CODE", sample: "EQP", materialOnly: true },
+  { value: "{CATEGORY_CODE}", labelKey: "CATEGORY_CODE", sample: "AUD", materialOnly: true },
 ];
 
 const SEPARATORS = ["-", "/", "."];
@@ -28,6 +34,8 @@ interface PatternBuilderProps {
   value: string;
   /** Callback when pattern changes. */
   onChange: (pattern: string) => void;
+  /** The entity type — controls which tokens are visible. */
+  entityType: CodeSchemeEntityType;
 }
 
 /**
@@ -35,10 +43,15 @@ interface PatternBuilderProps {
  * Users click token buttons to append to the pattern string.
  * A live preview shows what the generated code would look like.
  */
-export default function PatternBuilder({ value, onChange }: PatternBuilderProps) {
+export default function PatternBuilder({ value, onChange, entityType }: PatternBuilderProps) {
   const { t, language } = useLanguage();
   const isEs = language === "es";
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const tokens = useMemo(
+    () => ALL_TOKENS.filter((tk) => !tk.materialOnly || entityType === "material_instance"),
+    [entityType],
+  );
 
   /** Insert a token at the cursor position, or append if no cursor. */
   const insertToken = (token: string) => {
@@ -62,7 +75,7 @@ export default function PatternBuilder({ value, onChange }: PatternBuilderProps)
   /** Build a preview string by replacing tokens with sample values. */
   const preview = (() => {
     let result = value;
-    for (const tk of TOKENS) {
+    for (const tk of ALL_TOKENS) {
       result = result.replaceAll(tk.value, tk.sample);
     }
     // Handle {SEQ} without padding
@@ -76,7 +89,7 @@ export default function PatternBuilder({ value, onChange }: PatternBuilderProps)
       <div data-help-id="code-scheme-pattern-tokens">
         <p className="text-xs text-gray-500 mb-2">{t("settings.codeSchemes.patternBuilderHint")}</p>
         <div className="flex flex-wrap gap-1.5">
-          {TOKENS.map((tk) => (
+          {tokens.map((tk) => (
             <button
               key={tk.value}
               type="button"

@@ -7,6 +7,7 @@ import { createRole, updateRole } from "../../../../services/roleService";
 import { normalizeError, logError } from "../../../../utils/errorHandling";
 import { validateRoleName } from "../../../../utils/validators";
 import type { Role, Permission } from "../../../../types/api";
+import type { TranslationKey } from "../../../../i18n/translations";
 
 interface RoleFormModalProps {
   mode: "create" | "edit";
@@ -198,7 +199,7 @@ export default function RoleFormModal({
 
     const nameValidation = validateRoleName(name);
     if (!nameValidation.isValid) {
-      setFieldError(nameValidation.message ?? "Invalid role name");
+      setFieldError(t(nameValidation.message as TranslationKey));
       return;
     }
 

@@ -2,8 +2,9 @@
  * Code Scheme service.
  *
  * Covers listing, fetching, creating, updating, deleting, and setting default
- * code schemes used to auto-generate human-readable codes for Loans and
- * Loan Requests.
+ * code schemes used to auto-generate human-readable codes for Loans,
+ * Loan Requests, Invoices, Inspections, Incidents, Maintenance Batches,
+ * and Material Instances.
  * All methods are organization-scoped and require authentication.
  */
 

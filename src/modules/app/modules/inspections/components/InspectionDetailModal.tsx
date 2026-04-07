@@ -39,7 +39,9 @@ export const InspectionDetailModal: React.FC<InspectionDetailModalProps> = ({
         <div className="sticky top-0 bg-[#121212] border-b border-[#333] p-6 flex items-center justify-between z-10">
           <div>
             <h2 className="text-2xl font-bold text-white">{t("inspections.detailsTitle")}</h2>
-            <p className="text-sm text-gray-400 font-mono mt-1">{inspection._id}</p>
+            <p className="text-sm text-gray-400 font-mono mt-1">
+              {inspection.inspectionNumber ?? inspection._id}
+            </p>
           </div>
           <button
             onClick={onClose}

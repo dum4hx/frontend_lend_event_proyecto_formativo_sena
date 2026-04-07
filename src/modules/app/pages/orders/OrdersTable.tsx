@@ -13,6 +13,7 @@ import { Button, IconButton, EntityLink, type ColumnDef } from "../../../../comp
 import { DataTable } from "../../../../components/ui";
 import { Pagination } from "../../../../components/ui";
 import { useActionPermission } from "../../../../hooks/useActionPermission";
+import { getWorkflowStatusLabel } from "../../../../utils/statusLabels";
 import type { OrderView } from "./types";
 import { formatDate, getStatusBadgeStyle } from "./helpers";
 
@@ -276,7 +277,7 @@ export function OrdersTable({
         <span
           className={`inline-flex items-center whitespace-nowrap px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadgeStyle(order.workflowStatus)}`}
         >
-          {order.workflowLabel}
+          {getWorkflowStatusLabel(order.workflowStatus, isEs ? "es" : "en")}
         </span>
       ),
     },

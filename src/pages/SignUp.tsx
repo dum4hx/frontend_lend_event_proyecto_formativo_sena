@@ -21,6 +21,7 @@ import {
   validateState,
 } from "../utils/validators";
 import { useLanguage } from "../contexts/useLanguage";
+import type { TranslationKey } from "../i18n/translations";
 import styles from "./SignUp.module.css";
 
 // --- Colombia API types & fetcher -------------------------------------------
@@ -195,7 +196,7 @@ const INITIAL_FIELD_VALIDATION_STATUS: Record<FormField, FieldValidationStatus> 
 };
 
 export default function SignUp() {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const isEs = language === "es";
   const navigate = useNavigate();
   const location = useLocation();
@@ -577,42 +578,44 @@ export default function SignUp() {
 
       const firstNameValidation = validateFirstName(data.firstName);
       if (!firstNameValidation.isValid && firstNameValidation.message) {
-        validationErrors.firstName = firstNameValidation.message;
+        validationErrors.firstName = t(firstNameValidation.message as TranslationKey);
       }
 
       const lastNameValidation = validateLastName(data.lastName);
       if (!lastNameValidation.isValid && lastNameValidation.message) {
-        validationErrors.lastName = lastNameValidation.message;
+        validationErrors.lastName = t(lastNameValidation.message as TranslationKey);
       }
 
       const ownerEmailValidation = validateEmail(data.ownerEmail);
       if (!ownerEmailValidation.isValid && ownerEmailValidation.message) {
-        validationErrors.ownerEmail = ownerEmailValidation.message;
+        validationErrors.ownerEmail = t(ownerEmailValidation.message as TranslationKey);
       }
 
       const ownerPhoneValidation = validateRequiredPhone(toColombianPhone(data.ownerPhone));
       if (!ownerPhoneValidation.isValid && ownerPhoneValidation.message) {
-        validationErrors.ownerPhone = ownerPhoneValidation.message;
+        validationErrors.ownerPhone = t(ownerPhoneValidation.message as TranslationKey);
       }
 
       const organizationNameValidation = validateOrganizationName(data.organizationName);
       if (!organizationNameValidation.isValid && organizationNameValidation.message) {
-        validationErrors.organizationName = organizationNameValidation.message;
+        validationErrors.organizationName = t(organizationNameValidation.message as TranslationKey);
       }
 
       const legalNameValidation = validateLegalName(data.legalName);
       if (!legalNameValidation.isValid && legalNameValidation.message) {
-        validationErrors.legalName = legalNameValidation.message;
+        validationErrors.legalName = t(legalNameValidation.message as TranslationKey);
       }
 
       const taxIdValidation = validateTaxId(data.taxId);
       if (!taxIdValidation.isValid && taxIdValidation.message) {
-        validationErrors.taxId = taxIdValidation.message;
+        validationErrors.taxId = t(taxIdValidation.message as TranslationKey);
       }
 
       const organizationEmailValidation = validateEmail(data.organizationEmail);
       if (!organizationEmailValidation.isValid && organizationEmailValidation.message) {
-        validationErrors.organizationEmail = organizationEmailValidation.message;
+        validationErrors.organizationEmail = t(
+          organizationEmailValidation.message as TranslationKey,
+        );
       }
 
       if (
@@ -628,7 +631,9 @@ export default function SignUp() {
       if (data.organizationPhone) {
         const organizationPhoneValidation = validatePhone(toColombianPhone(data.organizationPhone));
         if (!organizationPhoneValidation.isValid && organizationPhoneValidation.message) {
-          validationErrors.organizationPhone = organizationPhoneValidation.message;
+          validationErrors.organizationPhone = t(
+            organizationPhoneValidation.message as TranslationKey,
+          );
         }
       }
 
@@ -678,7 +683,7 @@ export default function SignUp() {
         !!selectedState && isNormalizedEqual(data.stateQuery, selectedState.name);
       const stateValidation = validateState(data.stateQuery, isStateSelected);
       if (!stateValidation.isValid && stateValidation.message) {
-        validationErrors.stateQuery = stateValidation.message;
+        validationErrors.stateQuery = t(stateValidation.message as TranslationKey);
       }
 
       if (!data.cityQuery.trim()) {
@@ -696,13 +701,13 @@ export default function SignUp() {
       } else {
         const postalValidation = validatePostalCode(data.postalCode);
         if (!postalValidation.isValid && postalValidation.message) {
-          validationErrors.postalCode = postalValidation.message;
+          validationErrors.postalCode = t(postalValidation.message as TranslationKey);
         }
       }
 
       const passwordValidation = validatePassword(data.password);
       if (!passwordValidation.isValid && passwordValidation.message) {
-        validationErrors.password = passwordValidation.message;
+        validationErrors.password = t(passwordValidation.message as TranslationKey);
       }
 
       const shouldValidateConfirmPassword =
@@ -713,7 +718,7 @@ export default function SignUp() {
           data.confirmPassword,
         );
         if (!confirmPasswordValidation.isValid && confirmPasswordValidation.message) {
-          validationErrors.confirmPassword = confirmPasswordValidation.message;
+          validationErrors.confirmPassword = t(confirmPasswordValidation.message as TranslationKey);
         }
       }
 

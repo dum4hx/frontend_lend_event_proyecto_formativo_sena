@@ -7,11 +7,12 @@ import { acceptInvite } from "../services/authService";
 import { ApiError } from "../lib/api";
 import { validatePassword } from "../utils/validators";
 import { useLanguage } from "../contexts/useLanguage";
+import type { TranslationKey } from "../i18n/translations";
 import styles from "./AcceptInvite.module.css";
 
 export default function AcceptInvite() {
   const navigate = useNavigate();
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const isEs = language === "es";
   const [searchParams] = useSearchParams();
   const [email, setEmail] = useState("");
@@ -21,24 +22,6 @@ export default function AcceptInvite() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  const mapValidationMessage = (message?: string) => {
-    if (!isEs || !message) return message;
-
-    const validationMap: Record<string, string> = {
-      "Password is required": "La contraseña es obligatoria",
-      "Password must be at least 8 characters": "La contraseña debe tener al menos 8 caracteres",
-      "Password must contain at least one uppercase letter":
-        "La contraseña debe incluir al menos una letra mayuscula",
-      "Password must contain at least one lowercase letter":
-        "La contraseña debe incluir al menos una letra minuscula",
-      "Password must contain at least one number": "La contraseña debe incluir al menos un numero",
-      "Password must contain at least one special character (!@#$%^&*.)":
-        "La contraseña debe incluir al menos un caracter especial (!@#$%^&*.)",
-    };
-
-    return validationMap[message] ?? message;
-  };
 
   // Extract email and token from URL on mount
   useEffect(() => {
@@ -65,10 +48,7 @@ export default function AcceptInvite() {
     // Validate password
     const passwordValidation = validatePassword(password);
     if (!passwordValidation.isValid) {
-      setError(
-        mapValidationMessage(passwordValidation.message) ||
-          (isEs ? "Validacion fallida" : "Validation failed"),
-      );
+      setError(t(passwordValidation.message as TranslationKey));
       return;
     }
 
