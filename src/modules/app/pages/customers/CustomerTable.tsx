@@ -97,10 +97,7 @@ export function CustomerTable({
       key: "status",
       header: isEs ? "Estado" : "Status",
       render: (row) => (
-        <StatusBadge
-          status={row.status}
-          label={getCustomerStatusLabel(row.status, language)}
-        />
+        <StatusBadge status={row.status} label={getCustomerStatusLabel(row.status, language)} />
       ),
     },
     {

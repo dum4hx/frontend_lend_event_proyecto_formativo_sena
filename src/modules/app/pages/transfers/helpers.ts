@@ -15,7 +15,10 @@ export const REQUEST_STATUS_LABEL: Record<TransferRequestStatus, string> = {
   cancelled: "Cancelled",
 };
 
-export const getRequestStatusLabel = (status: TransferRequestStatus, language: "en" | "es"): string => {
+export const getRequestStatusLabel = (
+  status: TransferRequestStatus,
+  language: "en" | "es",
+): string => {
   const labels: Record<TransferRequestStatus, string> = {
     requested: language === "es" ? "Solicitado" : "Requested",
     approved: language === "es" ? "Aprobado" : "Approved",

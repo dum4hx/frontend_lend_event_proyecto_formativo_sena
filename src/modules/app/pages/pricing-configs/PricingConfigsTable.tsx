@@ -1,7 +1,7 @@
 import { Pencil, Trash2, Loader2, Building2, Layers, Package, Lock } from "lucide-react";
 import { IconButton, EntityLink } from "../../../../components/ui";
 import { useLanguage } from "../../../../contexts/useLanguage";
-import { SCOPE_LABELS, STRATEGY_LABELS, getScopeBadgeStyle, formatStrategyParams } from "./helpers";
+import { SCOPE_LABELS, STRATEGY_LABELS, formatStrategyParams } from "./helpers";
 import type { PricingConfig } from "./types";
 import type { PricingScope } from "./types";
 

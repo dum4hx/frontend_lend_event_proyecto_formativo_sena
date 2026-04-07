@@ -5,7 +5,7 @@
  * user permissions (primary) or role name (legacy fallback).
  */
 
-import { allNavItems, getNavItemsByPrefix } from "../config/modulePermissions";
+import { getNavItemsByPrefix } from "../config/modulePermissions";
 
 // ---------------------------------------------------------------------------
 // Permission-based routing (preferred)

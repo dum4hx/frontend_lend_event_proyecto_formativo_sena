@@ -45,7 +45,7 @@ const roles: Role[] = [
   {
     _id: "role-owner",
     name: "owner",
-    permissions: ["*"] ,
+    permissions: ["*"],
     isReadOnly: true,
     type: "SYSTEM",
   },
@@ -132,9 +132,7 @@ beforeEach(() => {
 });
 
 describe("Team integration", () => {
-  it(
-    "invites a member with normalized payload and +57 phone prefix",
-    async () => {
+  it("invites a member with normalized payload and +57 phone prefix", async () => {
     const user = userEvent.setup();
     render(<Team />);
 
@@ -160,9 +158,7 @@ describe("Team integration", () => {
       roleId: "role-admin",
       locations: ["location-main"],
     });
-    },
-    10000,
-  );
+  }, 10000);
 
   it("edits a member and updates both profile and role", async () => {
     const user = userEvent.setup();

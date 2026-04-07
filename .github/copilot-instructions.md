@@ -65,6 +65,150 @@ This document defines:
 - CSS Modules for component-specific styles
 - Global reusable classes defined in `src/index.css` via `@layer components`
 
+### ✔️ Input Validation & Utilities
+
+**Every input field must implement both visual and logical validation.** Input validation is mandatory and non-negotiable — validation failures are blocking defects.
+
+#### Validation Architecture
+
+All validators are **centralized** in [`src/utils/validators.ts`](../src/utils/validators.ts) and exported via [`src/utils/index.ts`](../src/utils/index.ts). Each validator returns a typed `ValidationResult`:
+
+```ts
+interface ValidationResult {
+  isValid: boolean;
+  message?: string;
+}
+```
+
+#### Available Validators (Check These First!)
+
+**Before creating custom validators, agents MUST check if a validator exists for the field intent.**
+
+| Validator                   | Location                | Purpose                                                    | Example Usage                                  |
+| --------------------------- | ----------------------- | ---------------------------------------------------------- | ---------------------------------------------- |
+| `validateEmail`             | `src/utils/validators.ts` | Email format validation                                    | `validateEmail(email)`                         |
+| `validatePassword`          | `src/utils/validators.ts` | Strong password (8+ chars, uppercase, number, special)     | `validatePassword(password)`                   |
+| `validateConfirmPassword`   | `src/utils/validators.ts` | Password match validation                                  | `validateConfirmPassword(pwd, confirmPwd)`     |
+| `validateFirstName`         | `src/utils/validators.ts` | Name (2-50 chars, letters + accents only)                  | `validateFirstName(firstName)`                 |
+| `validateLastName`          | `src/utils/validators.ts` | Last name (2-50 chars, letters + accents only)             | `validateLastName(lastName)`                   |
+| `validateOrganizationName`  | `src/utils/validators.ts` | Org name (2-100 chars, no special chars)                   | `validateOrganizationName(orgName)`            |
+| `validateRoleName`          | `src/utils/validators.ts` | Role name (2-100 chars, alphanumeric + spaces)             | `validateRoleName(roleName)`                   |
+| `validateTaxId`             | `src/utils/validators.ts` | Tax ID (9-11 digits, hyphens allowed)                      | `validateTaxId(taxId)`                         |
+| `validateAddressField`      | `src/utils/validators.ts` | Generic address field (2+ chars)                           | `validateAddressField(address, "Street")`      |
+| `validateState`             | `src/utils/validators.ts` | Colombian departamento selection                           | `validateState(state, isSelected)`             |
+| `validateLegalName`         | `src/utils/validators.ts` | Legal/company registration name (2-150 chars)              | `validateLegalName(legalName)`                 |
+| `validatePhone`             | `src/utils/validators.ts` | Optional phone (Colombian format: +57 3XXXXXXXXX)          | `validatePhone(phone)`                         |
+| `validateRequiredPhone`     | `src/utils/validators.ts` | Required phone (Colombian format)                          | `validateRequiredPhone(phone)`                 |
+| `validatePostalCode`        | `src/utils/validators.ts` | Postal code (numbers only)                                 | `validatePostalCode(postalCode)`               |
+
+#### Rules for Input Fields
+
+1. **Import validators from `src/utils`** — never inline validation logic:
+   ```ts
+   import { validateEmail, validatePassword } from "src/utils/validators";
+   ```
+
+2. **Check existing validators first** — if the field intent is covered (email, name, phone, etc.), use it. Never duplicate validation logic across components.
+
+3. **On every keystroke, apply logical validation** (real-time feedback):
+   ```tsx
+   const [email, setEmail] = useState("");
+   const [emailError, setEmailError] = useState<string | undefined>();
+
+   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+     const value = e.target.value;
+     setEmail(value);
+     const result = validateEmail(value);
+     setEmailError(result.isValid ? undefined : result.message);
+   };
+   ```
+
+4. **Render error state visually** (both input styling and error message):
+   ```tsx
+   <input
+     type="email"
+     value={email}
+     onChange={handleEmailChange}
+     className={`input ${emailError ? "border-error bg-error/10" : ""}`}
+     aria-invalid={!!emailError}
+     aria-describedby={emailError ? "email-error" : undefined}
+   />
+   {emailError && (
+     <p id="email-error" className="text-error text-sm mt-1">
+       {emailError}
+     </p>
+   )}
+   ```
+
+5. **Disable submit button until all validations pass**:
+   ```tsx
+   const isFormValid =
+     !validateEmail(email).message &&
+     !validatePassword(password).message &&
+     !validateConfirmPassword(password, confirmPassword).message;
+
+   <button
+     type="submit"
+     disabled={!isFormValid}
+     className={`btn-primary ${!isFormValid ? "opacity-50 cursor-not-allowed" : ""}`}
+   >
+     {t("common.submit")}
+   </button>
+   ```
+
+6. **For custom validators not in the standard library**, create them in `src/utils/validators.ts` (not inline in components):
+   - Return `ValidationResult` interface
+   - Follow the same naming pattern: `validate<FieldName>`
+   - Add JSDoc with rules and examples
+   - Export from `src/utils/index.ts`
+   - Reuse it across all components that need the same field type
+
+   Example custom validator:
+   ```ts
+   /**
+    * Quantity validator for materials (1-9999 items)
+    */
+   export const validateQuantity = (quantity: string | number): ValidationResult => {
+     const num = Number(quantity);
+     if (isNaN(num)) {
+       return { isValid: false, message: "Quantity must be a number" };
+     }
+     if (num < 1 || num > 9999) {
+       return { isValid: false, message: "Quantity must be 1–9999" };
+     }
+     return { isValid: true };
+   };
+   ```
+
+7. **Server-side validation errors** must also be rendered with the same error styling:
+   ```tsx
+   const handleSubmit = async (e: React.FormEvent) => {
+     e.preventDefault();
+     try {
+       await createCustomer(formData);
+     } catch (error) {
+       if (error instanceof ApiError && error.status === 400) {
+         // Parse server validation error and apply to field
+         setEmailError(error.message);
+       }
+     }
+   };
+   ```
+
+#### Validator Checklist
+
+Before submitting any PR:
+
+- [ ] All input fields use a validator from `src/utils/validators.ts`
+- [ ] No inline validation logic; all reusable validators are centralized
+- [ ] Real-time validation feedback on keystroke (not just on blur)
+- [ ] Error messages are user-friendly and reference `t()` for i18n
+- [ ] Submit button is disabled when any validation fails
+- [ ] Error state is visually distinct (red border, error text, aria-invalid)
+- [ ] Custom validators are added to `src/utils/validators.ts` and exported
+- [ ] API validation errors are caught and rendered in the form
+- [ ] All validators have JSDoc explaining their rules
+
 ### 🔐 Permission Guards
 
 Every action button (create, edit, delete, approve, etc.) **must** be integrated with the permission guard system. Rendering an action button without gating it behind the appropriate permission is a blocking defect.
@@ -175,6 +319,10 @@ Before any PR:
 - Help content file for the modified module is created/updated with bilingual `HelpText` values, walkthrough steps, and form guides
 - JSX elements targeted by help selectors carry `data-help-id` attributes
 - Every action button is guarded with the correct permission key via `PermissionGuardedButton` or `useActionPermission`
+- **Every input field validates using validators from `src/utils/validators.ts`** (no inline validation)
+- **Real-time validation feedback on keystroke; submit disabled until all validations pass**
+- **Error states are visually distinct** (red borders, error text, aria-invalid attributes)
+- **Custom validators are added to `src/utils/validators.ts` and properly exported** (not duplicated across components)
 
 ---
 
@@ -202,6 +350,22 @@ Before any PR:
 2. Return typed object/array (not tuple unless necessary)
 3. Include JSDoc explaining purpose and usage
 4. Export from component or service consumers
+
+### Adding a New Form Field
+
+1. **Check `src/utils/validators.ts` first** — if a validator exists for your field intent, use it
+2. **If no validator exists**, add a custom one to `src/utils/validators.ts` and export it from `src/utils/index.ts`
+3. **Implement real-time validation on keystroke** (not on blur):
+   - Import validator from `src/utils`
+   - Maintain both field state and error state in component
+   - Update error state on every change, not just submission
+4. **Apply visual error styling**:
+   - Add `border-error bg-error/10` classes to input when error exists
+   - Render error message below field with `text-error` class
+   - Add `aria-invalid` and `aria-describedby` attributes
+5. **Disable submit button** until all field validations pass
+6. **Handle server-side validation errors** by catching `ApiError` and applying to the matching field error state
+7. **Reference in translation files** — all error messages must use `t()` for i18n support
 
 ---
 

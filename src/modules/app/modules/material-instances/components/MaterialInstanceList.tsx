@@ -1,9 +1,10 @@
 import React, { useEffect, useRef } from "react";
 import { Eye, Edit, Printer, Trash2 } from "lucide-react";
-import { type MaterialInstance, MATERIAL_INSTANCE_STATUS_LABELS } from "../../../../../types/api";
+import type { MaterialInstance } from "../../../../../types/api";
 import { AdminTable } from "../../../components";
 import { MaterialBarcode } from "./MaterialBarcode";
 import { useLanguage } from "../../../../../contexts/useLanguage";
+import { getMaterialInstanceStatusLabel } from "../../../../../utils/statusLabels";
 import { PermissionGuardedButton } from "../../../../../components/ui";
 
 interface MaterialInstanceListProps {
@@ -29,7 +30,7 @@ export const MaterialInstanceList: React.FC<MaterialInstanceListProps> = ({
   onToggleSelect,
   onToggleSelectAll,
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const selectAllRef = useRef<HTMLInputElement | null>(null);
 
   const getStatusColor = (status: string) => {
@@ -143,7 +144,7 @@ export const MaterialInstanceList: React.FC<MaterialInstanceListProps> = ({
             <td className="py-4 px-4 text-gray-400">{instance.locationId?.name || "Unknown"}</td>
             <td className="py-4 px-4">
               <span className={`font-semibold ${getStatusColor(instance.status)}`}>
-                {MATERIAL_INSTANCE_STATUS_LABELS[instance.status]}
+                {getMaterialInstanceStatusLabel(instance.status, language)}
               </span>
             </td>
             <td className="py-4 px-4">

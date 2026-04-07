@@ -19,8 +19,7 @@ import { useLanguage } from "../../../contexts/useLanguage";
 import { useAuth } from "../../../contexts/useAuth";
 import { logError, normalizeError } from "../../../utils/errorHandling";
 import { useTheme } from "../../../contexts/useTheme";
-import { isApiError } from "../../../lib/api";
-import type { ApiResponse, ApiErrorResponse } from "../../../lib/api";
+import { ApiError } from "../../../lib/api";
 import type { PlatformHealth, PlatformOverview } from "../../../types/api";
 import type { SupportedLanguage } from "../../../i18n/translations";
 
@@ -251,8 +250,8 @@ export default function SystemSettings() {
       setPasswordSaved(true);
       setTimeout(() => setPasswordSaved(false), 3000);
     } catch (err: unknown) {
-      if (err && typeof err === "object" && "success" in err && isApiError(err as ApiResponse<unknown>)) {
-        setPasswordError((err as ApiErrorResponse).message);
+      if (err instanceof ApiError) {
+        setPasswordError(err.message);
       } else {
         logError(err, "SystemSettings.handleChangePassword");
       }

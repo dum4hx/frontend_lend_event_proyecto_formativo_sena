@@ -525,9 +525,6 @@ export const OPS_TASK_PRIORITY_COLORS: Record<OpsTaskPriority, string> = {
   low: "badge-info",
 };
 
-export function getOpsTaskPriorityLabel(
-  priority: OpsTaskPriority,
-  language: "en" | "es",
-): string {
+export function getOpsTaskPriorityLabel(priority: OpsTaskPriority, language: "en" | "es"): string {
   return getLabel(OPS_TASK_PRIORITY_MAP, priority, language);
 }

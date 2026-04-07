@@ -2,10 +2,11 @@ import React, { useState, useEffect } from "react";
 import { X, Info } from "lucide-react";
 import {
   type MaterialInstance,
-  MATERIAL_INSTANCE_STATUS_LABELS,
   type MaterialAttribute,
   type MaterialType,
 } from "../../../../../types/api";
+import { getMaterialInstanceStatusLabel } from "../../../../../utils/statusLabels";
+import { useLanguage } from "../../../../../contexts/useLanguage";
 import { MaterialBarcode } from "./MaterialBarcode";
 import { getMaterialAttributes, getMaterialTypes } from "../../../../../services/materialService";
 import { EntityLink } from "../../../../../components/ui";
@@ -19,6 +20,7 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
   instance,
   onClose,
 }) => {
+  const { language } = useLanguage();
   const [attributeDefinitions, setAttributeDefinitions] = useState<MaterialAttribute[]>([]);
   const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
   const [loadingAttributes, setLoadingAttributes] = useState(false);
@@ -85,7 +87,7 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-2">Status</label>
               <p className={`font-bold text-lg ${getStatusColor(instance.status)}`}>
-                {MATERIAL_INSTANCE_STATUS_LABELS[instance.status]}
+                {getMaterialInstanceStatusLabel(instance.status, language)}
               </p>
             </div>
           </div>
