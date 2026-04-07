@@ -26,15 +26,15 @@ export default function AcceptInvite() {
     if (!isEs || !message) return message;
 
     const validationMap: Record<string, string> = {
-      "Password is required": "La contrasena es obligatoria",
-      "Password must be at least 8 characters": "La contrasena debe tener al menos 8 caracteres",
+      "Password is required": "La contraseña es obligatoria",
+      "Password must be at least 8 characters": "La contraseña debe tener al menos 8 caracteres",
       "Password must contain at least one uppercase letter":
-        "La contrasena debe incluir al menos una letra mayuscula",
+        "La contraseña debe incluir al menos una letra mayuscula",
       "Password must contain at least one lowercase letter":
-        "La contrasena debe incluir al menos una letra minuscula",
-      "Password must contain at least one number": "La contrasena debe incluir al menos un numero",
+        "La contraseña debe incluir al menos una letra minuscula",
+      "Password must contain at least one number": "La contraseña debe incluir al menos un numero",
       "Password must contain at least one special character (!@#$%^&*.)":
-        "La contrasena debe incluir al menos un caracter especial (!@#$%^&*.)",
+        "La contraseña debe incluir al menos un caracter especial (!@#$%^&*.)",
     };
 
     return validationMap[message] ?? message;
@@ -74,7 +74,7 @@ export default function AcceptInvite() {
 
     // Confirm password match
     if (password !== confirmPassword) {
-      setError(isEs ? "Las contrasenas no coinciden" : "Passwords do not match");
+      setError(isEs ? "Las contraseñas no coinciden" : "Passwords do not match");
       return;
     }
 
@@ -117,7 +117,7 @@ export default function AcceptInvite() {
               {isEs ? "Activar cuenta" : "Activate Account"}
             </h1>
             <p className="text-gray-400">
-              {isEs ? "Define tu contrasena para comenzar" : "Set your password to get started"}
+              {isEs ? "Define tu contraseña para comenzar" : "Set your password to get started"}
             </p>
           </div>
 
@@ -161,7 +161,7 @@ export default function AcceptInvite() {
                     htmlFor="password"
                     className="block text-sm font-medium text-gray-300 mb-2"
                   >
-                    {isEs ? "Contrasena" : "Password"}
+                    {isEs ? "Contraseña" : "Password"}
                   </label>
                   <input
                     id="password"
@@ -185,7 +185,7 @@ export default function AcceptInvite() {
                     htmlFor="confirmPassword"
                     className="block text-sm font-medium text-gray-300 mb-2"
                   >
-                    {isEs ? "Confirmar contrasena" : "Confirm Password"}
+                    {isEs ? "Confirmar contraseña" : "Confirm Password"}
                   </label>
                   <input
                     id="confirmPassword"
@@ -193,7 +193,7 @@ export default function AcceptInvite() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     className="w-full bg-[#1a1a1a] border border-[#333] text-white rounded-lg px-4 py-3 focus:outline-none focus:border-[#FFD700] focus:ring-1 focus:ring-[#FFD700] transition-all"
-                    placeholder={isEs ? "Repite tu contrasena" : "Repeat your password"}
+                    placeholder={isEs ? "Repite tu contraseña" : "Repeat your password"}
                     required
                     disabled={loading || !email || !token}
                   />

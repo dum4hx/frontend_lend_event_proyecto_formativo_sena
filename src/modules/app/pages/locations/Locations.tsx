@@ -28,6 +28,7 @@ import { usePermissions } from "../../../../contexts/usePermissions";
 import { useAuth } from "../../../../contexts/useAuth";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import { useToast } from "../../../../contexts/ToastContext";
+import { useActionPermission } from "../../../../hooks/useActionPermission";
 import Unauthorized from "../../../../pages/Unauthorized";
 
 import { LocationsFilters } from "./LocationsFilters";
@@ -49,6 +50,7 @@ export function Locations() {
   const { language } = useLanguage();
   const isEs = language === "es";
   const { showToast } = useToast();
+  const { guard, isAllowed } = useActionPermission(isEs ? "es" : "en");
 
   // ---- Data ----
   const [locations, setLocations] = useState<WarehouseLocation[]>([]);
@@ -420,8 +422,9 @@ export function Locations() {
                 </button>
                 {hasPermission("locations:create") && (
                   <button
-                    onClick={() => setCreateOpen(true)}
-                    className="flex items-center gap-2 bg-[#FFD700] text-black font-semibold px-4 py-2 rounded-lg hover:bg-[#FFC107] transition-all"
+                    onClick={guard("locations:create", () => setCreateOpen(true))}
+                    aria-disabled={!isAllowed("locations:create")}
+                    className={`flex items-center gap-2 bg-[#FFD700] text-black font-semibold px-4 py-2 rounded-lg hover:bg-[#FFC107] transition-all ${!isAllowed("locations:create") ? "opacity-50 cursor-not-allowed" : ""}`}
                   >
                     <Plus size={20} />
                     {isEs ? "Agregar ubicación" : "Add Location"}
@@ -508,7 +511,10 @@ export function Locations() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div data-help-id="locations-pagination" className="flex justify-center items-center gap-2 pt-4">
+              <div
+                data-help-id="locations-pagination"
+                className="flex justify-center items-center gap-2 pt-4"
+              >
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
@@ -600,7 +606,10 @@ export function Locations() {
 
         {/* Import modal */}
         {showImportModal && (
-          <div data-help-id="locations-import-modal" className="fixed inset-0 flex items-center justify-center z-50 bg-black/60 backdrop-blur-sm">
+          <div
+            data-help-id="locations-import-modal"
+            className="fixed inset-0 flex items-center justify-center z-50 bg-black/60 backdrop-blur-sm"
+          >
             <div className="bg-[#1a1a1a] border border-[#333] rounded-xl p-6 w-full max-w-md shadow-2xl">
               <h3 className="text-lg font-bold text-white mb-4">
                 {isEs ? "Importar ubicaciones" : "Import Locations"}

@@ -65,6 +65,103 @@ This document defines:
 - CSS Modules for component-specific styles
 - Global reusable classes defined in `src/index.css` via `@layer components`
 
+### 🔐 Permission Guards
+
+Every action button (create, edit, delete, approve, etc.) **must** be integrated with the permission guard system. Rendering an action button without gating it behind the appropriate permission is a blocking defect.
+
+#### Available tools
+
+| Tool                      | Location                                        | When to use                                                             |
+| ------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------- |
+| `PermissionGuardedButton` | `src/components/ui/PermissionGuardedButton.tsx` | Icon-style action buttons in tables and detail panels                   |
+| `useActionPermission`     | `src/hooks/useActionPermission.ts`              | Custom buttons / inline elements that are not `PermissionGuardedButton` |
+| `usePermissions`          | `src/contexts/usePermissions.ts`                | Conditional rendering (show/hide entire sections)                       |
+| `RequirePermission`       | `src/utils/permissionGuard.tsx`                 | Route-level access guard (wraps a whole page)                           |
+
+#### Rules
+
+1. **Prefer `PermissionGuardedButton`** for icon-based row actions (edit, delete, view, approve, reject). It handles `aria-disabled`, the denied toast, and the lock badge automatically.
+2. **Use `useActionPermission`** for primary call-to-action buttons (e.g. "Create", "Export") that are not `PermissionGuardedButton`. Always derive the locale from `useLanguage()`:
+   ```tsx
+   const { language } = useLanguage();
+   const { guard, isAllowed } = useActionPermission(language === "es" ? "es" : "en");
+   ```
+3. **Never use `disabled` on guarded buttons.** Use `aria-disabled={!isAllowed("perm:key")}` and render the denied state visually with `opacity-50 cursor-not-allowed` so click events still reach the toast handler.
+4. **Use `usePermissions`** (`hasPermission` / `hasAnyPermission`) only for conditional rendering of entire sections, not for individual button actions.
+5. **Match the exact permission key** from `docs/PERMISSIONS_REFERENCE.md`. Never invent permission keys. Consult the table below.
+6. **Route guards** (`RequirePermission`) are already set up for pages — do not re-check the read permission inside the page body; only gate write/mutating actions.
+
+#### Permission key reference
+
+| Module              | Read                       | Create                       | Update                       | Delete                       | Special                                                           |
+| ------------------- | -------------------------- | ---------------------------- | ---------------------------- | ---------------------------- | ----------------------------------------------------------------- |
+| Analytics           | `analytics:read`           | —                            | —                            | —                            | —                                                                 |
+| Customers           | `customers:read`           | `customers:create`           | `customers:update`           | `customers:delete`           | —                                                                 |
+| Users / Team        | `users:read`               | `users:create`               | `users:update`               | `users:delete`               | —                                                                 |
+| Roles               | `roles:read`               | `roles:create`               | `roles:update`               | `roles:delete`               | —                                                                 |
+| Permissions         | `permissions:read`         | `permissions:create`         | `permissions:update`         | `permissions:delete`         | —                                                                 |
+| Organization        | `organization:read`        | —                            | `organization:update`        | `organization:delete`        | —                                                                 |
+| Materials           | `materials:read`           | `materials:create`           | `materials:update`           | `materials:delete`           | —                                                                 |
+| Material Attributes | `material_attributes:read` | `material_attributes:create` | `material_attributes:update` | `material_attributes:delete` | —                                                                 |
+| Maintenance         | `maintenance:read`         | `maintenance:create`         | `maintenance:update`         | `maintenance:delete`         | `maintenance:resolve`                                             |
+| Inspections         | `inspections:read`         | `inspections:create`         | `inspections:update`         | —                            | —                                                                 |
+| Incidents           | `incidents:read`           | `incidents:create`           | `incidents:update`           | —                            | `incidents:acknowledge`, `incidents:resolve`, `incidents:dismiss` |
+| Operations          | `operations:read`          | —                            | —                            | —                            | —                                                                 |
+| Orders / Requests   | `requests:read`            | `requests:create`            | `requests:update`            | `requests:delete`            | `requests:approve`                                                |
+| Rentals / Loans     | `loans:read`               | `loans:create`               | `loans:update`               | —                            | `loans:checkout`, `loans:return`                                  |
+| Invoices            | `invoices:read`            | `invoices:create`            | `invoices:update`            | —                            | —                                                                 |
+| Packages            | `packages:read`            | `packages:create`            | `packages:update`            | `packages:delete`            | —                                                                 |
+| Transfers           | `transfers:read`           | `transfers:create`           | `transfers:update`           | —                            | `transfer_rejection_reasons:manage`                               |
+| Pricing             | `pricing:read`             | —                            | —                            | —                            | —                                                                 |
+| Payment Methods     | `payment_methods:read`     | —                            | —                            | —                            | —                                                                 |
+| Code Schemes        | `code_schemes:read`        | `code_schemes:create`        | `code_schemes:update`        | `code_schemes:delete`        | —                                                                 |
+| Reports             | `reports:read`             | —                            | —                            | —                            | —                                                                 |
+| Subscription        | —                          | —                            | —                            | —                            | `subscription:manage`, `billing:manage`                           |
+| Subscription Types  | `subscription_types:read`  | `subscription_types:create`  | `subscription_types:update`  | `subscription_types:delete`  | —                                                                 |
+| Super Admin         | —                          | —                            | —                            | —                            | `platform:manage`                                                 |
+
+#### Pattern examples
+
+```tsx
+// Icon button in a table row — preferred
+<PermissionGuardedButton
+  icon={Pencil}
+  intent="edit"
+  ariaLabel="Edit customer"
+  requiredPermission="customers:update"
+  onClick={() => openEdit(customer)}
+/>
+
+<PermissionGuardedButton
+  icon={Trash2}
+  intent="delete"
+  ariaLabel="Delete customer"
+  requiredPermission="customers:delete"
+  onClick={() => openDelete(customer)}
+/>
+
+// Primary create button — use useActionPermission
+const { language } = useLanguage();
+const { guard, isAllowed } = useActionPermission(language === "es" ? "es" : "en");
+
+<button
+  onClick={guard("customers:create", () => setCreateOpen(true))}
+  aria-disabled={!isAllowed("customers:create")}
+  className={`btn-primary ${!isAllowed("customers:create") ? "opacity-50 cursor-not-allowed" : ""}`}
+>
+  {t("common.create")}
+</button>
+
+// Special actions (approve, checkout, resolve…)
+<PermissionGuardedButton
+  icon={CheckCircle}
+  intent="approve"
+  ariaLabel="Approve request"
+  requiredPermission="requests:approve"
+  onClick={() => approveRequest(request.id)}
+/>
+```
+
 ### ✅ Quality Gates
 
 Before any PR:
@@ -77,6 +174,7 @@ Before any PR:
 - All user-visible strings use `t()` from `useLanguage()`; both `en` and `es` locale files updated
 - Help content file for the modified module is created/updated with bilingual `HelpText` values, walkthrough steps, and form guides
 - JSX elements targeted by help selectors carry `data-help-id` attributes
+- Every action button is guarded with the correct permission key via `PermissionGuardedButton` or `useActionPermission`
 
 ---
 
@@ -200,7 +298,7 @@ Every view addition or modification **must** include or update a corresponding h
 
 ---
 
-**Last Updated:** April 2, 2026
+**Last Updated:** April 6, 2026
 
 ---
 

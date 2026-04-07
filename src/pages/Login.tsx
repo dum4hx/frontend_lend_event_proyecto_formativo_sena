@@ -226,7 +226,7 @@ export default function Login() {
               {/* Password */}
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                  {isEs ? "Contrasena" : "Password"}
+                  {isEs ? "Contraseña" : "Password"}
                 </label>
                 <div className="relative group">
                   <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 group-focus-within:text-yellow-400 transition-colors">
@@ -252,7 +252,7 @@ export default function Login() {
                         if (!v) {
                           setErrorFor(
                             "password",
-                            isEs ? "La contrasena es obligatoria" : "Password is required",
+                            isEs ? "La contraseña es obligatoria" : "Password is required",
                           );
                         } else {
                           setErrorFor("password", undefined);
@@ -268,10 +268,10 @@ export default function Login() {
                       aria-label={
                         showPassword
                           ? isEs
-                            ? "Ocultar contrasena"
+                            ? "Ocultar contraseña"
                             : "Hide password"
                           : isEs
-                            ? "Mostrar contrasena"
+                            ? "Mostrar contraseña"
                             : "Show password"
                       }
                     >
@@ -336,7 +336,7 @@ export default function Login() {
                   to="/password-recovery"
                   className="text-yellow-400 hover:text-yellow-300 font-bold transition"
                 >
-                  {isEs ? "Olvidaste tu contrasena?" : "Forgot your password?"}
+                  {isEs ? "Olvidaste tu contraseña?" : "Forgot your password?"}
                 </Link>
               </div>
 

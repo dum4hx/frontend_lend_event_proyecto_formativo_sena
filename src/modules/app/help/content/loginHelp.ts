@@ -16,7 +16,7 @@ const loginHelpContent: HelpModuleContent = {
       title: { en: "Entering your credentials", es: "Ingreso de credenciales" },
       body: {
         en: "Enter the email address and password associated with your LendEvent account. Fields are validated before submission; an inline error message will appear if either field is empty or malformed.",
-        es: "Ingresa el correo electronico y la contrasena asociados a tu cuenta de LendEvent. Los campos se validan antes del envio; aparecera un mensaje de error en linea si algun campo esta vacio o mal formado.",
+        es: "Ingresa el correo electronico y la contraseña asociados a tu cuenta de LendEvent. Los campos se validan antes del envio; aparecera un mensaje de error en linea si algun campo esta vacio o mal formado.",
       },
       howTo: [
         {
@@ -25,7 +25,7 @@ const loginHelpContent: HelpModuleContent = {
         },
         {
           en: "Type your password in the Password field. Use the eye icon to toggle visibility.",
-          es: "Escribe tu contrasena en el campo Contrasena. Usa el icono de ojo para alternar la visibilidad.",
+          es: "Escribe tu contraseña en el campo Contraseña. Usa el icono de ojo para alternar la visibilidad.",
         },
         {
           en: "Click 'Sign In' — if credentials are valid you will be redirected to the OTP verification screen.",
@@ -35,7 +35,7 @@ const loginHelpContent: HelpModuleContent = {
       tips: [
         {
           en: "Passwords are case-sensitive. Make sure Caps Lock is off.",
-          es: "Las contrasenas distinguen mayusculas y minusculas. Asegurate de que Bloq Mayus este desactivado.",
+          es: "Las contraseñas distinguen mayusculas y minusculas. Asegurate de que Bloq Mayus este desactivado.",
         },
       ],
     },
@@ -132,7 +132,7 @@ const loginHelpContent: HelpModuleContent = {
       warnings: [
         {
           en: "Do not share your backup codes. Treat them like passwords.",
-          es: "No compartas tus codigos de respaldo. Tratalos como contrasenas.",
+          es: "No compartas tus codigos de respaldo. Tratalos como contraseñas.",
         },
       ],
     },
@@ -149,10 +149,10 @@ const loginHelpContent: HelpModuleContent = {
     },
     {
       id: "step-password",
-      title: { en: "Enter your password", es: "Ingresa tu contrasena" },
+      title: { en: "Enter your password", es: "Ingresa tu contraseña" },
       body: {
         en: "Enter your account password. Toggle the eye icon to check what you typed.",
-        es: "Ingresa la contrasena de tu cuenta. Usa el icono de ojo para verificar lo que escribiste.",
+        es: "Ingresa la contraseña de tu cuenta. Usa el icono de ojo para verificar lo que escribiste.",
       },
       targetSelector: "[data-help-id='login-password-input']",
     },
@@ -208,7 +208,7 @@ const loginHelpContent: HelpModuleContent = {
       title: { en: "Sign-in form", es: "Formulario de inicio de sesion" },
       purpose: {
         en: "Enter your email and password to start the authentication process.",
-        es: "Ingresa tu correo y contrasena para iniciar el proceso de autenticacion.",
+        es: "Ingresa tu correo y contraseña para iniciar el proceso de autenticacion.",
       },
       mode: "create" as const,
       selector: "[data-help-id='login-submit-button']",
@@ -227,14 +227,14 @@ const loginHelpContent: HelpModuleContent = {
         },
         {
           id: "login-password-input",
-          label: { en: "Password", es: "Contrasena" },
+          label: { en: "Password", es: "Contraseña" },
           selector: "[data-help-id='login-password-input']",
           purpose: {
             en: "Your account password. Case-sensitive.",
-            es: "La contrasena de tu cuenta. Distingue mayusculas y minusculas.",
+            es: "La contraseña de tu cuenta. Distingue mayusculas y minusculas.",
           },
           required: true,
-          dataType: { en: "Password", es: "Contrasena" },
+          dataType: { en: "Password", es: "Contraseña" },
           example: "••••••••",
         },
       ],

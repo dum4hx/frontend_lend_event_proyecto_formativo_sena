@@ -8,6 +8,8 @@ import { RequirePermission } from "./utils/permissionGuard";
 import { RequireActiveSubscription } from "./utils/subscriptionGuard";
 import { LoadingSpinner } from "./components/ui";
 import ScrollToTop from "./components/ScrollToTop";
+import { usePermissions } from "./contexts/usePermissions";
+import { getFirstAccessibleUrl } from "./utils/roleRouting";
 
 // Public pages
 import Dashboard from "./pages/Dashboard";
@@ -44,6 +46,22 @@ import ExportDemo from "./pages/ExportDemo";
 // Unified App module
 import AppLayout from "./modules/app/layouts/AppLayout";
 import AdminDashboard from "./modules/app/pages/AdminDashboard";
+
+/**
+ * Redirects the user to the first /app route they have access to.
+ * Falls back to AdminDashboard if analytics:read is available,
+ * otherwise picks the first permitted nav item.
+ */
+function AppIndexRedirect() {
+  const { permissions } = usePermissions();
+  const destination = getFirstAccessibleUrl(permissions);
+  // If the resolved route is /app itself (dashboard), render it directly to
+  // avoid an extra navigation loop.
+  if (destination === "/app") {
+    return <AdminDashboard />;
+  }
+  return <Navigate to={destination} replace />;
+}
 import Customers from "./modules/app/pages/Customers";
 import Team from "./modules/app/pages/Team";
 import Settings from "./modules/app/pages/Settings";
@@ -56,6 +74,7 @@ import Orders from "./modules/app/pages/Orders";
 import Rentals from "./modules/app/pages/Rentals";
 import Invoices from "./modules/app/pages/Invoices";
 import PaymentMethods from "./modules/app/pages/PaymentMethods";
+import CodeSchemes from "./modules/app/pages/code-schemes";
 import Reports from "./modules/app/pages/Reports";
 import PricingConfigs from "./modules/app/pages/PricingConfigs";
 
@@ -136,7 +155,7 @@ function App() {
                     </RequirePermission>
                   }
                 >
-                  <Route index element={<AdminDashboard />} />
+                  <Route index element={<AppIndexRedirect />} />
                   <Route path="customers" element={<Customers />} />
                   <Route path="team" element={<Team />} />
                   <Route path="roles" element={<RoleManagement />} />
@@ -159,6 +178,7 @@ function App() {
                   <Route path="pricing" element={<PricingConfigs />} />
                   <Route path="invoices" element={<Invoices />} />
                   <Route path="payment-methods" element={<PaymentMethods />} />
+                  <Route path="settings/code-schemes" element={<CodeSchemes />} />
                   <Route path="reports" element={<Reports />} />
                   <Route path="settings" element={<Settings />} />
                   <Route path="subscription" element={<SubscriptionManagement />} />

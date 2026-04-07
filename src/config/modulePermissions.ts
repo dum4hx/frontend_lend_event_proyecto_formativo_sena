@@ -134,7 +134,7 @@ export const allNavItems: NavItem[] = [
     id: "transfer-requests",
     label: "Transfer Requests",
     path: "/app/transfer-requests",
-    requiredPermissions: ["transfers:read", "transfers:create"],
+    requiredPermissions: ["transfers:read"],
     section: "Materials",
   },
 
@@ -150,6 +150,7 @@ export const allNavItems: NavItem[] = [
     id: "locations",
     label: "Locations",
     path: "/app/locations",
+    // No dedicated locations:read permission exists — materials:read is the closest match
     requiredPermissions: ["materials:read"],
     section: "Warehouse",
   },
@@ -157,7 +158,7 @@ export const allNavItems: NavItem[] = [
     id: "inspections",
     label: "Inspections",
     path: "/app/inspections",
-    requiredPermissions: ["inspections:read", "inspections:create"],
+    requiredPermissions: ["inspections:read"],
     section: "Warehouse",
   },
   {
@@ -216,6 +217,13 @@ export const allNavItems: NavItem[] = [
     label: "Payment Methods",
     path: "/app/payment-methods",
     requiredPermissions: ["payment_methods:read"],
+    section: "Commerce",
+  },
+  {
+    id: "code-schemes",
+    label: "Code Schemes",
+    path: "/app/settings/code-schemes",
+    requiredPermissions: ["code_schemes:read"],
     section: "Commerce",
   },
 

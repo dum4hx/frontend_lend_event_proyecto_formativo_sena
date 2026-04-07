@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Calendar,
@@ -31,6 +31,7 @@ import {
   ClipboardCheck,
   Eye,
   Wrench,
+  Hash,
 } from "lucide-react";
 import { ApiError } from "../../../lib/api";
 import { useLogout } from "../../../hooks/useLogout";
@@ -76,6 +77,7 @@ const iconMap: Record<string, React.ReactNode> = {
   reports: <BarChart3 size={20} />,
   pricing: <DollarSign size={20} />,
   "payment-methods": <Wallet size={20} />,
+  "code-schemes": <Hash size={20} />,
   // Super admin
   "sa-plans": <BookOpen size={20} />,
 };
@@ -93,6 +95,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
   const { t } = useLanguage();
   const { hasAnyPermission } = usePermissions();
   const { showError, AlertModal } = useAlertModal();
+  const navigate = useNavigate();
 
   const sections = useMemo(() => {
     const visible = getNavItemsByPrefix("/app").filter(
@@ -230,22 +233,29 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
 
       {/* User Info & Logout */}
       <div className="border-t border-zinc-800/60 px-3 py-3">
-        <div
-          className={`flex items-center ${isCollapsed ? "justify-center mb-2" : "gap-3 px-2 py-2 mb-1"}`}
+        <button
+          type="button"
+          onClick={() => navigate("/app/settings?tab=account")}
+          title={isCollapsed ? displayName : undefined}
+          className={`w-full flex items-center rounded-lg transition-colors hover:bg-zinc-800/60 group ${
+            isCollapsed ? "justify-center px-2 py-2 mb-2" : "gap-3 px-2 py-2 mb-1"
+          }`}
         >
-          <div className="w-8 h-8 rounded-full bg-[#FFD700] flex items-center justify-center flex-shrink-0">
+          <div className="w-8 h-8 rounded-full bg-[#FFD700] flex items-center justify-center flex-shrink-0 group-hover:ring-2 group-hover:ring-yellow-400/50 transition-all">
             <span className="text-black font-bold text-xs">
               {user?.name.firstName.charAt(0).toUpperCase()}
               {user?.name.firstSurname.charAt(0).toUpperCase()}
             </span>
           </div>
           {!isCollapsed && (
-            <div className="overflow-hidden">
-              <p className="text-white text-sm font-medium truncate leading-tight">{displayName}</p>
+            <div className="overflow-hidden text-left">
+              <p className="text-white text-sm font-medium truncate leading-tight group-hover:text-yellow-400 transition-colors">
+                {displayName}
+              </p>
               <p className="text-zinc-500 text-xs truncate">{user?.email}</p>
             </div>
           )}
-        </div>
+        </button>
         <button
           onClick={handleLogout}
           disabled={isLoggingOut}

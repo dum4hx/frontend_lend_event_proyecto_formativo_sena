@@ -620,10 +620,9 @@ export default function SignUp() {
         data.organizationEmail.trim() &&
         data.ownerEmail.trim().toLowerCase() === data.organizationEmail.trim().toLowerCase()
       ) {
-        validationErrors.organizationEmail =
-          isEs
-            ? "El correo de la organizacion debe ser diferente al correo del propietario"
-            : "Organization email must be different from owner email";
+        validationErrors.organizationEmail = isEs
+          ? "El correo de la organizacion debe ser diferente al correo del propietario"
+          : "Organization email must be different from owner email";
       }
 
       if (data.organizationPhone) {
@@ -634,7 +633,9 @@ export default function SignUp() {
       }
 
       if (!data.streetType) {
-        validationErrors.streetType = isEs ? "El tipo de via es obligatorio" : "Street type is required";
+        validationErrors.streetType = isEs
+          ? "El tipo de via es obligatorio"
+          : "Street type is required";
       }
 
       const mainValidation = validateAddressSegmentField(data.mainNumber, "Primary number");
@@ -689,7 +690,9 @@ export default function SignUp() {
       }
 
       if (selectedCity && !selectedCity.postalCode && !data.postalCode.trim()) {
-        validationErrors.postalCode = isEs ? "El codigo postal es obligatorio" : "Postal code is required";
+        validationErrors.postalCode = isEs
+          ? "El codigo postal es obligatorio"
+          : "Postal code is required";
       } else {
         const postalValidation = validatePostalCode(data.postalCode);
         if (!postalValidation.isValid && postalValidation.message) {
@@ -1120,9 +1123,13 @@ export default function SignUp() {
                   <span className="text-yellow-400 text-xl font-bold">✓</span>
                 </div>
                 <div>
-                  <p className="font-bold text-white">{isEs ? "Configuracion inmediata" : "Instant Setup"}</p>
+                  <p className="font-bold text-white">
+                    {isEs ? "Configuracion inmediata" : "Instant Setup"}
+                  </p>
                   <p className="text-sm text-gray-400">
-                    {isEs ? "Accede a tu panel en menos de 2 minutos." : "Access your dashboard in less than 2 minutes."}
+                    {isEs
+                      ? "Accede a tu panel en menos de 2 minutos."
+                      : "Access your dashboard in less than 2 minutes."}
                   </p>
                 </div>
               </div>
@@ -1133,7 +1140,9 @@ export default function SignUp() {
         {/* Right Section - Form */}
         <div className="flex-grow md:w-1/2 flex items-center justify-center p-6 bg-black relative z-10 overflow-y-auto">
           <div className="w-full max-w-2xl py-4">
-            <h2 className="text-4xl font-extrabold mb-2">{isEs ? "Comienza ahora" : "Get Started"}</h2>
+            <h2 className="text-4xl font-extrabold mb-2">
+              {isEs ? "Comienza ahora" : "Get Started"}
+            </h2>
             <p className="text-gray-400 mb-10">
               {isEs ? "Crea tu cuenta de Lend Event hoy" : "Create your Lend Event account today"}
             </p>
@@ -1146,7 +1155,8 @@ export default function SignUp() {
                   </span>
                   <span className="text-gray-400">
                     {currentStep === 1 && (isEs ? "Informacion personal" : "Personal Information")}
-                    {currentStep === 2 && (isEs ? "Informacion de la organizacion" : "Organization Information")}
+                    {currentStep === 2 &&
+                      (isEs ? "Informacion de la organizacion" : "Organization Information")}
                     {currentStep === 3 && (isEs ? "Direccion del negocio" : "Business Address")}
                     {currentStep === 4 && (isEs ? "Seguridad" : "Security")}
                   </span>
@@ -1227,7 +1237,9 @@ export default function SignUp() {
                     </label>
                     <input
                       type="email"
-                      placeholder={isEs ? "propietario.personal@ejemplo.com" : "owner.personal@example.com"}
+                      placeholder={
+                        isEs ? "propietario.personal@ejemplo.com" : "owner.personal@example.com"
+                      }
                       value={ownerEmail}
                       ref={ownerEmailRef}
                       autoCapitalize="none"
@@ -1413,7 +1425,8 @@ export default function SignUp() {
 
                   <div className="md:col-span-2">
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                      {isEs ? "Telefono de la organizacion" : "Organization Phone"} <span className="text-gray-600">({isEs ? "Opcional" : "Optional"})</span>
+                      {isEs ? "Telefono de la organizacion" : "Organization Phone"}{" "}
+                      <span className="text-gray-600">({isEs ? "Opcional" : "Optional"})</span>
                     </label>
                     <div className={phoneInputWrapperClass(!!fieldErrors.organizationPhone)}>
                       <div className="flex items-center">
@@ -1459,7 +1472,7 @@ export default function SignUp() {
                         {isEs ? "Tipo de via" : "Street Type"}
                       </label>
                       <select
-                          title={isEs ? "Tipo de via" : "Street Type"}
+                        title={isEs ? "Tipo de via" : "Street Type"}
                         value={streetType}
                         ref={streetTypeRef}
                         onChange={(e) => {
@@ -1621,7 +1634,9 @@ export default function SignUp() {
                       {showStateSuggestions && stateQuery && !selectedState && (
                         <div className="absolute z-50 w-full mt-1 bg-zinc-900 border border-zinc-700 rounded-xl max-h-48 overflow-y-auto shadow-lg">
                           {deptLoading || stateQuery !== debouncedStateQuery ? (
-                            <div className="p-3 text-gray-400 text-sm">{isEs ? "Buscando..." : "Searching..."}</div>
+                            <div className="p-3 text-gray-400 text-sm">
+                              {isEs ? "Buscando..." : "Searching..."}
+                            </div>
                           ) : filteredDepartments.length ? (
                             filteredDepartments.map((dept) => (
                               <button
@@ -1645,7 +1660,9 @@ export default function SignUp() {
                               </button>
                             ))
                           ) : (
-                            <div className="p-3 text-gray-400 text-sm">{isEs ? "No se encontraron departamentos" : "No departments found"}</div>
+                            <div className="p-3 text-gray-400 text-sm">
+                              {isEs ? "No se encontraron departamentos" : "No departments found"}
+                            </div>
                           )}
                         </div>
                       )}
@@ -1660,7 +1677,15 @@ export default function SignUp() {
                       </label>
                       <input
                         type="text"
-                        placeholder={selectedState ? (isEs ? "Buscar ciudad..." : "Search city...") : (isEs ? "Primero selecciona un departamento" : "Select a state first")}
+                        placeholder={
+                          selectedState
+                            ? isEs
+                              ? "Buscar ciudad..."
+                              : "Search city..."
+                            : isEs
+                              ? "Primero selecciona un departamento"
+                              : "Select a state first"
+                        }
                         value={cityQuery}
                         ref={cityRef}
                         autoComplete="off"
@@ -1692,7 +1717,9 @@ export default function SignUp() {
                       {showCitySuggestions && selectedState && !selectedCity && (
                         <div className="absolute z-50 w-full mt-1 bg-zinc-900 border border-zinc-700 rounded-xl max-h-48 overflow-y-auto shadow-lg">
                           {citiesLoading ? (
-                            <div className="p-3 text-gray-400 text-sm">{isEs ? "Cargando ciudades..." : "Loading cities..."}</div>
+                            <div className="p-3 text-gray-400 text-sm">
+                              {isEs ? "Cargando ciudades..." : "Loading cities..."}
+                            </div>
                           ) : filteredCities.length ? (
                             filteredCities.map((c) => (
                               <button
@@ -1713,7 +1740,9 @@ export default function SignUp() {
                               </button>
                             ))
                           ) : (
-                            <div className="p-3 text-gray-400 text-sm">{isEs ? "No se encontraron ciudades" : "No cities found"}</div>
+                            <div className="p-3 text-gray-400 text-sm">
+                              {isEs ? "No se encontraron ciudades" : "No cities found"}
+                            </div>
                           )}
                         </div>
                       )}
@@ -1724,12 +1753,18 @@ export default function SignUp() {
 
                     <div className="md:col-span-2">
                       <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                        {isEs ? "Detalles adicionales de la ubicacion" : "Additional Business Location Details"}{" "}
+                        {isEs
+                          ? "Detalles adicionales de la ubicacion"
+                          : "Additional Business Location Details"}{" "}
                         <span className="text-gray-600">({isEs ? "Opcional" : "Optional"})</span>
                       </label>
                       <input
                         type="text"
-                        placeholder={isEs ? "Centro Empresarial Altos, Oficina 602" : "Centro Empresarial Altos, Office 602"}
+                        placeholder={
+                          isEs
+                            ? "Centro Empresarial Altos, Oficina 602"
+                            : "Centro Empresarial Altos, Office 602"
+                        }
                         value={additionalDetails}
                         ref={additionalDetailsRef}
                         onChange={(e) => {
@@ -1759,9 +1794,15 @@ export default function SignUp() {
                         placeholder={
                           selectedCity
                             ? canEditPostalCode
-                              ? (isEs ? "Ingresa el codigo postal" : "Enter postal code")
-                              : (isEs ? "Completado automaticamente desde la ciudad" : "Auto-filled from city")
-                            : (isEs ? "Primero selecciona una ciudad" : "Select a city first")
+                              ? isEs
+                                ? "Ingresa el codigo postal"
+                                : "Enter postal code"
+                              : isEs
+                                ? "Completado automaticamente desde la ciudad"
+                                : "Auto-filled from city"
+                            : isEs
+                              ? "Primero selecciona una ciudad"
+                              : "Select a city first"
                         }
                         value={postalCode}
                         ref={postalCodeRef}
@@ -1810,12 +1851,12 @@ export default function SignUp() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-2 text-xs text-gray-400">
                     {isEs
-                      ? "La contrasena debe incluir al menos 8 caracteres, 1 letra mayuscula, 1 numero y 1 caracter especial (!@#$%^&*)."
+                      ? "La contraseña debe incluir al menos 8 caracteres, 1 letra mayuscula, 1 numero y 1 caracter especial (!@#$%^&*)."
                       : "Password must include at least 8 characters, 1 uppercase letter, 1 number and 1 special character (!@#$%^&*)."}
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                      {isEs ? "Contrasena" : "Password"}
+                      {isEs ? "Contraseña" : "Password"}
                     </label>
                     <input
                       type="password"
@@ -1850,11 +1891,11 @@ export default function SignUp() {
 
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                      {isEs ? "Confirmar contrasena" : "Confirm Password"}
+                      {isEs ? "Confirmar contraseña" : "Confirm Password"}
                     </label>
                     <input
                       type="password"
-                      placeholder={isEs ? "Repite tu contrasena" : "Repeat your password"}
+                      placeholder={isEs ? "Repite tu contraseña" : "Repeat your password"}
                       value={confirmPassword}
                       ref={confirmPasswordRef}
                       onChange={(e) => {
@@ -1889,7 +1930,10 @@ export default function SignUp() {
                           setAcceptedTerms(value);
                           clearBackendError("acceptedTerms");
                           if (touched.acceptedTerms || submitted) {
-                            setFieldValidation("acceptedTerms", e.target.checked ? "valid" : "invalid");
+                            setFieldValidation(
+                              "acceptedTerms",
+                              e.target.checked ? "valid" : "invalid",
+                            );
                           }
                         }}
                         onBlur={() => validateFieldOnBlur("acceptedTerms")}
@@ -1898,11 +1942,19 @@ export default function SignUp() {
                       />
                       <span className="text-sm text-gray-300 leading-relaxed">
                         {isEs ? "Acepto los " : "I accept the "}
-                        <Link to="/terms-of-service" target="_blank" className="text-yellow-400 hover:underline font-semibold">
+                        <Link
+                          to="/terms-of-service"
+                          target="_blank"
+                          className="text-yellow-400 hover:underline font-semibold"
+                        >
                           {isEs ? "Terminos y Condiciones" : "Terms and Conditions"}
                         </Link>
                         {isEs ? " y la " : " and "}
-                        <Link to="/cookie-policy" target="_blank" className="text-yellow-400 hover:underline font-semibold">
+                        <Link
+                          to="/cookie-policy"
+                          target="_blank"
+                          className="text-yellow-400 hover:underline font-semibold"
+                        >
                           {isEs ? "Politica de Privacidad" : "Privacy Policy"}
                         </Link>
                       </span>
@@ -1919,14 +1971,36 @@ export default function SignUp() {
 
                     <div className="flex items-center gap-4 text-xs text-gray-500">
                       <span className="flex items-center gap-1">
-                        <svg className="w-3.5 h-3.5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        <svg
+                          className="w-3.5 h-3.5 text-yellow-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                          />
                         </svg>
-                        {isEs ? "Datos cifrados de forma segura" : "Your data is securely encrypted"}
+                        {isEs
+                          ? "Datos cifrados de forma segura"
+                          : "Your data is securely encrypted"}
                       </span>
                       <span className="flex items-center gap-1">
-                        <svg className="w-3.5 h-3.5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        <svg
+                          className="w-3.5 h-3.5 text-yellow-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                          />
                         </svg>
                         {isEs ? "Respetamos tu privacidad" : "We respect your privacy"}
                       </span>

@@ -6,6 +6,7 @@ import { Plus } from "lucide-react";
 import { SearchInput, SearchableSelect, type SelectOption } from "../../../../components/ui";
 import Button from "../../../../components/ui/Button";
 import { useLanguage } from "../../../../contexts/useLanguage";
+import { useActionPermission } from "../../../../hooks/useActionPermission";
 import type { DocumentTypeInfo } from "../../../../types/api";
 
 interface CustomerFiltersProps {
@@ -53,6 +54,7 @@ export function CustomerFilters({
 }: CustomerFiltersProps) {
   const { language } = useLanguage();
   const isEs = language === "es";
+  const { guard, isAllowed } = useActionPermission(isEs ? "es" : "en");
 
   const statusOptions = isEs ? STATUS_OPTIONS_ES : STATUS_OPTIONS_EN;
 
@@ -92,7 +94,12 @@ export function CustomerFilters({
         className="w-48"
       />
 
-      <Button variant="primary" onClick={onCreateClick} className="whitespace-nowrap">
+      <Button
+        variant="primary"
+        onClick={guard("customers:create", onCreateClick)}
+        aria-disabled={!isAllowed("customers:create")}
+        className={`whitespace-nowrap ${!isAllowed("customers:create") ? "opacity-50 cursor-not-allowed" : ""}`}
+      >
         <Plus size={18} className="mr-1.5" />
         {isEs ? "Nuevo Cliente" : "New Customer"}
       </Button>

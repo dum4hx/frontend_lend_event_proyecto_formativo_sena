@@ -1,5 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
-import { Save, Shield, Bell, Globe, Database, AlertTriangle, Moon, Palette, Sun } from "lucide-react";
+import {
+  Save,
+  Shield,
+  Bell,
+  Globe,
+  Database,
+  AlertTriangle,
+  Moon,
+  Palette,
+  Sun,
+} from "lucide-react";
 import { fetchPlatformHealth, fetchOverview } from "../../../services/superAdminService";
 import { useLanguage } from "../../../contexts/useLanguage";
 import { logError, normalizeError } from "../../../utils/errorHandling";
@@ -18,12 +28,15 @@ interface SettingsValidationErrors {
   sessionTimeout?: string;
 }
 
-function validateSettings(fields: {
-  platformName: string;
-  supportEmail: string;
-  maxOrganizations: number;
-  sessionTimeout: number;
-}, t: ReturnType<typeof useLanguage>["t"]): SettingsValidationErrors {
+function validateSettings(
+  fields: {
+    platformName: string;
+    supportEmail: string;
+    maxOrganizations: number;
+    sessionTimeout: number;
+  },
+  t: ReturnType<typeof useLanguage>["t"],
+): SettingsValidationErrors {
   const errors: SettingsValidationErrors = {};
 
   if (!fields.platformName.trim()) {
@@ -91,10 +104,7 @@ export default function SystemSettings() {
   const loadHealth = useCallback(async () => {
     try {
       setHealthLoading(true);
-      const [healthRes, overviewRes] = await Promise.all([
-        fetchPlatformHealth(),
-        fetchOverview(),
-      ]);
+      const [healthRes, overviewRes] = await Promise.all([fetchPlatformHealth(), fetchOverview()]);
       setHealth(healthRes.data.health);
       setOverview(overviewRes.data.overview);
     } catch (err: unknown) {
@@ -109,12 +119,15 @@ export default function SystemSettings() {
   }, [loadHealth]);
 
   const handleSave = () => {
-    const errors = validateSettings({
-      platformName,
-      supportEmail,
-      maxOrganizations,
-      sessionTimeout,
-    }, t);
+    const errors = validateSettings(
+      {
+        platformName,
+        supportEmail,
+        maxOrganizations,
+        sessionTimeout,
+      },
+      t,
+    );
     setValidationErrors(errors);
 
     if (hasErrors(errors)) return;
@@ -151,7 +164,11 @@ export default function SystemSettings() {
           className="flex items-center gap-2 font-semibold px-6 py-2.5 rounded-lg transition disabled:opacity-50 gold-action-btn"
         >
           <Save size={18} />
-          {saving ? t("systemSettings.saving") : saved ? `${t("systemSettings.saved")} ✓` : t("systemSettings.saveChanges")}
+          {saving
+            ? t("systemSettings.saving")
+            : saved
+              ? `${t("systemSettings.saved")} ✓`
+              : t("systemSettings.saveChanges")}
         </button>
       </div>
 
@@ -163,7 +180,10 @@ export default function SystemSettings() {
           description={t("systemSettings.general.description")}
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FieldGroup label={t("systemSettings.general.platformName")} error={validationErrors.platformName}>
+            <FieldGroup
+              label={t("systemSettings.general.platformName")}
+              error={validationErrors.platformName}
+            >
               <input
                 value={platformName}
                 onChange={(e) => setPlatformName(e.target.value)}
@@ -171,7 +191,10 @@ export default function SystemSettings() {
                 className="setting-input"
               />
             </FieldGroup>
-            <FieldGroup label={t("systemSettings.general.supportEmail")} error={validationErrors.supportEmail}>
+            <FieldGroup
+              label={t("systemSettings.general.supportEmail")}
+              error={validationErrors.supportEmail}
+            >
               <input
                 type="email"
                 value={supportEmail}
@@ -201,7 +224,10 @@ export default function SystemSettings() {
             onChange={setTwoFactor}
           />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            <FieldGroup label={t("systemSettings.security.sessionTimeout")} error={validationErrors.sessionTimeout}>
+            <FieldGroup
+              label={t("systemSettings.security.sessionTimeout")}
+              error={validationErrors.sessionTimeout}
+            >
               <input
                 type="number"
                 min={5}
@@ -211,7 +237,10 @@ export default function SystemSettings() {
                 className="setting-input"
               />
             </FieldGroup>
-            <FieldGroup label={t("systemSettings.security.maxOrganizations")} error={validationErrors.maxOrganizations}>
+            <FieldGroup
+              label={t("systemSettings.security.maxOrganizations")}
+              error={validationErrors.maxOrganizations}
+            >
               <input
                 type="number"
                 min={1}
@@ -242,7 +271,9 @@ export default function SystemSettings() {
             onChange={setSlackIntegration}
           />
           <div className="mt-4 max-w-xs">
-            <FieldGroup label={t("systemSettings.notifications.alertThreshold", { value: alertThreshold })}>
+            <FieldGroup
+              label={t("systemSettings.notifications.alertThreshold", { value: alertThreshold })}
+            >
               <input
                 type="range"
                 min={10}
@@ -272,7 +303,7 @@ export default function SystemSettings() {
               }`}
             >
               <Moon size={15} />
-                {t("common.dark")}
+              {t("common.dark")}
             </button>
             <button
               onClick={() => setTheme("light")}
@@ -283,15 +314,30 @@ export default function SystemSettings() {
               }`}
             >
               <Sun size={15} />
-                {t("common.light")}
+              {t("common.light")}
             </button>
           </div>
-          <p className="text-gray-500 text-xs mt-2">{t("systemSettings.appearance.appliedImmediately")}</p>
+          <p className="text-gray-500 text-xs mt-2">
+            {t("systemSettings.appearance.appliedImmediately")}
+          </p>
           <div className="mt-5 border-t border-[#222] pt-4">
-            <p className="text-sm font-medium text-white mb-1">{t("systemSettings.appearance.languageTitle")}</p>
-            <p className="text-xs text-gray-500 mb-3">{t("systemSettings.appearance.languageDescription")}</p>
+            <p className="text-sm font-medium text-white mb-1">
+              {t("systemSettings.appearance.languageTitle")}
+            </p>
+            <p className="text-xs text-gray-500 mb-3">
+              {t("systemSettings.appearance.languageDescription")}
+            </p>
             <div className="flex gap-3 flex-wrap">
               {LANGUAGE_OPTIONS.map((option) => {
+                {
+                  /*
+                  [DESHABILITADO] El botón del idioma inglés está comentado.
+                  El español es el único idioma de visualización soportado en este despliegue.
+                  La compatibilidad con inglés se mantiene completamente en el sistema de
+                  traducciones — para reactivar el botón, eliminar el bloque `if` a continuación.
+                */
+                }
+                if (option === "en") return null;
                 const isActive = language === option;
                 return (
                   <button
@@ -356,7 +402,9 @@ export default function SystemSettings() {
                   ok
                 />
               </div>
-              {(health.overdueLoans > 0 || health.overdueInvoices > 0 || health.recentErrors > 0) && (
+              {(health.overdueLoans > 0 ||
+                health.overdueInvoices > 0 ||
+                health.recentErrors > 0) && (
                 <div className="mt-4 flex items-center gap-2 text-yellow-400 text-sm">
                   <AlertTriangle size={16} />
                   <span>{t("systemSettings.health.issueDetected")}</span>
@@ -365,7 +413,11 @@ export default function SystemSettings() {
             </>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <InfoCard label={t("systemSettings.health.databaseStatus")} value={t("systemSettings.health.connected")} ok />
+              <InfoCard
+                label={t("systemSettings.health.databaseStatus")}
+                value={t("systemSettings.health.connected")}
+                ok
+              />
               <InfoCard label={t("systemSettings.health.storageUsed")} value="–" ok />
               <InfoCard label={t("systemSettings.health.lastBackup")} value="–" ok />
             </div>

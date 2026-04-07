@@ -8,6 +8,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { Button, EntityLink } from "../../../../components/ui";
+import { useActionPermission } from "../../../../hooks/useActionPermission";
 import type { LoanView } from "./types";
 import {
   getLoanStatusBadgeStyle,
@@ -65,6 +66,7 @@ export function RentalsTable({
   locale,
   isEs,
 }: RentalsTableProps) {
+  const { guard } = useActionPermission(isEs ? "es" : "en");
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -172,24 +174,26 @@ export function RentalsTable({
                     >
                       {isEs ? "Detalle" : "Details"}
                     </Button>
-                    {isActive && canExtend && (
+                    {isActive && (
                       <Button
                         size="sm"
                         leftIcon={CalendarRange}
-                        onClick={() => onExtend(lv)}
+                        onClick={guard("loans:extend", () => onExtend(lv))}
                         disabled={submitting}
-                        className="bg-blue-500/15 text-blue-300 border-blue-500/40 hover:bg-blue-500/25"
+                        aria-disabled={!canExtend}
+                        className={`bg-blue-500/15 text-blue-300 border-blue-500/40 hover:bg-blue-500/25 ${!canExtend ? "opacity-50 cursor-not-allowed" : ""}`}
                       >
                         {isEs ? "Extender" : "Extend"}
                       </Button>
                     )}
-                    {isActive && canReturn && (
+                    {isActive && (
                       <Button
                         size="sm"
                         leftIcon={RotateCcw}
-                        onClick={() => onReturn(lv)}
+                        onClick={guard("loans:return", () => onReturn(lv))}
                         disabled={submitting}
-                        className="bg-green-500/15 text-green-300 border-green-500/40 hover:bg-green-500/25"
+                        aria-disabled={!canReturn}
+                        className={`bg-green-500/15 text-green-300 border-green-500/40 hover:bg-green-500/25 ${!canReturn ? "opacity-50 cursor-not-allowed" : ""}`}
                       >
                         {isEs ? "Devolver" : "Return"}
                       </Button>
@@ -199,20 +203,22 @@ export function RentalsTable({
                       <Button
                         size="sm"
                         leftIcon={HandCoins}
-                        onClick={() => onRefund(lv)}
+                        onClick={guard("loans:update", () => onRefund(lv))}
                         disabled={submitting}
-                        className="bg-yellow-500/15 text-yellow-300 border-yellow-500/40 hover:bg-yellow-500/25"
+                        aria-disabled={!canComplete}
+                        className={`bg-yellow-500/15 text-yellow-300 border-yellow-500/40 hover:bg-yellow-500/25 ${!canComplete ? "opacity-50 cursor-not-allowed" : ""}`}
                       >
                         {isEs ? "Reembolsar" : "Refund"}
                       </Button>
                     )}
-                    {lv.loan.status === "returned" && canComplete && (
+                    {lv.loan.status === "returned" && (
                       <Button
                         size="sm"
                         leftIcon={CheckCircle}
-                        onClick={() => onComplete(lv)}
+                        onClick={guard("loans:update", () => onComplete(lv))}
                         disabled={submitting}
-                        className="bg-emerald-500/15 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/25"
+                        aria-disabled={!canComplete}
+                        className={`bg-emerald-500/15 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/25 ${!canComplete ? "opacity-50 cursor-not-allowed" : ""}`}
                       >
                         {isEs ? "Completar" : "Complete"}
                       </Button>

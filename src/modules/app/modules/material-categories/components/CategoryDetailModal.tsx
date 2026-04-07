@@ -31,7 +31,7 @@ export const CategoryDetailModal: React.FC<CategoryDetailModalProps> = ({ catego
     };
 
     fetchAttributes();
-  }, []);
+  }, [t]);
 
   const getCategoryAttributes = () => {
     return category.attributes

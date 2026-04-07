@@ -5,11 +5,7 @@ import Footer from "../components/Footer";
 import { forgotPassword, verifyResetCode, resetPassword } from "../services/authService";
 import { ApiError } from "../lib/api";
 import { useAlertModal } from "../hooks/useAlertModal";
-import {
-  validateEmail,
-  validateCode,
-  validatePassword,
-} from "../utils/validators";
+import { validateEmail, validateCode, validatePassword } from "../utils/validators";
 import { useLanguage } from "../contexts/useLanguage";
 import styles from "./PasswordRecovery.module.css";
 
@@ -36,12 +32,15 @@ export default function PasswordRecovery() {
       "Enter a valid email address": "Ingresa un correo valido",
       "Code is required": "El codigo es obligatorio",
       "Code must be exactly 6 digits": "El codigo debe tener exactamente 6 digitos",
-      "Password is required": "La contrasena es obligatoria",
-      "Password must be at least 8 characters": "La contrasena debe tener al menos 8 caracteres",
-      "Password must contain at least one uppercase letter": "La contrasena debe incluir al menos una letra mayuscula",
-      "Password must contain at least one lowercase letter": "La contrasena debe incluir al menos una letra minuscula",
-      "Password must contain at least one number": "La contrasena debe incluir al menos un numero",
-      "Password must contain at least one special character (!@#$%^&*.)": "La contrasena debe incluir al menos un caracter especial (!@#$%^&*.)",
+      "Password is required": "La contraseña es obligatoria",
+      "Password must be at least 8 characters": "La contraseña debe tener al menos 8 caracteres",
+      "Password must contain at least one uppercase letter":
+        "La contraseña debe incluir al menos una letra mayuscula",
+      "Password must contain at least one lowercase letter":
+        "La contraseña debe incluir al menos una letra minuscula",
+      "Password must contain at least one number": "La contraseña debe incluir al menos un numero",
+      "Password must contain at least one special character (!@#$%^&*.)":
+        "La contraseña debe incluir al menos un caracter especial (!@#$%^&*.)",
     };
 
     return validationMap[message] ?? message;
@@ -51,7 +50,10 @@ export default function PasswordRecovery() {
   const handleSendCode = async () => {
     const emailValidation = validateEmail(email);
     if (!emailValidation.isValid) {
-      setError(mapValidationMessage(emailValidation.message) || (isEs ? "Validacion fallida" : "Validation failed"));
+      setError(
+        mapValidationMessage(emailValidation.message) ||
+          (isEs ? "Validacion fallida" : "Validation failed"),
+      );
       return;
     }
 
@@ -83,7 +85,10 @@ export default function PasswordRecovery() {
   const handleVerifyCode = async () => {
     const codeValidation = validateCode(codigo);
     if (!codeValidation.isValid) {
-      setError(mapValidationMessage(codeValidation.message) || (isEs ? "Validacion fallida" : "Validation failed"));
+      setError(
+        mapValidationMessage(codeValidation.message) ||
+          (isEs ? "Validacion fallida" : "Validation failed"),
+      );
       return;
     }
 
@@ -112,12 +117,15 @@ export default function PasswordRecovery() {
   const handleResetPassword = async () => {
     const passwordValidation = validatePassword(newPassword);
     if (!passwordValidation.isValid) {
-      setError(mapValidationMessage(passwordValidation.message) || (isEs ? "Validacion fallida" : "Validation failed"));
+      setError(
+        mapValidationMessage(passwordValidation.message) ||
+          (isEs ? "Validacion fallida" : "Validation failed"),
+      );
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setError(isEs ? "Las contrasenas no coinciden." : "Passwords do not match.");
+      setError(isEs ? "Las contraseñas no coinciden." : "Passwords do not match.");
       return;
     }
 
@@ -128,7 +136,7 @@ export default function PasswordRecovery() {
       await resetPassword({ email, resetToken, newPassword });
       showSuccess(
         isEs
-          ? "Contrasena actualizada correctamente. Redirigiendo al inicio de sesion..."
+          ? "Contraseña actualizada correctamente. Redirigiendo al inicio de sesion..."
           : "Password reset successfully. Redirecting to login...",
       );
       setTimeout(() => navigate("/login"), 1500);
@@ -153,7 +161,9 @@ export default function PasswordRecovery() {
 
     try {
       await forgotPassword({ email });
-      setSuccess(isEs ? "Codigo reenviado. Revisa tu bandeja de entrada." : "Code resent. Check your inbox.");
+      setSuccess(
+        isEs ? "Codigo reenviado. Revisa tu bandeja de entrada." : "Code resent. Check your inbox.",
+      );
       setCodigo("");
     } catch (err: unknown) {
       const message =
@@ -218,7 +228,7 @@ export default function PasswordRecovery() {
                     ? "Casi listo. Ingresa el codigo que acabamos de enviar a tu correo."
                     : "Almost there. Enter the code we just sent to your inbox."
                   : isEs
-                    ? "Crea una contrasena segura para tu cuenta."
+                    ? "Crea una contraseña segura para tu cuenta."
                     : "Create a strong, secure password for your account."}
             </p>
           </div>
@@ -227,16 +237,11 @@ export default function PasswordRecovery() {
         {/* Right Section - Form */}
         <div className="flex-grow md:w-1/2 flex items-center justify-center p-8 bg-black relative z-10">
           <div className="w-full max-w-md">
-              <button
-                onClick={() => navigate(-1)}
-                className="text-gray-500 hover:text-yellow-400 flex items-center mb-8 transition-colors group"
-              >
-              <svg
-                className="w-5 h-5 mr-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
+            <button
+              onClick={() => navigate(-1)}
+              className="text-gray-500 hover:text-yellow-400 flex items-center mb-8 transition-colors group"
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -252,21 +257,21 @@ export default function PasswordRecovery() {
               <div>
                 <h2 className="text-4xl font-extrabold mb-2">{isEs ? "Paso 1" : "Step 1"}</h2>
                 <p className="text-gray-400 mb-10">
-                  {isEs ? "Ingresa tu correo para recibir un codigo de seguridad." : "Enter your email to receive a security code."}
+                  {isEs
+                    ? "Ingresa tu correo para recibir un codigo de seguridad."
+                    : "Enter your email to receive a security code."}
                 </p>
 
                 <div className="space-y-6">
                   {/* Error Message */}
                   {error && (
                     <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
-                      <p className="text-red-400 text-sm font-medium">
-                        {error}
-                      </p>
+                      <p className="text-red-400 text-sm font-medium">{error}</p>
                     </div>
                   )}
 
                   <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
                       {isEs ? "Correo corporativo" : "Corporate Email"}
                     </label>
                     <div className="relative group">
@@ -301,7 +306,13 @@ export default function PasswordRecovery() {
                     disabled={loading}
                     className={`w-full bg-yellow-400 text-black font-extrabold py-4 rounded-xl text-lg ${styles.glowButton} shadow-xl hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed transition`}
                   >
-                    {loading ? (isEs ? "Enviando codigo..." : "Sending code...") : (isEs ? "Enviar codigo" : "Send Code")}
+                    {loading
+                      ? isEs
+                        ? "Enviando codigo..."
+                        : "Sending code..."
+                      : isEs
+                        ? "Enviar codigo"
+                        : "Send Code"}
                   </button>
                 </div>
               </div>
@@ -327,9 +338,7 @@ export default function PasswordRecovery() {
                   {/* Error Message */}
                   {error && (
                     <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
-                      <p className="text-red-400 text-sm font-medium">
-                        {error}
-                      </p>
+                      <p className="text-red-400 text-sm font-medium">{error}</p>
                     </div>
                   )}
 
@@ -338,7 +347,9 @@ export default function PasswordRecovery() {
                       {isEs ? "Codigo de 6 digitos" : "6-digit code"}
                     </label>
                     <p className="text-xs text-gray-500 mb-2">
-                      {isEs ? "El codigo vence en 10 minutos. Maximo 5 intentos." : "The code expires in 10 minutes. Maximum 5 attempts."}
+                      {isEs
+                        ? "El codigo vence en 10 minutos. Maximo 5 intentos."
+                        : "The code expires in 10 minutes. Maximum 5 attempts."}
                     </p>
                     <div className="relative group">
                       <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 group-focus-within:text-yellow-400 transition-colors">
@@ -361,9 +372,7 @@ export default function PasswordRecovery() {
                         maxLength={6}
                         placeholder="000000"
                         value={codigo}
-                        onChange={(e) =>
-                          setCodigo(e.target.value.replace(/\D/g, ""))
-                        }
+                        onChange={(e) => setCodigo(e.target.value.replace(/\D/g, ""))}
                         disabled={loading}
                         className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-4 pl-12 pr-4 text-white font-mono text-2xl tracking-[0.5em] focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 outline-none transition duration-200 text-center disabled:opacity-50"
                       />
@@ -375,10 +384,16 @@ export default function PasswordRecovery() {
                     disabled={loading}
                     className={`w-full bg-yellow-400 text-black font-extrabold py-4 rounded-xl text-lg ${styles.glowButton} shadow-xl hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed transition`}
                   >
-                    {loading ? (isEs ? "Validando..." : "Validating...") : (isEs ? "Validar y continuar" : "Validate and Continue")}
+                    {loading
+                      ? isEs
+                        ? "Validando..."
+                        : "Validating..."
+                      : isEs
+                        ? "Validar y continuar"
+                        : "Validate and Continue"}
                   </button>
 
-                    <p className="text-center text-sm text-gray-500">
+                  <p className="text-center text-sm text-gray-500">
                     {isEs ? "No recibiste el codigo? " : "Didn't receive the code? "}
                     <button
                       onClick={handleResendCode}
@@ -397,22 +412,22 @@ export default function PasswordRecovery() {
               <div>
                 <h2 className="text-4xl font-extrabold mb-2">{isEs ? "Paso 3" : "Step 3"}</h2>
                 <p className="text-gray-400 mb-10">
-                  {isEs ? "Crea tu nueva contrasena corporativa." : "Create your new corporate password."}
+                  {isEs
+                    ? "Crea tu nueva contraseña corporativa."
+                    : "Create your new corporate password."}
                 </p>
 
                 <div className="space-y-6">
                   {/* Error Message */}
                   {error && (
                     <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
-                      <p className="text-red-400 text-sm font-medium">
-                        {error}
-                      </p>
+                      <p className="text-red-400 text-sm font-medium">{error}</p>
                     </div>
                   )}
 
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                      {isEs ? "Nueva contrasena" : "New Password"}
+                      {isEs ? "Nueva contraseña" : "New Password"}
                     </label>
                     <div className="text-xs text-gray-400 mb-2">
                       {isEs
@@ -437,7 +452,7 @@ export default function PasswordRecovery() {
                       </span>
                       <input
                         type="password"
-                        placeholder={isEs ? "Tu nueva contrasena" : "Your new password"}
+                        placeholder={isEs ? "Tu nueva contraseña" : "Your new password"}
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
                         disabled={loading}
@@ -448,7 +463,7 @@ export default function PasswordRecovery() {
 
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                      {isEs ? "Confirmar contrasena" : "Confirm Password"}
+                      {isEs ? "Confirmar contraseña" : "Confirm Password"}
                     </label>
                     <div className="relative group">
                       <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 group-focus-within:text-yellow-400 transition-colors">
@@ -468,7 +483,7 @@ export default function PasswordRecovery() {
                       </span>
                       <input
                         type="password"
-                        placeholder={isEs ? "Repite tu contrasena" : "Repeat your password"}
+                        placeholder={isEs ? "Repite tu contraseña" : "Repeat your password"}
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         disabled={loading}
@@ -482,12 +497,18 @@ export default function PasswordRecovery() {
                     disabled={loading}
                     className={`w-full bg-yellow-400 text-black font-extrabold py-4 rounded-xl text-lg ${styles.glowButton} shadow-xl hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed transition`}
                   >
-                    {loading ? (isEs ? "Restableciendo..." : "Resetting...") : (isEs ? "Restablecer contrasena" : "Reset Password")}
+                    {loading
+                      ? isEs
+                        ? "Restableciendo..."
+                        : "Resetting..."
+                      : isEs
+                        ? "Restablecer contraseña"
+                        : "Reset Password"}
                   </button>
 
                   <p className="text-center text-xs text-gray-500">
                     {isEs
-                      ? "La contrasena debe tener al menos 8 caracteres e incluir una letra mayuscula, una minuscula, un numero y un caracter especial."
+                      ? "La contraseña debe tener al menos 8 caracteres e incluir una letra mayuscula, una minuscula, un numero y un caracter especial."
                       : "Password must be at least 8 characters, include an uppercase letter, a lowercase letter, a number and a special character."}
                   </p>
                 </div>

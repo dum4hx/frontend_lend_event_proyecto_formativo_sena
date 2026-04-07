@@ -31,6 +31,7 @@ import {
   getPackages,
 } from "../../../../services/materialService";
 import { useAlertModal } from "../../../../hooks/useAlertModal";
+import { useActionPermission } from "../../../../hooks/useActionPermission";
 import { usePermissions } from "../../../../contexts/usePermissions";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import PrepareOrderModal from "../PrepareOrderModal";
@@ -51,6 +52,7 @@ export function Orders() {
   const { hasPermission, hasAnyPermission } = usePermissions();
   const { language } = useLanguage();
   const isEs = language === "es";
+  const { guard } = useActionPermission(isEs ? "es" : "en");
 
   const [requests, setRequests] = useState<LoanRequest[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -540,10 +542,10 @@ export function Orders() {
             <div data-help-id="orders-create-action">
               <Button
                 leftIcon={Plus}
-                onClick={() => setShowCreateModal(true)}
-                disabled={!canCreateRequest}
+                onClick={guard("requests:create", () => setShowCreateModal(true))}
+                aria-disabled={!canCreateRequest}
                 variant="outline"
-                className="w-full sm:w-auto border-[#FFD700]/40 text-[#FFD700] bg-[#FFD700]/8 hover:bg-[#FFD700]/16"
+                className={`w-full sm:w-auto border-[#FFD700]/40 text-[#FFD700] bg-[#FFD700]/8 hover:bg-[#FFD700]/16 ${!canCreateRequest ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 {isEs ? "Nuevo Pedido" : "New Order"}
               </Button>

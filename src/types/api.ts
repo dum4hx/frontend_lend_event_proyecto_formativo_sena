@@ -1382,12 +1382,16 @@ export interface RolesListResponse {
   limit: number;
 }
 
-/** Permission */
+/** Permission returned by GET /permissions */
 export interface Permission {
   id: string;
   displayName: string;
   description: string;
   category: string;
+  /** Whether this is a platform-only (super-admin) permission. */
+  isPlatformPermission: boolean;
+  /** Permission IDs that must also be assigned when granting this permission. */
+  requires: string[];
 }
 
 /** Permissions list response */
@@ -2242,4 +2246,43 @@ export interface CatalogOverviewResponse {
     total: number;
     totalPages: number;
   };
+}
+
+// ─── Code Schemes ──────────────────────────────────────────────────────────
+
+/** The entity types a code scheme can target. */
+export type CodeSchemeEntityType = "loan" | "loan_request";
+
+/** A code scheme returned by the API. */
+export interface CodeScheme {
+  _id: string;
+  organizationId: string;
+  entityType: CodeSchemeEntityType;
+  name: string;
+  pattern: string;
+  isActive: boolean;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Payload for POST /code-schemes. */
+export interface CreateCodeSchemePayload {
+  entityType: CodeSchemeEntityType;
+  name: string;
+  pattern: string;
+  isActive?: boolean;
+  isDefault?: boolean;
+}
+
+/** Payload for PUT /code-schemes/:id. Cannot change entityType. */
+export interface UpdateCodeSchemePayload {
+  name?: string;
+  pattern?: string;
+  isActive?: boolean;
+}
+
+/** Query parameters for GET /code-schemes. */
+export interface CodeSchemesQueryParams {
+  entityType?: CodeSchemeEntityType;
 }

@@ -12,6 +12,7 @@ import {
 import { Button, IconButton, EntityLink, type ColumnDef } from "../../../../components/ui";
 import { DataTable } from "../../../../components/ui";
 import { Pagination } from "../../../../components/ui";
+import { useActionPermission } from "../../../../hooks/useActionPermission";
 import type { OrderView } from "./types";
 import { formatDate, getStatusBadgeStyle } from "./helpers";
 
@@ -70,6 +71,8 @@ export function OrdersTable({
   requireFullPaymentBeforeCheckout,
   isEs,
 }: OrdersTableProps) {
+  const { guard } = useActionPermission(isEs ? "es" : "en");
+
   const renderActions = (order: OrderView) => (
     <div
       className="flex max-w-full flex-wrap items-center gap-1.5"
@@ -87,10 +90,11 @@ export function OrdersTable({
         <Button
           size="sm"
           leftIcon={Check}
-          onClick={() => onApprove(order.request._id)}
-          disabled={submitting || !canApproveRequest}
+          onClick={guard("requests:approve", () => onApprove(order.request._id))}
+          disabled={submitting}
+          aria-disabled={!canApproveRequest}
           variant="outline"
-          className="h-8 rounded-md border-emerald-500/35 bg-emerald-500/8 px-2.5 text-[11px] font-semibold text-emerald-200 hover:bg-emerald-500/15"
+          className={`h-8 rounded-md border-emerald-500/35 bg-emerald-500/8 px-2.5 text-[11px] font-semibold text-emerald-200 hover:bg-emerald-500/15 ${!canApproveRequest ? "opacity-50 cursor-not-allowed" : ""}`}
         >
           {isEs ? "Aprobar" : "Approve"}
         </Button>
@@ -100,10 +104,11 @@ export function OrdersTable({
         <Button
           size="sm"
           leftIcon={X}
-          onClick={() => onReject(order)}
-          disabled={submitting || !canUpdateRequest}
+          onClick={guard("requests:update", () => onReject(order))}
+          disabled={submitting}
+          aria-disabled={!canUpdateRequest}
           variant="outline"
-          className="h-8 rounded-md border-red-500/40 bg-red-500/8 px-2.5 text-[11px] font-semibold text-red-300 hover:bg-red-500/15"
+          className={`h-8 rounded-md border-red-500/40 bg-red-500/8 px-2.5 text-[11px] font-semibold text-red-300 hover:bg-red-500/15 ${!canUpdateRequest ? "opacity-50 cursor-not-allowed" : ""}`}
         >
           {isEs ? "Rechazar" : "Reject"}
         </Button>
@@ -113,10 +118,11 @@ export function OrdersTable({
         <Button
           size="sm"
           leftIcon={RotateCcw}
-          onClick={() => onReactivate(order)}
-          disabled={submitting || !canUpdateRequest}
+          onClick={guard("requests:update", () => onReactivate(order))}
+          disabled={submitting}
+          aria-disabled={!canUpdateRequest}
           variant="outline"
-          className="h-8 rounded-md border-[#FFD700]/40 bg-[#FFD700]/8 px-2.5 text-[11px] font-semibold text-[#FFD700] hover:bg-[#FFD700]/14"
+          className={`h-8 rounded-md border-[#FFD700]/40 bg-[#FFD700]/8 px-2.5 text-[11px] font-semibold text-[#FFD700] hover:bg-[#FFD700]/14 ${!canUpdateRequest ? "opacity-50 cursor-not-allowed" : ""}`}
         >
           {isEs ? "Reactivar" : "Reactivate"}
         </Button>
@@ -129,10 +135,11 @@ export function OrdersTable({
           <Button
             size="sm"
             leftIcon={CreditCard}
-            onClick={() => onRecordPayment(order)}
-            disabled={submitting || !canRecordPayment}
+            onClick={guard("requests:update", () => onRecordPayment(order))}
+            disabled={submitting}
+            aria-disabled={!canRecordPayment}
             variant="outline"
-            className="h-8 rounded-md border-orange-500/40 bg-orange-500/8 px-2.5 text-[11px] font-semibold text-orange-300 hover:bg-orange-500/15"
+            className={`h-8 rounded-md border-orange-500/40 bg-orange-500/8 px-2.5 text-[11px] font-semibold text-orange-300 hover:bg-orange-500/15 ${!canRecordPayment ? "opacity-50 cursor-not-allowed" : ""}`}
           >
             {isEs ? "Registrar pago" : "Record Payment"}
           </Button>
@@ -146,10 +153,11 @@ export function OrdersTable({
           <Button
             size="sm"
             leftIcon={Banknote}
-            onClick={() => onRecordRentalPayment(order)}
-            disabled={submitting || !canRecordPayment}
+            onClick={guard("requests:update", () => onRecordRentalPayment(order))}
+            disabled={submitting}
+            aria-disabled={!canRecordPayment}
             variant="outline"
-            className="h-8 rounded-md border-purple-500/40 bg-purple-500/8 px-2.5 text-[11px] font-semibold text-purple-300 hover:bg-purple-500/15"
+            className={`h-8 rounded-md border-purple-500/40 bg-purple-500/8 px-2.5 text-[11px] font-semibold text-purple-300 hover:bg-purple-500/15 ${!canRecordPayment ? "opacity-50 cursor-not-allowed" : ""}`}
           >
             {isEs ? "Pago de renta" : "Rental Payment"}
           </Button>
@@ -159,10 +167,11 @@ export function OrdersTable({
         <Button
           size="sm"
           leftIcon={Check}
-          onClick={() => onPrepare(order)}
-          disabled={submitting || !canAssignRequest}
+          onClick={guard("requests:assign", () => onPrepare(order))}
+          disabled={submitting}
+          aria-disabled={!canAssignRequest}
           variant="outline"
-          className="h-8 rounded-md border-sky-500/40 bg-sky-500/8 px-2.5 text-[11px] font-semibold text-sky-300 hover:bg-sky-500/15"
+          className={`h-8 rounded-md border-sky-500/40 bg-sky-500/8 px-2.5 text-[11px] font-semibold text-sky-300 hover:bg-sky-500/15 ${!canAssignRequest ? "opacity-50 cursor-not-allowed" : ""}`}
         >
           {isEs ? "Preparar" : "Prepare"}
         </Button>
@@ -172,10 +181,11 @@ export function OrdersTable({
         <Button
           size="sm"
           leftIcon={PackageCheck}
-          onClick={() => onShip(order)}
-          disabled={submitting || !canAssignRequest}
+          onClick={guard("requests:assign", () => onShip(order))}
+          disabled={submitting}
+          aria-disabled={!canAssignRequest}
           variant="outline"
-          className="h-8 rounded-md border-indigo-500/40 bg-indigo-500/8 px-2.5 text-[11px] font-semibold text-indigo-300 hover:bg-indigo-500/15"
+          className={`h-8 rounded-md border-indigo-500/40 bg-indigo-500/8 px-2.5 text-[11px] font-semibold text-indigo-300 hover:bg-indigo-500/15 ${!canAssignRequest ? "opacity-50 cursor-not-allowed" : ""}`}
         >
           {isEs ? "Despachar" : "Ship"}
         </Button>
@@ -185,10 +195,11 @@ export function OrdersTable({
         <Button
           size="sm"
           leftIcon={Truck}
-          onClick={() => onStartLoan(order.request._id)}
-          disabled={submitting || !canCreateLoan}
+          onClick={guard("loans:create", () => onStartLoan(order.request._id))}
+          disabled={submitting}
+          aria-disabled={!canCreateLoan}
           variant="outline"
-          className="h-8 rounded-md border-blue-500/40 bg-blue-500/8 px-2.5 text-[11px] font-semibold text-blue-300 hover:bg-blue-500/15"
+          className={`h-8 rounded-md border-blue-500/40 bg-blue-500/8 px-2.5 text-[11px] font-semibold text-blue-300 hover:bg-blue-500/15 ${!canCreateLoan ? "opacity-50 cursor-not-allowed" : ""}`}
         >
           {isEs ? "Iniciar préstamo" : "Start Loan"}
         </Button>
@@ -198,10 +209,11 @@ export function OrdersTable({
         <Button
           size="sm"
           leftIcon={CircleCheck}
-          onClick={() => onCompleteLoan(order.loan!._id)}
-          disabled={submitting || !canReturnLoan}
+          onClick={guard("loans:return", () => onCompleteLoan(order.loan!._id))}
+          disabled={submitting}
+          aria-disabled={!canReturnLoan}
           variant="outline"
-          className="h-8 rounded-md border-cyan-500/40 bg-cyan-500/8 px-2.5 text-[11px] font-semibold text-cyan-300 hover:bg-cyan-500/15"
+          className={`h-8 rounded-md border-cyan-500/40 bg-cyan-500/8 px-2.5 text-[11px] font-semibold text-cyan-300 hover:bg-cyan-500/15 ${!canReturnLoan ? "opacity-50 cursor-not-allowed" : ""}`}
         >
           {isEs ? "Completar" : "Complete"}
         </Button>

@@ -94,6 +94,10 @@ const HELP_MODULE_DEFINITIONS: HelpModuleDefinition[] = [
     routePrefixes: ["/app/reports"],
   },
   {
+    moduleId: "code-schemes",
+    routePrefixes: ["/app/settings/code-schemes"],
+  },
+  {
     moduleId: "settings",
     routePrefixes: ["/app/settings"],
   },

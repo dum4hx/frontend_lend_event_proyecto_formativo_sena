@@ -6,6 +6,7 @@ import { MapPin, Zap, Eye, Edit2, Trash2 } from "lucide-react";
 import type { WarehouseLocation } from "../../../../services/warehouseOperatorService";
 import { StatusBadge, LoadingSpinner } from "../../../../components/ui";
 import { useLanguage } from "../../../../contexts/useLanguage";
+import { useActionPermission } from "../../../../hooks/useActionPermission";
 import { formatAddress, calculateLocationCapacity, calculateOccupied } from "./helpers";
 import { LOCATION_STATUS_COLORS } from "./types";
 
@@ -40,6 +41,7 @@ export function LocationsTable({
 }: LocationsTableProps) {
   const { language } = useLanguage();
   const isEs = language === "es";
+  const { guard } = useActionPermission(isEs ? "es" : "en");
 
   if (loading) {
     return (
@@ -151,8 +153,9 @@ export function LocationsTable({
 
               {canEdit && (
                 <button
-                  onClick={() => onEdit(location)}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#0f0f0f] border border-[#2a2a2a] text-gray-300 hover:bg-[#FFD700]/10 hover:border-[#FFD700] hover:text-[#FFD700] transition-all duration-200 group/btn"
+                  onClick={guard("locations:update", () => onEdit(location))}
+                  aria-disabled={!canEdit}
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#0f0f0f] border border-[#2a2a2a] text-gray-300 hover:bg-[#FFD700]/10 hover:border-[#FFD700] hover:text-[#FFD700] transition-all duration-200 group/btn ${!canEdit ? "opacity-40 cursor-not-allowed" : ""}`}
                   title={isEs ? "Editar" : "Edit"}
                 >
                   <Edit2 size={16} className="group-hover/btn:scale-110 transition-transform" />
@@ -162,8 +165,9 @@ export function LocationsTable({
 
               {canDelete && (
                 <button
-                  onClick={() => onDelete(location._id)}
-                  className="flex items-center justify-center w-10 h-10 rounded-lg bg-red-950/30 border border-red-900/30 text-red-400 hover:bg-red-950/50 hover:border-red-500/50 hover:text-red-300 transition-all duration-200 group/btn"
+                  onClick={guard("locations:delete", () => onDelete(location._id))}
+                  aria-disabled={!canDelete}
+                  className={`flex items-center justify-center w-10 h-10 rounded-lg bg-red-950/30 border border-red-900/30 text-red-400 hover:bg-red-950/50 hover:border-red-500/50 hover:text-red-300 transition-all duration-200 group/btn ${!canDelete ? "opacity-40 cursor-not-allowed" : ""}`}
                   title={isEs ? "Eliminar" : "Delete"}
                 >
                   <Trash2 size={16} className="group-hover/btn:scale-110 transition-transform" />

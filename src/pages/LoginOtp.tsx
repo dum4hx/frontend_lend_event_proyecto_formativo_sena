@@ -5,7 +5,7 @@ import Footer from "../components/Footer";
 import { verifyLoginOtp, verifyBackupCode, resendLoginOtp } from "../services/authService";
 import { ApiError } from "../lib/api";
 import {
-  getDashboardUrlByPermissions,
+  getFirstAccessibleUrl,
   requiresActiveSubscriptionByPermissions,
 } from "../utils/roleRouting";
 import { getPaymentStatus } from "../services/authService";
@@ -185,7 +185,7 @@ export default function LoginOtp() {
       }
     }
 
-    dashboardUrl = getDashboardUrlByPermissions(permissions);
+    dashboardUrl = getFirstAccessibleUrl(permissions);
 
     if (newBackupCodes && newBackupCodes.length > 0) {
       setBackupCodes(newBackupCodes);

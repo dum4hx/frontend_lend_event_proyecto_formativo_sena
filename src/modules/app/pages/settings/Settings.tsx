@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Settings as SettingsIcon, Lock, Save, RotateCcw } from "lucide-react";
 import { StatCard } from "../../components";
 import { PageHeader } from "../../../../components/ui/PageHeader";
@@ -7,6 +8,7 @@ import {
   getOrganizationSettings,
   updateOrganizationSettings,
 } from "../../../../services/organizationService";
+import { updateUser } from "../../../../services/userService";
 import type { OrganizationSettings } from "../../../../types/api";
 import { ApiError } from "../../../../lib/api";
 import { usePermissions } from "../../../../contexts/usePermissions";
@@ -16,6 +18,8 @@ import { useToast } from "../../../../contexts/ToastContext";
 import { ConfirmDialog } from "../../../../components/ui";
 import {
   validateEmail,
+  validateFirstName,
+  validateLastName,
   validateLegalName,
   validateOrganizationName,
   validatePhone,
@@ -24,14 +28,19 @@ import {
 import { loadPreferences, cloneDefaultPreferences, arePreferencesEqual } from "./helpers";
 import SettingsModulePanel from "./SettingsModulePanel";
 import { SETTING_MODULES, SETTINGS_STORAGE_KEY, ACTIVE_MODULE_STORAGE_KEY } from "./types";
-import type { SettingsModuleId, SettingsPreferences, AccountField } from "./types";
+import type { SettingsModuleId, SettingsPreferences, AccountField, OrgProfileField } from "./types";
 
 export default function Settings() {
-  const { hasAnyPermission } = usePermissions();
-  const { user } = useAuth();
+  const { hasAnyPermission, hasPermission } = usePermissions();
+  const { user, checkAuth } = useAuth();
   const { t } = useLanguage();
   const { showToast } = useToast();
+  const [searchParams] = useSearchParams();
 
+  const canEditOrganization = hasPermission("organization:update");
+  const canEditAccount = hasPermission("users:update");
+
+  // ─── Organization profile state (Organization panel) ─────────────────────
   const [orgData, setOrgData] = useState({
     name: "",
     email: "",
@@ -39,17 +48,31 @@ export default function Settings() {
     legalName: "",
     taxId: "",
   });
+  const [savedOrgData, setSavedOrgData] = useState(orgData);
+
+  // ─── User profile state (Account panel) ──────────────────────────────────
+  const buildUserData = () => ({
+    firstName: user?.name.firstName ?? "",
+    secondName: user?.name.secondName ?? "",
+    firstSurname: user?.name.firstSurname ?? "",
+    secondSurname: user?.name.secondSurname ?? "",
+    email: user?.email ?? "",
+    phone: user?.phone ?? "",
+  });
+  const [userData, setUserData] = useState(buildUserData);
+  const [savedUserData, setSavedUserData] = useState(buildUserData);
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [preferences, setPreferences] = useState<SettingsPreferences>(loadPreferences);
   const [savedPreferences, setSavedPreferences] = useState<SettingsPreferences>(loadPreferences);
   const [activeModule, setActiveModule] = useState<SettingsModuleId>("account");
-  const [savedOrgData, setSavedOrgData] = useState(orgData);
   const [orgSettings, setOrgSettings] = useState<OrganizationSettings | null>(null);
   const [savedOrgSettings, setSavedOrgSettings] = useState<OrganizationSettings | null>(null);
   const [orgSettingsLoading, setOrgSettingsLoading] = useState(false);
-  const [accountTouched, setAccountTouched] = useState<Partial<Record<AccountField, boolean>>>({});
+  const [userTouched, setUserTouched] = useState<Partial<Record<AccountField, boolean>>>({});
+  const [orgProfileTouched, setOrgProfileTouched] = useState<Partial<Record<OrgProfileField, boolean>>>({});
   const [confirmResetOpen, setConfirmResetOpen] = useState(false);
   const [confirmModuleSwitchOpen, setConfirmModuleSwitchOpen] = useState(false);
   const [pendingModule, setPendingModule] = useState<SettingsModuleId | null>(null);
@@ -60,7 +83,9 @@ export default function Settings() {
   const moduleAccess = useMemo(() => {
     return SETTING_MODULES.reduce<Record<SettingsModuleId, boolean>>(
       (acc, item) => {
-        acc[item.id] = hasAnyPermission(item.requiredPermissions);
+        acc[item.id] =
+          item.requiredPermissions.length === 0 ||
+          hasAnyPermission(item.requiredPermissions);
         return acc;
       },
       {} as Record<SettingsModuleId, boolean>,
@@ -82,12 +107,17 @@ export default function Settings() {
   useEffect(() => {
     if (restoredActiveModuleRef.current) return;
 
-    const storedModule = localStorage.getItem(ACTIVE_MODULE_STORAGE_KEY) as SettingsModuleId | null;
-    if (storedModule && moduleAccess[storedModule]) {
-      setActiveModule(storedModule);
+    const tabParam = searchParams.get("tab") as SettingsModuleId | null;
+    if (tabParam && SETTING_MODULES.some((m) => m.id === tabParam)) {
+      setActiveModule(tabParam);
+    } else {
+      const storedModule = localStorage.getItem(ACTIVE_MODULE_STORAGE_KEY) as SettingsModuleId | null;
+      if (storedModule && moduleAccess[storedModule]) {
+        setActiveModule(storedModule);
+      }
     }
     restoredActiveModuleRef.current = true;
-  }, [moduleAccess]);
+  }, [moduleAccess, searchParams]);
 
   useEffect(() => {
     localStorage.setItem(ACTIVE_MODULE_STORAGE_KEY, activeModule);
@@ -156,8 +186,32 @@ export default function Settings() {
 
   // ─── Validation ────────────────────────────────────────────────────────────
 
+  // User profile errors (Account panel)
   const accountErrors = useMemo(() => {
     const next: Partial<Record<AccountField, string>> = {};
+
+    const firstNameV = validateFirstName(userData.firstName);
+    if (!firstNameV.isValid) next.firstName = firstNameV.message;
+
+    const firstSurnameV = validateLastName(userData.firstSurname);
+    if (!firstSurnameV.isValid) next.firstSurname = firstSurnameV.message;
+
+    const emailV = validateEmail(userData.email);
+    if (!emailV.isValid) next.email = emailV.message;
+
+    if (userData.phone) {
+      const phoneV = validatePhone(userData.phone);
+      if (!phoneV.isValid) next.phone = phoneV.message;
+    }
+
+    return next;
+  }, [userData]);
+
+  const isAccountValid = useMemo(() => Object.keys(accountErrors).length === 0, [accountErrors]);
+
+  // Organization profile errors (Organization panel)
+  const orgProfileErrors = useMemo(() => {
+    const next: Partial<Record<OrgProfileField, string>> = {};
 
     const orgName = validateOrganizationName(orgData.name);
     if (!orgName.isValid) next.name = orgName.message;
@@ -165,33 +219,38 @@ export default function Settings() {
     const legalName = validateLegalName(orgData.legalName);
     if (!legalName.isValid) next.legalName = legalName.message;
 
-    const emailValidation = validateEmail(orgData.email);
-    if (!emailValidation.isValid) next.email = emailValidation.message;
+    const emailV = validateEmail(orgData.email);
+    if (!emailV.isValid) next.email = emailV.message;
 
     const taxValue = orgData.taxId.trim();
     if (taxValue) {
-      const taxValidation = validateTaxId(taxValue);
-      if (!taxValidation.isValid) next.taxId = taxValidation.message;
+      const taxV = validateTaxId(taxValue);
+      if (!taxV.isValid) next.taxId = taxV.message;
     }
 
-    const phoneValidation = validatePhone(orgData.phone || undefined);
-    if (!phoneValidation.isValid) next.phone = phoneValidation.message;
+    const phoneV = validatePhone(orgData.phone || undefined);
+    if (!phoneV.isValid) next.phone = phoneV.message;
 
     return next;
   }, [orgData]);
 
-  const isAccountValid = useMemo(() => Object.keys(accountErrors).length === 0, [accountErrors]);
+  const isOrgProfileValid = useMemo(() => Object.keys(orgProfileErrors).length === 0, [orgProfileErrors]);
 
   const hasUnsavedChanges = useMemo(() => {
     if (activeModule === "account") {
-      return JSON.stringify(orgData) !== JSON.stringify(savedOrgData);
+      return JSON.stringify(userData) !== JSON.stringify(savedUserData);
     }
     if (activeModule === "organization") {
-      return JSON.stringify(orgSettings) !== JSON.stringify(savedOrgSettings);
+      return (
+        JSON.stringify(orgData) !== JSON.stringify(savedOrgData) ||
+        JSON.stringify(orgSettings) !== JSON.stringify(savedOrgSettings)
+      );
     }
     return !arePreferencesEqual(preferences, savedPreferences);
   }, [
     activeModule,
+    userData,
+    savedUserData,
     orgData,
     savedOrgData,
     orgSettings,
@@ -207,6 +266,10 @@ export default function Settings() {
       showToast("error", t("settings.toast.noPermission"));
       return;
     }
+    if (activeModule === "account" && !canEditAccount) {
+      showToast("error", t("settings.toast.noPermission"));
+      return;
+    }
 
     try {
       setSaving(true);
@@ -214,13 +277,28 @@ export default function Settings() {
 
       if (activeModule === "account") {
         if (!isAccountValid) {
-          setAccountTouched({
-            name: true,
-            email: true,
-            phone: true,
-            legalName: true,
-            taxId: true,
-          });
+          setUserTouched({ firstName: true, firstSurname: true, email: true, phone: true });
+          showToast("error", t("settings.toast.fixErrors"));
+          setSaving(false);
+          return;
+        }
+
+        if (!user) throw new Error("No authenticated user");
+        await updateUser(user._id, {
+          name: {
+            firstName: userData.firstName,
+            secondName: userData.secondName || undefined,
+            firstSurname: userData.firstSurname,
+            secondSurname: userData.secondSurname || undefined,
+          },
+          email: userData.email,
+          phone: userData.phone || undefined,
+        });
+        setSavedUserData(userData);
+        await checkAuth();
+      } else if (activeModule === "organization") {
+        if (!isOrgProfileValid) {
+          setOrgProfileTouched({ name: true, email: true, phone: true, legalName: true, taxId: true });
           showToast("error", t("settings.toast.fixErrors"));
           setSaving(false);
           return;
@@ -234,9 +312,11 @@ export default function Settings() {
           taxId: orgData.taxId,
         });
         setSavedOrgData(orgData);
-      } else if (activeModule === "organization" && orgSettings) {
-        await updateOrganizationSettings(orgSettings);
-        setSavedOrgSettings(orgSettings);
+
+        if (orgSettings) {
+          await updateOrganizationSettings(orgSettings);
+          setSavedOrgSettings(orgSettings);
+        }
       } else {
         setSavedPreferences(preferences);
       }
@@ -260,8 +340,8 @@ export default function Settings() {
 
   const handleResetActiveModule = () => {
     if (activeModule === "account") {
-      setOrgData(savedOrgData);
-      setAccountTouched({});
+      setUserData(savedUserData);
+      setUserTouched({});
       return;
     }
     if (activeModule === "notifications") {
@@ -286,6 +366,8 @@ export default function Settings() {
       return;
     }
     if (activeModule === "organization") {
+      setOrgData(savedOrgData);
+      setOrgProfileTouched({});
       setOrgSettings(savedOrgSettings);
     }
   };
@@ -303,7 +385,11 @@ export default function Settings() {
     setActiveModule(targetModule);
   };
 
-  const canSave = hasUnsavedChanges && !saving && (activeModule !== "account" || isAccountValid);
+  const canSave =
+    hasUnsavedChanges &&
+    !saving &&
+    (activeModule !== "account" || (isAccountValid && canEditAccount)) &&
+    (activeModule !== "organization" || (isOrgProfileValid && canEditOrganization));
 
   const activeSetting = SETTING_MODULES.find((item) => item.id === activeModule)!;
   const activeSettingLabel = t(activeSetting.categoryKey);
@@ -393,14 +479,21 @@ export default function Settings() {
           hasAccess={moduleAccess[activeModule]}
           preferences={preferences}
           onPreferencesChange={setPreferences}
+          userData={userData}
+          onUserDataChange={setUserData}
+          userTouched={userTouched}
+          onUserTouchedChange={setUserTouched}
+          accountErrors={accountErrors}
           orgData={orgData}
           onOrgDataChange={setOrgData}
-          accountTouched={accountTouched}
-          onAccountTouchedChange={setAccountTouched}
-          accountErrors={accountErrors}
+          orgProfileTouched={orgProfileTouched}
+          onOrgProfileTouchedChange={setOrgProfileTouched}
+          orgProfileErrors={orgProfileErrors}
           orgSettings={orgSettings}
           orgSettingsLoading={orgSettingsLoading}
           onOrgSettingsChange={setOrgSettings}
+          canEditOrganization={canEditOrganization}
+          canEditAccount={canEditAccount}
         />
       </div>
 
@@ -440,7 +533,10 @@ export default function Settings() {
       />
 
       {/* Save Button */}
-      <div data-help-id="settings-actions" className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
+      <div
+        data-help-id="settings-actions"
+        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2"
+      >
         <div className="text-sm text-gray-400">
           {hasUnsavedChanges ? t("settings.unsaved") : t("settings.savedState")}
         </div>
