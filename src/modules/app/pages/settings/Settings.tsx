@@ -72,7 +72,9 @@ export default function Settings() {
   const [savedOrgSettings, setSavedOrgSettings] = useState<OrganizationSettings | null>(null);
   const [orgSettingsLoading, setOrgSettingsLoading] = useState(false);
   const [userTouched, setUserTouched] = useState<Partial<Record<AccountField, boolean>>>({});
-  const [orgProfileTouched, setOrgProfileTouched] = useState<Partial<Record<OrgProfileField, boolean>>>({});
+  const [orgProfileTouched, setOrgProfileTouched] = useState<
+    Partial<Record<OrgProfileField, boolean>>
+  >({});
   const [confirmResetOpen, setConfirmResetOpen] = useState(false);
   const [confirmModuleSwitchOpen, setConfirmModuleSwitchOpen] = useState(false);
   const [pendingModule, setPendingModule] = useState<SettingsModuleId | null>(null);
@@ -84,8 +86,7 @@ export default function Settings() {
     return SETTING_MODULES.reduce<Record<SettingsModuleId, boolean>>(
       (acc, item) => {
         acc[item.id] =
-          item.requiredPermissions.length === 0 ||
-          hasAnyPermission(item.requiredPermissions);
+          item.requiredPermissions.length === 0 || hasAnyPermission(item.requiredPermissions);
         return acc;
       },
       {} as Record<SettingsModuleId, boolean>,
@@ -111,7 +112,9 @@ export default function Settings() {
     if (tabParam && SETTING_MODULES.some((m) => m.id === tabParam)) {
       setActiveModule(tabParam);
     } else {
-      const storedModule = localStorage.getItem(ACTIVE_MODULE_STORAGE_KEY) as SettingsModuleId | null;
+      const storedModule = localStorage.getItem(
+        ACTIVE_MODULE_STORAGE_KEY,
+      ) as SettingsModuleId | null;
       if (storedModule && moduleAccess[storedModule]) {
         setActiveModule(storedModule);
       }
@@ -234,7 +237,10 @@ export default function Settings() {
     return next;
   }, [orgData]);
 
-  const isOrgProfileValid = useMemo(() => Object.keys(orgProfileErrors).length === 0, [orgProfileErrors]);
+  const isOrgProfileValid = useMemo(
+    () => Object.keys(orgProfileErrors).length === 0,
+    [orgProfileErrors],
+  );
 
   const hasUnsavedChanges = useMemo(() => {
     if (activeModule === "account") {
@@ -298,7 +304,13 @@ export default function Settings() {
         await checkAuth();
       } else if (activeModule === "organization") {
         if (!isOrgProfileValid) {
-          setOrgProfileTouched({ name: true, email: true, phone: true, legalName: true, taxId: true });
+          setOrgProfileTouched({
+            name: true,
+            email: true,
+            phone: true,
+            legalName: true,
+            taxId: true,
+          });
           showToast("error", t("settings.toast.fixErrors"));
           setSaving(false);
           return;

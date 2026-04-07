@@ -138,7 +138,7 @@ export function Locations() {
   }, []);
 
   useEffect(() => {
-    if (hasPermission("materials:read")) void fetchLocations();
+    if (hasPermission("locations:read")) void fetchLocations();
   }, [hasPermission, fetchLocations]);
 
   // ---- Filtered + paginated ----
@@ -391,7 +391,7 @@ export function Locations() {
   };
 
   // ---- Permission gate ----
-  if (!hasPermission("materials:read")) return <Unauthorized />;
+  if (!hasPermission("locations:read")) return <Unauthorized />;
 
   return (
     <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
@@ -407,15 +407,17 @@ export function Locations() {
             actions={
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => setExportOpen(true)}
-                  className="export-btn flex items-center gap-2"
+                  onClick={guard("locations:read", () => setExportOpen(true))}
+                  aria-disabled={!isAllowed("locations:read")}
+                  className={`export-btn flex items-center gap-2 ${!isAllowed("locations:read") ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   <Download size={18} />
                   {isEs ? "Exportar" : "Export"}
                 </button>
                 <button
-                  onClick={() => setShowImportModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#1a1a1a] border border-[#333] text-gray-300 rounded-lg hover:bg-[#222] hover:border-[#444] hover:text-white transition-all"
+                  onClick={guard("locations:create", () => setShowImportModal(true))}
+                  aria-disabled={!isAllowed("locations:create")}
+                  className={`flex items-center gap-2 px-4 py-2 bg-[#1a1a1a] border border-[#333] text-gray-300 rounded-lg hover:bg-[#222] hover:border-[#444] hover:text-white transition-all ${!isAllowed("locations:create") ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   <Upload size={18} />
                   {isEs ? "Importar" : "Import"}

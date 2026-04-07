@@ -189,7 +189,7 @@ export default function AdminDashboard() {
             <AdminTable>
               <thead>
                 <tr className="border-b border-[#333] text-gray-400 text-xs uppercase">
-                  <th className="px-4 py-3 font-medium">ID</th>
+                  <th className="px-4 py-3 font-medium">{isEs ? "Código" : "Code"}</th>
                   <th className="px-4 py-3 font-medium">{isEs ? "Items" : "Items"}</th>
                   <th className="px-4 py-3 font-medium">{isEs ? "Inicio" : "Start"}</th>
                   <th className="px-4 py-3 font-medium">{isEs ? "Fin" : "End"}</th>
@@ -204,7 +204,7 @@ export default function AdminDashboard() {
                   >
                     <td className="px-4 py-3 font-mono font-medium">
                       <Link to="/app/orders" className="entity-link">
-                        {shortId(req._id)}
+                        {req.code ?? shortId(req._id)}
                       </Link>
                     </td>
                     <td className="px-4 py-3 text-gray-300">
@@ -376,7 +376,7 @@ export default function AdminDashboard() {
           <AdminTable>
             <thead>
               <tr className="border-b border-[#333] text-gray-400 text-xs uppercase">
-                <th className="px-4 py-3 font-medium">ID</th>
+                <th className="px-4 py-3 font-medium">{isEs ? "Código" : "Code"}</th>
                 <th className="px-4 py-3 font-medium">{isEs ? "Fecha limite" : "Due Date"}</th>
                 <th className="px-4 py-3 font-medium">{isEs ? "Dias tarde" : "Days Late"}</th>
                 <th className="px-4 py-3 font-medium">{isEs ? "Estado" : "Status"}</th>
@@ -390,7 +390,7 @@ export default function AdminDashboard() {
                 >
                   <td className="px-4 py-3 font-mono font-medium">
                     <Link to="/app/rentals" className="entity-link">
-                      {shortId(loan._id)}
+                      {loan.code ?? shortId(loan._id)}
                     </Link>
                   </td>
                   <td className="px-4 py-3 text-gray-400">{fmtDate(loan.endDate, locale)}</td>

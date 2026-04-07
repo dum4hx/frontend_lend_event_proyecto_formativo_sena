@@ -178,10 +178,10 @@ export function LoanDetailModal({ show, onClose, target, locale, isEs }: LoanDet
           <div className="grid grid-cols-2 gap-6 text-sm">
             <div>
               <label className="block text-xs font-medium text-gray-400 mb-1 uppercase tracking-wide">
-                {isEs ? "ID préstamo" : "Loan ID"}
+                {isEs ? "Código préstamo" : "Loan Code"}
               </label>
               <p className="text-white font-mono font-semibold">
-                #{target.loan._id.slice(-8).toUpperCase()}
+                {target.loan.code ?? `#${target.loan._id.slice(-8).toUpperCase()}`}
               </p>
             </div>
             <div>
@@ -203,10 +203,11 @@ export function LoanDetailModal({ show, onClose, target, locale, isEs }: LoanDet
             {target.loan.requestId && (
               <div>
                 <label className="block text-xs font-medium text-gray-400 mb-1 uppercase tracking-wide">
-                  {isEs ? "ID solicitud" : "Request ID"}
+                  {isEs ? "Código solicitud" : "Request Code"}
                 </label>
                 <p className="text-white font-mono text-xs">
-                  #{String(target.loan.requestId).slice(-8).toUpperCase()}
+                  {target.loan.requestCode ??
+                    `#${String(target.loan.requestId).slice(-8).toUpperCase()}`}
                 </p>
               </div>
             )}
@@ -418,7 +419,9 @@ export function ExtendLoanModal({
         </h2>
         <p className="text-zinc-400 text-sm">
           {isEs ? "Extendiendo prestamo" : "Extending loan"}{" "}
-          <span className="text-white font-medium">#{target.loan._id.slice(-8).toUpperCase()}</span>{" "}
+          <span className="text-white font-medium">
+            {target.loan.code ?? `#${target.loan._id.slice(-8).toUpperCase()}`}
+          </span>{" "}
           {isEs ? "para" : "for"}{" "}
           <span className="text-white font-medium">{customerFullName(target.customer)}</span>
         </p>
@@ -507,7 +510,9 @@ export function ReturnLoanModal({
         </h2>
         <p className="text-zinc-400 text-sm">
           {isEs ? "Marcar prestamo" : "Mark loan"}{" "}
-          <span className="text-white font-medium">#{target.loan._id.slice(-8).toUpperCase()}</span>{" "}
+          <span className="text-white font-medium">
+            {target.loan.code ?? `#${target.loan._id.slice(-8).toUpperCase()}`}
+          </span>{" "}
           {isEs ? "como devuelto?" : "as returned?"}
         </p>
         <div className="flex gap-3 justify-end">
@@ -654,7 +659,9 @@ export function CompleteLoanModal({
         </h2>
         <p className="text-zinc-400 text-sm">
           {isEs ? "Completar préstamo" : "Complete loan"}{" "}
-          <span className="text-white font-medium">#{target.loan._id.slice(-8).toUpperCase()}</span>{" "}
+          <span className="text-white font-medium">
+            {target.loan.code ?? `#${target.loan._id.slice(-8).toUpperCase()}`}
+          </span>{" "}
           {isEs ? "para" : "for"}{" "}
           <span className="text-white font-medium">{customerFullName(target.customer)}</span>
         </p>

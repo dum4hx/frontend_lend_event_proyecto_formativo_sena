@@ -91,7 +91,7 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
             <h2 className="text-xl font-bold text-white">{t("inspections.performInspection")}</h2>
             <p className="text-sm text-gray-400 mt-1">
               {t("inspections.loanIdLabel")}:{" "}
-              <span className="text-gray-300 font-mono">{loan._id}</span> •{" "}
+              <span className="text-gray-300 font-mono">{loan.code ?? loan._id}</span> •{" "}
               {t("inspections.customerLabel")}:{" "}
               <span className="text-gray-300">
                 {`${loan.customerId.name.firstName} ${loan.customerId.name.firstSurname}`}

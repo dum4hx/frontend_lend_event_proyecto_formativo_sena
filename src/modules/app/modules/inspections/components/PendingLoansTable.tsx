@@ -53,9 +53,11 @@ export const PendingLoansTable: React.FC<PendingLoansTableProps> = ({ loans, onI
               <td className="py-5 px-6">
                 <div className="flex flex-col">
                   <span className="text-white font-mono text-sm group-hover:text-[#FFD700] transition-colors">
-                    {loan._id.slice(-8).toUpperCase()}
+                    {loan.code ?? loan._id.slice(-8).toUpperCase()}
                   </span>
-                  <span className="text-[10px] text-gray-500 font-mono">{loan._id}</span>
+                  <span className="text-[10px] text-gray-500 font-mono">
+                    {loan.code ? loan._id : ""}
+                  </span>
                 </div>
               </td>
               <td className="py-5 px-6">

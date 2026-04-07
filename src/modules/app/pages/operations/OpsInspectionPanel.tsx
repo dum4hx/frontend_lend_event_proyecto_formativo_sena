@@ -32,7 +32,7 @@ function InspectionRow({
       custom={index}
       className="flex flex-col gap-2 px-3 py-3 rounded-lg bg-zinc-800/40 border border-zinc-700/30"
     >
-      {/* Row header: loan ID + customer */}
+      {/* Row header: loan code + customer */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
           <ClipboardCheck size={14} className="text-amber-400 shrink-0" />
@@ -41,7 +41,8 @@ function InspectionRow({
             onClick={() => onLoanClick(item.loanId)}
             className="inline-flex items-center gap-1 text-[#FFD700] hover:text-[#FFC700] hover:underline underline-offset-2 transition-colors text-sm font-medium"
           >
-            <ExternalLink className="w-3 h-3 opacity-60" />#{item.loanId.slice(-6).toUpperCase()}
+            <ExternalLink className="w-3 h-3 opacity-60" />
+            {item.loanCode ?? `#${item.loanId.slice(-6).toUpperCase()}`}
           </button>
         </div>
         <div className="flex items-center gap-1.5 text-xs text-zinc-400 shrink-0">

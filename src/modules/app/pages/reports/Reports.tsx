@@ -372,7 +372,7 @@ export default function Reports() {
       case "invoices": {
         const filtered = invoices.filter(() => matchesDate(undefined));
         return {
-          headers: ["ID", "Customer ID", "Type", "Status", "Amount (COP)", "Loan ID"],
+          headers: ["ID", "Customer ID", "Type", "Status", "Amount (COP)", "Loan Code"],
           rows: filtered.map((i) => ({
             id: i._id,
             columns: {
@@ -384,8 +384,10 @@ export default function Reports() {
               Type: i.type,
               Status: i.status,
               "Amount (COP)": fmtCurrency(i.totalAmount),
-              "Loan ID": i.loanId
-                ? fmtId(typeof i.loanId === "object" ? i.loanId._id : i.loanId)
+              "Loan Code": i.loanId
+                ? typeof i.loanId === "object"
+                  ? (i.loanId.code ?? fmtId(i.loanId._id))
+                  : fmtId(i.loanId)
                 : "—",
             },
           })),

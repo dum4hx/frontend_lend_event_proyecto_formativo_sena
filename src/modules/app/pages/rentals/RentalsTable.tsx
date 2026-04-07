@@ -89,7 +89,7 @@ export function RentalsTable({
         <thead>
           <tr className="bg-[#1a1a1a] text-gray-400 border-b border-[#333]">
             <th className="text-left px-4 py-3 font-semibold">
-              {isEs ? "ID Prestamo" : "Loan ID"}
+              {isEs ? "Código Préstamo" : "Loan Code"}
             </th>
             <th className="text-left px-4 py-3 font-semibold">{isEs ? "Cliente" : "Customer"}</th>
             <th className="text-left px-4 py-3 font-semibold">
@@ -112,7 +112,7 @@ export function RentalsTable({
               >
                 <td className="px-4 py-3">
                   <span className="font-mono text-xs text-gray-300">
-                    #{lv.loan._id.slice(-8).toUpperCase()}
+                    {lv.loan.code ?? `#${lv.loan._id.slice(-8).toUpperCase()}`}
                   </span>
                 </td>
                 <td className="px-4 py-3">

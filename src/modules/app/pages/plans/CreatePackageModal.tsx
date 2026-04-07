@@ -2,7 +2,11 @@ import { useState, useEffect } from "react";
 import { Plus, X, Loader2, AlertCircle } from "lucide-react";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import { useCurrencyInput } from "../../../../hooks/useCurrencyInput";
-import { createPackage, getMaterialTypes, updatePackage } from "../../../../services/materialService";
+import {
+  createPackage,
+  getMaterialTypes,
+  updatePackage,
+} from "../../../../services/materialService";
 import { normalizeError, logError } from "../../../../utils/errorHandling";
 import type {
   PackageMaterialEntry,
@@ -216,9 +220,7 @@ export default function CreatePackageModal({
           <div>
             <label className="block text-xs font-semibold text-gray-400 mb-1">
               {t("plans.form.pricePerDay")}{" "}
-              <span className="text-gray-600 font-normal">
-                ({t("plans.form.priceHint")})
-              </span>
+              <span className="text-gray-600 font-normal">({t("plans.form.priceHint")})</span>
             </label>
             <input
               type="text"
@@ -235,8 +237,7 @@ export default function CreatePackageModal({
           <div data-help-id="plans-form-entries">
             <div className="flex items-center justify-between mb-2">
               <label className="text-xs font-semibold text-gray-400">
-                {t("plans.form.materialTypes")}{" "}
-                <span className="text-[#FFD700]">*</span>
+                {t("plans.form.materialTypes")} <span className="text-[#FFD700]">*</span>
               </label>
               <button
                 type="button"
@@ -258,9 +259,7 @@ export default function CreatePackageModal({
                       disabled={submitting || typesLoading}
                       className={`${inputCls} flex-1`}
                     >
-                      <option value="">
-                        {t("plans.form.selectMaterial")}
-                      </option>
+                      <option value="">{t("plans.form.selectMaterial")}</option>
                       {materialTypes.map((t) => (
                         <option key={t._id} value={t._id}>
                           {t.name}

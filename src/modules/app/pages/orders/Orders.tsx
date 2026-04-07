@@ -654,7 +654,10 @@ export function Orders() {
                 {isEs
                   ? "Proporcione una razón de rechazo para la solicitud"
                   : "Provide a rejection reason for request"}{" "}
-                <span className="text-white font-semibold">{rejectTarget.request._id}</span>.
+                <span className="text-white font-semibold">
+                  {rejectTarget.request.code ?? rejectTarget.request._id}
+                </span>
+                .
               </p>
               <div className="form-group">
                 <label className="form-label">{isEs ? "Razón *" : "Reason *"}</label>
@@ -718,7 +721,10 @@ export function Orders() {
                 {isEs
                   ? "Proporcione una razón de reactivación para la solicitud"
                   : "Provide a reactivation reason for request"}{" "}
-                <span className="text-white font-semibold">{reactivateTarget.request._id}</span>.
+                <span className="text-white font-semibold">
+                  {reactivateTarget.request.code ?? reactivateTarget.request._id}
+                </span>
+                .
               </p>
               <div className="form-group">
                 <label className="form-label">{isEs ? "Razón *" : "Reason *"}</label>
@@ -789,7 +795,8 @@ export function Orders() {
             <p className="text-zinc-400 text-sm mb-4">
               {isEs ? "¿Marcar el depósito del pedido" : "Mark the deposit for order"}{" "}
               <span className="text-white font-medium">
-                #{paymentTarget.request._id.slice(-6).toUpperCase()}
+                {paymentTarget.request.code ??
+                  `#${paymentTarget.request._id.slice(-6).toUpperCase()}`}
               </span>{" "}
               {isEs ? "como pagado?" : "as paid?"}
             </p>
@@ -846,7 +853,8 @@ export function Orders() {
                 ? "¿Registrar el pago de la tarifa de renta del pedido"
                 : "Record the rental fee payment for order"}{" "}
               <span className="text-white font-medium">
-                #{rentalPaymentTarget.request._id.slice(-6).toUpperCase()}
+                {rentalPaymentTarget.request.code ??
+                  `#${rentalPaymentTarget.request._id.slice(-6).toUpperCase()}`}
               </span>
               {isEs ? " como pagado?" : " as paid?"}
             </p>

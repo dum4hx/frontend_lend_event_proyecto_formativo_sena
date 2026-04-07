@@ -79,7 +79,7 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({ onClos
           }
           return {
             value: loan._id,
-            label: `${loan._id.slice(-6).toUpperCase()} — ${customerName} (${loan.status})`,
+            label: `${loan.code ?? loan._id.slice(-6).toUpperCase()} — ${customerName} (${loan.status})`,
           };
         });
         setLoanOptions(options);

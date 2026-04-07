@@ -224,13 +224,13 @@ export function OrdersTable({
   const columns: ColumnDef<OrderView>[] = [
     {
       key: "requestId",
-      header: isEs ? "ID Solicitud" : "Request ID",
+      header: isEs ? "Código Solicitud" : "Request Code",
       render: (order) => (
         <span
           className="block max-w-full truncate font-semibold text-white"
-          title={order.request._id}
+          title={order.request.code ?? order.request._id}
         >
-          {order.request._id}
+          {order.request.code ?? order.request._id}
         </span>
       ),
     },

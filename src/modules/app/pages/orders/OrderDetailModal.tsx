@@ -46,8 +46,12 @@ export function OrderDetailModal({ open, onClose, order }: OrderDetailModalProps
             <div className="p-6 md:p-7 space-y-5 max-h-[calc(92vh-84px)] overflow-y-auto">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <p className="text-gray-500 text-sm">{isEs ? "ID de Solicitud" : "Request ID"}</p>
-                  <p className="text-white font-semibold break-all">{order.request._id}</p>
+                  <p className="text-gray-500 text-sm">
+                    {isEs ? "Código de Solicitud" : "Request Code"}
+                  </p>
+                  <p className="text-white font-semibold break-all">
+                    {order.request.code ?? order.request._id}
+                  </p>
                 </div>
                 <div>
                   <p className="text-gray-500 text-sm">{isEs ? "Cliente" : "Customer"}</p>

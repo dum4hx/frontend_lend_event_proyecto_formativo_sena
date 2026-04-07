@@ -183,7 +183,9 @@ interface SettingsModulePanelProps {
   /** Field-level touched state for org profile fields. */
   orgProfileTouched: Partial<Record<OrgProfileField, boolean>>;
   /** Setter for org profile touched state. */
-  onOrgProfileTouchedChange: React.Dispatch<React.SetStateAction<Partial<Record<OrgProfileField, boolean>>>>;
+  onOrgProfileTouchedChange: React.Dispatch<
+    React.SetStateAction<Partial<Record<OrgProfileField, boolean>>>
+  >;
   /** Per-field validation errors for org profile. */
   orgProfileErrors: Partial<Record<OrgProfileField, string>>;
   /** Current organization settings from the API. */
@@ -347,7 +349,9 @@ export default function SettingsModulePanel({
 
           {!canEditOrganization && (
             <div className="flex items-start gap-3 bg-yellow-900/20 border border-yellow-600/50 rounded-lg p-3">
-              <span className="text-yellow-400 mt-0.5" aria-hidden="true">⚠</span>
+              <span className="text-yellow-400 mt-0.5" aria-hidden="true">
+                ⚠
+              </span>
               <p className="text-yellow-200 text-sm">{t("settings.organization.readOnlyNotice")}</p>
             </div>
           )}
@@ -365,7 +369,9 @@ export default function SettingsModulePanel({
                 onBlur={() => onOrgProfileTouchedChange((prev) => ({ ...prev, name: true }))}
                 disabled={!canEditOrganization}
                 className={`w-full px-4 py-2 bg-[#1a1a1a] border rounded text-white focus:outline-none focus:border-[#FFD700] ${
-                  orgProfileTouched.name && orgProfileErrors.name ? "border-red-500" : "border-[#333]"
+                  orgProfileTouched.name && orgProfileErrors.name
+                    ? "border-red-500"
+                    : "border-[#333]"
                 } ${!canEditOrganization ? "opacity-60 cursor-not-allowed" : ""}`}
                 placeholder={t("settings.account.organizationPlaceholder")}
               />
@@ -382,11 +388,15 @@ export default function SettingsModulePanel({
               <input
                 type="text"
                 value={orgData.legalName}
-                onChange={(e) => onOrgDataChange((prev) => ({ ...prev, legalName: e.target.value }))}
+                onChange={(e) =>
+                  onOrgDataChange((prev) => ({ ...prev, legalName: e.target.value }))
+                }
                 onBlur={() => onOrgProfileTouchedChange((prev) => ({ ...prev, legalName: true }))}
                 disabled={!canEditOrganization}
                 className={`w-full px-4 py-2 bg-[#1a1a1a] border rounded text-white focus:outline-none focus:border-[#FFD700] ${
-                  orgProfileTouched.legalName && orgProfileErrors.legalName ? "border-red-500" : "border-[#333]"
+                  orgProfileTouched.legalName && orgProfileErrors.legalName
+                    ? "border-red-500"
+                    : "border-[#333]"
                 } ${!canEditOrganization ? "opacity-60 cursor-not-allowed" : ""}`}
                 placeholder={t("settings.account.legalNamePlaceholder")}
               />
@@ -404,12 +414,17 @@ export default function SettingsModulePanel({
                 type="text"
                 value={orgData.taxId}
                 onChange={(e) =>
-                  onOrgDataChange((prev) => ({ ...prev, taxId: normalizeTaxIdInput(e.target.value) }))
+                  onOrgDataChange((prev) => ({
+                    ...prev,
+                    taxId: normalizeTaxIdInput(e.target.value),
+                  }))
                 }
                 onBlur={() => onOrgProfileTouchedChange((prev) => ({ ...prev, taxId: true }))}
                 disabled={!canEditOrganization}
                 className={`w-full px-4 py-2 bg-[#1a1a1a] border rounded text-white focus:outline-none focus:border-[#FFD700] ${
-                  orgProfileTouched.taxId && orgProfileErrors.taxId ? "border-red-500" : "border-[#333]"
+                  orgProfileTouched.taxId && orgProfileErrors.taxId
+                    ? "border-red-500"
+                    : "border-[#333]"
                 } ${!canEditOrganization ? "opacity-60 cursor-not-allowed" : ""}`}
                 placeholder={t("settings.account.taxIdPlaceholder")}
               />
@@ -431,7 +446,9 @@ export default function SettingsModulePanel({
                 onBlur={() => onOrgProfileTouchedChange((prev) => ({ ...prev, email: true }))}
                 disabled={!canEditOrganization}
                 className={`w-full px-4 py-2 bg-[#1a1a1a] border rounded text-white focus:outline-none focus:border-[#FFD700] ${
-                  orgProfileTouched.email && orgProfileErrors.email ? "border-red-500" : "border-[#333]"
+                  orgProfileTouched.email && orgProfileErrors.email
+                    ? "border-red-500"
+                    : "border-[#333]"
                 } ${!canEditOrganization ? "opacity-60 cursor-not-allowed" : ""}`}
                 placeholder={t("settings.account.emailPlaceholder")}
               />
@@ -449,12 +466,17 @@ export default function SettingsModulePanel({
                 type="tel"
                 value={orgData.phone}
                 onChange={(e) =>
-                  onOrgDataChange((prev) => ({ ...prev, phone: normalizePhoneInput(e.target.value) }))
+                  onOrgDataChange((prev) => ({
+                    ...prev,
+                    phone: normalizePhoneInput(e.target.value),
+                  }))
                 }
                 onBlur={() => onOrgProfileTouchedChange((prev) => ({ ...prev, phone: true }))}
                 disabled={!canEditOrganization}
                 className={`w-full px-4 py-2 bg-[#1a1a1a] border rounded text-white focus:outline-none focus:border-[#FFD700] ${
-                  orgProfileTouched.phone && orgProfileErrors.phone ? "border-red-500" : "border-[#333]"
+                  orgProfileTouched.phone && orgProfileErrors.phone
+                    ? "border-red-500"
+                    : "border-[#333]"
                 } ${!canEditOrganization ? "opacity-60 cursor-not-allowed" : ""}`}
                 placeholder={t("settings.account.phonePlaceholder")}
               />
@@ -581,7 +603,9 @@ function AccountModulePanel({
       {/* Permission notice */}
       {!canEditAccount && (
         <div className="flex items-start gap-3 bg-yellow-900/20 border border-yellow-600/50 rounded-xl p-4">
-          <span className="text-yellow-400 mt-0.5" aria-hidden="true">⚠️</span>
+          <span className="text-yellow-400 mt-0.5" aria-hidden="true">
+            ⚠️
+          </span>
           <p className="text-yellow-300 text-sm">{t("settings.account.readOnlyNotice")}</p>
         </div>
       )}
@@ -604,7 +628,9 @@ function AccountModulePanel({
               onBlur={() => onUserTouchedChange((prev) => ({ ...prev, firstName: true }))}
               disabled={!canEditAccount}
               className={`w-full px-4 py-2 bg-[#1a1a1a] border rounded text-white focus:outline-none focus:border-[#FFD700] ${
-                userTouched.firstName && accountErrors.firstName ? "border-red-500" : "border-[#333]"
+                userTouched.firstName && accountErrors.firstName
+                  ? "border-red-500"
+                  : "border-[#333]"
               } ${!canEditAccount ? "opacity-60 cursor-not-allowed" : ""}`}
               placeholder={t("settings.account.firstNamePlaceholder")}
             />
@@ -622,7 +648,9 @@ function AccountModulePanel({
             <input
               type="text"
               value={userData.secondName}
-              onChange={(e) => onUserDataChange((prev) => ({ ...prev, secondName: e.target.value }))}
+              onChange={(e) =>
+                onUserDataChange((prev) => ({ ...prev, secondName: e.target.value }))
+              }
               disabled={!canEditAccount}
               className={`w-full px-4 py-2 bg-[#1a1a1a] border border-[#333] rounded text-white focus:outline-none focus:border-[#FFD700] ${
                 !canEditAccount ? "opacity-60 cursor-not-allowed" : ""
@@ -639,11 +667,15 @@ function AccountModulePanel({
             <input
               type="text"
               value={userData.firstSurname}
-              onChange={(e) => onUserDataChange((prev) => ({ ...prev, firstSurname: e.target.value }))}
+              onChange={(e) =>
+                onUserDataChange((prev) => ({ ...prev, firstSurname: e.target.value }))
+              }
               onBlur={() => onUserTouchedChange((prev) => ({ ...prev, firstSurname: true }))}
               disabled={!canEditAccount}
               className={`w-full px-4 py-2 bg-[#1a1a1a] border rounded text-white focus:outline-none focus:border-[#FFD700] ${
-                userTouched.firstSurname && accountErrors.firstSurname ? "border-red-500" : "border-[#333]"
+                userTouched.firstSurname && accountErrors.firstSurname
+                  ? "border-red-500"
+                  : "border-[#333]"
               } ${!canEditAccount ? "opacity-60 cursor-not-allowed" : ""}`}
               placeholder={t("settings.account.firstSurnamePlaceholder")}
             />
@@ -661,7 +693,9 @@ function AccountModulePanel({
             <input
               type="text"
               value={userData.secondSurname}
-              onChange={(e) => onUserDataChange((prev) => ({ ...prev, secondSurname: e.target.value }))}
+              onChange={(e) =>
+                onUserDataChange((prev) => ({ ...prev, secondSurname: e.target.value }))
+              }
               disabled={!canEditAccount}
               className={`w-full px-4 py-2 bg-[#1a1a1a] border border-[#333] rounded text-white focus:outline-none focus:border-[#FFD700] ${
                 !canEditAccount ? "opacity-60 cursor-not-allowed" : ""
@@ -701,7 +735,10 @@ function AccountModulePanel({
               type="tel"
               value={userData.phone}
               onChange={(e) =>
-                onUserDataChange((prev) => ({ ...prev, phone: normalizePhoneInput(e.target.value) }))
+                onUserDataChange((prev) => ({
+                  ...prev,
+                  phone: normalizePhoneInput(e.target.value),
+                }))
               }
               onBlur={() => onUserTouchedChange((prev) => ({ ...prev, phone: true }))}
               disabled={!canEditAccount}
