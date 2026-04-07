@@ -20,9 +20,6 @@ import { useToast } from "../../../../contexts/ToastContext";
 import { useDebounce } from "use-debounce";
 import { AdminPagination, AdminTable, StatCard } from "../../components";
 import type { Role } from "../../../../types/api";
-import { usePermissions } from "../../../../contexts/usePermissions";
-import { useActionPermission } from "../../../../hooks/useActionPermission";
-import Unauthorized from "../../../../pages/Unauthorized";
 import RoleFormModal from "./RoleFormModal";
 import PermissionPreviewModal from "./PermissionPreviewModal";
 
@@ -33,9 +30,7 @@ const SORT_STORAGE_KEY = "roleManagement.sort";
 const PAGE_SIZE_STORAGE_KEY = "roleManagement.pageSize";
 
 export default function RoleManagement() {
-  const { t, language } = useLanguage();
-  const { hasPermission } = usePermissions();
-  const { guard, isAllowed } = useActionPermission(language === "es" ? "es" : "en");
+  const { t } = useLanguage();
   const { showToast } = useToast();
   const { showConfirm, ConfirmModal } = useConfirmModal();
 
@@ -226,8 +221,6 @@ export default function RoleManagement() {
 
   // ─── Render ────────────────────────────────────────────────────────────────
 
-  if (!hasPermission("roles:read")) return <Unauthorized />;
-
   return (
     <div className="page-container">
       <div className="max-w-6xl mx-auto">
@@ -237,9 +230,8 @@ export default function RoleManagement() {
             subtitle={t("roles.subtitle")}
             actions={
               <button
-                onClick={guard("roles:create", () => setModal({ type: "create" }))}
-                aria-disabled={!isAllowed("roles:create")}
-                className={`w-full sm:w-auto shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 font-semibold rounded-lg transition gold-action-btn ${!isAllowed("roles:create") ? "opacity-50 cursor-not-allowed" : ""}`}
+                onClick={() => setModal({ type: "create" })}
+                className="w-full sm:w-auto shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 font-semibold rounded-lg transition gold-action-btn"
               >
                 <Plus size={18} />
                 {t("roles.newRole")}
@@ -452,20 +444,16 @@ export default function RoleManagement() {
                               {t("roles.permissionsBtn")}
                             </button>
                             <button
-                              onClick={guard("roles:update", () =>
-                                setModal({ type: "edit", role }),
-                              )}
-                              aria-disabled={!isAllowed("roles:update")}
-                              className={`flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-300 border border-[#333] rounded-lg hover:bg-[#222] hover:text-white transition ${!isAllowed("roles:update") ? "opacity-50 cursor-not-allowed" : ""}`}
+                              onClick={() => setModal({ type: "edit", role })}
+                              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-300 border border-[#333] rounded-lg hover:bg-[#222] hover:text-white transition"
                             >
                               <Edit size={14} />
                               {t("roles.editBtn")}
                             </button>
                             <button
-                              onClick={guard("roles:delete", () => void handleDelete(role))}
-                              aria-disabled={!isAllowed("roles:delete")}
+                              onClick={() => void handleDelete(role)}
                               disabled={deletingId === role._id}
-                              className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg transition disabled:opacity-50 danger-action-btn ${!isAllowed("roles:delete") ? "opacity-50 cursor-not-allowed" : ""}`}
+                              className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg transition disabled:opacity-50 danger-action-btn"
                             >
                               <Trash2 size={14} />
                               {deletingId === role._id
@@ -526,18 +514,16 @@ export default function RoleManagement() {
                           {t("roles.permissionsBtn")}
                         </button>
                         <button
-                          onClick={guard("roles:update", () => setModal({ type: "edit", role }))}
-                          aria-disabled={!isAllowed("roles:update")}
-                          className={`flex-1 justify-center flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-300 border border-[#333] rounded-lg hover:bg-[#222] hover:text-white transition min-w-[120px] ${!isAllowed("roles:update") ? "opacity-50 cursor-not-allowed" : ""}`}
+                          onClick={() => setModal({ type: "edit", role })}
+                          className="flex-1 justify-center flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-300 border border-[#333] rounded-lg hover:bg-[#222] hover:text-white transition min-w-[120px]"
                         >
                           <Edit size={14} />
                           {t("roles.editBtn")}
                         </button>
                         <button
-                          onClick={guard("roles:delete", () => void handleDelete(role))}
-                          aria-disabled={!isAllowed("roles:delete")}
+                          onClick={() => void handleDelete(role)}
                           disabled={deletingId === role._id}
-                          className={`flex-1 justify-center flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg transition disabled:opacity-50 danger-action-btn min-w-[120px] ${!isAllowed("roles:delete") ? "opacity-50 cursor-not-allowed" : ""}`}
+                          className="flex-1 justify-center flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg transition disabled:opacity-50 danger-action-btn min-w-[120px]"
                         >
                           <Trash2 size={14} />
                           {deletingId === role._id ? t("roles.deletingBtn") : t("roles.deleteBtn")}
