@@ -330,7 +330,8 @@ export function useCustomerForm({ initialCustomer }: UseCustomerFormOptions = {}
       if (!phoneV.isValid && phoneV.message) nextErrors.phone = t(phoneV.message as TranslationKey);
 
       const docNumV = validateDocumentNumber(formData.documentNumber);
-      if (!docNumV.isValid && docNumV.message) nextErrors.documentNumber = t(docNumV.message as TranslationKey);
+      if (!docNumV.isValid && docNumV.message)
+        nextErrors.documentNumber = t(docNumV.message as TranslationKey);
 
       if (showAddress) {
         if (!streetType) nextErrors.streetType = "Street type is required";

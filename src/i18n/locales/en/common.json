@@ -1,4 +1,4 @@
-ï»¿{
+{
   "common.language": "Language",
   "common.english": "English",
   "common.spanish": "Spanish",
@@ -90,7 +90,7 @@
   "maintenance.noItems": "No items in this batch.",
   "maintenance.noBatches": "No maintenance batches found.",
   "maintenance.filter.all": "All",
-  "maintenance.searchInstance": "Search material instanceâ€¦",
+  "maintenance.searchInstance": "Search material instance…",
   "maintenance.serialNumber": "Serial Number",
   "maintenance.confirmStart": "Are you sure you want to start this batch? All pending items will transition to in-repair status.",
   "maintenance.confirmCancel": "Are you sure you want to cancel this batch? In-repair items will revert to damaged status.",
@@ -370,7 +370,7 @@
   "materialInstances.list.printBarcode": "Print Barcode",
   "materialInstances.list.printBarcodeAria": "Print barcode for instance {serial}",
   "materialInstances.list.deleteAria": "Delete instance {serial}",
-  "common.typeToSearch": "Type to searchâ€¦",
+  "common.typeToSearch": "Type to search…",
   "common.noResults": "No results found",
   "common.success": "Success",
   "common.error": "Error",
@@ -524,7 +524,7 @@
   "roles.noDescription": "No description",
   "roles.permissionsSuffix": "{count} permission(s)",
   "roles.systemRoleLabel": "System role",
-  "roles.systemRoleReadOnly": "System role â€” cannot be modified",
+  "roles.systemRoleReadOnly": "System role — cannot be modified",
   "roles.permissionsBtn": "Permissions",
   "roles.editBtn": "Edit",
   "roles.deleteBtn": "Delete",
@@ -638,5 +638,9 @@
   "common.validation.categoryCodeMaxLength": "Code must not exceed 10 characters",
   "common.validation.materialTypeCodeRequired": "Material type code is required",
   "common.validation.materialTypeCodeFormat": "Code must contain only uppercase letters and numbers",
-  "common.validation.materialTypeCodeMaxLength": "Code must not exceed 10 characters"
+  "common.validation.materialTypeCodeMaxLength": "Code must not exceed 10 characters",
+  "common.validation.documentNumberRequired": "Document number is required",
+  "common.validation.documentNumberDigitsOnly": "Document number must contain digits only",
+  "common.validation.documentNumberMinLength": "Document number must be at least 8 digits",
+  "common.validation.documentNumberMaxLength": "Document number must not exceed 11 digits"
 }

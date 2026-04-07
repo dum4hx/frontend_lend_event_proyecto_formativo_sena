@@ -533,6 +533,16 @@ export const validatePlanDescription = (desc: string): ValidationResult => {
 };
 
 /**
+ * Stripe price ID validation — optional; if provided must start with "price_"
+ */
+export const validateStripePriceId = (id: string): ValidationResult => {
+  if (!id) return { isValid: true };
+  if (!id.startsWith("price_")) {
+    return { isValid: false, message: "common.validation.stripePriceIdFormat" };
+  }
+  return { isValid: true };
+};
+/**
  * Document number validation for Colombian identity documents
  * Rules:
  * - Required
@@ -552,17 +562,6 @@ export const validateDocumentNumber = (docNumber: string): ValidationResult => {
   }
   if (trimmed.length > 11) {
     return { isValid: false, message: "common.validation.documentNumberMaxLength" };
-  }
-  return { isValid: true };
-};
-
-/**
- * Stripe price ID validation — optional; if provided must start with "price_"
- */
-export const validateStripePriceId = (id: string): ValidationResult => {
-  if (!id) return { isValid: true };
-  if (!id.startsWith("price_")) {
-    return { isValid: false, message: "common.validation.stripePriceIdFormat" };
   }
   return { isValid: true };
 };
