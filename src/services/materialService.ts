@@ -372,6 +372,27 @@ export async function updatePackage(
   return patch<{ package: Package }, UpdatePackagePayload>(`/packages/${packageId}`, payload);
 }
 
+/** Delete a package. */
+export async function deletePackage(
+  packageId: string,
+): Promise<ApiSuccessResponse<{ message: string }>> {
+  return del<{ message: string }>(`/packages/${packageId}`);
+}
+
+/** Activate a package. */
+export async function activatePackage(
+  packageId: string,
+): Promise<ApiSuccessResponse<{ package: Package }>> {
+  return post<{ package: Package }, Record<string, never>>(`/packages/${packageId}/activate`, {});
+}
+
+/** Deactivate a package. */
+export async function deactivatePackage(
+  packageId: string,
+): Promise<ApiSuccessResponse<{ package: Package }>> {
+  return post<{ package: Package }, Record<string, never>>(`/packages/${packageId}/deactivate`, {});
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // Material Attributes
 // ═══════════════════════════════════════════════════════════════════════════

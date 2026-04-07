@@ -7,6 +7,7 @@ import systemSettingsEn from "./locales/en/systemSettings.json";
 import catalogOverviewEn from "./locales/en/catalogOverview.json";
 import inspectionsEn from "./locales/en/inspections.json";
 import pricingEn from "./locales/en/pricing.json";
+import plansEn from "./locales/en/plans.json";
 
 import commonEs from "./locales/es/common.json";
 import navEs from "./locales/es/nav.json";
@@ -17,6 +18,7 @@ import systemSettingsEs from "./locales/es/systemSettings.json";
 import catalogOverviewEs from "./locales/es/catalogOverview.json";
 import inspectionsEs from "./locales/es/inspections.json";
 import pricingEs from "./locales/es/pricing.json";
+import plansEs from "./locales/es/plans.json";
 
 export type SupportedLanguage = "en" | "es";
 
@@ -37,6 +39,7 @@ export const EN_TRANSLATIONS = mergeTranslations(
   catalogOverviewEn,
   inspectionsEn,
   pricingEn,
+  plansEn,
 );
 
 export const ES_TRANSLATIONS: Record<keyof typeof EN_TRANSLATIONS, string> = mergeTranslations(
@@ -49,6 +52,7 @@ export const ES_TRANSLATIONS: Record<keyof typeof EN_TRANSLATIONS, string> = mer
   catalogOverviewEs,
   inspectionsEs,
   pricingEs,
+  plansEs,
 );
 
 export type TranslationKey = keyof typeof EN_TRANSLATIONS;

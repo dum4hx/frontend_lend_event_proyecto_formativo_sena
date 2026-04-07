@@ -441,6 +441,9 @@ export interface Package {
   // Backwards-compatible alias used by older frontend code
   materialTypes?: PackageMaterialEntry[];
   pricePerDay?: number;
+  discountRate?: number;
+  depositAmount?: number;
+  status?: "active" | "inactive";
 }
 
 export interface CreatePackagePayload {
@@ -485,6 +488,7 @@ export interface LoanRequestItem {
 
 export interface LoanRequest {
   _id: string;
+  code?: string;
   customerId: {
     _id?: string;
     email: string;
@@ -542,6 +546,7 @@ export interface DepositTransaction {
 
 export interface Loan {
   _id: string;
+  code?: string;
   customerId: string | Customer;
   requestId?: string;
   status: LoanStatus;
@@ -667,6 +672,7 @@ export interface InspectionsQueryParams {
 
 export interface PendingLoan {
   _id: string;
+  code?: string;
   customerId: {
     _id?: string;
     email: string;
@@ -2033,6 +2039,7 @@ export interface OpsOverview {
 export interface OpsInspectionItem {
   _id: string;
   loanId: string;
+  loanCode?: string;
   instanceId: string;
   materialTypeName: string;
   serialNumber: string;

@@ -23,8 +23,7 @@ export default function CreatePackageModal({
   onSaved,
   initialPackage,
 }: CreatePackageModalProps) {
-  const { language } = useLanguage();
-  const isEs = language === "es";
+  const { t } = useLanguage();
   const isEditMode = Boolean(initialPackage);
   const [form, setForm] = useState<PackageFormData>(DEFAULT_FORM);
   const [submitting, setSubmitting] = useState(false);
@@ -132,7 +131,7 @@ export default function CreatePackageModal({
 
     const validEntries = form.entries.filter((entry) => entry.materialTypeId.trim() !== "");
     if (validEntries.length === 0) {
-      setError(isEs ? "Agrega al menos un tipo de material." : "Add at least one material type.");
+      setError(t("plans.form.atLeastOneMaterial"));
       return;
     }
 
@@ -168,13 +167,7 @@ export default function CreatePackageModal({
       <div className="bg-[#121212] border border-[#333] rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-[#121212] border-b border-[#333] p-5 flex items-center justify-between">
           <h2 className="text-lg font-bold text-white">
-            {isEditMode
-              ? isEs
-                ? "Editar Paquete"
-                : "Edit Package"
-              : isEs
-                ? "Nuevo Paquete"
-                : "New Package"}
+            {isEditMode ? t("plans.form.editPackage") : t("plans.form.newPackage")}
           </h2>
           <button
             type="button"
@@ -193,14 +186,14 @@ export default function CreatePackageModal({
         >
           <div>
             <label className="block text-xs font-semibold text-gray-400 mb-1">
-              {isEs ? "Nombre" : "Name"} <span className="text-[#FFD700]">*</span>
+              {t("plans.form.name")} <span className="text-[#FFD700]">*</span>
             </label>
             <input
               required
               data-help-id="plans-form-name"
               value={form.name}
               onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-              placeholder={isEs ? "ej. Paquete Empresarial" : "e.g. Office Starter Pack"}
+              placeholder={t("plans.form.namePlaceholder")}
               disabled={submitting}
               className={inputCls}
             />
@@ -208,7 +201,7 @@ export default function CreatePackageModal({
 
           <div>
             <label className="block text-xs font-semibold text-gray-400 mb-1">
-              {isEs ? "Descripción" : "Description"}
+              {t("plans.form.description")}
             </label>
             <textarea
               data-help-id="plans-form-description"
@@ -222,9 +215,9 @@ export default function CreatePackageModal({
 
           <div>
             <label className="block text-xs font-semibold text-gray-400 mb-1">
-              {isEs ? "Precio por Día (COP)" : "Price per Day (COP)"}{" "}
+              {t("plans.form.pricePerDay")}{" "}
               <span className="text-gray-600 font-normal">
-                ({isEs ? "dejar en blanco para sumar materiales" : "leave blank to sum materials"})
+                ({t("plans.form.priceHint")})
               </span>
             </label>
             <input
@@ -233,7 +226,7 @@ export default function CreatePackageModal({
               data-help-id="plans-form-price-per-day"
               value={pricePerDayInput.displayValue}
               onChange={pricePerDayInput.handleChange}
-              placeholder={isEs ? "Anulación opcional" : "Optional override"}
+              placeholder={t("plans.form.pricePlaceholder")}
               disabled={submitting}
               className={inputCls}
             />
@@ -242,7 +235,7 @@ export default function CreatePackageModal({
           <div data-help-id="plans-form-entries">
             <div className="flex items-center justify-between mb-2">
               <label className="text-xs font-semibold text-gray-400">
-                {isEs ? "Tipos de Material" : "Material Types"}{" "}
+                {t("plans.form.materialTypes")}{" "}
                 <span className="text-[#FFD700]">*</span>
               </label>
               <button
@@ -251,7 +244,7 @@ export default function CreatePackageModal({
                 disabled={submitting}
                 className="text-xs text-[#FFD700] hover:text-yellow-300 transition disabled:opacity-50"
               >
-                {isEs ? "+ Agregar fila" : "+ Add row"}
+                {t("plans.form.addRow")}
               </button>
             </div>
             <div className="space-y-2">
@@ -266,7 +259,7 @@ export default function CreatePackageModal({
                       className={`${inputCls} flex-1`}
                     >
                       <option value="">
-                        {isEs ? "Seleccionar tipo de material" : "Select material type"}
+                        {t("plans.form.selectMaterial")}
                       </option>
                       {materialTypes.map((t) => (
                         <option key={t._id} value={t._id}>
@@ -280,12 +273,8 @@ export default function CreatePackageModal({
                       onChange={(e) => updateEntry(idx, "materialTypeId", e.target.value)}
                       placeholder={
                         typesLoading
-                          ? isEs
-                            ? "Cargando tipos de material..."
-                            : "Loading material types..."
-                          : isEs
-                            ? "ID del Tipo de Material"
-                            : "Material Type ID"
+                          ? t("plans.form.loadingMaterials")
+                          : t("plans.form.materialTypeId")
                       }
                       disabled={submitting || typesLoading}
                       className={`${inputCls} flex-1`}
@@ -332,7 +321,7 @@ export default function CreatePackageModal({
               data-help-id="plans-form-cancel"
               className="px-4 py-2 border border-[#333] text-gray-300 rounded-lg hover:bg-[#1a1a1a] transition text-sm disabled:opacity-50"
             >
-              {isEs ? "Cancelar" : "Cancel"}
+              {t("plans.form.cancel")}
             </button>
             <button
               type="submit"
@@ -343,24 +332,12 @@ export default function CreatePackageModal({
               {submitting ? (
                 <>
                   <Loader2 size={14} className="animate-spin" />
-                  {isEditMode
-                    ? isEs
-                      ? "Guardando..."
-                      : "Saving..."
-                    : isEs
-                      ? "Creando..."
-                      : "Creating..."}
+                  {isEditMode ? t("plans.form.saving") : t("plans.form.creating")}
                 </>
               ) : (
                 <>
                   <Plus size={14} />
-                  {isEditMode
-                    ? isEs
-                      ? "Guardar"
-                      : "Save"
-                    : isEs
-                      ? "Crear"
-                      : "Create"}
+                  {isEditMode ? t("plans.form.save") : t("plans.form.create")}
                 </>
               )}
             </button>
