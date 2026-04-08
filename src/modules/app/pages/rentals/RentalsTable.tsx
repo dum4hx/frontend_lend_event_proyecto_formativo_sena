@@ -174,51 +174,48 @@ export function RentalsTable({
                     >
                       {isEs ? "Detalle" : "Details"}
                     </Button>
-                    {isActive && (
+                    {isActive && canExtend && (
                       <Button
                         size="sm"
                         leftIcon={CalendarRange}
-                        onClick={guard("loans:extend", () => onExtend(lv))}
+                        onClick={guard("loans:update", () => onExtend(lv))}
                         disabled={submitting}
-                        aria-disabled={!canExtend}
-                        className={`bg-blue-500/15 text-blue-300 border-blue-500/40 hover:bg-blue-500/25 ${!canExtend ? "opacity-50 cursor-not-allowed" : ""}`}
+                        className="bg-blue-500/15 text-blue-300 border-blue-500/40 hover:bg-blue-500/25"
                       >
                         {isEs ? "Extender" : "Extend"}
                       </Button>
                     )}
-                    {isActive && (
+                    {isActive && canReturn && (
                       <Button
                         size="sm"
                         leftIcon={RotateCcw}
                         onClick={guard("loans:return", () => onReturn(lv))}
                         disabled={submitting}
-                        aria-disabled={!canReturn}
-                        className={`bg-green-500/15 text-green-300 border-green-500/40 hover:bg-green-500/25 ${!canReturn ? "opacity-50 cursor-not-allowed" : ""}`}
+                        className="bg-green-500/15 text-green-300 border-green-500/40 hover:bg-green-500/25"
                       >
                         {isEs ? "Devolver" : "Return"}
                       </Button>
                     )}
-                    {(lv.loan.deposit?.status === "refund_pending" ||
-                      lv.loan.deposit?.status === "partially_applied") && (
-                      <Button
-                        size="sm"
-                        leftIcon={HandCoins}
-                        onClick={guard("loans:update", () => onRefund(lv))}
-                        disabled={submitting}
-                        aria-disabled={!canComplete}
-                        className={`bg-yellow-500/15 text-yellow-300 border-yellow-500/40 hover:bg-yellow-500/25 ${!canComplete ? "opacity-50 cursor-not-allowed" : ""}`}
-                      >
-                        {isEs ? "Reembolsar" : "Refund"}
-                      </Button>
-                    )}
-                    {lv.loan.status === "returned" && (
+                    {canComplete &&
+                      (lv.loan.deposit?.status === "refund_pending" ||
+                        lv.loan.deposit?.status === "partially_applied") && (
+                        <Button
+                          size="sm"
+                          leftIcon={HandCoins}
+                          onClick={guard("loans:update", () => onRefund(lv))}
+                          disabled={submitting}
+                          className="bg-yellow-500/15 text-yellow-300 border-yellow-500/40 hover:bg-yellow-500/25"
+                        >
+                          {isEs ? "Reembolsar" : "Refund"}
+                        </Button>
+                      )}
+                    {lv.loan.status === "returned" && canComplete && (
                       <Button
                         size="sm"
                         leftIcon={CheckCircle}
                         onClick={guard("loans:update", () => onComplete(lv))}
                         disabled={submitting}
-                        aria-disabled={!canComplete}
-                        className={`bg-emerald-500/15 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/25 ${!canComplete ? "opacity-50 cursor-not-allowed" : ""}`}
+                        className="bg-emerald-500/15 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/25"
                       >
                         {isEs ? "Completar" : "Complete"}
                       </Button>

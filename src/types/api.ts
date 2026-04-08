@@ -658,6 +658,7 @@ export interface Inspection {
 export interface InspectionListItem extends Omit<Inspection, "loanId"> {
   loanId: {
     _id: string;
+    code?: string;
     customerId: string;
     startDate: string;
     endDate: string;
@@ -1411,7 +1412,7 @@ export interface Permission {
   /** Whether this is a platform-only (super-admin) permission. */
   isPlatformPermission: boolean;
   /** Permission IDs that must also be assigned when granting this permission. */
-  requires: string[];
+  requires?: string[];
 }
 
 /** Permissions list response */

@@ -78,7 +78,8 @@ export const CompletedInspectionsTable: React.FC<CompletedInspectionsTableProps>
                   <span className="text-gray-400 font-mono text-xs group-hover:text-gray-300">
                     {typeof inspection.loanId === "string"
                       ? inspection.loanId
-                      : inspection.loanId._id}
+                      : (inspection.loanId.code ??
+                        `#${inspection.loanId._id.slice(-8).toUpperCase()}`)}
                   </span>
                 </td>
                 <td className="py-5 px-6">

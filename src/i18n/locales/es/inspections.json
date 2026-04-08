@@ -51,5 +51,8 @@
   "inspections.repairRequired": "Reparacion requerida",
   "inspections.damageDescriptionDetail": "Descripcion del daño",
   "inspections.itemNotesDetail": "Notas especificas del item",
-  "inspections.overallNotesDetail": "Notas generales"
+  "inspections.overallNotesDetail": "Notas generales",
+  "inspections.saveSuccess": "¡Inspección registrada exitosamente!",
+  "inspections.saveSuccessBody": "Puedes ver tu inspección completada en la pestaña Historial completado con el código {code}.",
+  "inspections.saveFailed": "Error al guardar la inspección"
 }

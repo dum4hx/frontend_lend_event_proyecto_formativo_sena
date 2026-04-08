@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ClipboardCheck, History, Search, RefreshCcw } from "lucide-react";
+import { ClipboardCheck, History, Search, RefreshCcw, CheckCircle2, XCircle } from "lucide-react";
 import { useLanguage } from "../../../../../contexts/useLanguage";
 import { usePermissions } from "../../../../../contexts/usePermissions";
 import { useActionPermission } from "../../../../../hooks/useActionPermission";
@@ -12,7 +12,12 @@ import {
   InspectionDetailModal,
 } from "../components";
 import { LoadingSpinner, ErrorDisplay } from "../../../../../components/ui";
-import type { PendingLoan, InspectionListItem } from "../../../../../types/api";
+import type {
+  PendingLoan,
+  InspectionListItem,
+  Inspection,
+  CreateInspectionPayload,
+} from "../../../../../types/api";
 
 /**
  * Inspections Catalog — Main dashboard for Warehouse Operator to manage loan returns.
@@ -28,6 +33,22 @@ export const InspectionsCatalog: React.FC = () => {
   const [selectedLoan, setSelectedLoan] = useState<PendingLoan | null>(null);
   const [selectedInspection, setSelectedInspection] = useState<InspectionListItem | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [successNotification, setSuccessNotification] = useState<{
+    inspectionNumber: string;
+  } | null>(null);
+  const [errorNotification, setErrorNotification] = useState<string | null>(null);
+
+  const handleSaveInspection = async (payload: CreateInspectionPayload): Promise<Inspection> => {
+    try {
+      const inspection = (await recordInspection(payload)) as Inspection;
+      setSuccessNotification({ inspectionNumber: inspection.inspectionNumber ?? inspection._id });
+      setActiveTab("history");
+      return inspection;
+    } catch (err) {
+      setErrorNotification((err as Error).message ?? t("inspections.saveFailed"));
+      throw err;
+    }
+  };
 
   const filteredPending = pendingLoans.filter(
     (l) =>
@@ -88,6 +109,43 @@ export const InspectionsCatalog: React.FC = () => {
         </div>
       </div>
 
+      {/* Notification Cards */}
+      {successNotification && (
+        <div className="flex items-start gap-3 bg-green-900/30 border border-green-500/40 text-green-200 p-4 rounded-xl shadow-lg animate-in fade-in duration-300">
+          <CheckCircle2 className="w-5 h-5 flex-shrink-0 text-green-400 mt-0.5" />
+          <div className="flex-1">
+            <p className="font-semibold text-sm text-green-300">{t("inspections.saveSuccess")}</p>
+            <p className="text-sm mt-1 text-green-400/80">
+              {t("inspections.saveSuccessBody", { code: successNotification.inspectionNumber })}
+            </p>
+          </div>
+          <button
+            onClick={() => setSuccessNotification(null)}
+            className="text-green-500 hover:text-green-300 transition-colors flex-shrink-0"
+            aria-label="Dismiss"
+          >
+            <XCircle className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {errorNotification && (
+        <div className="flex items-start gap-3 bg-red-900/30 border border-red-500/40 text-red-200 p-4 rounded-xl shadow-lg animate-in fade-in duration-300">
+          <XCircle className="w-5 h-5 flex-shrink-0 text-red-400 mt-0.5" />
+          <div className="flex-1">
+            <p className="font-semibold text-sm text-red-300">{t("inspections.saveFailed")}</p>
+            <p className="text-sm mt-1 text-red-400/80">{errorNotification}</p>
+          </div>
+          <button
+            onClick={() => setErrorNotification(null)}
+            className="text-red-500 hover:text-red-300 transition-colors flex-shrink-0"
+            aria-label="Dismiss"
+          >
+            <XCircle className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Tabs & Filters */}
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#222] pb-1">
@@ -142,7 +200,13 @@ export const InspectionsCatalog: React.FC = () => {
           {activeTab === "pending" ? (
             <PendingLoansTable
               loans={filteredPending}
-              onInspect={(loan) => guard("inspections:create", () => setSelectedLoan(loan))()}
+              onInspect={(loan) =>
+                guard("inspections:create", () => {
+                  setSuccessNotification(null);
+                  setErrorNotification(null);
+                  setSelectedLoan(loan);
+                })()
+              }
             />
           ) : (
             <CompletedInspectionsTable
@@ -165,7 +229,7 @@ export const InspectionsCatalog: React.FC = () => {
         <InspectionFormModal
           loan={selectedLoan}
           onClose={() => setSelectedLoan(null)}
-          onSave={recordInspection}
+          onSave={handleSaveInspection}
         />
       )}
 

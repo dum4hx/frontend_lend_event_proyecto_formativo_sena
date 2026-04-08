@@ -84,6 +84,7 @@
   "maintenance.stats.actualCostDesc": "Suma de costos registrados tras completar el trabajo",
   "maintenance.batchEstimatedCostDesc": "Costo total proyectado para todos los ítems de este lote",
   "maintenance.batchActualCostDesc": "Costo total registrado al completar el mantenimiento",
+  "maintenance.batchNumber": "# Lote",
   "maintenance.totalEstimatedCost": "Costo Est.",
   "maintenance.totalActualCost": "Costo Real",
   "maintenance.items": "Ítems",
@@ -291,7 +292,7 @@
   "materialTypes.page.editTitle": "Editar Tipo de Material",
   "materialTypes.page.createTitle": "Crear Nuevo Tipo de Material",
   "materialTypes.page.editSubtitle": "Actualiza la información del tipo de material a continuación",
-  "materialTypes.page.createSubtitle": "Agrega un nuevo tipo de material a tu catálogo"
+  "materialTypes.page.createSubtitle": "Agrega un nuevo tipo de material a tu catálogo",
   "materialInstances.title": "Instancias de Material",
   "materialInstances.description": "Administra tu inventario físico de artículos de material",
   "materialInstances.searchLabel": "Buscar instancias de material por número de serie, código de barras, tipo de material o ubicación",

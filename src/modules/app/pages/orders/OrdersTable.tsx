@@ -37,7 +37,7 @@ interface OrdersTableProps {
   onCompleteLoan: (loanId: string) => void;
   canApproveRequest: boolean;
   canUpdateRequest: boolean;
-  canAssignRequest: boolean;
+  canReadyRequest: boolean;
   canCreateLoan: boolean;
   canReturnLoan: boolean;
   canRecordPayment: boolean;
@@ -65,7 +65,7 @@ export function OrdersTable({
   onCompleteLoan,
   canApproveRequest,
   canUpdateRequest,
-  canAssignRequest,
+  canReadyRequest,
   canCreateLoan,
   canReturnLoan,
   canRecordPayment,
@@ -87,49 +87,47 @@ export function OrdersTable({
         className="h-8 w-8 rounded-md border border-[#3a3a3a] bg-[#161616] text-gray-400 hover:border-[#565656] hover:bg-[#1f1f1f] hover:text-white"
       />
 
-      {order.request.status === "pending" && (
+      {order.request.status === "pending" && canApproveRequest && (
         <Button
           size="sm"
           leftIcon={Check}
           onClick={guard("requests:approve", () => onApprove(order.request._id))}
           disabled={submitting}
-          aria-disabled={!canApproveRequest}
           variant="outline"
-          className={`h-8 rounded-md border-emerald-500/35 bg-emerald-500/8 px-2.5 text-[11px] font-semibold text-emerald-200 hover:bg-emerald-500/15 ${!canApproveRequest ? "opacity-50 cursor-not-allowed" : ""}`}
+          className="h-8 rounded-md border-emerald-500/35 bg-emerald-500/8 px-2.5 text-[11px] font-semibold text-emerald-200 hover:bg-emerald-500/15"
         >
           {isEs ? "Aprobar" : "Approve"}
         </Button>
       )}
 
-      {order.request.status === "pending" && (
+      {order.request.status === "pending" && canUpdateRequest && (
         <Button
           size="sm"
           leftIcon={X}
           onClick={guard("requests:update", () => onReject(order))}
           disabled={submitting}
-          aria-disabled={!canUpdateRequest}
           variant="outline"
-          className={`h-8 rounded-md border-red-500/40 bg-red-500/8 px-2.5 text-[11px] font-semibold text-red-300 hover:bg-red-500/15 ${!canUpdateRequest ? "opacity-50 cursor-not-allowed" : ""}`}
+          className="h-8 rounded-md border-red-500/40 bg-red-500/8 px-2.5 text-[11px] font-semibold text-red-300 hover:bg-red-500/15"
         >
           {isEs ? "Rechazar" : "Reject"}
         </Button>
       )}
 
-      {order.request.status === "rejected" && (
+      {order.request.status === "rejected" && canUpdateRequest && (
         <Button
           size="sm"
           leftIcon={RotateCcw}
           onClick={guard("requests:update", () => onReactivate(order))}
           disabled={submitting}
-          aria-disabled={!canUpdateRequest}
           variant="outline"
-          className={`h-8 rounded-md border-[#FFD700]/40 bg-[#FFD700]/8 px-2.5 text-[11px] font-semibold text-[#FFD700] hover:bg-[#FFD700]/14 ${!canUpdateRequest ? "opacity-50 cursor-not-allowed" : ""}`}
+          className="h-8 rounded-md border-[#FFD700]/40 bg-[#FFD700]/8 px-2.5 text-[11px] font-semibold text-[#FFD700] hover:bg-[#FFD700]/14"
         >
           {isEs ? "Reactivar" : "Reactivate"}
         </Button>
       )}
 
-      {order.request.depositAmount != null &&
+      {canRecordPayment &&
+        order.request.depositAmount != null &&
         order.request.depositAmount > 0 &&
         !order.request.depositPaidAt &&
         ["approved", "deposit_pending", "assigned", "ready"].includes(order.request.status) && (
@@ -138,15 +136,15 @@ export function OrdersTable({
             leftIcon={CreditCard}
             onClick={guard("requests:update", () => onRecordPayment(order))}
             disabled={submitting}
-            aria-disabled={!canRecordPayment}
             variant="outline"
-            className={`h-8 rounded-md border-orange-500/40 bg-orange-500/8 px-2.5 text-[11px] font-semibold text-orange-300 hover:bg-orange-500/15 ${!canRecordPayment ? "opacity-50 cursor-not-allowed" : ""}`}
+            className="h-8 rounded-md border-orange-500/40 bg-orange-500/8 px-2.5 text-[11px] font-semibold text-orange-300 hover:bg-orange-500/15"
           >
             {isEs ? "Registrar pago" : "Record Payment"}
           </Button>
         )}
 
-      {requireFullPaymentBeforeCheckout &&
+      {canRecordPayment &&
+        requireFullPaymentBeforeCheckout &&
         order.request.totalAmount != null &&
         order.request.totalAmount > 0 &&
         !order.request.rentalFeePaidAt &&
@@ -156,69 +154,66 @@ export function OrdersTable({
             leftIcon={Banknote}
             onClick={guard("requests:update", () => onRecordRentalPayment(order))}
             disabled={submitting}
-            aria-disabled={!canRecordPayment}
             variant="outline"
-            className={`h-8 rounded-md border-purple-500/40 bg-purple-500/8 px-2.5 text-[11px] font-semibold text-purple-300 hover:bg-purple-500/15 ${!canRecordPayment ? "opacity-50 cursor-not-allowed" : ""}`}
+            className="h-8 rounded-md border-purple-500/40 bg-purple-500/8 px-2.5 text-[11px] font-semibold text-purple-300 hover:bg-purple-500/15"
           >
             {isEs ? "Pago de renta" : "Rental Payment"}
           </Button>
         )}
 
-      {!order.loan && order.request.status === "approved" && (
+      {!order.loan && order.request.status === "approved" && canReadyRequest && (
         <Button
           size="sm"
           leftIcon={Check}
-          onClick={guard("requests:assign", () => onPrepare(order))}
+          onClick={guard("requests:ready", () => onPrepare(order))}
           disabled={submitting}
-          aria-disabled={!canAssignRequest}
           variant="outline"
-          className={`h-8 rounded-md border-sky-500/40 bg-sky-500/8 px-2.5 text-[11px] font-semibold text-sky-300 hover:bg-sky-500/15 ${!canAssignRequest ? "opacity-50 cursor-not-allowed" : ""}`}
+          className="h-8 rounded-md border-sky-500/40 bg-sky-500/8 px-2.5 text-[11px] font-semibold text-sky-300 hover:bg-sky-500/15"
         >
           {isEs ? "Preparar" : "Prepare"}
         </Button>
       )}
 
-      {!order.loan && order.request.status === "assigned" && (
+      {!order.loan && order.request.status === "assigned" && canReadyRequest && (
         <Button
           size="sm"
           leftIcon={PackageCheck}
-          onClick={guard("requests:assign", () => onShip(order))}
+          onClick={guard("requests:ready", () => onShip(order))}
           disabled={submitting}
-          aria-disabled={!canAssignRequest}
           variant="outline"
-          className={`h-8 rounded-md border-indigo-500/40 bg-indigo-500/8 px-2.5 text-[11px] font-semibold text-indigo-300 hover:bg-indigo-500/15 ${!canAssignRequest ? "opacity-50 cursor-not-allowed" : ""}`}
+          className="h-8 rounded-md border-indigo-500/40 bg-indigo-500/8 px-2.5 text-[11px] font-semibold text-indigo-300 hover:bg-indigo-500/15"
         >
           {isEs ? "Despachar" : "Ship"}
         </Button>
       )}
 
-      {!order.loan && order.request.status === "ready" && (
+      {!order.loan && order.request.status === "ready" && canCreateLoan && (
         <Button
           size="sm"
           leftIcon={Truck}
           onClick={guard("loans:create", () => onStartLoan(order.request._id))}
           disabled={submitting}
-          aria-disabled={!canCreateLoan}
           variant="outline"
-          className={`h-8 rounded-md border-blue-500/40 bg-blue-500/8 px-2.5 text-[11px] font-semibold text-blue-300 hover:bg-blue-500/15 ${!canCreateLoan ? "opacity-50 cursor-not-allowed" : ""}`}
+          className="h-8 rounded-md border-blue-500/40 bg-blue-500/8 px-2.5 text-[11px] font-semibold text-blue-300 hover:bg-blue-500/15"
         >
           {isEs ? "Iniciar préstamo" : "Start Loan"}
         </Button>
       )}
 
-      {order.loan && (order.loan.status === "active" || order.loan.status === "overdue") && (
-        <Button
-          size="sm"
-          leftIcon={CircleCheck}
-          onClick={guard("loans:return", () => onCompleteLoan(order.loan!._id))}
-          disabled={submitting}
-          aria-disabled={!canReturnLoan}
-          variant="outline"
-          className={`h-8 rounded-md border-cyan-500/40 bg-cyan-500/8 px-2.5 text-[11px] font-semibold text-cyan-300 hover:bg-cyan-500/15 ${!canReturnLoan ? "opacity-50 cursor-not-allowed" : ""}`}
-        >
-          {isEs ? "Completar" : "Complete"}
-        </Button>
-      )}
+      {order.loan &&
+        (order.loan.status === "active" || order.loan.status === "overdue") &&
+        canReturnLoan && (
+          <Button
+            size="sm"
+            leftIcon={CircleCheck}
+            onClick={guard("loans:return", () => onCompleteLoan(order.loan!._id))}
+            disabled={submitting}
+            variant="outline"
+            className="h-8 rounded-md border-cyan-500/40 bg-cyan-500/8 px-2.5 text-[11px] font-semibold text-cyan-300 hover:bg-cyan-500/15"
+          >
+            {isEs ? "Completar" : "Complete"}
+          </Button>
+        )}
     </div>
   );
 

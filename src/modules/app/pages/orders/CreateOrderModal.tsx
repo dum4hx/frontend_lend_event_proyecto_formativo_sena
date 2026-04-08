@@ -172,21 +172,24 @@ export function CreateOrderModal({
   const getMaterialAvailabilityLabel = useCallback(
     (materialId: string): { text: string; tone: "neutral" | "success" | "warning" | "danger" } => {
       if (!inventoryDataAvailable) {
-        return { text: "Stock unknown", tone: "neutral" };
+        return { text: isEs ? "Stock desconocido" : "Stock unknown", tone: "neutral" };
       }
       const availability = materialAvailabilityByType.get(materialId);
       const available = availability?.available ?? 0;
       const total = availability?.total ?? 0;
 
-      if (available <= 0) return { text: "Out of stock", tone: "danger" };
+      if (available <= 0) return { text: isEs ? "Sin stock" : "Out of stock", tone: "danger" };
       if (available <= LOW_STOCK_THRESHOLD)
         return {
-          text: `Low stock (${available}/${total})`,
+          text: isEs ? `Stock bajo (${available}/${total})` : `Low stock (${available}/${total})`,
           tone: "warning",
         };
-      return { text: `Available (${available}/${total})`, tone: "success" };
+      return {
+        text: isEs ? `Disponible (${available}/${total})` : `Available (${available}/${total})`,
+        tone: "success",
+      };
     },
-    [inventoryDataAvailable, materialAvailabilityByType],
+    [inventoryDataAvailable, materialAvailabilityByType, isEs],
   );
 
   const getAvailabilityBadgeClass = useCallback(
@@ -280,10 +283,13 @@ export function CreateOrderModal({
         return {
           key: `${materialTypeId ?? "unknown"}-${index}`,
           quantity: Math.max(1, Number(entry.quantity) || 1),
-          label: material?.name ?? materialTypeId ?? "Unknown material",
+          label:
+            material?.name ??
+            materialTypeId ??
+            (isEs ? "Material desconocido" : "Unknown material"),
         };
       }),
-    [selectedPlanEntries, materialTypes],
+    [selectedPlanEntries, materialTypes, isEs],
   );
 
   const selectedDraftById = useMemo(() => {
@@ -389,8 +395,10 @@ export function CreateOrderModal({
         if (selectedMaterial) {
           if (!isMaterialSelectable(selectedMaterial._id)) {
             showError(
-              `${selectedMaterial.name} is currently out of stock.`,
-              "Material Unavailable",
+              isEs
+                ? `${selectedMaterial.name} no tiene stock disponible.`
+                : `${selectedMaterial.name} is currently out of stock.`,
+              isEs ? "Material no disponible" : "Material Unavailable",
             );
             return prev;
           }
@@ -432,7 +440,12 @@ export function CreateOrderModal({
 
   const addMaterialAsRow = (material: MaterialType) => {
     if (!isMaterialSelectable(material._id)) {
-      showError(`${material.name} is currently out of stock.`, "Material Unavailable");
+      showError(
+        isEs
+          ? `${material.name} no tiene stock disponible.`
+          : `${material.name} is currently out of stock.`,
+        isEs ? "Material no disponible" : "Material Unavailable",
+      );
       return;
     }
     insertMaterialsIntoDraft([{ material, quantity: 1 }]);
@@ -575,7 +588,7 @@ export function CreateOrderModal({
     if (formData.depositAmount === "") {
       nextErrors.depositAmount = isEs
         ? "Ingresa el monto del depósito (o 0 si no aplica)."
-        : "Please enter a deposit amount (or 0 for no deposit conditions).";  
+        : "Please enter a deposit amount (or 0 for no deposit conditions).";
     }
 
     const draftRowsToValidate = formItems.filter((item) => !isFormDraftItemEmpty(item));
@@ -1044,8 +1057,10 @@ export function CreateOrderModal({
                                   <div className="absolute z-20 left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg border border-[#333] bg-[#111] shadow-2xl">
                                     {hasQuery && (
                                       <p className="px-3 py-2 text-[11px] uppercase tracking-wide text-gray-500 border-b border-[#222]">
-                                        {rowSuggestions.length} result
-                                        {rowSuggestions.length === 1 ? "" : "s"}
+                                        {rowSuggestions.length}{" "}
+                                        {isEs
+                                          ? `resultado${rowSuggestions.length === 1 ? "" : "s"}`
+                                          : `result${rowSuggestions.length === 1 ? "" : "s"}`}
                                       </p>
                                     )}
                                     {!hasQuery && (
@@ -1086,7 +1101,8 @@ export function CreateOrderModal({
                                             {material.name}
                                           </span>
                                           <span className="block text-xs text-gray-400 truncate">
-                                            {formatMoney(material.pricePerDay)} / day
+                                            {formatMoney(material.pricePerDay)} /{" "}
+                                            {isEs ? "día" : "day"}
                                           </span>
                                           {(() => {
                                             const availability = getMaterialAvailabilityLabel(
@@ -1159,11 +1175,12 @@ export function CreateOrderModal({
                               </p>
                               <div className="flex items-center gap-2 text-xs">
                                 <span className="px-2 py-1 rounded-full bg-[#FFD700]/20 text-[#FFD700] border border-[#FFD700]/30">
-                                  {formatMoney(selectedDraftById.get(item.localId)?.unitPrice)} /
-                                  day
+                                  {formatMoney(selectedDraftById.get(item.localId)?.unitPrice)} /{" "}
+                                  {isEs ? "día" : "day"}
                                 </span>
                                 <span className="px-2 py-1 rounded-full bg-blue-500/15 text-blue-300 border border-blue-500/30">
-                                  Qty: {selectedDraftById.get(item.localId)?.quantity ?? 1}
+                                  {isEs ? "Cant" : "Qty"}:{" "}
+                                  {selectedDraftById.get(item.localId)?.quantity ?? 1}
                                 </span>
                               </div>
                             </div>
@@ -1253,7 +1270,7 @@ export function CreateOrderModal({
                           variant="secondary"
                           size="sm"
                           onClick={() => addMaterialAsRow(material)}
-                          title={`Add ${material.name}`}
+                          title={isEs ? `Agregar ${material.name}` : `Add ${material.name}`}
                           disabled={!isMaterialSelectable(material._id)}
                           className={
                             !isMaterialSelectable(material._id)
@@ -1283,6 +1300,7 @@ export function CreateOrderModal({
                   formatPrice={formatMoney}
                   recentMaterials={recentMaterials}
                   showPrice
+                  language={language}
                 />
 
                 {/* Cost Preview */}
@@ -1309,7 +1327,7 @@ export function CreateOrderModal({
                               <p className="text-gray-200 font-medium truncate">{detail?.name}</p>
                               <p className="text-gray-400 mt-1">
                                 {detail?.quantity ?? 1} x {formatMoney(detail?.unitPrice)} ={" "}
-                                {formatMoney(lineTotal)} / day
+                                {formatMoney(lineTotal)} / {isEs ? "día" : "day"}
                               </p>
                             </div>
                           );

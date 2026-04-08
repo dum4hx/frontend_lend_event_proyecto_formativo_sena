@@ -43,6 +43,16 @@ export function BatchListTable({
 
   const columns: ColumnDef<MaintenanceBatchListItem>[] = [
     {
+      key: "batchNumber",
+      header: t("maintenance.batchNumber"),
+      render: (row) => (
+        <span className="font-mono text-xs text-[#FFD700] bg-[#FFD700]/10 px-2 py-0.5 rounded">
+          {row.batchNumber ?? `#${row._id.slice(-6).toUpperCase()}`}
+        </span>
+      ),
+      width: "w-40",
+    },
+    {
       key: "name",
       header: t("maintenance.batchName"),
       truncate: 40,

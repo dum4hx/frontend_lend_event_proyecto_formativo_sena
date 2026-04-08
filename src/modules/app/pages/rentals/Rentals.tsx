@@ -61,7 +61,7 @@ export function Rentals() {
   const [completeTarget, setCompleteTarget] = useState<LoanView | null>(null);
 
   // ── Permissions ──────────────────────────────────────────────────────────
-  const canExtend = hasPermission("loans:extend");
+  const canExtend = hasPermission("loans:update");
   const canReturn = hasPermission("loans:return");
   const canComplete = hasPermission("loans:update");
 

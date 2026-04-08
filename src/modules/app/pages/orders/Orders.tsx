@@ -97,7 +97,7 @@ export function Orders() {
   const canCreateRequest = hasPermission("requests:create");
   const canApproveRequest = hasPermission("requests:approve");
   const canUpdateRequest = hasPermission("requests:update");
-  const canAssignRequest = hasPermission("requests:assign");
+  const canReadyRequest = hasPermission("requests:ready");
   const canCreateLoan = hasAnyPermission(["loans:create", "loans:checkout"]);
   const canReturnLoan = hasPermission("loans:return");
   const canRecordPayment = hasPermission("requests:update");
@@ -245,7 +245,15 @@ export function Orders() {
   }, [selectedStatus]);
 
   const allOrders = useMemo(
-    () => buildOrderViewModel(requests, [], customers, packages, materialTypes, language as "en" | "es"),
+    () =>
+      buildOrderViewModel(
+        requests,
+        [],
+        customers,
+        packages,
+        materialTypes,
+        language as "en" | "es",
+      ),
     [requests, customers, packages, materialTypes, language],
   );
 
@@ -443,11 +451,11 @@ export function Orders() {
   };
 
   const handleShipOrder = async (order: OrderView) => {
-    if (!canAssignRequest) {
+    if (!canReadyRequest) {
       showError(
         isEs
-          ? "Necesita el permiso requests:assign para despachar pedidos."
-          : "You need the requests:assign permission to ship orders.",
+          ? "Necesita el permiso requests:ready para despachar pedidos."
+          : "You need the requests:ready permission to ship orders.",
         isEs ? "Permiso requerido" : "Permission Required",
       );
       return;
@@ -469,10 +477,12 @@ export function Orders() {
   };
 
   const handlePrepareOrder = (order: OrderView) => {
-    if (!canAssignRequest) {
+    if (!canReadyRequest) {
       showError(
-        "You need the requests:assign permission to prepare orders.",
-        "Permission Required",
+        isEs
+          ? "Necesita el permiso requests:ready para preparar pedidos."
+          : "You need the requests:ready permission to prepare orders.",
+        isEs ? "Permiso requerido" : "Permission Required",
       );
       return;
     }
@@ -542,17 +552,18 @@ export function Orders() {
               : "Create, approve, and track order lifecycle from one place"
           }
           actions={
-            <div data-help-id="orders-create-action">
-              <Button
-                leftIcon={Plus}
-                onClick={guard("requests:create", () => setShowCreateModal(true))}
-                aria-disabled={!canCreateRequest}
-                variant="outline"
-                className={`w-full sm:w-auto border-[#FFD700]/40 text-[#FFD700] bg-[#FFD700]/8 hover:bg-[#FFD700]/16 ${!canCreateRequest ? "opacity-50 cursor-not-allowed" : ""}`}
-              >
-                {isEs ? "Nuevo Pedido" : "New Order"}
-              </Button>
-            </div>
+            canCreateRequest ? (
+              <div data-help-id="orders-create-action">
+                <Button
+                  leftIcon={Plus}
+                  onClick={guard("requests:create", () => setShowCreateModal(true))}
+                  variant="outline"
+                  className="w-full sm:w-auto border-[#FFD700]/40 text-[#FFD700] bg-[#FFD700]/8 hover:bg-[#FFD700]/16"
+                >
+                  {isEs ? "Nuevo Pedido" : "New Order"}
+                </Button>
+              </div>
+            ) : undefined
           }
         />
       </div>
@@ -594,7 +605,7 @@ export function Orders() {
           onCompleteLoan={(loanId) => handleCompleteLoan(loanId)}
           canApproveRequest={canApproveRequest}
           canUpdateRequest={canUpdateRequest}
-          canAssignRequest={canAssignRequest}
+          canReadyRequest={canReadyRequest}
           canCreateLoan={canCreateLoan}
           canReturnLoan={canReturnLoan}
           canRecordPayment={canRecordPayment}

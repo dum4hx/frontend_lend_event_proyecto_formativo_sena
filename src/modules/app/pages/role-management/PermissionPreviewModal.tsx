@@ -91,10 +91,11 @@ export default function PermissionPreviewModal({
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {group.permissions.map((permission) => {
-                      const hasDeps = permission.requires.length > 0;
+                      const requires = permission.requires ?? [];
+                      const hasDeps = requires.length > 0;
                       const isExpanded = expandedDeps.has(permission.id);
                       const missingDeps = hasDeps
-                        ? permission.requires.filter((r) => !rolePermissionSet.has(r))
+                        ? requires.filter((r) => !rolePermissionSet.has(r))
                         : [];
 
                       return (
@@ -124,7 +125,7 @@ export default function PermissionPreviewModal({
                                 }
                               >
                                 <Link2 size={12} />
-                                <span>{permission.requires.length}</span>
+                                <span>{requires.length}</span>
                                 {isExpanded ? (
                                   <ChevronDown size={12} />
                                 ) : (
@@ -140,7 +141,7 @@ export default function PermissionPreviewModal({
                                 {t("permissions.requires")}:
                               </p>
                               <ul className="space-y-1">
-                                {permission.requires.map((reqId) => {
+                                {requires.map((reqId) => {
                                   const reqPerm = permissionById.get(reqId);
                                   const isSatisfied = rolePermissionSet.has(reqId);
                                   return (
