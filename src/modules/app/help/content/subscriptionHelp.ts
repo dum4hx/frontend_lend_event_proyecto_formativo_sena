@@ -158,10 +158,23 @@ const subscriptionHelpContent: HelpModuleContent = {
       id: "step-4-plans",
       title: { es: "4) Evalua planes", en: "4) Evaluate plans" },
       body: {
-        es: "Compara planes disponibles y selecciona el mas alineado a capacidad y presupuesto.",
-        en: "Compare available plans and select the one aligned with capacity and budget.",
+        es: "Compara planes disponibles y selecciona el mas alineado a capacidad y presupuesto. Los planes dinamicos muestran un desglose de costos estimado basado en tus asientos actuales.",
+        en: "Compare available plans and select the one aligned with capacity and budget. Dynamic plans show an estimated cost breakdown based on your current seats.",
       },
       targetSelector: '[data-help-id="subscription-plans"]',
+    },
+    {
+      id: "step-4b-cost-preview",
+      title: { es: "4b) Vista previa de costos", en: "4b) Cost preview" },
+      body: {
+        es: "Para planes con modelo por asiento, se calcula automaticamente el costo estimado mensual usando el numero actual de asientos de tu organizacion.",
+        en: "For per-seat plans, the estimated monthly cost is automatically calculated using your organization's current seat count.",
+      },
+      targetSelector: '[data-help-id="plan-cost-preview"]',
+      tip: {
+        es: "Revisa el desglose antes de hacer checkout para evitar sorpresas en la factura.",
+        en: "Review the breakdown before checkout to avoid billing surprises.",
+      },
     },
     {
       id: "step-5-danger",

@@ -17,6 +17,7 @@ import {
 import {
   getSubscriptionTypesPublic,
   getSubscriptionTypes,
+  calculatePlanCost,
 } from "../../../../services/subscriptionTypeService";
 import { ErrorDisplay, AlertContainer, ConfirmDialog } from "../../../../components/ui";
 import { normalizeError, logError } from "../../../../utils/errorHandling";
@@ -38,6 +39,7 @@ import type {
   Organization,
   PublicPlan,
   SubscriptionType,
+  PlanCostResult,
 } from "../../../../types/api";
 
 export default function SubscriptionManagement() {
@@ -260,6 +262,16 @@ export default function SubscriptionManagement() {
       }
     },
     [usage?.currentSeats, showAlert],
+  );
+
+  // ─── Plan Cost Preview ─────────────────────────────────────────────────────
+
+  const handleCalculateCost = useCallback(
+    async (plan: string, seatCount: number): Promise<PlanCostResult> => {
+      const res = await calculatePlanCost(plan, seatCount);
+      return res.data;
+    },
+    [],
   );
 
   // ─── Export ────────────────────────────────────────────────────────────────
@@ -541,6 +553,8 @@ export default function SubscriptionManagement() {
                 isEs={isEs}
                 locale={locale}
                 onChangePlan={(p) => void handleChangePlan(p)}
+                currentSeats={usage?.currentSeats}
+                onCalculateCost={handleCalculateCost}
               />
             </div>
           )}

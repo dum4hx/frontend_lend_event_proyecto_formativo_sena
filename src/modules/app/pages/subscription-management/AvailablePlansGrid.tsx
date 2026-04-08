@@ -1,5 +1,7 @@
-import { CheckCircle } from "lucide-react";
-import type { AvailablePlan } from "../../../../types/api";
+import { useState, useEffect } from "react";
+import { CheckCircle, Loader2 } from "lucide-react";
+import type { AvailablePlan, PlanCostResult } from "../../../../types/api";
+import { useLanguage } from "../../../../contexts/useLanguage";
 
 interface AvailablePlansGridProps {
   /** List of available plans to display. */
@@ -12,6 +14,16 @@ interface AvailablePlansGridProps {
   locale: string;
   /** Called when the user selects a plan. */
   onChangePlan: (planName: string) => void;
+  /** Current seat count for cost estimation. */
+  currentSeats?: number;
+  /** Callback to calculate cost for a plan given seat count. */
+  onCalculateCost?: (plan: string, seatCount: number) => Promise<PlanCostResult>;
+}
+
+interface CostState {
+  loading: boolean;
+  error: boolean;
+  data: PlanCostResult | null;
 }
 
 export default function AvailablePlansGrid({
@@ -20,7 +32,59 @@ export default function AvailablePlansGrid({
   isEs,
   locale,
   onChangePlan,
+  currentSeats,
+  onCalculateCost,
 }: AvailablePlansGridProps) {
+  const { t } = useLanguage();
+  const [costs, setCosts] = useState<Record<string, CostState>>({});
+
+  useEffect(() => {
+    if (!onCalculateCost || !currentSeats || currentSeats < 1) return;
+
+    const dynamicPlans = plans.filter(
+      (p) => p.billingModel === "dynamic" && p.pricePerSeat > 0,
+    );
+    if (dynamicPlans.length === 0) return;
+
+    let active = true;
+
+    const run = async () => {
+      const initial: Record<string, CostState> = {};
+      for (const p of dynamicPlans) {
+        initial[p.name] = { loading: true, error: false, data: null };
+      }
+      if (!active) return;
+      setCosts(initial);
+
+      await Promise.allSettled(
+        dynamicPlans.map(async (p) => {
+          try {
+            const result = await onCalculateCost(p.name, currentSeats);
+            if (active) {
+              setCosts((prev) => ({
+                ...prev,
+                [p.name]: { loading: false, error: false, data: result },
+              }));
+            }
+          } catch {
+            if (active) {
+              setCosts((prev) => ({
+                ...prev,
+                [p.name]: { loading: false, error: true, data: null },
+              }));
+            }
+          }
+        }),
+      );
+    };
+
+    void run();
+
+    return () => {
+      active = false;
+    };
+  }, [onCalculateCost, currentSeats, plans]);
+
   if (plans.length === 0) {
     return (
       <div className="text-gray-400 text-sm">
@@ -95,6 +159,50 @@ export default function AvailablePlansGrid({
                   </li>
                 ))}
               </ul>
+              {/* Cost breakdown for dynamic plans */}
+              {costs[planKey] && (
+                <div
+                  data-help-id="plan-cost-preview"
+                  className="bg-[#1a1a1a] border border-[#333] rounded-lg p-3 mb-4"
+                >
+                  <div className="text-xs text-gray-400 font-medium mb-2">
+                    {t("subscription.plans.estimatedCost")}
+                  </div>
+                  {costs[planKey].loading ? (
+                    <div className="flex items-center gap-2 text-gray-500 text-xs">
+                      <Loader2 size={12} className="animate-spin" />
+                      {t("subscription.plans.loadingCost")}
+                    </div>
+                  ) : costs[planKey].error ? (
+                    <div className="text-red-400 text-xs">
+                      {t("subscription.plans.costError")}
+                    </div>
+                  ) : costs[planKey].data ? (
+                    <div className="space-y-1 text-xs">
+                      <div className="flex justify-between text-gray-400">
+                        <span>{t("subscription.plans.baseCost")}</span>
+                        <span>
+                          ${(costs[planKey].data.baseCost / 100).toLocaleString(locale, { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-gray-400">
+                        <span>
+                          {t("subscription.plans.seatCost", { count: costs[planKey].data.seatCount })}
+                        </span>
+                        <span>
+                          ${(costs[planKey].data.seatCost / 100).toLocaleString(locale, { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      <div className="border-t border-[#333] pt-1 flex justify-between text-yellow-400 font-semibold">
+                        <span>{t("subscription.plans.totalCost")}</span>
+                        <span>
+                          ${(costs[planKey].data.totalCost / 100).toLocaleString(locale, { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              )}
               <button
                 onClick={() => void onChangePlan(targetPlanName)}
                 disabled={Boolean(isActive)}
