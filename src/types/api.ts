@@ -531,7 +531,7 @@ export interface AssignMaterialPayload {
 
 // ─── Loans ─────────────────────────────────────────────────────────────────
 
-export type LoanStatus = "active" | "overdue" | "returned" | "closed";
+export type LoanStatus = "active" | "overdue" | "returned" | "inspected" | "closed";
 
 export type DepositStatus =
   | "not_required"
@@ -1899,6 +1899,8 @@ export interface ReportsQueryParams {
   startDate?: string;
   endDate?: string;
   status?: string;
+  locationId?: string;
+  customerId?: string;
   page?: number;
   limit?: number;
 }
@@ -2001,6 +2003,136 @@ export interface ReportsTransfersResponse {
     cancelled: number;
   };
   pagination: PaginationMeta;
+}
+
+// ─── Reports (API-aligned interfaces) ──────────────────────────────────────
+
+/** Loan item as returned by GET /reports/loans */
+export interface ReportLoanItem {
+  _id: string;
+  customer: {
+    name: string;
+    email: string;
+    documentNumber: string;
+  };
+  status: string;
+  startDate: string;
+  endDate: string;
+  materialInstances: unknown[];
+  durationDays: number;
+  overdueDays: number;
+}
+
+/** Full response shape for GET /reports/loans */
+export interface ReportsLoansData {
+  loans: ReportLoanItem[];
+  total: number;
+  page: number;
+  totalPages: number;
+  summary: {
+    totalLoans: number;
+    statusBreakdown: Array<{ _id: string; count: number }>;
+  };
+}
+
+/** Inventory item as returned by GET /reports/inventory */
+export interface ReportInventoryItem {
+  materialType: {
+    _id: string;
+    name: string;
+    identifier: string;
+  };
+  totalInstances: number;
+  statusBreakdown: Array<{ status: string; count: number }>;
+  byLocation: Array<{
+    locationId: string;
+    locationName: string;
+    count: number;
+  }>;
+}
+
+/** Full response shape for GET /reports/inventory */
+export interface ReportsInventoryData {
+  inventory: ReportInventoryItem[];
+  summary: {
+    totalTypes: number;
+    totalInstances: number;
+  };
+}
+
+/** Invoice item as returned by GET /reports/financial */
+export interface ReportFinancialInvoice {
+  _id: string;
+  customer: {
+    name: string;
+    email: string;
+  };
+  type: string;
+  status: string;
+  total: number;
+  amountPaid: number;
+  amountDue: number;
+  createdAt: string;
+  dueDate: string;
+}
+
+/** Full response shape for GET /reports/financial */
+export interface ReportsFinancialData {
+  invoices: ReportFinancialInvoice[];
+  total: number;
+  page: number;
+  totalPages: number;
+  summaryByType: Array<{ _id: string; totalRevenue: number; count: number }>;
+  summaryByStatus: Array<{ _id: string; totalAmount: number; count: number }>;
+}
+
+/** Damage item as returned by GET /reports/damages */
+export interface ReportDamageItem {
+  inspectionId: string;
+  loanId: string;
+  customer: { name: string };
+  inspectedAt: string;
+  item: {
+    materialInstanceId: string;
+    conditionBefore: string;
+    conditionAfter: string;
+    damageDescription: string;
+    chargeToCustomer: number;
+    estimatedRepairCost: number;
+  };
+}
+
+/** Full response shape for GET /reports/damages */
+export interface ReportsDamagesData {
+  damages: ReportDamageItem[];
+  total: number;
+  page: number;
+  totalPages: number;
+  summary: {
+    totalDamages: number;
+    totalCharges: number;
+    totalRepairCost: number;
+  };
+}
+
+/** Transfer item as returned by GET /reports/transfers */
+export interface ReportTransferItem {
+  _id: string;
+  fromLocation: { name: string };
+  toLocation: { name: string };
+  status: string;
+  items: unknown[];
+  notes: string;
+  createdAt: string;
+}
+
+/** Full response shape for GET /reports/transfers */
+export interface ReportsTransfersData {
+  transfers: ReportTransferItem[];
+  total: number;
+  page: number;
+  totalPages: number;
+  summaryByStatus: Array<{ _id: string; count: number }>;
 }
 
 // ─── Location Operations (Warehouse Operator Dashboard) ────────────────────

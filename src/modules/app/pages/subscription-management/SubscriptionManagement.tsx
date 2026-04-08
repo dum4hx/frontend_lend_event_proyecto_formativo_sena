@@ -41,7 +41,7 @@ import type {
 } from "../../../../types/api";
 
 export default function SubscriptionManagement() {
-  const { language, locale } = useLanguage();
+  const { language, locale, t } = useLanguage();
   const isEs = language === "es";
 
   // Data
@@ -218,38 +218,28 @@ export default function SubscriptionManagement() {
     try {
       setUpdatingSeats(true);
       await updateSeats({ seatCount });
-      showAlert(
-        "success",
-        isEs
-          ? `Cantidad de asientos actualizada a ${seatCount}.`
-          : `Seat count updated to ${seatCount}.`,
-      );
+      showAlert("success", t("subscription.seats.updateSuccess", { count: seatCount }));
       await fetchData();
     } catch (err: unknown) {
       showAlert("error", normalizeError(err).message);
     } finally {
       setUpdatingSeats(false);
     }
-  }, [seatCount, usage, showAlert, fetchData, isEs]);
+  }, [seatCount, usage, showAlert, fetchData]);
 
   const handleCancelSubscription = useCallback(async () => {
     try {
       setCancelling(true);
       await cancelSubscription({ cancelImmediately: false });
       setCancelDialogOpen(false);
-      showAlert(
-        "success",
-        isEs
-          ? "La suscripcion se cancelara al final del periodo de facturacion actual."
-          : "Subscription will be cancelled at the end of the current billing period.",
-      );
+      showAlert("success", t("subscription.cancelSuccess"));
       await fetchData();
     } catch (err: unknown) {
       showAlert("error", normalizeError(err).message);
     } finally {
       setCancelling(false);
     }
-  }, [showAlert, fetchData, isEs]);
+  }, [showAlert, fetchData]);
 
   // ─── Plan Upgrade / Change ───────────────────────────────────────────────
 
@@ -283,10 +273,12 @@ export default function SubscriptionManagement() {
         seatChange: e.seatChange ?? "",
         amount: e.amount != null ? e.amount / 100 : "",
         currency: e.currency.toUpperCase(),
-        processed: e.processed ? (isEs ? "Si" : "Yes") : isEs ? "No" : "No",
+        processed: e.processed
+          ? t("subscription.export.processedYes")
+          : t("subscription.export.processedNo"),
         createdAt: e.createdAt,
       })),
-    [isEs],
+    [t],
   );
 
   const handleExport = useCallback(
@@ -301,12 +293,7 @@ export default function SubscriptionManagement() {
         const rawData = buildExportRows(freshRes.data.history ?? []);
 
         if (rawData.length === 0) {
-          showAlert(
-            "warning",
-            isEs
-              ? "No hay historial de facturacion para exportar."
-              : "No billing history to export.",
-          );
+          showAlert("warning", t("subscription.export.noHistory"));
           return;
         }
 
@@ -321,9 +308,10 @@ export default function SubscriptionManagement() {
         if (result.status === "success") {
           showAlert(
             "success",
-            isEs
-              ? `Se exportaron ${result.metadata.recordCount} registros como ${result.filename}`
-              : `Exported ${result.metadata.recordCount} records as ${result.filename}`,
+            t("subscription.export.success", {
+              count: result.metadata.recordCount,
+              filename: result.filename,
+            }),
           );
           setExportOpen(false);
         } else if (result.status === "cancelled") {
@@ -339,7 +327,7 @@ export default function SubscriptionManagement() {
         exportAbort.current = null;
       }
     },
-    [buildExportRows, user?._id, showAlert, isEs],
+    [buildExportRows, user?._id, showAlert],
   );
 
   const handleExportPreview = useCallback(
@@ -388,14 +376,12 @@ export default function SubscriptionManagement() {
       {/* Session expired banner (non-blocking) */}
       {sessionExpired && (
         <div className="mb-4 bg-red-900/30 border border-red-700 text-red-300 rounded-xl px-4 py-3">
-          {isEs
-            ? "Tu sesion parece haber expirado. Algunos datos no pudieron cargarse."
-            : "Your session appears to have expired. Some data could not be loaded."}
+          {t("subscription.sessionExpired")}
           <button
             onClick={() => (window.location.href = "/login")}
             className="ml-3 inline-flex items-center px-3 py-1 rounded-lg bg-red-700/50 hover:bg-red-700 text-white text-xs"
           >
-            {isEs ? "Iniciar sesion de nuevo" : "Log in again"}
+            {t("subscription.loginAgain")}
           </button>
         </div>
       )}
@@ -403,22 +389,14 @@ export default function SubscriptionManagement() {
       {/* Cancel confirm dialog */}
       <ConfirmDialog
         isOpen={cancelDialogOpen}
-        title={isEs ? "Cancelar suscripcion" : "Cancel Subscription"}
-        message={
-          isEs
-            ? "Tu suscripcion seguira activa hasta el final del periodo de facturacion actual. Luego, se revocara el acceso a funciones premium. Seguro que deseas cancelar?"
-            : "Your subscription will remain active until the end of the current billing period. After that, access to premium features will be revoked. Are you sure you want to cancel?"
-        }
+        title={t("subscription.cancelDialog.title")}
+        message={t("subscription.cancelDialog.message")}
         confirmText={
           cancelling
-            ? isEs
-              ? "Cancelando..."
-              : "Cancelling..."
-            : isEs
-              ? "Si, cancelar"
-              : "Yes, Cancel"
+            ? t("subscription.cancelDialog.confirming")
+            : t("subscription.cancelDialog.confirm")
         }
-        cancelText={isEs ? "Mantener suscripcion" : "Keep Subscription"}
+        cancelText={t("subscription.cancelDialog.cancel")}
         variant="danger"
         onConfirm={() => void handleCancelSubscription()}
         onClose={() => setCancelDialogOpen(false)}
@@ -441,12 +419,8 @@ export default function SubscriptionManagement() {
 
       <div data-help-id="subscription-title">
         <PageHeader
-          title={isEs ? "Gestion de suscripcion" : "Subscription Management"}
-          subtitle={
-            isEs
-              ? "Gestiona tu plan, asientos e historial de facturacion"
-              : "Manage your plan, seats, and billing history"
-          }
+          title={t("subscription.title")}
+          subtitle={t("subscription.subtitle")}
           actions={
             <button
               onClick={() => setExportOpen(true)}
@@ -454,7 +428,7 @@ export default function SubscriptionManagement() {
               disabled={history.length === 0}
             >
               <Download size={18} />
-              {isEs ? "Exportar historial" : "Export History"}
+              {t("subscription.exportHistory")}
             </button>
           }
         />
@@ -479,21 +453,24 @@ export default function SubscriptionManagement() {
       ) : (
         <>
           {/* Stat Cards */}
-          <div data-help-id="subscription-stats" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+          <div
+            data-help-id="subscription-stats"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8"
+          >
             <StatCard
-              label={isEs ? "Plan actual" : "Current Plan"}
+              label={t("subscription.stats.currentPlan")}
               value={currentPlanDetails?.displayName ?? "—"}
               icon={<CreditCard size={20} />}
             />
             <StatCard
-              label={isEs ? "Asientos" : "Seats"}
+              label={t("subscription.stats.seats")}
               value={
                 usage ? `${usage.currentSeats} / ${usage.maxSeats < 0 ? "∞" : usage.maxSeats}` : "—"
               }
               icon={<Users size={20} />}
             />
             <StatCard
-              label={isEs ? "Total pagado" : "Total Paid"}
+              label={t("subscription.stats.totalPaid")}
               value={totalSpend > 0 ? formatCurrency(totalSpend, currency, locale) : "$0.00"}
               icon={<CreditCard size={20} />}
             />
@@ -501,36 +478,33 @@ export default function SubscriptionManagement() {
 
           {/* Actions — owner only */}
           {isOwner && (
-            <div data-help-id="subscription-actions" className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div
+              data-help-id="subscription-actions"
+              className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8"
+            >
               {/* Manage via Stripe Portal */}
               <div className="bg-[#121212] border border-[#333] rounded-xl p-6">
                 <h2 className="text-lg font-bold text-white mb-2">
-                  {isEs ? "Portal de facturacion" : "Billing Portal"}
+                  {t("subscription.billing.title")}
                 </h2>
                 <p className="text-gray-400 text-sm mb-4">
-                  {isEs
-                    ? "Actualiza tu metodo de pago, descarga facturas y gestiona el cobro desde Stripe."
-                    : "Update your payment method, download invoices, and manage billing details through Stripe."}
+                  {t("subscription.billing.description")}
                 </p>
                 <button
                   onClick={() => void handleOpenPortal()}
                   className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-semibold gold-action-btn"
                 >
                   <ExternalLink size={16} />
-                  {isEs ? "Abrir portal de facturacion" : "Open Billing Portal"}
+                  {t("subscription.billing.openPortal")}
                 </button>
               </div>
 
               {/* Seat Management */}
               <div className="bg-[#121212] border border-[#333] rounded-xl p-6">
                 <h2 className="text-lg font-bold text-white mb-2">
-                  {isEs ? "Gestion de asientos" : "Seat Management"}
+                  {t("subscription.seats.title")}
                 </h2>
-                <p className="text-gray-400 text-sm mb-4">
-                  {isEs
-                    ? "Ajusta el numero de asientos de tu plan actual."
-                    : "Adjust the number of seats on your current plan."}
-                </p>
+                <p className="text-gray-400 text-sm mb-4">{t("subscription.seats.description")}</p>
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                   <input
                     type="number"
@@ -546,12 +520,8 @@ export default function SubscriptionManagement() {
                     className="w-full sm:w-auto px-4 py-2 rounded-lg transition-colors text-sm font-semibold gold-action-btn disabled:opacity-40"
                   >
                     {updatingSeats
-                      ? isEs
-                        ? "Actualizando..."
-                        : "Updating..."
-                      : isEs
-                        ? "Actualizar asientos"
-                        : "Update Seats"}
+                      ? t("subscription.seats.updating")
+                      : t("subscription.seats.updateButton")}
                   </button>
                 </div>
               </div>
@@ -560,10 +530,11 @@ export default function SubscriptionManagement() {
 
           {/* Available Plans — owner only */}
           {isOwner && (
-            <div data-help-id="subscription-plans" className="bg-[#121212] border border-[#333] rounded-xl p-6 mb-8">
-              <h2 className="text-lg font-bold text-white mb-4">
-                {isEs ? "Planes disponibles" : "Available Plans"}
-              </h2>
+            <div
+              data-help-id="subscription-plans"
+              className="bg-[#121212] border border-[#333] rounded-xl p-6 mb-8"
+            >
+              <h2 className="text-lg font-bold text-white mb-4">{t("subscription.plans.title")}</h2>
               <AvailablePlansGrid
                 plans={plans}
                 currentPlan={currentPlan}
@@ -576,24 +547,23 @@ export default function SubscriptionManagement() {
 
           {/* Cancel Subscription — owner only */}
           {isOwner && (
-            <div data-help-id="subscription-danger" className="bg-[#121212] border border-red-900/40 rounded-xl p-6 mb-8">
+            <div
+              data-help-id="subscription-danger"
+              className="bg-[#121212] border border-red-900/40 rounded-xl p-6 mb-8"
+            >
               <div className="flex items-start justify-between">
                 <div>
                   <h2 className="text-lg font-bold text-white mb-1">
-                    {isEs ? "Zona de riesgo" : "Danger Zone"}
+                    {t("subscription.danger.title")}
                   </h2>
-                  <p className="text-gray-400 text-sm">
-                    {isEs
-                      ? "Cancelar tu suscripcion revocara el acceso a funciones premium al final del periodo de facturacion."
-                      : "Cancelling your subscription will revoke access to premium features at the end of your billing period."}
-                  </p>
+                  <p className="text-gray-400 text-sm">{t("subscription.danger.description")}</p>
                 </div>
                 <button
                   onClick={() => setCancelDialogOpen(true)}
                   className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-medium shrink-0 danger-action-btn"
                 >
                   <XCircle size={16} />
-                  {isEs ? "Cancelar suscripcion" : "Cancel Subscription"}
+                  {t("subscription.danger.cancelButton")}
                 </button>
               </div>
             </div>

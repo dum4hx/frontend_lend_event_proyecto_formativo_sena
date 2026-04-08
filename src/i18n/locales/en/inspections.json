@@ -54,5 +54,6 @@
   "inspections.overallNotesDetail": "Overall Notes",
   "inspections.saveSuccess": "Inspection recorded successfully!",
   "inspections.saveSuccessBody": "You can view your completed inspection in the Completed History tab with code {code}.",
-  "inspections.saveFailed": "Failed to save inspection"
+  "inspections.saveFailed": "Failed to save inspection",
+  "inspections.damageDescriptionRequired": "Damage description is required for damaged or lost items"
 }

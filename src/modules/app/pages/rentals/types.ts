@@ -12,4 +12,4 @@ export interface LoanView {
 export type LoanFilter = "all" | LoanStatus;
 
 /** Ordered list of filter options. */
-export const STATUS_OPTIONS: LoanFilter[] = ["all", "active", "overdue", "returned", "closed"];
+export const STATUS_OPTIONS: LoanFilter[] = ["all", "active", "overdue", "returned", "inspected", "closed"];

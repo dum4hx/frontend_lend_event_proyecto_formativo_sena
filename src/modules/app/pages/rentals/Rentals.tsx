@@ -137,7 +137,7 @@ export function Rentals() {
     setSubmitting(true);
     try {
       const payload: ExtendLoanPayload = {
-        newEndDate,
+        newEndDate: `${newEndDate}T00:00:00.000Z`,
         ...(extendNotes.trim() ? { notes: extendNotes.trim() } : {}),
       };
       await extendLoan(extendTarget.loan._id, payload);

@@ -12,184 +12,194 @@ import {
   Send,
   ShoppingCart,
   Table2,
+  Hammer,
+  ArrowLeftRight,
 } from "lucide-react";
 import { StatCard } from "../../components";
 import { PageHeader } from "../../../../components/ui";
 import { getCustomers } from "../../../../services/customerService";
-import { getRequests, getLoans } from "../../../../services/loanService";
-import { getInvoices, getInvoicesSummary } from "../../../../services/invoiceService";
+import { getRequests } from "../../../../services/loanService";
 import { getUsers } from "../../../../services/userService";
-import {
-  getMaterialTypes,
-  getMaterialInstances,
-  getMaterialCategories,
-} from "../../../../services/materialService";
 import { getLocations } from "../../../../services/warehouseOperatorService";
 import { commercialAdvisorService } from "../../../../services/commercialAdvisorService";
+import {
+  useLoansReport,
+  useInventoryReport,
+  useFinancialReport,
+  useDamagesReport,
+  useTransfersReport,
+} from "../../../../hooks/queries";
 import { ApiError } from "../../../../lib/api";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import { usePermissions } from "../../../../contexts/usePermissions";
 import Unauthorized from "../../../../pages/Unauthorized";
 import { exportTableToPDF, exportTableToXLSX } from "../../../../utils/tableExport";
-import {
-  fmtCurrency,
-  fmtDate,
-  fmtId,
-  getReferenceId,
-  getCategoryName,
-  exportToCSV,
-} from "./helpers";
+import { PAGE_SIZE, fmtId, getReferenceId, exportToCSV } from "./helpers";
 import { ReportsFilters } from "./ReportsFilters";
 import { ReportsTable } from "./ReportsTable";
+import type { ReportsQueryParams } from "../../../../types/api";
+import type { StatCardProps } from "../../../../components/ui/StatCard";
 import type {
   ReportModule,
   DateRange,
   ModuleFilters,
   ReportRow,
-  KpiCard,
   Customer,
-  Loan,
   LoanRequest,
-  Invoice,
-  InvoiceSummary,
-  MaterialType,
-  MaterialInstance,
-  MaterialCategory,
   WarehouseLocation,
   Order,
 } from "./types";
 
-// ─── Module config ─────────────────────────────────────────────────────────
+// ─── Constants ─────────────────────────────────────────────────────────────
 
-const MODULE_CONFIG: Record<
-  ReportModule,
-  { label: string; icon: React.ReactNode; description: string }
-> = {
-  customers: {
-    label: "Customers",
-    icon: <Users size={18} />,
-    description: "Customer base and activity",
-  },
-  requests: {
-    label: "Transfer Requests",
-    icon: <Send size={18} />,
-    description: "Transfer requests and approvals",
-  },
-  loans: {
-    label: "Loans",
-    icon: <TrendingUp size={18} />,
-    description: "Active and completed loans",
-  },
-  invoices: {
-    label: "Invoices",
-    icon: <DollarSign size={18} />,
-    description: "Billing and payments",
-  },
-  inventory: {
-    label: "Inventory",
-    icon: <Package size={18} />,
-    description: "Categories, types and material instances",
-  },
-  team: {
-    label: "Team",
-    icon: <Users size={18} />,
-    description: "Team members and roles",
-  },
-  locations: {
-    label: "Locations",
-    icon: <Boxes size={18} />,
-    description: "Warehouse locations and capacity",
-  },
-  orders: {
-    label: "Orders",
-    icon: <ShoppingCart size={18} />,
-    description: "Customer orders and sales",
-  },
-};
+const API_TABS = new Set<ReportModule>(["loans", "financial", "inventory", "damages", "transfers"]);
+
+// ─── Helpers ───────────────────────────────────────────────────────────────
+
+function getBreakdownCount(
+  breakdown: Array<{ _id: string; count: number }> | undefined,
+  status: string,
+): number {
+  return breakdown?.find((s) => s._id === status)?.count ?? 0;
+}
 
 // ─── Main Component ────────────────────────────────────────────────────────
 
 export default function Reports() {
-  const { language } = useLanguage();
+  const { t, formatDate, formatCurrency, language } = useLanguage();
   const isEs = language === "es";
   const { hasPermission } = usePermissions();
 
-  const moduleConfig = useMemo(() => {
-    if (!isEs) return MODULE_CONFIG;
-    return {
-      customers: {
-        ...MODULE_CONFIG.customers,
-        label: "Clientes",
-        description: "Base de clientes y actividad",
-      },
-      requests: {
-        ...MODULE_CONFIG.requests,
-        label: "Solicitudes",
-        description: "Solicitudes y aprobaciones",
-      },
-      loans: {
-        ...MODULE_CONFIG.loans,
-        label: "Prestamos",
-        description: "Prestamos activos y completados",
-      },
-      invoices: {
-        ...MODULE_CONFIG.invoices,
-        label: "Facturas",
-        description: "Facturacion y pagos",
-      },
-      inventory: {
-        ...MODULE_CONFIG.inventory,
-        label: "Inventario",
-        description: "Categorias, tipos e instancias",
-      },
-      team: { ...MODULE_CONFIG.team, label: "Equipo", description: "Miembros y roles" },
-      locations: {
-        ...MODULE_CONFIG.locations,
-        label: "Ubicaciones",
-        description: "Ubicaciones y capacidad",
-      },
-      orders: { ...MODULE_CONFIG.orders, label: "Pedidos", description: "Pedidos y ventas" },
-    } as typeof MODULE_CONFIG;
-  }, [isEs]);
+  // ─── Module config (translated) ─────────────────────────────────────────
+
+  const moduleConfig = useMemo(
+    () =>
+      ({
+        customers: {
+          label: t("reports.module.customers"),
+          icon: <Users size={18} />,
+          description: t("reports.module.customers.desc"),
+        },
+        requests: {
+          label: t("reports.module.requests"),
+          icon: <Send size={18} />,
+          description: t("reports.module.requests.desc"),
+        },
+        loans: {
+          label: t("reports.module.loans"),
+          icon: <TrendingUp size={18} />,
+          description: t("reports.module.loans.desc"),
+        },
+        financial: {
+          label: t("reports.module.financial"),
+          icon: <DollarSign size={18} />,
+          description: t("reports.module.financial.desc"),
+        },
+        inventory: {
+          label: t("reports.module.inventory"),
+          icon: <Package size={18} />,
+          description: t("reports.module.inventory.desc"),
+        },
+        team: {
+          label: t("reports.module.team"),
+          icon: <Users size={18} />,
+          description: t("reports.module.team.desc"),
+        },
+        locations: {
+          label: t("reports.module.locations"),
+          icon: <Boxes size={18} />,
+          description: t("reports.module.locations.desc"),
+        },
+        orders: {
+          label: t("reports.module.orders"),
+          icon: <ShoppingCart size={18} />,
+          description: t("reports.module.orders.desc"),
+        },
+        damages: {
+          label: t("reports.module.damages"),
+          icon: <Hammer size={18} />,
+          description: t("reports.module.damages.desc"),
+        },
+        transfers: {
+          label: t("reports.module.transfers"),
+          icon: <ArrowLeftRight size={18} />,
+          description: t("reports.module.transfers.desc"),
+        },
+      }) as Record<ReportModule, { label: string; icon: React.ReactNode; description: string }>,
+    [t],
+  );
 
   // ─── State ──────────────────────────────────────────────────────────────
 
   const [activeModule, setActiveModule] = useState<ReportModule>("customers");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [dateRange, setDateRange] = useState<DateRange>({ from: "", to: "" });
   const [filters, setFilters] = useState<ModuleFilters>({
     customers: { status: "" },
     requests: { status: "" },
     loans: { status: "", overdue: false },
-    invoices: { status: "", type: "" },
+    financial: { status: "", type: "" },
     inventory: { type: "", status: "" },
     team: { status: "" },
     locations: { status: "" },
     orders: { status: "" },
+    damages: { status: "" },
+    transfers: { status: "" },
   });
 
-  // Data state
+  // Client-only tab data
+  const [clientLoading, setClientLoading] = useState(false);
+  const [clientError, setClientError] = useState<string | null>(null);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [requests, setRequests] = useState<LoanRequest[]>([]);
-  const [loans, setLoans] = useState<Loan[]>([]);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [invoiceSummary, setInvoiceSummary] = useState<InvoiceSummary | null>(null);
-  const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
-  const [materialInstances, setMaterialInstances] = useState<MaterialInstance[]>([]);
   const [teamMembers, setTeamMembers] = useState<
     Array<{ id: string; name: string; email: string; role: string; status: string }>
   >([]);
   const [locations, setLocations] = useState<WarehouseLocation[]>([]);
-  const [categories, setCategories] = useState<MaterialCategory[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
 
-  // ─── Fetch data ────────────────────────────────────────────────────────
+  // ─── API-backed report hooks ────────────────────────────────────────────
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const baseParams = useMemo<ReportsQueryParams>(
+    () => ({
+      startDate: dateRange.from || undefined,
+      endDate: dateRange.to || undefined,
+      page,
+      limit: PAGE_SIZE,
+    }),
+    [dateRange, page],
+  );
+
+  const loansQuery = useLoansReport(
+    { ...baseParams, status: filters.loans.status || undefined },
+    { enabled: activeModule === "loans" },
+  );
+
+  const financialQuery = useFinancialReport(
+    { ...baseParams, status: filters.financial.status || undefined },
+    { enabled: activeModule === "financial" },
+  );
+
+  const inventoryQuery = useInventoryReport(baseParams, {
+    enabled: activeModule === "inventory",
+  });
+
+  const damagesQuery = useDamagesReport(
+    { ...baseParams, status: filters.damages.status || undefined },
+    { enabled: activeModule === "damages" },
+  );
+
+  const transfersQuery = useTransfersReport(
+    { ...baseParams, status: filters.transfers.status || undefined },
+    { enabled: activeModule === "transfers" },
+  );
+
+  // ─── Client-only tab fetch ──────────────────────────────────────────────
+
+  const fetchClientData = useCallback(async () => {
+    if (API_TABS.has(activeModule)) return;
+    setClientLoading(true);
+    setClientError(null);
     try {
       switch (activeModule) {
         case "customers": {
@@ -206,46 +216,6 @@ export default function Reports() {
             status: filters.requests.status || undefined,
           });
           setRequests(res.data.requests ?? []);
-          break;
-        }
-        case "loans": {
-          const res = await getLoans({
-            limit: 100,
-            status: filters.loans.status || undefined,
-            overdue: filters.loans.overdue || undefined,
-          });
-          setLoans(res.data.loans ?? []);
-          break;
-        }
-        case "invoices": {
-          const [invoicesRes, summaryRes] = await Promise.all([
-            getInvoices({
-              limit: 100,
-              status: filters.invoices.status || undefined,
-              type: filters.invoices.type || undefined,
-            }),
-            getInvoicesSummary(),
-          ]);
-          setInvoices(invoicesRes.data.invoices ?? []);
-          setInvoiceSummary(summaryRes.data);
-          break;
-        }
-        case "inventory": {
-          const [typesRes, instancesRes, categoriesRes] = await Promise.all([
-            getMaterialTypes({ limit: 100 }),
-            getMaterialInstances({
-              status: (filters.inventory.status as MaterialInstance["status"]) || undefined,
-            }),
-            getMaterialCategories(),
-          ]);
-
-          const instances = instancesRes.data.instances ?? [];
-          const types = typesRes.data.materialTypes ?? [];
-          const cats = categoriesRes.data.categories ?? [];
-
-          setMaterialTypes(types);
-          setMaterialInstances(instances);
-          setCategories(cats);
           break;
         }
         case "team": {
@@ -277,8 +247,7 @@ export default function Reports() {
         }
         case "locations": {
           const res = await getLocations({ limit: 100 });
-          const locationsData = res.data.items ?? [];
-          setLocations(locationsData);
+          setLocations(res.data.items ?? []);
           break;
         }
         case "orders": {
@@ -289,26 +258,60 @@ export default function Reports() {
       }
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(err.message);
+        setClientError(err.message);
       } else {
-        setError(
-          isEs
-            ? "No se pudieron cargar los datos. Intenta de nuevo."
-            : "Failed to load data. Please try again.",
-        );
+        setClientError(t("reports.loadError"));
       }
     } finally {
-      setLoading(false);
+      setClientLoading(false);
     }
-  }, [activeModule, filters, isEs]);
+  }, [activeModule, filters, t]);
 
   useEffect(() => {
-    void fetchData();
-  }, [fetchData]);
+    if (!API_TABS.has(activeModule)) {
+      void fetchClientData();
+    }
+  }, [activeModule, fetchClientData]);
+
+  // ─── Derived loading / error ────────────────────────────────────────────
+
+  const activeQuery = (() => {
+    switch (activeModule) {
+      case "loans":
+        return loansQuery;
+      case "financial":
+        return financialQuery;
+      case "inventory":
+        return inventoryQuery;
+      case "damages":
+        return damagesQuery;
+      case "transfers":
+        return transfersQuery;
+      default:
+        return null;
+    }
+  })();
+
+  const loading = API_TABS.has(activeModule) ? (activeQuery?.isLoading ?? false) : clientLoading;
+
+  const error = API_TABS.has(activeModule)
+    ? activeQuery?.isError
+      ? activeQuery.error instanceof Error
+        ? activeQuery.error.message
+        : t("reports.loadError")
+      : null
+    : clientError;
 
   // ─── Build rows ────────────────────────────────────────────────────────
 
   const { headers, rows } = useMemo<{ headers: string[]; rows: ReportRow[] }>(() => {
+    const fmtDate = (iso: string | undefined): string => {
+      if (!iso) return "—";
+      return formatDate(iso);
+    };
+
+    const fmtCurrency = (val: number): string => formatCurrency(val, "COP");
+
     const matchesDate = (iso: string | undefined) => {
       if (!iso) return true;
       if (dateRange.from && iso < dateRange.from) return false;
@@ -317,20 +320,29 @@ export default function Reports() {
     };
 
     switch (activeModule) {
+      // ── Client-only tabs ─────────────────────────────────────────────
+
       case "customers": {
-        const filtered = customers.filter(() => matchesDate(undefined));
         return {
-          headers: ["ID", "First Name", "Last Name", "Email", "Phone", "Document", "Status"],
-          rows: filtered.map((c) => ({
+          headers: [
+            t("reports.col.id"),
+            t("reports.col.firstName"),
+            t("reports.col.lastName"),
+            t("reports.col.email"),
+            t("reports.col.phone"),
+            t("reports.col.document"),
+            t("reports.col.status"),
+          ],
+          rows: customers.map((c) => ({
             id: c._id,
             columns: {
-              ID: fmtId(c._id),
-              "First Name": c.name.firstName,
-              "Last Name": c.name.firstSurname,
-              Email: c.email,
-              Phone: c.phone,
-              Document: `${c.documentType} ${c.documentNumber}`,
-              Status: c.status,
+              [t("reports.col.id")]: fmtId(c._id),
+              [t("reports.col.firstName")]: c.name.firstName,
+              [t("reports.col.lastName")]: c.name.firstSurname,
+              [t("reports.col.email")]: c.email,
+              [t("reports.col.phone")]: c.phone,
+              [t("reports.col.document")]: `${c.documentType} ${c.documentNumber}`,
+              [t("reports.col.status")]: c.status,
             },
           })),
         };
@@ -339,117 +351,26 @@ export default function Reports() {
       case "requests": {
         const filtered = requests.filter((r) => matchesDate(r.startDate));
         return {
-          headers: ["ID", "Customer ID", "Status", "Start Date", "End Date", "Items"],
+          headers: [
+            t("reports.col.id"),
+            t("reports.col.customerId"),
+            t("reports.col.status"),
+            t("reports.col.startDate"),
+            t("reports.col.endDate"),
+            t("reports.col.items"),
+          ],
           rows: filtered.map((r) => ({
             id: r._id,
             columns: {
-              ID: fmtId(r._id),
-              "Customer ID": fmtId(getReferenceId(r.customerId)),
-              Status: r.status,
-              "Start Date": fmtDate(r.startDate),
-              "End Date": fmtDate(r.endDate),
-              Items: r.items?.length ? r.items.length.toString() : "—",
+              [t("reports.col.id")]: fmtId(r._id),
+              [t("reports.col.customerId")]: fmtId(getReferenceId(r.customerId)),
+              [t("reports.col.status")]: r.status,
+              [t("reports.col.startDate")]: fmtDate(r.startDate),
+              [t("reports.col.endDate")]: fmtDate(r.endDate),
+              [t("reports.col.items")]: r.items?.length ? r.items.length.toString() : "—",
             },
           })),
         };
-      }
-
-      case "loans": {
-        const filtered = loans.filter((l) => matchesDate(l.startDate));
-        return {
-          headers: ["ID", "Customer ID", "Status", "Start Date", "End Date", "Notes"],
-          rows: filtered.map((l) => ({
-            id: l._id,
-            columns: {
-              ID: fmtId(l._id),
-              "Customer ID": fmtId(getReferenceId(l.customerId)),
-              Status: l.status,
-              "Start Date": fmtDate(l.startDate),
-              "End Date": fmtDate(l.endDate),
-              Notes: l.notes ?? "—",
-            },
-          })),
-        };
-      }
-
-      case "invoices": {
-        const filtered = invoices.filter(() => matchesDate(undefined));
-        return {
-          headers: ["ID", "Customer ID", "Type", "Status", "Amount (COP)", "Loan Code"],
-          rows: filtered.map((i) => ({
-            id: i._id,
-            columns: {
-              ID: fmtId(i._id),
-              "Customer ID":
-                typeof i.customerId === "object" && i.customerId !== null
-                  ? fmtId(i.customerId._id)
-                  : fmtId(i.customerId as string),
-              Type: i.type,
-              Status: i.status,
-              "Amount (COP)": fmtCurrency(i.totalAmount),
-              "Loan Code": i.loanId
-                ? typeof i.loanId === "object"
-                  ? (i.loanId.code ?? fmtId(i.loanId._id))
-                  : fmtId(i.loanId)
-                : "—",
-            },
-          })),
-        };
-      }
-
-      case "inventory": {
-        const filterType = filters.inventory.type;
-
-        if (filterType === "categories") {
-          return {
-            headers: ["ID", "Name", "Description"],
-            rows: categories.map((c) => ({
-              id: c._id,
-              columns: {
-                ID: fmtId(c._id),
-                Name: c.name,
-                Description: c.description || "—",
-              },
-            })),
-          };
-        } else if (filterType === "types") {
-          return {
-            headers: ["ID", "Name", "Category", "Price/Day", "Description"],
-            rows: materialTypes.map((mt) => {
-              const categoryName = getCategoryName(mt.categoryId, categories);
-              return {
-                id: mt._id,
-                columns: {
-                  ID: fmtId(mt._id),
-                  Name: mt.name,
-                  Category: categoryName,
-                  "Price/Day": fmtCurrency(mt.pricePerDay ?? 0),
-                  Description: mt.description || "—",
-                },
-              };
-            }),
-          };
-        } else {
-          const filtered = materialInstances.filter((m) => {
-            if (filters.inventory.status && m.status !== filters.inventory.status) return false;
-            return true;
-          });
-
-          return {
-            headers: ["Serial", "Model", "Status", "Location", "Price/Day", "Description"],
-            rows: filtered.map((m) => ({
-              id: m._id,
-              columns: {
-                Serial: m.serialNumber || "—",
-                Model: m.model?.name || "—",
-                Status: m.status || "—",
-                Location: m.locationId?.name || "—",
-                "Price/Day": m.model?.pricePerDay ? fmtCurrency(m.model.pricePerDay) : "—",
-                Description: m.model?.description || "—",
-              },
-            })),
-          };
-        }
       }
 
       case "team": {
@@ -458,15 +379,21 @@ export default function Reports() {
           return true;
         });
         return {
-          headers: ["ID", "Name", "Email", "Role", "Status"],
+          headers: [
+            t("reports.col.id"),
+            t("reports.col.name"),
+            t("reports.col.email"),
+            t("reports.col.role"),
+            t("reports.col.status"),
+          ],
           rows: filtered.map((u) => ({
             id: u.id,
             columns: {
-              ID: fmtId(u.id),
-              Name: u.name,
-              Email: u.email,
-              Role: u.role,
-              Status: u.status,
+              [t("reports.col.id")]: fmtId(u.id),
+              [t("reports.col.name")]: u.name,
+              [t("reports.col.email")]: u.email,
+              [t("reports.col.role")]: u.role,
+              [t("reports.col.status")]: u.status,
             },
           })),
         };
@@ -478,17 +405,25 @@ export default function Reports() {
           return true;
         });
         return {
-          headers: ["ID", "Name", "Organization", "Status", "City", "Department", "Address"],
+          headers: [
+            t("reports.col.id"),
+            t("reports.col.name"),
+            t("reports.col.organization"),
+            t("reports.col.status"),
+            t("reports.col.city"),
+            t("reports.col.department"),
+            t("reports.col.address"),
+          ],
           rows: filtered.map((l) => ({
             id: l._id,
             columns: {
-              ID: fmtId(l._id),
-              Name: l.name,
-              Organization: fmtId(l.organizationId) || "—",
-              Status: l.status,
-              City: l.address?.city || "—",
-              Department: l.address?.department || "—",
-              Address:
+              [t("reports.col.id")]: fmtId(l._id),
+              [t("reports.col.name")]: l.name,
+              [t("reports.col.organization")]: fmtId(l.organizationId) || "—",
+              [t("reports.col.status")]: l.status,
+              [t("reports.col.city")]: l.address?.city || "—",
+              [t("reports.col.department")]: l.address?.department || "—",
+              [t("reports.col.address")]:
                 `${l.address?.streetType || ""} ${l.address?.primaryNumber || ""}`.trim() || "—",
             },
           })),
@@ -502,26 +437,189 @@ export default function Reports() {
         });
         return {
           headers: [
-            "Order ID",
-            "Customer",
-            "Date",
-            "Items",
-            "Total",
-            "Status",
-            "Rental Start",
-            "Rental End",
+            t("reports.col.orderId"),
+            t("reports.col.customer"),
+            t("reports.col.date"),
+            t("reports.col.items"),
+            t("reports.col.total"),
+            t("reports.col.status"),
+            t("reports.col.rentalStart"),
+            t("reports.col.rentalEnd"),
           ],
           rows: filtered.map((o) => ({
             id: o.id,
             columns: {
-              "Order ID": o.orderId,
-              Customer: o.customer,
-              Date: fmtDate(o.date),
-              Items: o.items.toString(),
-              Total: fmtCurrency(o.total),
-              Status: o.status,
-              "Rental Start": fmtDate(o.rentalStart),
-              "Rental End": fmtDate(o.rentalEnd),
+              [t("reports.col.orderId")]: o.orderId,
+              [t("reports.col.customer")]: o.customer,
+              [t("reports.col.date")]: fmtDate(o.date),
+              [t("reports.col.items")]: o.items.toString(),
+              [t("reports.col.total")]: fmtCurrency(o.total),
+              [t("reports.col.status")]: o.status,
+              [t("reports.col.rentalStart")]: fmtDate(o.rentalStart),
+              [t("reports.col.rentalEnd")]: fmtDate(o.rentalEnd),
+            },
+          })),
+        };
+      }
+
+      // ── API-backed tabs ──────────────────────────────────────────────
+
+      case "loans": {
+        const data = loansQuery.data;
+        if (!data) return { headers: [], rows: [] };
+        return {
+          headers: [
+            t("reports.col.id"),
+            t("reports.col.customer"),
+            t("reports.col.email"),
+            t("reports.col.status"),
+            t("reports.col.startDate"),
+            t("reports.col.endDate"),
+            t("reports.col.durationDays"),
+            t("reports.col.overdueDays"),
+            t("reports.col.materials"),
+          ],
+          rows: data.loans.map((l) => ({
+            id: l._id,
+            columns: {
+              [t("reports.col.id")]: fmtId(l._id),
+              [t("reports.col.customer")]: l.customer.name,
+              [t("reports.col.email")]: l.customer.email,
+              [t("reports.col.status")]: l.status,
+              [t("reports.col.startDate")]: fmtDate(l.startDate),
+              [t("reports.col.endDate")]: fmtDate(l.endDate),
+              [t("reports.col.durationDays")]: l.durationDays,
+              [t("reports.col.overdueDays")]: l.overdueDays,
+              [t("reports.col.materials")]: l.materialInstances.length,
+            },
+          })),
+        };
+      }
+
+      case "financial": {
+        const data = financialQuery.data;
+        if (!data) return { headers: [], rows: [] };
+        const filteredInvoices = filters.financial.type
+          ? data.invoices.filter((inv) => inv.type === filters.financial.type)
+          : data.invoices;
+        return {
+          headers: [
+            t("reports.col.id"),
+            t("reports.col.customer"),
+            t("reports.col.email"),
+            t("reports.col.type"),
+            t("reports.col.status"),
+            t("reports.col.amount"),
+            t("reports.col.amountPaid"),
+            t("reports.col.amountDue"),
+            t("reports.col.createdAt"),
+            t("reports.col.dueDate"),
+          ],
+          rows: filteredInvoices.map((inv) => ({
+            id: inv._id,
+            columns: {
+              [t("reports.col.id")]: fmtId(inv._id),
+              [t("reports.col.customer")]: inv.customer.name,
+              [t("reports.col.email")]: inv.customer.email,
+              [t("reports.col.type")]: inv.type,
+              [t("reports.col.status")]: inv.status,
+              [t("reports.col.amount")]: fmtCurrency(inv.total),
+              [t("reports.col.amountPaid")]: fmtCurrency(inv.amountPaid),
+              [t("reports.col.amountDue")]: fmtCurrency(inv.amountDue),
+              [t("reports.col.createdAt")]: fmtDate(inv.createdAt),
+              [t("reports.col.dueDate")]: fmtDate(inv.dueDate),
+            },
+          })),
+        };
+      }
+
+      case "inventory": {
+        const data = inventoryQuery.data;
+        if (!data) return { headers: [], rows: [] };
+        return {
+          headers: [
+            t("reports.col.name"),
+            t("reports.col.identifier"),
+            t("reports.col.totalInstances"),
+            t("reports.col.availableCount"),
+            t("reports.col.loanedCount"),
+            t("reports.col.maintenanceCount"),
+            t("reports.col.damagedCount"),
+          ],
+          rows: data.inventory.map((item) => {
+            const getCount = (status: string) =>
+              item.statusBreakdown.find((s) => s.status === status)?.count ?? 0;
+            return {
+              id: item.materialType._id,
+              columns: {
+                [t("reports.col.name")]: item.materialType.name,
+                [t("reports.col.identifier")]: item.materialType.identifier,
+                [t("reports.col.totalInstances")]: item.totalInstances,
+                [t("reports.col.availableCount")]: getCount("available"),
+                [t("reports.col.loanedCount")]: getCount("loaned"),
+                [t("reports.col.maintenanceCount")]: getCount("maintenance"),
+                [t("reports.col.damagedCount")]: getCount("damaged"),
+              },
+            };
+          }),
+        };
+      }
+
+      case "damages": {
+        const data = damagesQuery.data;
+        if (!data) return { headers: [], rows: [] };
+        return {
+          headers: [
+            t("reports.col.inspectionId"),
+            t("reports.col.loanId"),
+            t("reports.col.customer"),
+            t("reports.col.inspectedAt"),
+            t("reports.col.conditionBefore"),
+            t("reports.col.conditionAfter"),
+            t("reports.col.damageDescription"),
+            t("reports.col.chargeToCustomer"),
+            t("reports.col.estimatedRepairCost"),
+          ],
+          rows: data.damages.map((d) => ({
+            id: d.inspectionId,
+            columns: {
+              [t("reports.col.inspectionId")]: fmtId(d.inspectionId),
+              [t("reports.col.loanId")]: fmtId(d.loanId),
+              [t("reports.col.customer")]: d.customer.name,
+              [t("reports.col.inspectedAt")]: fmtDate(d.inspectedAt),
+              [t("reports.col.conditionBefore")]: d.item.conditionBefore,
+              [t("reports.col.conditionAfter")]: d.item.conditionAfter,
+              [t("reports.col.damageDescription")]: d.item.damageDescription || "—",
+              [t("reports.col.chargeToCustomer")]: fmtCurrency(d.item.chargeToCustomer),
+              [t("reports.col.estimatedRepairCost")]: fmtCurrency(d.item.estimatedRepairCost),
+            },
+          })),
+        };
+      }
+
+      case "transfers": {
+        const data = transfersQuery.data;
+        if (!data) return { headers: [], rows: [] };
+        return {
+          headers: [
+            t("reports.col.id"),
+            t("reports.col.from"),
+            t("reports.col.to"),
+            t("reports.col.status"),
+            t("reports.col.items"),
+            t("reports.col.notes"),
+            t("reports.col.createdAt"),
+          ],
+          rows: data.transfers.map((tr) => ({
+            id: tr._id,
+            columns: {
+              [t("reports.col.id")]: fmtId(tr._id),
+              [t("reports.col.from")]: tr.fromLocation.name,
+              [t("reports.col.to")]: tr.toLocation.name,
+              [t("reports.col.status")]: tr.status,
+              [t("reports.col.items")]: tr.items.length.toString(),
+              [t("reports.col.notes")]: tr.notes || "—",
+              [t("reports.col.createdAt")]: fmtDate(tr.createdAt),
             },
           })),
         };
@@ -532,242 +630,283 @@ export default function Reports() {
     }
   }, [
     activeModule,
+    t,
+    formatDate,
+    formatCurrency,
+    dateRange,
     customers,
     requests,
-    loans,
-    invoices,
-    materialTypes,
-    materialInstances,
     teamMembers,
     locations,
-    categories,
     orders,
-    filters.inventory.type,
-    filters.inventory.status,
-    filters.locations.status,
+    loansQuery.data,
+    financialQuery.data,
+    inventoryQuery.data,
+    damagesQuery.data,
+    transfersQuery.data,
     filters.team.status,
+    filters.locations.status,
     filters.orders.status,
-    dateRange,
+    filters.financial.type,
   ]);
 
   // ─── KPI Cards ─────────────────────────────────────────────────────────
 
-  const kpiCards: KpiCard[] = useMemo(() => {
+  const kpiCards: StatCardProps[] = useMemo(() => {
+    const fmtCurrency = (val: number): string => formatCurrency(val, "COP");
+
     switch (activeModule) {
       case "customers":
         return [
-          { label: "Total", value: customers.length, icon: <Users size={24} /> },
+          { label: t("reports.kpi.total"), value: customers.length, icon: <Users size={24} /> },
           {
-            label: "Active",
+            label: t("reports.kpi.active"),
             value: customers.filter((c) => c.status === "active").length,
             icon: <Users size={24} />,
-            trend: "active",
+            trend: t("reports.status.active"),
             trendUp: true,
           },
           {
-            label: "Inactive",
+            label: t("reports.kpi.inactive"),
             value: customers.filter((c) => c.status === "inactive").length,
             icon: <Users size={24} />,
           },
           {
-            label: "Blacklisted",
+            label: t("reports.kpi.blacklisted"),
             value: customers.filter((c) => c.status === "blacklisted").length,
             icon: <Users size={24} />,
           },
         ];
+
       case "requests":
         return [
-          { label: "Total", value: requests.length, icon: <ClipboardList size={24} /> },
           {
-            label: "Pending",
+            label: t("reports.kpi.total"),
+            value: requests.length,
+            icon: <ClipboardList size={24} />,
+          },
+          {
+            label: t("reports.kpi.pending"),
             value: requests.filter((r) => r.status === "pending").length,
             icon: <ClipboardList size={24} />,
           },
           {
-            label: "Approved",
+            label: t("reports.kpi.approved"),
             value: requests.filter((r) => r.status === "approved").length,
             icon: <ClipboardList size={24} />,
-            trend: "approved",
+            trend: t("reports.status.approved"),
             trendUp: true,
           },
           {
-            label: "Rejected",
+            label: t("reports.kpi.rejected"),
             value: requests.filter((r) => r.status === "rejected").length,
             icon: <ClipboardList size={24} />,
           },
         ];
-      case "loans":
+
+      case "loans": {
+        const summary = loansQuery.data?.summary;
         return [
-          { label: "Total", value: loans.length, icon: <TrendingUp size={24} /> },
           {
-            label: "Active",
-            value: loans.filter((l) => l.status === "active").length,
+            label: t("reports.kpi.totalLoans"),
+            value: summary?.totalLoans ?? 0,
+            icon: <TrendingUp size={24} />,
+          },
+          {
+            label: t("reports.kpi.active"),
+            value: getBreakdownCount(summary?.statusBreakdown, "active"),
             icon: <TrendingUp size={24} />,
             trendUp: true,
           },
           {
-            label: "Overdue",
-            value: loans.filter((l) => l.status === "overdue").length,
+            label: t("reports.kpi.overdue"),
+            value: getBreakdownCount(summary?.statusBreakdown, "overdue"),
             icon: <TrendingUp size={24} />,
           },
           {
-            label: "Returned",
-            value: loans.filter((l) => l.status === "returned").length,
+            label: t("reports.kpi.returned"),
+            value: getBreakdownCount(summary?.statusBreakdown, "returned"),
             icon: <TrendingUp size={24} />,
           },
         ];
-      case "invoices":
-        return [
-          { label: "Total Invoices", value: invoices.length, icon: <FileText size={24} /> },
-          {
-            label: "Pending",
-            value:
-              invoiceSummary?.pending.count ??
-              invoices.filter((i) => i.status === "pending").length,
-            icon: <DollarSign size={24} />,
-          },
-          {
-            label: "Paid",
-            value: invoiceSummary?.paid.count ?? invoices.filter((i) => i.status === "paid").length,
-            icon: <DollarSign size={24} />,
-            trendUp: true,
-          },
-          {
-            label: "Total Amount",
-            value: fmtCurrency(invoices.reduce((sum, i) => sum + (i.totalAmount ?? 0), 0)),
-            icon: <DollarSign size={24} />,
-          },
-        ];
-      case "inventory": {
-        const filterType = filters.inventory.type;
-        if (filterType === "categories") {
-          return [
-            { label: "Total Categories", value: categories.length, icon: <Package size={24} /> },
-            { label: "Material Types", value: materialTypes.length, icon: <Package size={24} /> },
-            { label: "Instances", value: materialInstances.length, icon: <Package size={24} /> },
-            {
-              label: "With Attributes",
-              value: categories.filter((c) => c.attributes && c.attributes.length > 0).length,
-              icon: <Package size={24} />,
-            },
-          ];
-        } else if (filterType === "types") {
-          return [
-            { label: "Total Types", value: materialTypes.length, icon: <Package size={24} /> },
-            { label: "Categories", value: categories.length, icon: <Package size={24} /> },
-            { label: "Instances", value: materialInstances.length, icon: <Package size={24} /> },
-            {
-              label: "Avg Price/Day",
-              value: fmtCurrency(
-                materialTypes.reduce((sum, mt) => sum + (mt.pricePerDay || 0), 0) /
-                  (materialTypes.length || 1),
-              ),
-              icon: <Package size={24} />,
-            },
-          ];
-        } else {
-          return [
-            {
-              label: "Total Instances",
-              value: materialInstances.length,
-              icon: <Package size={24} />,
-            },
-            {
-              label: "Available",
-              value: materialInstances.filter((mi) => mi.status === "available").length,
-              icon: <Package size={24} />,
-              trendUp: true,
-            },
-            {
-              label: "Loaned",
-              value: materialInstances.filter((mi) => mi.status === "loaned").length,
-              icon: <Package size={24} />,
-            },
-            {
-              label: "Maintenance",
-              value: materialInstances.filter((mi) => mi.status === "maintenance").length,
-              icon: <Package size={24} />,
-            },
-          ];
-        }
       }
+
+      case "financial": {
+        const data = financialQuery.data;
+        const totalRevenue =
+          data?.summaryByType?.reduce((sum, s) => sum + s.totalRevenue, 0) ?? 0;
+        const paidAmount =
+          data?.summaryByStatus?.find((s) => s._id === "paid")?.totalAmount ?? 0;
+        const outstandingAmount =
+          data?.summaryByStatus?.find((s) => s._id === "pending")?.totalAmount ?? 0;
+        return [
+          {
+            label: t("reports.kpi.totalInvoices"),
+            value: data?.total ?? 0,
+            icon: <FileText size={24} />,
+          },
+          {
+            label: t("reports.kpi.totalRevenue"),
+            value: fmtCurrency(totalRevenue),
+            icon: <DollarSign size={24} />,
+          },
+          {
+            label: t("reports.kpi.totalPaid"),
+            value: fmtCurrency(paidAmount),
+            icon: <DollarSign size={24} />,
+            trendUp: true,
+          },
+          {
+            label: t("reports.kpi.totalOutstanding"),
+            value: fmtCurrency(outstandingAmount),
+            icon: <DollarSign size={24} />,
+          },
+        ];
+      }
+
+      case "inventory": {
+        const summary = inventoryQuery.data?.summary;
+        return [
+          {
+            label: t("reports.kpi.totalTypes"),
+            value: summary?.totalTypes ?? 0,
+            icon: <Package size={24} />,
+          },
+          {
+            label: t("reports.kpi.totalInstances"),
+            value: summary?.totalInstances ?? 0,
+            icon: <Package size={24} />,
+          },
+        ];
+      }
+
+      case "damages": {
+        const summary = damagesQuery.data?.summary;
+        return [
+          {
+            label: t("reports.kpi.totalDamages"),
+            value: summary?.totalDamages ?? 0,
+            icon: <Hammer size={24} />,
+          },
+          {
+            label: t("reports.kpi.totalCharges"),
+            value: fmtCurrency(summary?.totalCharges ?? 0),
+            icon: <DollarSign size={24} />,
+          },
+          {
+            label: t("reports.kpi.repairCost"),
+            value: fmtCurrency(summary?.totalRepairCost ?? 0),
+            icon: <DollarSign size={24} />,
+          },
+        ];
+      }
+
+      case "transfers": {
+        const data = transfersQuery.data;
+        const inTransit = data?.summaryByStatus?.find((s) => s._id === "in_transit")?.count ?? 0;
+        const completed = data?.summaryByStatus?.find((s) => s._id === "completed")?.count ?? 0;
+        return [
+          {
+            label: t("reports.kpi.totalTransfers"),
+            value: data?.total ?? 0,
+            icon: <ArrowLeftRight size={24} />,
+          },
+          {
+            label: t("reports.kpi.inTransit"),
+            value: inTransit,
+            icon: <ArrowLeftRight size={24} />,
+          },
+          {
+            label: t("reports.kpi.completed"),
+            value: completed,
+            icon: <ArrowLeftRight size={24} />,
+            trendUp: true,
+          },
+        ];
+      }
+
       case "team":
         return [
-          { label: "Total Members", value: teamMembers.length, icon: <Users size={24} /> },
           {
-            label: "Active",
+            label: t("reports.kpi.totalMembers"),
+            value: teamMembers.length,
+            icon: <Users size={24} />,
+          },
+          {
+            label: t("reports.kpi.active"),
             value: teamMembers.filter((u) => u.status === "active").length,
             icon: <Users size={24} />,
             trendUp: true,
           },
           {
-            label: "Invited",
-            value: teamMembers.filter((u) => u.status === "invited").length,
-            icon: <Users size={24} />,
-          },
-          {
-            label: "Roles",
+            label: t("reports.kpi.roles"),
             value: new Set(teamMembers.map((u) => u.role)).size,
             icon: <Package size={24} />,
           },
         ];
+
       case "locations":
         return [
-          { label: "Total Locations", value: locations.length, icon: <Boxes size={24} /> },
           {
-            label: "Available",
+            label: t("reports.kpi.totalLocations"),
+            value: locations.length,
+            icon: <Boxes size={24} />,
+          },
+          {
+            label: t("reports.kpi.available"),
             value: locations.filter((l) => l.status === "available").length,
             icon: <Boxes size={24} />,
             trendUp: true,
           },
           {
-            label: "Full Capacity",
+            label: t("reports.kpi.fullCapacity"),
             value: locations.filter((l) => l.status === "full_capacity").length,
             icon: <Boxes size={24} />,
           },
-          {
-            label: "Maintenance",
-            value: locations.filter((l) => l.status === "maintenance").length,
-            icon: <Boxes size={24} />,
-          },
         ];
+
       case "orders":
         return [
-          { label: "Total Orders", value: orders.length, icon: <ShoppingCart size={24} /> },
           {
-            label: "Pending",
+            label: t("reports.kpi.totalOrders"),
+            value: orders.length,
+            icon: <ShoppingCart size={24} />,
+          },
+          {
+            label: t("reports.kpi.pending"),
             value: orders.filter((o) => o.status === "pending").length,
             icon: <ShoppingCart size={24} />,
           },
           {
-            label: "Completed",
+            label: t("reports.kpi.completed"),
             value: orders.filter((o) => o.status === "completed").length,
             icon: <ShoppingCart size={24} />,
             trendUp: true,
           },
           {
-            label: "Revenue",
+            label: t("reports.kpi.revenue"),
             value: fmtCurrency(orders.reduce((sum, o) => sum + (o.total || 0), 0)),
             icon: <DollarSign size={24} />,
           },
         ];
+
       default:
         return [];
     }
   }, [
     activeModule,
+    t,
+    formatCurrency,
     customers,
     requests,
-    loans,
-    invoices,
-    materialTypes,
-    materialInstances,
     teamMembers,
     locations,
-    categories,
     orders,
-    invoiceSummary,
-    filters.inventory.type,
+    loansQuery.data,
+    financialQuery.data,
+    inventoryQuery.data,
+    damagesQuery.data,
+    transfersQuery.data,
   ]);
 
   // ─── Handlers ──────────────────────────────────────────────────────────
@@ -786,6 +925,14 @@ export default function Reports() {
     setPage(1);
   };
 
+  const handleRefresh = () => {
+    if (API_TABS.has(activeModule)) {
+      void activeQuery?.refetch();
+    } else {
+      void fetchClientData();
+    }
+  };
+
   const handleExport = () => {
     const filename = `report_${activeModule}_${new Date().toISOString().slice(0, 10)}.csv`;
     exportToCSV(headers, rows, filename);
@@ -793,20 +940,14 @@ export default function Reports() {
 
   const handleExportPDF = () => {
     const date = new Date().toISOString().slice(0, 10);
-    const exportData = {
-      headers,
-      rows: rows.map((r) => r.columns),
-    };
+    const exportData = { headers, rows: rows.map((r) => r.columns) };
     const title = `${moduleConfig[activeModule].label} Report`;
     exportTableToPDF(exportData, `report_${activeModule}_${date}.pdf`, title);
   };
 
   const handleExportXLSX = () => {
     const date = new Date().toISOString().slice(0, 10);
-    const exportData = {
-      headers,
-      rows: rows.map((r) => r.columns),
-    };
+    const exportData = { headers, rows: rows.map((r) => r.columns) };
     exportTableToXLSX(exportData, `report_${activeModule}_${date}.xlsx`);
   };
 
@@ -818,17 +959,17 @@ export default function Reports() {
     <div className="page-container">
       <div data-help-id="reports-header">
         <PageHeader
-          title={isEs ? "Reportes y analitica" : "Reports & Analytics"}
-          subtitle={isEs ? "Explora datos en todos los modulos" : "Explore data across all modules"}
+          title={t("reports.title")}
+          subtitle={t("reports.subtitle")}
           actions={
             <div className="flex items-center gap-3">
               <button
-                onClick={() => void fetchData()}
+                onClick={handleRefresh}
                 disabled={loading}
                 className="flex items-center gap-2 px-4 py-2 bg-zinc-800 border border-zinc-700 text-gray-300 rounded-lg hover:border-yellow-400 hover:text-white transition disabled:opacity-50"
               >
                 <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-                {isEs ? "Actualizar" : "Refresh"}
+                {t("reports.refresh")}
               </button>
               <button
                 onClick={handleExportPDF}

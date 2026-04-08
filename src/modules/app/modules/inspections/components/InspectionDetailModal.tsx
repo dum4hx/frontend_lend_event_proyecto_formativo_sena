@@ -2,7 +2,6 @@ import React from "react";
 import { X, CheckCircle, AlertTriangle, XCircle, FileText } from "lucide-react";
 import { useLanguage } from "../../../../../contexts/useLanguage";
 import type { InspectionListItem } from "../../../../../types/api";
-import { EntityLink } from "../../../../../components/ui";
 
 interface InspectionDetailModalProps {
   inspection: InspectionListItem;
@@ -63,9 +62,7 @@ export const InspectionDetailModal: React.FC<InspectionDetailModalProps> = ({
                   {t("inspections.loanIdDetail")}
                 </label>
                 <p className="text-white font-mono break-all font-medium">
-                  {typeof inspection.loanId === "string"
-                    ? inspection.loanId
-                    : (inspection.loanId as unknown as { _id: string })._id}
+                  {inspection.loanId.code ?? inspection.loanId._id}
                 </p>
               </div>
             </div>
@@ -88,26 +85,10 @@ export const InspectionDetailModal: React.FC<InspectionDetailModalProps> = ({
                         <div>
                           <p className="text-white font-medium capitalize">{status.label}</p>
                           <p className="text-xs text-gray-500 font-mono mt-0.5">
-                            {typeof item.materialInstanceId === "string" ? (
-                              <>
-                                <EntityLink
-                                  entityType="materialInstance"
-                                  entityId={item.materialInstanceId}
-                                  label={`ID: ${item.materialInstanceId}`}
-                                  className="font-mono text-xs"
-                                />
-                              </>
-                            ) : (
-                              <>
-                                SN: {item.materialInstanceId.serialNumber}{" "}
-                                <EntityLink
-                                  entityType="materialInstance"
-                                  entityId={item.materialInstanceId._id}
-                                  label={item.materialInstanceId._id}
-                                  className="font-mono text-xs"
-                                />
-                              </>
-                            )}
+                            SN:{" "}
+                            {typeof item.materialInstanceId === "string"
+                              ? item.materialInstanceId
+                              : item.materialInstanceId.serialNumber}
                           </p>
                         </div>
                       </div>

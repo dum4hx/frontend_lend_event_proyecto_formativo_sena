@@ -43,13 +43,17 @@ const ordersHelpContent: HelpModuleContent = {
       id: "functions",
       title: { es: "Funciones clave", en: "Key functions" },
       body: {
-        es: "Puedes crear pedidos, aprobar o rechazar solicitudes, reactivar rechazados, preparar materiales, iniciar prestamos, cerrar devoluciones y registrar pagos de deposito.",
-        en: "You can create orders, approve or reject requests, reactivate rejected ones, prepare materials, start loans, close returns, and record deposit payments.",
+        es: "Puedes crear pedidos, aprobar o rechazar solicitudes, cancelar pedidos activos, reactivar rechazados, preparar materiales, iniciar prestamos, cerrar devoluciones y registrar pagos de deposito.",
+        en: "You can create orders, approve or reject requests, cancel active orders, reactivate rejected ones, prepare materials, start loans, close returns, and record deposit payments.",
       },
       howTo: [
         {
           es: "Para aprobar/rechazar: abre el detalle del pedido, valida informacion y ejecuta la accion correspondiente.",
           en: "To approve/reject: open the order detail, validate information, and execute the corresponding action.",
+        },
+        {
+          es: "Para cancelar: selecciona la accion Cancelar disponible en pedidos pendientes, aprobados, con deposito pendiente, asignados o listos.",
+          en: "To cancel: select the Cancel action available on pending, approved, deposit pending, assigned, or ready orders.",
         },
         {
           es: "Para preparar materiales: mueve el pedido a estado 'En preparacion' seleccionando la accion Preparar.",

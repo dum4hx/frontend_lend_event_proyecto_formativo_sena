@@ -314,19 +314,19 @@ export function TransferRequests() {
           {isFromLocation && (
             <>
               <button
-                onClick={guard("transfers:update", () => void handleRespond(req._id, "approved"))}
-                aria-disabled={!isAllowed("transfers:update")}
+                onClick={guard("transfers:accept", () => void handleRespond(req._id, "approved"))}
+                aria-disabled={!isAllowed("transfers:accept")}
                 title={isEs ? "Aprobar" : "Approve"}
-                className={`flex items-center gap-1 px-2.5 h-7 bg-green-700/20 hover:bg-green-600/30 text-green-400 hover:text-green-300 border border-green-700/30 rounded text-xs font-medium transition-all ${!isAllowed("transfers:update") ? "opacity-50 cursor-not-allowed" : ""}`}
+                className={`flex items-center gap-1 px-2.5 h-7 bg-green-700/20 hover:bg-green-600/30 text-green-400 hover:text-green-300 border border-green-700/30 rounded text-xs font-medium transition-all ${!isAllowed("transfers:accept") ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 <CheckCircle size={12} />
                 {isEs ? "Aprobar" : "Approve"}
               </button>
               <button
-                onClick={guard("transfers:update", () => void handleRespond(req._id, "rejected"))}
-                aria-disabled={!isAllowed("transfers:update")}
+                onClick={guard("transfers:accept", () => void handleRespond(req._id, "rejected"))}
+                aria-disabled={!isAllowed("transfers:accept")}
                 title={isEs ? "Rechazar" : "Reject"}
-                className={`flex items-center gap-1 px-2.5 h-7 bg-red-700/20 hover:bg-red-600/30 text-red-400 hover:text-red-300 border border-red-700/30 rounded text-xs font-medium transition-all ${!isAllowed("transfers:update") ? "opacity-50 cursor-not-allowed" : ""}`}
+                className={`flex items-center gap-1 px-2.5 h-7 bg-red-700/20 hover:bg-red-600/30 text-red-400 hover:text-red-300 border border-red-700/30 rounded text-xs font-medium transition-all ${!isAllowed("transfers:accept") ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 <XCircle size={12} />
                 {isEs ? "Rechazar" : "Reject"}

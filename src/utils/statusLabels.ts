@@ -209,6 +209,7 @@ export const LOAN_STATUS_MAP: Record<LoanStatus, StatusLocale> = {
   active: { en: "Active", es: "Activo" },
   overdue: { en: "Overdue", es: "Vencido" },
   returned: { en: "Returned", es: "Devuelto" },
+  inspected: { en: "Inspected", es: "Inspeccionado" },
   closed: { en: "Closed", es: "Cerrado" },
 };
 
@@ -216,6 +217,7 @@ export const LOAN_STATUS_COLORS: Record<LoanStatus, string> = {
   active: "badge-success",
   overdue: "badge-warning",
   returned: "badge-info",
+  inspected: "badge-info",
   closed: "badge-neutral",
 };
 

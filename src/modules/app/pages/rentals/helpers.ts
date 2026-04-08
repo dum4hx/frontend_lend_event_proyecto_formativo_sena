@@ -18,6 +18,8 @@ export function getLoanStatusBadgeStyle(status: LoanStatus): string {
       return "bg-red-500/20 text-red-400 border border-red-500/30";
     case "returned":
       return "bg-blue-500/20 text-blue-400 border border-blue-500/30";
+    case "inspected":
+      return "bg-purple-500/20 text-purple-400 border border-purple-500/30";
     case "closed":
       return "bg-zinc-500/20 text-zinc-300 border border-zinc-500/30";
     default:

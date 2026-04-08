@@ -212,7 +212,7 @@ export function Team() {
                       ? "Sin permiso: users:create"
                       : "Missing permission: users:create"
                 }
-                className={`gold-action-btn flex items-center gap-2 transition-opacity ${!canInvite ? "opacity-50 cursor-not-allowed" : ""}`}
+                className={`w-full sm:w-auto shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 font-semibold rounded-lg transition gold-action-btn ${!canInvite ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 <UserPlus size={16} />
                 {isEs ? "Invitar miembro" : "Invite Member"}

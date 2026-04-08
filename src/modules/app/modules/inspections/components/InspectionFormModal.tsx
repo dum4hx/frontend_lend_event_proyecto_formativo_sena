@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { X, Save, AlertCircle } from "lucide-react";
 import { useLanguage } from "../../../../../contexts/useLanguage";
+import { validateDamageDescription } from "../../../../../utils";
 import type {
   PendingLoan,
   InspectionItemInput,
@@ -43,6 +44,14 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
   const [dueDate, setDueDate] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Derive per-item description errors: required when damaged or lost
+  const descriptionErrors = items.map(
+    (item) =>
+      (item.condition === "damaged" || item.condition === "lost") &&
+      !validateDamageDescription(item.damageDescription ?? "").isValid,
+  );
+  const hasDescriptionErrors = descriptionErrors.some(Boolean);
 
   // Check if any item is damaged or lost (for conditional dueDate display)
   const hasDamagedOrLostItems = items.some(
@@ -149,13 +158,28 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
                         <textarea
                           data-help-id="inspections-form-damage-description"
                           placeholder={t("inspections.damageDescriptionPlaceholder")}
-                          className="w-full bg-[#0a0a0a] border border-[#333] rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-[#FFD700] min-h-[60px]"
+                          className={`w-full bg-[#0a0a0a] border rounded-md px-3 py-2 text-sm text-white focus:outline-none min-h-[60px] ${
+                            descriptionErrors[index]
+                              ? "border-red-500 bg-red-500/10 focus:border-red-400"
+                              : "border-[#333] focus:border-[#FFD700]"
+                          }`}
                           value={items[index].damageDescription || ""}
                           onChange={(e) =>
                             handleItemChange(index, "damageDescription", e.target.value)
                           }
-                          required={items[index].condition.toString() !== "good"}
+                          aria-invalid={descriptionErrors[index]}
+                          aria-describedby={
+                            descriptionErrors[index] ? `damage-desc-error-${index}` : undefined
+                          }
                         />
+                        {descriptionErrors[index] && (
+                          <p
+                            id={`damage-desc-error-${index}`}
+                            className="text-red-400 text-xs mt-1"
+                          >
+                            {t("inspections.damageDescriptionRequired")}
+                          </p>
+                        )}
                       </div>
                       <div className="md:col-span-1">
                         <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase">
@@ -244,7 +268,7 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
           <Button
             type="submit"
             onClick={handleSubmit}
-            disabled={isSubmitting}
+            disabled={isSubmitting || hasDescriptionErrors}
             data-help-id="inspections-form-submit"
             className="bg-[#FFD700] text-black hover:bg-[#e6c200] font-bold"
           >

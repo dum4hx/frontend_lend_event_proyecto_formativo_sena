@@ -799,6 +799,19 @@ export const validateCodeSchemeName = (name: string): ValidationResult => {
 };
 
 /**
+ * Damage description validator for inspection items.
+ * Required when the material condition is 'damaged' or 'lost'.
+ * @example validateDamageDescription("Scratch on surface") // { isValid: true }
+ * @example validateDamageDescription("") // { isValid: false, message: "inspections.damageDescriptionRequired" }
+ */
+export const validateDamageDescription = (description: string): ValidationResult => {
+  if (!description || !description.trim()) {
+    return { isValid: false, message: "inspections.damageDescriptionRequired" };
+  }
+  return { isValid: true };
+};
+
+/**
  * Code scheme pattern validation (1-50 chars, must contain {SEQ} or {SEQ:N}).
  * For material_instance entity type, {TYPE_CODE} and {CATEGORY_CODE} tokens
  * are allowed; for other entity types they are forbidden.

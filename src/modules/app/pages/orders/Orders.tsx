@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, X, CreditCard } from "lucide-react";
+import { Plus, X, CreditCard, Ban } from "lucide-react";
 import { Button, IconButton, PageHeader } from "../../../../components/ui";
 import type {
   Customer,
@@ -15,6 +15,7 @@ import {
   getRequests,
   approveRequest,
   rejectRequest,
+  cancelRequest,
   updateRequest,
   markRequestReady,
   createLoanFromRequest,
@@ -51,7 +52,7 @@ import { OrderDetailModal } from "./OrderDetailModal";
 export function Orders() {
   const { showError, showSuccess, AlertModal } = useAlertModal();
   const { hasPermission, hasAnyPermission } = usePermissions();
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const isEs = language === "es";
   const { guard } = useActionPermission(isEs ? "es" : "en");
 
@@ -83,6 +84,9 @@ export function Orders() {
   >([]);
   const [rejectReason, setRejectReason] = useState("");
   const [reactivateReason, setReactivateReason] = useState("");
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelTarget, setCancelTarget] = useState<OrderView | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
   const [showRecordPaymentModal, setShowRecordPaymentModal] = useState(false);
   const [paymentTarget, setPaymentTarget] = useState<OrderView | null>(null);
   const [showRentalPaymentModal, setShowRentalPaymentModal] = useState(false);
@@ -97,6 +101,7 @@ export function Orders() {
   const canCreateRequest = hasPermission("requests:create");
   const canApproveRequest = hasPermission("requests:approve");
   const canUpdateRequest = hasPermission("requests:update");
+  const canCancelRequest = hasPermission("requests:cancel");
   const canReadyRequest = hasPermission("requests:ready");
   const canCreateLoan = hasAnyPermission(["loans:create", "loans:checkout"]);
   const canReturnLoan = hasPermission("loans:return");
@@ -221,20 +226,25 @@ export function Orders() {
       if (failures.length > 0) {
         const firstFailure = failures[0];
         const reasonMessage =
-          firstFailure.reason instanceof Error ? firstFailure.reason.message : "Request failed";
+          firstFailure.reason instanceof Error
+            ? firstFailure.reason.message
+            : t("orders.loadWarningFallback");
         setLoadWarning(
-          `Some data could not be loaded: ${failures.map((e) => e.source).join(", ")}. ${reasonMessage}`,
+          t("orders.loadWarning", {
+            sources: failures.map((e) => e.source).join(", "),
+            reason: reasonMessage,
+          }),
         );
       } else {
         setLoadWarning("");
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to load orders";
-      setLoadWarning(`Orders view could not load completely: ${message}`);
+      const message = error instanceof Error ? error.message : t("orders.loadError");
+      setLoadWarning(t("orders.loadErrorPartial", { message }));
     } finally {
       setLoading(false);
     }
-  }, [requestsPage, requestsPageSize, selectedStatus]);
+  }, [requestsPage, requestsPageSize, selectedStatus, t]);
 
   useEffect(() => {
     refreshData();
@@ -282,14 +292,11 @@ export function Orders() {
           return exists ? prev : [createdRequest, ...prev];
         });
       }
-      showSuccess(
-        isEs ? "Pedido creado correctamente." : "Order created successfully.",
-        isEs ? "Pedido registrado" : "Order Registered",
-      );
+      showSuccess(t("orders.createSuccess"), t("orders.createSuccessTitle"));
       await refreshData();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to create order";
-      showError(message, "Order Creation Error");
+      const message = error instanceof Error ? error.message : t("orders.createError");
+      showError(message, t("orders.createErrorTitle"));
     } finally {
       setSubmitting(false);
     }
@@ -299,11 +306,39 @@ export function Orders() {
     setSubmitting(true);
     try {
       await approveRequest(requestId, "Approved from Orders module");
-      showSuccess("Order approved.", "Order Updated");
+      showSuccess(t("orders.approveSuccess"), t("orders.orderUpdated"));
       await refreshData();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to approve order";
-      showError(message, "Approval Error");
+      const message = error instanceof Error ? error.message : t("orders.approveError");
+      showError(message, t("orders.approveErrorTitle"));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleOpenCancelModal = (order: OrderView) => {
+    setCancelTarget(order);
+    setCancelReason("");
+    setShowCancelModal(true);
+  };
+
+  const handleCancelOrder = async () => {
+    if (!cancelTarget) return;
+    if (!cancelReason.trim()) {
+      showError(t("orders.cancelReasonRequired"), t("orders.validationErrorTitle"));
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await cancelRequest(cancelTarget.request._id);
+      showSuccess(t("orders.cancelSuccess"), t("orders.orderUpdated"));
+      setShowCancelModal(false);
+      setCancelTarget(null);
+      setCancelReason("");
+      await refreshData();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : t("orders.cancelError");
+      showError(message, t("orders.cancelErrorTitle"));
     } finally {
       setSubmitting(false);
     }
@@ -324,20 +359,20 @@ export function Orders() {
   const handleRejectOrder = async () => {
     if (!rejectTarget) return;
     if (!rejectReason.trim()) {
-      showError("Rejection reason is required.", "Validation Error");
+      showError(t("orders.rejectReasonRequired"), t("orders.validationErrorTitle"));
       return;
     }
     setSubmitting(true);
     try {
       await rejectRequest(rejectTarget.request._id, rejectReason.trim());
-      showSuccess("Order rejected.", "Order Updated");
+      showSuccess(t("orders.rejectSuccess"), t("orders.orderUpdated"));
       setShowRejectModal(false);
       setRejectTarget(null);
       setRejectReason("");
       await refreshData();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to reject order";
-      showError(message, "Rejection Error");
+      const message = error instanceof Error ? error.message : t("orders.rejectError");
+      showError(message, t("orders.rejectErrorTitle"));
     } finally {
       setSubmitting(false);
     }
@@ -347,7 +382,7 @@ export function Orders() {
     if (!reactivateTarget) return;
     const reason = reactivateReason.trim();
     if (!reason) {
-      showError("Reactivation reason is required.", "Validation Error");
+      showError(t("orders.reactivateReasonRequired"), t("orders.validationErrorTitle"));
       return;
     }
     setSubmitting(true);
@@ -356,17 +391,17 @@ export function Orders() {
         status: "pending",
         notes: `Reactivated from rejected state. Reason: ${reason}`,
       });
-      showSuccess("Order reactivated and moved back to pending.", "Order Reactivated");
+      showSuccess(t("orders.reactivateSuccess"), t("orders.reactivateSuccessTitle"));
       setShowReactivateModal(false);
       setReactivateTarget(null);
       setReactivateReason("");
       await refreshData();
     } catch (error) {
-      const rawMessage = error instanceof Error ? error.message : "Failed to reactivate order";
+      const rawMessage = error instanceof Error ? error.message : t("orders.reactivateError");
       const notSupportedMessage = rawMessage.toLowerCase().includes("not found")
-        ? "Reactivation is not available in the current backend yet. Please ask backend to enable request status updates from rejected to pending."
+        ? t("orders.reactivateNotSupported")
         : rawMessage;
-      showError(notSupportedMessage, "Reactivation Error");
+      showError(notSupportedMessage, t("orders.reactivateErrorTitle"));
     } finally {
       setSubmitting(false);
     }
@@ -376,11 +411,11 @@ export function Orders() {
     setSubmitting(true);
     try {
       await createLoanFromRequest(requestId);
-      showSuccess("Loan started successfully.", "Loan Created");
+      showSuccess(t("orders.loanStartSuccess"), t("orders.loanStartSuccessTitle"));
       await refreshData();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to start loan";
-      showError(message, "Loan Error");
+      const message = error instanceof Error ? error.message : t("orders.loanStartError");
+      showError(message, t("orders.loanErrorTitle"));
     } finally {
       setSubmitting(false);
     }
@@ -390,11 +425,11 @@ export function Orders() {
     setSubmitting(true);
     try {
       await returnLoan(loanId);
-      showSuccess("Order marked as completed.", "Loan Returned");
+      showSuccess(t("orders.loanCompleteSuccess"), t("orders.loanCompleteSuccessTitle"));
       await refreshData();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to complete loan";
-      showError(message, "Completion Error");
+      const message = error instanceof Error ? error.message : t("orders.loanCompleteError");
+      showError(message, t("orders.loanCompleteErrorTitle"));
     } finally {
       setSubmitting(false);
     }
@@ -410,16 +445,13 @@ export function Orders() {
     setSubmitting(true);
     try {
       await recordPayment(paymentTarget.request._id);
-      showSuccess(
-        isEs ? "Depósito registrado como pagado." : "Deposit recorded as paid.",
-        isEs ? "Pago registrado" : "Payment Recorded",
-      );
+      showSuccess(t("orders.depositRecordedSuccess"), t("orders.paymentRecordedTitle"));
       setShowRecordPaymentModal(false);
       setPaymentTarget(null);
       await refreshData();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to record payment";
-      showError(message, isEs ? "Error de pago" : "Payment Error");
+      const message = error instanceof Error ? error.message : t("orders.paymentRecordError");
+      showError(message, t("orders.paymentErrorTitle"));
     } finally {
       setSubmitting(false);
     }
@@ -435,16 +467,13 @@ export function Orders() {
     setSubmitting(true);
     try {
       await recordRentalPayment(rentalPaymentTarget.request._id);
-      showSuccess(
-        isEs ? "Pago de renta registrado." : "Rental fee recorded as paid.",
-        isEs ? "Pago registrado" : "Payment Recorded",
-      );
+      showSuccess(t("orders.rentalRecordedSuccess"), t("orders.paymentRecordedTitle"));
       setShowRentalPaymentModal(false);
       setRentalPaymentTarget(null);
       await refreshData();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to record rental payment";
-      showError(message, isEs ? "Error de pago" : "Payment Error");
+      const message = error instanceof Error ? error.message : t("orders.rentalRecordError");
+      showError(message, t("orders.paymentErrorTitle"));
     } finally {
       setSubmitting(false);
     }
@@ -452,25 +481,17 @@ export function Orders() {
 
   const handleShipOrder = async (order: OrderView) => {
     if (!canReadyRequest) {
-      showError(
-        isEs
-          ? "Necesita el permiso requests:ready para despachar pedidos."
-          : "You need the requests:ready permission to ship orders.",
-        isEs ? "Permiso requerido" : "Permission Required",
-      );
+      showError(t("orders.shipPermissionRequired"), t("orders.permissionRequiredTitle"));
       return;
     }
     setSubmitting(true);
     try {
       await markRequestReady(order.request._id);
-      showSuccess(
-        isEs ? "Pedido marcado como listo para despacho." : "Order marked as ready for checkout.",
-        isEs ? "Pedido actualizado" : "Order Updated",
-      );
+      showSuccess(t("orders.shipSuccess"), t("orders.orderUpdated"));
       await refreshData();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to ship order";
-      showError(message, isEs ? "Error de despacho" : "Ship Error");
+      const message = error instanceof Error ? error.message : t("orders.shipError");
+      showError(message, t("orders.shipErrorTitle"));
     } finally {
       setSubmitting(false);
     }
@@ -478,12 +499,7 @@ export function Orders() {
 
   const handlePrepareOrder = (order: OrderView) => {
     if (!canReadyRequest) {
-      showError(
-        isEs
-          ? "Necesita el permiso requests:ready para preparar pedidos."
-          : "You need the requests:ready permission to prepare orders.",
-        isEs ? "Permiso requerido" : "Permission Required",
-      );
+      showError(t("orders.preparePermissionRequired"), t("orders.permissionRequiredTitle"));
       return;
     }
 
@@ -545,12 +561,8 @@ export function Orders() {
     <div className="page-container">
       <div data-help-id="orders-header">
         <PageHeader
-          title={isEs ? "Pedidos" : "Orders"}
-          subtitle={
-            isEs
-              ? "Cree, apruebe y rastree el ciclo de vida de los pedidos desde un solo lugar"
-              : "Create, approve, and track order lifecycle from one place"
-          }
+          title={t("orders.title")}
+          subtitle={t("orders.subtitle")}
           actions={
             canCreateRequest ? (
               <div data-help-id="orders-create-action">
@@ -560,7 +572,7 @@ export function Orders() {
                   variant="outline"
                   className="w-full sm:w-auto border-[#FFD700]/40 text-[#FFD700] bg-[#FFD700]/8 hover:bg-[#FFD700]/16"
                 >
-                  {isEs ? "Nuevo Pedido" : "New Order"}
+                  {t("orders.newOrder")}
                 </Button>
               </div>
             ) : undefined
@@ -596,6 +608,7 @@ export function Orders() {
           onViewDetails={handleViewDetails}
           onApprove={(requestId) => handleApproveOrder(requestId)}
           onReject={handleOpenRejectModal}
+          onCancel={handleOpenCancelModal}
           onReactivate={handleOpenReactivateModal}
           onRecordPayment={handleOpenRecordPaymentModal}
           onRecordRentalPayment={handleOpenRentalPaymentModal}
@@ -605,6 +618,7 @@ export function Orders() {
           onCompleteLoan={(loanId) => handleCompleteLoan(loanId)}
           canApproveRequest={canApproveRequest}
           canUpdateRequest={canUpdateRequest}
+          canCancelRequest={canCancelRequest}
           canReadyRequest={canReadyRequest}
           canCreateLoan={canCreateLoan}
           canReturnLoan={canReturnLoan}
@@ -646,44 +660,32 @@ export function Orders() {
           <div className="modal-content max-w-2xl overflow-hidden">
             <div className="modal-header">
               <div>
-                <h2 className="text-xl font-bold text-white">
-                  {isEs ? "Rechazar Pedido" : "Reject Order"}
-                </h2>
-                <p className="text-sm text-gray-400 mt-1">
-                  {isEs
-                    ? "Proporcione una razón clara que pueda compartirse con el cliente."
-                    : "Provide a clear reason that can be shared with the customer."}
-                </p>
+                <h2 className="text-xl font-bold text-white">{t("orders.rejectModal.title")}</h2>
+                <p className="text-sm text-gray-400 mt-1">{t("orders.rejectModal.subtitle")}</p>
               </div>
               <IconButton
                 icon={X}
                 onClick={() => setShowRejectModal(false)}
-                ariaLabel={isEs ? "Cerrar modal de rechazo" : "Close reject order modal"}
+                ariaLabel={t("orders.rejectModal.closeAriaLabel")}
                 intent="secondary"
               />
             </div>
 
             <div className="modal-body space-y-4">
               <p className="text-gray-300 text-sm">
-                {isEs
-                  ? "Proporcione una razón de rechazo para la solicitud"
-                  : "Provide a rejection reason for request"}{" "}
+                {t("orders.rejectModal.bodyPrefix")}{" "}
                 <span className="text-white font-semibold">
                   {rejectTarget.request.code ?? rejectTarget.request._id}
                 </span>
                 .
               </p>
               <div className="form-group">
-                <label className="form-label">{isEs ? "Razón *" : "Reason *"}</label>
+                <label className="form-label">{t("orders.rejectModal.reasonLabel")}</label>
                 <textarea
                   value={rejectReason}
                   onChange={(e) => setRejectReason(e.target.value)}
                   className="input min-h-[130px]"
-                  placeholder={
-                    isEs
-                      ? "Ejemplo: Los artículos requeridos no están disponibles en el inventario"
-                      : "Example: Required items are not available in stock"
-                  }
+                  placeholder={t("orders.rejectModal.reasonPlaceholder")}
                 />
               </div>
             </div>
@@ -694,10 +696,10 @@ export function Orders() {
                 onClick={() => setShowRejectModal(false)}
                 disabled={submitting}
               >
-                {isEs ? "Cancelar" : "Cancel"}
+                {t("common.cancel")}
               </Button>
               <Button variant="danger" onClick={handleRejectOrder} loading={submitting}>
-                {isEs ? "Rechazar Pedido" : "Reject Order"}
+                {t("orders.rejectModal.submitButton")}
               </Button>
             </div>
           </div>
@@ -714,43 +716,33 @@ export function Orders() {
             <div className="modal-header">
               <div>
                 <h2 className="text-xl font-bold text-white">
-                  {isEs ? "Reactivar Pedido" : "Reactivate Order"}
+                  {t("orders.reactivateModal.title")}
                 </h2>
-                <p className="text-sm text-gray-400 mt-1">
-                  {isEs
-                    ? "Explique por qué esta solicitud rechazada debería volver a pendiente."
-                    : "Explain why this rejected request should be moved back to pending."}
-                </p>
+                <p className="text-sm text-gray-400 mt-1">{t("orders.reactivateModal.subtitle")}</p>
               </div>
               <IconButton
                 icon={X}
                 onClick={() => setShowReactivateModal(false)}
-                ariaLabel={isEs ? "Cerrar modal de reactivación" : "Close reactivate order modal"}
+                ariaLabel={t("orders.reactivateModal.closeAriaLabel")}
                 intent="secondary"
               />
             </div>
 
             <div className="modal-body space-y-4">
               <p className="text-gray-300 text-sm">
-                {isEs
-                  ? "Proporcione una razón de reactivación para la solicitud"
-                  : "Provide a reactivation reason for request"}{" "}
+                {t("orders.reactivateModal.bodyPrefix")}{" "}
                 <span className="text-white font-semibold">
                   {reactivateTarget.request.code ?? reactivateTarget.request._id}
                 </span>
                 .
               </p>
               <div className="form-group">
-                <label className="form-label">{isEs ? "Razón *" : "Reason *"}</label>
+                <label className="form-label">{t("orders.reactivateModal.reasonLabel")}</label>
                 <textarea
                   value={reactivateReason}
                   onChange={(e) => setReactivateReason(e.target.value)}
                   className="input min-h-[130px]"
-                  placeholder={
-                    isEs
-                      ? "Ejemplo: El cliente confirmó fechas actualizadas y el stock ahora está disponible"
-                      : "Example: Customer confirmed updated dates and stock is now available"
-                  }
+                  placeholder={t("orders.reactivateModal.reasonPlaceholder")}
                 />
               </div>
             </div>
@@ -761,7 +753,7 @@ export function Orders() {
                 onClick={() => setShowReactivateModal(false)}
                 disabled={submitting}
               >
-                {isEs ? "Cancelar" : "Cancel"}
+                {t("common.cancel")}
               </Button>
               <Button
                 onClick={handleReactivateOrder}
@@ -769,12 +761,70 @@ export function Orders() {
                 className="bg-[#FFD700]/10 text-[#FFD700] border-[#FFD700]/45 hover:bg-[#FFD700]/20"
               >
                 {submitting
-                  ? isEs
-                    ? "Reactivando..."
-                    : "Reactivating..."
-                  : isEs
-                    ? "Reactivar Pedido"
-                    : "Reactivate Order"}
+                  ? t("orders.reactivateModal.submitting")
+                  : t("orders.reactivateModal.submitButton")}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Order Modal */}
+      {showCancelModal && cancelTarget && (
+        <div
+          className="modal-overlay"
+          onClick={(e) => e.target === e.currentTarget && setShowCancelModal(false)}
+        >
+          <div className="modal-content max-w-2xl overflow-hidden">
+            <div className="modal-header">
+              <div>
+                <h2 className="text-xl font-bold text-white">{t("orders.cancelModal.title")}</h2>
+                <p className="text-sm text-gray-400 mt-1">{t("orders.cancelModal.subtitle")}</p>
+              </div>
+              <IconButton
+                icon={X}
+                onClick={() => setShowCancelModal(false)}
+                ariaLabel={t("orders.cancelModal.closeAriaLabel")}
+                intent="secondary"
+              />
+            </div>
+
+            <div className="modal-body space-y-4">
+              <p className="text-gray-300 text-sm">
+                {t("orders.cancelModal.bodyPrefix")}{" "}
+                <span className="text-white font-semibold">
+                  {cancelTarget.request.code ?? cancelTarget.request._id}
+                </span>
+                .
+              </p>
+              <div className="form-group">
+                <label className="form-label">{t("orders.cancelModal.reasonLabel")}</label>
+                <textarea
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  className="input min-h-[130px]"
+                  placeholder={t("orders.cancelModal.reasonPlaceholder")}
+                />
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <Button
+                variant="secondary"
+                onClick={() => setShowCancelModal(false)}
+                disabled={submitting}
+              >
+                {t("orders.cancelModal.goBack")}
+              </Button>
+              <Button
+                variant="danger"
+                leftIcon={Ban}
+                onClick={handleCancelOrder}
+                loading={submitting}
+              >
+                {submitting
+                  ? t("orders.cancelModal.submitting")
+                  : t("orders.cancelModal.submitButton")}
               </Button>
             </div>
           </div>
@@ -804,19 +854,19 @@ export function Orders() {
         >
           <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-6 w-full max-w-md shadow-2xl">
             <h2 className="text-xl font-semibold text-white mb-2">
-              {isEs ? "Registrar Pago del Depósito" : "Record Deposit Payment"}
+              {t("orders.depositModal.title")}
             </h2>
             <p className="text-zinc-400 text-sm mb-4">
-              {isEs ? "¿Marcar el depósito del pedido" : "Mark the deposit for order"}{" "}
+              {t("orders.depositModal.bodyPrefix")}{" "}
               <span className="text-white font-medium">
                 {paymentTarget.request.code ??
                   `#${paymentTarget.request._id.slice(-6).toUpperCase()}`}
               </span>{" "}
-              {isEs ? "como pagado?" : "as paid?"}
+              {t("orders.depositModal.bodySuffix")}
             </p>
             {paymentTarget.request.depositAmount != null && (
               <p className="text-orange-300 text-sm mb-6">
-                {isEs ? "Monto del depósito:" : "Deposit amount:"}{" "}
+                {t("orders.depositModal.depositAmount")}{" "}
                 <span className="font-semibold">
                   ${paymentTarget.request.depositAmount.toFixed(2)}
                 </span>
@@ -831,7 +881,7 @@ export function Orders() {
                 }}
                 disabled={submitting}
               >
-                {isEs ? "Cancelar" : "Cancel"}
+                {t("common.cancel")}
               </Button>
               <Button
                 leftIcon={CreditCard}
@@ -840,12 +890,8 @@ export function Orders() {
                 className="bg-orange-500 hover:bg-orange-600 text-white border-transparent"
               >
                 {submitting
-                  ? isEs
-                    ? "Registrando..."
-                    : "Recording..."
-                  : isEs
-                    ? "Registrar Pago"
-                    : "Record Payment"}
+                  ? t("orders.depositModal.submitting")
+                  : t("orders.depositModal.submitButton")}
               </Button>
             </div>
           </div>
@@ -860,22 +906,20 @@ export function Orders() {
         >
           <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-6 w-full max-w-md shadow-2xl">
             <h2 className="text-xl font-semibold text-white mb-2">
-              {isEs ? "Registrar Pago de Renta" : "Record Rental Fee Payment"}
+              {t("orders.rentalModal.title")}
             </h2>
             <p className="text-zinc-400 text-sm mb-4">
-              {isEs
-                ? "¿Registrar el pago de la tarifa de renta del pedido"
-                : "Record the rental fee payment for order"}{" "}
+              {t("orders.rentalModal.bodyPrefix")}{" "}
               <span className="text-white font-medium">
                 {rentalPaymentTarget.request.code ??
                   `#${rentalPaymentTarget.request._id.slice(-6).toUpperCase()}`}
-              </span>
-              {isEs ? " como pagado?" : " as paid?"}
+              </span>{" "}
+              {t("orders.rentalModal.bodySuffix")}
             </p>
             {rentalPaymentTarget.request.totalAmount != null &&
               rentalPaymentTarget.request.totalAmount > 0 && (
                 <p className="text-purple-300 text-sm mb-6">
-                  {isEs ? "Monto total de renta:" : "Total rental amount:"}{" "}
+                  {t("orders.rentalModal.totalAmount")}{" "}
                   <span className="font-semibold">
                     ${rentalPaymentTarget.request.totalAmount.toFixed(2)}
                   </span>
@@ -890,7 +934,7 @@ export function Orders() {
                 }}
                 disabled={submitting}
               >
-                {isEs ? "Cancelar" : "Cancel"}
+                {t("common.cancel")}
               </Button>
               <Button
                 leftIcon={CreditCard}
@@ -899,12 +943,8 @@ export function Orders() {
                 className="bg-purple-500 hover:bg-purple-600 text-white border-transparent"
               >
                 {submitting
-                  ? isEs
-                    ? "Registrando..."
-                    : "Recording..."
-                  : isEs
-                    ? "Registrar Pago"
-                    : "Record Payment"}
+                  ? t("orders.rentalModal.submitting")
+                  : t("orders.rentalModal.submitButton")}
               </Button>
             </div>
           </div>

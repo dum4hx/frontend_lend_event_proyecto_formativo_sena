@@ -8,6 +8,7 @@ import {
   CircleCheck,
   Eye,
   Banknote,
+  Ban,
 } from "lucide-react";
 import { Button, IconButton, EntityLink, type ColumnDef } from "../../../../components/ui";
 import { DataTable } from "../../../../components/ui";
@@ -28,6 +29,7 @@ interface OrdersTableProps {
   onViewDetails: (order: OrderView) => void;
   onApprove: (requestId: string) => void;
   onReject: (order: OrderView) => void;
+  onCancel: (order: OrderView) => void;
   onReactivate: (order: OrderView) => void;
   onRecordPayment: (order: OrderView) => void;
   onRecordRentalPayment: (order: OrderView) => void;
@@ -37,6 +39,7 @@ interface OrdersTableProps {
   onCompleteLoan: (loanId: string) => void;
   canApproveRequest: boolean;
   canUpdateRequest: boolean;
+  canCancelRequest: boolean;
   canReadyRequest: boolean;
   canCreateLoan: boolean;
   canReturnLoan: boolean;
@@ -56,6 +59,7 @@ export function OrdersTable({
   onViewDetails,
   onApprove,
   onReject,
+  onCancel,
   onReactivate,
   onRecordPayment,
   onRecordRentalPayment,
@@ -65,6 +69,7 @@ export function OrdersTable({
   onCompleteLoan,
   canApproveRequest,
   canUpdateRequest,
+  canCancelRequest,
   canReadyRequest,
   canCreateLoan,
   canReturnLoan,
@@ -125,6 +130,22 @@ export function OrdersTable({
           {isEs ? "Reactivar" : "Reactivate"}
         </Button>
       )}
+
+      {["pending", "approved", "deposit_pending", "assigned", "ready"].includes(
+        order.request.status,
+      ) &&
+        canCancelRequest && (
+          <Button
+            size="sm"
+            leftIcon={Ban}
+            onClick={guard("requests:cancel", () => onCancel(order))}
+            disabled={submitting}
+            variant="outline"
+            className="h-8 rounded-md border-red-500/40 bg-red-500/8 px-2.5 text-[11px] font-semibold text-red-300 hover:bg-red-500/15"
+          >
+            {isEs ? "Cancelar" : "Cancel"}
+          </Button>
+        )}
 
       {canRecordPayment &&
         order.request.depositAmount != null &&

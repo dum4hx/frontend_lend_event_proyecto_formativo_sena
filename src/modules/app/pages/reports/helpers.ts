@@ -112,10 +112,23 @@ export const statusBadgeClass = (val: string): string => {
     case "blacklisted":
       return "bg-purple-900/60 text-purple-300";
     case "maintenance":
+    case "in_transit":
       return "bg-blue-900/60 text-blue-300";
+    case "completed":
+    case "received":
+    case "good":
+      return "bg-emerald-900/60 text-emerald-300";
     default:
       return "bg-zinc-700 text-zinc-300";
   }
 };
 
-export const STATUS_COLUMNS = new Set(["Status", "status"]);
+export const STATUS_COLUMNS = new Set([
+  "Status",
+  "status",
+  "Estado",
+  "Condition Before",
+  "Condition After",
+  "Condición Antes",
+  "Condición Después",
+]);

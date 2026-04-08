@@ -87,6 +87,13 @@ export async function markRequestReady(
   return post<{ request: LoanRequest }>(`/requests/${requestId}/ready`);
 }
 
+/** Cancel a loan request (all states except shipped, completed, cancelled, rejected). */
+export async function cancelRequest(
+  requestId: string,
+): Promise<ApiSuccessResponse<{ request: LoanRequest }>> {
+  return post<{ request: LoanRequest }>(`/requests/${requestId}/cancel`);
+}
+
 /** Update a loan request. */
 export async function updateRequest(
   requestId: string,
