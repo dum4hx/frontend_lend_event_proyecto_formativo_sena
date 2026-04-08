@@ -253,5 +253,26 @@
 
   "reports.export.exporting": "Exporting...",
   "reports.export.exported": "Exported {count} records",
-  "reports.export.moreRecords": "Showing {shown} of {total} records. Exports will include all {total} records."
+  "reports.export.moreRecords": "Showing {shown} of {total} records. Exports will include all {total} records.",
+
+  "reports.summary.loansByStatus": "Loans by Status",
+  "reports.summary.topCustomers": "Top Customers",
+  "reports.summary.topMaterials": "Top Materials",
+  "reports.summary.revenueByType": "Revenue by Invoice Type",
+  "reports.summary.topCustomersByRevenue": "Top Customers by Revenue",
+  "reports.summary.topMaterialsByStock": "Top Material Types by Stock",
+  "reports.summary.topLocationsByStock": "Top Locations by Stock",
+  "reports.summary.costByEntryReason": "Cost by Entry Reason",
+  "reports.summary.mostDamagedMaterials": "Most Damaged Materials",
+  "reports.summary.resolutionBreakdown": "Resolution Breakdown",
+  "reports.summary.transfersByStatus": "Transfers by Status",
+  "reports.summary.topRoutes": "Top Routes",
+  "reports.summary.conditionBreakdown": "Received Condition Breakdown",
+  "reports.summary.periodComparison": "Period Comparison",
+  "reports.summary.previousPeriod": "Previous Period",
+  "reports.summary.currentPeriod": "Current Period",
+  "reports.summary.change": "Change",
+  "reports.kpi.maintenanceRate": "Maintenance Rate",
+  "reports.kpi.averageLoanValue": "Avg Loan Value",
+  "reports.kpi.costVariancePercent": "Cost Variance (%)"
 }

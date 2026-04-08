@@ -26,12 +26,10 @@ export const exportReportKeys = {
   all: ["reportExports"] as const,
   loanActivity: (params: ExportLoanActivityParams) =>
     [...exportReportKeys.all, "loanActivity", params] as const,
-  sales: (params: ExportSalesParams) =>
-    [...exportReportKeys.all, "sales", params] as const,
+  sales: (params: ExportSalesParams) => [...exportReportKeys.all, "sales", params] as const,
   inventory: (params: ExportInventoryParams) =>
     [...exportReportKeys.all, "inventory", params] as const,
-  damages: (params: ExportDamagesParams) =>
-    [...exportReportKeys.all, "damages", params] as const,
+  damages: (params: ExportDamagesParams) => [...exportReportKeys.all, "damages", params] as const,
   transfers: (params: ExportTransfersParams) =>
     [...exportReportKeys.all, "transfers", params] as const,
 };
@@ -48,10 +46,7 @@ export function useExportLoanActivity(
   });
 }
 
-export function useExportSales(
-  params: ExportSalesParams = {},
-  options?: ExportQueryOptions,
-) {
+export function useExportSales(params: ExportSalesParams = {}, options?: ExportQueryOptions) {
   return useQuery({
     queryKey: exportReportKeys.sales(params),
     queryFn: () => getExportSales(params),
@@ -72,10 +67,7 @@ export function useExportInventory(
   });
 }
 
-export function useExportDamages(
-  params: ExportDamagesParams = {},
-  options?: ExportQueryOptions,
-) {
+export function useExportDamages(params: ExportDamagesParams = {}, options?: ExportQueryOptions) {
   return useQuery({
     queryKey: exportReportKeys.damages(params),
     queryFn: () => getExportDamages(params),

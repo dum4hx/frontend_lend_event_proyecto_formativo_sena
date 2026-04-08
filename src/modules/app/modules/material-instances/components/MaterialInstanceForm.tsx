@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useToast } from "../../../../../contexts/ToastContext";
+import { useLanguage } from "../../../../../contexts/useLanguage";
 import { useMaterialTypes } from "../../material-types/hooks";
 import {
   getLocations,
@@ -22,6 +23,7 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
   isEditing = false,
 }) => {
   const { materialTypes } = useMaterialTypes();
+  const { t } = useLanguage();
   const [useBarcodeAsSerial, setUseBarcodeAsSerial] = useState(false);
   const [formData, setFormData] = useState<CreateMaterialInstancePayload>({
     modelId: "",
@@ -53,7 +55,7 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
       setLocations(response.data.items || []);
     } catch (error) {
       console.error("Error fetching locations:", error);
-      showToast("error", "Failed to load locations");
+      showToast("error", t("materialInstances.form.toast.loadLocationsError"));
     }
   }, [showToast]);
 
@@ -96,21 +98,21 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
 
   const validate = useCallback((data: CreateMaterialInstancePayload) => {
     const newErrors: Record<string, string> = {};
-    if (!data.modelId) newErrors.modelId = "Material type is required";
+    if (!data.modelId) newErrors.modelId = t("materialInstances.form.validation.modelRequired");
     if (useBarcodeAsSerial && !data.barcode?.trim()) {
-      newErrors.barcode = "Barcode is required when using it as serial number";
+      newErrors.barcode = t("materialInstances.form.validation.barcodeRequiredForSerial");
     }
     if (!data.serialNumber.trim()) {
       newErrors.serialNumber = useBarcodeAsSerial
-        ? "Serial number is auto-generated from barcode; please provide barcode"
-        : "Serial number is required";
+        ? t("materialInstances.form.validation.serialRequiredFromBarcode")
+        : t("materialInstances.form.validation.serialRequired");
     } else if (data.serialNumber.length > 100) {
-      newErrors.serialNumber = "Serial number must be under 100 characters";
+      newErrors.serialNumber = t("materialInstances.form.validation.serialTooLong");
     }
     if (data.barcode && data.barcode.length > 120) {
-      newErrors.barcode = "Barcode must be under 120 characters";
+      newErrors.barcode = t("materialInstances.form.validation.barcodeTooLong");
     }
-    if (!data.locationId) newErrors.locationId = "Location is required";
+    if (!data.locationId) newErrors.locationId = t("materialInstances.form.validation.locationRequired");
     return newErrors;
   }, [useBarcodeAsSerial]);
 
@@ -151,7 +153,7 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
     });
 
     if (Object.keys(validationErrors).length > 0) {
-      showToast("error", "Please fix the errors before submitting");
+      showToast("error", t("materialInstances.form.toast.validationErrors"));
       return;
     }
 
@@ -159,7 +161,7 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
       setIsSubmitting(true);
       await onSubmit(formData);
     } catch (error: unknown) {
-      showToast("error", error instanceof Error ? error.message : "Error saving material instance");
+      showToast("error", error instanceof Error ? error.message : t("materialInstances.form.toast.saveError"));
     } finally {
       setIsSubmitting(false);
     }
@@ -172,7 +174,7 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
       data-help-id={isEditing ? "material-instances-form-edit" : "material-instances-form-create"}
     >
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">Material Type *</label>
+        <label className="block text-sm font-medium text-gray-300 mb-2">{t("materialInstances.form.materialTypeLabel")} *</label>
         <select
           data-help-id="material-instances-form-model"
           value={formData.modelId}
@@ -184,7 +186,7 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
           required
           disabled={isEditing}
         >
-          <option value="">Select a material type</option>
+          <option value="">{t("materialInstances.form.selectMaterialType")}</option>
           {materialTypes.map((type) => (
             <option key={type._id} value={type._id}>
               {type.name}
@@ -196,14 +198,14 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
         )}
         {isEditing && (
           <p className="text-xs text-gray-500 mt-1">
-            Material type cannot be changed after creation
+            {t("materialInstances.form.materialTypeCannotChange")}
           </p>
         )}
       </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-300 mb-2">
-          Serial Number / Identifier *
+          {t("materialInstances.form.serialLabel")} *
         </label>
         <input
           type="text"
@@ -214,7 +216,7 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
           className={`w-full px-4 py-3 bg-[#1a1a1a] border ${
             touched.serialNumber && errors.serialNumber ? "border-red-500" : "border-[#333]"
           } rounded-lg text-white focus:outline-none focus:border-[#FFD700] disabled:opacity-60 disabled:cursor-not-allowed`}
-          placeholder="e.g., SN-001, CHAIR-A-01..."
+          placeholder={t("materialInstances.form.serialPlaceholder")}
           required
           maxLength={100}
           disabled={useBarcodeAsSerial}
@@ -224,14 +226,14 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
         )}
         <p className="text-xs text-gray-500 mt-1">
           {useBarcodeAsSerial
-            ? "Automatically copied from Barcode / Scan Code"
-            : "Unique identifier for this specific item (max 100 characters)"}
+            ? t("materialInstances.form.serialHintAuto")
+            : t("materialInstances.form.serialHint")}
         </p>
       </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-300 mb-2">
-          Barcode / Scan Code
+          {t("materialInstances.form.barcodeLabel")}
         </label>
         <input
           type="text"
@@ -242,23 +244,23 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
           className={`w-full px-4 py-3 bg-[#1a1a1a] border ${
             touched.barcode && errors.barcode ? "border-red-500" : "border-[#333]"
           } rounded-lg text-white focus:outline-none focus:border-[#FFD700]`}
-          placeholder="e.g., 7701234567890"
+          placeholder={t("materialInstances.form.barcodePlaceholder")}
           maxLength={120}
         />
         {touched.barcode && errors.barcode && (
           <p className="text-xs text-red-500 mt-1">{errors.barcode}</p>
         )}
         <p className="text-xs text-gray-500 mt-1">
-          Recommended for scanner workflows. Must be unique when backend validation is enabled.
+          {t("materialInstances.form.barcodeHint")}
         </p>
       </div>
 
       <div className="rounded-lg border border-[#333] bg-[#151515] px-4 py-3" data-help-id="material-instances-form-barcode-toggle">
         <label className="flex items-center justify-between gap-4 cursor-pointer">
           <div>
-            <p className="text-sm font-medium text-gray-200">Use Barcode as Serial Number</p>
+            <p className="text-sm font-medium text-gray-200">{t("materialInstances.form.barcodeAsSerialLabel")}</p>
             <p className="text-xs text-gray-500 mt-0.5">
-              When enabled, Serial Number is auto-filled from Barcode and becomes read-only.
+              {t("materialInstances.form.barcodeAsSerialHint")}
             </p>
           </div>
           <input
@@ -271,7 +273,7 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">Location *</label>
+        <label className="block text-sm font-medium text-gray-300 mb-2">{t("materialInstances.form.locationLabel")} *</label>
         <select
           data-help-id="material-instances-form-location"
           value={formData.locationId}
@@ -282,7 +284,7 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
           } rounded-lg text-white focus:outline-none focus:border-[#FFD700]`}
           required
         >
-          <option value="">Select a location</option>
+          <option value="">{t("materialInstances.form.selectLocation")}</option>
           {locations.map((loc) => (
             <option key={loc._id} value={loc._id}>
               {loc.name} — {formatLocationAddress(loc)}
@@ -298,11 +300,11 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
         <Button type="submit" loading={isSubmitting} className="flex-1" data-help-id="material-instances-form-submit">
           {isSubmitting
             ? isEditing
-              ? "Updating..."
-              : "Creating..."
+              ? t("materialInstances.form.submittingUpdate")
+              : t("materialInstances.form.submittingCreate")
             : isEditing
-              ? "Update Instance"
-              : "Create Instance"}
+              ? t("materialInstances.form.submitUpdate")
+              : t("materialInstances.form.submitCreate")}
         </Button>
         <Button
           type="button"
@@ -311,7 +313,7 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
           disabled={isSubmitting}
           data-help-id="material-instances-form-cancel"
         >
-          Cancel
+          {t("common.cancel")}
         </Button>
       </div>
     </form>

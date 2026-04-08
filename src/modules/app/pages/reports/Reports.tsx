@@ -42,9 +42,17 @@ import { useLanguage } from "../../../../contexts/useLanguage";
 import { usePermissions } from "../../../../contexts/usePermissions";
 import Unauthorized from "../../../../pages/Unauthorized";
 import { exportTableToPDF, exportTableToXLSX } from "../../../../utils/tableExport";
-import { PAGE_SIZE, fmtId, exportToCSV, fetchAllPages, getReferenceId } from "./helpers";
+import { PAGE_SIZE, fmtId, exportToCSVWithSummary, fetchAllPages, getReferenceId } from "./helpers";
+import {
+  buildLoanSummaryEntries,
+  buildSalesSummaryEntries,
+  buildInventorySummaryEntries,
+  buildDamagesSummaryEntries,
+  buildTransfersSummaryEntries,
+} from "./summaryBuilders";
 import { ReportsFilters } from "./ReportsFilters";
 import { ReportsTable } from "./ReportsTable";
+import type { SummaryEntry } from "./helpers";
 import type { StatCardProps } from "../../../../components/ui/StatCard";
 import type {
   ReportModule,
@@ -1058,11 +1066,14 @@ export default function Reports() {
   };
 
   /**
-   * Fetches all rows for the current API-backed tab.
-   * For client-only tabs and inventory (non-paginated), returns current rows.
+   * Fetches all rows and summary for the current API-backed tab.
+   * For client-only tabs and inventory (non-paginated), returns current rows with no summary.
    */
-  const getAllExportRows = useCallback(async (): Promise<ReportRow[]> => {
-    if (!API_TABS.has(activeModule)) return rows;
+  const getExportPayload = useCallback(async (): Promise<{
+    rows: ReportRow[];
+    summaryEntries: SummaryEntry[];
+  }> => {
+    if (!API_TABS.has(activeModule)) return { rows, summaryEntries: [] };
 
     const fmtDate = (iso: string | undefined): string => {
       if (!iso) return "—";
@@ -1077,7 +1088,7 @@ export default function Reports() {
 
     switch (activeModule) {
       case "loans": {
-        const allRows = await fetchAllPages(
+        const { rows: allRows, summary } = await fetchAllPages(
           getExportLoanActivity,
           {
             ...baseParams,
@@ -1086,8 +1097,9 @@ export default function Reports() {
             locationId: filters.loans.locationId || undefined,
           },
           (d) => d.rows,
+          (d) => d.summary,
         );
-        return allRows.map((l) => ({
+        const exportRows = allRows.map((l) => ({
           id: l.loanId ?? l.code,
           columns: {
             [t("reports.col.code")]: l.code,
@@ -1103,6 +1115,10 @@ export default function Reports() {
             [t("reports.col.materialCount")]: l.materialCount,
           },
         }));
+        const summaryEntries = summary
+          ? buildLoanSummaryEntries(summary, t, formatCurrency)
+          : [];
+        return { rows: exportRows, summaryEntries };
       }
 
       case "financial": {
@@ -1117,15 +1133,16 @@ export default function Reports() {
         };
 
         if (isInvoiceView) {
-          const allInvoices = await fetchAllPages(
+          const { rows: allInvoices, summary } = await fetchAllPages(
             getExportSales,
             salesParams,
             (d) =>
               filters.financial.type
                 ? d.invoiceRows.filter((inv) => inv.type === filters.financial.type)
                 : d.invoiceRows,
+            (d) => d.summary,
           );
-          return allInvoices.map((inv) => ({
+          const exportRows = allInvoices.map((inv) => ({
             id: inv.invoiceId ?? inv.invoiceNumber,
             columns: {
               [t("reports.col.invoiceNumber")]: inv.invoiceNumber,
@@ -1139,14 +1156,19 @@ export default function Reports() {
               [t("reports.col.dueDate")]: fmtDate(inv.dueDate),
             },
           }));
+          const summaryEntries = summary
+            ? buildSalesSummaryEntries(summary, t, formatCurrency)
+            : [];
+          return { rows: exportRows, summaryEntries };
         }
 
-        const allLoans = await fetchAllPages(
+        const { rows: allLoans, summary } = await fetchAllPages(
           getExportSales,
           salesParams,
           (d) => d.loanRows,
+          (d) => d.summary,
         );
-        return allLoans.map((l) => ({
+        const exportRows = allLoans.map((l) => ({
           id: l.loanId ?? l.code,
           columns: {
             [t("reports.col.code")]: l.code,
@@ -1160,15 +1182,30 @@ export default function Reports() {
             [t("reports.col.materialCount")]: l.materialCount,
           },
         }));
+        const summaryEntries = summary
+          ? buildSalesSummaryEntries(summary, t, formatCurrency)
+          : [];
+        return { rows: exportRows, summaryEntries };
       }
 
       case "inventory": {
-        // Inventory is not paginated — return current data
-        return rows;
+        // Inventory is not paginated — fetch once to get both data rows and summary
+        const inventoryParams = {
+          locationId: filters.inventory.locationId || undefined,
+          categoryId: filters.inventory.categoryId || undefined,
+          status: filters.inventory.status || undefined,
+          search: filters.inventory.search || undefined,
+        };
+        const resp = await getExportInventory(inventoryParams);
+        const summary = resp.data.summary;
+        const summaryEntries = summary
+          ? buildInventorySummaryEntries(summary, t, formatCurrency)
+          : [];
+        return { rows, summaryEntries };
       }
 
       case "damages": {
-        const allBatches = await fetchAllPages(
+        const { rows: allBatches, summary } = await fetchAllPages(
           getExportDamages,
           {
             ...baseParams,
@@ -1177,8 +1214,9 @@ export default function Reports() {
             entryReason: filters.damages.entryReason || undefined,
           },
           (d) => d.batches,
+          (d) => d.summary,
         );
-        return allBatches.map((b) => ({
+        const exportRows = allBatches.map((b) => ({
           id: b.batchId ?? b.batchNumber,
           columns: {
             [t("reports.col.batchNumber")]: b.batchNumber,
@@ -1192,10 +1230,14 @@ export default function Reports() {
             [t("reports.col.startDate")]: fmtDate(b.startedAt),
           },
         }));
+        const summaryEntries = summary
+          ? buildDamagesSummaryEntries(summary, t, formatCurrency)
+          : [];
+        return { rows: exportRows, summaryEntries };
       }
 
       case "transfers": {
-        const allTransfers = await fetchAllPages(
+        const { rows: allTransfers, summary } = await fetchAllPages(
           getExportTransfers,
           {
             ...baseParams,
@@ -1204,8 +1246,9 @@ export default function Reports() {
             toLocationId: filters.transfers.toLocationId || undefined,
           },
           (d) => d.rows,
+          (d) => d.summary,
         );
-        return allTransfers.map((tr) => ({
+        const exportRows = allTransfers.map((tr) => ({
           id: tr.transferId ?? `${tr.fromLocation}-${tr.sentAt}`,
           columns: {
             [t("reports.col.from")]: tr.fromLocation,
@@ -1219,19 +1262,28 @@ export default function Reports() {
             [t("reports.col.transitDays")]: tr.transitDays,
           },
         }));
+        const summaryEntries = summary
+          ? buildTransfersSummaryEntries(summary, t, formatCurrency)
+          : [];
+        return { rows: exportRows, summaryEntries };
       }
 
       default:
-        return rows;
+        return { rows, summaryEntries: [] };
     }
   }, [activeModule, rows, dateRange, filters, t, formatDate, formatCurrency]);
 
   const handleExport = async () => {
     setExporting(true);
     try {
-      const exportRows = await getAllExportRows();
+      const { rows: exportRows, summaryEntries } = await getExportPayload();
       const filename = `report_${activeModule}_${new Date().toISOString().slice(0, 10)}.csv`;
-      exportToCSV(headers, exportRows, filename);
+      exportToCSVWithSummary(headers, exportRows, filename, summaryEntries, {
+        summary: isEs ? "RESUMEN" : "SUMMARY",
+        data: isEs ? "DATOS" : "DATA",
+        metric: isEs ? "Métrica" : "Metric",
+        value: isEs ? "Valor" : "Value",
+      });
     } finally {
       setExporting(false);
     }
@@ -1240,11 +1292,11 @@ export default function Reports() {
   const handleExportPDF = async () => {
     setExporting(true);
     try {
-      const exportRows = await getAllExportRows();
+      const { rows: exportRows, summaryEntries } = await getExportPayload();
       const date = new Date().toISOString().slice(0, 10);
       const exportData = { headers, rows: exportRows.map((r) => r.columns) };
       const title = `${moduleConfig[activeModule].label} Report`;
-      exportTableToPDF(exportData, `report_${activeModule}_${date}.pdf`, title);
+      exportTableToPDF(exportData, `report_${activeModule}_${date}.pdf`, title, summaryEntries);
     } finally {
       setExporting(false);
     }
@@ -1253,10 +1305,10 @@ export default function Reports() {
   const handleExportXLSX = async () => {
     setExporting(true);
     try {
-      const exportRows = await getAllExportRows();
+      const { rows: exportRows, summaryEntries } = await getExportPayload();
       const date = new Date().toISOString().slice(0, 10);
       const exportData = { headers, rows: exportRows.map((r) => r.columns) };
-      exportTableToXLSX(exportData, `report_${activeModule}_${date}.xlsx`);
+      exportTableToXLSX(exportData, `report_${activeModule}_${date}.xlsx`, summaryEntries);
     } finally {
       setExporting(false);
     }

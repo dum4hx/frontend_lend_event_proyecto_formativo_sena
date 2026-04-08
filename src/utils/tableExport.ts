@@ -15,11 +15,33 @@ export interface TableExportData {
   rows: ReadonlyArray<Record<string, string | number>>;
 }
 
+export interface SummaryExportEntry {
+  label: string;
+  value: string | number;
+}
+
 // ─── XLSX Export ───────────────────────────────────────────────────────────
 
-export function exportTableToXLSX(data: TableExportData, filename: string): void {
+export function exportTableToXLSX(
+  data: TableExportData,
+  filename: string,
+  summaryEntries?: ReadonlyArray<SummaryExportEntry>,
+): void {
   const { headers, rows } = data;
+  const wb = XLSX.utils.book_new();
 
+  // Summary sheet (when entries provided)
+  if (summaryEntries && summaryEntries.length > 0) {
+    const summaryRows = summaryEntries.map((e) => ({ Metric: e.label, Value: e.value }));
+    const summaryWs = XLSX.utils.json_to_sheet(summaryRows, { header: ["Metric", "Value"] });
+    summaryWs["!cols"] = [
+      { wch: Math.min(Math.max(6, ...summaryEntries.map((e) => String(e.label).length)) + 2, 60) },
+      { wch: Math.min(Math.max(5, ...summaryEntries.map((e) => String(e.value).length)) + 2, 40) },
+    ];
+    XLSX.utils.book_append_sheet(wb, summaryWs, "Summary");
+  }
+
+  // Data sheet
   const sheetRows = rows.map((row) =>
     headers.reduce<Record<string, string | number>>((acc, h) => {
       acc[h] = row[h] ?? "";
@@ -33,7 +55,6 @@ export function exportTableToXLSX(data: TableExportData, filename: string): void
     wch: Math.min(Math.max(h.length, ...rows.map((r) => String(r[h] ?? "").length)) + 2, 50),
   }));
 
-  const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Data");
   XLSX.writeFile(wb, filename);
 }
@@ -52,7 +73,12 @@ function truncate(str: string, maxLen: number): string {
   return str.slice(0, maxLen - 1) + "...";
 }
 
-export function exportTableToPDF(data: TableExportData, filename: string, title?: string): void {
+export function exportTableToPDF(
+  data: TableExportData,
+  filename: string,
+  title?: string,
+  summaryEntries?: ReadonlyArray<SummaryExportEntry>,
+): void {
   const { headers, rows } = data;
 
   const PAGE_W = 842;
@@ -64,7 +90,13 @@ export function exportTableToPDF(data: TableExportData, filename: string, title?
   const FONT_SIZE = 9;
   const HEADER_FONT = 10;
 
-  const usableH = PAGE_H - MARGIN * 2 - HEADER_H - FOOTER_H;
+  // Calculate how much vertical space the summary block requires
+  const hasSummary = summaryEntries && summaryEntries.length > 0;
+  const SUMMARY_COLS = 2;
+  const summaryRows = hasSummary ? Math.ceil(summaryEntries.length / SUMMARY_COLS) : 0;
+  const SUMMARY_H = hasSummary ? summaryRows * ROW_H + ROW_H + 8 : 0; // +ROW_H for header + 8 for separator
+
+  const usableH = PAGE_H - MARGIN * 2 - HEADER_H - FOOTER_H - SUMMARY_H;
   const rowsPerPage = Math.floor(usableH / ROW_H) - 1;
 
   const colW = Math.min((PAGE_W - MARGIN * 2) / Math.max(headers.length, 1), 200);
@@ -86,8 +118,28 @@ export function exportTableToPDF(data: TableExportData, filename: string, title?
     content += `BT /F1 12 Tf ${MARGIN} ${PAGE_H - MARGIN - 14} Td (${esc(displayTitle)}) Tj ET\n`;
     content += `BT /F1 8 Tf ${MARGIN} ${PAGE_H - MARGIN - 28} Td (Date: ${esc(timestamp)}  |  Records: ${rows.length}) Tj ET\n`;
 
+    // Summary block (first page only)
+    let summaryOffset = 0;
+    if (pageIdx === 0 && hasSummary) {
+      const summaryTop = PAGE_H - MARGIN - HEADER_H;
+      const halfW = (PAGE_W - MARGIN * 2) / SUMMARY_COLS;
+      content += `BT /F1 ${HEADER_FONT} Tf ${MARGIN} ${summaryTop} Td (Summary) Tj ET\n`;
+      for (let i = 0; i < summaryEntries.length; i++) {
+        const col = i % SUMMARY_COLS;
+        const row = Math.floor(i / SUMMARY_COLS);
+        const x = MARGIN + col * halfW;
+        const y = summaryTop - (row + 1) * ROW_H;
+        const entry = summaryEntries[i];
+        content += `BT /F1 ${FONT_SIZE} Tf ${x + 2} ${y} Td (${esc(truncate(entry.label, 30))}: ${esc(truncate(String(entry.value), 20))}) Tj ET\n`;
+      }
+      // Separator line
+      const sepY = summaryTop - (summaryRows + 1) * ROW_H;
+      content += `${MARGIN} ${sepY} m ${PAGE_W - MARGIN} ${sepY} l S\n`;
+      summaryOffset = SUMMARY_H;
+    }
+
     // Column headers
-    const tableTop = PAGE_H - MARGIN - HEADER_H;
+    const tableTop = PAGE_H - MARGIN - HEADER_H - summaryOffset;
     for (let c = 0; c < headers.length; c++) {
       const x = MARGIN + c * colW;
       content += `BT /F1 ${HEADER_FONT} Tf ${x + 2} ${tableTop - ROW_H + 4} Td (${esc(truncate(headers[c], 24))}) Tj ET\n`;

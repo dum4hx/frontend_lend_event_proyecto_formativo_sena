@@ -247,8 +247,12 @@ export const CategoryCatalog: React.FC = () => {
               data={filteredCategories as unknown as Record<string, unknown>[]}
               filename="material-categories"
               onImport={FEATURE_FLAGS.ENABLE_DATA_IMPORT ? handleImportCategories : undefined}
-              importDisabled={FEATURE_FLAGS.ENABLE_DATA_IMPORT ? !isAllowed("materials:create") : undefined}
-              onImportDenied={FEATURE_FLAGS.ENABLE_DATA_IMPORT ? guard("materials:create", () => {}) : undefined}
+              importDisabled={
+                FEATURE_FLAGS.ENABLE_DATA_IMPORT ? !isAllowed("materials:create") : undefined
+              }
+              onImportDenied={
+                FEATURE_FLAGS.ENABLE_DATA_IMPORT ? guard("materials:create", () => {}) : undefined
+              }
               showLabels={true}
             />
             <button

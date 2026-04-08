@@ -173,7 +173,11 @@ export const MaterialTypeCatalog: React.FC = () => {
 
         const catId = resolvedCategoryId;
 
-        const rawCode = (item.code as string | undefined)?.trim().toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10);
+        const rawCode = (item.code as string | undefined)
+          ?.trim()
+          .toUpperCase()
+          .replace(/[^A-Z0-9]/g, "")
+          .slice(0, 10);
         if (!rawCode) {
           rejected.push({
             name: (item.name as string) ?? "(unnamed)",
@@ -325,8 +329,12 @@ export const MaterialTypeCatalog: React.FC = () => {
                 data={filteredMaterialTypes as unknown as Record<string, unknown>[]}
                 filename="material-types"
                 onImport={FEATURE_FLAGS.ENABLE_DATA_IMPORT ? handleImportMaterialTypes : undefined}
-                importDisabled={FEATURE_FLAGS.ENABLE_DATA_IMPORT ? !isAllowed("materials:create") : undefined}
-                onImportDenied={FEATURE_FLAGS.ENABLE_DATA_IMPORT ? guard("materials:create", () => {}) : undefined}
+                importDisabled={
+                  FEATURE_FLAGS.ENABLE_DATA_IMPORT ? !isAllowed("materials:create") : undefined
+                }
+                onImportDenied={
+                  FEATURE_FLAGS.ENABLE_DATA_IMPORT ? guard("materials:create", () => {}) : undefined
+                }
                 showLabels={true}
               />
               <button

@@ -41,7 +41,7 @@ export function ReportsFilters({
   const { t } = useLanguage();
   const [searchError, setSearchError] = useState<string | undefined>();
 
-  const { data: customersData } = useCustomers({ limit: 200 });
+  const { data: customersData } = useCustomers({ limit: 100 });
   const locations = useLocations();
   const categories = useMaterialCategories();
 
@@ -79,8 +79,7 @@ export function ReportsFilters({
     onPageReset();
   };
 
-  const dateRangeError =
-    !!dateRange.from && !!dateRange.to && dateRange.from > dateRange.to;
+  const dateRangeError = !!dateRange.from && !!dateRange.to && dateRange.from > dateRange.to;
 
   const selectClass =
     "w-full bg-zinc-800 border border-zinc-700 text-white rounded-lg px-3 py-2 text-sm outline-none focus:border-yellow-400 transition";

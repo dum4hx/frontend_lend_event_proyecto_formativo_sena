@@ -492,8 +492,12 @@ export const MaterialInstanceCatalog: React.FC = () => {
               data={exportRows}
               filename="material-instances"
               onImport={FEATURE_FLAGS.ENABLE_DATA_IMPORT ? handleImportInstances : undefined}
-              importDisabled={FEATURE_FLAGS.ENABLE_DATA_IMPORT ? !isAllowed("materials:create") : undefined}
-              onImportDenied={FEATURE_FLAGS.ENABLE_DATA_IMPORT ? guard("materials:create", () => {}) : undefined}
+              importDisabled={
+                FEATURE_FLAGS.ENABLE_DATA_IMPORT ? !isAllowed("materials:create") : undefined
+              }
+              onImportDenied={
+                FEATURE_FLAGS.ENABLE_DATA_IMPORT ? guard("materials:create", () => {}) : undefined
+              }
               showLabels={true}
             />
             <button

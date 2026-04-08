@@ -83,7 +83,13 @@ export interface ModuleFilters {
     invoiceType: string;
     invoiceStatus: string;
   };
-  inventory: { type: "categories" | "types" | "instances" | ""; status: string; locationId: string; categoryId: string; search: string };
+  inventory: {
+    type: "categories" | "types" | "instances" | "";
+    status: string;
+    locationId: string;
+    categoryId: string;
+    search: string;
+  };
   team: { status: string };
   locations: { status: string };
   orders: { status: "pending" | "confirmed" | "in-progress" | "completed" | "cancelled" | "" };

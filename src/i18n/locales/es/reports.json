@@ -253,5 +253,26 @@
 
   "reports.export.exporting": "Exportando...",
   "reports.export.exported": "Se exportaron {count} registros",
-  "reports.export.moreRecords": "Mostrando {shown} de {total} registros. Las exportaciones incluirán los {total} registros."
+  "reports.export.moreRecords": "Mostrando {shown} de {total} registros. Las exportaciones incluirán los {total} registros.",
+
+  "reports.summary.loansByStatus": "Préstamos por estado",
+  "reports.summary.topCustomers": "Mejores clientes",
+  "reports.summary.topMaterials": "Materiales principales",
+  "reports.summary.revenueByType": "Ingresos por tipo de factura",
+  "reports.summary.topCustomersByRevenue": "Mejores clientes por ingreso",
+  "reports.summary.topMaterialsByStock": "Tipos principales por inventario",
+  "reports.summary.topLocationsByStock": "Ubicaciones principales por inventario",
+  "reports.summary.costByEntryReason": "Costo por razón de entrada",
+  "reports.summary.mostDamagedMaterials": "Materiales más dañados",
+  "reports.summary.resolutionBreakdown": "Desglose de resolución",
+  "reports.summary.transfersByStatus": "Transferencias por estado",
+  "reports.summary.topRoutes": "Rutas principales",
+  "reports.summary.conditionBreakdown": "Desglose de condición al recibir",
+  "reports.summary.periodComparison": "Comparación de periodo",
+  "reports.summary.previousPeriod": "Periodo anterior",
+  "reports.summary.currentPeriod": "Periodo actual",
+  "reports.summary.change": "Cambio",
+  "reports.kpi.maintenanceRate": "Tasa de mantenimiento",
+  "reports.kpi.averageLoanValue": "Valor prom. préstamo",
+  "reports.kpi.costVariancePercent": "Variación de costos (%)"
 }
