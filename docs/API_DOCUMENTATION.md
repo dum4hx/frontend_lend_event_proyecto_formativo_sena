@@ -1846,14 +1846,14 @@ Calculates the cost for a plan with a given seat count.
 
 Creates a Stripe Checkout session for subscription.
 
-| Parameter  | Location | Type    | Required | Description                                |
-| ---------- | -------- | ------- | -------- | ------------------------------------------ |
-| plan       | body     | string  | Yes      | `starter`, `professional`, or `enterprise` |
-| seatCount  | body     | integer | No       | Number of seats (default: 1)               |
-| successUrl | body     | string  | Yes      | URL to redirect on success                 |
-| cancelUrl  | body     | string  | Yes      | URL to redirect on cancel                  |
+| Parameter  | Location | Type    | Required | Description                                              |
+| ---------- | -------- | ------- | -------- | -------------------------------------------------------- |
+| plan       | body     | string  | Yes      | Plan name (e.g. `starter`, `professional`, `enterprise`) |
+| seatCount  | body     | integer | No       | Number of seats (default: 1, min: 1)                     |
+| successUrl | body     | string  | Yes      | URL to redirect on success                               |
+| cancelUrl  | body     | string  | Yes      | URL to redirect on cancel                                |
 
-**Permission Required:** Owner only
+**Permission Required:** `billing:manage`
 
 **Response:** `200 OK`
 
@@ -1866,6 +1866,14 @@ Creates a Stripe Checkout session for subscription.
 }
 ```
 
+**Error Conditions:**
+
+| Status | Condition                                        |
+| ------ | ------------------------------------------------ |
+| 400    | Plan is `free`, does not exist, or is not active |
+| 400    | Seat count invalid for the plan                  |
+| 409    | Organization already has an active subscription  |
+
 ---
 
 #### POST /billing/portal
@@ -1875,6 +1883,8 @@ Creates a Stripe Billing Portal session.
 | Parameter | Location | Type   | Required | Description                   |
 | --------- | -------- | ------ | -------- | ----------------------------- |
 | returnUrl | body     | string | Yes      | URL to return to after portal |
+
+**Permission Required:** `billing:manage`
 
 ---
 
@@ -1886,6 +1896,8 @@ Updates the subscription seat quantity.
 | --------- | -------- | ------- | -------- | -------------- |
 | seatCount | body     | integer | Yes      | New seat count |
 
+**Permission Required:** `billing:manage`
+
 ---
 
 #### POST /billing/cancel
@@ -1896,6 +1908,106 @@ Cancels the subscription.
 | ----------------- | -------- | ------- | -------- | -------------------------------------------- |
 | cancelImmediately | body     | boolean | No       | Cancel now or at period end (default: false) |
 
+**Permission Required:** `billing:manage`
+
+---
+
+#### POST /billing/change-plan
+
+Changes the subscription plan. Upgrades are applied immediately with Stripe proration. Downgrades are deferred to the end of the current billing period via Stripe Subscription Schedules.
+
+| Parameter | Location | Type    | Required | Description                                     |
+| --------- | -------- | ------- | -------- | ----------------------------------------------- |
+| plan      | body     | string  | Yes      | New plan name (e.g. `starter`, `professional`)  |
+| seatCount | body     | integer | No       | New seat count (defaults to current seat count) |
+
+**Permission Required:** `billing:manage`  
+**Requires:** Active organization with an active subscription.
+
+**Response (upgrade):** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "type": "upgrade",
+    "effectiveDate": "immediate",
+    "previousPlan": "starter",
+    "newPlan": "professional"
+  }
+}
+```
+
+**Response (downgrade):** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "type": "downgrade",
+    "effectiveDate": "2026-05-08T00:00:00.000Z",
+    "previousPlan": "professional",
+    "newPlan": "starter"
+  }
+}
+```
+
+**Error Conditions:**
+
+| Status | Condition                                     |
+| ------ | --------------------------------------------- |
+| 400    | No active subscription                        |
+| 400    | Same plan requested (`Ya estás en este plan`) |
+| 400    | Plan does not exist or is not active          |
+| 400    | Invalid seat count for the target plan        |
+
+---
+
+#### GET /billing/pending-changes
+
+Gets pending plan change information (scheduled downgrades).
+
+**Permission Required:** `billing:manage`
+
+**Response:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "pendingChange": {
+      "pendingPlan": "starter",
+      "effectiveDate": "2026-05-08T00:00:00.000Z"
+    }
+  }
+}
+```
+
+Returns `null` for `pendingChange` if no pending plan change exists.
+
+---
+
+#### DELETE /billing/pending-changes
+
+Cancels a pending plan change (deferred downgrade). Releases the Stripe Subscription Schedule, keeping the current subscription as-is.
+
+**Permission Required:** `billing:manage`
+
+**Response:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "message": "Cambio de plan pendiente cancelado exitosamente"
+}
+```
+
+**Error Conditions:**
+
+| Status | Condition                        |
+| ------ | -------------------------------- |
+| 400    | No pending plan change to cancel |
+
 ---
 
 #### GET /billing/history
@@ -1905,6 +2017,8 @@ Gets billing history for the organization.
 | Parameter | Location | Type    | Required | Description             |
 | --------- | -------- | ------- | -------- | ----------------------- |
 | limit     | query    | integer | No       | Max items (default: 50) |
+
+**Permission Required:** `billing:manage`
 
 ---
 

@@ -8,7 +8,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Plus, Download, Upload } from "lucide-react";
 import { FEATURE_FLAGS } from "../../../../config/featureFlags";
-import * as XLSX from "xlsx";
+import * as XLSX from "xlsx-js-style";
 import { pageVariants } from "../../../../lib/animations";
 import { ConfirmDialog, PageHeader } from "../../../../components/ui";
 import { ExportSettingsModal } from "../../../../components/export/ExportSettingsModal";

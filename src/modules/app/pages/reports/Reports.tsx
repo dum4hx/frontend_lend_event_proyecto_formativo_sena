@@ -50,6 +50,29 @@ import {
   buildDamagesSummaryEntries,
   buildTransfersSummaryEntries,
 } from "./summaryBuilders";
+import {
+  getCustomerStatusLabel,
+  getLoanRequestStatusLabel,
+  getUserStatusLabel,
+  getLocationStatusLabel,
+  getOrderStatusLabel,
+  getLoanStatusLabel,
+  getInvoiceStatusLabel,
+  getInvoiceTypeLabel,
+  getMaintenanceBatchStatusLabel,
+  getTransferStatusLabel,
+} from "../../../../utils/statusLabels";
+import type {
+  CustomerStatus,
+  LoanRequestStatus,
+  UserStatus,
+  LoanStatus,
+  InvoiceStatus,
+  InvoiceType,
+  MaintenanceBatchStatus,
+  TransferStatus,
+} from "../../../../types/api";
+import type { LocationStatus, OrderStatus } from "../../../../utils/statusLabels";
 import { ReportsFilters } from "./ReportsFilters";
 import { ReportsTable } from "./ReportsTable";
 import type { SummaryEntry } from "./helpers";
@@ -387,7 +410,7 @@ export default function Reports() {
               [t("reports.col.email")]: c.email,
               [t("reports.col.phone")]: c.phone,
               [t("reports.col.document")]: `${c.documentType} ${c.documentNumber}`,
-              [t("reports.col.status")]: c.status,
+              [t("reports.col.status")]: getCustomerStatusLabel(c.status as CustomerStatus, language),
             },
           })),
         };
@@ -409,7 +432,7 @@ export default function Reports() {
             columns: {
               [t("reports.col.id")]: fmtId(r._id),
               [t("reports.col.customerId")]: fmtId(getReferenceId(r.customerId)),
-              [t("reports.col.status")]: r.status,
+              [t("reports.col.status")]: getLoanRequestStatusLabel(r.status as LoanRequestStatus, language),
               [t("reports.col.startDate")]: fmtDate(r.startDate),
               [t("reports.col.endDate")]: fmtDate(r.endDate),
               [t("reports.col.items")]: r.items?.length ? r.items.length.toString() : "—",
@@ -438,7 +461,7 @@ export default function Reports() {
               [t("reports.col.name")]: u.name,
               [t("reports.col.email")]: u.email,
               [t("reports.col.role")]: u.role,
-              [t("reports.col.status")]: u.status,
+              [t("reports.col.status")]: getUserStatusLabel(u.status as UserStatus, language),
             },
           })),
         };
@@ -465,7 +488,7 @@ export default function Reports() {
               [t("reports.col.id")]: fmtId(l._id),
               [t("reports.col.name")]: l.name,
               [t("reports.col.organization")]: fmtId(l.organizationId) || "—",
-              [t("reports.col.status")]: l.status,
+              [t("reports.col.status")]: getLocationStatusLabel(l.status as LocationStatus, language),
               [t("reports.col.city")]: l.address?.city || "—",
               [t("reports.col.department")]: l.address?.department || "—",
               [t("reports.col.address")]:
@@ -499,7 +522,7 @@ export default function Reports() {
               [t("reports.col.date")]: fmtDate(o.date),
               [t("reports.col.items")]: o.items.toString(),
               [t("reports.col.total")]: fmtCurrency(o.total),
-              [t("reports.col.status")]: o.status,
+              [t("reports.col.status")]: getOrderStatusLabel(o.status as OrderStatus, language),
               [t("reports.col.rentalStart")]: fmtDate(o.rentalStart),
               [t("reports.col.rentalEnd")]: fmtDate(o.rentalEnd),
             },
@@ -532,7 +555,7 @@ export default function Reports() {
               [t("reports.col.code")]: l.code,
               [t("reports.col.customer")]: l.customerName,
               [t("reports.col.locationName")]: l.locationName,
-              [t("reports.col.status")]: l.status,
+              [t("reports.col.status")]: getLoanStatusLabel(l.status as LoanStatus, language),
               [t("reports.col.startDate")]: fmtDate(l.startDate),
               [t("reports.col.endDate")]: fmtDate(l.endDate),
               [t("reports.col.returnedAt")]: l.returnedAt ? fmtDate(l.returnedAt) : "—",
@@ -571,8 +594,8 @@ export default function Reports() {
               columns: {
                 [t("reports.col.invoiceNumber")]: inv.invoiceNumber,
                 [t("reports.col.customer")]: inv.customerName,
-                [t("reports.col.type")]: inv.type,
-                [t("reports.col.status")]: inv.status,
+                [t("reports.col.type")]: getInvoiceTypeLabel(inv.type as InvoiceType, language),
+                [t("reports.col.status")]: getInvoiceStatusLabel(inv.status as InvoiceStatus, language),
                 [t("reports.col.amount")]: fmtCurrency(inv.totalAmount),
                 [t("reports.col.amountPaid")]: fmtCurrency(inv.amountPaid),
                 [t("reports.col.amountDue")]: fmtCurrency(inv.amountDue),
@@ -605,7 +628,7 @@ export default function Reports() {
               [t("reports.col.endDate")]: fmtDate(l.endDate),
               [t("reports.col.totalAmount")]: fmtCurrency(l.totalAmount),
               [t("reports.col.depositAmount")]: fmtCurrency(l.depositAmount),
-              [t("reports.col.status")]: l.status,
+              [t("reports.col.status")]: getLoanStatusLabel(l.status as LoanStatus, language),
               [t("reports.col.materialCount")]: l.materialCount,
             },
           })),
@@ -665,7 +688,7 @@ export default function Reports() {
             columns: {
               [t("reports.col.batchNumber")]: b.batchNumber,
               [t("reports.col.name")]: b.name,
-              [t("reports.col.status")]: b.status,
+              [t("reports.col.status")]: getMaintenanceBatchStatusLabel(b.status as MaintenanceBatchStatus, language),
               [t("reports.col.locationName")]: b.locationName,
               [t("reports.col.assignedTo")]: b.assignedTo,
               [t("reports.col.itemCount")]: b.itemCount,
@@ -697,7 +720,7 @@ export default function Reports() {
             columns: {
               [t("reports.col.from")]: tr.fromLocation,
               [t("reports.col.to")]: tr.toLocation,
-              [t("reports.col.status")]: tr.status,
+              [t("reports.col.status")]: getTransferStatusLabel(tr.status as TransferStatus, language),
               [t("reports.col.items")]: tr.itemCount.toString(),
               [t("reports.col.pickedBy")]: tr.pickedBy || "—",
               [t("reports.col.receivedBy")]: tr.receivedBy || "—",
@@ -717,6 +740,7 @@ export default function Reports() {
     t,
     formatDate,
     formatCurrency,
+    language,
     dateRange,
     customers,
     requests,
@@ -1105,7 +1129,7 @@ export default function Reports() {
             [t("reports.col.code")]: l.code,
             [t("reports.col.customer")]: l.customerName,
             [t("reports.col.locationName")]: l.locationName,
-            [t("reports.col.status")]: l.status,
+            [t("reports.col.status")]: getLoanStatusLabel(l.status as LoanStatus, language),
             [t("reports.col.startDate")]: fmtDate(l.startDate),
             [t("reports.col.endDate")]: fmtDate(l.endDate),
             [t("reports.col.returnedAt")]: l.returnedAt ? fmtDate(l.returnedAt) : "—",
@@ -1116,7 +1140,7 @@ export default function Reports() {
           },
         }));
         const summaryEntries = summary
-          ? buildLoanSummaryEntries(summary, t, formatCurrency)
+          ? buildLoanSummaryEntries(summary, t, formatCurrency, language)
           : [];
         return { rows: exportRows, summaryEntries };
       }
@@ -1147,8 +1171,8 @@ export default function Reports() {
             columns: {
               [t("reports.col.invoiceNumber")]: inv.invoiceNumber,
               [t("reports.col.customer")]: inv.customerName,
-              [t("reports.col.type")]: inv.type,
-              [t("reports.col.status")]: inv.status,
+              [t("reports.col.type")]: getInvoiceTypeLabel(inv.type as InvoiceType, language),
+              [t("reports.col.status")]: getInvoiceStatusLabel(inv.status as InvoiceStatus, language),
               [t("reports.col.amount")]: fmtCurrency(inv.totalAmount),
               [t("reports.col.amountPaid")]: fmtCurrency(inv.amountPaid),
               [t("reports.col.amountDue")]: fmtCurrency(inv.amountDue),
@@ -1157,7 +1181,7 @@ export default function Reports() {
             },
           }));
           const summaryEntries = summary
-            ? buildSalesSummaryEntries(summary, t, formatCurrency)
+            ? buildSalesSummaryEntries(summary, t, formatCurrency, language)
             : [];
           return { rows: exportRows, summaryEntries };
         }
@@ -1178,12 +1202,12 @@ export default function Reports() {
             [t("reports.col.endDate")]: fmtDate(l.endDate),
             [t("reports.col.totalAmount")]: fmtCurrency(l.totalAmount),
             [t("reports.col.depositAmount")]: fmtCurrency(l.depositAmount),
-            [t("reports.col.status")]: l.status,
+            [t("reports.col.status")]: getLoanStatusLabel(l.status as LoanStatus, language),
             [t("reports.col.materialCount")]: l.materialCount,
           },
         }));
         const summaryEntries = summary
-          ? buildSalesSummaryEntries(summary, t, formatCurrency)
+          ? buildSalesSummaryEntries(summary, t, formatCurrency, language)
           : [];
         return { rows: exportRows, summaryEntries };
       }
@@ -1199,7 +1223,7 @@ export default function Reports() {
         const resp = await getExportInventory(inventoryParams);
         const summary = resp.data.summary;
         const summaryEntries = summary
-          ? buildInventorySummaryEntries(summary, t, formatCurrency)
+          ? buildInventorySummaryEntries(summary, t, formatCurrency, language)
           : [];
         return { rows, summaryEntries };
       }
@@ -1221,7 +1245,7 @@ export default function Reports() {
           columns: {
             [t("reports.col.batchNumber")]: b.batchNumber,
             [t("reports.col.name")]: b.name,
-            [t("reports.col.status")]: b.status,
+            [t("reports.col.status")]: getMaintenanceBatchStatusLabel(b.status as MaintenanceBatchStatus, language),
             [t("reports.col.locationName")]: b.locationName,
             [t("reports.col.assignedTo")]: b.assignedTo,
             [t("reports.col.itemCount")]: b.itemCount,
@@ -1231,7 +1255,7 @@ export default function Reports() {
           },
         }));
         const summaryEntries = summary
-          ? buildDamagesSummaryEntries(summary, t, formatCurrency)
+          ? buildDamagesSummaryEntries(summary, t, formatCurrency, language)
           : [];
         return { rows: exportRows, summaryEntries };
       }
@@ -1253,7 +1277,7 @@ export default function Reports() {
           columns: {
             [t("reports.col.from")]: tr.fromLocation,
             [t("reports.col.to")]: tr.toLocation,
-            [t("reports.col.status")]: tr.status,
+            [t("reports.col.status")]: getTransferStatusLabel(tr.status as TransferStatus, language),
             [t("reports.col.items")]: tr.itemCount.toString(),
             [t("reports.col.pickedBy")]: tr.pickedBy || "—",
             [t("reports.col.receivedBy")]: tr.receivedBy || "—",
@@ -1263,7 +1287,7 @@ export default function Reports() {
           },
         }));
         const summaryEntries = summary
-          ? buildTransfersSummaryEntries(summary, t, formatCurrency)
+          ? buildTransfersSummaryEntries(summary, t, formatCurrency, language)
           : [];
         return { rows: exportRows, summaryEntries };
       }
@@ -1271,7 +1295,7 @@ export default function Reports() {
       default:
         return { rows, summaryEntries: [] };
     }
-  }, [activeModule, rows, dateRange, filters, t, formatDate, formatCurrency]);
+  }, [activeModule, rows, dateRange, filters, t, formatDate, formatCurrency, language]);
 
   const handleExport = async () => {
     setExporting(true);

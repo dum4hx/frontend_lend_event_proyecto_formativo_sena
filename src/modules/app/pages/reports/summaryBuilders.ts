@@ -10,10 +10,23 @@ import type {
   ExportInventorySummary,
   ExportDamagesSummary,
   ExportTransfersSummary,
+  LoanStatus,
+  InvoiceType,
+  MaintenanceItemStatus,
+  TransferStatus,
+  TransferCondition,
 } from "../../../../types/api";
+import {
+  getLoanStatusLabel,
+  getInvoiceTypeLabel,
+  getMaintenanceItemStatusLabel,
+  getTransferStatusLabel,
+  getTransferConditionLabel,
+} from "../../../../utils/statusLabels";
 
 type T = (key: string) => string;
 type FmtCurrency = (val: number, currency: string) => string;
+type Lang = "en" | "es";
 
 const pct = (val: number): string => `${(val * 100).toFixed(1)}%`;
 
@@ -23,6 +36,7 @@ export function buildLoanSummaryEntries(
   summary: ExportLoanActivitySummary,
   t: T,
   formatCurrency: FmtCurrency,
+  language: Lang,
 ): SummaryEntry[] {
   const entries: SummaryEntry[] = [
     { label: t("reports.kpi.totalLoans"), value: summary.totalLoans },
@@ -35,7 +49,7 @@ export function buildLoanSummaryEntries(
   if (summary.loansByStatus.length > 0) {
     entries.push({ label: `— ${t("reports.summary.loansByStatus")} —`, value: "" });
     for (const s of summary.loansByStatus) {
-      entries.push({ label: `  ${s.status}`, value: `${s.count} (${formatCurrency(s.totalAmount, "COP")})` });
+      entries.push({ label: `  ${getLoanStatusLabel(s.status as LoanStatus, language)}`, value: `${s.count} (${formatCurrency(s.totalAmount, "COP")})` });
     }
   }
 
@@ -70,6 +84,7 @@ export function buildSalesSummaryEntries(
   summary: ExportSalesSummary,
   t: T,
   formatCurrency: FmtCurrency,
+  language: Lang,
 ): SummaryEntry[] {
   const entries: SummaryEntry[] = [
     { label: t("reports.kpi.combinedRevenue"), value: formatCurrency(summary.combinedRevenue, "COP") },
@@ -81,7 +96,7 @@ export function buildSalesSummaryEntries(
   if (summary.revenueByInvoiceType.length > 0) {
     entries.push({ label: `— ${t("reports.summary.revenueByType")} —`, value: "" });
     for (const r of summary.revenueByInvoiceType) {
-      entries.push({ label: `  ${r.type}`, value: `${r.count} (${formatCurrency(r.revenue, "COP")})` });
+      entries.push({ label: `  ${getInvoiceTypeLabel(r.type as InvoiceType, language)}`, value: `${r.count} (${formatCurrency(r.revenue, "COP")})` });
     }
   }
 
@@ -109,6 +124,7 @@ export function buildInventorySummaryEntries(
   summary: ExportInventorySummary,
   t: T,
   formatCurrency: FmtCurrency,
+  _language: Lang,
 ): SummaryEntry[] {
   const entries: SummaryEntry[] = [
     { label: t("reports.kpi.totalTypes"), value: summary.totalMaterialTypes },
@@ -144,6 +160,7 @@ export function buildDamagesSummaryEntries(
   summary: ExportDamagesSummary,
   t: T,
   formatCurrency: FmtCurrency,
+  language: Lang,
 ): SummaryEntry[] {
   const entries: SummaryEntry[] = [
     { label: t("reports.kpi.totalBatches"), value: summary.totalBatches },
@@ -172,7 +189,7 @@ export function buildDamagesSummaryEntries(
   if (summary.resolutionBreakdown.length > 0) {
     entries.push({ label: `— ${t("reports.summary.resolutionBreakdown")} —`, value: "" });
     for (const s of summary.resolutionBreakdown) {
-      entries.push({ label: `  ${s.status}`, value: s.count });
+      entries.push({ label: `  ${getMaintenanceItemStatusLabel(s.status as MaintenanceItemStatus, language)}`, value: s.count });
     }
   }
 
@@ -193,6 +210,7 @@ export function buildTransfersSummaryEntries(
   summary: ExportTransfersSummary,
   t: T,
   formatCurrency: FmtCurrency,
+  language: Lang,
 ): SummaryEntry[] {
   void formatCurrency; // not used for transfers but keeps signature consistent
   const entries: SummaryEntry[] = [
@@ -206,7 +224,7 @@ export function buildTransfersSummaryEntries(
   if (summary.transfersByStatus.length > 0) {
     entries.push({ label: `— ${t("reports.summary.transfersByStatus")} —`, value: "" });
     for (const s of summary.transfersByStatus) {
-      entries.push({ label: `  ${s.status}`, value: `${s.count} (${s.totalItems} items)` });
+      entries.push({ label: `  ${getTransferStatusLabel(s.status as TransferStatus, language)}`, value: `${s.count} (${s.totalItems} items)` });
     }
   }
 
@@ -220,7 +238,7 @@ export function buildTransfersSummaryEntries(
   if (summary.receivedConditionBreakdown.length > 0) {
     entries.push({ label: `— ${t("reports.summary.conditionBreakdown")} —`, value: "" });
     for (const c of summary.receivedConditionBreakdown) {
-      entries.push({ label: `  ${c.condition}`, value: c.count });
+      entries.push({ label: `  ${getTransferConditionLabel(c.condition as TransferCondition, language)}`, value: c.count });
     }
   }
 

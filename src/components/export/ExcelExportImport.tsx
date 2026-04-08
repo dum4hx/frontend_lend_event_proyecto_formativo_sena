@@ -9,7 +9,7 @@
 
 import React, { useRef } from "react";
 import { Download, Upload } from "lucide-react";
-import * as XLSX from "xlsx";
+import * as XLSX from "xlsx-js-style";
 import { Button } from "../ui";
 
 interface ExcelExportImportProps {

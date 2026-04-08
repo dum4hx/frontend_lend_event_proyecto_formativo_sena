@@ -4,7 +4,7 @@
  * Works with generic header/row data so any page can export its table.
  */
 
-import * as XLSX from "xlsx";
+import * as XLSX from "xlsx-js-style";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -20,6 +20,76 @@ export interface SummaryExportEntry {
   value: string | number;
 }
 
+// ─── Brand palette (LendEvent) ────────────────────────────────────────────
+
+const BRAND_GOLD = "FFD700";
+const BRAND_DARK_GOLD = "B8860B";
+const HEADER_TEXT = "1A1A1A";
+const LIGHT_GOLD = "FFF8DC";
+const WHITE = "FFFFFF";
+const LIGHT_GRAY = "F5F5F5";
+const BORDER_COLOR = "D4AF37";
+
+interface CellStyle {
+  fill?: { fgColor: { rgb: string } };
+  font?: { bold?: boolean; color?: { rgb: string }; sz?: number; name?: string };
+  alignment?: { horizontal?: string; vertical?: string; wrapText?: boolean };
+  border?: {
+    top?: { style: string; color: { rgb: string } };
+    bottom?: { style: string; color: { rgb: string } };
+    left?: { style: string; color: { rgb: string } };
+    right?: { style: string; color: { rgb: string } };
+  };
+}
+
+const thinBorder = {
+  top: { style: "thin", color: { rgb: BORDER_COLOR } },
+  bottom: { style: "thin", color: { rgb: BORDER_COLOR } },
+  left: { style: "thin", color: { rgb: BORDER_COLOR } },
+  right: { style: "thin", color: { rgb: BORDER_COLOR } },
+};
+
+const headerStyle: CellStyle = {
+  fill: { fgColor: { rgb: BRAND_GOLD } },
+  font: { bold: true, color: { rgb: HEADER_TEXT }, sz: 11, name: "Calibri" },
+  alignment: { horizontal: "center", vertical: "center" },
+  border: thinBorder,
+};
+
+const summaryHeaderStyle: CellStyle = {
+  fill: { fgColor: { rgb: BRAND_DARK_GOLD } },
+  font: { bold: true, color: { rgb: WHITE }, sz: 12, name: "Calibri" },
+  alignment: { horizontal: "center", vertical: "center" },
+  border: thinBorder,
+};
+
+const sectionLabelStyle: CellStyle = {
+  fill: { fgColor: { rgb: LIGHT_GOLD } },
+  font: { bold: true, color: { rgb: HEADER_TEXT }, sz: 10, name: "Calibri" },
+  border: thinBorder,
+};
+
+const cellStyleEven: CellStyle = {
+  fill: { fgColor: { rgb: WHITE } },
+  font: { color: { rgb: HEADER_TEXT }, sz: 10, name: "Calibri" },
+  border: thinBorder,
+};
+
+const cellStyleOdd: CellStyle = {
+  fill: { fgColor: { rgb: LIGHT_GRAY } },
+  font: { color: { rgb: HEADER_TEXT }, sz: 10, name: "Calibri" },
+  border: thinBorder,
+};
+
+/** Apply a style to every cell in the given row of a worksheet. */
+function styleRow(ws: XLSX.WorkSheet, row: number, cols: number, style: CellStyle): void {
+  for (let c = 0; c < cols; c++) {
+    const ref = XLSX.utils.encode_cell({ r: row, c });
+    if (!ws[ref]) ws[ref] = { v: "", t: "s" };
+    ws[ref].s = style;
+  }
+}
+
 // ─── XLSX Export ───────────────────────────────────────────────────────────
 
 export function exportTableToXLSX(
@@ -30,7 +100,7 @@ export function exportTableToXLSX(
   const { headers, rows } = data;
   const wb = XLSX.utils.book_new();
 
-  // Summary sheet (when entries provided)
+  // ── Summary sheet (when entries provided) ──────────────────────────────
   if (summaryEntries && summaryEntries.length > 0) {
     const summaryRows = summaryEntries.map((e) => ({ Metric: e.label, Value: e.value }));
     const summaryWs = XLSX.utils.json_to_sheet(summaryRows, { header: ["Metric", "Value"] });
@@ -38,10 +108,22 @@ export function exportTableToXLSX(
       { wch: Math.min(Math.max(6, ...summaryEntries.map((e) => String(e.label).length)) + 2, 60) },
       { wch: Math.min(Math.max(5, ...summaryEntries.map((e) => String(e.value).length)) + 2, 40) },
     ];
+
+    // Style summary header row
+    styleRow(summaryWs, 0, 2, summaryHeaderStyle);
+
+    // Style summary data rows with section header detection
+    for (let r = 0; r < summaryEntries.length; r++) {
+      const entry = summaryEntries[r];
+      const isSection = String(entry.label).startsWith("—");
+      const rowStyle = isSection ? sectionLabelStyle : r % 2 === 0 ? cellStyleEven : cellStyleOdd;
+      styleRow(summaryWs, r + 1, 2, rowStyle);
+    }
+
     XLSX.utils.book_append_sheet(wb, summaryWs, "Summary");
   }
 
-  // Data sheet
+  // ── Data sheet ─────────────────────────────────────────────────────────
   const sheetRows = rows.map((row) =>
     headers.reduce<Record<string, string | number>>((acc, h) => {
       acc[h] = row[h] ?? "";
@@ -54,6 +136,15 @@ export function exportTableToXLSX(
   ws["!cols"] = headers.map((h) => ({
     wch: Math.min(Math.max(h.length, ...rows.map((r) => String(r[h] ?? "").length)) + 2, 50),
   }));
+
+  // Style header row
+  styleRow(ws, 0, headers.length, headerStyle);
+
+  // Style data rows with alternating bands
+  for (let r = 0; r < rows.length; r++) {
+    const rowStyle = r % 2 === 0 ? cellStyleEven : cellStyleOdd;
+    styleRow(ws, r + 1, headers.length, rowStyle);
+  }
 
   XLSX.utils.book_append_sheet(wb, ws, "Data");
   XLSX.writeFile(wb, filename);

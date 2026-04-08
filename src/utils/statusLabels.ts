@@ -538,6 +538,22 @@ export function getOpsTaskPriorityLabel(priority: OpsTaskPriority, language: "en
   return getLabel(OPS_TASK_PRIORITY_MAP, priority, language);
 }
 
+// ─── Order Status (Commercial Advisor) ─────────────────────────────────────
+
+export type OrderStatus = "pending" | "confirmed" | "in-progress" | "completed" | "cancelled";
+
+export const ORDER_STATUS_MAP: Record<OrderStatus, StatusLocale> = {
+  pending: { en: "Pending", es: "Pendiente" },
+  confirmed: { en: "Confirmed", es: "Confirmado" },
+  "in-progress": { en: "In Progress", es: "En Progreso" },
+  completed: { en: "Completed", es: "Completado" },
+  cancelled: { en: "Cancelled", es: "Cancelado" },
+};
+
+export function getOrderStatusLabel(status: OrderStatus, language: "en" | "es"): string {
+  return getLabel(ORDER_STATUS_MAP, status, language);
+}
+
 // ─── Workflow Status (Orders module) ───────────────────────────────────────
 
 /** Composite workflow status for the Orders pipeline. */
