@@ -197,6 +197,7 @@ export function RentalsTable({
                       </Button>
                     )}
                     {canComplete &&
+                      lv.loan.status === "inspected" &&
                       (lv.loan.deposit?.status === "refund_pending" ||
                         lv.loan.deposit?.status === "partially_applied") && (
                         <Button
