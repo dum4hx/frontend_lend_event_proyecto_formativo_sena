@@ -95,7 +95,10 @@ export function EditUserModal({ member, availableRoles, onClose, onSuccess }: Ed
   }, [member]);
 
   const selectedRoleName = availableRoles.find((r) => r._id === form.roleId)?.name ?? "";
-  const isOwnerPromotion = !!member && member.roleName !== "owner" && selectedRoleName === "owner";
+  const isOwnerPromotion =
+    !!member &&
+    member.roleName.toLowerCase() !== "propietario" &&
+    selectedRoleName.toLowerCase() === "propietario";
 
   const validateOwnerSecurity = useCallback((): Partial<Record<keyof OwnerSecurity, string>> => {
     const errs: Partial<Record<keyof OwnerSecurity, string>> = {};

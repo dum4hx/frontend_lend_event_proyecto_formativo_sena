@@ -41,9 +41,7 @@ export default function AvailablePlansGrid({
   useEffect(() => {
     if (!onCalculateCost || !currentSeats || currentSeats < 1) return;
 
-    const dynamicPlans = plans.filter(
-      (p) => p.billingModel === "dynamic" && p.pricePerSeat > 0,
-    );
+    const dynamicPlans = plans.filter((p) => p.billingModel === "dynamic" && p.pricePerSeat > 0);
     if (dynamicPlans.length === 0) return;
 
     let active = true;
@@ -104,7 +102,8 @@ export default function AvailablePlansGrid({
           const isActive =
             currentPlan &&
             (targetPlanName === currentPlan ||
-              p.displayName.toLowerCase() === currentPlan?.toLowerCase());
+              targetPlanName.toLowerCase() === currentPlan.toLowerCase() ||
+              p.displayName.toLowerCase() === currentPlan.toLowerCase());
           return (
             <div
               key={planKey}
@@ -174,29 +173,38 @@ export default function AvailablePlansGrid({
                       {t("subscription.plans.loadingCost")}
                     </div>
                   ) : costs[planKey].error ? (
-                    <div className="text-red-400 text-xs">
-                      {t("subscription.plans.costError")}
-                    </div>
+                    <div className="text-red-400 text-xs">{t("subscription.plans.costError")}</div>
                   ) : costs[planKey].data ? (
                     <div className="space-y-1 text-xs">
                       <div className="flex justify-between text-gray-400">
                         <span>{t("subscription.plans.baseCost")}</span>
                         <span>
-                          ${(costs[planKey].data.baseCost / 100).toLocaleString(locale, { minimumFractionDigits: 2 })}
+                          $
+                          {(costs[planKey].data.baseCost / 100).toLocaleString(locale, {
+                            minimumFractionDigits: 2,
+                          })}
                         </span>
                       </div>
                       <div className="flex justify-between text-gray-400">
                         <span>
-                          {t("subscription.plans.seatCost", { count: costs[planKey].data.seatCount })}
+                          {t("subscription.plans.seatCost", {
+                            count: costs[planKey].data.seatCount,
+                          })}
                         </span>
                         <span>
-                          ${(costs[planKey].data.seatCost / 100).toLocaleString(locale, { minimumFractionDigits: 2 })}
+                          $
+                          {(costs[planKey].data.seatCost / 100).toLocaleString(locale, {
+                            minimumFractionDigits: 2,
+                          })}
                         </span>
                       </div>
                       <div className="border-t border-[#333] pt-1 flex justify-between text-yellow-400 font-semibold">
                         <span>{t("subscription.plans.totalCost")}</span>
                         <span>
-                          ${(costs[planKey].data.totalCost / 100).toLocaleString(locale, { minimumFractionDigits: 2 })}
+                          $
+                          {(costs[planKey].data.totalCost / 100).toLocaleString(locale, {
+                            minimumFractionDigits: 2,
+                          })}
                         </span>
                       </div>
                     </div>
@@ -214,8 +222,8 @@ export default function AvailablePlansGrid({
               >
                 {isActive
                   ? isEs
-                    ? "Plan actual"
-                    : "Current Plan"
+                    ? "Actual"
+                    : "Current"
                   : currentPlan
                     ? p.basePriceMonthly > 0
                       ? isEs

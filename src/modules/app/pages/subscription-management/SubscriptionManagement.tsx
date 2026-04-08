@@ -227,7 +227,7 @@ export default function SubscriptionManagement() {
     } finally {
       setUpdatingSeats(false);
     }
-  }, [seatCount, usage, showAlert, fetchData]);
+  }, [seatCount, usage, showAlert, fetchData, t]);
 
   const handleCancelSubscription = useCallback(async () => {
     try {
@@ -241,7 +241,7 @@ export default function SubscriptionManagement() {
     } finally {
       setCancelling(false);
     }
-  }, [showAlert, fetchData]);
+  }, [showAlert, fetchData, t]);
 
   // ─── Plan Upgrade / Change ───────────────────────────────────────────────
 
@@ -339,7 +339,7 @@ export default function SubscriptionManagement() {
         exportAbort.current = null;
       }
     },
-    [buildExportRows, user?._id, showAlert],
+    [buildExportRows, user?._id, showAlert, t],
   );
 
   const handleExportPreview = useCallback(
@@ -471,7 +471,7 @@ export default function SubscriptionManagement() {
           >
             <StatCard
               label={t("subscription.stats.currentPlan")}
-              value={currentPlanDetails?.displayName ?? "—"}
+              value={currentPlanDetails?.displayName ?? currentPlan ?? "—"}
               icon={<CreditCard size={20} />}
             />
             <StatCard
