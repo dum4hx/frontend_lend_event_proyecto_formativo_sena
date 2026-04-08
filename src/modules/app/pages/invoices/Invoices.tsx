@@ -24,7 +24,7 @@ import type { Invoice, InvoiceStatus, InvoiceType, InvoiceTab, PaymentMethod } f
 // ─── Component ──────────────────────────────────────────────────────────
 
 export function Invoices() {
-  const { language, locale } = useLanguage();
+  const { t, language, locale } = useLanguage();
   const isEs = language === "es";
   const { hasPermission } = usePermissions();
   const { showToast } = useToast();
@@ -203,8 +203,8 @@ export function Invoices() {
       <div className="page-container">
         <div data-help-id="invoices-header">
           <PageHeader
-            title="Invoices"
-            titleAccent="Dashboard"
+            title={t("invoices.title")}
+            titleAccent={t("invoices.titleAccent")}
             subtitle={
               isEs
                 ? "Gestiona, rastrea y procesa pagos de facturas. Genera reportes de ingresos."

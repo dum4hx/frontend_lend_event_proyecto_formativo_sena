@@ -11,6 +11,7 @@ import React, { useRef } from "react";
 import { Download, Upload } from "lucide-react";
 import * as XLSX from "xlsx-js-style";
 import { Button } from "../ui";
+import { useLanguage } from "../../contexts/useLanguage";
 
 interface ExcelExportImportProps {
   data: Record<string, unknown>[];
@@ -60,6 +61,7 @@ export const ExcelExportImport: React.FC<ExcelExportImportProps> = ({
   importDisabled = false,
   onImportDenied,
 }) => {
+  const { t } = useLanguage();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   /**
@@ -142,9 +144,9 @@ export const ExcelExportImport: React.FC<ExcelExportImportProps> = ({
   return (
     <div className="flex gap-2">
       {/* Export Button - Unified Design System */}
-      <Button onClick={handleExport} title="Export data as Excel">
+      <Button onClick={handleExport} title={t("common.exportTooltip")}>
         <Download size={18} />
-        {showLabels && "Export"}
+        {showLabels && t("common.export")}
       </Button>
 
       {/* Import Button - Unified Design System */}
@@ -160,10 +162,10 @@ export const ExcelExportImport: React.FC<ExcelExportImportProps> = ({
             }}
             aria-disabled={importDisabled}
             className={importDisabled ? "opacity-50 cursor-not-allowed" : ""}
-            title="Import data from Excel"
+            title={t("common.importTooltip")}
           >
             <Upload size={18} />
-            {showLabels && "Import"}
+            {showLabels && t("common.import")}
           </Button>
           <input
             ref={fileInputRef}

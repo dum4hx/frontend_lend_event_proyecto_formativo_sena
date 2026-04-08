@@ -270,8 +270,10 @@ export const MaintenanceCatalog: React.FC = () => {
             })();
           }}
           onRepairItems={(batch: MaintenanceBatchListItem) =>
-            navigate(`/app/maintenance/${batch._id}/repair`)
+            guard("maintenance:resolve", () => navigate(`/app/maintenance/${batch._id}/repair`))()
           }
+          canUpdate={isAllowed("maintenance:update")}
+          canResolve={isAllowed("maintenance:resolve")}
         />
       </div>
 

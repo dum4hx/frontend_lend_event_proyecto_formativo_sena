@@ -1,7 +1,9 @@
 import { Link } from "react-router-dom";
 import { Home, ShieldOff } from "lucide-react";
+import { useLanguage } from "../contexts/useLanguage";
 
 export default function Unauthorized() {
+  const { t } = useLanguage();
   return (
     <div className="min-h-screen bg-black flex items-center justify-center px-4">
       <div className="text-center max-w-lg">
@@ -10,12 +12,9 @@ export default function Unauthorized() {
           <ShieldOff size={48} className="text-red-400" />
         </div>
 
-        <h1 className="text-4xl font-bold text-white mb-3">Access Denied</h1>
+        <h1 className="text-4xl font-bold text-white mb-3">{t("unauthorized.title")}</h1>
 
-        <p className="text-gray-400 mb-10 leading-relaxed">
-          You don't have permission to access this resource. If you believe this is an error, please
-          contact your administrator or return to the home page.
-        </p>
+        <p className="text-gray-400 mb-10 leading-relaxed">{t("unauthorized.message")}</p>
 
         <div className="flex items-center justify-center gap-4">
           <Link
@@ -23,13 +22,13 @@ export default function Unauthorized() {
             className="flex items-center gap-2 bg-[#FFD700] text-black font-semibold px-6 py-3 rounded-lg hover:bg-yellow-300 transition"
           >
             <Home size={18} />
-            Go Home
+            {t("unauthorized.goHome")}
           </Link>
           <Link
             to="/login"
             className="flex items-center gap-2 border border-[#333] text-gray-300 hover:text-white hover:border-[#555] px-6 py-3 rounded-lg transition"
           >
-            Sign In
+            {t("unauthorized.signIn")}
           </Link>
         </div>
       </div>

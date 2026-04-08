@@ -9,6 +9,9 @@ import {
   getExportInventory,
   getExportDamages,
   getExportTransfers,
+  getExportCustomers,
+  getExportLocations,
+  getExportRequests,
 } from "../../services/reportExportService";
 import type {
   ExportLoanActivityParams,
@@ -16,6 +19,9 @@ import type {
   ExportInventoryParams,
   ExportDamagesParams,
   ExportTransfersParams,
+  ExportCustomersParams,
+  ExportLocationsParams,
+  ExportRequestsParams,
 } from "../../types/api";
 
 interface ExportQueryOptions {
@@ -32,6 +38,12 @@ export const exportReportKeys = {
   damages: (params: ExportDamagesParams) => [...exportReportKeys.all, "damages", params] as const,
   transfers: (params: ExportTransfersParams) =>
     [...exportReportKeys.all, "transfers", params] as const,
+  customers: (params: ExportCustomersParams) =>
+    [...exportReportKeys.all, "customers", params] as const,
+  locations: (params: ExportLocationsParams) =>
+    [...exportReportKeys.all, "locations", params] as const,
+  requests: (params: ExportRequestsParams) =>
+    [...exportReportKeys.all, "requests", params] as const,
 };
 
 export function useExportLoanActivity(
@@ -83,6 +95,39 @@ export function useExportTransfers(
   return useQuery({
     queryKey: exportReportKeys.transfers(params),
     queryFn: () => getExportTransfers(params),
+    select: (res) => res.data,
+    enabled: options?.enabled ?? true,
+  });
+}
+
+export function useExportCustomers(
+  params: ExportCustomersParams = {},
+  options?: ExportQueryOptions,
+) {
+  return useQuery({
+    queryKey: exportReportKeys.customers(params),
+    queryFn: () => getExportCustomers(params),
+    select: (res) => res.data,
+    enabled: options?.enabled ?? true,
+  });
+}
+
+export function useExportLocations(
+  params: ExportLocationsParams = {},
+  options?: ExportQueryOptions,
+) {
+  return useQuery({
+    queryKey: exportReportKeys.locations(params),
+    queryFn: () => getExportLocations(params),
+    select: (res) => res.data,
+    enabled: options?.enabled ?? true,
+  });
+}
+
+export function useExportRequests(params: ExportRequestsParams = {}, options?: ExportQueryOptions) {
+  return useQuery({
+    queryKey: exportReportKeys.requests(params),
+    queryFn: () => getExportRequests(params),
     select: (res) => res.data,
     enabled: options?.enabled ?? true,
   });

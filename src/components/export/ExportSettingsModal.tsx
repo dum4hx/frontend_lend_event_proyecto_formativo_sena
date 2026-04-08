@@ -22,8 +22,8 @@ import type {
   ExportFieldConfig,
   ExportPayload,
 } from "../../types/export";
-import { EXPORT_I18N } from "../../types/export";
 import { Button, IconButton } from "../ui";
+import { useLanguage } from "../../contexts/useLanguage";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -53,17 +53,17 @@ function groupFieldsByCategory(fields: ExportFieldConfig[]): Record<string, Expo
   return groups;
 }
 
-const CATEGORY_LABELS: Record<string, string> = {
-  identifier: "Identifiers",
-  attribute: "Attributes",
-  metric: "Metrics",
-  metadata: "Metadata",
+const CATEGORY_LABEL_KEYS: Record<string, string> = {
+  identifier: "export.category.identifier",
+  attribute: "export.category.attribute",
+  metric: "export.category.metric",
+  metadata: "export.category.metadata",
 };
 
-const FORMAT_OPTIONS: Array<{ value: ExportFormat; label: string; Icon: typeof FileText }> = [
-  { value: "csv", label: "CSV", Icon: FileText },
-  { value: "xlsx", label: EXPORT_I18N["export.format.xlsx"], Icon: Table2 },
-  { value: "pdf", label: EXPORT_I18N["export.format.pdf"], Icon: FileText },
+const FORMAT_OPTIONS: Array<{ value: ExportFormat; labelKey: string; Icon: typeof FileText }> = [
+  { value: "csv", labelKey: "export.format.csv", Icon: FileText },
+  { value: "xlsx", labelKey: "export.format.xlsx", Icon: Table2 },
+  { value: "pdf", labelKey: "export.format.pdf", Icon: FileText },
 ];
 
 // ─── Component ─────────────────────────────────────────────────────────────
@@ -80,6 +80,7 @@ export function ExportSettingsModal({
   onCancel,
   allowedFormats,
 }: ExportSettingsModalProps) {
+  const { t } = useLanguage();
   const allowed = useMemo<ExportFormat[]>(() => {
     if (allowedFormats && allowedFormats.length > 0) return allowedFormats;
     return FORMAT_OPTIONS.map((o) => o.value);
@@ -180,21 +181,21 @@ export function ExportSettingsModal({
       }}
       role="dialog"
       aria-modal="true"
-      aria-label={EXPORT_I18N["export.title"]}
+      aria-label={t("export.title")}
     >
       <div className="modal-content" style={{ maxWidth: "680px" }}>
         {/* Header */}
         <div className="modal-header">
           <div className="flex items-center gap-2">
             <Download size={20} className="text-[#FFD700]" />
-            <h2 className="text-xl font-bold text-white">{EXPORT_I18N["export.title"]}</h2>
+            <h2 className="text-xl font-bold text-white">{t("export.title")}</h2>
           </div>
           <IconButton
             icon={X}
             intent="close"
             onClick={onClose}
             disabled={exporting}
-            ariaLabel="Close"
+            ariaLabel={t("common.close")}
           />
         </div>
 
@@ -202,7 +203,7 @@ export function ExportSettingsModal({
           <div className="modal-body space-y-5">
             {/* Format Selection */}
             <div>
-              <label className="form-label mb-2">{EXPORT_I18N["export.format"]}</label>
+              <label className="form-label mb-2">{t("export.format")}</label>
               <div className="flex gap-3">
                 {options.map((opt) => (
                   <button
@@ -217,7 +218,7 @@ export function ExportSettingsModal({
                     aria-pressed={format === opt.value}
                   >
                     <opt.Icon size={18} />
-                    <span className="font-medium text-sm">{opt.label}</span>
+                    <span className="font-medium text-sm">{t(opt.labelKey)}</span>
                   </button>
                 ))}
               </div>
@@ -226,14 +227,14 @@ export function ExportSettingsModal({
             {/* Field Selection */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="form-label">{EXPORT_I18N["export.fields"]}</label>
+                <label className="form-label">{t("export.fields")}</label>
                 <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={selectAll}
                     className="text-xs text-[#FFD700] hover:underline"
                   >
-                    {EXPORT_I18N["export.fields.selectAll"]}
+                    {t("export.fields.selectAll")}
                   </button>
                   <span className="text-gray-600">|</span>
                   <button
@@ -241,7 +242,7 @@ export function ExportSettingsModal({
                     onClick={deselectAll}
                     className="text-xs text-gray-500 hover:underline"
                   >
-                    {EXPORT_I18N["export.fields.deselectAll"]}
+                    {t("export.fields.deselectAll")}
                   </button>
                 </div>
               </div>
@@ -249,7 +250,7 @@ export function ExportSettingsModal({
                 {Object.entries(grouped).map(([category, fields]) => (
                   <div key={category}>
                     <p className="text-xs text-gray-500 uppercase tracking-wider mb-1.5">
-                      {CATEGORY_LABELS[category] ?? category}
+                      {t(CATEGORY_LABEL_KEYS[category] ?? category)}
                     </p>
                     <div className="grid grid-cols-2 gap-1">
                       {fields.map((field) => {
@@ -290,17 +291,17 @@ export function ExportSettingsModal({
                 ))}
               </div>
               {selectedFields.size === 0 && (
-                <p className="form-error mt-1">At least one field must be selected</p>
+                <p className="form-error mt-1">{t("export.fieldsRequired")}</p>
               )}
             </div>
 
             {/* Date Range */}
             <div>
-              <label className="form-label mb-2">{EXPORT_I18N["export.dateRange"]}</label>
+              <label className="form-label mb-2">{t("export.dateRange")}</label>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-gray-500 mb-1 block">
-                    {EXPORT_I18N["export.dateRange.from"]}
+                    {t("export.dateRange.from")}
                   </label>
                   <input
                     type="date"
@@ -312,7 +313,7 @@ export function ExportSettingsModal({
                 </div>
                 <div>
                   <label className="text-xs text-gray-500 mb-1 block">
-                    {EXPORT_I18N["export.dateRange.to"]}
+                    {t("export.dateRange.to")}
                   </label>
                   <input
                     type="date"
@@ -336,7 +337,7 @@ export function ExportSettingsModal({
                   className="accent-[#FFD700] w-4 h-4"
                   disabled={exporting}
                 />
-                <span className="text-sm text-gray-300">{EXPORT_I18N["export.audit"]}</span>
+                <span className="text-sm text-gray-300">{t("export.audit")}</span>
               </label>
 
               {/* Full export */}
@@ -354,7 +355,7 @@ export function ExportSettingsModal({
                       disabled={exporting}
                     />
                     <span className="text-sm text-yellow-400 font-medium">
-                      {EXPORT_I18N["export.fullExport"]}
+                      {t("export.fullExport")}
                     </span>
                   </label>
 
@@ -364,14 +365,14 @@ export function ExportSettingsModal({
                         <AlertTriangle size={16} className="text-yellow-400 mt-0.5 flex-shrink-0" />
                         <div>
                           <p className="text-xs text-yellow-300">
-                            {EXPORT_I18N["export.fullExport.warning"]}
+                            {t("export.fullExport.warning")}
                           </p>
                           <button
                             type="button"
                             onClick={() => setFullExportConfirmed(true)}
                             className="mt-2 text-xs font-semibold text-yellow-400 hover:text-yellow-300 underline"
                           >
-                            I understand, proceed with full export
+                            {t("export.fullExport.confirm")}
                           </button>
                         </div>
                       </div>
@@ -401,28 +402,28 @@ export function ExportSettingsModal({
             {showPreview && previewData && (
               <div className="bg-[#0d0d0d] border border-[#333] rounded-lg p-3">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-semibold text-white">Export Preview</p>
+                  <p className="text-sm font-semibold text-white">{t("export.preview.title")}</p>
                   <button
                     type="button"
                     onClick={() => setShowPreview(false)}
                     className="text-xs text-gray-500 hover:text-gray-300"
                   >
-                    Hide
+                    {t("export.preview.hide")}
                   </button>
                 </div>
 
                 {/* Metadata preview */}
                 <div className="mb-3 text-xs text-gray-500 space-y-0.5">
                   <p>
-                    Export ID:{" "}
+                    {t("export.preview.exportId")}:{" "}
                     <span className="text-gray-300">{previewData.metadata.exportId}</span>
                   </p>
                   <p>
-                    Records:{" "}
+                    {t("export.preview.records")}:{" "}
                     <span className="text-gray-300">{previewData.metadata.recordCount}</span>
                   </p>
                   <p>
-                    Checksum:{" "}
+                    {t("export.preview.checksum")}:{" "}
                     <span className="text-gray-300 font-mono">
                       {previewData.metadata.dataChecksum.slice(0, 24)}…
                     </span>
@@ -461,7 +462,7 @@ export function ExportSettingsModal({
                   </table>
                   {previewData.rows.length > 5 && (
                     <p className="text-xs text-gray-600 mt-1 text-center">
-                      …and {previewData.rows.length - 5} more rows
+                      {t("export.preview.moreRows", { count: String(previewData.rows.length - 5) })}
                     </p>
                   )}
                 </div>
@@ -480,18 +481,18 @@ export function ExportSettingsModal({
                 className="mr-auto"
               >
                 <Eye size={16} />
-                {previewLoading ? "Loading…" : EXPORT_I18N["export.preview"]}
+                {previewLoading ? t("export.loading") : t("export.preview")}
               </Button>
             )}
 
             {exporting && progress?.cancellable && onCancel && (
               <Button type="button" variant="danger" onClick={onCancel}>
-                {EXPORT_I18N["export.cancel"]}
+                {t("export.cancel")}
               </Button>
             )}
 
             <Button type="button" variant="secondary" onClick={onClose} disabled={exporting}>
-              {EXPORT_I18N["export.cancel"]}
+              {t("export.cancel")}
             </Button>
             <Button
               type="submit"
@@ -499,7 +500,7 @@ export function ExportSettingsModal({
               disabled={selectedFields.size === 0 || (fullExport && !fullExportConfirmed)}
             >
               {!exporting && <Download size={16} />}
-              {exporting ? EXPORT_I18N["export.exporting"] : EXPORT_I18N["export.download"]}
+              {exporting ? t("export.exporting") : t("export.download")}
             </Button>
           </div>
         </form>

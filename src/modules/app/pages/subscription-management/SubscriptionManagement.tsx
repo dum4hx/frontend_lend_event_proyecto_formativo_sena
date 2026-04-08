@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { CreditCard, Users, XCircle, ExternalLink, Download } from "lucide-react";
 import { StatCard } from "../../components";
 import { PageHeader } from "../../../../components/ui";
@@ -8,6 +8,9 @@ import {
   cancelSubscription,
   updateSeats,
   createCheckoutSession,
+  changePlan,
+  getPendingChanges,
+  cancelPendingChange,
 } from "../../../../services/billingService";
 import {
   getOrganizationUsage,
@@ -23,16 +26,16 @@ import { ErrorDisplay, AlertContainer, ConfirmDialog } from "../../../../compone
 import { normalizeError, logError } from "../../../../utils/errorHandling";
 import { ApiError } from "../../../../lib/api";
 import { useAlerts } from "../../../../hooks/useAlerts";
-import { useAuth } from "../../../../contexts/useAuth";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import { usePermissions } from "../../../../contexts/usePermissions";
 import Unauthorized from "../../../../pages/Unauthorized";
-import { ExportSettingsModal } from "../../../../components/export/ExportSettingsModal";
-import { exportService, BILLING_HISTORY_POLICY } from "../../../../services/export";
+import { getExportBillingHistory } from "../../../../services/reportExportService";
+import { exportTableToXLSX } from "../../../../utils/tableExport";
+import { buildBillingSummaryEntries } from "../reports/summaryBuilders";
+import { fetchAllPages } from "../reports/helpers";
 import { formatEventType, formatCurrency } from "./helpers";
 import BillingHistorySection from "./BillingHistorySection";
 import AvailablePlansGrid from "./AvailablePlansGrid";
-import type { ExportConfig, ExportProgress } from "../../../../types/export";
 import type {
   BillingHistoryEntry,
   AvailablePlan,
@@ -40,6 +43,11 @@ import type {
   PublicPlan,
   SubscriptionType,
   PlanCostResult,
+  PendingChange,
+  ExportBillingHistoryData,
+  ExportBillingHistoryRow,
+  ExportBillingHistoryParams,
+  ExportBillingHistorySummary,
 } from "../../../../types/api";
 
 export default function SubscriptionManagement() {
@@ -67,13 +75,13 @@ export default function SubscriptionManagement() {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelling, setCancelling] = useState(false);
 
-  // Export
-  const [exportOpen, setExportOpen] = useState(false);
-  const [exporting, setExporting] = useState(false);
-  const [exportProgress, setExportProgress] = useState<ExportProgress | undefined>();
-  const exportAbort = useRef<AbortController | null>(null);
+  // Pending plan change
+  const [pendingChange, setPendingChange] = useState<PendingChange | null>(null);
+  const [cancellingPendingChange, setCancellingPendingChange] = useState(false);
 
-  const { user } = useAuth();
+  // Export
+  const [exporting, setExporting] = useState(false);
+
   const { alerts, showAlert, dismissAlert } = useAlerts();
   const { hasPermission } = usePermissions();
 
@@ -147,9 +155,10 @@ export default function SubscriptionManagement() {
         getBillingHistory(50),
         getOrganizationUsage(),
         getOrganization(),
+        getPendingChanges(),
       ]);
 
-      const [histRes, usageRes, orgRes] = results;
+      const [histRes, usageRes, orgRes, pendingRes] = results;
 
       if (histRes.status === "fulfilled") {
         setHistory(histRes.value.data.history ?? []);
@@ -187,6 +196,16 @@ export default function SubscriptionManagement() {
           setSessionExpired(true);
         } else {
           setError(normalizeError(err).message);
+        }
+      }
+
+      if (pendingRes.status === "fulfilled") {
+        setPendingChange(pendingRes.value.data.pendingChange ?? null);
+      } else if (pendingRes.status === "rejected") {
+        const err = pendingRes.reason;
+        if (!(err instanceof ApiError && err.statusCode === 401)) {
+          // Non-auth errors are non-critical; just clear pending state
+          setPendingChange(null);
         }
       }
     } catch (err: unknown) {
@@ -247,22 +266,81 @@ export default function SubscriptionManagement() {
 
   const handleChangePlan = useCallback(
     async (planName: string) => {
-      try {
-        const successUrl = `${window.location.origin}/app/subscription`;
-        const cancelUrl = successUrl;
-        const result = await createCheckoutSession({
-          plan: planName,
-          seatCount: usage?.currentSeats ?? 1,
-          successUrl,
-          cancelUrl,
-        });
-        window.location.href = result.data.checkoutUrl;
-      } catch (err: unknown) {
-        showAlert("error", normalizeError(err).message);
+      const hasActiveSub = Boolean(organization?.subscription?.plan);
+
+      if (hasActiveSub) {
+        // Use the change-plan endpoint for existing subscribers
+        try {
+          const result = await changePlan({
+            plan: planName,
+            seatCount: usage?.currentSeats,
+          });
+
+          const displayName =
+            plans.find(
+              (p) =>
+                p.name === result.data.newPlan ||
+                p.name.toLowerCase() === result.data.newPlan.toLowerCase(),
+            )?.displayName ?? result.data.newPlan;
+
+          if (result.data.type === "upgrade") {
+            showAlert(
+              "success",
+              t("subscription.changePlan.upgradeSuccess", { plan: displayName }),
+            );
+          } else {
+            showAlert(
+              "info",
+              t("subscription.changePlan.downgradeScheduled", {
+                plan: displayName,
+                date: result.data.effectiveDate,
+              }),
+            );
+          }
+
+          await fetchData();
+        } catch (err: unknown) {
+          if (err instanceof ApiError && err.statusCode === 400) {
+            showAlert("warning", t("subscription.changePlan.samePlanError"));
+          } else {
+            showAlert("error", normalizeError(err).message);
+          }
+        }
+      } else {
+        // No active subscription — create checkout session
+        try {
+          const successUrl = `${window.location.origin}/app/subscription`;
+          const cancelUrl = successUrl;
+          const result = await createCheckoutSession({
+            plan: planName,
+            seatCount: usage?.currentSeats ?? 1,
+            successUrl,
+            cancelUrl,
+          });
+          window.location.href = result.data.checkoutUrl;
+        } catch (err: unknown) {
+          showAlert("error", normalizeError(err).message);
+        }
       }
     },
-    [usage?.currentSeats, showAlert],
+    [organization?.subscription?.plan, usage?.currentSeats, plans, showAlert, fetchData, t],
   );
+
+  // ─── Cancel Pending Change ──────────────────────────────────────────────
+
+  const handleCancelPendingChange = useCallback(async () => {
+    try {
+      setCancellingPendingChange(true);
+      await cancelPendingChange();
+      setPendingChange(null);
+      showAlert("success", t("subscription.pendingChange.cancelSuccess"));
+      await fetchData();
+    } catch (err: unknown) {
+      showAlert("error", normalizeError(err).message);
+    } finally {
+      setCancellingPendingChange(false);
+    }
+  }, [showAlert, fetchData, t]);
 
   // ─── Plan Cost Preview ─────────────────────────────────────────────────────
 
@@ -276,85 +354,67 @@ export default function SubscriptionManagement() {
 
   // ─── Export ────────────────────────────────────────────────────────────────
 
-  const buildExportRows = useCallback(
-    (entries: BillingHistoryEntry[]): Record<string, unknown>[] =>
-      entries.map((e) => ({
-        id: e._id,
-        eventType: formatEventType(e.eventType),
-        newPlan: e.newPlan ?? "",
-        seatChange: e.seatChange ?? "",
-        amount: e.amount != null ? e.amount / 100 : "",
-        currency: e.currency.toUpperCase(),
-        processed: e.processed
+  const handleExportXLSX = useCallback(async () => {
+    setExporting(true);
+    try {
+      const { rows: allRows, summary } = await fetchAllPages<
+        ExportBillingHistoryData,
+        ExportBillingHistoryRow,
+        ExportBillingHistoryParams,
+        ExportBillingHistorySummary
+      >(
+        getExportBillingHistory,
+        {},
+        (d) => d.rows,
+        (d) => d.summary,
+      );
+
+      if (allRows.length === 0) {
+        showAlert("warning", t("subscription.export.noHistory"));
+        return;
+      }
+
+      const headers = [
+        t("subscription.export.col.eventType"),
+        t("subscription.export.col.amount"),
+        t("subscription.export.col.currency"),
+        t("subscription.export.col.previousPlan"),
+        t("subscription.export.col.newPlan"),
+        t("subscription.export.col.seatChange"),
+        t("subscription.export.col.processed"),
+        t("subscription.export.col.date"),
+      ];
+
+      const rows = allRows.map((r) => ({
+        [headers[0]]: formatEventType(r.eventType),
+        [headers[1]]: r.amount != null ? r.amount / 100 : "",
+        [headers[2]]: r.currency.toUpperCase(),
+        [headers[3]]: r.previousPlan ?? "",
+        [headers[4]]: r.newPlan ?? "",
+        [headers[5]]: r.seatChange ?? "",
+        [headers[6]]: r.processed
           ? t("subscription.export.processedYes")
           : t("subscription.export.processedNo"),
-        createdAt: e.createdAt,
-      })),
-    [t],
-  );
+        [headers[7]]: r.createdAt,
+      }));
 
-  const handleExport = useCallback(
-    async (config: ExportConfig) => {
-      const abort = new AbortController();
-      exportAbort.current = abort;
-      setExporting(true);
-      setExportProgress(undefined);
+      const fmtCur = (cents: number, cur: string) =>
+        formatCurrency(cents, cur, locale);
 
-      try {
-        const freshRes = await getBillingHistory(500);
-        const rawData = buildExportRows(freshRes.data.history ?? []);
+      const summaryEntries = summary
+        ? buildBillingSummaryEntries(summary, t, fmtCur, language as "en" | "es")
+        : undefined;
 
-        if (rawData.length === 0) {
-          showAlert("warning", t("subscription.export.noHistory"));
-          return;
-        }
+      const date = new Date().toISOString().slice(0, 10);
+      exportTableToXLSX({ headers, rows }, `billing_history_${date}.xlsx`, summaryEntries);
 
-        const result = await exportService.export(
-          rawData,
-          config,
-          user?._id ?? "anonymous",
-          (p) => setExportProgress(p),
-          abort.signal,
-        );
-
-        if (result.status === "success") {
-          showAlert(
-            "success",
-            t("subscription.export.success", {
-              count: result.metadata.recordCount,
-              filename: result.filename,
-            }),
-          );
-          setExportOpen(false);
-        } else if (result.status === "cancelled") {
-          showAlert("info", result.reason);
-        } else {
-          showAlert("error", result.error);
-        }
-      } catch (err: unknown) {
-        showAlert("error", normalizeError(err).message);
-      } finally {
-        setExporting(false);
-        setExportProgress(undefined);
-        exportAbort.current = null;
-      }
-    },
-    [buildExportRows, user?._id, showAlert, t],
-  );
-
-  const handleExportPreview = useCallback(
-    async (config: ExportConfig) => {
-      const freshRes = await getBillingHistory(500);
-      const rawData = buildExportRows(freshRes.data.history ?? []);
-      if (rawData.length === 0) return undefined;
-      return exportService.preview(rawData, config, user?._id ?? "anonymous");
-    },
-    [buildExportRows, user?._id],
-  );
-
-  const handleCancelExport = useCallback(() => {
-    exportAbort.current?.abort();
-  }, []);
+      showAlert("success", t("subscription.export.success", { count: allRows.length, filename: `billing_history_${date}.xlsx` }));
+    } catch (err: unknown) {
+      showAlert("error", normalizeError(err).message);
+    } finally {
+      setExporting(false);
+    }
+  }, [showAlert, t, locale, language]);
 
   // ─── Derived stats ─────────────────────────────────────────────────────────
 
@@ -415,29 +475,15 @@ export default function SubscriptionManagement() {
         isLoading={cancelling}
       />
 
-      {/* Export Modal */}
-      <ExportSettingsModal
-        isOpen={exportOpen}
-        onClose={() => setExportOpen(false)}
-        onExport={(config) => void handleExport(config)}
-        onPreview={handleExportPreview}
-        module="billing-history"
-        policy={BILLING_HISTORY_POLICY}
-        allowedFormats={["xlsx"]}
-        exporting={exporting}
-        progress={exportProgress}
-        onCancel={handleCancelExport}
-      />
-
       <div data-help-id="subscription-title">
         <PageHeader
           title={t("subscription.title")}
           subtitle={t("subscription.subtitle")}
           actions={
             <button
-              onClick={() => setExportOpen(true)}
+              onClick={() => void handleExportXLSX()}
               className="export-btn w-full sm:w-auto flex items-center justify-center gap-2"
-              disabled={history.length === 0}
+              disabled={history.length === 0 || exporting}
             >
               <Download size={18} />
               {t("subscription.exportHistory")}
@@ -555,7 +601,46 @@ export default function SubscriptionManagement() {
                 onChangePlan={(p) => void handleChangePlan(p)}
                 currentSeats={usage?.currentSeats}
                 onCalculateCost={handleCalculateCost}
+                hasActiveSubscription={Boolean(organization?.subscription?.plan)}
+                pendingPlan={pendingChange?.pendingPlan}
               />
+            </div>
+          )}
+
+          {/* Pending Plan Change — owner only */}
+          {isOwner && pendingChange && (
+            <div
+              data-help-id="subscription-pending-change"
+              className="bg-[#121212] border border-amber-700/50 rounded-xl p-6 mb-8"
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <h2 className="text-lg font-bold text-amber-400 mb-1">
+                    {t("subscription.pendingChange.title")}
+                  </h2>
+                  <p className="text-gray-400 text-sm">
+                    {t("subscription.pendingChange.description", {
+                      plan:
+                        plans.find(
+                          (p) =>
+                            p.name === pendingChange.pendingPlan ||
+                            p.name.toLowerCase() === pendingChange.pendingPlan.toLowerCase(),
+                        )?.displayName ?? pendingChange.pendingPlan,
+                      date: pendingChange.effectiveDate,
+                    })}
+                  </p>
+                </div>
+                <button
+                  onClick={() => void handleCancelPendingChange()}
+                  disabled={cancellingPendingChange}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-medium shrink-0 danger-action-btn disabled:opacity-40"
+                >
+                  <XCircle size={16} />
+                  {cancellingPendingChange
+                    ? t("subscription.pendingChange.cancelling")
+                    : t("subscription.pendingChange.cancelButton")}
+                </button>
+              </div>
             </div>
           )}
 

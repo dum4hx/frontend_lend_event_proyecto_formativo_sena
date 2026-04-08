@@ -1030,6 +1030,27 @@ export interface CancelSubscriptionPayload {
   cancelImmediately?: boolean;
 }
 
+export interface ChangePlanPayload {
+  plan: string;
+  seatCount?: number;
+}
+
+export interface ChangePlanResult {
+  type: "upgrade" | "downgrade";
+  effectiveDate: string;
+  previousPlan: string;
+  newPlan: string;
+}
+
+export interface PendingChange {
+  pendingPlan: string;
+  effectiveDate: string;
+}
+
+export interface PendingChangeData {
+  pendingChange: PendingChange | null;
+}
+
 // ─── Admin Analytics ───────────────────────────────────────────────────────
 
 export interface PlatformOverview {
@@ -2166,6 +2187,7 @@ export interface ExportBaseQueryParams {
   includeIds?: boolean;
   page?: number;
   limit?: number;
+  [key: string]: unknown;
 }
 
 /** Standard pagination object returned by export endpoints. */
@@ -2504,6 +2526,179 @@ export interface ExportTransfersData {
   rows: ExportTransferRow[];
   pagination: ExportPagination;
   summary?: ExportTransfersSummary;
+}
+
+// ── Customers (/reports/exports/customers) ─────────────────────────────────
+
+export interface ExportCustomersParams extends ExportBaseQueryParams {
+  status?: string;
+}
+
+export interface ExportCustomersRow {
+  customerId?: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  documentType: string;
+  documentNumber: string;
+  status: string;
+  createdAt: string;
+}
+
+export interface ExportCustomersPeriodComparison {
+  currentCustomers: number;
+  previousCustomers: number;
+  percentChange: number;
+}
+
+export interface ExportCustomersSummary {
+  totalCustomers: number;
+  activeRate: number;
+  customersByStatus: Array<{ status: string; count: number }>;
+  periodComparison?: ExportCustomersPeriodComparison;
+}
+
+export interface ExportCustomersData {
+  rows: ExportCustomersRow[];
+  pagination: ExportPagination;
+  summary?: ExportCustomersSummary;
+}
+
+// ── Locations (/reports/exports/locations) ─────────────────────────────────
+
+export interface ExportLocationsParams extends ExportBaseQueryParams {
+  status?: string;
+}
+
+export interface ExportLocationsRow {
+  locationId?: string;
+  name: string;
+  organizationName: string;
+  status: string;
+  city: string;
+  department: string;
+  address: string;
+}
+
+export interface ExportLocationsPeriodComparison {
+  currentLocations: number;
+  previousLocations: number;
+  percentChange: number;
+}
+
+export interface ExportLocationsSummary {
+  totalLocations: number;
+  locationsByStatus: Array<{ status: string; count: number }>;
+  periodComparison?: ExportLocationsPeriodComparison;
+}
+
+export interface ExportLocationsData {
+  rows: ExportLocationsRow[];
+  pagination: ExportPagination;
+  summary?: ExportLocationsSummary;
+}
+
+// ── Loan Requests (/reports/exports/loan-requests) ─────────────────────────
+
+export interface ExportRequestsParams extends ExportBaseQueryParams {
+  status?: string;
+}
+
+export interface ExportRequestsRow {
+  requestId?: string;
+  code: string;
+  customerName: string;
+  status: string;
+  startDate: string;
+  endDate: string;
+  itemCount: number;
+  totalAmount: number;
+}
+
+export interface ExportRequestsPeriodComparison {
+  currentRequests: number;
+  previousRequests: number;
+  percentChange: number;
+}
+
+export interface ExportRequestsSummary {
+  totalRequests: number;
+  approvalRate: number;
+  requestsByStatus: Array<{ status: string; count: number }>;
+  periodComparison?: ExportRequestsPeriodComparison;
+}
+
+export interface ExportRequestsData {
+  rows: ExportRequestsRow[];
+  pagination: ExportPagination;
+  summary?: ExportRequestsSummary;
+}
+
+// ── Billing History (/reports/exports/billing-history) ─────────────────────
+
+export interface ExportBillingHistoryParams extends ExportBaseQueryParams {
+  eventType?: string;
+}
+
+export interface ExportBillingHistoryRow {
+  eventType: string;
+  amount: number | null;
+  currency: string;
+  previousPlan: string | null;
+  newPlan: string | null;
+  seatChange: number | null;
+  processed: boolean;
+  error: string | null;
+  createdAt: string;
+}
+
+export interface ExportBillingHistoryCurrentSubscription {
+  plan: string;
+  seatCount: number;
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
+  cancelAtPeriodEnd: boolean;
+  pendingPlan: string | null;
+  pendingPlanEffectiveDate: string | null;
+}
+
+export interface ExportBillingHistoryPeriodComparison {
+  currentEvents: number;
+  previousEvents: number;
+  eventsPercentChange: number;
+  currentAmountPaid: number;
+  previousAmountPaid: number;
+  amountPercentChange: number;
+}
+
+export interface ExportBillingHistorySummary {
+  totalEvents: number;
+  eventsByType: Array<{ eventType: string; count: number }>;
+  eventsByMonth: Array<{ year: number; month: number; count: number; totalAmount: number }>;
+  paymentSummary: Array<{
+    currency: string;
+    totalPaid: number;
+    paymentCount: number;
+    averagePayment: number;
+  }>;
+  paymentSuccessRate: number;
+  failedPaymentCount: number;
+  planChangeHistory: Array<{
+    eventType: string;
+    previousPlan: string;
+    newPlan: string;
+    seatChange: number;
+    createdAt: string;
+  }>;
+  periodComparison?: ExportBillingHistoryPeriodComparison;
+}
+
+export interface ExportBillingHistoryData {
+  currentSubscription: ExportBillingHistoryCurrentSubscription;
+  rows: ExportBillingHistoryRow[];
+  pagination: ExportPagination;
+  summary?: ExportBillingHistorySummary;
 }
 
 // ─── Location Operations (Warehouse Operator Dashboard) ────────────────────

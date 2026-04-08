@@ -373,14 +373,14 @@ export const MaterialInstanceCatalog: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#121212] p-8">
+      <div className="min-h-screen bg-[#121212] p-4 sm:p-6 lg:p-8">
         <div className="max-w-7xl mx-auto animate-pulse">
-          <div className="mb-8 space-y-3">
+          <div className="mb-6 sm:mb-8 space-y-3">
             <div className="h-9 w-72 rounded bg-[#262626]" />
             <div className="h-4 w-96 rounded bg-[#222]" />
           </div>
           <div className="mb-6 h-14 rounded-lg bg-[#1a1a1a] border border-[#333]" />
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
             <div className="h-28 rounded-lg bg-[#1a1a1a] border border-[#333]" />
             <div className="h-28 rounded-lg bg-[#1a1a1a] border border-[#333]" />
             <div className="h-28 rounded-lg bg-[#1a1a1a] border border-[#333]" />
@@ -398,7 +398,7 @@ export const MaterialInstanceCatalog: React.FC = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-[#121212] p-8 flex items-center justify-center">
+      <div className="min-h-screen bg-[#121212] p-4 sm:p-6 lg:p-8 flex items-center justify-center">
         <div className="bg-[#1a1a1a] border border-red-900/70 rounded-xl p-6 max-w-lg w-full">
           <h2 className="text-xl font-semibold text-red-300 mb-2">
             {t("materialInstances.errorLoad")}
@@ -429,20 +429,19 @@ export const MaterialInstanceCatalog: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#121212] p-8">
+    <div className="min-h-screen bg-[#121212] p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div data-help-id="material-instances-title" className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">{t("materialInstances.title")}</h1>
-          <p className="text-gray-400">{t("materialInstances.description")}</p>
+        <div data-help-id="material-instances-title" className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">
+            {t("materialInstances.title")}
+          </h1>
+          <p className="text-sm sm:text-base text-gray-400">{t("materialInstances.description")}</p>
         </div>
 
         {/* Actions Bar */}
-        <div
-          data-help-id="material-instances-actions"
-          className="flex flex-col sm:flex-row gap-4 mb-6"
-        >
-          <div className="flex-1 relative">
+        <div data-help-id="material-instances-actions" className="flex flex-col gap-4 mb-6">
+          <div className="relative">
             <label htmlFor={searchInputId} className="sr-only">
               {t("materialInstances.searchLabel")}
             </label>
@@ -459,34 +458,38 @@ export const MaterialInstanceCatalog: React.FC = () => {
               className="w-full pl-12 pr-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#FFD700]"
             />
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
             <button
               type="button"
               onClick={() => setShowBarcodePreview((prev) => !prev)}
-              className="flex items-center gap-2 px-4 py-3 rounded-lg border border-[#333] bg-[#1a1a1a] text-gray-300 transition-colors hover:bg-[#202020] hover:text-white"
+              className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg border border-[#333] bg-[#1a1a1a] text-gray-300 transition-colors hover:bg-[#202020] hover:text-white text-sm sm:text-base"
             >
               <Eye size={18} />
-              {showBarcodePreview
-                ? t("materialInstances.hideBarcodes")
-                : t("materialInstances.showBarcodes")}
+              <span className="hidden sm:inline">
+                {showBarcodePreview
+                  ? t("materialInstances.hideBarcodes")
+                  : t("materialInstances.showBarcodes")}
+              </span>
             </button>
             <button
               type="button"
               onClick={() => handleOpenBarcodePrintModal(filteredInstances)}
               disabled={filteredInstances.length === 0}
-              className="flex items-center gap-2 px-4 py-3 rounded-lg border border-[#FFD700]/35 bg-[#FFD700]/8 text-[#FFD700] font-semibold transition-colors hover:bg-[#FFD700]/14 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg border border-[#FFD700]/35 bg-[#FFD700]/8 text-[#FFD700] font-semibold transition-colors hover:bg-[#FFD700]/14 disabled:cursor-not-allowed disabled:opacity-50 text-sm sm:text-base"
             >
               <Printer size={18} />
-              {t("materialInstances.printBarcodes")}
+              <span className="hidden sm:inline">{t("materialInstances.printBarcodes")}</span>
             </button>
             <button
               type="button"
               onClick={() => handleOpenBarcodePrintModal(selectedInstances)}
               disabled={selectedInstances.length === 0}
-              className="flex items-center gap-2 px-4 py-3 rounded-lg border border-[#333] bg-[#1a1a1a] text-gray-300 transition-colors hover:bg-[#202020] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg border border-[#333] bg-[#1a1a1a] text-gray-300 transition-colors hover:bg-[#202020] hover:text-white disabled:cursor-not-allowed disabled:opacity-50 text-sm sm:text-base"
             >
               <Printer size={18} />
-              {t("materialInstances.printSelected", { count: selectedInstances.length })}
+              <span className="hidden sm:inline">
+                {t("materialInstances.printSelected", { count: selectedInstances.length })}
+              </span>
             </button>
             <ExcelExportImport
               data={exportRows}
@@ -503,7 +506,7 @@ export const MaterialInstanceCatalog: React.FC = () => {
             <button
               onClick={guard("materials:create", handleOpenCreateModal)}
               aria-disabled={!isAllowed("materials:create")}
-              className={`flex items-center gap-2 px-6 py-3 font-semibold rounded-lg transition-colors whitespace-nowrap gold-action-btn ${!isAllowed("materials:create") ? "opacity-50 cursor-not-allowed" : ""}`}
+              className={`flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 font-semibold rounded-lg transition-colors whitespace-nowrap gold-action-btn col-span-2 sm:col-span-1 text-sm sm:text-base ${!isAllowed("materials:create") ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               <Plus size={20} />
               {t("materialInstances.newInstance")}
@@ -514,7 +517,7 @@ export const MaterialInstanceCatalog: React.FC = () => {
         {/* Barcode Scanner */}
         <div
           data-help-id="material-instances-scanner"
-          className="bg-[#1a1a1a] border border-[#333] rounded-lg p-5 mb-6 space-y-4"
+          className="bg-[#1a1a1a] border border-[#333] rounded-lg p-3 sm:p-5 mb-6 space-y-3 sm:space-y-4"
         >
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div className="flex items-center gap-2">
@@ -615,7 +618,7 @@ export const MaterialInstanceCatalog: React.FC = () => {
         {/* Stats */}
         <div
           data-help-id="material-instances-stats"
-          className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6"
+          className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6"
         >
           <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-6">
             <p className="text-gray-400 text-sm mb-1">{t("materialInstances.totalInstances")}</p>

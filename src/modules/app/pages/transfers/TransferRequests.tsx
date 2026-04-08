@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
-  ArrowLeftRight,
   CheckCircle,
   ChevronDown,
   CircleDashed,
@@ -347,14 +346,15 @@ export function TransferRequests() {
           >
             <Eye size={12} />
           </button>
-          <button
-            onClick={guard("transfers:create", () => setShipmentTarget(req))}
-            aria-disabled={!isAllowed("transfers:create")}
-            className={`flex items-center gap-1 px-2.5 h-7 bg-[#FFD700]/15 hover:bg-[#FFD700]/25 text-[#FFD700] border border-[#FFD700]/30 rounded text-xs font-medium transition-all ${!isAllowed("transfers:create") ? "opacity-50 cursor-not-allowed" : ""}`}
-          >
-            <Truck size={12} />
-            {isEs ? "Iniciar Envío" : "Initiate Shipment"}
-          </button>
+          {isAllowed("transfers:send") && userLocations.includes(req.fromLocationId) && (
+            <button
+              onClick={() => setShipmentTarget(req)}
+              className="flex items-center gap-1 px-2.5 h-7 bg-[#FFD700]/15 hover:bg-[#FFD700]/25 text-[#FFD700] border border-[#FFD700]/30 rounded text-xs font-medium transition-all"
+            >
+              <Truck size={12} />
+              {isEs ? "Iniciar Envío" : "Initiate Shipment"}
+            </button>
+          )}
         </div>
       );
     }
@@ -522,7 +522,8 @@ export function TransferRequests() {
                   <table className="w-full text-left text-sm">
                     <thead>
                       <tr className="border-b border-[#1a1a1a] text-xs text-gray-500 uppercase tracking-wider">
-                        <th className="px-4 py-3">{isEs ? "Ruta" : "Route"}</th>
+                        <th className="px-4 py-3">{isEs ? "Solicitante" : "Requester"}</th>
+                        <th className="px-4 py-3">{isEs ? "Origen" : "Source"}</th>
                         <th className="px-4 py-3">{isEs ? "Artículos" : "Items"}</th>
                         <th className="px-4 py-3">{isEs ? "Estado" : "Status"}</th>
                         <th className="px-4 py-3">{isEs ? "Notas" : "Notes"}</th>
@@ -534,21 +535,20 @@ export function TransferRequests() {
                       {requests.map((req) => (
                         <tr key={req._id} className="hover:bg-white/3 transition-colors group">
                           <td className="px-4 py-3">
-                            <div className="flex items-center gap-2">
-                              <EntityLink
-                                entityType="location"
-                                entityId={req.fromLocationId}
-                                label={locationName(req.fromLocationId)}
-                                className="font-medium whitespace-nowrap"
-                              />
-                              <ArrowLeftRight size={14} className="text-[#FFD700] shrink-0" />
-                              <EntityLink
-                                entityType="location"
-                                entityId={req.toLocationId}
-                                label={locationName(req.toLocationId)}
-                                className="whitespace-nowrap"
-                              />
-                            </div>
+                            <EntityLink
+                              entityType="location"
+                              entityId={req.toLocationId}
+                              label={locationName(req.toLocationId)}
+                              className="font-medium whitespace-nowrap"
+                            />
+                          </td>
+                          <td className="px-4 py-3">
+                            <EntityLink
+                              entityType="location"
+                              entityId={req.fromLocationId}
+                              label={locationName(req.fromLocationId)}
+                              className="whitespace-nowrap"
+                            />
                           </td>
                           <td className="px-4 py-3 text-gray-400 whitespace-nowrap">
                             {req.items.length} {isEs ? "tipo(s)" : "type(s)"}
@@ -637,7 +637,8 @@ export function TransferRequests() {
                   <table className="w-full text-left text-sm">
                     <thead>
                       <tr className="border-b border-[#1a1a1a] text-xs text-gray-500 uppercase tracking-wider">
-                        <th className="px-4 py-3">{isEs ? "Ruta" : "Route"}</th>
+                        <th className="px-4 py-3">{isEs ? "Solicitante" : "Requester"}</th>
+                        <th className="px-4 py-3">{isEs ? "Origen" : "Source"}</th>
                         <th className="px-4 py-3">{isEs ? "Artículos" : "Items"}</th>
                         <th className="px-4 py-3">{isEs ? "Estado" : "Status"}</th>
                         <th className="px-4 py-3">
@@ -651,21 +652,20 @@ export function TransferRequests() {
                       {transfers.map((tr) => (
                         <tr key={tr._id} className="hover:bg-white/3 transition-colors">
                           <td className="px-4 py-3">
-                            <div className="flex items-center gap-2">
-                              <EntityLink
-                                entityType="location"
-                                entityId={tr.fromLocationId}
-                                label={locationName(tr.fromLocationId)}
-                                className="font-medium whitespace-nowrap"
-                              />
-                              <ArrowLeftRight size={14} className="text-[#FFD700] shrink-0" />
-                              <EntityLink
-                                entityType="location"
-                                entityId={tr.toLocationId}
-                                label={locationName(tr.toLocationId)}
-                                className="whitespace-nowrap"
-                              />
-                            </div>
+                            <EntityLink
+                              entityType="location"
+                              entityId={tr.toLocationId}
+                              label={locationName(tr.toLocationId)}
+                              className="font-medium whitespace-nowrap"
+                            />
+                          </td>
+                          <td className="px-4 py-3">
+                            <EntityLink
+                              entityType="location"
+                              entityId={tr.fromLocationId}
+                              label={locationName(tr.fromLocationId)}
+                              className="whitespace-nowrap"
+                            />
                           </td>
                           <td className="px-4 py-3 text-gray-400">
                             {tr.items.length} {isEs ? "artículo(s)" : "item(s)"}
@@ -691,16 +691,17 @@ export function TransferRequests() {
                               >
                                 <Eye size={12} />
                               </button>
-                              {tr.status === "in_transit" && (
-                                <button
-                                  onClick={guard("transfers:update", () => setReceiveTarget(tr))}
-                                  aria-disabled={!isAllowed("transfers:update")}
-                                  className={`flex items-center gap-1 px-2.5 h-7 bg-green-700/20 hover:bg-green-600/30 text-green-400 hover:text-green-300 border border-green-700/30 rounded text-xs font-medium transition-all ${!isAllowed("transfers:update") ? "opacity-50 cursor-not-allowed" : ""}`}
-                                >
-                                  <CheckCircle size={12} />
-                                  {isEs ? "Recibir" : "Receive"}
-                                </button>
-                              )}
+                              {tr.status === "in_transit" &&
+                                isAllowed("transfers:receive") &&
+                                userLocations.includes(tr.toLocationId) && (
+                                  <button
+                                    onClick={guard("transfers:receive", () => setReceiveTarget(tr))}
+                                    className="flex items-center gap-1 px-2.5 h-7 bg-green-700/20 hover:bg-green-600/30 text-green-400 hover:text-green-300 border border-green-700/30 rounded text-xs font-medium transition-all"
+                                  >
+                                    <CheckCircle size={12} />
+                                    {isEs ? "Recibir" : "Receive"}
+                                  </button>
+                                )}
                             </div>
                           </td>
                         </tr>
@@ -755,10 +756,14 @@ export function TransferRequests() {
           <ShipmentDetailModal
             shipment={viewShipmentTarget}
             locationName={locationName}
-            onReceive={() => {
+            canReceive={
+              isAllowed("transfers:receive") &&
+              userLocations.includes(viewShipmentTarget.toLocationId)
+            }
+            onReceive={guard("transfers:receive", () => {
               setReceiveTarget(viewShipmentTarget);
               setViewShipmentTarget(null);
-            }}
+            })}
             onClose={() => setViewShipmentTarget(null)}
           />
         )}

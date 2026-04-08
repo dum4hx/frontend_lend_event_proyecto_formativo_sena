@@ -1298,6 +1298,8 @@ interface ShipmentDetailModalProps {
   locationName: (id: string) => string;
   onClose: () => void;
   onReceive?: () => void;
+  /** Whether the current user has `transfers:receive` permission */
+  canReceive?: boolean;
 }
 
 /**
@@ -1310,6 +1312,7 @@ export const ShipmentDetailModal: React.FC<ShipmentDetailModalProps> = ({
   locationName,
   onClose,
   onReceive,
+  canReceive = true,
 }) => {
   const { language } = useLanguage();
   const isEs = language === "es";
@@ -1534,7 +1537,8 @@ export const ShipmentDetailModal: React.FC<ShipmentDetailModalProps> = ({
           {onReceive && shipment.status === "in_transit" && (
             <button
               onClick={onReceive}
-              className="px-5 py-2.5 bg-blue-700/20 hover:bg-blue-600/30 text-blue-400 hover:text-blue-300 border border-blue-700/30 rounded-lg text-sm font-medium transition-all"
+              aria-disabled={!canReceive}
+              className={`px-5 py-2.5 bg-blue-700/20 hover:bg-blue-600/30 text-blue-400 hover:text-blue-300 border border-blue-700/30 rounded-lg text-sm font-medium transition-all ${!canReceive ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               {isEs ? "Marcar como Recibido" : "Mark as Received"}
             </button>

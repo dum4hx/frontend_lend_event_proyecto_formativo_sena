@@ -18,6 +18,14 @@ import type {
   ExportDamagesData,
   ExportTransfersParams,
   ExportTransfersData,
+  ExportBillingHistoryParams,
+  ExportBillingHistoryData,
+  ExportCustomersParams,
+  ExportCustomersData,
+  ExportLocationsParams,
+  ExportLocationsData,
+  ExportRequestsParams,
+  ExportRequestsData,
 } from "../types/api";
 
 type QueryRecord = Record<string, string | number | boolean | undefined>;
@@ -78,6 +86,46 @@ export async function getExportTransfers(
 ): Promise<ApiSuccessResponse<ExportTransfersData>> {
   return get<ExportTransfersData>(
     "/reports/exports/transfers",
+    toQueryRecord({ includeIds: false, ...params }),
+  );
+}
+
+/** Fetch billing history export. */
+export async function getExportBillingHistory(
+  params: ExportBillingHistoryParams = {},
+): Promise<ApiSuccessResponse<ExportBillingHistoryData>> {
+  return get<ExportBillingHistoryData>(
+    "/reports/exports/billing-history",
+    toQueryRecord({ includeIds: false, ...params }),
+  );
+}
+
+/** Fetch customers export. */
+export async function getExportCustomers(
+  params: ExportCustomersParams = {},
+): Promise<ApiSuccessResponse<ExportCustomersData>> {
+  return get<ExportCustomersData>(
+    "/reports/exports/customers",
+    toQueryRecord({ includeIds: false, ...params }),
+  );
+}
+
+/** Fetch locations export. */
+export async function getExportLocations(
+  params: ExportLocationsParams = {},
+): Promise<ApiSuccessResponse<ExportLocationsData>> {
+  return get<ExportLocationsData>(
+    "/reports/exports/locations",
+    toQueryRecord({ includeIds: false, ...params }),
+  );
+}
+
+/** Fetch loan requests export. */
+export async function getExportRequests(
+  params: ExportRequestsParams = {},
+): Promise<ApiSuccessResponse<ExportRequestsData>> {
+  return get<ExportRequestsData>(
+    "/reports/exports/loan-requests",
     toQueryRecord({ includeIds: false, ...params }),
   );
 }

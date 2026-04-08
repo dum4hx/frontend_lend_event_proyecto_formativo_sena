@@ -22,6 +22,9 @@ import type {
   ExportInventoryData,
   ExportDamagesData,
   ExportTransfersData,
+  ExportCustomersData,
+  ExportLocationsData,
+  ExportRequestsData,
 } from "../../../../types/api";
 
 export type {
@@ -48,6 +51,9 @@ export type {
   ExportInventoryData,
   ExportDamagesData,
   ExportTransfersData,
+  ExportCustomersData,
+  ExportLocationsData,
+  ExportRequestsData,
 };
 
 export type { WarehouseLocation } from "../../../../services/warehouseOperatorService";

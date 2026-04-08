@@ -18,10 +18,7 @@ import {
 } from "lucide-react";
 import { StatCard } from "../../components";
 import { PageHeader } from "../../../../components/ui";
-import { getCustomers } from "../../../../services/customerService";
-import { getRequests } from "../../../../services/loanService";
 import { getUsers } from "../../../../services/userService";
-import { getLocations } from "../../../../services/warehouseOperatorService";
 import { commercialAdvisorService } from "../../../../services/commercialAdvisorService";
 import {
   getExportLoanActivity,
@@ -29,6 +26,9 @@ import {
   getExportInventory,
   getExportDamages,
   getExportTransfers,
+  getExportCustomers,
+  getExportLocations,
+  getExportRequests,
 } from "../../../../services/reportExportService";
 import {
   useExportLoanActivity,
@@ -36,19 +36,25 @@ import {
   useExportInventory,
   useExportDamages,
   useExportTransfers,
+  useExportCustomers,
+  useExportLocations,
+  useExportRequests,
 } from "../../../../hooks/queries";
 import { ApiError } from "../../../../lib/api";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import { usePermissions } from "../../../../contexts/usePermissions";
 import Unauthorized from "../../../../pages/Unauthorized";
 import { exportTableToPDF, exportTableToXLSX } from "../../../../utils/tableExport";
-import { PAGE_SIZE, fmtId, exportToCSVWithSummary, fetchAllPages, getReferenceId } from "./helpers";
+import { PAGE_SIZE, fmtId, exportToCSVWithSummary, fetchAllPages } from "./helpers";
 import {
   buildLoanSummaryEntries,
   buildSalesSummaryEntries,
   buildInventorySummaryEntries,
   buildDamagesSummaryEntries,
   buildTransfersSummaryEntries,
+  buildCustomersSummaryEntries,
+  buildLocationsSummaryEntries,
+  buildRequestsSummaryEntries,
 } from "./summaryBuilders";
 import {
   getCustomerStatusLabel,
@@ -77,20 +83,20 @@ import { ReportsFilters } from "./ReportsFilters";
 import { ReportsTable } from "./ReportsTable";
 import type { SummaryEntry } from "./helpers";
 import type { StatCardProps } from "../../../../components/ui/StatCard";
-import type {
-  ReportModule,
-  DateRange,
-  ModuleFilters,
-  ReportRow,
-  Customer,
-  LoanRequest,
-  WarehouseLocation,
-  Order,
-} from "./types";
+import type { ReportModule, DateRange, ModuleFilters, ReportRow, Order } from "./types";
 
 // ─── Constants ─────────────────────────────────────────────────────────────
 
-const API_TABS = new Set<ReportModule>(["loans", "financial", "inventory", "damages", "transfers"]);
+const API_TABS = new Set<ReportModule>([
+  "customers",
+  "requests",
+  "loans",
+  "financial",
+  "inventory",
+  "locations",
+  "damages",
+  "transfers",
+]);
 
 // ─── Main Component ────────────────────────────────────────────────────────
 
@@ -188,12 +194,9 @@ export default function Reports() {
   const [clientLoading, setClientLoading] = useState(false);
   const [clientError, setClientError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [requests, setRequests] = useState<LoanRequest[]>([]);
   const [teamMembers, setTeamMembers] = useState<
     Array<{ id: string; name: string; email: string; role: string; status: string }>
   >([]);
-  const [locations, setLocations] = useState<WarehouseLocation[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
 
   // ─── API-backed report hooks (new /reports/exports/* endpoints) ──────────
@@ -262,6 +265,35 @@ export default function Reports() {
     { enabled: activeModule === "transfers" },
   );
 
+  const customersQuery = useExportCustomers(
+    {
+      page,
+      limit: PAGE_SIZE,
+      status: filters.customers.status || undefined,
+    },
+    { enabled: activeModule === "customers" },
+  );
+
+  const locationsQuery = useExportLocations(
+    {
+      page,
+      limit: PAGE_SIZE,
+      status: filters.locations.status || undefined,
+    },
+    { enabled: activeModule === "locations" },
+  );
+
+  const requestsQuery = useExportRequests(
+    {
+      startDate: dateRange.from || undefined,
+      endDate: dateRange.to || undefined,
+      page,
+      limit: PAGE_SIZE,
+      status: filters.requests.status || undefined,
+    },
+    { enabled: activeModule === "requests" },
+  );
+
   // ─── Client-only tab fetch ──────────────────────────────────────────────
 
   const fetchClientData = useCallback(async () => {
@@ -270,22 +302,6 @@ export default function Reports() {
     setClientError(null);
     try {
       switch (activeModule) {
-        case "customers": {
-          const res = await getCustomers({
-            limit: 100,
-            status: filters.customers.status || undefined,
-          });
-          setCustomers(res.data.customers ?? []);
-          break;
-        }
-        case "requests": {
-          const res = await getRequests({
-            limit: 100,
-            status: filters.requests.status || undefined,
-          });
-          setRequests(res.data.requests ?? []);
-          break;
-        }
         case "team": {
           const res = await getUsers({ limit: 100 });
           const rawUsers = (res.data.users ?? []) as unknown as Array<{
@@ -313,11 +329,6 @@ export default function Reports() {
           );
           break;
         }
-        case "locations": {
-          const res = await getLocations({ limit: 100 });
-          setLocations(res.data.items ?? []);
-          break;
-        }
         case "orders": {
           const res = await commercialAdvisorService.getOrders();
           setOrders(res.data ?? []);
@@ -333,7 +344,7 @@ export default function Reports() {
     } finally {
       setClientLoading(false);
     }
-  }, [activeModule, filters, t]);
+  }, [activeModule, t]);
 
   useEffect(() => {
     if (!API_TABS.has(activeModule)) {
@@ -355,6 +366,12 @@ export default function Reports() {
         return damagesQuery;
       case "transfers":
         return transfersQuery;
+      case "customers":
+        return customersQuery;
+      case "locations":
+        return locationsQuery;
+      case "requests":
+        return requestsQuery;
       default:
         return null;
     }
@@ -388,12 +405,13 @@ export default function Reports() {
     };
 
     switch (activeModule) {
-      // ── Client-only tabs ─────────────────────────────────────────────
+      // ── API-backed tabs ────────────────────────────────────────────
 
       case "customers": {
+        const data = customersQuery.data;
+        if (!data) return { headers: [], rows: [] };
         return {
           headers: [
-            t("reports.col.id"),
             t("reports.col.firstName"),
             t("reports.col.lastName"),
             t("reports.col.email"),
@@ -401,41 +419,49 @@ export default function Reports() {
             t("reports.col.document"),
             t("reports.col.status"),
           ],
-          rows: customers.map((c) => ({
-            id: c._id,
+          rows: data.rows.map((c) => ({
+            id: c.customerId ?? c.email,
             columns: {
-              [t("reports.col.id")]: fmtId(c._id),
-              [t("reports.col.firstName")]: c.name.firstName,
-              [t("reports.col.lastName")]: c.name.firstSurname,
+              [t("reports.col.firstName")]: c.firstName,
+              [t("reports.col.lastName")]: c.lastName,
               [t("reports.col.email")]: c.email,
               [t("reports.col.phone")]: c.phone,
               [t("reports.col.document")]: `${c.documentType} ${c.documentNumber}`,
-              [t("reports.col.status")]: getCustomerStatusLabel(c.status as CustomerStatus, language),
+              [t("reports.col.status")]: getCustomerStatusLabel(
+                c.status as CustomerStatus,
+                language,
+              ),
             },
           })),
         };
       }
 
       case "requests": {
-        const filtered = requests.filter((r) => matchesDate(r.startDate));
+        const data = requestsQuery.data;
+        if (!data) return { headers: [], rows: [] };
         return {
           headers: [
-            t("reports.col.id"),
-            t("reports.col.customerId"),
+            t("reports.col.code"),
+            t("reports.col.customer"),
             t("reports.col.status"),
             t("reports.col.startDate"),
             t("reports.col.endDate"),
             t("reports.col.items"),
+            t("reports.col.totalAmount"),
           ],
-          rows: filtered.map((r) => ({
-            id: r._id,
+          rows: data.rows.map((r) => ({
+            id: r.requestId ?? r.code,
             columns: {
-              [t("reports.col.id")]: fmtId(r._id),
-              [t("reports.col.customerId")]: fmtId(getReferenceId(r.customerId)),
-              [t("reports.col.status")]: getLoanRequestStatusLabel(r.status as LoanRequestStatus, language),
+              [t("reports.col.code")]: r.code,
+              [t("reports.col.customer")]: r.customerName,
+              [t("reports.col.status")]: getLoanRequestStatusLabel(
+                r.status as LoanRequestStatus,
+                language,
+              ),
               [t("reports.col.startDate")]: fmtDate(r.startDate),
               [t("reports.col.endDate")]: fmtDate(r.endDate),
-              [t("reports.col.items")]: r.items?.length ? r.items.length.toString() : "—",
+              [t("reports.col.items")]: r.itemCount,
+              [t("reports.col.totalAmount")]: fmtCurrency(r.totalAmount),
             },
           })),
         };
@@ -468,13 +494,10 @@ export default function Reports() {
       }
 
       case "locations": {
-        const filtered = locations.filter((l) => {
-          if (filters.locations.status && l.status !== filters.locations.status) return false;
-          return true;
-        });
+        const data = locationsQuery.data;
+        if (!data) return { headers: [], rows: [] };
         return {
           headers: [
-            t("reports.col.id"),
             t("reports.col.name"),
             t("reports.col.organization"),
             t("reports.col.status"),
@@ -482,17 +505,18 @@ export default function Reports() {
             t("reports.col.department"),
             t("reports.col.address"),
           ],
-          rows: filtered.map((l) => ({
-            id: l._id,
+          rows: data.rows.map((l) => ({
+            id: l.locationId ?? l.name,
             columns: {
-              [t("reports.col.id")]: fmtId(l._id),
               [t("reports.col.name")]: l.name,
-              [t("reports.col.organization")]: fmtId(l.organizationId) || "—",
-              [t("reports.col.status")]: getLocationStatusLabel(l.status as LocationStatus, language),
-              [t("reports.col.city")]: l.address?.city || "—",
-              [t("reports.col.department")]: l.address?.department || "—",
-              [t("reports.col.address")]:
-                `${l.address?.streetType || ""} ${l.address?.primaryNumber || ""}`.trim() || "—",
+              [t("reports.col.organization")]: l.organizationName || "—",
+              [t("reports.col.status")]: getLocationStatusLabel(
+                l.status as LocationStatus,
+                language,
+              ),
+              [t("reports.col.city")]: l.city || "—",
+              [t("reports.col.department")]: l.department || "—",
+              [t("reports.col.address")]: l.address || "—",
             },
           })),
         };
@@ -595,7 +619,10 @@ export default function Reports() {
                 [t("reports.col.invoiceNumber")]: inv.invoiceNumber,
                 [t("reports.col.customer")]: inv.customerName,
                 [t("reports.col.type")]: getInvoiceTypeLabel(inv.type as InvoiceType, language),
-                [t("reports.col.status")]: getInvoiceStatusLabel(inv.status as InvoiceStatus, language),
+                [t("reports.col.status")]: getInvoiceStatusLabel(
+                  inv.status as InvoiceStatus,
+                  language,
+                ),
                 [t("reports.col.amount")]: fmtCurrency(inv.totalAmount),
                 [t("reports.col.amountPaid")]: fmtCurrency(inv.amountPaid),
                 [t("reports.col.amountDue")]: fmtCurrency(inv.amountDue),
@@ -688,7 +715,10 @@ export default function Reports() {
             columns: {
               [t("reports.col.batchNumber")]: b.batchNumber,
               [t("reports.col.name")]: b.name,
-              [t("reports.col.status")]: getMaintenanceBatchStatusLabel(b.status as MaintenanceBatchStatus, language),
+              [t("reports.col.status")]: getMaintenanceBatchStatusLabel(
+                b.status as MaintenanceBatchStatus,
+                language,
+              ),
               [t("reports.col.locationName")]: b.locationName,
               [t("reports.col.assignedTo")]: b.assignedTo,
               [t("reports.col.itemCount")]: b.itemCount,
@@ -720,7 +750,10 @@ export default function Reports() {
             columns: {
               [t("reports.col.from")]: tr.fromLocation,
               [t("reports.col.to")]: tr.toLocation,
-              [t("reports.col.status")]: getTransferStatusLabel(tr.status as TransferStatus, language),
+              [t("reports.col.status")]: getTransferStatusLabel(
+                tr.status as TransferStatus,
+                language,
+              ),
               [t("reports.col.items")]: tr.itemCount.toString(),
               [t("reports.col.pickedBy")]: tr.pickedBy || "—",
               [t("reports.col.receivedBy")]: tr.receivedBy || "—",
@@ -742,18 +775,17 @@ export default function Reports() {
     formatCurrency,
     language,
     dateRange,
-    customers,
-    requests,
     teamMembers,
-    locations,
     orders,
+    customersQuery.data,
+    requestsQuery.data,
+    locationsQuery.data,
     loansQuery.data,
     financialQuery.data,
     inventoryQuery.data,
     damagesQuery.data,
     transfersQuery.data,
     filters.team.status,
-    filters.locations.status,
     filters.orders.status,
     filters.financial.type,
     filters.financial.invoiceType,
@@ -765,53 +797,39 @@ export default function Reports() {
     const fmtCurrency = (val: number): string => formatCurrency(val, "COP");
 
     switch (activeModule) {
-      case "customers":
+      case "customers": {
+        const summary = customersQuery.data?.summary;
         return [
-          { label: t("reports.kpi.total"), value: customers.length, icon: <Users size={24} /> },
           {
-            label: t("reports.kpi.active"),
-            value: customers.filter((c) => c.status === "active").length,
+            label: t("reports.kpi.totalCustomers"),
+            value: summary?.totalCustomers ?? 0,
             icon: <Users size={24} />,
-            trend: t("reports.status.active"),
+          },
+          {
+            label: t("reports.kpi.activeRate"),
+            value: `${((summary?.activeRate ?? 0) * 100).toFixed(1)}%`,
+            icon: <Users size={24} />,
             trendUp: true,
           },
-          {
-            label: t("reports.kpi.inactive"),
-            value: customers.filter((c) => c.status === "inactive").length,
-            icon: <Users size={24} />,
-          },
-          {
-            label: t("reports.kpi.blacklisted"),
-            value: customers.filter((c) => c.status === "blacklisted").length,
-            icon: <Users size={24} />,
-          },
         ];
+      }
 
-      case "requests":
+      case "requests": {
+        const summary = requestsQuery.data?.summary;
         return [
           {
-            label: t("reports.kpi.total"),
-            value: requests.length,
+            label: t("reports.kpi.totalRequests"),
+            value: summary?.totalRequests ?? 0,
             icon: <ClipboardList size={24} />,
           },
           {
-            label: t("reports.kpi.pending"),
-            value: requests.filter((r) => r.status === "pending").length,
+            label: t("reports.kpi.approvalRate"),
+            value: `${((summary?.approvalRate ?? 0) * 100).toFixed(1)}%`,
             icon: <ClipboardList size={24} />,
-          },
-          {
-            label: t("reports.kpi.approved"),
-            value: requests.filter((r) => r.status === "approved").length,
-            icon: <ClipboardList size={24} />,
-            trend: t("reports.status.approved"),
             trendUp: true,
           },
-          {
-            label: t("reports.kpi.rejected"),
-            value: requests.filter((r) => r.status === "rejected").length,
-            icon: <ClipboardList size={24} />,
-          },
         ];
+      }
 
       case "loans": {
         const summary = loansQuery.data?.summary;
@@ -983,25 +1001,16 @@ export default function Reports() {
           },
         ];
 
-      case "locations":
+      case "locations": {
+        const summary = locationsQuery.data?.summary;
         return [
           {
             label: t("reports.kpi.totalLocations"),
-            value: locations.length,
-            icon: <Boxes size={24} />,
-          },
-          {
-            label: t("reports.kpi.available"),
-            value: locations.filter((l) => l.status === "available").length,
-            icon: <Boxes size={24} />,
-            trendUp: true,
-          },
-          {
-            label: t("reports.kpi.fullCapacity"),
-            value: locations.filter((l) => l.status === "full_capacity").length,
+            value: summary?.totalLocations ?? 0,
             icon: <Boxes size={24} />,
           },
         ];
+      }
 
       case "orders":
         return [
@@ -1035,11 +1044,11 @@ export default function Reports() {
     activeModule,
     t,
     formatCurrency,
-    customers,
-    requests,
     teamMembers,
-    locations,
     orders,
+    customersQuery.data,
+    requestsQuery.data,
+    locationsQuery.data,
     loansQuery.data,
     financialQuery.data,
     inventoryQuery.data,
@@ -1052,6 +1061,12 @@ export default function Reports() {
   const serverTotal = useMemo((): number | null => {
     if (!API_TABS.has(activeModule)) return null;
     switch (activeModule) {
+      case "customers":
+        return customersQuery.data?.pagination?.total ?? null;
+      case "requests":
+        return requestsQuery.data?.pagination?.total ?? null;
+      case "locations":
+        return locationsQuery.data?.pagination?.total ?? null;
       case "loans":
         return loansQuery.data?.pagination?.total ?? null;
       case "financial":
@@ -1063,7 +1078,16 @@ export default function Reports() {
       default:
         return null;
     }
-  }, [activeModule, loansQuery.data, financialQuery.data, damagesQuery.data, transfersQuery.data]);
+  }, [
+    activeModule,
+    customersQuery.data,
+    requestsQuery.data,
+    locationsQuery.data,
+    loansQuery.data,
+    financialQuery.data,
+    damagesQuery.data,
+    transfersQuery.data,
+  ]);
 
   // ─── Handlers ──────────────────────────────────────────────────────────
 
@@ -1172,7 +1196,10 @@ export default function Reports() {
               [t("reports.col.invoiceNumber")]: inv.invoiceNumber,
               [t("reports.col.customer")]: inv.customerName,
               [t("reports.col.type")]: getInvoiceTypeLabel(inv.type as InvoiceType, language),
-              [t("reports.col.status")]: getInvoiceStatusLabel(inv.status as InvoiceStatus, language),
+              [t("reports.col.status")]: getInvoiceStatusLabel(
+                inv.status as InvoiceStatus,
+                language,
+              ),
               [t("reports.col.amount")]: fmtCurrency(inv.totalAmount),
               [t("reports.col.amountPaid")]: fmtCurrency(inv.amountPaid),
               [t("reports.col.amountDue")]: fmtCurrency(inv.amountDue),
@@ -1245,7 +1272,10 @@ export default function Reports() {
           columns: {
             [t("reports.col.batchNumber")]: b.batchNumber,
             [t("reports.col.name")]: b.name,
-            [t("reports.col.status")]: getMaintenanceBatchStatusLabel(b.status as MaintenanceBatchStatus, language),
+            [t("reports.col.status")]: getMaintenanceBatchStatusLabel(
+              b.status as MaintenanceBatchStatus,
+              language,
+            ),
             [t("reports.col.locationName")]: b.locationName,
             [t("reports.col.assignedTo")]: b.assignedTo,
             [t("reports.col.itemCount")]: b.itemCount,
@@ -1277,7 +1307,10 @@ export default function Reports() {
           columns: {
             [t("reports.col.from")]: tr.fromLocation,
             [t("reports.col.to")]: tr.toLocation,
-            [t("reports.col.status")]: getTransferStatusLabel(tr.status as TransferStatus, language),
+            [t("reports.col.status")]: getTransferStatusLabel(
+              tr.status as TransferStatus,
+              language,
+            ),
             [t("reports.col.items")]: tr.itemCount.toString(),
             [t("reports.col.pickedBy")]: tr.pickedBy || "—",
             [t("reports.col.receivedBy")]: tr.receivedBy || "—",
@@ -1288,6 +1321,87 @@ export default function Reports() {
         }));
         const summaryEntries = summary
           ? buildTransfersSummaryEntries(summary, t, formatCurrency, language)
+          : [];
+        return { rows: exportRows, summaryEntries };
+      }
+
+      case "customers": {
+        const { rows: allCustomers, summary } = await fetchAllPages(
+          getExportCustomers,
+          {
+            ...baseParams,
+            status: filters.customers.status || undefined,
+          },
+          (d) => d.rows,
+          (d) => d.summary,
+        );
+        const exportRows = allCustomers.map((c) => ({
+          id: c.customerId ?? `${c.firstName}-${c.lastName}`,
+          columns: {
+            [t("reports.col.name")]: `${c.firstName} ${c.lastName}`,
+            [t("reports.col.email")]: c.email,
+            [t("reports.col.phone")]: c.phone || "—",
+            [t("reports.col.status")]: getCustomerStatusLabel(c.status as CustomerStatus, language),
+            [t("reports.col.createdAt")]: fmtDate(c.createdAt),
+          },
+        }));
+        const summaryEntries = summary
+          ? buildCustomersSummaryEntries(summary, t, formatCurrency, language)
+          : [];
+        return { rows: exportRows, summaryEntries };
+      }
+
+      case "locations": {
+        const { rows: allLocations, summary } = await fetchAllPages(
+          getExportLocations,
+          {
+            ...baseParams,
+            status: filters.locations.status || undefined,
+          },
+          (d) => d.rows,
+          (d) => d.summary,
+        );
+        const exportRows = allLocations.map((l) => ({
+          id: l.locationId ?? l.name,
+          columns: {
+            [t("reports.col.name")]: l.name,
+            [t("reports.col.organization")]: l.organizationName || "—",
+            [t("reports.col.status")]: getLocationStatusLabel(l.status as LocationStatus, language),
+            [t("reports.col.city")]: l.city || "—",
+            [t("reports.col.department")]: l.department || "—",
+            [t("reports.col.address")]: l.address || "—",
+          },
+        }));
+        const summaryEntries = summary
+          ? buildLocationsSummaryEntries(summary, t, formatCurrency, language)
+          : [];
+        return { rows: exportRows, summaryEntries };
+      }
+
+      case "requests": {
+        const { rows: allRequests, summary } = await fetchAllPages(
+          getExportRequests,
+          {
+            ...baseParams,
+            status: filters.requests.status || undefined,
+          },
+          (d) => d.rows,
+          (d) => d.summary,
+        );
+        const exportRows = allRequests.map((r) => ({
+          id: r.requestId ?? r.code,
+          columns: {
+            [t("reports.col.code")]: r.code,
+            [t("reports.col.customer")]: r.customerName,
+            [t("reports.col.status")]: getLoanRequestStatusLabel(
+              r.status as LoanRequestStatus,
+              language,
+            ),
+            [t("reports.col.totalAmount")]: fmtCurrency(r.totalAmount),
+          },
+        }));
+        const summaryEntries = summary
+          ? buildRequestsSummaryEntries(summary, t, formatCurrency, language)
           : [];
         return { rows: exportRows, summaryEntries };
       }
@@ -1313,7 +1427,7 @@ export default function Reports() {
     }
   };
 
-  const handleExportPDF = async () => {
+  const _handleExportPDF = async () => {
     setExporting(true);
     try {
       const { rows: exportRows, summaryEntries } = await getExportPayload();
@@ -1363,14 +1477,16 @@ export default function Reports() {
                 <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
                 {t("reports.refresh")}
               </button>
+              {/* PDF export temporarily disabled — logic preserved in _handleExportPDF
               <button
-                onClick={() => void handleExportPDF()}
+                onClick={() => void _handleExportPDF()}
                 disabled={loading || exporting || rows.length === 0}
                 className="flex items-center gap-2 px-4 py-2 gold-action-btn font-semibold rounded-lg transition disabled:opacity-50"
               >
                 <FileText size={16} />
                 PDF
               </button>
+              */}
               <button
                 onClick={() => void handleExportXLSX()}
                 disabled={loading || exporting || rows.length === 0}

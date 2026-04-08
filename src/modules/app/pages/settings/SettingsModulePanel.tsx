@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Languages, Moon, Sun } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Languages, MapPin, Moon, Sun } from "lucide-react";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import { useAuth } from "../../../../contexts/useAuth";
 import { useTheme } from "../../../../contexts/useTheme";
@@ -10,6 +10,7 @@ import { LANGUAGE_OPTIONS } from "./types";
 import type { SettingsModuleId, SettingsPreferences, AccountField, OrgProfileField } from "./types";
 
 import type { OrganizationSettings } from "../../../../types/api";
+import { getLocation } from "../../../../services/warehouseOperatorService";
 
 // ─── Appearance sub-panel ─────────────────────────────────────────────────
 
@@ -580,6 +581,22 @@ function AccountModulePanel({
 }: AccountModulePanelProps) {
   const { user } = useAuth();
   const displayName = user ? `${user.name.firstName} ${user.name.firstSurname}` : "";
+  const [locationNames, setLocationNames] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!user?.locations?.length) return;
+    let cancelled = false;
+    Promise.all(user.locations.map((id) => getLocation(id)))
+      .then((results) => {
+        if (!cancelled) {
+          setLocationNames(results.map((r) => r.data.name));
+        }
+      })
+      .catch(() => {
+        /* silently ignore — locations will remain empty */
+      });
+    return () => { cancelled = true; };
+  }, [user?.locations]);
 
   return (
     <div className="space-y-6" data-help-id="account-panel">
@@ -594,9 +611,20 @@ function AccountModulePanel({
         <div>
           <p className="text-white text-lg font-semibold">{displayName}</p>
           <p className="text-zinc-400 text-sm">{user?.email}</p>
-          <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-[#FFD700]/10 border border-[#FFD700]/30 text-[#FFD700] text-xs font-medium">
-            {user?.roleName}
-          </span>
+          <div className="flex flex-wrap items-center gap-2 mt-1">
+            <span className="inline-block px-2 py-0.5 rounded-full bg-[#FFD700]/10 border border-[#FFD700]/30 text-[#FFD700] text-xs font-medium">
+              {user?.roleName}
+            </span>
+            {locationNames.length > 0 && locationNames.map((name) => (
+              <span
+                key={name}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-medium"
+              >
+                <MapPin size={11} />
+                {name}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
 

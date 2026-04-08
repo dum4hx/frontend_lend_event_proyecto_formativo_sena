@@ -84,26 +84,27 @@ interface ValidationResult {
 
 **Before creating custom validators, agents MUST check if a validator exists for the field intent.**
 
-| Validator                   | Location                | Purpose                                                    | Example Usage                                  |
-| --------------------------- | ----------------------- | ---------------------------------------------------------- | ---------------------------------------------- |
-| `validateEmail`             | `src/utils/validators.ts` | Email format validation                                    | `validateEmail(email)`                         |
-| `validatePassword`          | `src/utils/validators.ts` | Strong password (8+ chars, uppercase, number, special)     | `validatePassword(password)`                   |
-| `validateConfirmPassword`   | `src/utils/validators.ts` | Password match validation                                  | `validateConfirmPassword(pwd, confirmPwd)`     |
-| `validateFirstName`         | `src/utils/validators.ts` | Name (2-50 chars, letters + accents only)                  | `validateFirstName(firstName)`                 |
-| `validateLastName`          | `src/utils/validators.ts` | Last name (2-50 chars, letters + accents only)             | `validateLastName(lastName)`                   |
-| `validateOrganizationName`  | `src/utils/validators.ts` | Org name (2-100 chars, no special chars)                   | `validateOrganizationName(orgName)`            |
-| `validateRoleName`          | `src/utils/validators.ts` | Role name (2-100 chars, alphanumeric + spaces)             | `validateRoleName(roleName)`                   |
-| `validateTaxId`             | `src/utils/validators.ts` | Tax ID (9-11 digits, hyphens allowed)                      | `validateTaxId(taxId)`                         |
-| `validateAddressField`      | `src/utils/validators.ts` | Generic address field (2+ chars)                           | `validateAddressField(address, "Street")`      |
-| `validateState`             | `src/utils/validators.ts` | Colombian departamento selection                           | `validateState(state, isSelected)`             |
-| `validateLegalName`         | `src/utils/validators.ts` | Legal/company registration name (2-150 chars)              | `validateLegalName(legalName)`                 |
-| `validatePhone`             | `src/utils/validators.ts` | Optional phone (Colombian format: +57 3XXXXXXXXX)          | `validatePhone(phone)`                         |
-| `validateRequiredPhone`     | `src/utils/validators.ts` | Required phone (Colombian format)                          | `validateRequiredPhone(phone)`                 |
-| `validatePostalCode`        | `src/utils/validators.ts` | Postal code (numbers only)                                 | `validatePostalCode(postalCode)`               |
+| Validator                  | Location                  | Purpose                                                | Example Usage                              |
+| -------------------------- | ------------------------- | ------------------------------------------------------ | ------------------------------------------ |
+| `validateEmail`            | `src/utils/validators.ts` | Email format validation                                | `validateEmail(email)`                     |
+| `validatePassword`         | `src/utils/validators.ts` | Strong password (8+ chars, uppercase, number, special) | `validatePassword(password)`               |
+| `validateConfirmPassword`  | `src/utils/validators.ts` | Password match validation                              | `validateConfirmPassword(pwd, confirmPwd)` |
+| `validateFirstName`        | `src/utils/validators.ts` | Name (2-50 chars, letters + accents only)              | `validateFirstName(firstName)`             |
+| `validateLastName`         | `src/utils/validators.ts` | Last name (2-50 chars, letters + accents only)         | `validateLastName(lastName)`               |
+| `validateOrganizationName` | `src/utils/validators.ts` | Org name (2-100 chars, no special chars)               | `validateOrganizationName(orgName)`        |
+| `validateRoleName`         | `src/utils/validators.ts` | Role name (2-100 chars, alphanumeric + spaces)         | `validateRoleName(roleName)`               |
+| `validateTaxId`            | `src/utils/validators.ts` | Tax ID (9-11 digits, hyphens allowed)                  | `validateTaxId(taxId)`                     |
+| `validateAddressField`     | `src/utils/validators.ts` | Generic address field (2+ chars)                       | `validateAddressField(address, "Street")`  |
+| `validateState`            | `src/utils/validators.ts` | Colombian departamento selection                       | `validateState(state, isSelected)`         |
+| `validateLegalName`        | `src/utils/validators.ts` | Legal/company registration name (2-150 chars)          | `validateLegalName(legalName)`             |
+| `validatePhone`            | `src/utils/validators.ts` | Optional phone (Colombian format: +57 3XXXXXXXXX)      | `validatePhone(phone)`                     |
+| `validateRequiredPhone`    | `src/utils/validators.ts` | Required phone (Colombian format)                      | `validateRequiredPhone(phone)`             |
+| `validatePostalCode`       | `src/utils/validators.ts` | Postal code (numbers only)                             | `validatePostalCode(postalCode)`           |
 
 #### Rules for Input Fields
 
 1. **Import validators from `src/utils`** — never inline validation logic:
+
    ```ts
    import { validateEmail, validatePassword } from "src/utils/validators";
    ```
@@ -111,6 +112,7 @@ interface ValidationResult {
 2. **Check existing validators first** — if the field intent is covered (email, name, phone, etc.), use it. Never duplicate validation logic across components.
 
 3. **On every keystroke, apply logical validation** (real-time feedback):
+
    ```tsx
    const [email, setEmail] = useState("");
    const [emailError, setEmailError] = useState<string | undefined>();
@@ -124,6 +126,7 @@ interface ValidationResult {
    ```
 
 4. **Render error state visually** (both input styling and error message):
+
    ```tsx
    <input
      type="email"
@@ -132,15 +135,18 @@ interface ValidationResult {
      className={`input ${emailError ? "border-error bg-error/10" : ""}`}
      aria-invalid={!!emailError}
      aria-describedby={emailError ? "email-error" : undefined}
-   />
-   {emailError && (
-     <p id="email-error" className="text-error text-sm mt-1">
-       {emailError}
-     </p>
-   )}
+   />;
+   {
+     emailError && (
+       <p id="email-error" className="text-error text-sm mt-1">
+         {emailError}
+       </p>
+     );
+   }
    ```
 
 5. **Disable submit button until all validations pass**:
+
    ```tsx
    const isFormValid =
      !validateEmail(email).message &&
@@ -153,7 +159,7 @@ interface ValidationResult {
      className={`btn-primary ${!isFormValid ? "opacity-50 cursor-not-allowed" : ""}`}
    >
      {t("common.submit")}
-   </button>
+   </button>;
    ```
 
 6. **For custom validators not in the standard library**, create them in `src/utils/validators.ts` (not inline in components):
@@ -164,6 +170,7 @@ interface ValidationResult {
    - Reuse it across all components that need the same field type
 
    Example custom validator:
+
    ```ts
    /**
     * Quantity validator for materials (1-9999 items)
@@ -237,32 +244,32 @@ Every action button (create, edit, delete, approve, etc.) **must** be integrated
 
 #### Permission key reference
 
-| Module              | Read                       | Create                       | Update                       | Delete                       | Special                                                           |
-| ------------------- | -------------------------- | ---------------------------- | ---------------------------- | ---------------------------- | ----------------------------------------------------------------- |
-| Analytics           | `analytics:read`           | —                            | —                            | —                            | —                                                                 |
-| Customers           | `customers:read`           | `customers:create`           | `customers:update`           | `customers:delete`           | —                                                                 |
-| Users / Team        | `users:read`               | `users:create`               | `users:update`               | `users:delete`               | —                                                                 |
-| Roles               | `roles:read`               | `roles:create`               | `roles:update`               | `roles:delete`               | —                                                                 |
-| Permissions         | `permissions:read`         | `permissions:create`         | `permissions:update`         | `permissions:delete`         | —                                                                 |
-| Organization        | `organization:read`        | —                            | `organization:update`        | `organization:delete`        | —                                                                 |
-| Materials           | `materials:read`           | `materials:create`           | `materials:update`           | `materials:delete`           | —                                                                 |
-| Material Attributes | `material_attributes:read` | `material_attributes:create` | `material_attributes:update` | `material_attributes:delete` | —                                                                 |
-| Maintenance         | `maintenance:read`         | `maintenance:create`         | `maintenance:update`         | `maintenance:delete`         | `maintenance:resolve`                                             |
-| Inspections         | `inspections:read`         | `inspections:create`         | `inspections:update`         | —                            | —                                                                 |
-| Incidents           | `incidents:read`           | `incidents:create`           | `incidents:update`           | —                            | `incidents:acknowledge`, `incidents:resolve`, `incidents:dismiss` |
-| Operations          | `operations:read`          | —                            | —                            | —                            | —                                                                 |
-| Orders / Requests   | `requests:read`            | `requests:create`            | `requests:update`            | `requests:delete`            | `requests:approve`                                                |
-| Rentals / Loans     | `loans:read`               | `loans:create`               | `loans:update`               | —                            | `loans:checkout`, `loans:return`                                  |
-| Invoices            | `invoices:read`            | `invoices:create`            | `invoices:update`            | —                            | —                                                                 |
-| Packages            | `packages:read`            | `packages:create`            | `packages:update`            | `packages:delete`            | —                                                                 |
-| Transfers           | `transfers:read`           | `transfers:create`           | `transfers:update`           | —                            | `transfer_rejection_reasons:manage`                               |
-| Pricing             | `pricing:read`             | —                            | —                            | —                            | —                                                                 |
-| Payment Methods     | `payment_methods:read`     | —                            | —                            | —                            | —                                                                 |
-| Code Schemes        | `code_schemes:read`        | `code_schemes:create`        | `code_schemes:update`        | `code_schemes:delete`        | —                                                                 |
-| Reports             | `reports:read`             | —                            | —                            | —                            | —                                                                 |
-| Subscription        | —                          | —                            | —                            | —                            | `subscription:manage`, `billing:manage`                           |
-| Subscription Types  | `subscription_types:read`  | `subscription_types:create`  | `subscription_types:update`  | `subscription_types:delete`  | —                                                                 |
-| Super Admin         | —                          | —                            | —                            | —                            | `platform:manage`                                                 |
+| Module              | Read                       | Create                       | Update                       | Delete                       | Special                                                                                        |
+| ------------------- | -------------------------- | ---------------------------- | ---------------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------- |
+| Analytics           | `analytics:read`           | —                            | —                            | —                            | —                                                                                              |
+| Customers           | `customers:read`           | `customers:create`           | `customers:update`           | `customers:delete`           | —                                                                                              |
+| Users / Team        | `users:read`               | `users:create`               | `users:update`               | `users:delete`               | —                                                                                              |
+| Roles               | `roles:read`               | `roles:create`               | `roles:update`               | `roles:delete`               | —                                                                                              |
+| Permissions         | `permissions:read`         | `permissions:create`         | `permissions:update`         | `permissions:delete`         | —                                                                                              |
+| Organization        | `organization:read`        | —                            | `organization:update`        | `organization:delete`        | —                                                                                              |
+| Materials           | `materials:read`           | `materials:create`           | `materials:update`           | `materials:delete`           | —                                                                                              |
+| Material Attributes | `material_attributes:read` | `material_attributes:create` | `material_attributes:update` | `material_attributes:delete` | —                                                                                              |
+| Maintenance         | `maintenance:read`         | `maintenance:create`         | `maintenance:update`         | `maintenance:delete`         | `maintenance:resolve`                                                                          |
+| Inspections         | `inspections:read`         | `inspections:create`         | `inspections:update`         | —                            | —                                                                                              |
+| Incidents           | `incidents:read`           | `incidents:create`           | `incidents:update`           | —                            | `incidents:acknowledge`, `incidents:resolve`, `incidents:dismiss`                              |
+| Operations          | `operations:read`          | —                            | —                            | —                            | —                                                                                              |
+| Orders / Requests   | `requests:read`            | `requests:create`            | `requests:update`            | `requests:delete`            | `requests:approve`                                                                             |
+| Rentals / Loans     | `loans:read`               | `loans:create`               | `loans:update`               | —                            | `loans:checkout`, `loans:return`                                                               |
+| Invoices            | `invoices:read`            | `invoices:create`            | `invoices:update`            | —                            | —                                                                                              |
+| Packages            | `packages:read`            | `packages:create`            | `packages:update`            | `packages:delete`            | —                                                                                              |
+| Transfers           | `transfers:read`           | `transfers:create`           | `transfers:update`           | —                            | `transfers:accept`, `transfers:send`, `transfers:receive`, `transfer_rejection_reasons:manage` |
+| Pricing             | `pricing:read`             | —                            | —                            | —                            | —                                                                                              |
+| Payment Methods     | `payment_methods:read`     | —                            | —                            | —                            | —                                                                                              |
+| Code Schemes        | `code_schemes:read`        | `code_schemes:create`        | `code_schemes:update`        | `code_schemes:delete`        | —                                                                                              |
+| Reports             | `reports:read`             | —                            | —                            | —                            | —                                                                                              |
+| Subscription        | —                          | —                            | —                            | —                            | `subscription:manage`, `billing:manage`                                                        |
+| Subscription Types  | `subscription_types:read`  | `subscription_types:create`  | `subscription_types:update`  | `subscription_types:delete`  | —                                                                                              |
+| Super Admin         | —                          | —                            | —                            | —                            | `platform:manage`                                                                              |
 
 #### Pattern examples
 

@@ -27,6 +27,10 @@ interface BatchListTableProps {
   onAddItems: (batch: MaintenanceBatchListItem) => void;
   /** Repair materials callback (in_progress only). */
   onRepairItems: (batch: MaintenanceBatchListItem) => void;
+  /** Whether the user has maintenance:update permission. */
+  canUpdate: boolean;
+  /** Whether the user has maintenance:resolve permission. */
+  canResolve: boolean;
 }
 
 export function BatchListTable({
@@ -38,6 +42,8 @@ export function BatchListTable({
   onCancel,
   onAddItems,
   onRepairItems,
+  canUpdate,
+  canResolve,
 }: BatchListTableProps) {
   const { t, formatDate, formatCurrency, language } = useLanguage();
 
@@ -113,7 +119,7 @@ export function BatchListTable({
           >
             <Eye size={16} />
           </button>
-          {row.status === "draft" && (
+          {row.status === "draft" && canUpdate && (
             <>
               <button
                 type="button"
@@ -152,7 +158,7 @@ export function BatchListTable({
               )}
             </>
           )}
-          {row.status === "in_progress" && (
+          {row.status === "in_progress" && canResolve && (
             <button
               type="button"
               className="p-1 rounded hover:bg-white/10 text-[#FFD700] hover:text-yellow-300 transition-colors"
@@ -165,7 +171,7 @@ export function BatchListTable({
               <Wrench size={16} />
             </button>
           )}
-          {(row.status === "draft" || row.status === "in_progress") && (
+          {(row.status === "draft" || row.status === "in_progress") && canUpdate && (
             <button
               type="button"
               className="p-1 rounded hover:bg-white/10 text-red-400 hover:text-red-300 transition-colors"
