@@ -2009,67 +2009,83 @@ export interface ReportsTransfersResponse {
 
 /** Loan item as returned by GET /reports/loans */
 export interface ReportLoanItem {
-  _id: string;
+  loanId: string;
   customer: {
-    name: string;
+    _id: string;
+    name: {
+      firstName: string;
+      secondName?: string;
+      firstSurname: string;
+      secondSurname?: string;
+    };
     email: string;
     documentNumber: string;
   };
   status: string;
   startDate: string;
   endDate: string;
-  materialInstances: unknown[];
+  returnedAt: string | null;
   durationDays: number;
   overdueDays: number;
+  totalAmount: number;
+  depositAmount: number;
+  depositStatus: string;
+  materialCount: number;
 }
 
 /** Full response shape for GET /reports/loans */
 export interface ReportsLoansData {
-  loans: ReportLoanItem[];
+  rows: ReportLoanItem[];
   total: number;
   page: number;
   totalPages: number;
   summary: {
     totalLoans: number;
-    statusBreakdown: Array<{ _id: string; count: number }>;
+    totalRevenue: number;
+    averageDurationDays: number;
   };
 }
 
-/** Inventory item as returned by GET /reports/inventory */
-export interface ReportInventoryItem {
-  materialType: {
-    _id: string;
-    name: string;
-    identifier: string;
-  };
-  totalInstances: number;
-  statusBreakdown: Array<{ status: string; count: number }>;
-  byLocation: Array<{
-    locationId: string;
-    locationName: string;
-    count: number;
-  }>;
+/** Material-type breakdown item from GET /reports/inventory */
+export interface ReportInventoryByMaterialType {
+  _id: string;
+  total: number;
+  statuses: Array<{ status: string; count: number }>;
+  materialTypeId: string;
+  materialTypeName: string;
+}
+
+/** Location breakdown item from GET /reports/inventory */
+export interface ReportInventoryByLocation {
+  _id: string;
+  total: number;
+  statuses: Array<{ status: string; count: number }>;
+  locationId: string;
+  locationName: string;
 }
 
 /** Full response shape for GET /reports/inventory */
 export interface ReportsInventoryData {
-  inventory: ReportInventoryItem[];
-  summary: {
-    totalTypes: number;
-    totalInstances: number;
-  };
+  totalInstances: number;
+  byMaterialType: ReportInventoryByMaterialType[];
+  byLocation: ReportInventoryByLocation[];
 }
 
 /** Invoice item as returned by GET /reports/financial */
 export interface ReportFinancialInvoice {
-  _id: string;
+  invoiceId: string;
   customer: {
-    name: string;
+    name: {
+      firstName: string;
+      secondName?: string;
+      firstSurname: string;
+      secondSurname?: string;
+    };
     email: string;
   };
   type: string;
   status: string;
-  total: number;
+  totalAmount: number;
   amountPaid: number;
   amountDue: number;
   createdAt: string;
@@ -2078,12 +2094,18 @@ export interface ReportFinancialInvoice {
 
 /** Full response shape for GET /reports/financial */
 export interface ReportsFinancialData {
-  invoices: ReportFinancialInvoice[];
+  rows: ReportFinancialInvoice[];
   total: number;
   page: number;
   totalPages: number;
-  summaryByType: Array<{ _id: string; totalRevenue: number; count: number }>;
-  summaryByStatus: Array<{ _id: string; totalAmount: number; count: number }>;
+  summaryByType: Array<{
+    type: string;
+    totalAmount: number;
+    totalPaid: number;
+    totalDue: number;
+    count: number;
+  }>;
+  summaryByStatus: Array<{ status: string; totalAmount: number; count: number }>;
 }
 
 /** Damage item as returned by GET /reports/damages */

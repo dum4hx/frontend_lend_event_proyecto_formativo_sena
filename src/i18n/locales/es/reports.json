@@ -31,6 +31,8 @@
   "reports.filter.from": "Desde",
   "reports.filter.to": "Hasta",
   "reports.filter.clearDates": "Limpiar fechas",
+  "reports.filter.dateRangeError": "La fecha final debe ser igual o posterior a la fecha inicial",
+  "reports.filter.minDate": "mín",
   "reports.filter.status": "Estado",
   "reports.filter.type": "Tipo",
   "reports.filter.viewType": "Tipo de vista",
@@ -175,5 +177,11 @@
   "reports.col.estimatedRepairCost": "Costo de reparación",
   "reports.col.from": "Desde",
   "reports.col.to": "Hasta",
-  "reports.col.identifier": "Identificador"
+  "reports.col.identifier": "Identificador",
+  "reports.col.totalAmount": "Monto total",
+  "reports.col.depositAmount": "Depósito",
+  "reports.col.depositStatus": "Estado depósito",
+  "reports.col.returnedAt": "Devuelto el",
+  "reports.col.materialCount": "Materiales",
+  "reports.kpi.avgDuration": "Duración promedio (días)"
 }

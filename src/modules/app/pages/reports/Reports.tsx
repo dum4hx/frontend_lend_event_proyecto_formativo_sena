@@ -54,14 +54,18 @@ import type {
 
 const API_TABS = new Set<ReportModule>(["loans", "financial", "inventory", "damages", "transfers"]);
 
-// ─── Helpers ───────────────────────────────────────────────────────────────
-
-function getBreakdownCount(
-  breakdown: Array<{ _id: string; count: number }> | undefined,
-  status: string,
-): number {
-  return breakdown?.find((s) => s._id === status)?.count ?? 0;
-}
+/** Format a structured customer name object into a display string. */
+const formatCustomerName = (name: {
+  firstName: string;
+  secondName?: string;
+  firstSurname: string;
+  secondSurname?: string;
+}) => {
+  const parts = [name.firstName, name.secondName, name.firstSurname, name.secondSurname].filter(
+    Boolean,
+  );
+  return parts.join(" ");
+};
 
 // ─── Main Component ────────────────────────────────────────────────────────
 
@@ -180,9 +184,12 @@ export default function Reports() {
     { enabled: activeModule === "financial" },
   );
 
-  const inventoryQuery = useInventoryReport(baseParams, {
-    enabled: activeModule === "inventory",
-  });
+  const inventoryQuery = useInventoryReport(
+    { ...baseParams, status: filters.inventory.status || undefined },
+    {
+      enabled: activeModule === "inventory",
+    },
+  );
 
   const damagesQuery = useDamagesReport(
     { ...baseParams, status: filters.damages.status || undefined },
@@ -475,22 +482,30 @@ export default function Reports() {
             t("reports.col.status"),
             t("reports.col.startDate"),
             t("reports.col.endDate"),
+            t("reports.col.returnedAt"),
             t("reports.col.durationDays"),
             t("reports.col.overdueDays"),
-            t("reports.col.materials"),
+            t("reports.col.totalAmount"),
+            t("reports.col.depositAmount"),
+            t("reports.col.depositStatus"),
+            t("reports.col.materialCount"),
           ],
-          rows: data.loans.map((l) => ({
-            id: l._id,
+          rows: data.rows.map((l) => ({
+            id: l.loanId,
             columns: {
-              [t("reports.col.id")]: fmtId(l._id),
-              [t("reports.col.customer")]: l.customer.name,
+              [t("reports.col.id")]: fmtId(l.loanId),
+              [t("reports.col.customer")]: formatCustomerName(l.customer.name),
               [t("reports.col.email")]: l.customer.email,
               [t("reports.col.status")]: l.status,
               [t("reports.col.startDate")]: fmtDate(l.startDate),
               [t("reports.col.endDate")]: fmtDate(l.endDate),
+              [t("reports.col.returnedAt")]: l.returnedAt ? fmtDate(l.returnedAt) : "—",
               [t("reports.col.durationDays")]: l.durationDays,
               [t("reports.col.overdueDays")]: l.overdueDays,
-              [t("reports.col.materials")]: l.materialInstances.length,
+              [t("reports.col.totalAmount")]: fmtCurrency(l.totalAmount),
+              [t("reports.col.depositAmount")]: fmtCurrency(l.depositAmount),
+              [t("reports.col.depositStatus")]: l.depositStatus,
+              [t("reports.col.materialCount")]: l.materialCount,
             },
           })),
         };
@@ -500,8 +515,8 @@ export default function Reports() {
         const data = financialQuery.data;
         if (!data) return { headers: [], rows: [] };
         const filteredInvoices = filters.financial.type
-          ? data.invoices.filter((inv) => inv.type === filters.financial.type)
-          : data.invoices;
+          ? data.rows.filter((inv) => inv.type === filters.financial.type)
+          : data.rows;
         return {
           headers: [
             t("reports.col.id"),
@@ -516,14 +531,14 @@ export default function Reports() {
             t("reports.col.dueDate"),
           ],
           rows: filteredInvoices.map((inv) => ({
-            id: inv._id,
+            id: inv.invoiceId,
             columns: {
-              [t("reports.col.id")]: fmtId(inv._id),
-              [t("reports.col.customer")]: inv.customer.name,
+              [t("reports.col.id")]: fmtId(inv.invoiceId),
+              [t("reports.col.customer")]: formatCustomerName(inv.customer.name),
               [t("reports.col.email")]: inv.customer.email,
               [t("reports.col.type")]: inv.type,
               [t("reports.col.status")]: inv.status,
-              [t("reports.col.amount")]: fmtCurrency(inv.total),
+              [t("reports.col.amount")]: fmtCurrency(inv.totalAmount),
               [t("reports.col.amountPaid")]: fmtCurrency(inv.amountPaid),
               [t("reports.col.amountDue")]: fmtCurrency(inv.amountDue),
               [t("reports.col.createdAt")]: fmtDate(inv.createdAt),
@@ -539,22 +554,20 @@ export default function Reports() {
         return {
           headers: [
             t("reports.col.name"),
-            t("reports.col.identifier"),
             t("reports.col.totalInstances"),
             t("reports.col.availableCount"),
             t("reports.col.loanedCount"),
             t("reports.col.maintenanceCount"),
             t("reports.col.damagedCount"),
           ],
-          rows: data.inventory.map((item) => {
+          rows: data.byMaterialType.map((item) => {
             const getCount = (status: string) =>
-              item.statusBreakdown.find((s) => s.status === status)?.count ?? 0;
+              item.statuses.find((s) => s.status === status)?.count ?? 0;
             return {
-              id: item.materialType._id,
+              id: item._id,
               columns: {
-                [t("reports.col.name")]: item.materialType.name,
-                [t("reports.col.identifier")]: item.materialType.identifier,
-                [t("reports.col.totalInstances")]: item.totalInstances,
+                [t("reports.col.name")]: item.materialTypeName,
+                [t("reports.col.totalInstances")]: item.total,
                 [t("reports.col.availableCount")]: getCount("available"),
                 [t("reports.col.loanedCount")]: getCount("loaned"),
                 [t("reports.col.maintenanceCount")]: getCount("maintenance"),
@@ -713,19 +726,14 @@ export default function Reports() {
             icon: <TrendingUp size={24} />,
           },
           {
-            label: t("reports.kpi.active"),
-            value: getBreakdownCount(summary?.statusBreakdown, "active"),
+            label: t("reports.kpi.totalRevenue"),
+            value: fmtCurrency(summary?.totalRevenue ?? 0),
             icon: <TrendingUp size={24} />,
             trendUp: true,
           },
           {
-            label: t("reports.kpi.overdue"),
-            value: getBreakdownCount(summary?.statusBreakdown, "overdue"),
-            icon: <TrendingUp size={24} />,
-          },
-          {
-            label: t("reports.kpi.returned"),
-            value: getBreakdownCount(summary?.statusBreakdown, "returned"),
+            label: t("reports.kpi.avgDuration"),
+            value: summary?.averageDurationDays ?? 0,
             icon: <TrendingUp size={24} />,
           },
         ];
@@ -733,12 +741,11 @@ export default function Reports() {
 
       case "financial": {
         const data = financialQuery.data;
-        const totalRevenue =
-          data?.summaryByType?.reduce((sum, s) => sum + s.totalRevenue, 0) ?? 0;
+        const totalRevenue = data?.summaryByType?.reduce((sum, s) => sum + s.totalAmount, 0) ?? 0;
         const paidAmount =
-          data?.summaryByStatus?.find((s) => s._id === "paid")?.totalAmount ?? 0;
+          data?.summaryByStatus?.find((s) => s.status === "paid")?.totalAmount ?? 0;
         const outstandingAmount =
-          data?.summaryByStatus?.find((s) => s._id === "pending")?.totalAmount ?? 0;
+          data?.summaryByStatus?.find((s) => s.status === "pending")?.totalAmount ?? 0;
         return [
           {
             label: t("reports.kpi.totalInvoices"),
@@ -765,16 +772,16 @@ export default function Reports() {
       }
 
       case "inventory": {
-        const summary = inventoryQuery.data?.summary;
+        const data = inventoryQuery.data;
         return [
           {
             label: t("reports.kpi.totalTypes"),
-            value: summary?.totalTypes ?? 0,
+            value: data?.byMaterialType?.length ?? 0,
             icon: <Package size={24} />,
           },
           {
             label: t("reports.kpi.totalInstances"),
-            value: summary?.totalInstances ?? 0,
+            value: data?.totalInstances ?? 0,
             icon: <Package size={24} />,
           },
         ];

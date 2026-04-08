@@ -31,6 +31,8 @@
   "reports.filter.from": "From",
   "reports.filter.to": "To",
   "reports.filter.clearDates": "Clear dates",
+  "reports.filter.dateRangeError": "End date must be on or after start date",
+  "reports.filter.minDate": "min",
   "reports.filter.status": "Status",
   "reports.filter.type": "Type",
   "reports.filter.viewType": "View Type",
@@ -175,5 +177,11 @@
   "reports.col.estimatedRepairCost": "Repair Cost",
   "reports.col.from": "From",
   "reports.col.to": "To",
-  "reports.col.identifier": "Identifier"
+  "reports.col.identifier": "Identifier",
+  "reports.col.totalAmount": "Total Amount",
+  "reports.col.depositAmount": "Deposit",
+  "reports.col.depositStatus": "Deposit Status",
+  "reports.col.returnedAt": "Returned At",
+  "reports.col.materialCount": "Materials",
+  "reports.kpi.avgDuration": "Avg Duration (days)"
 }

@@ -117,7 +117,13 @@ export const statusBadgeClass = (val: string): string => {
     case "completed":
     case "received":
     case "good":
+    case "applied":
+    case "refunded":
       return "bg-emerald-900/60 text-emerald-300";
+    case "held":
+      return "bg-yellow-900/60 text-yellow-300";
+    case "refund_pending":
+      return "bg-blue-900/60 text-blue-300";
     default:
       return "bg-zinc-700 text-zinc-300";
   }
@@ -129,6 +135,8 @@ export const STATUS_COLUMNS = new Set([
   "Estado",
   "Condition Before",
   "Condition After",
-  "Condición Antes",
-  "Condición Después",
+  "Condición antes",
+  "Condición después",
+  "Deposit Status",
+  "Estado depósito",
 ]);

@@ -172,8 +172,19 @@ export const MaterialTypeCatalog: React.FC = () => {
 
         const catId = resolvedCategoryId;
 
+        const rawCode = (item.code as string | undefined)?.trim().toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10);
+        if (!rawCode) {
+          rejected.push({
+            name: (item.name as string) ?? "(unnamed)",
+            categoryId: catId,
+            reason: "code is required (1–10 alphanumeric characters)",
+          });
+          continue;
+        }
+
         try {
           await addMaterialType({
+            code: rawCode,
             name: item.name as string,
             description: item.description as string,
             categoryId: [catId],

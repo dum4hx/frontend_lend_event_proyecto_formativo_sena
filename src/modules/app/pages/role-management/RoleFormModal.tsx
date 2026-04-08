@@ -347,8 +347,9 @@ export default function RoleFormModal({
                   </p>
                   <div className="space-y-0.5">
                     {perms.map((p) => {
+                      const requires = p.requires ?? [];
                       const isSelected = !!selected[p.id];
-                      const hasDeps = p.requires?.length > 0;
+                      const hasDeps = requires.length > 0;
                       const missingDeps = isSelected ? (missingDepsMap.get(p.id) ?? []) : [];
                       const hasMissing = missingDeps.length > 0;
                       const isExpanded = !!expandedDeps[p.id];
@@ -387,7 +388,7 @@ export default function RoleFormModal({
                                 }
                               >
                                 <Link2 size={10} />
-                                <span>{p.requires.length}</span>
+                                <span>{requires.length}</span>
                                 {isExpanded ? (
                                   <ChevronDown size={10} />
                                 ) : (
@@ -414,7 +415,7 @@ export default function RoleFormModal({
                                 <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
                                   {t("permissions.requires")}
                                 </p>
-                                {p.requires.map((reqId) => {
+                                {requires.map((reqId) => {
                                   const reqPerm = permById.get(reqId);
                                   const isSatisfied = !!selected[reqId];
                                   return (

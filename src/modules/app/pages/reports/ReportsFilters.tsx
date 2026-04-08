@@ -36,14 +36,27 @@ export function ReportsFilters({
   const { t } = useLanguage();
 
   const handleDateFrom = (value: string) => {
-    onDateRangeChange({ ...dateRange, from: value });
+    if (value && dateRange.to && value > dateRange.to) {
+      // "from" jumped past "to" — clear "to" to keep the range valid
+      onDateRangeChange({ from: value, to: "" });
+    } else {
+      onDateRangeChange({ ...dateRange, from: value });
+    }
     onPageReset();
   };
 
   const handleDateTo = (value: string) => {
-    onDateRangeChange({ ...dateRange, to: value });
+    if (value && dateRange.from && value < dateRange.from) {
+      // "to" moved before "from" — clear "from" to keep the range valid
+      onDateRangeChange({ from: "", to: value });
+    } else {
+      onDateRangeChange({ ...dateRange, to: value });
+    }
     onPageReset();
   };
+
+  const dateRangeError =
+    !!dateRange.from && !!dateRange.to && dateRange.from > dateRange.to;
 
   const selectClass =
     "w-full bg-zinc-800 border border-zinc-700 text-white rounded-lg px-3 py-2 text-sm outline-none focus:border-yellow-400 transition";
@@ -62,18 +75,36 @@ export function ReportsFilters({
             type="date"
             value={dateRange.from}
             onChange={(e) => handleDateFrom(e.target.value)}
-            className={selectClass}
+            max={dateRange.to || undefined}
+            className={`${selectClass} ${dateRangeError ? "border-red-500" : ""}`}
+            aria-invalid={dateRangeError}
+            aria-describedby={dateRangeError ? "date-range-error" : undefined}
           />
         </div>
         {/* Date To */}
         <div>
-          <label className="block text-xs text-gray-400 mb-1">{t("reports.filter.to")}</label>
+          <label className="block text-xs text-gray-400 mb-1">
+            {t("reports.filter.to")}
+            {dateRange.from && (
+              <span className="ml-1 text-yellow-500 text-xs">
+                ({t("reports.filter.minDate")}: {dateRange.from})
+              </span>
+            )}
+          </label>
           <input
             type="date"
             value={dateRange.to}
             onChange={(e) => handleDateTo(e.target.value)}
-            className={selectClass}
+            min={dateRange.from || undefined}
+            className={`${selectClass} ${dateRangeError ? "border-red-500" : ""}`}
+            aria-invalid={dateRangeError}
+            aria-describedby={dateRangeError ? "date-range-error" : undefined}
           />
+          {dateRangeError && (
+            <p id="date-range-error" className="text-red-400 text-xs mt-1">
+              {t("reports.filter.dateRangeError")}
+            </p>
+          )}
         </div>
 
         {/* Module-specific filters */}
