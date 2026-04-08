@@ -39,6 +39,7 @@
   "nav.item.clients": "User Management",
   "nav.item.organizations": "Organization Management",
   "nav.item.sa-plans": "Plan Configuration",
+  "nav.item.sa-reports": "Reports",
   "nav.item.sa-settings": "System Settings",
   "superAdmin.badge": "Super Admin"
 }

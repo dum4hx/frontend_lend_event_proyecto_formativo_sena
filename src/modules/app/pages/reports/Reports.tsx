@@ -412,8 +412,7 @@ export default function Reports() {
         if (!data) return { headers: [], rows: [] };
         return {
           headers: [
-            t("reports.col.firstName"),
-            t("reports.col.lastName"),
+            t("reports.col.name"),
             t("reports.col.email"),
             t("reports.col.phone"),
             t("reports.col.document"),
@@ -422,8 +421,7 @@ export default function Reports() {
           rows: data.rows.map((c) => ({
             id: c.customerId ?? c.email,
             columns: {
-              [t("reports.col.firstName")]: c.firstName,
-              [t("reports.col.lastName")]: c.lastName,
+              [t("reports.col.name")]: c.fullName,
               [t("reports.col.email")]: c.email,
               [t("reports.col.phone")]: c.phone,
               [t("reports.col.document")]: `${c.documentType} ${c.documentNumber}`,
@@ -442,7 +440,6 @@ export default function Reports() {
         return {
           headers: [
             t("reports.col.code"),
-            t("reports.col.customer"),
             t("reports.col.status"),
             t("reports.col.startDate"),
             t("reports.col.endDate"),
@@ -453,7 +450,6 @@ export default function Reports() {
             id: r.requestId ?? r.code,
             columns: {
               [t("reports.col.code")]: r.code,
-              [t("reports.col.customer")]: r.customerName,
               [t("reports.col.status")]: getLoanRequestStatusLabel(
                 r.status as LoanRequestStatus,
                 language,
@@ -499,26 +495,30 @@ export default function Reports() {
         return {
           headers: [
             t("reports.col.name"),
-            t("reports.col.organization"),
+            t("reports.col.code"),
             t("reports.col.status"),
             t("reports.col.city"),
             t("reports.col.department"),
             t("reports.col.address"),
           ],
-          rows: data.rows.map((l) => ({
-            id: l.locationId ?? l.name,
-            columns: {
-              [t("reports.col.name")]: l.name,
-              [t("reports.col.organization")]: l.organizationName || "—",
-              [t("reports.col.status")]: getLocationStatusLabel(
-                l.status as LocationStatus,
-                language,
-              ),
-              [t("reports.col.city")]: l.city || "—",
-              [t("reports.col.department")]: l.department || "—",
-              [t("reports.col.address")]: l.address || "—",
-            },
-          })),
+          rows: data.rows.map((l) => {
+            const addr = l.address;
+            const fullAddress = `${addr.streetType} ${addr.primaryNumber} #${addr.secondaryNumber}-${addr.complementaryNumber}`;
+            return {
+              id: l.locationId ?? l.name,
+              columns: {
+                [t("reports.col.name")]: l.name,
+                [t("reports.col.code")]: l.code || "—",
+                [t("reports.col.status")]: getLocationStatusLabel(
+                  l.status as LocationStatus,
+                  language,
+                ),
+                [t("reports.col.city")]: addr.city || "—",
+                [t("reports.col.department")]: addr.department || "—",
+                [t("reports.col.address")]: fullAddress,
+              },
+            };
+          }),
         };
       }
 
@@ -799,6 +799,10 @@ export default function Reports() {
     switch (activeModule) {
       case "customers": {
         const summary = customersQuery.data?.summary;
+        const activeCount = summary?.byStatus?.find((s) => s.status === "active")?.count ?? 0;
+        const activeRate = summary?.totalCustomers
+          ? ((activeCount / summary.totalCustomers) * 100).toFixed(1)
+          : "0.0";
         return [
           {
             label: t("reports.kpi.totalCustomers"),
@@ -807,7 +811,7 @@ export default function Reports() {
           },
           {
             label: t("reports.kpi.activeRate"),
-            value: `${((summary?.activeRate ?? 0) * 100).toFixed(1)}%`,
+            value: `${activeRate}%`,
             icon: <Users size={24} />,
             trendUp: true,
           },
@@ -824,7 +828,7 @@ export default function Reports() {
           },
           {
             label: t("reports.kpi.approvalRate"),
-            value: `${((summary?.approvalRate ?? 0) * 100).toFixed(1)}%`,
+            value: `${(summary?.funnel?.approvalRate ?? 0).toFixed(1)}%`,
             icon: <ClipboardList size={24} />,
             trendUp: true,
           },
@@ -1336,9 +1340,9 @@ export default function Reports() {
           (d) => d.summary,
         );
         const exportRows = allCustomers.map((c) => ({
-          id: c.customerId ?? `${c.firstName}-${c.lastName}`,
+          id: c.customerId ?? c.fullName,
           columns: {
-            [t("reports.col.name")]: `${c.firstName} ${c.lastName}`,
+            [t("reports.col.name")]: c.fullName,
             [t("reports.col.email")]: c.email,
             [t("reports.col.phone")]: c.phone || "—",
             [t("reports.col.status")]: getCustomerStatusLabel(c.status as CustomerStatus, language),
@@ -1361,17 +1365,24 @@ export default function Reports() {
           (d) => d.rows,
           (d) => d.summary,
         );
-        const exportRows = allLocations.map((l) => ({
-          id: l.locationId ?? l.name,
-          columns: {
-            [t("reports.col.name")]: l.name,
-            [t("reports.col.organization")]: l.organizationName || "—",
-            [t("reports.col.status")]: getLocationStatusLabel(l.status as LocationStatus, language),
-            [t("reports.col.city")]: l.city || "—",
-            [t("reports.col.department")]: l.department || "—",
-            [t("reports.col.address")]: l.address || "—",
-          },
-        }));
+        const exportRows = allLocations.map((l) => {
+          const addr = l.address;
+          const fullAddress = `${addr.streetType} ${addr.primaryNumber} #${addr.secondaryNumber}-${addr.complementaryNumber}`;
+          return {
+            id: l.locationId ?? l.name,
+            columns: {
+              [t("reports.col.name")]: l.name,
+              [t("reports.col.code")]: l.code || "—",
+              [t("reports.col.status")]: getLocationStatusLabel(
+                l.status as LocationStatus,
+                language,
+              ),
+              [t("reports.col.city")]: addr.city || "—",
+              [t("reports.col.department")]: addr.department || "—",
+              [t("reports.col.address")]: fullAddress,
+            },
+          };
+        });
         const summaryEntries = summary
           ? buildLocationsSummaryEntries(summary, t, formatCurrency, language)
           : [];
@@ -1392,7 +1403,6 @@ export default function Reports() {
           id: r.requestId ?? r.code,
           columns: {
             [t("reports.col.code")]: r.code,
-            [t("reports.col.customer")]: r.customerName,
             [t("reports.col.status")]: getLoanRequestStatusLabel(
               r.status as LoanRequestStatus,
               language,

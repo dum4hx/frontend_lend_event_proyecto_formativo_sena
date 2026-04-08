@@ -100,6 +100,7 @@ const SystemSettings = lazy(() => import("./modules/super-admin/pages/SystemSett
 const OrganizationManagement = lazy(
   () => import("./modules/super-admin/pages/OrganizationManagement"),
 );
+const AdminReports = lazy(() => import("./modules/super-admin/pages/AdminReports"));
 
 function App() {
   return (
@@ -200,6 +201,7 @@ function App() {
                   <Route path="clients" element={<UserManagement />} />
                   <Route path="organizations" element={<OrganizationManagement />} />
                   <Route path="subscriptions" element={<SuperAdminSubscriptionManagement />} />
+                  <Route path="reports" element={<AdminReports />} />
                   <Route path="settings" element={<SystemSettings />} />
                 </Route>
 

@@ -74,5 +74,6 @@
   "systemSettings.validation.emailInvalid": "Formato de correo invalido.",
   "systemSettings.validation.currentPasswordRequired": "La contrasena actual es obligatoria.",
   "systemSettings.validation.newPasswordTooShort": "La contrasena debe tener al menos 8 caracteres.",
-  "systemSettings.validation.passwordsMustMatch": "Las contrasenas no coinciden."
+  "systemSettings.validation.passwordsMustMatch": "Las contrasenas no coinciden.",
+  "systemSettings.comingSoon": "Próximamente"
 }

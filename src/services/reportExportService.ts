@@ -22,10 +22,13 @@ import type {
   ExportBillingHistoryData,
   ExportCustomersParams,
   ExportCustomersData,
+  ExportCustomersRawData,
   ExportLocationsParams,
   ExportLocationsData,
+  ExportLocationsRawData,
   ExportRequestsParams,
   ExportRequestsData,
+  ExportRequestsRawData,
 } from "../types/api";
 
 type QueryRecord = Record<string, string | number | boolean | undefined>;
@@ -100,32 +103,72 @@ export async function getExportBillingHistory(
   );
 }
 
-/** Fetch customers export. */
+/** Fetch customers export. Normalises the API shape (customers[] + flat pagination) into rows[] + pagination. */
 export async function getExportCustomers(
   params: ExportCustomersParams = {},
 ): Promise<ApiSuccessResponse<ExportCustomersData>> {
-  return get<ExportCustomersData>(
+  const raw = await get<ExportCustomersRawData>(
     "/reports/exports/customers",
     toQueryRecord({ includeIds: false, ...params }),
   );
+  const d = raw.data;
+  return {
+    ...raw,
+    data: {
+      rows: d.customers,
+      pagination: {
+        total: d.total,
+        page: d.page,
+        totalPages: Math.ceil(d.total / (d.limit || 50)),
+      },
+      summary: d.summary,
+    },
+  };
 }
 
-/** Fetch locations export. */
+/** Fetch locations export. Normalises the API shape (locations[] + totalLocations) into rows[] + pagination. */
 export async function getExportLocations(
   params: ExportLocationsParams = {},
 ): Promise<ApiSuccessResponse<ExportLocationsData>> {
-  return get<ExportLocationsData>(
+  const raw = await get<ExportLocationsRawData>(
     "/reports/exports/locations",
     toQueryRecord({ includeIds: false, ...params }),
   );
+  const d = raw.data;
+  const limit = (params as Record<string, unknown>).limit as number | undefined;
+  return {
+    ...raw,
+    data: {
+      rows: d.locations,
+      pagination: {
+        total: d.totalLocations,
+        page: ((params as Record<string, unknown>).page as number) ?? 1,
+        totalPages: Math.ceil(d.totalLocations / (limit || 50)),
+      },
+      summary: d.summary,
+    },
+  };
 }
 
-/** Fetch loan requests export. */
+/** Fetch loan requests export. Normalises the API shape (requests[] + flat pagination) into rows[] + pagination. */
 export async function getExportRequests(
   params: ExportRequestsParams = {},
 ): Promise<ApiSuccessResponse<ExportRequestsData>> {
-  return get<ExportRequestsData>(
-    "/reports/exports/loan-requests",
+  const raw = await get<ExportRequestsRawData>(
+    "/reports/exports/requests",
     toQueryRecord({ includeIds: false, ...params }),
   );
+  const d = raw.data;
+  return {
+    ...raw,
+    data: {
+      rows: d.requests,
+      pagination: {
+        total: d.total,
+        page: d.page,
+        totalPages: Math.ceil(d.total / (d.limit || 50)),
+      },
+      summary: d.summary,
+    },
+  };
 }

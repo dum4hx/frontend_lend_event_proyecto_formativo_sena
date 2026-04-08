@@ -2536,29 +2536,46 @@ export interface ExportCustomersParams extends ExportBaseQueryParams {
 
 export interface ExportCustomersRow {
   customerId?: string;
-  firstName: string;
-  lastName: string;
+  fullName: string;
   email: string;
   phone: string;
   documentType: string;
   documentNumber: string;
   status: string;
+  totalLoans: number;
+  activeLoans: number;
+  totalRevenue: number;
+  avgLoanAmount: number;
+  lastLoanAt: string | null;
   createdAt: string;
 }
 
 export interface ExportCustomersPeriodComparison {
-  currentCustomers: number;
-  previousCustomers: number;
+  currentNewCustomers: number;
+  previousNewCustomers: number;
   percentChange: number;
 }
 
 export interface ExportCustomersSummary {
   totalCustomers: number;
-  activeRate: number;
-  customersByStatus: Array<{ status: string; count: number }>;
+  byStatus: Array<{ status: string; count: number }>;
+  totalRevenue: number;
+  totalLoans: number;
+  topByRevenue: Array<{ fullName: string; totalRevenue: number }>;
+  topByLoanCount: Array<{ fullName: string; loanCount: number }>;
   periodComparison?: ExportCustomersPeriodComparison;
 }
 
+/** Raw shape returned by the API (customers array + flat pagination). */
+export interface ExportCustomersRawData {
+  total: number;
+  page: number;
+  limit: number;
+  customers: ExportCustomersRow[];
+  summary?: ExportCustomersSummary;
+}
+
+/** Normalised shape consumed by the rest of the app. */
 export interface ExportCustomersData {
   rows: ExportCustomersRow[];
   pagination: ExportPagination;
@@ -2574,11 +2591,26 @@ export interface ExportLocationsParams extends ExportBaseQueryParams {
 export interface ExportLocationsRow {
   locationId?: string;
   name: string;
-  organizationName: string;
+  code: string;
   status: string;
-  city: string;
-  department: string;
-  address: string;
+  isActive: boolean;
+  address: {
+    streetType: string;
+    primaryNumber: string;
+    secondaryNumber: string;
+    complementaryNumber: string;
+    department: string;
+    city: string;
+    country: string;
+  };
+  additionalDetails: string | null;
+  materialCapacitiesSummary: {
+    totalCapacity: number;
+    totalOccupied: number;
+    occupancyRate: number;
+  };
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ExportLocationsPeriodComparison {
@@ -2589,17 +2621,30 @@ export interface ExportLocationsPeriodComparison {
 
 export interface ExportLocationsSummary {
   totalLocations: number;
-  locationsByStatus: Array<{ status: string; count: number }>;
+  byStatus: Array<{ status: string; count: number }>;
+  byActive: { active: number; inactive: number };
+  avgOccupancyRate: number;
+  totalCapacity: number;
+  totalOccupied: number;
+  topByOccupancy: Array<{ name: string; code: string; occupancyRate: number }>;
   periodComparison?: ExportLocationsPeriodComparison;
 }
 
+/** Raw shape returned by the API (locations array + totalLocations). */
+export interface ExportLocationsRawData {
+  totalLocations: number;
+  locations: ExportLocationsRow[];
+  summary?: ExportLocationsSummary;
+}
+
+/** Normalised shape consumed by the rest of the app. */
 export interface ExportLocationsData {
   rows: ExportLocationsRow[];
   pagination: ExportPagination;
   summary?: ExportLocationsSummary;
 }
 
-// ── Loan Requests (/reports/exports/loan-requests) ─────────────────────────
+// ── Loan Requests (/reports/exports/requests) ─────────────────────────
 
 export interface ExportRequestsParams extends ExportBaseQueryParams {
   status?: string;
@@ -2608,12 +2653,26 @@ export interface ExportRequestsParams extends ExportBaseQueryParams {
 export interface ExportRequestsRow {
   requestId?: string;
   code: string;
-  customerName: string;
   status: string;
-  startDate: string;
-  endDate: string;
   itemCount: number;
   totalAmount: number;
+  subtotal: number;
+  discountAmount: number;
+  depositAmount: number;
+  totalDays: number;
+  startDate: string;
+  endDate: string;
+  approvedAt: string | null;
+  rejectionReason: string | null;
+  createdAt: string;
+}
+
+export interface ExportRequestsFunnel {
+  approvalRate: number;
+  completionRate: number;
+  rejectionRate: number;
+  cancellationRate: number;
+  avgApprovalTimeHours: number;
 }
 
 export interface ExportRequestsPeriodComparison {
@@ -2624,11 +2683,25 @@ export interface ExportRequestsPeriodComparison {
 
 export interface ExportRequestsSummary {
   totalRequests: number;
-  approvalRate: number;
-  requestsByStatus: Array<{ status: string; count: number }>;
+  byStatus: Array<{ status: string; count: number }>;
+  byMonth: Array<{ year: number; month: number; count: number; totalAmount: number }>;
+  funnel: ExportRequestsFunnel;
+  avgRequestValue: number;
+  avgDuration: number;
+  totalRevenue: number;
   periodComparison?: ExportRequestsPeriodComparison;
 }
 
+/** Raw shape returned by the API (requests array + flat pagination). */
+export interface ExportRequestsRawData {
+  total: number;
+  page: number;
+  limit: number;
+  requests: ExportRequestsRow[];
+  summary?: ExportRequestsSummary;
+}
+
+/** Normalised shape consumed by the rest of the app. */
 export interface ExportRequestsData {
   rows: ExportRequestsRow[];
   pagination: ExportPagination;
@@ -3020,4 +3093,204 @@ export interface UpdateCodeSchemePayload {
 /** Query parameters for GET /code-schemes. */
 export interface CodeSchemesQueryParams {
   entityType?: CodeSchemeEntityType;
+}
+
+// ─── Admin Export Types ─────────────────────────────────────────────────────
+
+// --- Platform KPIs ---
+
+export interface AdminExportPlatformKpisParams {
+  startDate?: string;
+  endDate?: string;
+  includeIds?: boolean;
+}
+
+export interface AdminPlatformKpisMonthlyRow {
+  year: number;
+  month: number;
+  newOrgs: number;
+  newUsers: number;
+  totalLoans: number;
+  totalInvoices: number;
+}
+
+export interface AdminPlatformKpisCurrentKpis {
+  totalOrgs: number;
+  activeOrgs: number;
+  totalUsers: number;
+  activeUsers: number;
+  totalLoans: number;
+  totalInvoices: number;
+  mrr: number;
+  arr: number;
+}
+
+export interface AdminPlatformKpisPeriodComparison {
+  previous: { orgs: number; users: number; loans: number; invoices: number };
+  current: { orgs: number; users: number; loans: number; invoices: number };
+  changes: { orgs: number; users: number; loans: number; invoices: number };
+}
+
+export interface AdminPlatformKpisSummary {
+  currentKpis: AdminPlatformKpisCurrentKpis;
+  avgUsersPerOrg: number;
+  avgSeatsPerOrg: number;
+  avgCatalogItemsPerOrg: number;
+  orgsByStatus: Record<string, number>;
+  usersByStatus: Record<string, number>;
+  periodComparison?: AdminPlatformKpisPeriodComparison;
+}
+
+export interface AdminPlatformKpisDetailData {
+  monthlyBreakdown: AdminPlatformKpisMonthlyRow[];
+  generatedAt: string;
+}
+
+export interface AdminPlatformKpisSummaryData {
+  summary: AdminPlatformKpisSummary;
+  generatedAt: string;
+}
+
+// --- Subscriptions ---
+
+export interface AdminExportSubscriptionsParams {
+  startDate?: string;
+  endDate?: string;
+  plan?: string;
+  orgStatus?: string;
+  page?: number;
+  limit?: number;
+  includeIds?: boolean;
+}
+
+export interface AdminSubscriptionRow {
+  orgId: string;
+  orgName: string;
+  orgStatus: string;
+  plan: string;
+  seatCount: number;
+  catalogItemCount: number;
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
+  cancelAtPeriodEnd: boolean;
+  pendingPlan: string | null;
+  orgCreatedAt: string;
+}
+
+export interface AdminSubscriptionsPlanBreakdown {
+  plan: string;
+  count: number;
+  percentage: number;
+  estimatedMonthlyRevenue: number;
+}
+
+export interface AdminSubscriptionsPeriodComparison {
+  previous: { orgs: number; churn: number; upgrades: number; downgrades: number };
+  current: { orgs: number; churn: number; upgrades: number; downgrades: number };
+  changes: { orgs: number; churn: number; upgrades: number; downgrades: number };
+}
+
+export interface AdminSubscriptionsSummary {
+  totalOrgs: number;
+  byPlan: AdminSubscriptionsPlanBreakdown[];
+  byOrgStatus: Array<{ status: string; count: number }>;
+  churn: number;
+  upgrades: number;
+  downgrades: number;
+  paymentAnalytics: {
+    succeeded: number;
+    failed: number;
+    successRate: number;
+  };
+  topPlanByCount: { plan: string; count: number };
+  topPlanByRevenue: { plan: string; revenue: number };
+  periodComparison?: AdminSubscriptionsPeriodComparison;
+}
+
+export interface AdminSubscriptionsDetailData {
+  subscriptions: AdminSubscriptionRow[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  generatedAt: string;
+}
+
+export interface AdminSubscriptionsSummaryData {
+  summary: AdminSubscriptionsSummary;
+  generatedAt: string;
+}
+
+// --- Usage ---
+
+export interface AdminExportUsageParams {
+  startDate?: string;
+  endDate?: string;
+  plan?: string;
+  orgStatus?: string;
+  page?: number;
+  limit?: number;
+  includeIds?: boolean;
+}
+
+export interface AdminUsageOrgRow {
+  orgId: string;
+  orgName: string;
+  plan: string;
+  orgStatus: string;
+  userCount: number;
+  activeUserCount: number;
+  loanCount: number;
+  invoiceCount: number;
+  customerCount: number;
+  locationCount: number;
+  materialTypeCount: number;
+  materialInstanceCount: number;
+  createdAt: string;
+}
+
+export interface AdminUsagePlatformTotals {
+  organizations: number;
+  users: number;
+  loans: number;
+  invoices: number;
+  customers: number;
+  locations: number;
+  materialTypes: number;
+  materialInstances: number;
+}
+
+export interface AdminUsagePeriodComparison {
+  previous: { loans: number; invoices: number; users: number; customers: number };
+  current: { loans: number; invoices: number; users: number; customers: number };
+  changes: { loans: number; invoices: number; users: number; customers: number };
+}
+
+export interface AdminUsageSummary {
+  platformTotals: AdminUsagePlatformTotals;
+  avgPerOrg: {
+    users: number;
+    loans: number;
+    invoices: number;
+    customers: number;
+  };
+  topByLoans: Array<{ orgName: string; plan: string; count: number }>;
+  topByInvoices: Array<{ orgName: string; plan: string; count: number }>;
+  topByUsers: Array<{ orgName: string; plan: string; count: number }>;
+  usageDistribution: Array<{ bucket: string; orgCount: number }>;
+  periodComparison?: AdminUsagePeriodComparison;
+}
+
+export interface AdminUsageDetailData {
+  organizations: AdminUsageOrgRow[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  generatedAt: string;
+}
+
+export interface AdminUsageSummaryData {
+  summary: AdminUsageSummary;
+  generatedAt: string;
 }

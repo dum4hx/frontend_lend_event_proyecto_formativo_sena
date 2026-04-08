@@ -10,16 +10,14 @@ import {
   Palette,
   Sun,
   UserCog,
-  Lock,
 } from "lucide-react";
 import { fetchPlatformHealth, fetchOverview } from "../../../services/superAdminService";
 import { updateUser } from "../../../services/userService";
-import { changePassword } from "../../../services/authService";
+
 import { useLanguage } from "../../../contexts/useLanguage";
 import { useAuth } from "../../../contexts/useAuth";
 import { logError, normalizeError } from "../../../utils/errorHandling";
 import { useTheme } from "../../../contexts/useTheme";
-import { ApiError } from "../../../lib/api";
 import type { PlatformHealth, PlatformOverview } from "../../../types/api";
 import type { SupportedLanguage } from "../../../i18n/translations";
 
@@ -81,44 +79,20 @@ function hasErrors(errors: SettingsValidationErrors): boolean {
 interface AccountProfileErrors {
   firstName?: string;
   firstSurname?: string;
-  email?: string;
-}
-
-interface AccountPasswordErrors {
-  currentPassword?: string;
-  newPassword?: string;
-  confirmPassword?: string;
 }
 
 function validateAccountProfile(
-  fields: { firstName: string; firstSurname: string; email: string },
+  fields: { firstName: string; firstSurname: string },
   t: ReturnType<typeof useLanguage>["t"],
 ): AccountProfileErrors {
   const errors: AccountProfileErrors = {};
   if (!fields.firstName.trim()) errors.firstName = t("systemSettings.validation.firstNameRequired");
   if (!fields.firstSurname.trim())
     errors.firstSurname = t("systemSettings.validation.firstSurnameRequired");
-  if (!fields.email.trim()) errors.email = t("systemSettings.validation.emailRequired");
-  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fields.email))
-    errors.email = t("systemSettings.validation.emailInvalid");
   return errors;
 }
 
-function validateAccountPassword(
-  fields: { currentPassword: string; newPassword: string; confirmPassword: string },
-  t: ReturnType<typeof useLanguage>["t"],
-): AccountPasswordErrors {
-  const errors: AccountPasswordErrors = {};
-  if (!fields.currentPassword.trim())
-    errors.currentPassword = t("systemSettings.validation.currentPasswordRequired");
-  if (fields.newPassword.length < 8)
-    errors.newPassword = t("systemSettings.validation.newPasswordTooShort");
-  if (fields.newPassword !== fields.confirmPassword)
-    errors.confirmPassword = t("systemSettings.validation.passwordsMustMatch");
-  return errors;
-}
-
-function hasAccountErrors(errors: AccountProfileErrors | AccountPasswordErrors): boolean {
+function hasAccountErrors(errors: AccountProfileErrors): boolean {
   return Object.values(errors).some(Boolean);
 }
 
@@ -135,14 +109,14 @@ export default function SystemSettings() {
   const [maintenanceMode, setMaintenanceMode] = useState(false);
 
   // Security
-  const [twoFactor, setTwoFactor] = useState(false);
-  const [sessionTimeout, setSessionTimeout] = useState(15);
-  const [maxOrganizations, setMaxOrganizations] = useState(500);
+  const [twoFactor] = useState(false);
+  const [sessionTimeout] = useState(15);
+  const [maxOrganizations] = useState(500);
 
   // Notifications
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [slackIntegration, setSlackIntegration] = useState(false);
-  const [alertThreshold, setAlertThreshold] = useState(90);
+  const [emailNotifications] = useState(true);
+  const [slackIntegration] = useState(false);
+  const [alertThreshold] = useState(90);
 
   // State
   const [validationErrors, setValidationErrors] = useState<SettingsValidationErrors>({});
@@ -164,15 +138,6 @@ export default function SystemSettings() {
   const [profileErrors, setProfileErrors] = useState<AccountProfileErrors>({});
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
-
-  // Account — Password
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [passwordErrors, setPasswordErrors] = useState<AccountPasswordErrors>({});
-  const [passwordSaving, setPasswordSaving] = useState(false);
-  const [passwordSaved, setPasswordSaved] = useState(false);
-  const [passwordError, setPasswordError] = useState("");
 
   const loadHealth = useCallback(async () => {
     try {
@@ -205,7 +170,7 @@ export default function SystemSettings() {
 
   const handleSaveProfile = async () => {
     const errors = validateAccountProfile(
-      { firstName: acctFirstName, firstSurname: acctFirstSurname, email: acctEmail },
+      { firstName: acctFirstName, firstSurname: acctFirstSurname },
       t,
     );
     setProfileErrors(errors);
@@ -221,8 +186,6 @@ export default function SystemSettings() {
           firstSurname: acctFirstSurname.trim(),
           secondSurname: acctSecondSurname.trim() || undefined,
         },
-        email: acctEmail.trim(),
-        phone: acctPhone.trim() || undefined,
       });
       await checkAuth();
       setProfileSaved(true);
@@ -231,32 +194,6 @@ export default function SystemSettings() {
       logError(err, "SystemSettings.handleSaveProfile");
     } finally {
       setProfileSaving(false);
-    }
-  };
-
-  const handleChangePassword = async () => {
-    setPasswordError("");
-    const errors = validateAccountPassword({ currentPassword, newPassword, confirmPassword }, t);
-    setPasswordErrors(errors);
-    if (hasAccountErrors(errors)) return;
-
-    try {
-      setPasswordSaving(true);
-      setPasswordSaved(false);
-      await changePassword({ currentPassword, newPassword });
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-      setPasswordSaved(true);
-      setTimeout(() => setPasswordSaved(false), 3000);
-    } catch (err: unknown) {
-      if (err instanceof ApiError) {
-        setPasswordError(err.message);
-      } else {
-        logError(err, "SystemSettings.handleChangePassword");
-      }
-    } finally {
-      setPasswordSaving(false);
     }
   };
 
@@ -353,80 +290,88 @@ export default function SystemSettings() {
           />
         </SettingsSection>
 
-        {/* Security */}
-        <SettingsSection
-          icon={<Shield size={20} className="text-[#FFD700]" />}
-          title={t("systemSettings.security.title")}
-          description={t("systemSettings.security.description")}
-        >
-          <ToggleRow
-            label={t("systemSettings.security.twoFactor")}
-            description={t("systemSettings.security.twoFactorDescription")}
-            checked={twoFactor}
-            onChange={setTwoFactor}
-          />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            <FieldGroup
-              label={t("systemSettings.security.sessionTimeout")}
-              error={validationErrors.sessionTimeout}
-            >
-              <input
-                type="number"
-                min={5}
-                max={1440}
-                value={sessionTimeout}
-                onChange={(e) => setSessionTimeout(Number(e.target.value))}
-                className="setting-input"
-              />
-            </FieldGroup>
-            <FieldGroup
-              label={t("systemSettings.security.maxOrganizations")}
-              error={validationErrors.maxOrganizations}
-            >
-              <input
-                type="number"
-                min={1}
-                value={maxOrganizations}
-                onChange={(e) => setMaxOrganizations(Number(e.target.value))}
-                className="setting-input"
-              />
-            </FieldGroup>
+        {/* Security — Coming Soon */}
+        <div className="relative">
+          <div className="absolute inset-0 z-10 bg-[#121212]/70 rounded-xl flex items-center justify-center backdrop-blur-[2px]">
+            <span className="bg-[#FFD700]/15 text-[#FFD700] border border-[#FFD700]/30 text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-wider">
+              {t("systemSettings.comingSoon")}
+            </span>
           </div>
-        </SettingsSection>
+          <SettingsSection
+            icon={<Shield size={20} className="text-[#FFD700]" />}
+            title={t("systemSettings.security.title")}
+            description={t("systemSettings.security.description")}
+          >
+            <ToggleRow
+              label={t("systemSettings.security.twoFactor")}
+              description={t("systemSettings.security.twoFactorDescription")}
+              checked={twoFactor}
+              onChange={() => {}}
+            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <FieldGroup label={t("systemSettings.security.sessionTimeout")}>
+                <input
+                  type="number"
+                  min={5}
+                  max={1440}
+                  value={sessionTimeout}
+                  disabled
+                  className="setting-input opacity-60 cursor-not-allowed"
+                />
+              </FieldGroup>
+              <FieldGroup label={t("systemSettings.security.maxOrganizations")}>
+                <input
+                  type="number"
+                  min={1}
+                  value={maxOrganizations}
+                  disabled
+                  className="setting-input opacity-60 cursor-not-allowed"
+                />
+              </FieldGroup>
+            </div>
+          </SettingsSection>
+        </div>
 
-        {/* Notifications */}
-        <SettingsSection
-          icon={<Bell size={20} className="text-[#FFD700]" />}
-          title={t("systemSettings.notifications.title")}
-          description={t("systemSettings.notifications.description")}
-        >
-          <ToggleRow
-            label={t("systemSettings.notifications.email")}
-            description={t("systemSettings.notifications.emailDescription")}
-            checked={emailNotifications}
-            onChange={setEmailNotifications}
-          />
-          <ToggleRow
-            label={t("systemSettings.notifications.slack")}
-            description={t("systemSettings.notifications.slackDescription")}
-            checked={slackIntegration}
-            onChange={setSlackIntegration}
-          />
-          <div className="mt-4 max-w-xs">
-            <FieldGroup
-              label={t("systemSettings.notifications.alertThreshold", { value: alertThreshold })}
-            >
-              <input
-                type="range"
-                min={10}
-                max={100}
-                value={alertThreshold}
-                onChange={(e) => setAlertThreshold(Number(e.target.value))}
-                className="w-full accent-[#FFD700]"
-              />
-            </FieldGroup>
+        {/* Notifications — Coming Soon */}
+        <div className="relative">
+          <div className="absolute inset-0 z-10 bg-[#121212]/70 rounded-xl flex items-center justify-center backdrop-blur-[2px]">
+            <span className="bg-[#FFD700]/15 text-[#FFD700] border border-[#FFD700]/30 text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-wider">
+              {t("systemSettings.comingSoon")}
+            </span>
           </div>
-        </SettingsSection>
+          <SettingsSection
+            icon={<Bell size={20} className="text-[#FFD700]" />}
+            title={t("systemSettings.notifications.title")}
+            description={t("systemSettings.notifications.description")}
+          >
+            <ToggleRow
+              label={t("systemSettings.notifications.email")}
+              description={t("systemSettings.notifications.emailDescription")}
+              checked={emailNotifications}
+              onChange={() => {}}
+            />
+            <ToggleRow
+              label={t("systemSettings.notifications.slack")}
+              description={t("systemSettings.notifications.slackDescription")}
+              checked={slackIntegration}
+              onChange={() => {}}
+            />
+            <div className="mt-4 max-w-xs">
+              <FieldGroup
+                label={t("systemSettings.notifications.alertThreshold", { value: alertThreshold })}
+              >
+                <input
+                  type="range"
+                  min={10}
+                  max={100}
+                  value={alertThreshold}
+                  disabled
+                  className="w-full accent-[#FFD700] opacity-60 cursor-not-allowed"
+                />
+              </FieldGroup>
+            </div>
+          </SettingsSection>
+        </div>
 
         {/* Appearance */}
         <SettingsSection
@@ -548,16 +493,13 @@ export default function SystemSettings() {
                   className="setting-input"
                 />
               </FieldGroup>
-              <FieldGroup
-                label={t("systemSettings.account.profile.email")}
-                error={profileErrors.email}
-              >
+              <FieldGroup label={t("systemSettings.account.profile.email")}>
                 <input
                   data-help-id="sa-account-email"
                   type="email"
                   value={acctEmail}
-                  onChange={(e) => setAcctEmail(e.target.value)}
-                  className="setting-input"
+                  disabled
+                  className="setting-input opacity-60 cursor-not-allowed"
                 />
               </FieldGroup>
               <FieldGroup label={t("systemSettings.account.profile.phone")}>
@@ -565,8 +507,8 @@ export default function SystemSettings() {
                   data-help-id="sa-account-phone"
                   type="tel"
                   value={acctPhone}
-                  onChange={(e) => setAcctPhone(e.target.value)}
-                  className="setting-input"
+                  disabled
+                  className="setting-input opacity-60 cursor-not-allowed"
                 />
               </FieldGroup>
             </div>
@@ -584,73 +526,6 @@ export default function SystemSettings() {
                     ? `${t("systemSettings.account.profile.saved")} ✓`
                     : t("systemSettings.account.profile.save")}
               </button>
-            </div>
-
-            {/* Password */}
-            <div className="mt-6 border-t border-[#222] pt-5">
-              <div className="flex items-center gap-2 mb-3">
-                <Lock size={16} className="text-[#FFD700]" />
-                <h3 className="text-sm font-semibold text-white">
-                  {t("systemSettings.account.password.title")}
-                </h3>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <FieldGroup
-                  label={t("systemSettings.account.password.current")}
-                  error={passwordErrors.currentPassword}
-                >
-                  <input
-                    data-help-id="sa-account-current-password"
-                    type="password"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    className="setting-input"
-                    autoComplete="current-password"
-                  />
-                </FieldGroup>
-                <FieldGroup
-                  label={t("systemSettings.account.password.new")}
-                  error={passwordErrors.newPassword}
-                >
-                  <input
-                    data-help-id="sa-account-new-password"
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="setting-input"
-                    autoComplete="new-password"
-                  />
-                </FieldGroup>
-                <FieldGroup
-                  label={t("systemSettings.account.password.confirm")}
-                  error={passwordErrors.confirmPassword}
-                >
-                  <input
-                    data-help-id="sa-account-confirm-password"
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="setting-input"
-                    autoComplete="new-password"
-                  />
-                </FieldGroup>
-              </div>
-              {passwordError && <p className="text-red-400 text-xs mt-2">{passwordError}</p>}
-              <div className="mt-4 flex justify-end">
-                <button
-                  data-help-id="sa-account-change-password"
-                  onClick={() => void handleChangePassword()}
-                  disabled={passwordSaving}
-                  className="flex items-center gap-2 font-semibold px-5 py-2 rounded-lg transition disabled:opacity-50 gold-action-btn text-sm"
-                >
-                  <Lock size={16} />
-                  {passwordSaving
-                    ? t("systemSettings.account.password.changing")
-                    : passwordSaved
-                      ? `${t("systemSettings.account.password.changed")} ✓`
-                      : t("systemSettings.account.password.change")}
-                </button>
-              </div>
             </div>
           </div>
         </SettingsSection>

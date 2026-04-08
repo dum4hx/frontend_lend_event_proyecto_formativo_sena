@@ -25,6 +25,7 @@ const HELP_LOADERS: Record<string, HelpLoader> = {
   roles: () => import("./rolesHelp"),
   settings: () => import("./settingsHelp"),
   subscription: () => import("./subscriptionHelp"),
+  "super-admin-reports": () => import("./superAdminReportsHelp"),
   "super-admin-settings": () => import("./superAdminSettingsHelp"),
   team: () => import("./teamHelp"),
   "transfer-requests": () => import("./transferRequestsHelp"),

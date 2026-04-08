@@ -53,6 +53,58 @@ This document defines:
 - One service file per domain entity in `src/services/`
 - Error handling via `ApiError` class (not status code checks)
 
+#### 🔄 Backend vs Frontend Resolution Strategy
+
+When consuming a backend API endpoint and encountering errors, **evaluate whether the problem should be fixed in backend or frontend**. Implementing complex workarounds in frontend for backend issues is a blocking defect.
+
+**Recommend backend changes when:**
+
+1. **Data validation errors** — The backend should validate input before processing (emails, phone formats, required fields, numeric ranges, uniqueness constraints, etc.). Frontend validation is UX sugar; backend validation is mandatory for correctness and security.
+   - Example: Email uniqueness conflict, tax ID format mismatch, category name duplication.
+   - **Action**: Inform user that the backend must implement proper validation (dedupe check, format regex, etc.) and suggest adding it to the API endpoint's request handler.
+
+2. **Missing or incomplete response data** — If the backend omits required fields that clients need, or returns inconsistent schemas across similar endpoints, fix it at the source.
+   - Example: User list returns `name` but user detail returns `firstName` + `lastName` separately.
+   - **Action**: Alert user to normalize the response schema in the backend service and suggest updating the API contract in `docs/API_DOCUMENTATION.md`.
+
+3. **Business logic errors** — Complex conditional logic or state management that spans multiple records/entities is a backend responsibility.
+   - Example: Cannot delete a category with active materials; cannot checkout a material with failed inspections; cannot transfer items outside inventory range.
+   - **Action**: Suggest implementing the check in the backend API and returning a meaningful error code (409 Conflict, 422 Unprocessable Entity, etc.) with a clear reason.
+
+4. **Permission/authorization issues** — If permission checks are missing or incomplete, the backend must enforce them via middleware or service logic.
+   - Example: User without `materials:delete` permission submits a delete request and backend accepts it.
+   - **Action**: Recommend reviewing the permission guard middleware on the backend and ensuring every mutating endpoint checks `req.user.permissions` against the required permission.
+
+5. **Performance or N+1 problems** — If the frontend receives an API response that triggers cascading API calls to build a complete data model, the backend should provide an aggregated endpoint.
+   - Example: Getting 100 materials but needing a separate call per material to fetch its category, attributes, and pricing.
+   - **Action**: Suggest adding a `?include=category,attributes,pricing` query param to the backend endpoint or creating a specialized aggregated query.
+
+6. **Inconsistent error responses** — If similar HTTP errors (4xx, 5xx) return different schemas or status codes across endpoints, standardize at the backend.
+   - Example: One endpoint returns `{ error: "..." }`, another returns `{ message: "..." }`, another returns plain text.
+   - **Action**: Recommend a standard error response shape (e.g., `{ code: string, message: string, details?: object }`) in the API contract.
+
+**Do NOT recommend backend changes for:**
+
+- Input formatting (trimming, case normalization) unless the backend explicitly forbids it.
+- UX enhancements (error toast, retry logic, loading states) — these are frontend concerns.
+- Client-side caching or deduplication of in-flight requests — use frontend patterns like request debouncing, optimistic updates, or React Query deduplication.
+
+**How to communicate the recommendation to the user:**
+
+1. **Identify the issue clearly:** "The API returns HTTP 400 when creating a duplicate `categoryName`, but provides no detail. This should be fixed in backend."
+2. **Explain the impact:** "Implementing this validation in frontend is fragile—users can bypass it or the data can become stale. Backend validation is the source of truth."
+3. **Provide actionable guidance:**
+   - **Validation:** "Add a unique constraint check in `POST /categories` before INSERT; return `409 Conflict` with reason `{ error: "categoryNameExists" }`."
+   - **Schema fix:** "Ensure `GET /materials/{id}` response includes `category` object (not just ID); align with `GET /materials` response structure."
+   - **Permission guard:** "Add middleware check: `requirePermission('materials:delete')` on the `DELETE /materials/:id` route."
+   - **Error standard:** "Wrap all error responses in `{ code, message, details }` format per the API contract."
+4. **Reference the API documentation:** Always point to `docs/API_DOCUMENTATION.md` as the source of truth and suggest updating it first if the endpoint spec is incomplete.
+
+**When you decide NOT to recommend backend changes:**
+
+- Document your reasoning in a code comment or commit message so future maintainers understand the trade-off.
+- Example: `// Frontend-side dedup: prevents rapid-fire creates while user holds down button. Backend will still enforce uniqueness on commit.`
+
 ### 🎨 Components
 
 - Reusable UI components in `src/components/ui/` with barrel export (`index.ts`)
@@ -330,6 +382,7 @@ Before any PR:
 - **Real-time validation feedback on keystroke; submit disabled until all validations pass**
 - **Error states are visually distinct** (red borders, error text, aria-invalid attributes)
 - **Custom validators are added to `src/utils/validators.ts` and properly exported** (not duplicated across components)
+- **Backend-first evaluation:** If an API error requires complex frontend logic to resolve, confirm via the Backend vs Frontend Resolution Strategy whether the backend should be fixed instead
 
 ---
 
@@ -469,7 +522,7 @@ Every view addition or modification **must** include or update a corresponding h
 
 ---
 
-**Last Updated:** April 6, 2026
+**Last Updated:** April 8, 2026
 
 ---
 

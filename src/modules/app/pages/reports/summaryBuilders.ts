@@ -429,17 +429,27 @@ function formatEventLabel(eventType: string): string {
 export function buildCustomersSummaryEntries(
   summary: ExportCustomersSummary,
   t: T,
-  _formatCurrency: FmtCurrency,
+  formatCurrency: FmtCurrency,
   language: Lang,
 ): SummaryEntry[] {
+  const activeCount = summary.byStatus?.find((s) => s.status === "active")?.count ?? 0;
+  const activeRate = summary.totalCustomers
+    ? ((activeCount / summary.totalCustomers) * 100).toFixed(1)
+    : "0.0";
+
   const entries: SummaryEntry[] = [
     { label: t("reports.kpi.totalCustomers"), value: summary.totalCustomers },
-    { label: t("reports.kpi.activeRate"), value: pct(summary.activeRate) },
+    { label: t("reports.kpi.activeRate"), value: `${activeRate}%` },
+    {
+      label: t("reports.kpi.totalRevenue"),
+      value: formatCurrency(summary.totalRevenue ?? 0, "COP"),
+    },
+    { label: t("reports.kpi.totalLoans"), value: summary.totalLoans ?? 0 },
   ];
 
-  if (summary.customersByStatus.length > 0) {
+  if (summary.byStatus && summary.byStatus.length > 0) {
     entries.push({ label: `— ${t("reports.summary.customersByStatus")} —`, value: "" });
-    for (const s of summary.customersByStatus) {
+    for (const s of summary.byStatus) {
       entries.push({
         label: `  ${getCustomerStatusLabel(s.status as CustomerStatus, language)}`,
         value: s.count,
@@ -450,10 +460,13 @@ export function buildCustomersSummaryEntries(
   if (summary.periodComparison) {
     const pc = summary.periodComparison;
     entries.push({ label: `— ${t("reports.summary.periodComparison")} —`, value: "" });
-    entries.push({ label: `  ${t("reports.summary.currentPeriod")}`, value: pc.currentCustomers });
+    entries.push({
+      label: `  ${t("reports.summary.currentPeriod")}`,
+      value: pc.currentNewCustomers,
+    });
     entries.push({
       label: `  ${t("reports.summary.previousPeriod")}`,
-      value: pc.previousCustomers,
+      value: pc.previousNewCustomers,
     });
     entries.push({
       label: `  ${t("reports.summary.change")}`,
@@ -476,9 +489,9 @@ export function buildLocationsSummaryEntries(
     { label: t("reports.kpi.totalLocations"), value: summary.totalLocations },
   ];
 
-  if (summary.locationsByStatus.length > 0) {
+  if (summary.byStatus && summary.byStatus.length > 0) {
     entries.push({ label: `— ${t("reports.summary.locationsByStatus")} —`, value: "" });
-    for (const s of summary.locationsByStatus) {
+    for (const s of summary.byStatus) {
       entries.push({
         label: `  ${getLocationStatusLabel(s.status as LocationStatus, language)}`,
         value: s.count,
@@ -513,12 +526,15 @@ export function buildRequestsSummaryEntries(
 ): SummaryEntry[] {
   const entries: SummaryEntry[] = [
     { label: t("reports.kpi.totalRequests"), value: summary.totalRequests },
-    { label: t("reports.kpi.approvalRate"), value: pct(summary.approvalRate) },
+    {
+      label: t("reports.kpi.approvalRate"),
+      value: `${(summary.funnel?.approvalRate ?? 0).toFixed(1)}%`,
+    },
   ];
 
-  if (summary.requestsByStatus.length > 0) {
+  if (summary.byStatus && summary.byStatus.length > 0) {
     entries.push({ label: `— ${t("reports.summary.requestsByStatus")} —`, value: "" });
-    for (const s of summary.requestsByStatus) {
+    for (const s of summary.byStatus) {
       entries.push({
         label: `  ${getLoanRequestStatusLabel(s.status as LoanRequestStatus, language)}`,
         value: s.count,

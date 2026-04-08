@@ -74,5 +74,6 @@
   "systemSettings.validation.emailInvalid": "Invalid email format.",
   "systemSettings.validation.currentPasswordRequired": "Current password is required.",
   "systemSettings.validation.newPasswordTooShort": "Password must be at least 8 characters.",
-  "systemSettings.validation.passwordsMustMatch": "Passwords do not match."
+  "systemSettings.validation.passwordsMustMatch": "Passwords do not match.",
+  "systemSettings.comingSoon": "Coming Soon"
 }

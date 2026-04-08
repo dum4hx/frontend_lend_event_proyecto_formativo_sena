@@ -256,6 +256,13 @@ export const allNavItems: NavItem[] = [
     section: "Management",
   },
   {
+    id: "sa-reports",
+    label: "Reports",
+    path: "/super-admin/reports",
+    requiredPermissions: ["platform:manage"],
+    section: "Management",
+  },
+  {
     id: "sa-settings",
     label: "System Settings",
     path: "/super-admin/settings",

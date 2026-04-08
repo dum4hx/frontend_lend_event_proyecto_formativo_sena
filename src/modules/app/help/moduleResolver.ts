@@ -102,6 +102,10 @@ const HELP_MODULE_DEFINITIONS: HelpModuleDefinition[] = [
     routePrefixes: ["/app/settings"],
   },
   {
+    moduleId: "super-admin-reports",
+    routePrefixes: ["/super-admin/reports"],
+  },
+  {
     moduleId: "super-admin-settings",
     routePrefixes: ["/super-admin/settings"],
   },
