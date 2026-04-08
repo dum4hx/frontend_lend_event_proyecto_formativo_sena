@@ -2157,6 +2157,355 @@ export interface ReportsTransfersData {
   summaryByStatus: Array<{ _id: string; count: number }>;
 }
 
+// ─── Report Exports ────────────────────────────────────────────────────────
+
+/** Base query params shared by all /reports/exports/* endpoints. */
+export interface ExportBaseQueryParams {
+  startDate?: string;
+  endDate?: string;
+  includeIds?: boolean;
+  page?: number;
+  limit?: number;
+}
+
+/** Standard pagination object returned by export endpoints. */
+export interface ExportPagination {
+  total: number;
+  page: number;
+  totalPages: number;
+}
+
+// ── Loan Activity (/reports/exports/loan-activity) ─────────────────────────
+
+export interface ExportLoanActivityParams extends ExportBaseQueryParams {
+  customerId?: string;
+  locationId?: string;
+  status?: string;
+}
+
+export interface ExportLoanActivityRow {
+  loanId?: string;
+  customerId?: string;
+  locationId?: string;
+  code: string;
+  customerName: string;
+  locationName: string;
+  status: string;
+  startDate: string;
+  endDate: string;
+  returnedAt: string | null;
+  durationDays: number;
+  overdueDays: number;
+  totalAmount: number;
+  materialCount: number;
+}
+
+export interface ExportLoanActivityPeriodComparison {
+  currentCount: number;
+  previousCount: number;
+  percentChange: number;
+  currentRevenue: number;
+  previousRevenue: number;
+  revenuePercentChange: number;
+}
+
+export interface ExportLoanActivitySummary {
+  totalLoans: number;
+  totalRevenue: number;
+  averageDurationDays: number;
+  overdueRate: number;
+  returnRate: number;
+  loansByMonth: Array<{ year: number; month: number; count: number; totalAmount: number }>;
+  loansByStatus: Array<{ status: string; count: number; totalAmount: number }>;
+  topMaterials: Array<{ materialName: string; loanCount: number }>;
+  topCustomers: Array<{ customerName: string; loanCount: number; totalAmount: number }>;
+  periodComparison?: ExportLoanActivityPeriodComparison;
+}
+
+export interface ExportLoanActivityData {
+  rows: ExportLoanActivityRow[];
+  pagination: ExportPagination;
+  summary?: ExportLoanActivitySummary;
+}
+
+// ── Sales (/reports/exports/sales) ─────────────────────────────────────────
+
+export interface ExportSalesParams extends ExportBaseQueryParams {
+  customerId?: string;
+  locationId?: string;
+  invoiceType?: string;
+  invoiceStatus?: string;
+  categoryId?: string;
+}
+
+export interface ExportSalesLoanRow {
+  loanId?: string;
+  customerId?: string;
+  locationId?: string;
+  code: string;
+  customerName: string;
+  customerEmail: string;
+  locationName: string;
+  startDate: string;
+  endDate: string;
+  totalAmount: number;
+  depositAmount: number;
+  status: string;
+  materialCount: number;
+}
+
+export interface ExportSalesInvoiceRow {
+  invoiceId?: string;
+  customerId?: string;
+  invoiceNumber: string;
+  type: string;
+  status: string;
+  customerName: string;
+  totalAmount: number;
+  amountPaid: number;
+  amountDue: number;
+  dueDate: string;
+  createdAt: string;
+}
+
+export interface ExportSalesPeriodComparison {
+  currentTotal: number;
+  previousTotal: number;
+  percentChange: number;
+}
+
+export interface ExportSalesSummary {
+  totalLoanRevenue: number;
+  totalInvoiceRevenue: number;
+  combinedRevenue: number;
+  averageLoanValue: number;
+  revenueByMonth: Array<{
+    year: number;
+    month: number;
+    loanRevenue: number;
+    invoiceRevenue: number;
+    total: number;
+  }>;
+  revenueByInvoiceType: Array<{ type: string; revenue: number; count: number }>;
+  topCustomersByRevenue: Array<{ customerName: string; totalRevenue: number; loanCount: number }>;
+  periodComparison?: ExportSalesPeriodComparison;
+}
+
+export interface ExportSalesData {
+  loanRows: ExportSalesLoanRow[];
+  invoiceRows: ExportSalesInvoiceRow[];
+  pagination: ExportPagination;
+  summary?: ExportSalesSummary;
+}
+
+// ── Inventory (/reports/exports/inventory) ─────────────────────────────────
+
+export interface ExportInventoryParams {
+  includeIds?: boolean;
+  locationId?: string;
+  categoryId?: string;
+  status?: string;
+  search?: string;
+}
+
+export interface ExportInventoryMaterialType {
+  materialTypeId?: string;
+  categoryIds?: string[];
+  code: string;
+  name: string;
+  description: string;
+  pricePerDay: number;
+  categoryNames: string[];
+  totalInstances: number;
+  instancesByStatus: Record<string, number>;
+  locationBreakdown: Array<{
+    locationName: string;
+    locationId?: string;
+    count: number;
+  }>;
+  utilizationRate?: number;
+  availabilityRate?: number;
+  damageRate?: number;
+  totalRevenue?: number;
+  totalLoans?: number;
+  averageLoanDurationDays?: number;
+  maintenanceCostTotal?: number;
+}
+
+export interface ExportInventoryLocation {
+  locationId?: string;
+  locationName: string;
+  totalInstances: number;
+  instancesByStatus: Record<string, number>;
+}
+
+export interface ExportInventorySummary {
+  totalCatalogItems: number;
+  totalInstances: number;
+  totalMaterialTypes: number;
+  totalLocations: number;
+  globalInstancesByStatus: Array<{ status: string; count: number }>;
+  globalAvailabilityRate: number;
+  globalUtilizationRate: number;
+  damageRate: number;
+  maintenanceRate: number;
+  estimatedDailyValue: number;
+  topMaterialTypesByStock: Array<{ name: string; total: number }>;
+  topLocationsByStock: Array<{ name: string; total: number }>;
+}
+
+export interface ExportInventoryData {
+  exportedAt: string;
+  totalMaterialTypes: number;
+  totalInstances: number;
+  materialTypes: ExportInventoryMaterialType[];
+  byMaterialType: ExportInventoryMaterialType[];
+  byLocation: ExportInventoryLocation[];
+  summary?: ExportInventorySummary;
+}
+
+// ── Damages (/reports/exports/damages) ─────────────────────────────────────
+
+export interface ExportDamagesParams extends ExportBaseQueryParams {
+  locationId?: string;
+  batchStatus?: string;
+  entryReason?: string;
+}
+
+export interface ExportDamagesBatch {
+  batchId?: string;
+  locationId?: string;
+  batchNumber: string;
+  name: string;
+  status: string;
+  locationName: string;
+  assignedTo: string;
+  totalEstimatedCost: number;
+  totalActualCost: number;
+  startedAt: string;
+  completedAt: string | null;
+  itemCount: number;
+}
+
+export interface ExportDamagesItem {
+  materialInstanceId?: string;
+  batchNumber: string;
+  serialNumber: string;
+  materialTypeName: string;
+  entryReason: string;
+  itemStatus: string;
+  estimatedCost: number;
+  actualCost: number;
+  repairNotes: string;
+  sourceType: string;
+  resolvedAt: string | null;
+}
+
+export interface ExportDamagesPeriodComparison {
+  currentCost: number;
+  previousCost: number;
+  percentChange: number;
+  currentItemCount: number;
+  previousItemCount: number;
+  itemCountPercentChange: number;
+}
+
+export interface ExportDamagesSummary {
+  totalBatches: number;
+  totalItems: number;
+  totalEstimatedCost: number;
+  totalActualCost: number;
+  costVariance: number;
+  costVariancePercent: number;
+  costByEntryReason: Array<{
+    reason: string;
+    estimatedCost: number;
+    actualCost: number;
+    itemCount: number;
+  }>;
+  costByMonth: Array<{
+    year: number;
+    month: number;
+    estimatedCost: number;
+    actualCost: number;
+    batchCount: number;
+  }>;
+  mostDamagedMaterials: Array<{
+    materialTypeName: string;
+    incidentCount: number;
+    totalCost: number;
+  }>;
+  averageRepairTimeDays: number;
+  resolutionBreakdown: Array<{ status: string; count: number }>;
+  periodComparison?: ExportDamagesPeriodComparison;
+}
+
+export interface ExportDamagesData {
+  batches: ExportDamagesBatch[];
+  items: ExportDamagesItem[];
+  pagination: ExportPagination;
+  summary?: ExportDamagesSummary;
+}
+
+// ── Transfers (/reports/exports/transfers) ─────────────────────────────────
+
+export interface ExportTransfersParams extends ExportBaseQueryParams {
+  status?: string;
+  fromLocationId?: string;
+  toLocationId?: string;
+}
+
+export interface ExportTransferRow {
+  transferId?: string;
+  fromLocationId?: string;
+  toLocationId?: string;
+  status: string;
+  fromLocation: string;
+  toLocation: string;
+  itemCount: number;
+  pickedBy: string;
+  receivedBy: string;
+  sentAt: string;
+  receivedAt: string | null;
+  transitDays: number;
+  senderNotes: string | null;
+  receiverNotes: string | null;
+  createdAt: string;
+}
+
+export interface ExportTransfersPeriodComparison {
+  currentTransfers: number;
+  previousTransfers: number;
+  percentChange: number;
+  currentItems: number;
+  previousItems: number;
+  itemsPercentChange: number;
+}
+
+export interface ExportTransfersSummary {
+  totalTransfers: number;
+  totalItemsMoved: number;
+  averageTransitDays: number;
+  completionRate: number;
+  issueRate: number;
+  transfersByStatus: Array<{ status: string; count: number; totalItems: number }>;
+  transfersByMonth: Array<{ year: number; month: number; count: number; totalItems: number }>;
+  receivedConditionBreakdown: Array<{ condition: string; count: number }>;
+  topRoutes: Array<{
+    fromLocation: string;
+    toLocation: string;
+    transferCount: number;
+    totalItems: number;
+  }>;
+  periodComparison?: ExportTransfersPeriodComparison;
+}
+
+export interface ExportTransfersData {
+  rows: ExportTransferRow[];
+  pagination: ExportPagination;
+  summary?: ExportTransfersSummary;
+}
+
 // ─── Location Operations (Warehouse Operator Dashboard) ────────────────────
 
 /** Priority levels for operational tasks. */

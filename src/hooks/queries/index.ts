@@ -12,4 +12,5 @@ export * from "./usePaymentMethodQueries";
 export * from "./usePricingQueries";
 export * from "./useOrgQueries";
 export * from "./useReportQueries";
+export * from "./useReportExportQueries";
 export * from "./useTransferQueries";

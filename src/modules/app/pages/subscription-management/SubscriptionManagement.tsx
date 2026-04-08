@@ -376,7 +376,7 @@ export default function SubscriptionManagement() {
     return <ErrorDisplay error={error} onRetry={fetchData} fullScreen />;
   }
 
-  const isOwner = user?.roleName === "owner";
+  const isOwner = hasPermission("billing:manage");
 
   if (!hasPermission("subscription:manage")) return <Unauthorized />;
 

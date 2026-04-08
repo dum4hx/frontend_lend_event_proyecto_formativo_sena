@@ -841,3 +841,30 @@ export const validateCodeSchemePattern = (
   }
   return { isValid: true };
 };
+
+/**
+ * Date range validation for report filters.
+ * Ensures "from" is not after "to". Both values are optional.
+ * @example validateDateRange("2025-01-01", "2025-12-31") // { isValid: true }
+ * @example validateDateRange("2025-12-31", "2025-01-01") // { isValid: false, message: "..." }
+ */
+export const validateDateRange = (from: string, to: string): ValidationResult => {
+  if (!from || !to) return { isValid: true };
+  if (from > to) {
+    return { isValid: false, message: "reports.filter.dateRangeError" };
+  }
+  return { isValid: true };
+};
+
+/**
+ * Search query validation for report text search fields.
+ * Max 100 characters. No regex-special chars to avoid injection.
+ * @example validateSearchQuery("silla") // { isValid: true }
+ * @example validateSearchQuery("a".repeat(101)) // { isValid: false, message: "..." }
+ */
+export const validateSearchQuery = (query: string): ValidationResult => {
+  if (query.length > 100) {
+    return { isValid: false, message: "reports.filter.searchTooLong" };
+  }
+  return { isValid: true };
+};

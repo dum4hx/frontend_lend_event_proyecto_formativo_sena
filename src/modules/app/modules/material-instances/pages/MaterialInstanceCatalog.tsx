@@ -11,6 +11,7 @@ import {
 } from "../components";
 import { AdminPagination } from "../../../components";
 import { ExcelExportImport } from "../../../../../components/export/ExcelExportImport";
+import { FEATURE_FLAGS } from "../../../../../config/featureFlags";
 import { useToast } from "../../../../../contexts/ToastContext";
 import { useLanguage } from "../../../../../contexts/useLanguage";
 import { usePermissions } from "../../../../../contexts/usePermissions";
@@ -322,7 +323,7 @@ export const MaterialInstanceCatalog: React.FC = () => {
         },
       );
     },
-    [canCreateInstance, findInstanceByScannedCode, showToast],
+    [canCreateInstance, findInstanceByScannedCode, showToast, t],
   );
 
   useBarcodeScanner({
@@ -490,9 +491,9 @@ export const MaterialInstanceCatalog: React.FC = () => {
             <ExcelExportImport
               data={exportRows}
               filename="material-instances"
-              onImport={handleImportInstances}
-              importDisabled={!isAllowed("materials:create")}
-              onImportDenied={guard("materials:create", () => {})}
+              onImport={FEATURE_FLAGS.ENABLE_DATA_IMPORT ? handleImportInstances : undefined}
+              importDisabled={FEATURE_FLAGS.ENABLE_DATA_IMPORT ? !isAllowed("materials:create") : undefined}
+              onImportDenied={FEATURE_FLAGS.ENABLE_DATA_IMPORT ? guard("materials:create", () => {}) : undefined}
               showLabels={true}
             />
             <button

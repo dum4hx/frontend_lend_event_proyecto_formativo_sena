@@ -6133,6 +6133,19 @@ Returns customer status breakdown and the top 10 customers ranked by total loan 
 
 ### Reports Endpoints
 
+> **⚠️ Legacy — uso desaconsejado.** Estos endpoints se mantienen por compatibilidad retroactiva, pero se recomienda migrar a los **Report Export Endpoints** (sección siguiente). Los nuevos endpoints ofrecen el parámetro `includeIds` para controlar la presencia de IDs, métricas de negocio enriquecidas (tendencias, comparaciones de periodo, tasas de utilización, rutas top, etc.) y filtros más completos.
+>
+> **Tabla de migración:**
+>
+> | Endpoint legacy          | Reemplazo recomendado                | Notas                                                                                                            |
+> | ------------------------ | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
+> | `GET /reports/loans`     | `GET /reports/exports/loan-activity` | Métricas de duración, sobrepasos, tendencias mensuales y comparación de periodo                                  |
+> | `GET /reports/inventory` | `GET /reports/exports/inventory`     | Desglose por tipo/ubicación con tasas de utilización/disponibilidad/daño                                         |
+> | `GET /reports/financial` | `GET /reports/exports/sales`         | Combina préstamos + facturas con revenue breakdown y top clientes                                                |
+> | `GET /reports/damages`   | —                                    | Sin reemplazo directo; usa datos de inspección. `/exports/damages` usa datos de mantenimiento (fuente diferente) |
+> | `GET /reports/transfers` | `GET /reports/exports/transfers`     | Análisis de rutas, tiempos de tránsito, condición de ítems y comparación de periodo                              |
+> | `GET /reports/catalog`   | `GET /reports/exports/catalog`       | Catálogo detallado con disponibilidad por ubicación, ingreso estimado y costo de mantenimiento                   |
+
 All reports endpoints require authentication, an active organization, and the `reports:read` permission. Reports are designed for operational analysis and support pagination, date-range filtering, and status filtering.
 
 **Common Query Parameters** (all optional):
@@ -6808,6 +6821,226 @@ When `includeIds=false`, IDs are omitted and an enriched `summary` is added:
 - `costVariancePercent` represents the percentage difference.
 - `periodComparison` is only included when both `startDate` and `endDate` are provided.
 - The `items` array respects the `entryReason` filter (e.g., only damaged items), even though `batches` shows full batch data.
+
+---
+
+#### GET /reports/exports/inventory
+
+Inventory export grouped by material type and location. When `includeIds=false`, includes utilization, availability, damage, and maintenance rates, estimated daily catalog value, and top materials/locations by stock.
+
+**Permission:** `reports:read`
+
+**Query Parameters:**
+
+| Parameter  | Type   | Description                                                            |
+| ---------- | ------ | ---------------------------------------------------------------------- |
+| includeIds | string | `"true"` (default) includes IDs; `"false"` omits them and adds summary |
+| locationId | string | Filter by location ObjectId                                            |
+| categoryId | string | Filter by category ObjectId                                            |
+| status     | string | Filter by instance status (e.g., `available`, `loaned`, `damaged`)     |
+| search     | string | Search material type name (case-insensitive regex)                     |
+
+**Example Request:**
+
+```
+GET /api/v1/reports/exports/inventory?includeIds=false&status=available
+Authorization: Bearer <token>
+x-organization-id: <org-id>
+```
+
+**Success Response (200) — `includeIds=true`:**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "totalInstances": 150,
+    "byMaterialType": [
+      {
+        "materialTypeId": "665...",
+        "materialTypeName": "Proyector Epson",
+        "code": "MAT-001",
+        "pricePerDay": 15000,
+        "categoryNames": ["Electrónica"],
+        "totalInstances": 30,
+        "instancesByStatus": { "available": 20, "loaned": 8, "damaged": 2 }
+      }
+    ],
+    "byLocation": [
+      {
+        "locationId": "664...",
+        "locationName": "Sede Principal",
+        "totalInstances": 80,
+        "instancesByStatus": { "available": 50, "loaned": 25, "maintenance": 5 }
+      }
+    ]
+  }
+}
+```
+
+**Success Response (200) — `includeIds=false` (additional `summary`):**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "totalInstances": 150,
+    "byMaterialType": ["..."],
+    "byLocation": ["..."],
+    "summary": {
+      "totalInstances": 150,
+      "totalMaterialTypes": 12,
+      "totalLocations": 5,
+      "globalInstancesByStatus": [
+        { "status": "available", "count": 80 },
+        { "status": "loaned", "count": 50 },
+        { "status": "damaged", "count": 10 },
+        { "status": "maintenance", "count": 10 }
+      ],
+      "availabilityRate": 53.33,
+      "utilizationRate": 33.33,
+      "damageRate": 6.67,
+      "maintenanceRate": 6.67,
+      "estimatedDailyValue": 2250000,
+      "topMaterialTypesByStock": [{ "name": "Proyector Epson", "total": 30 }],
+      "topLocationsByStock": [{ "name": "Sede Principal", "total": 80 }]
+    }
+  }
+}
+```
+
+**Error Responses:**
+
+| Status | Condition                          |
+| ------ | ---------------------------------- |
+| 400    | Query parameter validation failure |
+| 401    | Not authenticated                  |
+| 403    | Missing `reports:read` permission  |
+
+---
+
+#### GET /reports/exports/transfers
+
+Transfer export with condition tracking, paginated rows, and enriched metrics (transit time, completion/issue rates, route analysis, condition breakdown, period comparison) when `includeIds=false`.
+
+**Permission:** `reports:read`
+
+**Query Parameters:**
+
+| Parameter      | Type    | Description                                                                       |
+| -------------- | ------- | --------------------------------------------------------------------------------- |
+| startDate      | string  | Filter from this date (ISO 8601)                                                  |
+| endDate        | string  | Filter up to this date (ISO 8601)                                                 |
+| includeIds     | string  | `"true"` (default) includes IDs; `"false"` omits them and adds summary            |
+| status         | string  | Filter by transfer status (`picking`, `in_transit`, `received`, `issue_reported`) |
+| fromLocationId | string  | Filter by origin location ObjectId                                                |
+| toLocationId   | string  | Filter by destination location ObjectId                                           |
+| page           | integer | Page number (default: 1)                                                          |
+| limit          | integer | Items per page (default: 50, max: 200)                                            |
+
+**Example Request:**
+
+```
+GET /api/v1/reports/exports/transfers?includeIds=false&startDate=2025-01-01&endDate=2025-06-30
+Authorization: Bearer <token>
+x-organization-id: <org-id>
+```
+
+**Success Response (200) — `includeIds=true`:**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "rows": [
+      {
+        "transferId": "665...",
+        "fromLocationId": "664a...",
+        "toLocationId": "664b...",
+        "status": "received",
+        "fromLocation": "Sede Principal",
+        "toLocation": "Sucursal Norte",
+        "itemCount": 5,
+        "pickedBy": "Juan Pérez",
+        "receivedBy": "María López",
+        "sentAt": "2025-03-10T08:00:00.000Z",
+        "receivedAt": "2025-03-12T14:30:00.000Z",
+        "transitDays": 3,
+        "senderNotes": null,
+        "receiverNotes": "Todo en orden",
+        "createdAt": "2025-03-10T07:50:00.000Z"
+      }
+    ],
+    "pagination": {
+      "total": 42,
+      "page": 1,
+      "totalPages": 1
+    }
+  }
+}
+```
+
+**Success Response (200) — `includeIds=false` (additional `summary`):**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "rows": ["..."],
+    "pagination": { "total": 42, "page": 1, "totalPages": 1 },
+    "summary": {
+      "totalTransfers": 42,
+      "totalItemsMoved": 185,
+      "averageTransitDays": 2,
+      "completionRate": 85.71,
+      "issueRate": 4.76,
+      "transfersByStatus": [
+        { "status": "received", "count": 36, "totalItems": 160 },
+        { "status": "in_transit", "count": 4, "totalItems": 15 }
+      ],
+      "transfersByMonth": [
+        { "year": 2025, "month": 1, "count": 8, "totalItems": 30 },
+        { "year": 2025, "month": 2, "count": 10, "totalItems": 45 }
+      ],
+      "receivedConditionBreakdown": [
+        { "condition": "good", "count": 140 },
+        { "condition": "damaged", "count": 12 }
+      ],
+      "topRoutes": [
+        {
+          "fromLocation": "Sede Principal",
+          "toLocation": "Sucursal Norte",
+          "transferCount": 15,
+          "totalItems": 60
+        }
+      ],
+      "periodComparison": {
+        "currentTransfers": 42,
+        "previousTransfers": 35,
+        "percentChange": 20.0,
+        "currentItems": 185,
+        "previousItems": 150,
+        "itemsPercentChange": 23.33
+      }
+    }
+  }
+}
+```
+
+**Notes:**
+
+- `transitDays` is calculated only when both `sentAt` and `receivedAt` exist.
+- `periodComparison` is included only when both `startDate` and `endDate` are provided.
+- `topRoutes` returns the 10 most-used origin→destination pairs.
+- `receivedConditionBreakdown` reflects the condition of items at reception.
+
+**Error Responses:**
+
+| Status | Condition                          |
+| ------ | ---------------------------------- |
+| 400    | Query parameter validation failure |
+| 401    | Not authenticated                  |
+| 403    | Missing `reports:read` permission  |
 
 ---
 

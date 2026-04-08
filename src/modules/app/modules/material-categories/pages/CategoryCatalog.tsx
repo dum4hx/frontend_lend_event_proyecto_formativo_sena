@@ -5,6 +5,7 @@ import { useCategories } from "../hooks";
 import { CategoryList, CategoryDetailModal } from "../components";
 import { AdminPagination } from "../../../components";
 import { ExcelExportImport } from "../../../../../components/export/ExcelExportImport";
+import { FEATURE_FLAGS } from "../../../../../config/featureFlags";
 import { useToast } from "../../../../../contexts/ToastContext";
 import { useLanguage } from "../../../../../contexts/useLanguage";
 import { usePermissions } from "../../../../../contexts/usePermissions";
@@ -245,9 +246,9 @@ export const CategoryCatalog: React.FC = () => {
             <ExcelExportImport
               data={filteredCategories as unknown as Record<string, unknown>[]}
               filename="material-categories"
-              onImport={handleImportCategories}
-              importDisabled={!isAllowed("materials:create")}
-              onImportDenied={guard("materials:create", () => {})}
+              onImport={FEATURE_FLAGS.ENABLE_DATA_IMPORT ? handleImportCategories : undefined}
+              importDisabled={FEATURE_FLAGS.ENABLE_DATA_IMPORT ? !isAllowed("materials:create") : undefined}
+              onImportDenied={FEATURE_FLAGS.ENABLE_DATA_IMPORT ? guard("materials:create", () => {}) : undefined}
               showLabels={true}
             />
             <button

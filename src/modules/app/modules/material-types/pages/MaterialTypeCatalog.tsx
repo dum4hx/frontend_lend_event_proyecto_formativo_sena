@@ -6,6 +6,7 @@ import { useMaterialAttributes } from "../../material-attributes/hooks/useMateri
 import { MaterialTypeList, MaterialTypeDetailModal, MaterialTypeForm } from "../components";
 import { AdminPagination } from "../../../components";
 import { ExcelExportImport } from "../../../../../components/export/ExcelExportImport";
+import { FEATURE_FLAGS } from "../../../../../config/featureFlags";
 import { useToast } from "../../../../../contexts/ToastContext";
 import { useLanguage } from "../../../../../contexts/useLanguage";
 import { usePermissions } from "../../../../../contexts/usePermissions";
@@ -323,9 +324,9 @@ export const MaterialTypeCatalog: React.FC = () => {
               <ExcelExportImport
                 data={filteredMaterialTypes as unknown as Record<string, unknown>[]}
                 filename="material-types"
-                onImport={handleImportMaterialTypes}
-                importDisabled={!isAllowed("materials:create")}
-                onImportDenied={guard("materials:create", () => {})}
+                onImport={FEATURE_FLAGS.ENABLE_DATA_IMPORT ? handleImportMaterialTypes : undefined}
+                importDisabled={FEATURE_FLAGS.ENABLE_DATA_IMPORT ? !isAllowed("materials:create") : undefined}
+                onImportDenied={FEATURE_FLAGS.ENABLE_DATA_IMPORT ? guard("materials:create", () => {}) : undefined}
                 showLabels={true}
               />
               <button

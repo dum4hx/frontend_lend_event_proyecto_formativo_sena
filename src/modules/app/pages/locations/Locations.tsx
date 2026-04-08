@@ -7,6 +7,7 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Plus, Download, Upload } from "lucide-react";
+import { FEATURE_FLAGS } from "../../../../config/featureFlags";
 import * as XLSX from "xlsx";
 import { pageVariants } from "../../../../lib/animations";
 import { ConfirmDialog, PageHeader } from "../../../../components/ui";
@@ -416,14 +417,16 @@ export function Locations() {
                   <Download size={18} />
                   {isEs ? "Exportar" : "Export"}
                 </button>
-                <button
-                  onClick={guard("locations:create", () => setShowImportModal(true))}
-                  aria-disabled={!isAllowed("locations:create")}
-                  className={`flex items-center gap-2 px-4 py-2 bg-[#1a1a1a] border border-[#333] text-gray-300 rounded-lg hover:bg-[#222] hover:border-[#444] hover:text-white transition-all ${!isAllowed("locations:create") ? "opacity-50 cursor-not-allowed" : ""}`}
-                >
-                  <Upload size={18} />
-                  {isEs ? "Importar" : "Import"}
-                </button>
+                {FEATURE_FLAGS.ENABLE_DATA_IMPORT && (
+                  <button
+                    onClick={guard("locations:create", () => setShowImportModal(true))}
+                    aria-disabled={!isAllowed("locations:create")}
+                    className={`flex items-center gap-2 px-4 py-2 bg-[#1a1a1a] border border-[#333] text-gray-300 rounded-lg hover:bg-[#222] hover:border-[#444] hover:text-white transition-all ${!isAllowed("locations:create") ? "opacity-50 cursor-not-allowed" : ""}`}
+                  >
+                    <Upload size={18} />
+                    {isEs ? "Importar" : "Import"}
+                  </button>
+                )}
                 {hasPermission("locations:create") && (
                   <button
                     onClick={guard("locations:create", () => setCreateOpen(true))}
@@ -609,7 +612,7 @@ export function Locations() {
         />
 
         {/* Import modal */}
-        {showImportModal && (
+        {FEATURE_FLAGS.ENABLE_DATA_IMPORT && showImportModal && (
           <div
             data-help-id="locations-import-modal"
             className="fixed inset-0 flex items-center justify-center z-50 bg-black/60 backdrop-blur-sm"

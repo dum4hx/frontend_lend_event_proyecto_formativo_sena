@@ -1,8 +1,11 @@
+import type { ApiSuccessResponse } from "../../../../lib/api";
+import type { ExportPagination } from "../../../../types/api";
 import type { MaterialCategory, ReportRow } from "./types";
 
 // ─── Constants ─────────────────────────────────────────────────────────────
 
 export const PAGE_SIZE = 20;
+export const EXPORT_PAGE_SIZE = 200;
 
 // ─── Formatters ────────────────────────────────────────────────────────────
 
@@ -59,6 +62,43 @@ export function getCategoryName(
 
   const category = categories.find((entry) => entry._id === categoryData);
   return category?.name || categoryData;
+}
+
+// ─── Fetch all pages for full export ───────────────────────────────────────
+
+/**
+ * Fetches all pages from a paginated export endpoint.
+ * First request uses `limit=EXPORT_PAGE_SIZE` to discover `totalPages`,
+ * then fetches remaining pages in parallel.
+ *
+ * @param serviceFn  - Service function that calls the export endpoint
+ * @param params     - Query params (page/limit are overridden)
+ * @param extractRows - Extracts the row array from the response data
+ */
+export async function fetchAllPages<
+  D extends { pagination: ExportPagination },
+  R,
+  P extends Record<string, unknown>,
+>(
+  serviceFn: (params: P) => Promise<ApiSuccessResponse<D>>,
+  params: P,
+  extractRows: (data: D) => R[],
+): Promise<R[]> {
+  const first = await serviceFn({ ...params, page: 1, limit: EXPORT_PAGE_SIZE } as P);
+  const allRows = [...extractRows(first.data)];
+  const { totalPages } = first.data.pagination;
+
+  if (totalPages > 1) {
+    const remaining = Array.from({ length: totalPages - 1 }, (_, i) =>
+      serviceFn({ ...params, page: i + 2, limit: EXPORT_PAGE_SIZE } as P),
+    );
+    const pages = await Promise.all(remaining);
+    for (const page of pages) {
+      allRows.push(...extractRows(page.data));
+    }
+  }
+
+  return allRows;
 }
 
 // ─── CSV Export ─────────────────────────────────────────────────────────────
