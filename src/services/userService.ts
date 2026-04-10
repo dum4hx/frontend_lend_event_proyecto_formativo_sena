@@ -30,9 +30,7 @@ export async function getUsers(
 // ─── Single user ───────────────────────────────────────────────────────────
 
 /** Fetch a single user by ID. */
-export async function getUser(
-  userId: string,
-): Promise<ApiSuccessResponse<{ user: User }>> {
+export async function getUser(userId: string): Promise<ApiSuccessResponse<{ user: User }>> {
   return get<{ user: User }>(`/users/${userId}`);
 }
 
@@ -62,33 +60,29 @@ export async function updateUserRole(
   userId: string,
   payload: UpdateUserRolePayload,
 ): Promise<ApiSuccessResponse<{ user: User }>> {
-  return patch<{ user: User }, UpdateUserRolePayload>(
-    `/users/${userId}/role`,
-    payload,
-  );
+  return patch<{ user: User }, UpdateUserRolePayload>(`/users/${userId}/role`, payload);
 }
 
 // ─── Deactivate / Reactivate ───────────────────────────────────────────────
 
 /** Deactivate a user account. */
-export async function deactivateUser(
-  userId: string,
-): Promise<ApiSuccessResponse<null>> {
+export async function deactivateUser(userId: string): Promise<ApiSuccessResponse<null>> {
   return post<null>(`/users/${userId}/deactivate`);
 }
 
 /** Reactivate a previously deactivated user account. */
-export async function reactivateUser(
-  userId: string,
-): Promise<ApiSuccessResponse<null>> {
+export async function reactivateUser(userId: string): Promise<ApiSuccessResponse<null>> {
   return post<null>(`/users/${userId}/reactivate`);
+}
+
+/** Resend invitation email for a user still in `invited` status. */
+export async function resendInvite(userId: string): Promise<ApiSuccessResponse<null>> {
+  return post<null>(`/users/${userId}/resend-invite`);
 }
 
 // ─── Delete ────────────────────────────────────────────────────────────────
 
 /** Permanently delete a user. */
-export async function deleteUser(
-  userId: string,
-): Promise<ApiSuccessResponse<null>> {
+export async function deleteUser(userId: string): Promise<ApiSuccessResponse<null>> {
   return del<null>(`/users/${userId}`);
 }

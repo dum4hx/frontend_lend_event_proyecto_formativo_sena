@@ -1,6 +1,14 @@
-import { Eye, CalendarRange, RotateCcw, AlertCircle, HandCoins, Loader2 } from "lucide-react";
-import { Link } from "react-router-dom";
-import { Button } from "../../../../components/ui";
+import {
+  Eye,
+  CalendarRange,
+  RotateCcw,
+  AlertCircle,
+  HandCoins,
+  CheckCircle,
+  Loader2,
+} from "lucide-react";
+import { Button, EntityLink } from "../../../../components/ui";
+import { useActionPermission } from "../../../../hooks/useActionPermission";
 import type { LoanView } from "./types";
 import {
   getLoanStatusBadgeStyle,
@@ -23,6 +31,8 @@ interface RentalsTableProps {
   canExtend: boolean;
   /** Whether user can return loans. */
   canReturn: boolean;
+  /** Whether user can complete loans. */
+  canComplete: boolean;
   /** Open detail callback. */
   onViewDetail: (lv: LoanView) => void;
   /** Open extend callback. */
@@ -31,6 +41,8 @@ interface RentalsTableProps {
   onReturn: (lv: LoanView) => void;
   /** Open refund callback. */
   onRefund: (lv: LoanView) => void;
+  /** Open complete callback. */
+  onComplete: (lv: LoanView) => void;
   /** Locale string for date formatting. */
   locale: string;
   /** Whether Spanish locale is active. */
@@ -45,13 +57,16 @@ export function RentalsTable({
   submitting,
   canExtend,
   canReturn,
+  canComplete,
   onViewDetail,
   onExtend,
   onReturn,
   onRefund,
+  onComplete,
   locale,
   isEs,
 }: RentalsTableProps) {
+  const { guard } = useActionPermission(isEs ? "es" : "en");
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -74,7 +89,7 @@ export function RentalsTable({
         <thead>
           <tr className="bg-[#1a1a1a] text-gray-400 border-b border-[#333]">
             <th className="text-left px-4 py-3 font-semibold">
-              {isEs ? "ID Prestamo" : "Loan ID"}
+              {isEs ? "Código Préstamo" : "Loan Code"}
             </th>
             <th className="text-left px-4 py-3 font-semibold">{isEs ? "Cliente" : "Customer"}</th>
             <th className="text-left px-4 py-3 font-semibold">
@@ -97,13 +112,16 @@ export function RentalsTable({
               >
                 <td className="px-4 py-3">
                   <span className="font-mono text-xs text-gray-300">
-                    #{lv.loan._id.slice(-8).toUpperCase()}
+                    {lv.loan.code ?? `#${lv.loan._id.slice(-8).toUpperCase()}`}
                   </span>
                 </td>
                 <td className="px-4 py-3">
-                  <Link to="/app/customers" className="entity-link font-medium">
-                    {customerFullName(lv.customer)}
-                  </Link>
+                  <EntityLink
+                    entityType="customer"
+                    entityId={lv.customer?._id ?? ""}
+                    label={customerFullName(lv.customer)}
+                    className="font-medium"
+                  />
                 </td>
                 <td className="px-4 py-3 text-gray-300">{formatDate(lv.loan.startDate, locale)}</td>
                 <td className="px-4 py-3 text-gray-300">{formatDate(lv.loan.endDate, locale)}</td>
@@ -139,7 +157,7 @@ export function RentalsTable({
                     <span
                       className={`px-2 py-0.5 rounded-full text-xs font-semibold capitalize ${getLoanStatusBadgeStyle(lv.loan.status)}`}
                     >
-                      {getStatusLabel(lv.loan.status, isEs)}
+                      {getStatusLabel(lv.loan.status, isEs ? "es" : "en")}
                     </span>
                     {lv.loan.status === "overdue" && (
                       <AlertCircle size={14} className="text-red-400" />
@@ -160,7 +178,7 @@ export function RentalsTable({
                       <Button
                         size="sm"
                         leftIcon={CalendarRange}
-                        onClick={() => onExtend(lv)}
+                        onClick={guard("loans:update", () => onExtend(lv))}
                         disabled={submitting}
                         className="bg-blue-500/15 text-blue-300 border-blue-500/40 hover:bg-blue-500/25"
                       >
@@ -171,23 +189,36 @@ export function RentalsTable({
                       <Button
                         size="sm"
                         leftIcon={RotateCcw}
-                        onClick={() => onReturn(lv)}
+                        onClick={guard("loans:return", () => onReturn(lv))}
                         disabled={submitting}
                         className="bg-green-500/15 text-green-300 border-green-500/40 hover:bg-green-500/25"
                       >
                         {isEs ? "Devolver" : "Return"}
                       </Button>
                     )}
-                    {(lv.loan.deposit?.status === "refund_pending" ||
-                      lv.loan.deposit?.status === "partially_applied") && (
+                    {canComplete &&
+                      lv.loan.status === "inspected" &&
+                      (lv.loan.deposit?.status === "refund_pending" ||
+                        lv.loan.deposit?.status === "partially_applied") && (
+                        <Button
+                          size="sm"
+                          leftIcon={HandCoins}
+                          onClick={guard("loans:update", () => onRefund(lv))}
+                          disabled={submitting}
+                          className="bg-yellow-500/15 text-yellow-300 border-yellow-500/40 hover:bg-yellow-500/25"
+                        >
+                          {isEs ? "Reembolsar" : "Refund"}
+                        </Button>
+                      )}
+                    {lv.loan.status === "returned" && canComplete && (
                       <Button
                         size="sm"
-                        leftIcon={HandCoins}
-                        onClick={() => onRefund(lv)}
+                        leftIcon={CheckCircle}
+                        onClick={guard("loans:update", () => onComplete(lv))}
                         disabled={submitting}
-                        className="bg-yellow-500/15 text-yellow-300 border-yellow-500/40 hover:bg-yellow-500/25"
+                        className="bg-emerald-500/15 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/25"
                       >
-                        {isEs ? "Reembolsar" : "Refund"}
+                        {isEs ? "Completar" : "Complete"}
                       </Button>
                     )}
                   </div>

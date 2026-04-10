@@ -11,6 +11,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { ErrorDisplay, PageHeader } from "../../../../components/ui";
+import { useLanguage } from "../../../../contexts/useLanguage";
 import { useApiQuery } from "../../../../hooks/useApiQuery";
 import { useConfirmModal } from "../../../../hooks/useConfirmModal";
 import { getRoles, getPermissions, deleteRole } from "../../../../services/roleService";
@@ -29,6 +30,7 @@ const SORT_STORAGE_KEY = "roleManagement.sort";
 const PAGE_SIZE_STORAGE_KEY = "roleManagement.pageSize";
 
 export default function RoleManagement() {
+  const { t } = useLanguage();
   const { showToast } = useToast();
   const { showConfirm, ConfirmModal } = useConfirmModal();
 
@@ -193,9 +195,9 @@ export default function RoleManagement() {
 
   const handleDelete = async (role: Role) => {
     const confirmed = await showConfirm({
-      title: `Delete role ${role.name}?`,
-      message: "Users with this role may lose access. This destructive action cannot be undone.",
-      confirmText: "Delete",
+      title: t("roles.deleteConfirmTitle", { name: role.name }),
+      message: t("roles.deleteConfirmMessage"),
+      confirmText: t("roles.deleteConfirmBtn"),
       variant: "danger",
     });
 
@@ -204,10 +206,14 @@ export default function RoleManagement() {
     setDeletingId(role._id);
     try {
       await deleteRole(role._id);
-      showToast("success", `Role "${role.name}" deleted`, "Deleted");
+      showToast(
+        "success",
+        t("roles.deleteSuccess", { name: role.name }),
+        t("roles.deleteSuccessTitle"),
+      );
       void refetchRoles();
     } catch (err: unknown) {
-      showToast("error", normalizeError(err).message, "Error");
+      showToast("error", normalizeError(err).message, t("roles.errorTitle"));
     } finally {
       setDeletingId(null);
     }
@@ -220,15 +226,15 @@ export default function RoleManagement() {
       <div className="max-w-6xl mx-auto">
         <div data-help-id="roles-title">
           <PageHeader
-            title="Role Management"
-            subtitle="Manage organization roles and their permissions. System roles cannot be modified."
+            title={t("roles.title")}
+            subtitle={t("roles.subtitle")}
             actions={
               <button
                 onClick={() => setModal({ type: "create" })}
                 className="w-full sm:w-auto shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 font-semibold rounded-lg transition gold-action-btn"
               >
                 <Plus size={18} />
-                New Role
+                {t("roles.newRole")}
               </button>
             }
           />
@@ -236,7 +242,10 @@ export default function RoleManagement() {
 
         {/* Stat cards */}
         {rolesLoading || permsLoading ? (
-          <div data-help-id="roles-stats" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-4 mb-6">
+          <div
+            data-help-id="roles-stats"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-4 mb-6"
+          >
             {Array.from({ length: 5 }).map((_, idx) => (
               <div key={idx} className="card h-[92px] animate-pulse">
                 <div className="h-4 bg-[#1a1a1a] rounded w-1/2 mb-3" />
@@ -245,32 +254,37 @@ export default function RoleManagement() {
             ))}
           </div>
         ) : (
-          <div data-help-id="roles-stats" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-4 mb-6">
+          <div
+            data-help-id="roles-stats"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-4 mb-6"
+          >
             <StatCard
-              label="Total roles"
+              label={t("roles.totalRoles")}
               value={roleMetrics.totalRoles}
               icon={<Shield size={18} />}
             />
             <StatCard
-              label="System roles"
+              label={t("roles.systemRoles")}
               value={roleMetrics.systemRoles}
               icon={<Lock size={18} />}
             />
             <StatCard
-              label="Custom roles"
+              label={t("roles.customRoles")}
               value={roleMetrics.customRoles}
               icon={<Plus size={18} />}
             />
             <StatCard
-              label="Permission assignments"
+              label={t("roles.permissionAssignments")}
               value={roleMetrics.totalPermissionAssignments}
               icon={<Search size={18} />}
             />
             <StatCard
-              label="Unique permissions used"
+              label={t("roles.uniquePermissionsUsed")}
               value={`${roleMetrics.uniquePermissionsUsed} / ${roleMetrics.totalPermissionsInCatalog}`}
               icon={<Lock size={18} />}
-              trend={`${roleMetrics.permissionCoverage}% coverage`}
+              trend={t("roles.coveragePercent", {
+                coverage: String(roleMetrics.permissionCoverage),
+              })}
               trendUp={roleMetrics.permissionCoverage >= 60}
             />
           </div>
@@ -279,8 +293,10 @@ export default function RoleManagement() {
         {/* Filters */}
         <div data-help-id="roles-filters" className="card-compact mb-6 space-y-4">
           <div className="flex items-center justify-between gap-2">
-            <h2 className="text-sm font-semibold text-gray-300">Roles</h2>
-            <span className="badge badge-info">{sortedRoles.length} visible</span>
+            <h2 className="text-sm font-semibold text-gray-300">{t("roles.rolesLabel")}</h2>
+            <span className="badge badge-info">
+              {t("roles.visible", { count: String(sortedRoles.length) })}
+            </span>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_auto] gap-3">
@@ -293,14 +309,14 @@ export default function RoleManagement() {
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search roles..."
+                placeholder={t("roles.searchPlaceholder")}
                 className="w-full pl-12 pr-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#FFD700]"
               />
             </div>
 
             <select
-              title="Sort roles"
-              aria-label="Sort roles"
+              title={t("roles.sortRoles")}
+              aria-label={t("roles.sortRoles")}
               value={`${sortField}:${sortDirection}`}
               onChange={(e) => {
                 const [field, direction] = e.target.value.split(":") as [SortField, SortDirection];
@@ -309,24 +325,24 @@ export default function RoleManagement() {
               }}
               className="input lg:w-[220px]"
             >
-              <option value="name:asc">Name (A-Z)</option>
-              <option value="name:desc">Name (Z-A)</option>
-              <option value="type:asc">Type (A-Z)</option>
-              <option value="type:desc">Type (Z-A)</option>
-              <option value="permissions:desc">Permissions (High-Low)</option>
-              <option value="permissions:asc">Permissions (Low-High)</option>
+              <option value="name:asc">{t("roles.sortNameAsc")}</option>
+              <option value="name:desc">{t("roles.sortNameDesc")}</option>
+              <option value="type:asc">{t("roles.sortTypeAsc")}</option>
+              <option value="type:desc">{t("roles.sortTypeDesc")}</option>
+              <option value="permissions:desc">{t("roles.sortPermissionsDesc")}</option>
+              <option value="permissions:asc">{t("roles.sortPermissionsAsc")}</option>
             </select>
 
             <select
-              title="Roles per page"
-              aria-label="Roles per page"
+              title={t("roles.rolesPerPage")}
+              aria-label={t("roles.rolesPerPage")}
               value={pageSize}
               onChange={(e) => setPageSize(Number(e.target.value))}
               className="input lg:w-[170px]"
             >
-              <option value={8}>8 per page</option>
-              <option value={12}>12 per page</option>
-              <option value={20}>20 per page</option>
+              <option value={8}>{t("roles.perPage", { count: "8" })}</option>
+              <option value={12}>{t("roles.perPage", { count: "12" })}</option>
+              <option value={20}>{t("roles.perPage", { count: "20" })}</option>
             </select>
           </div>
         </div>
@@ -341,10 +357,13 @@ export default function RoleManagement() {
             ))}
           </div>
         ) : filteredRoles.length === 0 ? (
-          <div data-help-id="roles-table" className="flex flex-col items-center justify-center py-24 text-gray-500">
+          <div
+            data-help-id="roles-table"
+            className="flex flex-col items-center justify-center py-24 text-gray-500"
+          >
             <Shield size={48} className="mb-4 opacity-30" />
             <p className="text-lg font-medium">
-              {search ? "No roles match your search" : "No roles found"}
+              {search ? t("roles.noRolesSearch") : t("roles.noRolesFound")}
             </p>
           </div>
         ) : (
@@ -360,7 +379,7 @@ export default function RoleManagement() {
                         onClick={() => handleSortToggle("name")}
                         className="inline-flex items-center gap-1 hover:text-white transition-colors"
                       >
-                        Role
+                        {t("roles.tableRole")}
                         {renderSortIcon("name")}
                       </button>
                     </th>
@@ -370,12 +389,12 @@ export default function RoleManagement() {
                         onClick={() => handleSortToggle("type")}
                         className="inline-flex items-center gap-1 hover:text-white transition-colors"
                       >
-                        Type
+                        {t("roles.tableType")}
                         {renderSortIcon("type")}
                       </button>
                     </th>
                     <th className="px-6 py-4 text-left text-gray-400 text-xs font-semibold uppercase tracking-wider">
-                      Description
+                      {t("roles.tableDescription")}
                     </th>
                     <th className="px-6 py-4 text-left text-gray-400 text-xs font-semibold uppercase tracking-wider">
                       <button
@@ -383,12 +402,12 @@ export default function RoleManagement() {
                         onClick={() => handleSortToggle("permissions")}
                         className="inline-flex items-center gap-1 hover:text-white transition-colors"
                       >
-                        Permissions
+                        {t("roles.tablePermissions")}
                         {renderSortIcon("permissions")}
                       </button>
                     </th>
                     <th className="px-6 py-4 text-left text-gray-400 text-xs font-semibold uppercase tracking-wider">
-                      Actions
+                      {t("roles.tableActions")}
                     </th>
                   </tr>
                 </thead>
@@ -403,15 +422,18 @@ export default function RoleManagement() {
                         <span className={getRoleTypeBadgeClassName(role.type)}>{role.type}</span>
                       </td>
                       <td className="px-6 py-4 text-gray-400">
-                        {role.description || <span className="text-gray-600">No description</span>}
+                        {role.description || (
+                          <span className="text-gray-600">{t("roles.noDescription")}</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-gray-300">
-                        {role.permissions.length} permission
-                        {role.permissions.length !== 1 ? "s" : ""}
+                        {t("roles.permissionsSuffix", { count: String(role.permissions.length) })}
                       </td>
                       <td className="px-6 py-4">
                         {role.isReadOnly ? (
-                          <span className="text-xs text-gray-500 italic">System role</span>
+                          <span className="text-xs text-gray-500 italic">
+                            {t("roles.systemRoleLabel")}
+                          </span>
                         ) : (
                           <div className="flex items-center gap-2">
                             <button
@@ -419,14 +441,14 @@ export default function RoleManagement() {
                               className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-cyan-300 border border-cyan-500/30 rounded-lg hover:bg-cyan-500/10 hover:text-cyan-200 transition"
                             >
                               <Eye size={14} />
-                              Permissions
+                              {t("roles.permissionsBtn")}
                             </button>
                             <button
                               onClick={() => setModal({ type: "edit", role })}
                               className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-300 border border-[#333] rounded-lg hover:bg-[#222] hover:text-white transition"
                             >
                               <Edit size={14} />
-                              Edit
+                              {t("roles.editBtn")}
                             </button>
                             <button
                               onClick={() => void handleDelete(role)}
@@ -434,7 +456,9 @@ export default function RoleManagement() {
                               className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg transition disabled:opacity-50 danger-action-btn"
                             >
                               <Trash2 size={14} />
-                              {deletingId === role._id ? "Deleting..." : "Delete"}
+                              {deletingId === role._id
+                                ? t("roles.deletingBtn")
+                                : t("roles.deleteBtn")}
                             </button>
                           </div>
                         )}
@@ -462,8 +486,7 @@ export default function RoleManagement() {
                       <p className="text-gray-400 text-sm break-words">{role.description}</p>
                     )}
                     <p className="text-gray-600 text-xs mt-1">
-                      {role.permissions.length} permission
-                      {role.permissions.length !== 1 ? "s" : ""}
+                      {t("roles.permissionsSuffix", { count: String(role.permissions.length) })}
                     </p>
                   </div>
 
@@ -475,10 +498,10 @@ export default function RoleManagement() {
                           className="flex-1 justify-center flex items-center gap-1.5 px-3 py-1.5 text-sm text-cyan-300 border border-cyan-500/30 rounded-lg hover:bg-cyan-500/10 hover:text-cyan-200 transition min-w-[120px]"
                         >
                           <Eye size={14} />
-                          Permissions
+                          {t("roles.permissionsBtn")}
                         </button>
                         <span className="text-xs text-gray-500 italic w-full sm:w-auto">
-                          System role — cannot be modified
+                          {t("roles.systemRoleReadOnly")}
                         </span>
                       </div>
                     ) : (
@@ -488,14 +511,14 @@ export default function RoleManagement() {
                           className="flex-1 justify-center flex items-center gap-1.5 px-3 py-1.5 text-sm text-cyan-300 border border-cyan-500/30 rounded-lg hover:bg-cyan-500/10 hover:text-cyan-200 transition min-w-[120px]"
                         >
                           <Eye size={14} />
-                          Permissions
+                          {t("roles.permissionsBtn")}
                         </button>
                         <button
                           onClick={() => setModal({ type: "edit", role })}
                           className="flex-1 justify-center flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-300 border border-[#333] rounded-lg hover:bg-[#222] hover:text-white transition min-w-[120px]"
                         >
                           <Edit size={14} />
-                          Edit
+                          {t("roles.editBtn")}
                         </button>
                         <button
                           onClick={() => void handleDelete(role)}
@@ -503,7 +526,7 @@ export default function RoleManagement() {
                           className="flex-1 justify-center flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg transition disabled:opacity-50 danger-action-btn min-w-[120px]"
                         >
                           <Trash2 size={14} />
-                          {deletingId === role._id ? "Deleting..." : "Delete"}
+                          {deletingId === role._id ? t("roles.deletingBtn") : t("roles.deleteBtn")}
                         </button>
                       </>
                     )}
@@ -518,7 +541,7 @@ export default function RoleManagement() {
                 totalPages={totalPages}
                 totalItems={sortedRoles.length}
                 pageSize={pageSize}
-                itemLabel="roles"
+                itemLabel={t("roles.paginationLabel")}
                 onPageChange={setCurrentPage}
               />
             </div>

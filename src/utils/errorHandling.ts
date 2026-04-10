@@ -5,6 +5,7 @@
  */
 
 import { ApiError } from "../lib/api";
+import type { TranslateFunction } from "../i18n/translations";
 
 /** Normalized error shape for UI consumption. */
 export interface NormalizedError {
@@ -30,13 +31,14 @@ export type ErrorCategory =
 /**
  * Normalize any error into a consistent shape that the UI can handle.
  * Provides sensible defaults and categorizes errors for appropriate handling.
+ * When a translation function `t` is provided, messages are localized.
  */
-export function normalizeError(error: unknown): NormalizedError {
+export function normalizeError(error: unknown, t?: TranslateFunction): NormalizedError {
   // Handle our custom ApiError from the fetch wrapper
   if (error instanceof ApiError) {
     const category = categorizeApiError(error);
     return {
-      message: getUserFriendlyMessage(error.message, category),
+      message: getUserFriendlyMessage(error.message, category, t),
       code: error.code,
       statusCode: error.statusCode,
       isTemporary: isTemporaryError(category),
@@ -48,7 +50,7 @@ export function normalizeError(error: unknown): NormalizedError {
   // Handle network errors (fetch failures before reaching the API)
   if (error instanceof TypeError && error.message.includes('fetch')) {
     return {
-      message: 'Network connection failed. Please check your internet connection.',
+      message: t ? t('errors.networkShort') : 'Network connection failed. Please check your internet connection.',
       isTemporary: true,
       canRetry: true,
     };
@@ -57,7 +59,7 @@ export function normalizeError(error: unknown): NormalizedError {
   // Handle generic Error objects
   if (error instanceof Error) {
     return {
-      message: error.message || 'An unexpected error occurred.',
+      message: error.message || (t ? t('errors.unexpected') : 'An unexpected error occurred.'),
       isTemporary: false,
       canRetry: false,
     };
@@ -65,7 +67,7 @@ export function normalizeError(error: unknown): NormalizedError {
 
   // Fallback for unknown error types
   return {
-    message: 'An unexpected error occurred. Please try again.',
+    message: t ? t('errors.unexpected') : 'An unexpected error occurred. Please try again.',
     isTemporary: false,
     canRetry: true,
   };
@@ -88,11 +90,32 @@ function categorizeApiError(error: ApiError): ErrorCategory {
   return 'unknown';
 }
 
+/** Map from ErrorCategory to translation key. */
+const CATEGORY_TRANSLATION_KEY: Record<ErrorCategory, string> = {
+  network: 'errors.network',
+  authentication: 'errors.authentication',
+  authorization: 'errors.authorization',
+  not_found: 'errors.notFound',
+  rate_limit: 'errors.rateLimit',
+  server: 'errors.server',
+  validation: '',   // uses the API message directly
+  unknown: '',      // uses the API message directly
+};
+
 /**
  * Convert technical error messages into user-friendly ones.
+ * When a translation function is provided, returns the localized message.
  */
-function getUserFriendlyMessage(message: string, category: ErrorCategory): string {
-  // Use explicit messages for known categories
+function getUserFriendlyMessage(message: string, category: ErrorCategory, t?: TranslateFunction): string {
+  // For validation errors, the API message is usually clear enough
+  if (category === 'validation') return message;
+
+  const key = CATEGORY_TRANSLATION_KEY[category];
+
+  // If we have a translation function and a known key, use it
+  if (t && key) return t(key as Parameters<TranslateFunction>[0]);
+
+  // Fallback to hardcoded English messages
   switch (category) {
     case 'network':
       return 'Network connection failed. Please check your internet connection and try again.';
@@ -106,12 +129,9 @@ function getUserFriendlyMessage(message: string, category: ErrorCategory): strin
       return 'Too many requests. Please wait a moment and try again.';
     case 'server':
       return 'A server error occurred. Our team has been notified. Please try again later.';
-    case 'validation':
-      // For validation errors, the API message is usually clear enough
-      return message;
     case 'unknown':
     default:
-      return message || 'An unexpected error occurred. Please try again.';
+      return message || (t ? t('errors.unexpected' as Parameters<TranslateFunction>[0]) : 'An unexpected error occurred. Please try again.');
   }
 }
 

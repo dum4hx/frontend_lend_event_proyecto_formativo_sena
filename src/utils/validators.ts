@@ -16,11 +16,11 @@ export const validateEmail = (email: string): ValidationResult => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   if (!email.trim()) {
-    return { isValid: false, message: "Email is required" };
+    return { isValid: false, message: "common.validation.emailRequired" };
   }
 
   if (!emailRegex.test(email)) {
-    return { isValid: false, message: "Enter a valid email address" };
+    return { isValid: false, message: "common.validation.emailInvalid" };
   }
 
   return { isValid: true };
@@ -37,33 +37,33 @@ export const validateEmail = (email: string): ValidationResult => {
  */
 export const validatePassword = (password: string): ValidationResult => {
   if (!password) {
-    return { isValid: false, message: "Password is required" };
+    return { isValid: false, message: "common.validation.passwordRequired" };
   }
 
   if (password.length < 8) {
-    return { isValid: false, message: "Password must be at least 8 characters" };
+    return { isValid: false, message: "common.validation.passwordMinLength" };
   }
 
   // Check for uppercase letter
   if (!/[A-Z]/.test(password)) {
-    return { isValid: false, message: "Password must contain at least one uppercase letter" };
+    return { isValid: false, message: "common.validation.passwordUppercase" };
   }
 
   // Check for lowercase letter
   if (!/[a-z]/.test(password)) {
-    return { isValid: false, message: "Password must contain at least one lowercase letter" };
+    return { isValid: false, message: "common.validation.passwordLowercase" };
   }
 
   // Check for number
   if (!/[0-9]/.test(password)) {
-    return { isValid: false, message: "Password must contain at least one number" };
+    return { isValid: false, message: "common.validation.passwordNumber" };
   }
 
   // Check for special character
   if (!/[!@#$%^&*.]/.test(password)) {
     return {
       isValid: false,
-      message: "Password must contain at least one special character (!@#$%^&*.)",
+      message: "common.validation.passwordSpecial",
     };
   }
 
@@ -78,11 +78,11 @@ export const validateConfirmPassword = (
   confirmPassword: string,
 ): ValidationResult => {
   if (!confirmPassword) {
-    return { isValid: false, message: "You must confirm your password" };
+    return { isValid: false, message: "common.validation.confirmPasswordRequired" };
   }
 
   if (password !== confirmPassword) {
-    return { isValid: false, message: "Passwords do not match" };
+    return { isValid: false, message: "common.validation.passwordsNoMatch" };
   }
 
   return { isValid: true };
@@ -93,25 +93,25 @@ export const validateConfirmPassword = (
  */
 export const validateFirstName = (firstName: string): ValidationResult => {
   if (!firstName.trim()) {
-    return { isValid: false, message: "First name is required" };
+    return { isValid: false, message: "common.validation.firstNameRequired" };
   }
 
   // Only letters (including accents) and spaces; no multiple consecutive spaces
   const allowed = /^[A-Za-zÀ-ÿ ]+$/;
   if (!allowed.test(firstName)) {
-    return { isValid: false, message: "First name can only contain letters and spaces" };
+    return { isValid: false, message: "common.validation.firstNameLettersOnly" };
   }
 
   if (/\s{2,}/.test(firstName)) {
-    return { isValid: false, message: "First name must not contain multiple consecutive spaces" };
+    return { isValid: false, message: "common.validation.firstNameConsecutiveSpaces" };
   }
 
   if (firstName.length < 2) {
-    return { isValid: false, message: "First name must be at least 2 characters" };
+    return { isValid: false, message: "common.validation.firstNameMinLength" };
   }
 
   if (firstName.length > 50) {
-    return { isValid: false, message: "First name must not exceed 50 characters" };
+    return { isValid: false, message: "common.validation.firstNameMaxLength" };
   }
 
   return { isValid: true };
@@ -122,24 +122,24 @@ export const validateFirstName = (firstName: string): ValidationResult => {
  */
 export const validateLastName = (lastName: string): ValidationResult => {
   if (!lastName.trim()) {
-    return { isValid: false, message: "Last name is required" };
+    return { isValid: false, message: "common.validation.lastNameRequired" };
   }
 
   const allowed = /^[A-Za-zÀ-ÿ ]+$/;
   if (!allowed.test(lastName)) {
-    return { isValid: false, message: "Last name can only contain letters and spaces" };
+    return { isValid: false, message: "common.validation.lastNameLettersOnly" };
   }
 
   if (/\s{2,}/.test(lastName)) {
-    return { isValid: false, message: "Last name must not contain multiple consecutive spaces" };
+    return { isValid: false, message: "common.validation.lastNameConsecutiveSpaces" };
   }
 
   if (lastName.length < 2) {
-    return { isValid: false, message: "Last name must be at least 2 characters" };
+    return { isValid: false, message: "common.validation.lastNameMinLength" };
   }
 
   if (lastName.length > 50) {
-    return { isValid: false, message: "Last name must not exceed 50 characters" };
+    return { isValid: false, message: "common.validation.lastNameMaxLength" };
   }
 
   return { isValid: true };
@@ -150,15 +150,15 @@ export const validateLastName = (lastName: string): ValidationResult => {
  */
 export const validateOrganizationName = (name: string): ValidationResult => {
   if (!name.trim()) {
-    return { isValid: false, message: "Organization name is required" };
+    return { isValid: false, message: "common.validation.orgNameRequired" };
   }
 
   if (name.length < 2) {
-    return { isValid: false, message: "Organization name must be at least 2 characters" };
+    return { isValid: false, message: "common.validation.orgNameMinLength" };
   }
 
   if (name.length > 100) {
-    return { isValid: false, message: "Organization name must not exceed 100 characters" };
+    return { isValid: false, message: "common.validation.orgNameMaxLength" };
   }
 
   return { isValid: true };
@@ -170,15 +170,15 @@ export const validateOrganizationName = (name: string): ValidationResult => {
  */
 export const validateRoleName = (name: string): ValidationResult => {
   if (!name || !name.trim()) {
-    return { isValid: false, message: "Role name is required" };
+    return { isValid: false, message: "common.validation.roleNameRequired" };
   }
 
   if (name.length < 2) {
-    return { isValid: false, message: "Role name must be at least 2 characters" };
+    return { isValid: false, message: "common.validation.roleNameMinLength" };
   }
 
   if (name.length > 100) {
-    return { isValid: false, message: "Role name must not exceed 100 characters" };
+    return { isValid: false, message: "common.validation.roleNameMaxLength" };
   }
 
   return { isValid: true };
@@ -189,18 +189,18 @@ export const validateRoleName = (name: string): ValidationResult => {
  */
 export const validateTaxId = (taxId: string): ValidationResult => {
   if (!taxId.trim()) {
-    return { isValid: false, message: "Tax ID is required" };
+    return { isValid: false, message: "common.validation.taxIdRequired" };
   }
 
   // Accept formatted with hyphens; validate underlying digits only
   const digits = taxId.replace(/-/g, "");
   if (!/^\d+$/.test(digits)) {
-    return { isValid: false, message: "Tax ID must contain only numbers" };
+    return { isValid: false, message: "common.validation.taxIdDigitsOnly" };
   }
 
   // Length check (9 to 11 digits)
   if (digits.length < 9 || digits.length > 11) {
-    return { isValid: false, message: "Tax ID length must be 9 to 11 digits" };
+    return { isValid: false, message: "common.validation.taxIdLength" };
   }
 
   return { isValid: true };
@@ -209,13 +209,13 @@ export const validateTaxId = (taxId: string): ValidationResult => {
 /**
  * Address validation (required by API)
  */
-export const validateAddressField = (value: string, label: string): ValidationResult => {
+export const validateAddressField = (value: string, _label: string): ValidationResult => {
   if (!value.trim()) {
-    return { isValid: false, message: `${label} is required` };
+    return { isValid: false, message: "common.validation.addressFieldRequired" };
   }
 
   if (value.length < 2) {
-    return { isValid: false, message: `${label} must be at least 2 characters` };
+    return { isValid: false, message: "common.validation.addressFieldMinLength" };
   }
 
   return { isValid: true };
@@ -231,7 +231,7 @@ export const validateState = (state: string, isSelected: boolean): ValidationRes
   }
 
   if (!isSelected) {
-    return { isValid: false, message: "Please select a valid department from the list" };
+    return { isValid: false, message: "common.validation.stateInvalid" };
   }
 
   return { isValid: true };
@@ -243,15 +243,15 @@ export const validateState = (state: string, isSelected: boolean): ValidationRes
 export const validateLegalName = (legalName?: string): ValidationResult => {
   // Legal name is REQUIRED by API contract
   if (!legalName || !legalName.trim()) {
-    return { isValid: false, message: "Legal name is required" };
+    return { isValid: false, message: "common.validation.legalNameRequired" };
   }
 
   if (legalName.length < 2) {
-    return { isValid: false, message: "Legal name must be at least 2 characters" };
+    return { isValid: false, message: "common.validation.legalNameMinLength" };
   }
 
   if (legalName.length > 150) {
-    return { isValid: false, message: "Legal name must not exceed 150 characters" };
+    return { isValid: false, message: "common.validation.legalNameMaxLength" };
   }
 
   return { isValid: true };
@@ -269,12 +269,12 @@ export const validatePhone = (phone?: string): ValidationResult => {
   const normalizedPhone = phone.replace(/\s+/g, "");
 
   if (!/^\+57\d{10}$/.test(normalizedPhone)) {
-    return { isValid: false, message: "Phone must have Colombian format: +57 3XXXXXXXXX" };
+    return { isValid: false, message: "common.validation.phoneFormat" };
   }
 
   const localNumber = normalizedPhone.slice(3);
   if (!/^3\d{9}$/.test(localNumber)) {
-    return { isValid: false, message: "Enter a valid Colombian mobile number (starts with 3)" };
+    return { isValid: false, message: "common.validation.phoneStartsWith3" };
   }
 
   return { isValid: true };
@@ -283,7 +283,7 @@ export const validatePhone = (phone?: string): ValidationResult => {
 /** Required phone validation (owner) */
 export const validateRequiredPhone = (phone: string): ValidationResult => {
   if (!phone || !phone.trim()) {
-    return { isValid: false, message: "Phone is required" };
+    return { isValid: false, message: "common.validation.phoneRequired" };
   }
   return validatePhone(phone);
 };
@@ -298,11 +298,11 @@ export const validatePostalCode = (postalCode?: string): ValidationResult => {
 
   // Only allow numbers
   if (!/^[0-9]+$/.test(postalCode)) {
-    return { isValid: false, message: "Postal code may only contain numbers" };
+    return { isValid: false, message: "common.validation.postalCodeDigitsOnly" };
   }
 
   if (postalCode.length !== 6) {
-    return { isValid: false, message: "Postal code must be exactly 6 digits" };
+    return { isValid: false, message: "common.validation.postalCodeLength" };
   }
 
   return { isValid: true };
@@ -313,7 +313,7 @@ export const validatePostalCode = (postalCode?: string): ValidationResult => {
  */
 export const validateCurrentPassword = (password: string): ValidationResult => {
   if (!password) {
-    return { isValid: false, message: "You must enter your current password" };
+    return { isValid: false, message: "common.validation.currentPasswordRequired" };
   }
 
   return { isValid: true };
@@ -324,11 +324,11 @@ export const validateCurrentPassword = (password: string): ValidationResult => {
  */
 export const validateCode = (code: string): ValidationResult => {
   if (!code) {
-    return { isValid: false, message: "Code is required" };
+    return { isValid: false, message: "common.validation.codeRequired" };
   }
 
   if (!/^\d{6}$/.test(code)) {
-    return { isValid: false, message: "Code must be exactly 6 digits" };
+    return { isValid: false, message: "common.validation.codeLength" };
   }
 
   return { isValid: true };
@@ -374,7 +374,7 @@ export const validateRegistrationForm = (formData: {
   if (
     formData.ownerEmail.trim().toLowerCase() === formData.organizationEmail.trim().toLowerCase()
   ) {
-    return { isValid: false, message: "Owner email must be different from organization email" };
+    return { isValid: false, message: "common.validation.emailsDuplicate" };
   }
 
   // Validate organization
@@ -439,7 +439,7 @@ export const validateLoginForm = (formData: {
 
   // Validate password
   if (!formData.password) {
-    return { isValid: false, message: "Password is required" };
+    return { isValid: false, message: "common.validation.passwordRequired" };
   }
 
   return { isValid: true };
@@ -457,13 +457,13 @@ export const validateLoginForm = (formData: {
 export const validatePlanIdentifier = (plan: string): ValidationResult => {
   const trimmed = plan.trim();
   if (!trimmed) {
-    return { isValid: false, message: "Plan identifier is required." };
+    return { isValid: false, message: "common.validation.planIdRequired" };
   }
   if (!/^[a-z][a-z0-9_]*$/.test(trimmed)) {
-    return { isValid: false, message: "Must be lowercase alphanumeric with underscores." };
+    return { isValid: false, message: "common.validation.planIdFormat" };
   }
   if (trimmed.length > 50) {
-    return { isValid: false, message: "Max 50 characters." };
+    return { isValid: false, message: "common.validation.planIdMaxLength" };
   }
   return { isValid: true };
 };
@@ -474,10 +474,10 @@ export const validatePlanIdentifier = (plan: string): ValidationResult => {
 export const validatePlanDisplayName = (name: string): ValidationResult => {
   const trimmed = name.trim();
   if (!trimmed) {
-    return { isValid: false, message: "Display name is required." };
+    return { isValid: false, message: "common.validation.planDisplayNameRequired" };
   }
   if (trimmed.length > 100) {
-    return { isValid: false, message: "Max 100 characters." };
+    return { isValid: false, message: "common.validation.planDisplayNameMaxLength" };
   }
   return { isValid: true };
 };
@@ -485,9 +485,9 @@ export const validatePlanDisplayName = (name: string): ValidationResult => {
 /**
  * Cost in cents validation (baseCost, pricePerSeat)
  */
-export const validateCostCents = (value: number, label = "Value"): ValidationResult => {
+export const validateCostCents = (value: number, _label = "Value"): ValidationResult => {
   if (!Number.isFinite(value) || value < 0) {
-    return { isValid: false, message: `${label} must be a non-negative number (in cents).` };
+    return { isValid: false, message: "common.validation.costNonNegative" };
   }
   return { isValid: true };
 };
@@ -495,9 +495,9 @@ export const validateCostCents = (value: number, label = "Value"): ValidationRes
 /**
  * Limit field validation (maxSeats, maxCatalogItems) — must be -1 or a positive integer
  */
-export const validateLimitField = (value: number, label = "Value"): ValidationResult => {
+export const validateLimitField = (value: number, _label = "Value"): ValidationResult => {
   if (!Number.isInteger(value) || value < -1 || value === 0) {
-    return { isValid: false, message: `${label} must be -1 (unlimited) or a positive integer.` };
+    return { isValid: false, message: "common.validation.limitInvalid" };
   }
   return { isValid: true };
 };
@@ -507,7 +507,7 @@ export const validateLimitField = (value: number, label = "Value"): ValidationRe
  */
 export const validateDurationDays = (days: number): ValidationResult => {
   if (!Number.isInteger(days) || days < 1 || days > 365) {
-    return { isValid: false, message: "Must be an integer between 1 and 365." };
+    return { isValid: false, message: "common.validation.durationDaysRange" };
   }
   return { isValid: true };
 };
@@ -517,7 +517,7 @@ export const validateDurationDays = (days: number): ValidationResult => {
  */
 export const validateSortOrder = (order: number): ValidationResult => {
   if (!Number.isInteger(order)) {
-    return { isValid: false, message: "Must be an integer." };
+    return { isValid: false, message: "common.validation.sortOrderInteger" };
   }
   return { isValid: true };
 };
@@ -527,7 +527,7 @@ export const validateSortOrder = (order: number): ValidationResult => {
  */
 export const validatePlanDescription = (desc: string): ValidationResult => {
   if (desc.length > 500) {
-    return { isValid: false, message: "Max 500 characters." };
+    return { isValid: false, message: "common.validation.planDescMaxLength" };
   }
   return { isValid: true };
 };
@@ -538,7 +538,30 @@ export const validatePlanDescription = (desc: string): ValidationResult => {
 export const validateStripePriceId = (id: string): ValidationResult => {
   if (!id) return { isValid: true };
   if (!id.startsWith("price_")) {
-    return { isValid: false, message: 'Stripe price IDs must start with "price_".' };
+    return { isValid: false, message: "common.validation.stripePriceIdFormat" };
+  }
+  return { isValid: true };
+};
+/**
+ * Document number validation for Colombian identity documents
+ * Rules:
+ * - Required
+ * - Digits only (no letters, spaces, or special characters)
+ * - Between 8 and 11 digits
+ */
+export const validateDocumentNumber = (docNumber: string): ValidationResult => {
+  const trimmed = docNumber.trim();
+  if (!trimmed) {
+    return { isValid: false, message: "common.validation.documentNumberRequired" };
+  }
+  if (!/^\d+$/.test(trimmed)) {
+    return { isValid: false, message: "common.validation.documentNumberDigitsOnly" };
+  }
+  if (trimmed.length < 8) {
+    return { isValid: false, message: "common.validation.documentNumberMinLength" };
+  }
+  if (trimmed.length > 11) {
+    return { isValid: false, message: "common.validation.documentNumberMaxLength" };
   }
   return { isValid: true };
 };
@@ -562,7 +585,7 @@ export const validateChangePasswordForm = (formData: {
 
   // Ensure current password is different from new password
   if (formData.currentPassword === formData.newPassword) {
-    return { isValid: false, message: "New password must be different from the current password" };
+    return { isValid: false, message: "common.validation.passwordDifferent" };
   }
 
   return { isValid: true };
@@ -586,30 +609,34 @@ export const validateLocationForm = (form: {
     propertyNumber?: string;
   };
 }): ValidationResult => {
-  if (!form.code || !form.code.trim()) return { isValid: false, message: "Code is required" };
-  if (!form.name || !form.name.trim()) return { isValid: false, message: "Name is required" };
+  if (!form.code || !form.code.trim())
+    return { isValid: false, message: "common.validation.locationCodeRequired" };
+  if (!form.name || !form.name.trim())
+    return { isValid: false, message: "common.validation.locationNameRequired" };
   if (!form.section || !form.section.trim())
-    return { isValid: false, message: "Section is required" };
-  if (!form.shelf || !form.shelf.trim()) return { isValid: false, message: "Shelf is required" };
+    return { isValid: false, message: "common.validation.locationSectionRequired" };
+  if (!form.shelf || !form.shelf.trim())
+    return { isValid: false, message: "common.validation.locationShelfRequired" };
   if (typeof form.capacity !== "number" || Number.isNaN(form.capacity) || form.capacity < 0)
-    return { isValid: false, message: "Capacity must be a non-negative number" };
+    return { isValid: false, message: "common.validation.locationCapacityInvalid" };
   if (typeof form.occupied !== "number" || Number.isNaN(form.occupied) || form.occupied < 0)
-    return { isValid: false, message: "Occupied must be a non-negative number" };
+    return { isValid: false, message: "common.validation.locationOccupiedInvalid" };
   if ((form.capacity ?? 0) > 0 && (form.occupied ?? 0) > (form.capacity ?? 0))
-    return { isValid: false, message: "Occupied cannot be greater than capacity" };
+    return { isValid: false, message: "common.validation.locationOccupiedExceedsCapacity" };
   const allowed = ["available", "full", "maintenance"];
   if (!allowed.includes(form.status ?? "available"))
-    return { isValid: false, message: "Invalid status" };
+    return { isValid: false, message: "common.validation.locationStatusInvalid" };
   // Address validation (required by backend)
-  if (!form.address) return { isValid: false, message: "Address is required" };
+  if (!form.address)
+    return { isValid: false, message: "common.validation.locationAddressRequired" };
   if (!form.address.country || !form.address.country.trim())
-    return { isValid: false, message: "Country is required" };
+    return { isValid: false, message: "common.validation.locationCountryRequired" };
   if (!form.address.city || !form.address.city.trim())
-    return { isValid: false, message: "City is required" };
+    return { isValid: false, message: "common.validation.locationCityRequired" };
   if (!form.address.street || !form.address.street.trim())
-    return { isValid: false, message: "Street is required" };
+    return { isValid: false, message: "common.validation.locationStreetRequired" };
   if (!form.address.propertyNumber || !form.address.propertyNumber.trim())
-    return { isValid: false, message: "Property number is required" };
+    return { isValid: false, message: "common.validation.locationPropertyNumberRequired" };
   return { isValid: true };
 };
 
@@ -619,17 +646,18 @@ export const validateLocationForm = (form: {
 export const validateMaterialCapacities = (
   capacities: Array<{ materialTypeId: string; maxQuantity: number | "" }>,
 ): ValidationResult => {
+  // An empty array is valid: it means no material types exist yet in the system.
   if (!capacities || capacities.length === 0) {
-    return { isValid: false, message: "At least one material capacity must be defined" };
+    return { isValid: true };
   }
 
   for (let i = 0; i < capacities.length; i++) {
     const cap = capacities[i];
     if (cap.maxQuantity === "") {
-      return { isValid: false, message: "All material types must have a defined capacity" };
+      return { isValid: false, message: "common.validation.materialCapacitiesAllDefined" };
     }
     if (typeof cap.maxQuantity !== "number" || cap.maxQuantity < 0) {
-      return { isValid: false, message: "Capacity must be a non-negative number" };
+      return { isValid: false, message: "common.validation.locationCapacityInvalid" };
     }
   }
 
@@ -654,22 +682,28 @@ export const validateLocationV2 = (form: {
 }): { isValid: boolean; errors: Record<string, string> } => {
   const errors: Record<string, string> = {};
 
-  if (!form.name.trim()) errors.name = "Name is required";
-  if (form.name.length > 100) errors.name = "Name must not exceed 100 characters";
+  if (!form.name.trim()) errors.name = "common.validation.locationV2NameRequired";
+  if (form.name.length > 100) errors.name = "common.validation.locationV2NameMaxLength";
 
-  if (!form.address.streetType.trim()) errors["address.street"] = "Street type is required";
-  if (!form.address.primaryNumber.trim()) errors["address.street"] = "Street number is required";
+  if (!form.address.streetType.trim())
+    errors["address.street"] = "common.validation.locationV2StreetTypeRequired";
+  if (!form.address.primaryNumber.trim())
+    errors["address.street"] = "common.validation.locationV2StreetNumberRequired";
   if (!form.address.secondaryNumber.trim())
-    errors["address.propertyNumber"] = "Property number is required";
+    errors["address.propertyNumber"] = "common.validation.locationV2PropertyNumberRequired";
   if (!form.address.complementaryNumber.trim())
-    errors["address.complementaryNumber"] = "Complementary number is required";
-  if (!form.address.department.trim()) errors["address.state"] = "Department is required";
-  if (!form.address.city.trim()) errors["address.city"] = "City is required";
+    errors["address.complementaryNumber"] = "common.validation.locationV2ComplementaryRequired";
+  if (!form.address.department.trim())
+    errors["address.state"] = "common.validation.locationV2DepartmentRequired";
+  if (!form.address.city.trim())
+    errors["address.city"] = "common.validation.locationV2CityRequired";
 
-  if (form.materialCapacities) {
+  // Only validate capacities when there are material types to configure.
+  if (form.materialCapacities && form.materialCapacities.length > 0) {
     const capValidation = validateMaterialCapacities(form.materialCapacities);
     if (!capValidation.isValid) {
-      errors.materialCapacities = capValidation.message || "Invalid capacities";
+      errors.materialCapacities =
+        capValidation.message || "common.validation.locationCapacityInvalid";
     }
   }
 
@@ -684,17 +718,53 @@ export const validateLocationV2 = (form: {
  */
 export const validateCategoryName = (name: string): ValidationResult => {
   if (!name.trim()) {
-    return { isValid: false, message: "Category name is required" };
+    return { isValid: false, message: "common.validation.categoryNameRequired" };
   }
 
   if (name.length < 2) {
-    return { isValid: false, message: "Category name must be at least 2 characters" };
+    return { isValid: false, message: "common.validation.categoryNameMinLength" };
   }
 
   if (name.length > 100) {
-    return { isValid: false, message: "Category name must not exceed 100 characters" };
+    return { isValid: false, message: "common.validation.categoryNameMaxLength" };
   }
 
+  return { isValid: true };
+};
+
+/**
+ * Material type code validation (1-10 alphanumeric uppercase chars).
+ * Used as the {TYPE_CODE} token in code schemes.
+ */
+export const validateMaterialTypeCode = (code: string): ValidationResult => {
+  const trimmed = code.trim();
+  if (!trimmed) {
+    return { isValid: false, message: "common.validation.materialTypeCodeRequired" };
+  }
+  if (!/^[A-Z0-9]+$/.test(trimmed)) {
+    return { isValid: false, message: "common.validation.materialTypeCodeFormat" };
+  }
+  if (trimmed.length > 10) {
+    return { isValid: false, message: "common.validation.materialTypeCodeMaxLength" };
+  }
+  return { isValid: true };
+};
+
+/**
+ * Category code validation (1-10 alphanumeric uppercase chars).
+ * Used as the {CATEGORY_CODE} token in code schemes.
+ */
+export const validateCategoryCode = (code: string): ValidationResult => {
+  const trimmed = code.trim();
+  if (!trimmed) {
+    return { isValid: false, message: "common.validation.categoryCodeRequired" };
+  }
+  if (!/^[A-Z0-9]+$/.test(trimmed)) {
+    return { isValid: false, message: "common.validation.categoryCodeFormat" };
+  }
+  if (trimmed.length > 10) {
+    return { isValid: false, message: "common.validation.categoryCodeMaxLength" };
+  }
   return { isValid: true };
 };
 
@@ -707,8 +777,94 @@ export const validateCategoryDescription = (description?: string): ValidationRes
   }
 
   if (description.length > 500) {
-    return { isValid: false, message: "Description must not exceed 500 characters" };
+    return { isValid: false, message: "common.validation.categoryDescMaxLength" };
   }
 
+  return { isValid: true };
+};
+
+/**
+ * Code scheme name validation (1-100 chars, non-empty).
+ * Returns i18n keys so callers can translate via t().
+ */
+export const validateCodeSchemeName = (name: string): ValidationResult => {
+  const trimmed = name.trim();
+  if (!trimmed) {
+    return { isValid: false, message: "settings.codeSchemes.validation.nameRequired" };
+  }
+  if (trimmed.length > 100) {
+    return { isValid: false, message: "settings.codeSchemes.validation.nameTooLong" };
+  }
+  return { isValid: true };
+};
+
+/**
+ * Damage description validator for inspection items.
+ * Required when the material condition is 'damaged' or 'lost'.
+ * @example validateDamageDescription("Scratch on surface") // { isValid: true }
+ * @example validateDamageDescription("") // { isValid: false, message: "inspections.damageDescriptionRequired" }
+ */
+export const validateDamageDescription = (description: string): ValidationResult => {
+  if (!description || !description.trim()) {
+    return { isValid: false, message: "inspections.damageDescriptionRequired" };
+  }
+  return { isValid: true };
+};
+
+/**
+ * Code scheme pattern validation (1-50 chars, must contain {SEQ} or {SEQ:N}).
+ * For material_instance entity type, {TYPE_CODE} and {CATEGORY_CODE} tokens
+ * are allowed; for other entity types they are forbidden.
+ * Returns i18n keys so callers can translate via t().
+ */
+export const validateCodeSchemePattern = (
+  pattern: string,
+  entityType: string,
+): ValidationResult => {
+  const trimmed = pattern.trim();
+  if (!trimmed) {
+    return { isValid: false, message: "settings.codeSchemes.validation.patternRequired" };
+  }
+  if (trimmed.length > 50) {
+    return { isValid: false, message: "settings.codeSchemes.validation.patternTooLong" };
+  }
+  if (!/\{SEQ(:\d+)?\}/i.test(trimmed)) {
+    return { isValid: false, message: "settings.codeSchemes.validation.patternNeedsSeq" };
+  }
+  if (entityType !== "material_instance") {
+    if (/\{TYPE_CODE\}/i.test(trimmed) || /\{CATEGORY_CODE\}/i.test(trimmed)) {
+      return {
+        isValid: false,
+        message: "settings.codeSchemes.validation.scopeTokensOnlyMaterial",
+      };
+    }
+  }
+  return { isValid: true };
+};
+
+/**
+ * Date range validation for report filters.
+ * Ensures "from" is not after "to". Both values are optional.
+ * @example validateDateRange("2025-01-01", "2025-12-31") // { isValid: true }
+ * @example validateDateRange("2025-12-31", "2025-01-01") // { isValid: false, message: "..." }
+ */
+export const validateDateRange = (from: string, to: string): ValidationResult => {
+  if (!from || !to) return { isValid: true };
+  if (from > to) {
+    return { isValid: false, message: "reports.filter.dateRangeError" };
+  }
+  return { isValid: true };
+};
+
+/**
+ * Search query validation for report text search fields.
+ * Max 100 characters. No regex-special chars to avoid injection.
+ * @example validateSearchQuery("silla") // { isValid: true }
+ * @example validateSearchQuery("a".repeat(101)) // { isValid: false, message: "..." }
+ */
+export const validateSearchQuery = (query: string): ValidationResult => {
+  if (query.length > 100) {
+    return { isValid: false, message: "reports.filter.searchTooLong" };
+  }
   return { isValid: true };
 };

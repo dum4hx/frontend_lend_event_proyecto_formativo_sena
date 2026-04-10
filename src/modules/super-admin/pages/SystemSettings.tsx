@@ -1,7 +1,21 @@
 import { useState, useEffect, useCallback } from "react";
-import { Save, Shield, Bell, Globe, Database, AlertTriangle, Moon, Palette, Sun } from "lucide-react";
+import {
+  Save,
+  Shield,
+  Bell,
+  Globe,
+  Database,
+  AlertTriangle,
+  Moon,
+  Palette,
+  Sun,
+  UserCog,
+} from "lucide-react";
 import { fetchPlatformHealth, fetchOverview } from "../../../services/superAdminService";
+import { updateUser } from "../../../services/userService";
+
 import { useLanguage } from "../../../contexts/useLanguage";
+import { useAuth } from "../../../contexts/useAuth";
 import { logError, normalizeError } from "../../../utils/errorHandling";
 import { useTheme } from "../../../contexts/useTheme";
 import type { PlatformHealth, PlatformOverview } from "../../../types/api";
@@ -18,12 +32,15 @@ interface SettingsValidationErrors {
   sessionTimeout?: string;
 }
 
-function validateSettings(fields: {
-  platformName: string;
-  supportEmail: string;
-  maxOrganizations: number;
-  sessionTimeout: number;
-}, t: ReturnType<typeof useLanguage>["t"]): SettingsValidationErrors {
+function validateSettings(
+  fields: {
+    platformName: string;
+    supportEmail: string;
+    maxOrganizations: number;
+    sessionTimeout: number;
+  },
+  t: ReturnType<typeof useLanguage>["t"],
+): SettingsValidationErrors {
   const errors: SettingsValidationErrors = {};
 
   if (!fields.platformName.trim()) {
@@ -57,11 +74,34 @@ function hasErrors(errors: SettingsValidationErrors): boolean {
   return Object.values(errors).some(Boolean);
 }
 
+// --- Account section validation helpers ------------------------------------
+
+interface AccountProfileErrors {
+  firstName?: string;
+  firstSurname?: string;
+}
+
+function validateAccountProfile(
+  fields: { firstName: string; firstSurname: string },
+  t: ReturnType<typeof useLanguage>["t"],
+): AccountProfileErrors {
+  const errors: AccountProfileErrors = {};
+  if (!fields.firstName.trim()) errors.firstName = t("systemSettings.validation.firstNameRequired");
+  if (!fields.firstSurname.trim())
+    errors.firstSurname = t("systemSettings.validation.firstSurnameRequired");
+  return errors;
+}
+
+function hasAccountErrors(errors: AccountProfileErrors): boolean {
+  return Object.values(errors).some(Boolean);
+}
+
 // ---------------------------------------------------------------------------
 
 export default function SystemSettings() {
   const { theme, setTheme } = useTheme();
   const { language, setLanguage, t } = useLanguage();
+  const { user, checkAuth } = useAuth();
 
   // General
   const [platformName, setPlatformName] = useState("Lend Event");
@@ -69,14 +109,14 @@ export default function SystemSettings() {
   const [maintenanceMode, setMaintenanceMode] = useState(false);
 
   // Security
-  const [twoFactor, setTwoFactor] = useState(false);
-  const [sessionTimeout, setSessionTimeout] = useState(15);
-  const [maxOrganizations, setMaxOrganizations] = useState(500);
+  const [twoFactor] = useState(false);
+  const [sessionTimeout] = useState(15);
+  const [maxOrganizations] = useState(500);
 
   // Notifications
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [slackIntegration, setSlackIntegration] = useState(false);
-  const [alertThreshold, setAlertThreshold] = useState(90);
+  const [emailNotifications] = useState(true);
+  const [slackIntegration] = useState(false);
+  const [alertThreshold] = useState(90);
 
   // State
   const [validationErrors, setValidationErrors] = useState<SettingsValidationErrors>({});
@@ -88,13 +128,21 @@ export default function SystemSettings() {
   const [overview, setOverview] = useState<PlatformOverview | null>(null);
   const [healthLoading, setHealthLoading] = useState(true);
 
+  // Account — Profile
+  const [acctFirstName, setAcctFirstName] = useState("");
+  const [acctSecondName, setAcctSecondName] = useState("");
+  const [acctFirstSurname, setAcctFirstSurname] = useState("");
+  const [acctSecondSurname, setAcctSecondSurname] = useState("");
+  const [acctEmail, setAcctEmail] = useState("");
+  const [acctPhone, setAcctPhone] = useState("");
+  const [profileErrors, setProfileErrors] = useState<AccountProfileErrors>({});
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileSaved, setProfileSaved] = useState(false);
+
   const loadHealth = useCallback(async () => {
     try {
       setHealthLoading(true);
-      const [healthRes, overviewRes] = await Promise.all([
-        fetchPlatformHealth(),
-        fetchOverview(),
-      ]);
+      const [healthRes, overviewRes] = await Promise.all([fetchPlatformHealth(), fetchOverview()]);
       setHealth(healthRes.data.health);
       setOverview(overviewRes.data.overview);
     } catch (err: unknown) {
@@ -108,13 +156,57 @@ export default function SystemSettings() {
     void loadHealth();
   }, [loadHealth]);
 
+  // Sync profile fields when user is available
+  useEffect(() => {
+    if (user) {
+      setAcctFirstName(user.name.firstName);
+      setAcctSecondName(user.name.secondName ?? "");
+      setAcctFirstSurname(user.name.firstSurname);
+      setAcctSecondSurname(user.name.secondSurname ?? "");
+      setAcctEmail(user.email);
+      setAcctPhone(user.phone ?? "");
+    }
+  }, [user]);
+
+  const handleSaveProfile = async () => {
+    const errors = validateAccountProfile(
+      { firstName: acctFirstName, firstSurname: acctFirstSurname },
+      t,
+    );
+    setProfileErrors(errors);
+    if (hasAccountErrors(errors)) return;
+
+    try {
+      setProfileSaving(true);
+      setProfileSaved(false);
+      await updateUser(user!._id, {
+        name: {
+          firstName: acctFirstName.trim(),
+          secondName: acctSecondName.trim() || undefined,
+          firstSurname: acctFirstSurname.trim(),
+          secondSurname: acctSecondSurname.trim() || undefined,
+        },
+      });
+      await checkAuth();
+      setProfileSaved(true);
+      setTimeout(() => setProfileSaved(false), 3000);
+    } catch (err: unknown) {
+      logError(err, "SystemSettings.handleSaveProfile");
+    } finally {
+      setProfileSaving(false);
+    }
+  };
+
   const handleSave = () => {
-    const errors = validateSettings({
-      platformName,
-      supportEmail,
-      maxOrganizations,
-      sessionTimeout,
-    }, t);
+    const errors = validateSettings(
+      {
+        platformName,
+        supportEmail,
+        maxOrganizations,
+        sessionTimeout,
+      },
+      t,
+    );
     setValidationErrors(errors);
 
     if (hasErrors(errors)) return;
@@ -151,7 +243,11 @@ export default function SystemSettings() {
           className="flex items-center gap-2 font-semibold px-6 py-2.5 rounded-lg transition disabled:opacity-50 gold-action-btn"
         >
           <Save size={18} />
-          {saving ? t("systemSettings.saving") : saved ? `${t("systemSettings.saved")} ✓` : t("systemSettings.saveChanges")}
+          {saving
+            ? t("systemSettings.saving")
+            : saved
+              ? `${t("systemSettings.saved")} ✓`
+              : t("systemSettings.saveChanges")}
         </button>
       </div>
 
@@ -163,7 +259,10 @@ export default function SystemSettings() {
           description={t("systemSettings.general.description")}
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FieldGroup label={t("systemSettings.general.platformName")} error={validationErrors.platformName}>
+            <FieldGroup
+              label={t("systemSettings.general.platformName")}
+              error={validationErrors.platformName}
+            >
               <input
                 value={platformName}
                 onChange={(e) => setPlatformName(e.target.value)}
@@ -171,7 +270,10 @@ export default function SystemSettings() {
                 className="setting-input"
               />
             </FieldGroup>
-            <FieldGroup label={t("systemSettings.general.supportEmail")} error={validationErrors.supportEmail}>
+            <FieldGroup
+              label={t("systemSettings.general.supportEmail")}
+              error={validationErrors.supportEmail}
+            >
               <input
                 type="email"
                 value={supportEmail}
@@ -188,72 +290,88 @@ export default function SystemSettings() {
           />
         </SettingsSection>
 
-        {/* Security */}
-        <SettingsSection
-          icon={<Shield size={20} className="text-[#FFD700]" />}
-          title={t("systemSettings.security.title")}
-          description={t("systemSettings.security.description")}
-        >
-          <ToggleRow
-            label={t("systemSettings.security.twoFactor")}
-            description={t("systemSettings.security.twoFactorDescription")}
-            checked={twoFactor}
-            onChange={setTwoFactor}
-          />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            <FieldGroup label={t("systemSettings.security.sessionTimeout")} error={validationErrors.sessionTimeout}>
-              <input
-                type="number"
-                min={5}
-                max={1440}
-                value={sessionTimeout}
-                onChange={(e) => setSessionTimeout(Number(e.target.value))}
-                className="setting-input"
-              />
-            </FieldGroup>
-            <FieldGroup label={t("systemSettings.security.maxOrganizations")} error={validationErrors.maxOrganizations}>
-              <input
-                type="number"
-                min={1}
-                value={maxOrganizations}
-                onChange={(e) => setMaxOrganizations(Number(e.target.value))}
-                className="setting-input"
-              />
-            </FieldGroup>
+        {/* Security — Coming Soon */}
+        <div className="relative">
+          <div className="absolute inset-0 z-10 bg-[#121212]/70 rounded-xl flex items-center justify-center backdrop-blur-[2px]">
+            <span className="bg-[#FFD700]/15 text-[#FFD700] border border-[#FFD700]/30 text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-wider">
+              {t("systemSettings.comingSoon")}
+            </span>
           </div>
-        </SettingsSection>
+          <SettingsSection
+            icon={<Shield size={20} className="text-[#FFD700]" />}
+            title={t("systemSettings.security.title")}
+            description={t("systemSettings.security.description")}
+          >
+            <ToggleRow
+              label={t("systemSettings.security.twoFactor")}
+              description={t("systemSettings.security.twoFactorDescription")}
+              checked={twoFactor}
+              onChange={() => {}}
+            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <FieldGroup label={t("systemSettings.security.sessionTimeout")}>
+                <input
+                  type="number"
+                  min={5}
+                  max={1440}
+                  value={sessionTimeout}
+                  disabled
+                  className="setting-input opacity-60 cursor-not-allowed"
+                />
+              </FieldGroup>
+              <FieldGroup label={t("systemSettings.security.maxOrganizations")}>
+                <input
+                  type="number"
+                  min={1}
+                  value={maxOrganizations}
+                  disabled
+                  className="setting-input opacity-60 cursor-not-allowed"
+                />
+              </FieldGroup>
+            </div>
+          </SettingsSection>
+        </div>
 
-        {/* Notifications */}
-        <SettingsSection
-          icon={<Bell size={20} className="text-[#FFD700]" />}
-          title={t("systemSettings.notifications.title")}
-          description={t("systemSettings.notifications.description")}
-        >
-          <ToggleRow
-            label={t("systemSettings.notifications.email")}
-            description={t("systemSettings.notifications.emailDescription")}
-            checked={emailNotifications}
-            onChange={setEmailNotifications}
-          />
-          <ToggleRow
-            label={t("systemSettings.notifications.slack")}
-            description={t("systemSettings.notifications.slackDescription")}
-            checked={slackIntegration}
-            onChange={setSlackIntegration}
-          />
-          <div className="mt-4 max-w-xs">
-            <FieldGroup label={t("systemSettings.notifications.alertThreshold", { value: alertThreshold })}>
-              <input
-                type="range"
-                min={10}
-                max={100}
-                value={alertThreshold}
-                onChange={(e) => setAlertThreshold(Number(e.target.value))}
-                className="w-full accent-[#FFD700]"
-              />
-            </FieldGroup>
+        {/* Notifications — Coming Soon */}
+        <div className="relative">
+          <div className="absolute inset-0 z-10 bg-[#121212]/70 rounded-xl flex items-center justify-center backdrop-blur-[2px]">
+            <span className="bg-[#FFD700]/15 text-[#FFD700] border border-[#FFD700]/30 text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-wider">
+              {t("systemSettings.comingSoon")}
+            </span>
           </div>
-        </SettingsSection>
+          <SettingsSection
+            icon={<Bell size={20} className="text-[#FFD700]" />}
+            title={t("systemSettings.notifications.title")}
+            description={t("systemSettings.notifications.description")}
+          >
+            <ToggleRow
+              label={t("systemSettings.notifications.email")}
+              description={t("systemSettings.notifications.emailDescription")}
+              checked={emailNotifications}
+              onChange={() => {}}
+            />
+            <ToggleRow
+              label={t("systemSettings.notifications.slack")}
+              description={t("systemSettings.notifications.slackDescription")}
+              checked={slackIntegration}
+              onChange={() => {}}
+            />
+            <div className="mt-4 max-w-xs">
+              <FieldGroup
+                label={t("systemSettings.notifications.alertThreshold", { value: alertThreshold })}
+              >
+                <input
+                  type="range"
+                  min={10}
+                  max={100}
+                  value={alertThreshold}
+                  disabled
+                  className="w-full accent-[#FFD700] opacity-60 cursor-not-allowed"
+                />
+              </FieldGroup>
+            </div>
+          </SettingsSection>
+        </div>
 
         {/* Appearance */}
         <SettingsSection
@@ -272,7 +390,7 @@ export default function SystemSettings() {
               }`}
             >
               <Moon size={15} />
-                {t("common.dark")}
+              {t("common.dark")}
             </button>
             <button
               onClick={() => setTheme("light")}
@@ -283,15 +401,30 @@ export default function SystemSettings() {
               }`}
             >
               <Sun size={15} />
-                {t("common.light")}
+              {t("common.light")}
             </button>
           </div>
-          <p className="text-gray-500 text-xs mt-2">{t("systemSettings.appearance.appliedImmediately")}</p>
+          <p className="text-gray-500 text-xs mt-2">
+            {t("systemSettings.appearance.appliedImmediately")}
+          </p>
           <div className="mt-5 border-t border-[#222] pt-4">
-            <p className="text-sm font-medium text-white mb-1">{t("systemSettings.appearance.languageTitle")}</p>
-            <p className="text-xs text-gray-500 mb-3">{t("systemSettings.appearance.languageDescription")}</p>
+            <p className="text-sm font-medium text-white mb-1">
+              {t("systemSettings.appearance.languageTitle")}
+            </p>
+            <p className="text-xs text-gray-500 mb-3">
+              {t("systemSettings.appearance.languageDescription")}
+            </p>
             <div className="flex gap-3 flex-wrap">
               {LANGUAGE_OPTIONS.map((option) => {
+                {
+                  /*
+                  [DESHABILITADO] El botón del idioma inglés está comentado.
+                  El español es el único idioma de visualización soportado en este despliegue.
+                  La compatibilidad con inglés se mantiene completamente en el sistema de
+                  traducciones — para reactivar el botón, eliminar el bloque `if` a continuación.
+                */
+                }
+                if (option === "en") return null;
                 const isActive = language === option;
                 return (
                   <button
@@ -308,6 +441,91 @@ export default function SystemSettings() {
                   </button>
                 );
               })}
+            </div>
+          </div>
+        </SettingsSection>
+
+        {/* Account */}
+        <SettingsSection
+          icon={<UserCog size={20} className="text-[#FFD700]" />}
+          title={t("systemSettings.account.title")}
+          description={t("systemSettings.account.description")}
+        >
+          <div data-help-id="sa-account-section">
+            {/* Profile */}
+            <h3 className="text-sm font-semibold text-white mb-3">
+              {t("systemSettings.account.profile.title")}
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FieldGroup
+                label={t("systemSettings.account.profile.firstName")}
+                error={profileErrors.firstName}
+              >
+                <input
+                  data-help-id="sa-account-first-name"
+                  value={acctFirstName}
+                  onChange={(e) => setAcctFirstName(e.target.value)}
+                  className="setting-input"
+                />
+              </FieldGroup>
+              <FieldGroup label={t("systemSettings.account.profile.secondName")}>
+                <input
+                  value={acctSecondName}
+                  onChange={(e) => setAcctSecondName(e.target.value)}
+                  className="setting-input"
+                />
+              </FieldGroup>
+              <FieldGroup
+                label={t("systemSettings.account.profile.firstSurname")}
+                error={profileErrors.firstSurname}
+              >
+                <input
+                  data-help-id="sa-account-first-surname"
+                  value={acctFirstSurname}
+                  onChange={(e) => setAcctFirstSurname(e.target.value)}
+                  className="setting-input"
+                />
+              </FieldGroup>
+              <FieldGroup label={t("systemSettings.account.profile.secondSurname")}>
+                <input
+                  value={acctSecondSurname}
+                  onChange={(e) => setAcctSecondSurname(e.target.value)}
+                  className="setting-input"
+                />
+              </FieldGroup>
+              <FieldGroup label={t("systemSettings.account.profile.email")}>
+                <input
+                  data-help-id="sa-account-email"
+                  type="email"
+                  value={acctEmail}
+                  disabled
+                  className="setting-input opacity-60 cursor-not-allowed"
+                />
+              </FieldGroup>
+              <FieldGroup label={t("systemSettings.account.profile.phone")}>
+                <input
+                  data-help-id="sa-account-phone"
+                  type="tel"
+                  value={acctPhone}
+                  disabled
+                  className="setting-input opacity-60 cursor-not-allowed"
+                />
+              </FieldGroup>
+            </div>
+            <div className="mt-4 flex justify-end">
+              <button
+                data-help-id="sa-account-save-profile"
+                onClick={() => void handleSaveProfile()}
+                disabled={profileSaving}
+                className="flex items-center gap-2 font-semibold px-5 py-2 rounded-lg transition disabled:opacity-50 gold-action-btn text-sm"
+              >
+                <Save size={16} />
+                {profileSaving
+                  ? t("systemSettings.account.profile.saving")
+                  : profileSaved
+                    ? `${t("systemSettings.account.profile.saved")} ✓`
+                    : t("systemSettings.account.profile.save")}
+              </button>
             </div>
           </div>
         </SettingsSection>
@@ -356,7 +574,9 @@ export default function SystemSettings() {
                   ok
                 />
               </div>
-              {(health.overdueLoans > 0 || health.overdueInvoices > 0 || health.recentErrors > 0) && (
+              {(health.overdueLoans > 0 ||
+                health.overdueInvoices > 0 ||
+                health.recentErrors > 0) && (
                 <div className="mt-4 flex items-center gap-2 text-yellow-400 text-sm">
                   <AlertTriangle size={16} />
                   <span>{t("systemSettings.health.issueDetected")}</span>
@@ -365,7 +585,11 @@ export default function SystemSettings() {
             </>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <InfoCard label={t("systemSettings.health.databaseStatus")} value={t("systemSettings.health.connected")} ok />
+              <InfoCard
+                label={t("systemSettings.health.databaseStatus")}
+                value={t("systemSettings.health.connected")}
+                ok
+              />
               <InfoCard label={t("systemSettings.health.storageUsed")} value="–" ok />
               <InfoCard label={t("systemSettings.health.lastBackup")} value="–" ok />
             </div>

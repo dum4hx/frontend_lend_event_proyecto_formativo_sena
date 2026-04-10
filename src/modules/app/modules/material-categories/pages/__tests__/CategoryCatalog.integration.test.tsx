@@ -61,6 +61,7 @@ vi.mock("../../../../../../components/export/ExcelExportImport", () => ({
 function categoryFactory(overrides?: Partial<MaterialCategory>): MaterialCategory {
   return {
     _id: "category-1",
+    code: "CAT-001",
     organizationId: "org-1",
     name: "Lighting",
     description: "Stage lights",

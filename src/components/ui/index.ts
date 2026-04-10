@@ -77,6 +77,9 @@ export type { PaginationProps } from "./Pagination";
 export { LinkedEntity } from "./LinkedEntity";
 export type { LinkedEntityProps } from "./LinkedEntity";
 
+export { EntityLink } from "./EntityLink";
+export type { EntityLinkProps } from "./EntityLink";
+
 export { PermissionGuardedButton } from "./PermissionGuardedButton";
 export type { PermissionGuardedButtonProps } from "./PermissionGuardedButton";
 
@@ -85,3 +88,5 @@ export type { Toast, ToastType } from "./ToastContainer";
 
 export { GreetingCard } from "./GreetingCard";
 export type { GreetingCardProps } from "./GreetingCard";
+
+export { BackupCodesModal } from "./BackupCodesModal";

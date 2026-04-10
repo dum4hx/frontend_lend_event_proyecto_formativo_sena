@@ -157,6 +157,12 @@
     @apply block text-sm font-semibold text-gray-400;
   }
 
+  .form-input {
+    @apply w-full bg-[#121212] border border-[#333] rounded-lg px-3 py-2.5 text-sm text-white
+      focus:outline-none focus:border-[#FFD700] focus:ring-1 focus:ring-[#FFD700]/20 transition-all
+      placeholder:text-gray-600;
+  }
+
   .form-error {
     @apply text-xs text-red-400 mt-1;
   }

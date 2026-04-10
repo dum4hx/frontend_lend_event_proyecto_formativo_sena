@@ -2,6 +2,10 @@ import type { HelpModuleDefinition } from "./types";
 
 const HELP_MODULE_DEFINITIONS: HelpModuleDefinition[] = [
   {
+    moduleId: "login",
+    routePrefixes: ["/login", "/auth/verify-otp"],
+  },
+  {
     moduleId: "operations",
     routePrefixes: ["/app/operations"],
   },
@@ -24,6 +28,14 @@ const HELP_MODULE_DEFINITIONS: HelpModuleDefinition[] = [
   {
     moduleId: "inspections",
     routePrefixes: ["/app/inspections"],
+  },
+  {
+    moduleId: "incidents",
+    routePrefixes: ["/app/incidents"],
+  },
+  {
+    moduleId: "maintenance",
+    routePrefixes: ["/app/maintenance"],
   },
   {
     moduleId: "locations",
@@ -54,10 +66,6 @@ const HELP_MODULE_DEFINITIONS: HelpModuleDefinition[] = [
     routePrefixes: ["/app/material-categories"],
   },
   {
-    moduleId: "ia-settings",
-    routePrefixes: ["/app/ia-settings"],
-  },
-  {
     moduleId: "subscription",
     routePrefixes: ["/app/subscription"],
   },
@@ -86,8 +94,20 @@ const HELP_MODULE_DEFINITIONS: HelpModuleDefinition[] = [
     routePrefixes: ["/app/reports"],
   },
   {
+    moduleId: "code-schemes",
+    routePrefixes: ["/app/settings/code-schemes"],
+  },
+  {
     moduleId: "settings",
     routePrefixes: ["/app/settings"],
+  },
+  {
+    moduleId: "super-admin-reports",
+    routePrefixes: ["/super-admin/reports"],
+  },
+  {
+    moduleId: "super-admin-settings",
+    routePrefixes: ["/super-admin/settings"],
   },
 ];
 
@@ -97,7 +117,9 @@ export function resolveHelpModuleId(pathname: string): string | null {
   );
 
   for (const definition of ordered) {
-    const hasMatch = definition.routePrefixes.some((routePrefix) => pathname.startsWith(routePrefix));
+    const hasMatch = definition.routePrefixes.some((routePrefix) =>
+      pathname.startsWith(routePrefix),
+    );
     if (hasMatch) {
       return definition.moduleId;
     }

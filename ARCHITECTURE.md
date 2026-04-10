@@ -169,7 +169,6 @@ src/
 │   │       ├── MyEvents.tsx
 │   │       ├── Team.tsx
 │   │       ├── SubscriptionManagement.tsx
-│   │       ├── IA_Settings.tsx
 │   │       └── Settings.tsx
 │   │
 │   ├── warehouse-operator/ ◄─── OPERADOR DE ALMACÉN
@@ -345,6 +344,7 @@ src/
 ## Tipos de Datos Clave
 
 ### User (Almacenado en AuthContext)
+
 ```typescript
 interface User {
   id: string;
@@ -358,6 +358,7 @@ interface User {
 ```
 
 ### API Response Format
+
 ```typescript
 interface ApiSuccessResponse<T> {
   success: true;
@@ -376,6 +377,7 @@ interface ApiErrorResponse {
 ### Entity Examples
 
 #### Location Manager
+
 - Material (SKU, name, price, category, status)
 - Category (name, description, material_count)
 - MaterialModel (code, category, variants, type)
@@ -383,6 +385,7 @@ interface ApiErrorResponse {
 - MaterialPlan (name, duration, price, materials)
 
 #### Commercial Advisor
+
 - Customer (name, email, phone, company, city, status)
 - Order (id, customer, items, invoice_date, rental_period, total, status)
 - Contract (id, customer, dates, value, items_count, status)
@@ -393,16 +396,16 @@ interface ApiErrorResponse {
 
 ## Estadísticas del Sistema
 
-| Aspecto | Cantidad |
-|---------|----------|
-| **Módulos** | 5 (admin, warehouse-operator, location-manager, commercial-advisor, super-admin) |
-| **Páginas Totales** | 31+ |
-| **Servicios API** | 15+ |
-| **Componentes Reutilizables** | 15+ |
-| **Hooks Personalizados** | 5+ |
-| **Rutas Protegidas** | 25+ |
-| **Líneas de Código** | ~10,000+ |
-| **Archivos TypeScript** | 60+ |
+| Aspecto                       | Cantidad                                                                         |
+| ----------------------------- | -------------------------------------------------------------------------------- |
+| **Módulos**                   | 5 (admin, warehouse-operator, location-manager, commercial-advisor, super-admin) |
+| **Páginas Totales**           | 31+                                                                              |
+| **Servicios API**             | 15+                                                                              |
+| **Componentes Reutilizables** | 15+                                                                              |
+| **Hooks Personalizados**      | 5+                                                                               |
+| **Rutas Protegidas**          | 25+                                                                              |
+| **Líneas de Código**          | ~10,000+                                                                         |
+| **Archivos TypeScript**       | 60+                                                                              |
 
 ---
 
@@ -434,6 +437,7 @@ BACKEND (A Implementar)
 ## Próximos Pasos
 
 ### Fase 1: Integración Backend ✅ Listado
+
 1. [ ] Definir contratos API con backend
 2. [ ] Configurar endpoints en backend
 3. [ ] Reemplazar mock data con API calls reales
@@ -441,6 +445,7 @@ BACKEND (A Implementar)
 5. [ ] Testing de integración
 
 ### Fase 2: Mejoras Frontend
+
 1. [ ] Agregar modales para CRUD
 2. [ ] Ag confirmación dialogs
 3. [ ] Toast notifications
@@ -448,6 +453,7 @@ BACKEND (A Implementar)
 5. [ ] Búsqueda full-text
 
 ### Fase 3: Optimizaciones
+
 1. [ ] Caching
 2. [ ] Lazy loading de datos
 3. [ ] Optimización de performance

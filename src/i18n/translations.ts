@@ -4,6 +4,11 @@ import publicSiteEn from "./locales/en/publicSite.json";
 import settingsEn from "./locales/en/settings.json";
 import superAdminEn from "./locales/en/superAdmin.json";
 import systemSettingsEn from "./locales/en/systemSettings.json";
+import catalogOverviewEn from "./locales/en/catalogOverview.json";
+import inspectionsEn from "./locales/en/inspections.json";
+import pricingEn from "./locales/en/pricing.json";
+import plansEn from "./locales/en/plans.json";
+import reportsEn from "./locales/en/reports.json";
 
 import commonEs from "./locales/es/common.json";
 import navEs from "./locales/es/nav.json";
@@ -11,6 +16,11 @@ import publicSiteEs from "./locales/es/publicSite.json";
 import settingsEs from "./locales/es/settings.json";
 import superAdminEs from "./locales/es/superAdmin.json";
 import systemSettingsEs from "./locales/es/systemSettings.json";
+import catalogOverviewEs from "./locales/es/catalogOverview.json";
+import inspectionsEs from "./locales/es/inspections.json";
+import pricingEs from "./locales/es/pricing.json";
+import plansEs from "./locales/es/plans.json";
+import reportsEs from "./locales/es/reports.json";
 
 export type SupportedLanguage = "en" | "es";
 
@@ -28,6 +38,11 @@ export const EN_TRANSLATIONS = mergeTranslations(
   settingsEn,
   superAdminEn,
   systemSettingsEn,
+  catalogOverviewEn,
+  inspectionsEn,
+  pricingEn,
+  plansEn,
+  reportsEn,
 );
 
 export const ES_TRANSLATIONS: Record<keyof typeof EN_TRANSLATIONS, string> = mergeTranslations(
@@ -37,6 +52,11 @@ export const ES_TRANSLATIONS: Record<keyof typeof EN_TRANSLATIONS, string> = mer
   settingsEs,
   superAdminEs,
   systemSettingsEs,
+  catalogOverviewEs,
+  inspectionsEs,
+  pricingEs,
+  plansEs,
+  reportsEs,
 );
 
 export type TranslationKey = keyof typeof EN_TRANSLATIONS;
@@ -59,15 +79,19 @@ const NAV_ITEM_KEYS: Partial<Record<string, TranslationKey>> = {
   team: "nav.item.team",
   roles: "nav.item.roles",
   subscription: "nav.item.subscription",
-  "ia-settings": "nav.item.ia-settings",
   settings: "nav.item.settings",
   "material-categories": "nav.item.material-categories",
   "material-types": "nav.item.material-types",
   "material-instances": "nav.item.material-instances",
+  "catalog-overview": "nav.item.catalog-overview",
   attributes: "nav.item.attributes",
   plans: "nav.item.plans",
   "transfer-requests": "nav.item.transfer-requests",
+  operations: "nav.item.operations",
   locations: "nav.item.locations",
+  inspections: "nav.item.inspections",
+  incidents: "nav.item.incidents",
+  maintenance: "nav.item.maintenance",
   "stock-movements": "nav.item.stock-movements",
   alerts: "nav.item.alerts",
   orders: "nav.item.orders",
@@ -75,11 +99,14 @@ const NAV_ITEM_KEYS: Partial<Record<string, TranslationKey>> = {
   rentals: "nav.item.rentals",
   invoices: "nav.item.invoices",
   reports: "nav.item.reports",
+  pricing: "nav.item.pricing",
+  "payment-methods": "nav.item.payment-methods",
+  "code-schemes": "nav.item.code-schemes",
   overview: "nav.item.overview",
   clients: "nav.item.clients",
   organizations: "nav.item.organizations",
   "sa-plans": "nav.item.sa-plans",
-  "ai-monitor": "nav.item.ai-monitor",
+  "sa-reports": "nav.item.sa-reports",
   "sa-settings": "nav.item.sa-settings",
 };
 
@@ -94,7 +121,11 @@ const NAV_SECTION_KEYS: Partial<Record<string, TranslationKey>> = {
   Configuration: "nav.section.configuration",
 };
 
-export function translate(language: SupportedLanguage, key: TranslationKey, params?: TranslationParams) {
+export function translate(
+  language: SupportedLanguage,
+  key: TranslationKey,
+  params?: TranslationParams,
+) {
   const template = TRANSLATIONS[language][key] ?? EN_TRANSLATIONS[key];
   if (!params) return template;
 

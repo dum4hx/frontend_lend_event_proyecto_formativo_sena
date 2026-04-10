@@ -11,238 +11,297 @@ import {
   Boxes,
   Send,
   ShoppingCart,
+  Table2,
+  Hammer,
+  ArrowLeftRight,
+  AlertCircle,
 } from "lucide-react";
 import { StatCard } from "../../components";
 import { PageHeader } from "../../../../components/ui";
-import { getCustomers } from "../../../../services/customerService";
-import { getRequests, getLoans } from "../../../../services/loanService";
-import { getInvoices, getInvoicesSummary } from "../../../../services/invoiceService";
 import { getUsers } from "../../../../services/userService";
-import {
-  getMaterialTypes,
-  getMaterialInstances,
-  getMaterialCategories,
-} from "../../../../services/materialService";
-import { getLocations } from "../../../../services/warehouseOperatorService";
 import { commercialAdvisorService } from "../../../../services/commercialAdvisorService";
+import {
+  getExportLoanActivity,
+  getExportSales,
+  getExportInventory,
+  getExportDamages,
+  getExportTransfers,
+  getExportCustomers,
+  getExportLocations,
+  getExportRequests,
+} from "../../../../services/reportExportService";
+import {
+  useExportLoanActivity,
+  useExportSales,
+  useExportInventory,
+  useExportDamages,
+  useExportTransfers,
+  useExportCustomers,
+  useExportLocations,
+  useExportRequests,
+} from "../../../../hooks/queries";
 import { ApiError } from "../../../../lib/api";
 import { useLanguage } from "../../../../contexts/useLanguage";
+import { usePermissions } from "../../../../contexts/usePermissions";
+import Unauthorized from "../../../../pages/Unauthorized";
+import { exportTableToPDF, exportTableToXLSX } from "../../../../utils/tableExport";
+import { PAGE_SIZE, fmtId, exportToCSVWithSummary, fetchAllPages } from "./helpers";
 import {
-  fmtCurrency,
-  fmtDate,
-  fmtId,
-  getReferenceId,
-  getCategoryName,
-  exportToCSV,
-} from "./helpers";
+  buildLoanSummaryEntries,
+  buildSalesSummaryEntries,
+  buildInventorySummaryEntries,
+  buildDamagesSummaryEntries,
+  buildTransfersSummaryEntries,
+  buildCustomersSummaryEntries,
+  buildLocationsSummaryEntries,
+  buildRequestsSummaryEntries,
+} from "./summaryBuilders";
+import {
+  getCustomerStatusLabel,
+  getLoanRequestStatusLabel,
+  getUserStatusLabel,
+  getLocationStatusLabel,
+  getOrderStatusLabel,
+  getLoanStatusLabel,
+  getInvoiceStatusLabel,
+  getInvoiceTypeLabel,
+  getMaintenanceBatchStatusLabel,
+  getTransferStatusLabel,
+} from "../../../../utils/statusLabels";
+import type {
+  CustomerStatus,
+  LoanRequestStatus,
+  UserStatus,
+  LoanStatus,
+  InvoiceStatus,
+  InvoiceType,
+  MaintenanceBatchStatus,
+  TransferStatus,
+} from "../../../../types/api";
+import type { LocationStatus, OrderStatus } from "../../../../utils/statusLabels";
 import { ReportsFilters } from "./ReportsFilters";
 import { ReportsTable } from "./ReportsTable";
-import type {
-  ReportModule,
-  DateRange,
-  ModuleFilters,
-  ReportRow,
-  KpiCard,
-  Customer,
-  Loan,
-  LoanRequest,
-  Invoice,
-  InvoiceSummary,
-  MaterialType,
-  MaterialInstance,
-  MaterialCategory,
-  WarehouseLocation,
-  Order,
-} from "./types";
+import type { SummaryEntry } from "./helpers";
+import type { StatCardProps } from "../../../../components/ui/StatCard";
+import type { ReportModule, DateRange, ModuleFilters, ReportRow, Order } from "./types";
 
-// ─── Module config ─────────────────────────────────────────────────────────
+// ─── Constants ─────────────────────────────────────────────────────────────
 
-const MODULE_CONFIG: Record<
-  ReportModule,
-  { label: string; icon: React.ReactNode; description: string }
-> = {
-  customers: {
-    label: "Customers",
-    icon: <Users size={18} />,
-    description: "Customer base and activity",
-  },
-  requests: {
-    label: "Transfer Requests",
-    icon: <Send size={18} />,
-    description: "Transfer requests and approvals",
-  },
-  loans: {
-    label: "Loans",
-    icon: <TrendingUp size={18} />,
-    description: "Active and completed loans",
-  },
-  invoices: {
-    label: "Invoices",
-    icon: <DollarSign size={18} />,
-    description: "Billing and payments",
-  },
-  inventory: {
-    label: "Inventory",
-    icon: <Package size={18} />,
-    description: "Categories, types and material instances",
-  },
-  team: {
-    label: "Team",
-    icon: <Users size={18} />,
-    description: "Team members and roles",
-  },
-  locations: {
-    label: "Locations",
-    icon: <Boxes size={18} />,
-    description: "Warehouse locations and capacity",
-  },
-  orders: {
-    label: "Orders",
-    icon: <ShoppingCart size={18} />,
-    description: "Customer orders and sales",
-  },
-};
+const API_TABS = new Set<ReportModule>([
+  "customers",
+  "requests",
+  "loans",
+  "financial",
+  "inventory",
+  "locations",
+  "damages",
+  "transfers",
+]);
 
 // ─── Main Component ────────────────────────────────────────────────────────
 
 export default function Reports() {
-  const { language } = useLanguage();
+  const { t, formatDate, formatCurrency, language } = useLanguage();
   const isEs = language === "es";
+  const { hasPermission } = usePermissions();
 
-  const moduleConfig = useMemo(() => {
-    if (!isEs) return MODULE_CONFIG;
-    return {
-      customers: {
-        ...MODULE_CONFIG.customers,
-        label: "Clientes",
-        description: "Base de clientes y actividad",
-      },
-      requests: {
-        ...MODULE_CONFIG.requests,
-        label: "Solicitudes",
-        description: "Solicitudes y aprobaciones",
-      },
-      loans: {
-        ...MODULE_CONFIG.loans,
-        label: "Prestamos",
-        description: "Prestamos activos y completados",
-      },
-      invoices: {
-        ...MODULE_CONFIG.invoices,
-        label: "Facturas",
-        description: "Facturacion y pagos",
-      },
-      inventory: {
-        ...MODULE_CONFIG.inventory,
-        label: "Inventario",
-        description: "Categorias, tipos e instancias",
-      },
-      team: { ...MODULE_CONFIG.team, label: "Equipo", description: "Miembros y roles" },
-      locations: {
-        ...MODULE_CONFIG.locations,
-        label: "Ubicaciones",
-        description: "Ubicaciones y capacidad",
-      },
-      orders: { ...MODULE_CONFIG.orders, label: "Pedidos", description: "Pedidos y ventas" },
-    } as typeof MODULE_CONFIG;
-  }, [isEs]);
+  // ─── Module config (translated) ─────────────────────────────────────────
+
+  const moduleConfig = useMemo(
+    () =>
+      ({
+        customers: {
+          label: t("reports.module.customers"),
+          icon: <Users size={18} />,
+          description: t("reports.module.customers.desc"),
+        },
+        requests: {
+          label: t("reports.module.requests"),
+          icon: <Send size={18} />,
+          description: t("reports.module.requests.desc"),
+        },
+        loans: {
+          label: t("reports.module.loans"),
+          icon: <TrendingUp size={18} />,
+          description: t("reports.module.loans.desc"),
+        },
+        financial: {
+          label: t("reports.module.financial"),
+          icon: <DollarSign size={18} />,
+          description: t("reports.module.financial.desc"),
+        },
+        inventory: {
+          label: t("reports.module.inventory"),
+          icon: <Package size={18} />,
+          description: t("reports.module.inventory.desc"),
+        },
+        team: {
+          label: t("reports.module.team"),
+          icon: <Users size={18} />,
+          description: t("reports.module.team.desc"),
+        },
+        locations: {
+          label: t("reports.module.locations"),
+          icon: <Boxes size={18} />,
+          description: t("reports.module.locations.desc"),
+        },
+        orders: {
+          label: t("reports.module.orders"),
+          icon: <ShoppingCart size={18} />,
+          description: t("reports.module.orders.desc"),
+        },
+        damages: {
+          label: t("reports.module.damages"),
+          icon: <Hammer size={18} />,
+          description: t("reports.module.damages.desc"),
+        },
+        transfers: {
+          label: t("reports.module.transfers"),
+          icon: <ArrowLeftRight size={18} />,
+          description: t("reports.module.transfers.desc"),
+        },
+      }) as Record<ReportModule, { label: string; icon: React.ReactNode; description: string }>,
+    [t],
+  );
 
   // ─── State ──────────────────────────────────────────────────────────────
 
   const [activeModule, setActiveModule] = useState<ReportModule>("customers");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [dateRange, setDateRange] = useState<DateRange>({ from: "", to: "" });
   const [filters, setFilters] = useState<ModuleFilters>({
     customers: { status: "" },
     requests: { status: "" },
-    loans: { status: "", overdue: false },
-    invoices: { status: "", type: "" },
-    inventory: { type: "", status: "" },
+    loans: { status: "", overdue: false, customerId: "", locationId: "" },
+    financial: {
+      status: "",
+      type: "",
+      customerId: "",
+      locationId: "",
+      categoryId: "",
+      invoiceType: "",
+      invoiceStatus: "",
+    },
+    inventory: { type: "", status: "", locationId: "", categoryId: "", search: "" },
     team: { status: "" },
     locations: { status: "" },
     orders: { status: "" },
+    damages: { status: "", locationId: "", batchStatus: "", entryReason: "" },
+    transfers: { status: "", fromLocationId: "", toLocationId: "" },
   });
 
-  // Data state
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [requests, setRequests] = useState<LoanRequest[]>([]);
-  const [loans, setLoans] = useState<Loan[]>([]);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [invoiceSummary, setInvoiceSummary] = useState<InvoiceSummary | null>(null);
-  const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
-  const [materialInstances, setMaterialInstances] = useState<MaterialInstance[]>([]);
+  // Client-only tab data
+  const [clientLoading, setClientLoading] = useState(false);
+  const [clientError, setClientError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
   const [teamMembers, setTeamMembers] = useState<
     Array<{ id: string; name: string; email: string; role: string; status: string }>
   >([]);
-  const [locations, setLocations] = useState<WarehouseLocation[]>([]);
-  const [categories, setCategories] = useState<MaterialCategory[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
 
-  // ─── Fetch data ────────────────────────────────────────────────────────
+  // ─── API-backed report hooks (new /reports/exports/* endpoints) ──────────
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const loansQuery = useExportLoanActivity(
+    {
+      startDate: dateRange.from || undefined,
+      endDate: dateRange.to || undefined,
+      page,
+      limit: PAGE_SIZE,
+      status: filters.loans.status || undefined,
+      customerId: filters.loans.customerId || undefined,
+      locationId: filters.loans.locationId || undefined,
+    },
+    { enabled: activeModule === "loans" },
+  );
+
+  const financialQuery = useExportSales(
+    {
+      startDate: dateRange.from || undefined,
+      endDate: dateRange.to || undefined,
+      page,
+      limit: PAGE_SIZE,
+      customerId: filters.financial.customerId || undefined,
+      locationId: filters.financial.locationId || undefined,
+      categoryId: filters.financial.categoryId || undefined,
+      invoiceType: filters.financial.invoiceType || undefined,
+      invoiceStatus: filters.financial.invoiceStatus || undefined,
+    },
+    { enabled: activeModule === "financial" },
+  );
+
+  const inventoryQuery = useExportInventory(
+    {
+      locationId: filters.inventory.locationId || undefined,
+      categoryId: filters.inventory.categoryId || undefined,
+      status: filters.inventory.status || undefined,
+      search: filters.inventory.search || undefined,
+    },
+    { enabled: activeModule === "inventory" },
+  );
+
+  const damagesQuery = useExportDamages(
+    {
+      startDate: dateRange.from || undefined,
+      endDate: dateRange.to || undefined,
+      page,
+      limit: PAGE_SIZE,
+      locationId: filters.damages.locationId || undefined,
+      batchStatus: filters.damages.batchStatus || undefined,
+      entryReason: filters.damages.entryReason || undefined,
+    },
+    { enabled: activeModule === "damages" },
+  );
+
+  const transfersQuery = useExportTransfers(
+    {
+      startDate: dateRange.from || undefined,
+      endDate: dateRange.to || undefined,
+      page,
+      limit: PAGE_SIZE,
+      status: filters.transfers.status || undefined,
+      fromLocationId: filters.transfers.fromLocationId || undefined,
+      toLocationId: filters.transfers.toLocationId || undefined,
+    },
+    { enabled: activeModule === "transfers" },
+  );
+
+  const customersQuery = useExportCustomers(
+    {
+      page,
+      limit: PAGE_SIZE,
+      status: filters.customers.status || undefined,
+    },
+    { enabled: activeModule === "customers" },
+  );
+
+  const locationsQuery = useExportLocations(
+    {
+      page,
+      limit: PAGE_SIZE,
+      status: filters.locations.status || undefined,
+    },
+    { enabled: activeModule === "locations" },
+  );
+
+  const requestsQuery = useExportRequests(
+    {
+      startDate: dateRange.from || undefined,
+      endDate: dateRange.to || undefined,
+      page,
+      limit: PAGE_SIZE,
+      status: filters.requests.status || undefined,
+    },
+    { enabled: activeModule === "requests" },
+  );
+
+  // ─── Client-only tab fetch ──────────────────────────────────────────────
+
+  const fetchClientData = useCallback(async () => {
+    if (API_TABS.has(activeModule)) return;
+    setClientLoading(true);
+    setClientError(null);
     try {
       switch (activeModule) {
-        case "customers": {
-          const res = await getCustomers({
-            limit: 100,
-            status: filters.customers.status || undefined,
-          });
-          setCustomers(res.data.customers ?? []);
-          break;
-        }
-        case "requests": {
-          const res = await getRequests({
-            limit: 100,
-            status: filters.requests.status || undefined,
-          });
-          setRequests(res.data.requests ?? []);
-          break;
-        }
-        case "loans": {
-          const res = await getLoans({
-            limit: 100,
-            status: filters.loans.status || undefined,
-            overdue: filters.loans.overdue || undefined,
-          });
-          setLoans(res.data.loans ?? []);
-          break;
-        }
-        case "invoices": {
-          const [invoicesRes, summaryRes] = await Promise.all([
-            getInvoices({
-              limit: 100,
-              status: filters.invoices.status || undefined,
-              type: filters.invoices.type || undefined,
-            }),
-            getInvoicesSummary(),
-          ]);
-          setInvoices(invoicesRes.data.invoices ?? []);
-          setInvoiceSummary(summaryRes.data);
-          break;
-        }
-        case "inventory": {
-          const [typesRes, instancesRes, categoriesRes] = await Promise.all([
-            getMaterialTypes({ limit: 100 }),
-            getMaterialInstances({
-              status: (filters.inventory.status as MaterialInstance["status"]) || undefined,
-            }),
-            getMaterialCategories(),
-          ]);
-
-          const instances = instancesRes.data.instances ?? [];
-          const types = typesRes.data.materialTypes ?? [];
-          const cats = categoriesRes.data.categories ?? [];
-
-          setMaterialTypes(types);
-          setMaterialInstances(instances);
-          setCategories(cats);
-          break;
-        }
         case "team": {
           const res = await getUsers({ limit: 100 });
           const rawUsers = (res.data.users ?? []) as unknown as Array<{
@@ -270,12 +329,6 @@ export default function Reports() {
           );
           break;
         }
-        case "locations": {
-          const res = await getLocations({ limit: 100 });
-          const locationsData = res.data.items ?? [];
-          setLocations(locationsData);
-          break;
-        }
         case "orders": {
           const res = await commercialAdvisorService.getOrders();
           setOrders(res.data ?? []);
@@ -284,26 +337,66 @@ export default function Reports() {
       }
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(err.message);
+        setClientError(err.message);
       } else {
-        setError(
-          isEs
-            ? "No se pudieron cargar los datos. Intenta de nuevo."
-            : "Failed to load data. Please try again.",
-        );
+        setClientError(t("reports.loadError"));
       }
     } finally {
-      setLoading(false);
+      setClientLoading(false);
     }
-  }, [activeModule, filters, isEs]);
+  }, [activeModule, t]);
 
   useEffect(() => {
-    void fetchData();
-  }, [fetchData]);
+    if (!API_TABS.has(activeModule)) {
+      void fetchClientData();
+    }
+  }, [activeModule, fetchClientData]);
+
+  // ─── Derived loading / error ────────────────────────────────────────────
+
+  const activeQuery = (() => {
+    switch (activeModule) {
+      case "loans":
+        return loansQuery;
+      case "financial":
+        return financialQuery;
+      case "inventory":
+        return inventoryQuery;
+      case "damages":
+        return damagesQuery;
+      case "transfers":
+        return transfersQuery;
+      case "customers":
+        return customersQuery;
+      case "locations":
+        return locationsQuery;
+      case "requests":
+        return requestsQuery;
+      default:
+        return null;
+    }
+  })();
+
+  const loading = API_TABS.has(activeModule) ? (activeQuery?.isLoading ?? false) : clientLoading;
+
+  const error = API_TABS.has(activeModule)
+    ? activeQuery?.isError
+      ? activeQuery.error instanceof Error
+        ? activeQuery.error.message
+        : t("reports.loadError")
+      : null
+    : clientError;
 
   // ─── Build rows ────────────────────────────────────────────────────────
 
   const { headers, rows } = useMemo<{ headers: string[]; rows: ReportRow[] }>(() => {
+    const fmtDate = (iso: string | undefined): string => {
+      if (!iso) return "—";
+      return formatDate(iso);
+    };
+
+    const fmtCurrency = (val: number): string => formatCurrency(val, "COP");
+
     const matchesDate = (iso: string | undefined) => {
       if (!iso) return true;
       if (dateRange.from && iso < dateRange.from) return false;
@@ -312,137 +405,62 @@ export default function Reports() {
     };
 
     switch (activeModule) {
+      // ── API-backed tabs ────────────────────────────────────────────
+
       case "customers": {
-        const filtered = customers.filter(() => matchesDate(undefined));
+        const data = customersQuery.data;
+        if (!data) return { headers: [], rows: [] };
         return {
-          headers: ["ID", "First Name", "Last Name", "Email", "Phone", "Document", "Status"],
-          rows: filtered.map((c) => ({
-            id: c._id,
+          headers: [
+            t("reports.col.name"),
+            t("reports.col.email"),
+            t("reports.col.phone"),
+            t("reports.col.document"),
+            t("reports.col.status"),
+          ],
+          rows: data.rows.map((c) => ({
+            id: c.customerId ?? c.email,
             columns: {
-              ID: fmtId(c._id),
-              "First Name": c.name.firstName,
-              "Last Name": c.name.firstSurname,
-              Email: c.email,
-              Phone: c.phone,
-              Document: `${c.documentType} ${c.documentNumber}`,
-              Status: c.status,
+              [t("reports.col.name")]: c.fullName,
+              [t("reports.col.email")]: c.email,
+              [t("reports.col.phone")]: c.phone,
+              [t("reports.col.document")]: `${c.documentType} ${c.documentNumber}`,
+              [t("reports.col.status")]: getCustomerStatusLabel(
+                c.status as CustomerStatus,
+                language,
+              ),
             },
           })),
         };
       }
 
       case "requests": {
-        const filtered = requests.filter((r) => matchesDate(r.startDate));
+        const data = requestsQuery.data;
+        if (!data) return { headers: [], rows: [] };
         return {
-          headers: ["ID", "Customer ID", "Status", "Start Date", "End Date", "Items"],
-          rows: filtered.map((r) => ({
-            id: r._id,
+          headers: [
+            t("reports.col.code"),
+            t("reports.col.status"),
+            t("reports.col.startDate"),
+            t("reports.col.endDate"),
+            t("reports.col.items"),
+            t("reports.col.totalAmount"),
+          ],
+          rows: data.rows.map((r) => ({
+            id: r.requestId ?? r.code,
             columns: {
-              ID: fmtId(r._id),
-              "Customer ID": fmtId(getReferenceId(r.customerId)),
-              Status: r.status,
-              "Start Date": fmtDate(r.startDate),
-              "End Date": fmtDate(r.endDate),
-              Items: r.items?.length ? r.items.length.toString() : "—",
+              [t("reports.col.code")]: r.code,
+              [t("reports.col.status")]: getLoanRequestStatusLabel(
+                r.status as LoanRequestStatus,
+                language,
+              ),
+              [t("reports.col.startDate")]: fmtDate(r.startDate),
+              [t("reports.col.endDate")]: fmtDate(r.endDate),
+              [t("reports.col.items")]: r.itemCount,
+              [t("reports.col.totalAmount")]: fmtCurrency(r.totalAmount),
             },
           })),
         };
-      }
-
-      case "loans": {
-        const filtered = loans.filter((l) => matchesDate(l.startDate));
-        return {
-          headers: ["ID", "Customer ID", "Status", "Start Date", "End Date", "Notes"],
-          rows: filtered.map((l) => ({
-            id: l._id,
-            columns: {
-              ID: fmtId(l._id),
-              "Customer ID": fmtId(getReferenceId(l.customerId)),
-              Status: l.status,
-              "Start Date": fmtDate(l.startDate),
-              "End Date": fmtDate(l.endDate),
-              Notes: l.notes ?? "—",
-            },
-          })),
-        };
-      }
-
-      case "invoices": {
-        const filtered = invoices.filter(() => matchesDate(undefined));
-        return {
-          headers: ["ID", "Customer ID", "Type", "Status", "Amount (COP)", "Loan ID"],
-          rows: filtered.map((i) => ({
-            id: i._id,
-            columns: {
-              ID: fmtId(i._id),
-              "Customer ID":
-                typeof i.customerId === "object" && i.customerId !== null
-                  ? fmtId(i.customerId._id)
-                  : fmtId(i.customerId as string),
-              Type: i.type,
-              Status: i.status,
-              "Amount (COP)": fmtCurrency(i.totalAmount),
-              "Loan ID": i.loanId
-                ? fmtId(typeof i.loanId === "object" ? i.loanId._id : i.loanId)
-                : "—",
-            },
-          })),
-        };
-      }
-
-      case "inventory": {
-        const filterType = filters.inventory.type;
-
-        if (filterType === "categories") {
-          return {
-            headers: ["ID", "Name", "Description"],
-            rows: categories.map((c) => ({
-              id: c._id,
-              columns: {
-                ID: fmtId(c._id),
-                Name: c.name,
-                Description: c.description || "—",
-              },
-            })),
-          };
-        } else if (filterType === "types") {
-          return {
-            headers: ["ID", "Name", "Category", "Price/Day", "Description"],
-            rows: materialTypes.map((mt) => {
-              const categoryName = getCategoryName(mt.categoryId, categories);
-              return {
-                id: mt._id,
-                columns: {
-                  ID: fmtId(mt._id),
-                  Name: mt.name,
-                  Category: categoryName,
-                  "Price/Day": fmtCurrency(mt.pricePerDay ?? 0),
-                  Description: mt.description || "—",
-                },
-              };
-            }),
-          };
-        } else {
-          const filtered = materialInstances.filter((m) => {
-            if (filters.inventory.status && m.status !== filters.inventory.status) return false;
-            return true;
-          });
-
-          return {
-            headers: ["Serial", "Model", "Status", "Location", "Price/Day", "Description"],
-            rows: filtered.map((m) => ({
-              id: m._id,
-              columns: {
-                Serial: m.serialNumber || "—",
-                Model: m.model?.name || "—",
-                Status: m.status || "—",
-                Location: m.locationId?.name || "—",
-                "Price/Day": m.model?.pricePerDay ? fmtCurrency(m.model.pricePerDay) : "—",
-                Description: m.model?.description || "—",
-              },
-            })),
-          };
-        }
       }
 
       case "team": {
@@ -451,40 +469,56 @@ export default function Reports() {
           return true;
         });
         return {
-          headers: ["ID", "Name", "Email", "Role", "Status"],
+          headers: [
+            t("reports.col.id"),
+            t("reports.col.name"),
+            t("reports.col.email"),
+            t("reports.col.role"),
+            t("reports.col.status"),
+          ],
           rows: filtered.map((u) => ({
             id: u.id,
             columns: {
-              ID: fmtId(u.id),
-              Name: u.name,
-              Email: u.email,
-              Role: u.role,
-              Status: u.status,
+              [t("reports.col.id")]: fmtId(u.id),
+              [t("reports.col.name")]: u.name,
+              [t("reports.col.email")]: u.email,
+              [t("reports.col.role")]: u.role,
+              [t("reports.col.status")]: getUserStatusLabel(u.status as UserStatus, language),
             },
           })),
         };
       }
 
       case "locations": {
-        const filtered = locations.filter((l) => {
-          if (filters.locations.status && l.status !== filters.locations.status) return false;
-          return true;
-        });
+        const data = locationsQuery.data;
+        if (!data) return { headers: [], rows: [] };
         return {
-          headers: ["ID", "Name", "Organization", "Status", "City", "Department", "Address"],
-          rows: filtered.map((l) => ({
-            id: l._id,
-            columns: {
-              ID: fmtId(l._id),
-              Name: l.name,
-              Organization: fmtId(l.organizationId) || "—",
-              Status: l.status,
-              City: l.address?.city || "—",
-              Department: l.address?.department || "—",
-              Address:
-                `${l.address?.streetType || ""} ${l.address?.primaryNumber || ""}`.trim() || "—",
-            },
-          })),
+          headers: [
+            t("reports.col.name"),
+            t("reports.col.code"),
+            t("reports.col.status"),
+            t("reports.col.city"),
+            t("reports.col.department"),
+            t("reports.col.address"),
+          ],
+          rows: data.rows.map((l) => {
+            const addr = l.address;
+            const fullAddress = `${addr.streetType} ${addr.primaryNumber} #${addr.secondaryNumber}-${addr.complementaryNumber}`;
+            return {
+              id: l.locationId ?? l.name,
+              columns: {
+                [t("reports.col.name")]: l.name,
+                [t("reports.col.code")]: l.code || "—",
+                [t("reports.col.status")]: getLocationStatusLabel(
+                  l.status as LocationStatus,
+                  language,
+                ),
+                [t("reports.col.city")]: addr.city || "—",
+                [t("reports.col.department")]: addr.department || "—",
+                [t("reports.col.address")]: fullAddress,
+              },
+            };
+          }),
         };
       }
 
@@ -495,26 +529,237 @@ export default function Reports() {
         });
         return {
           headers: [
-            "Order ID",
-            "Customer",
-            "Date",
-            "Items",
-            "Total",
-            "Status",
-            "Rental Start",
-            "Rental End",
+            t("reports.col.orderId"),
+            t("reports.col.customer"),
+            t("reports.col.date"),
+            t("reports.col.items"),
+            t("reports.col.total"),
+            t("reports.col.status"),
+            t("reports.col.rentalStart"),
+            t("reports.col.rentalEnd"),
           ],
           rows: filtered.map((o) => ({
             id: o.id,
             columns: {
-              "Order ID": o.orderId,
-              Customer: o.customer,
-              Date: fmtDate(o.date),
-              Items: o.items.toString(),
-              Total: fmtCurrency(o.total),
-              Status: o.status,
-              "Rental Start": fmtDate(o.rentalStart),
-              "Rental End": fmtDate(o.rentalEnd),
+              [t("reports.col.orderId")]: o.orderId,
+              [t("reports.col.customer")]: o.customer,
+              [t("reports.col.date")]: fmtDate(o.date),
+              [t("reports.col.items")]: o.items.toString(),
+              [t("reports.col.total")]: fmtCurrency(o.total),
+              [t("reports.col.status")]: getOrderStatusLabel(o.status as OrderStatus, language),
+              [t("reports.col.rentalStart")]: fmtDate(o.rentalStart),
+              [t("reports.col.rentalEnd")]: fmtDate(o.rentalEnd),
+            },
+          })),
+        };
+      }
+
+      // ── API-backed tabs (new /reports/exports/* shapes) ──────────────
+
+      case "loans": {
+        const data = loansQuery.data;
+        if (!data) return { headers: [], rows: [] };
+        return {
+          headers: [
+            t("reports.col.code"),
+            t("reports.col.customer"),
+            t("reports.col.locationName"),
+            t("reports.col.status"),
+            t("reports.col.startDate"),
+            t("reports.col.endDate"),
+            t("reports.col.returnedAt"),
+            t("reports.col.durationDays"),
+            t("reports.col.overdueDays"),
+            t("reports.col.totalAmount"),
+            t("reports.col.materialCount"),
+          ],
+          rows: data.rows.map((l) => ({
+            id: l.loanId ?? l.code,
+            columns: {
+              [t("reports.col.code")]: l.code,
+              [t("reports.col.customer")]: l.customerName,
+              [t("reports.col.locationName")]: l.locationName,
+              [t("reports.col.status")]: getLoanStatusLabel(l.status as LoanStatus, language),
+              [t("reports.col.startDate")]: fmtDate(l.startDate),
+              [t("reports.col.endDate")]: fmtDate(l.endDate),
+              [t("reports.col.returnedAt")]: l.returnedAt ? fmtDate(l.returnedAt) : "—",
+              [t("reports.col.durationDays")]: l.durationDays,
+              [t("reports.col.overdueDays")]: l.overdueDays,
+              [t("reports.col.totalAmount")]: fmtCurrency(l.totalAmount),
+              [t("reports.col.materialCount")]: l.materialCount,
+            },
+          })),
+        };
+      }
+
+      case "financial": {
+        const data = financialQuery.data;
+        if (!data) return { headers: [], rows: [] };
+        // Show invoiceRows if type filter is set, otherwise combine loanRows + invoiceRows
+        const isInvoiceView = !!filters.financial.type || !!filters.financial.invoiceType;
+        if (isInvoiceView) {
+          const filteredInvoices = filters.financial.type
+            ? data.invoiceRows.filter((inv) => inv.type === filters.financial.type)
+            : data.invoiceRows;
+          return {
+            headers: [
+              t("reports.col.invoiceNumber"),
+              t("reports.col.customer"),
+              t("reports.col.type"),
+              t("reports.col.status"),
+              t("reports.col.amount"),
+              t("reports.col.amountPaid"),
+              t("reports.col.amountDue"),
+              t("reports.col.createdAt"),
+              t("reports.col.dueDate"),
+            ],
+            rows: filteredInvoices.map((inv) => ({
+              id: inv.invoiceId ?? inv.invoiceNumber,
+              columns: {
+                [t("reports.col.invoiceNumber")]: inv.invoiceNumber,
+                [t("reports.col.customer")]: inv.customerName,
+                [t("reports.col.type")]: getInvoiceTypeLabel(inv.type as InvoiceType, language),
+                [t("reports.col.status")]: getInvoiceStatusLabel(
+                  inv.status as InvoiceStatus,
+                  language,
+                ),
+                [t("reports.col.amount")]: fmtCurrency(inv.totalAmount),
+                [t("reports.col.amountPaid")]: fmtCurrency(inv.amountPaid),
+                [t("reports.col.amountDue")]: fmtCurrency(inv.amountDue),
+                [t("reports.col.createdAt")]: fmtDate(inv.createdAt),
+                [t("reports.col.dueDate")]: fmtDate(inv.dueDate),
+              },
+            })),
+          };
+        }
+        // Default: show loan rows (combined sales view)
+        return {
+          headers: [
+            t("reports.col.code"),
+            t("reports.col.customer"),
+            t("reports.col.locationName"),
+            t("reports.col.startDate"),
+            t("reports.col.endDate"),
+            t("reports.col.totalAmount"),
+            t("reports.col.depositAmount"),
+            t("reports.col.status"),
+            t("reports.col.materialCount"),
+          ],
+          rows: data.loanRows.map((l) => ({
+            id: l.loanId ?? l.code,
+            columns: {
+              [t("reports.col.code")]: l.code,
+              [t("reports.col.customer")]: l.customerName,
+              [t("reports.col.locationName")]: l.locationName,
+              [t("reports.col.startDate")]: fmtDate(l.startDate),
+              [t("reports.col.endDate")]: fmtDate(l.endDate),
+              [t("reports.col.totalAmount")]: fmtCurrency(l.totalAmount),
+              [t("reports.col.depositAmount")]: fmtCurrency(l.depositAmount),
+              [t("reports.col.status")]: getLoanStatusLabel(l.status as LoanStatus, language),
+              [t("reports.col.materialCount")]: l.materialCount,
+            },
+          })),
+        };
+      }
+
+      case "inventory": {
+        const data = inventoryQuery.data;
+        if (!data) return { headers: [], rows: [] };
+        const mtypes = data.materialTypes ?? data.byMaterialType ?? [];
+        return {
+          headers: [
+            t("reports.col.code"),
+            t("reports.col.name"),
+            t("reports.col.categoryNames"),
+            t("reports.col.pricePerDay"),
+            t("reports.col.totalInstances"),
+            t("reports.col.availableCount"),
+            t("reports.col.loanedCount"),
+            t("reports.col.maintenanceCount"),
+            t("reports.col.damagedCount"),
+          ],
+          rows: mtypes.map((item) => ({
+            id: item.materialTypeId ?? item.code,
+            columns: {
+              [t("reports.col.code")]: item.code,
+              [t("reports.col.name")]: item.name,
+              [t("reports.col.categoryNames")]: item.categoryNames?.join(", ") || "—",
+              [t("reports.col.pricePerDay")]: fmtCurrency(item.pricePerDay),
+              [t("reports.col.totalInstances")]: item.totalInstances,
+              [t("reports.col.availableCount")]: item.instancesByStatus?.available ?? 0,
+              [t("reports.col.loanedCount")]: item.instancesByStatus?.loaned ?? 0,
+              [t("reports.col.maintenanceCount")]: item.instancesByStatus?.maintenance ?? 0,
+              [t("reports.col.damagedCount")]: item.instancesByStatus?.damaged ?? 0,
+            },
+          })),
+        };
+      }
+
+      case "damages": {
+        const data = damagesQuery.data;
+        if (!data) return { headers: [], rows: [] };
+        return {
+          headers: [
+            t("reports.col.batchNumber"),
+            t("reports.col.name"),
+            t("reports.col.status"),
+            t("reports.col.locationName"),
+            t("reports.col.assignedTo"),
+            t("reports.col.itemCount"),
+            t("reports.col.estimatedCost"),
+            t("reports.col.actualCost"),
+            t("reports.col.startDate"),
+          ],
+          rows: data.batches.map((b) => ({
+            id: b.batchId ?? b.batchNumber,
+            columns: {
+              [t("reports.col.batchNumber")]: b.batchNumber,
+              [t("reports.col.name")]: b.name,
+              [t("reports.col.status")]: getMaintenanceBatchStatusLabel(
+                b.status as MaintenanceBatchStatus,
+                language,
+              ),
+              [t("reports.col.locationName")]: b.locationName,
+              [t("reports.col.assignedTo")]: b.assignedTo,
+              [t("reports.col.itemCount")]: b.itemCount,
+              [t("reports.col.estimatedCost")]: fmtCurrency(b.totalEstimatedCost),
+              [t("reports.col.actualCost")]: fmtCurrency(b.totalActualCost),
+              [t("reports.col.startDate")]: fmtDate(b.startedAt),
+            },
+          })),
+        };
+      }
+
+      case "transfers": {
+        const data = transfersQuery.data;
+        if (!data) return { headers: [], rows: [] };
+        return {
+          headers: [
+            t("reports.col.from"),
+            t("reports.col.to"),
+            t("reports.col.status"),
+            t("reports.col.items"),
+            t("reports.col.pickedBy"),
+            t("reports.col.receivedBy"),
+            t("reports.col.sentAt"),
+            t("reports.col.receivedAt"),
+            t("reports.col.transitDays"),
+          ],
+          rows: data.rows.map((tr) => ({
+            id: tr.transferId ?? `${tr.fromLocation}-${tr.sentAt}`,
+            columns: {
+              [t("reports.col.from")]: tr.fromLocation,
+              [t("reports.col.to")]: tr.toLocation,
+              [t("reports.col.status")]: getTransferStatusLabel(
+                tr.status as TransferStatus,
+                language,
+              ),
+              [t("reports.col.items")]: tr.itemCount.toString(),
+              [t("reports.col.pickedBy")]: tr.pickedBy || "—",
+              [t("reports.col.receivedBy")]: tr.receivedBy || "—",
+              [t("reports.col.sentAt")]: fmtDate(tr.sentAt),
+              [t("reports.col.receivedAt")]: tr.receivedAt ? fmtDate(tr.receivedAt) : "—",
+              [t("reports.col.transitDays")]: tr.transitDays,
             },
           })),
         };
@@ -525,242 +770,327 @@ export default function Reports() {
     }
   }, [
     activeModule,
-    customers,
-    requests,
-    loans,
-    invoices,
-    materialTypes,
-    materialInstances,
+    t,
+    formatDate,
+    formatCurrency,
+    language,
+    dateRange,
     teamMembers,
-    locations,
-    categories,
     orders,
-    filters.inventory.type,
-    filters.inventory.status,
-    filters.locations.status,
+    customersQuery.data,
+    requestsQuery.data,
+    locationsQuery.data,
+    loansQuery.data,
+    financialQuery.data,
+    inventoryQuery.data,
+    damagesQuery.data,
+    transfersQuery.data,
     filters.team.status,
     filters.orders.status,
-    dateRange,
+    filters.financial.type,
+    filters.financial.invoiceType,
   ]);
 
   // ─── KPI Cards ─────────────────────────────────────────────────────────
 
-  const kpiCards: KpiCard[] = useMemo(() => {
+  const kpiCards: StatCardProps[] = useMemo(() => {
+    const fmtCurrency = (val: number): string => formatCurrency(val, "COP");
+
     switch (activeModule) {
-      case "customers":
+      case "customers": {
+        const summary = customersQuery.data?.summary;
+        const activeCount = summary?.byStatus?.find((s) => s.status === "active")?.count ?? 0;
+        const activeRate = summary?.totalCustomers
+          ? ((activeCount / summary.totalCustomers) * 100).toFixed(1)
+          : "0.0";
         return [
-          { label: "Total", value: customers.length, icon: <Users size={24} /> },
           {
-            label: "Active",
-            value: customers.filter((c) => c.status === "active").length,
-            icon: <Users size={24} />,
-            trend: "active",
-            trendUp: true,
-          },
-          {
-            label: "Inactive",
-            value: customers.filter((c) => c.status === "inactive").length,
+            label: t("reports.kpi.totalCustomers"),
+            value: summary?.totalCustomers ?? 0,
             icon: <Users size={24} />,
           },
           {
-            label: "Blacklisted",
-            value: customers.filter((c) => c.status === "blacklisted").length,
+            label: t("reports.kpi.activeRate"),
+            value: `${activeRate}%`,
             icon: <Users size={24} />,
-          },
-        ];
-      case "requests":
-        return [
-          { label: "Total", value: requests.length, icon: <ClipboardList size={24} /> },
-          {
-            label: "Pending",
-            value: requests.filter((r) => r.status === "pending").length,
-            icon: <ClipboardList size={24} />,
-          },
-          {
-            label: "Approved",
-            value: requests.filter((r) => r.status === "approved").length,
-            icon: <ClipboardList size={24} />,
-            trend: "approved",
             trendUp: true,
           },
-          {
-            label: "Rejected",
-            value: requests.filter((r) => r.status === "rejected").length,
-            icon: <ClipboardList size={24} />,
-          },
         ];
-      case "loans":
-        return [
-          { label: "Total", value: loans.length, icon: <TrendingUp size={24} /> },
-          {
-            label: "Active",
-            value: loans.filter((l) => l.status === "active").length,
-            icon: <TrendingUp size={24} />,
-            trendUp: true,
-          },
-          {
-            label: "Overdue",
-            value: loans.filter((l) => l.status === "overdue").length,
-            icon: <TrendingUp size={24} />,
-          },
-          {
-            label: "Returned",
-            value: loans.filter((l) => l.status === "returned").length,
-            icon: <TrendingUp size={24} />,
-          },
-        ];
-      case "invoices":
-        return [
-          { label: "Total Invoices", value: invoices.length, icon: <FileText size={24} /> },
-          {
-            label: "Pending",
-            value:
-              invoiceSummary?.pending.count ??
-              invoices.filter((i) => i.status === "pending").length,
-            icon: <DollarSign size={24} />,
-          },
-          {
-            label: "Paid",
-            value: invoiceSummary?.paid.count ?? invoices.filter((i) => i.status === "paid").length,
-            icon: <DollarSign size={24} />,
-            trendUp: true,
-          },
-          {
-            label: "Total Amount",
-            value: fmtCurrency(invoices.reduce((sum, i) => sum + (i.totalAmount ?? 0), 0)),
-            icon: <DollarSign size={24} />,
-          },
-        ];
-      case "inventory": {
-        const filterType = filters.inventory.type;
-        if (filterType === "categories") {
-          return [
-            { label: "Total Categories", value: categories.length, icon: <Package size={24} /> },
-            { label: "Material Types", value: materialTypes.length, icon: <Package size={24} /> },
-            { label: "Instances", value: materialInstances.length, icon: <Package size={24} /> },
-            {
-              label: "With Attributes",
-              value: categories.filter((c) => c.attributes && c.attributes.length > 0).length,
-              icon: <Package size={24} />,
-            },
-          ];
-        } else if (filterType === "types") {
-          return [
-            { label: "Total Types", value: materialTypes.length, icon: <Package size={24} /> },
-            { label: "Categories", value: categories.length, icon: <Package size={24} /> },
-            { label: "Instances", value: materialInstances.length, icon: <Package size={24} /> },
-            {
-              label: "Avg Price/Day",
-              value: fmtCurrency(
-                materialTypes.reduce((sum, mt) => sum + (mt.pricePerDay || 0), 0) /
-                  (materialTypes.length || 1),
-              ),
-              icon: <Package size={24} />,
-            },
-          ];
-        } else {
-          return [
-            {
-              label: "Total Instances",
-              value: materialInstances.length,
-              icon: <Package size={24} />,
-            },
-            {
-              label: "Available",
-              value: materialInstances.filter((mi) => mi.status === "available").length,
-              icon: <Package size={24} />,
-              trendUp: true,
-            },
-            {
-              label: "Loaned",
-              value: materialInstances.filter((mi) => mi.status === "loaned").length,
-              icon: <Package size={24} />,
-            },
-            {
-              label: "Maintenance",
-              value: materialInstances.filter((mi) => mi.status === "maintenance").length,
-              icon: <Package size={24} />,
-            },
-          ];
-        }
       }
+
+      case "requests": {
+        const summary = requestsQuery.data?.summary;
+        return [
+          {
+            label: t("reports.kpi.totalRequests"),
+            value: summary?.totalRequests ?? 0,
+            icon: <ClipboardList size={24} />,
+          },
+          {
+            label: t("reports.kpi.approvalRate"),
+            value: `${(summary?.funnel?.approvalRate ?? 0).toFixed(1)}%`,
+            icon: <ClipboardList size={24} />,
+            trendUp: true,
+          },
+        ];
+      }
+
+      case "loans": {
+        const summary = loansQuery.data?.summary;
+        return [
+          {
+            label: t("reports.kpi.totalLoans"),
+            value: summary?.totalLoans ?? 0,
+            icon: <TrendingUp size={24} />,
+          },
+          {
+            label: t("reports.kpi.totalRevenue"),
+            value: fmtCurrency(summary?.totalRevenue ?? 0),
+            icon: <TrendingUp size={24} />,
+            trendUp: true,
+          },
+          {
+            label: t("reports.kpi.avgDuration"),
+            value: summary?.averageDurationDays ?? 0,
+            icon: <TrendingUp size={24} />,
+          },
+          {
+            label: t("reports.kpi.overdueRate"),
+            value: `${((summary?.overdueRate ?? 0) * 100).toFixed(1)}%`,
+            icon: <AlertCircle size={24} />,
+          },
+          {
+            label: t("reports.kpi.returnRate"),
+            value: `${((summary?.returnRate ?? 0) * 100).toFixed(1)}%`,
+            icon: <TrendingUp size={24} />,
+            trendUp: true,
+          },
+        ];
+      }
+
+      case "financial": {
+        const summary = financialQuery.data?.summary;
+        return [
+          {
+            label: t("reports.kpi.combinedRevenue"),
+            value: fmtCurrency(summary?.combinedRevenue ?? 0),
+            icon: <DollarSign size={24} />,
+          },
+          {
+            label: t("reports.kpi.loanRevenue"),
+            value: fmtCurrency(summary?.totalLoanRevenue ?? 0),
+            icon: <DollarSign size={24} />,
+            trendUp: true,
+          },
+          {
+            label: t("reports.kpi.invoiceRevenue"),
+            value: fmtCurrency(summary?.totalInvoiceRevenue ?? 0),
+            icon: <FileText size={24} />,
+          },
+        ];
+      }
+
+      case "inventory": {
+        const summary = inventoryQuery.data?.summary;
+        return [
+          {
+            label: t("reports.kpi.totalTypes"),
+            value: summary?.totalMaterialTypes ?? inventoryQuery.data?.totalMaterialTypes ?? 0,
+            icon: <Package size={24} />,
+          },
+          {
+            label: t("reports.kpi.totalInstances"),
+            value: summary?.totalInstances ?? inventoryQuery.data?.totalInstances ?? 0,
+            icon: <Package size={24} />,
+          },
+          {
+            label: t("reports.kpi.availabilityRate"),
+            value: `${((summary?.globalAvailabilityRate ?? 0) * 100).toFixed(1)}%`,
+            icon: <Package size={24} />,
+            trendUp: true,
+          },
+          {
+            label: t("reports.kpi.utilizationRate"),
+            value: `${((summary?.globalUtilizationRate ?? 0) * 100).toFixed(1)}%`,
+            icon: <Package size={24} />,
+          },
+          {
+            label: t("reports.kpi.estimatedDailyValue"),
+            value: fmtCurrency(summary?.estimatedDailyValue ?? 0),
+            icon: <DollarSign size={24} />,
+          },
+        ];
+      }
+
+      case "damages": {
+        const summary = damagesQuery.data?.summary;
+        return [
+          {
+            label: t("reports.kpi.totalBatches"),
+            value: summary?.totalBatches ?? 0,
+            icon: <Hammer size={24} />,
+          },
+          {
+            label: t("reports.kpi.totalItems"),
+            value: summary?.totalItems ?? 0,
+            icon: <Hammer size={24} />,
+          },
+          {
+            label: t("reports.kpi.totalEstimatedCost"),
+            value: fmtCurrency(summary?.totalEstimatedCost ?? 0),
+            icon: <DollarSign size={24} />,
+          },
+          {
+            label: t("reports.kpi.totalActualCost"),
+            value: fmtCurrency(summary?.totalActualCost ?? 0),
+            icon: <DollarSign size={24} />,
+          },
+          {
+            label: t("reports.kpi.avgRepairTime"),
+            value: summary?.averageRepairTimeDays ?? 0,
+            icon: <Hammer size={24} />,
+          },
+        ];
+      }
+
+      case "transfers": {
+        const summary = transfersQuery.data?.summary;
+        return [
+          {
+            label: t("reports.kpi.totalTransfers"),
+            value: summary?.totalTransfers ?? 0,
+            icon: <ArrowLeftRight size={24} />,
+          },
+          {
+            label: t("reports.kpi.totalItemsMoved"),
+            value: summary?.totalItemsMoved ?? 0,
+            icon: <ArrowLeftRight size={24} />,
+          },
+          {
+            label: t("reports.kpi.avgTransitDays"),
+            value: summary?.averageTransitDays ?? 0,
+            icon: <ArrowLeftRight size={24} />,
+          },
+          {
+            label: t("reports.kpi.completionRate"),
+            value: `${((summary?.completionRate ?? 0) * 100).toFixed(1)}%`,
+            icon: <ArrowLeftRight size={24} />,
+            trendUp: true,
+          },
+          {
+            label: t("reports.kpi.issueRate"),
+            value: `${((summary?.issueRate ?? 0) * 100).toFixed(1)}%`,
+            icon: <AlertCircle size={24} />,
+          },
+        ];
+      }
+
       case "team":
         return [
-          { label: "Total Members", value: teamMembers.length, icon: <Users size={24} /> },
           {
-            label: "Active",
+            label: t("reports.kpi.totalMembers"),
+            value: teamMembers.length,
+            icon: <Users size={24} />,
+          },
+          {
+            label: t("reports.kpi.active"),
             value: teamMembers.filter((u) => u.status === "active").length,
             icon: <Users size={24} />,
             trendUp: true,
           },
           {
-            label: "Invited",
-            value: teamMembers.filter((u) => u.status === "invited").length,
-            icon: <Users size={24} />,
-          },
-          {
-            label: "Roles",
+            label: t("reports.kpi.roles"),
             value: new Set(teamMembers.map((u) => u.role)).size,
             icon: <Package size={24} />,
           },
         ];
-      case "locations":
+
+      case "locations": {
+        const summary = locationsQuery.data?.summary;
         return [
-          { label: "Total Locations", value: locations.length, icon: <Boxes size={24} /> },
           {
-            label: "Available",
-            value: locations.filter((l) => l.status === "available").length,
-            icon: <Boxes size={24} />,
-            trendUp: true,
-          },
-          {
-            label: "Full Capacity",
-            value: locations.filter((l) => l.status === "full_capacity").length,
-            icon: <Boxes size={24} />,
-          },
-          {
-            label: "Maintenance",
-            value: locations.filter((l) => l.status === "maintenance").length,
+            label: t("reports.kpi.totalLocations"),
+            value: summary?.totalLocations ?? 0,
             icon: <Boxes size={24} />,
           },
         ];
+      }
+
       case "orders":
         return [
-          { label: "Total Orders", value: orders.length, icon: <ShoppingCart size={24} /> },
           {
-            label: "Pending",
+            label: t("reports.kpi.totalOrders"),
+            value: orders.length,
+            icon: <ShoppingCart size={24} />,
+          },
+          {
+            label: t("reports.kpi.pending"),
             value: orders.filter((o) => o.status === "pending").length,
             icon: <ShoppingCart size={24} />,
           },
           {
-            label: "Completed",
+            label: t("reports.kpi.completed"),
             value: orders.filter((o) => o.status === "completed").length,
             icon: <ShoppingCart size={24} />,
             trendUp: true,
           },
           {
-            label: "Revenue",
+            label: t("reports.kpi.revenue"),
             value: fmtCurrency(orders.reduce((sum, o) => sum + (o.total || 0), 0)),
             icon: <DollarSign size={24} />,
           },
         ];
+
       default:
         return [];
     }
   }, [
     activeModule,
-    customers,
-    requests,
-    loans,
-    invoices,
-    materialTypes,
-    materialInstances,
+    t,
+    formatCurrency,
     teamMembers,
-    locations,
-    categories,
     orders,
-    invoiceSummary,
-    filters.inventory.type,
+    customersQuery.data,
+    requestsQuery.data,
+    locationsQuery.data,
+    loansQuery.data,
+    financialQuery.data,
+    inventoryQuery.data,
+    damagesQuery.data,
+    transfersQuery.data,
+  ]);
+
+  // ─── Server pagination info ──────────────────────────────────────────────
+
+  const serverTotal = useMemo((): number | null => {
+    if (!API_TABS.has(activeModule)) return null;
+    switch (activeModule) {
+      case "customers":
+        return customersQuery.data?.pagination?.total ?? null;
+      case "requests":
+        return requestsQuery.data?.pagination?.total ?? null;
+      case "locations":
+        return locationsQuery.data?.pagination?.total ?? null;
+      case "loans":
+        return loansQuery.data?.pagination?.total ?? null;
+      case "financial":
+        return financialQuery.data?.pagination?.total ?? null;
+      case "damages":
+        return damagesQuery.data?.pagination?.total ?? null;
+      case "transfers":
+        return transfersQuery.data?.pagination?.total ?? null;
+      default:
+        return null;
+    }
+  }, [
+    activeModule,
+    customersQuery.data,
+    requestsQuery.data,
+    locationsQuery.data,
+    loansQuery.data,
+    financialQuery.data,
+    damagesQuery.data,
+    transfersQuery.data,
   ]);
 
   // ─── Handlers ──────────────────────────────────────────────────────────
@@ -779,36 +1109,409 @@ export default function Reports() {
     setPage(1);
   };
 
-  const handleExport = () => {
-    const filename = `report_${activeModule}_${new Date().toISOString().slice(0, 10)}.csv`;
-    exportToCSV(headers, rows, filename);
+  const handleRefresh = () => {
+    if (API_TABS.has(activeModule)) {
+      void activeQuery?.refetch();
+    } else {
+      void fetchClientData();
+    }
+  };
+
+  /**
+   * Fetches all rows and summary for the current API-backed tab.
+   * For client-only tabs and inventory (non-paginated), returns current rows with no summary.
+   */
+  const getExportPayload = useCallback(async (): Promise<{
+    rows: ReportRow[];
+    summaryEntries: SummaryEntry[];
+  }> => {
+    if (!API_TABS.has(activeModule)) return { rows, summaryEntries: [] };
+
+    const fmtDate = (iso: string | undefined): string => {
+      if (!iso) return "—";
+      return formatDate(iso);
+    };
+    const fmtCurrency = (val: number): string => formatCurrency(val, "COP");
+
+    const baseParams = {
+      startDate: dateRange.from || undefined,
+      endDate: dateRange.to || undefined,
+    };
+
+    switch (activeModule) {
+      case "loans": {
+        const { rows: allRows, summary } = await fetchAllPages(
+          getExportLoanActivity,
+          {
+            ...baseParams,
+            status: filters.loans.status || undefined,
+            customerId: filters.loans.customerId || undefined,
+            locationId: filters.loans.locationId || undefined,
+          },
+          (d) => d.rows,
+          (d) => d.summary,
+        );
+        const exportRows = allRows.map((l) => ({
+          id: l.loanId ?? l.code,
+          columns: {
+            [t("reports.col.code")]: l.code,
+            [t("reports.col.customer")]: l.customerName,
+            [t("reports.col.locationName")]: l.locationName,
+            [t("reports.col.status")]: getLoanStatusLabel(l.status as LoanStatus, language),
+            [t("reports.col.startDate")]: fmtDate(l.startDate),
+            [t("reports.col.endDate")]: fmtDate(l.endDate),
+            [t("reports.col.returnedAt")]: l.returnedAt ? fmtDate(l.returnedAt) : "—",
+            [t("reports.col.durationDays")]: l.durationDays,
+            [t("reports.col.overdueDays")]: l.overdueDays,
+            [t("reports.col.totalAmount")]: fmtCurrency(l.totalAmount),
+            [t("reports.col.materialCount")]: l.materialCount,
+          },
+        }));
+        const summaryEntries = summary
+          ? buildLoanSummaryEntries(summary, t, formatCurrency, language)
+          : [];
+        return { rows: exportRows, summaryEntries };
+      }
+
+      case "financial": {
+        const isInvoiceView = !!filters.financial.type || !!filters.financial.invoiceType;
+        const salesParams = {
+          ...baseParams,
+          customerId: filters.financial.customerId || undefined,
+          locationId: filters.financial.locationId || undefined,
+          categoryId: filters.financial.categoryId || undefined,
+          invoiceType: filters.financial.invoiceType || undefined,
+          invoiceStatus: filters.financial.invoiceStatus || undefined,
+        };
+
+        if (isInvoiceView) {
+          const { rows: allInvoices, summary } = await fetchAllPages(
+            getExportSales,
+            salesParams,
+            (d) =>
+              filters.financial.type
+                ? d.invoiceRows.filter((inv) => inv.type === filters.financial.type)
+                : d.invoiceRows,
+            (d) => d.summary,
+          );
+          const exportRows = allInvoices.map((inv) => ({
+            id: inv.invoiceId ?? inv.invoiceNumber,
+            columns: {
+              [t("reports.col.invoiceNumber")]: inv.invoiceNumber,
+              [t("reports.col.customer")]: inv.customerName,
+              [t("reports.col.type")]: getInvoiceTypeLabel(inv.type as InvoiceType, language),
+              [t("reports.col.status")]: getInvoiceStatusLabel(
+                inv.status as InvoiceStatus,
+                language,
+              ),
+              [t("reports.col.amount")]: fmtCurrency(inv.totalAmount),
+              [t("reports.col.amountPaid")]: fmtCurrency(inv.amountPaid),
+              [t("reports.col.amountDue")]: fmtCurrency(inv.amountDue),
+              [t("reports.col.createdAt")]: fmtDate(inv.createdAt),
+              [t("reports.col.dueDate")]: fmtDate(inv.dueDate),
+            },
+          }));
+          const summaryEntries = summary
+            ? buildSalesSummaryEntries(summary, t, formatCurrency, language)
+            : [];
+          return { rows: exportRows, summaryEntries };
+        }
+
+        const { rows: allLoans, summary } = await fetchAllPages(
+          getExportSales,
+          salesParams,
+          (d) => d.loanRows,
+          (d) => d.summary,
+        );
+        const exportRows = allLoans.map((l) => ({
+          id: l.loanId ?? l.code,
+          columns: {
+            [t("reports.col.code")]: l.code,
+            [t("reports.col.customer")]: l.customerName,
+            [t("reports.col.locationName")]: l.locationName,
+            [t("reports.col.startDate")]: fmtDate(l.startDate),
+            [t("reports.col.endDate")]: fmtDate(l.endDate),
+            [t("reports.col.totalAmount")]: fmtCurrency(l.totalAmount),
+            [t("reports.col.depositAmount")]: fmtCurrency(l.depositAmount),
+            [t("reports.col.status")]: getLoanStatusLabel(l.status as LoanStatus, language),
+            [t("reports.col.materialCount")]: l.materialCount,
+          },
+        }));
+        const summaryEntries = summary
+          ? buildSalesSummaryEntries(summary, t, formatCurrency, language)
+          : [];
+        return { rows: exportRows, summaryEntries };
+      }
+
+      case "inventory": {
+        // Inventory is not paginated — fetch once to get both data rows and summary
+        const inventoryParams = {
+          locationId: filters.inventory.locationId || undefined,
+          categoryId: filters.inventory.categoryId || undefined,
+          status: filters.inventory.status || undefined,
+          search: filters.inventory.search || undefined,
+        };
+        const resp = await getExportInventory(inventoryParams);
+        const summary = resp.data.summary;
+        const summaryEntries = summary
+          ? buildInventorySummaryEntries(summary, t, formatCurrency, language)
+          : [];
+        return { rows, summaryEntries };
+      }
+
+      case "damages": {
+        const { rows: allBatches, summary } = await fetchAllPages(
+          getExportDamages,
+          {
+            ...baseParams,
+            locationId: filters.damages.locationId || undefined,
+            batchStatus: filters.damages.batchStatus || undefined,
+            entryReason: filters.damages.entryReason || undefined,
+          },
+          (d) => d.batches,
+          (d) => d.summary,
+        );
+        const exportRows = allBatches.map((b) => ({
+          id: b.batchId ?? b.batchNumber,
+          columns: {
+            [t("reports.col.batchNumber")]: b.batchNumber,
+            [t("reports.col.name")]: b.name,
+            [t("reports.col.status")]: getMaintenanceBatchStatusLabel(
+              b.status as MaintenanceBatchStatus,
+              language,
+            ),
+            [t("reports.col.locationName")]: b.locationName,
+            [t("reports.col.assignedTo")]: b.assignedTo,
+            [t("reports.col.itemCount")]: b.itemCount,
+            [t("reports.col.estimatedCost")]: fmtCurrency(b.totalEstimatedCost),
+            [t("reports.col.actualCost")]: fmtCurrency(b.totalActualCost),
+            [t("reports.col.startDate")]: fmtDate(b.startedAt),
+          },
+        }));
+        const summaryEntries = summary
+          ? buildDamagesSummaryEntries(summary, t, formatCurrency, language)
+          : [];
+        return { rows: exportRows, summaryEntries };
+      }
+
+      case "transfers": {
+        const { rows: allTransfers, summary } = await fetchAllPages(
+          getExportTransfers,
+          {
+            ...baseParams,
+            status: filters.transfers.status || undefined,
+            fromLocationId: filters.transfers.fromLocationId || undefined,
+            toLocationId: filters.transfers.toLocationId || undefined,
+          },
+          (d) => d.rows,
+          (d) => d.summary,
+        );
+        const exportRows = allTransfers.map((tr) => ({
+          id: tr.transferId ?? `${tr.fromLocation}-${tr.sentAt}`,
+          columns: {
+            [t("reports.col.from")]: tr.fromLocation,
+            [t("reports.col.to")]: tr.toLocation,
+            [t("reports.col.status")]: getTransferStatusLabel(
+              tr.status as TransferStatus,
+              language,
+            ),
+            [t("reports.col.items")]: tr.itemCount.toString(),
+            [t("reports.col.pickedBy")]: tr.pickedBy || "—",
+            [t("reports.col.receivedBy")]: tr.receivedBy || "—",
+            [t("reports.col.sentAt")]: fmtDate(tr.sentAt),
+            [t("reports.col.receivedAt")]: tr.receivedAt ? fmtDate(tr.receivedAt) : "—",
+            [t("reports.col.transitDays")]: tr.transitDays,
+          },
+        }));
+        const summaryEntries = summary
+          ? buildTransfersSummaryEntries(summary, t, formatCurrency, language)
+          : [];
+        return { rows: exportRows, summaryEntries };
+      }
+
+      case "customers": {
+        const { rows: allCustomers, summary } = await fetchAllPages(
+          getExportCustomers,
+          {
+            ...baseParams,
+            status: filters.customers.status || undefined,
+          },
+          (d) => d.rows,
+          (d) => d.summary,
+        );
+        const exportRows = allCustomers.map((c) => ({
+          id: c.customerId ?? c.fullName,
+          columns: {
+            [t("reports.col.name")]: c.fullName,
+            [t("reports.col.email")]: c.email,
+            [t("reports.col.phone")]: c.phone || "—",
+            [t("reports.col.status")]: getCustomerStatusLabel(c.status as CustomerStatus, language),
+            [t("reports.col.createdAt")]: fmtDate(c.createdAt),
+          },
+        }));
+        const summaryEntries = summary
+          ? buildCustomersSummaryEntries(summary, t, formatCurrency, language)
+          : [];
+        return { rows: exportRows, summaryEntries };
+      }
+
+      case "locations": {
+        const { rows: allLocations, summary } = await fetchAllPages(
+          getExportLocations,
+          {
+            ...baseParams,
+            status: filters.locations.status || undefined,
+          },
+          (d) => d.rows,
+          (d) => d.summary,
+        );
+        const exportRows = allLocations.map((l) => {
+          const addr = l.address;
+          const fullAddress = `${addr.streetType} ${addr.primaryNumber} #${addr.secondaryNumber}-${addr.complementaryNumber}`;
+          return {
+            id: l.locationId ?? l.name,
+            columns: {
+              [t("reports.col.name")]: l.name,
+              [t("reports.col.code")]: l.code || "—",
+              [t("reports.col.status")]: getLocationStatusLabel(
+                l.status as LocationStatus,
+                language,
+              ),
+              [t("reports.col.city")]: addr.city || "—",
+              [t("reports.col.department")]: addr.department || "—",
+              [t("reports.col.address")]: fullAddress,
+            },
+          };
+        });
+        const summaryEntries = summary
+          ? buildLocationsSummaryEntries(summary, t, formatCurrency, language)
+          : [];
+        return { rows: exportRows, summaryEntries };
+      }
+
+      case "requests": {
+        const { rows: allRequests, summary } = await fetchAllPages(
+          getExportRequests,
+          {
+            ...baseParams,
+            status: filters.requests.status || undefined,
+          },
+          (d) => d.rows,
+          (d) => d.summary,
+        );
+        const exportRows = allRequests.map((r) => ({
+          id: r.requestId ?? r.code,
+          columns: {
+            [t("reports.col.code")]: r.code,
+            [t("reports.col.status")]: getLoanRequestStatusLabel(
+              r.status as LoanRequestStatus,
+              language,
+            ),
+            [t("reports.col.totalAmount")]: fmtCurrency(r.totalAmount),
+          },
+        }));
+        const summaryEntries = summary
+          ? buildRequestsSummaryEntries(summary, t, formatCurrency, language)
+          : [];
+        return { rows: exportRows, summaryEntries };
+      }
+
+      default:
+        return { rows, summaryEntries: [] };
+    }
+  }, [activeModule, rows, dateRange, filters, t, formatDate, formatCurrency, language]);
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const { rows: exportRows, summaryEntries } = await getExportPayload();
+      const filename = `report_${activeModule}_${new Date().toISOString().slice(0, 10)}.csv`;
+      exportToCSVWithSummary(headers, exportRows, filename, summaryEntries, {
+        summary: isEs ? "RESUMEN" : "SUMMARY",
+        data: isEs ? "DATOS" : "DATA",
+        metric: isEs ? "Métrica" : "Metric",
+        value: isEs ? "Valor" : "Value",
+      });
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const _handleExportPDF = async () => {
+    setExporting(true);
+    try {
+      const { rows: exportRows, summaryEntries } = await getExportPayload();
+      const date = new Date().toISOString().slice(0, 10);
+      const exportData = { headers, rows: exportRows.map((r) => r.columns) };
+      const title = `${moduleConfig[activeModule].label} Report`;
+      exportTableToPDF(exportData, `report_${activeModule}_${date}.pdf`, title, summaryEntries);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleExportXLSX = async () => {
+    setExporting(true);
+    try {
+      const { rows: exportRows, summaryEntries } = await getExportPayload();
+      const date = new Date().toISOString().slice(0, 10);
+      const exportData = { headers, rows: exportRows.map((r) => r.columns) };
+      exportTableToXLSX(exportData, `report_${activeModule}_${date}.xlsx`, summaryEntries);
+    } finally {
+      setExporting(false);
+    }
   };
 
   // ─── Render ────────────────────────────────────────────────────────────
+
+  if (!hasPermission("reports:read")) return <Unauthorized />;
 
   return (
     <div className="page-container">
       <div data-help-id="reports-header">
         <PageHeader
-          title={isEs ? "Reportes y analitica" : "Reports & Analytics"}
-          subtitle={isEs ? "Explora datos en todos los modulos" : "Explore data across all modules"}
+          title={t("reports.title")}
+          subtitle={t("reports.subtitle")}
           actions={
             <div className="flex items-center gap-3">
+              {exporting && (
+                <span className="text-yellow-400 text-sm animate-pulse">
+                  {t("reports.export.exporting")}
+                </span>
+              )}
               <button
-                onClick={() => void fetchData()}
-                disabled={loading}
+                onClick={handleRefresh}
+                disabled={loading || exporting}
                 className="flex items-center gap-2 px-4 py-2 bg-zinc-800 border border-zinc-700 text-gray-300 rounded-lg hover:border-yellow-400 hover:text-white transition disabled:opacity-50"
               >
                 <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-                {isEs ? "Actualizar" : "Refresh"}
+                {t("reports.refresh")}
+              </button>
+              {/* PDF export temporarily disabled — logic preserved in _handleExportPDF
+              <button
+                onClick={() => void _handleExportPDF()}
+                disabled={loading || exporting || rows.length === 0}
+                className="flex items-center gap-2 px-4 py-2 gold-action-btn font-semibold rounded-lg transition disabled:opacity-50"
+              >
+                <FileText size={16} />
+                PDF
+              </button>
+              */}
+              <button
+                onClick={() => void handleExportXLSX()}
+                disabled={loading || exporting || rows.length === 0}
+                className="flex items-center gap-2 px-4 py-2 gold-action-btn font-semibold rounded-lg transition disabled:opacity-50"
+              >
+                <Table2 size={16} />
+                XLS
               </button>
               <button
-                onClick={handleExport}
-                disabled={loading || rows.length === 0}
+                onClick={() => void handleExport()}
+                disabled={loading || exporting || rows.length === 0}
                 className="flex items-center gap-2 px-4 py-2 gold-action-btn font-semibold rounded-lg transition disabled:opacity-50"
               >
                 <Download size={16} />
-                {isEs ? "Exportar CSV" : "Export CSV"}
+                CSV
               </button>
             </div>
           }
@@ -861,6 +1564,16 @@ export default function Reports() {
           isEs={isEs}
         />
       </div>
+
+      {/* More records info banner */}
+      {serverTotal !== null && serverTotal > rows.length && (
+        <div className="flex items-center gap-2 px-4 py-3 bg-blue-900/30 border border-blue-700/50 rounded-lg text-blue-300 text-sm">
+          <AlertCircle size={16} />
+          {t("reports.export.moreRecords")
+            .replace("{shown}", String(rows.length))
+            .replace("{total}", String(serverTotal))}
+        </div>
+      )}
 
       {/* Data Table */}
       <div data-help-id="reports-table">

@@ -1,7 +1,9 @@
-import React from 'react';
-import { Eye, Edit, Trash2 } from 'lucide-react';
-import type { MaterialCategory, MaterialType } from '../../../../../types/api';
-import { AdminTable } from '../../../components';
+import React from "react";
+import { Eye, Edit, Trash2 } from "lucide-react";
+import type { MaterialCategory, MaterialType } from "../../../../../types/api";
+import { AdminTable } from "../../../components";
+import { PermissionGuardedButton } from "../../../../../components/ui";
+import { useLanguage } from "../../../../../contexts/useLanguage";
 
 interface MaterialTypeListProps {
   materialTypes: MaterialType[];
@@ -18,24 +20,26 @@ export const MaterialTypeList: React.FC<MaterialTypeListProps> = ({
   onEdit,
   onDelete,
 }) => {
+  const { t, formatCurrency } = useLanguage();
+
   const extractCategoryId = (value: unknown): string | undefined => {
     // Plain string ID
-    if (typeof value === 'string') return value;
+    if (typeof value === "string") return value;
 
     // Array — backend returns categoryId as string[] or populated object[]
     if (Array.isArray(value) && value.length > 0) {
       const first = value[0];
-      if (typeof first === 'string') return first;          // string[]
-      if (first && typeof first === 'object') {
+      if (typeof first === "string") return first; // string[]
+      if (first && typeof first === "object") {
         const id = (first as { _id?: string })._id;
-        return typeof id === 'string' ? id : undefined;     // populated object[]
+        return typeof id === "string" ? id : undefined; // populated object[]
       }
     }
 
     // Single populated object
-    if (value && typeof value === 'object') {
+    if (value && typeof value === "object") {
       const maybeId = (value as { _id?: string })._id;
-      return typeof maybeId === 'string' ? maybeId : undefined;
+      return typeof maybeId === "string" ? maybeId : undefined;
     }
 
     return undefined;
@@ -45,7 +49,7 @@ export const MaterialTypeList: React.FC<MaterialTypeListProps> = ({
     materialType: MaterialType & {
       categoryId?: string | { _id?: string; name?: string };
       category?: { _id?: string; name?: string };
-    }
+    },
   ) => {
     const embeddedCategory = materialType.category;
     if (embeddedCategory?.name) {
@@ -55,21 +59,17 @@ export const MaterialTypeList: React.FC<MaterialTypeListProps> = ({
     const categoryIdValue = extractCategoryId(materialType.categoryId);
 
     const category = categories.find((c) => c._id === categoryIdValue);
-    return category?.name || 'Unknown';
+    return category?.name || "Unknown";
   };
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP',
-      minimumFractionDigits: 0,
-    }).format(price);
+    return formatCurrency(price);
   };
 
   if (materialTypes.length === 0) {
     return (
       <div className="text-center py-12 text-gray-400">
-        <p>No material types found. Create your first material type to get started.</p>
+        <p>{t("materialTypes.list.emptyMessage")}</p>
       </div>
     );
   }
@@ -78,62 +78,64 @@ export const MaterialTypeList: React.FC<MaterialTypeListProps> = ({
     <AdminTable>
       <thead className="bg-[#0f0f0f] border-b border-[#333]">
         <tr>
-            <th className="text-left py-4 px-4 text-gray-400 font-semibold">Name</th>
-            <th className="text-left py-4 px-4 text-gray-400 font-semibold">Description</th>
-            <th className="text-left py-4 px-4 text-gray-400 font-semibold">Category</th>
-            <th className="text-left py-4 px-4 text-gray-400 font-semibold">Price/Day</th>
-            <th className="text-right py-4 px-4 text-gray-400 font-semibold">Actions</th>
+          <th className="text-left py-4 px-4 text-gray-400 font-semibold">
+            {t("materialTypes.list.name")}
+          </th>
+          <th className="text-left py-4 px-4 text-gray-400 font-semibold">
+            {t("materialTypes.list.description")}
+          </th>
+          <th className="text-left py-4 px-4 text-gray-400 font-semibold">
+            {t("materialTypes.list.category")}
+          </th>
+          <th className="text-left py-4 px-4 text-gray-400 font-semibold">
+            {t("materialTypes.list.pricePerDay")}
+          </th>
+          <th className="text-right py-4 px-4 text-gray-400 font-semibold">
+            {t("materialTypes.list.actions")}
+          </th>
         </tr>
       </thead>
       <tbody>
-          {materialTypes.map((type) => (
-            <tr
-              key={type._id}
-              className="border-b border-[#222] hover:bg-[#1a1a1a] transition-colors"
-            >
-              <td className="py-4 px-4 text-white font-medium">{type.name}</td>
-              <td className="py-4 px-4 text-gray-400">
-                {type.description || '-'}
-              </td>
-              <td className="py-4 px-4 text-gray-400">
-                {getCategoryName(type)}
-              </td>
-              <td className="py-4 px-4 text-[#FFD700] font-semibold">
-                {formatPrice(type.pricePerDay)}
-              </td>
-              <td className="py-4 px-4">
-                <div className="flex gap-2 justify-end">
-                  <button
-                    type="button"
-                    onClick={() => onView(type)}
-                    className="p-2 text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors"
-                    title="View Details"
-                    aria-label={`View details for ${type.name}`}
-                  >
-                    <Eye size={18} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onEdit(type)}
-                    className="p-2 text-[#FFD700] hover:bg-[#FFD700]/10 rounded-lg transition-colors"
-                    title="Edit Material Type"
-                    aria-label={`Edit ${type.name}`}
-                  >
-                    <Edit size={18} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onDelete(type)}
-                    className="p-2 text-red-300 border border-red-500/40 hover:bg-red-500/15 rounded-lg transition-colors"
-                    title="Delete Material Type"
-                    aria-label={`Delete ${type.name}`}
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
+        {materialTypes.map((type) => (
+          <tr
+            key={type._id}
+            className="border-b border-[#222] hover:bg-[#1a1a1a] transition-colors"
+          >
+            <td className="py-4 px-4 text-white font-medium">{type.name}</td>
+            <td className="py-4 px-4 text-gray-400">{type.description || "-"}</td>
+            <td className="py-4 px-4 text-gray-400">{getCategoryName(type)}</td>
+            <td className="py-4 px-4 text-[#FFD700] font-semibold">
+              {formatPrice(type.pricePerDay)}
+            </td>
+            <td className="py-4 px-4">
+              <div className="flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => onView(type)}
+                  className="p-2 text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors"
+                  title={t("materialTypes.list.viewDetails")}
+                  aria-label={t("materialTypes.list.viewDetailsAria", { name: type.name })}
+                >
+                  <Eye size={18} />
+                </button>
+                <PermissionGuardedButton
+                  icon={Edit}
+                  intent="edit"
+                  ariaLabel={t("materialTypes.list.editAria", { name: type.name })}
+                  requiredPermission="materials:update"
+                  onClick={() => onEdit(type)}
+                />
+                <PermissionGuardedButton
+                  icon={Trash2}
+                  intent="delete"
+                  ariaLabel={t("materialTypes.list.deleteAria", { name: type.name })}
+                  requiredPermission="materials:delete"
+                  onClick={() => onDelete(type)}
+                />
+              </div>
+            </td>
+          </tr>
+        ))}
       </tbody>
     </AdminTable>
   );

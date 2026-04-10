@@ -154,7 +154,10 @@ export default function OrganizationManagement() {
         const rawData = await buildAllExportRows();
 
         if (rawData.length === 0) {
-          showAlert("warning", isEs ? "No hay datos disponibles para exportar." : "No data available to export.");
+          showAlert(
+            "warning",
+            isEs ? "No hay datos disponibles para exportar." : "No data available to export.",
+          );
           return;
         }
 
@@ -206,7 +209,12 @@ export default function OrganizationManagement() {
   // ─── Render ────────────────────────────────────────────────────────────────
 
   if (loading) {
-    return <LoadingSpinner fullScreen message={isEs ? "Cargando organizaciones..." : "Loading organizations..."} />;
+    return (
+      <LoadingSpinner
+        fullScreen
+        message={isEs ? "Cargando organizaciones..." : "Loading organizations..."}
+      />
+    );
   }
 
   if (error) {
@@ -236,7 +244,11 @@ export default function OrganizationManagement() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-white">Organization Management</h1>
-          <p className="text-gray-400 mt-1">{isEs ? "Analitica y directorio de organizaciones" : "Platform organization analytics & directory"}</p>
+          <p className="text-gray-400 mt-1">
+            {isEs
+              ? "Analitica y directorio de organizaciones"
+              : "Platform organization analytics & directory"}
+          </p>
         </div>
         <button onClick={() => setExportOpen(true)} className="export-btn flex items-center gap-2">
           <Download size={18} />
@@ -272,34 +284,94 @@ export default function OrganizationManagement() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         {/* Organization Growth (last 30 days) */}
         {orgStats && orgStats.growthTrend.length > 0 && (
-          <div className="bg-[#121212] border border-[#333] rounded-xl p-6">
-            <h2 className="text-lg font-bold text-white mb-4">
-              {isEs ? "Crecimiento de organizaciones (ultimos 30 dias)" : "Organization Growth (Last 30 Days)"}
+          <div className="bg-[#121212] border border-[#333] rounded-xl p-6 flex flex-col">
+            <h2 className="text-lg font-bold text-white mb-4 shrink-0">
+              {isEs
+                ? "Crecimiento de organizaciones (ultimos 30 dias)"
+                : "Organization Growth (Last 30 Days)"}
             </h2>
-            <div className="flex items-end gap-1 h-32">
-              {orgStats.growthTrend.map((point) => {
-                const newOrgs = point.newOrganizations ?? 0;
-                const maxNew = Math.max(
-                  ...orgStats.growthTrend.map((p) => p.newOrganizations ?? 0),
-                  1,
-                );
-                const heightPct = Math.round((newOrgs / maxNew) * 100);
+            <div className="flex-1 min-h-0 relative" style={{ minHeight: "120px" }}>
+              {(() => {
+                const trend = orgStats.growthTrend;
+                const values = trend.map((p) => p.newOrganizations ?? 0);
+                const max = Math.max(...values, 1);
+                const W = 600;
+                const H = 160;
+                const padX = 12;
+                const padYTop = 20;
+                const padYBottom = 22;
+                const chartW = W - padX * 2;
+                const chartH = H - padYTop - padYBottom;
+                const pts = values.map((v, i) => ({
+                  x: padX + (trend.length > 1 ? (i / (trend.length - 1)) * chartW : chartW / 2),
+                  y: padYTop + chartH - (v / max) * chartH,
+                  v,
+                  label: trend[i].period.slice(5),
+                  xPct:
+                    ((padX + (trend.length > 1 ? (i / (trend.length - 1)) * chartW : chartW / 2)) /
+                      W) *
+                    100,
+                  yPct: ((padYTop + chartH - (v / max) * chartH) / H) * 100,
+                }));
+                const linePath = pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ");
+                const areaPath = `${linePath} L${pts[pts.length - 1].x},${H - padYBottom} L${pts[0].x},${H - padYBottom} Z`;
                 return (
-                  <div key={point.period} className="flex-1 flex flex-col items-center gap-1">
-                    <span className="text-xs text-gray-400">{newOrgs}</span>
-                    <div
-                      className="w-full bg-[#FFD700] rounded-t"
-                      style={{
-                        height: `${heightPct}%`,
-                        minHeight: newOrgs > 0 ? "4px" : "0",
-                      }}
-                    />
-                    <span className="text-[10px] text-gray-500 truncate w-full text-center">
-                      {point.period.slice(5)}
-                    </span>
-                  </div>
+                  <>
+                    {/* SVG fills the full space — geometry only, no text */}
+                    <svg
+                      viewBox={`0 0 ${W} ${H}`}
+                      className="absolute inset-0 w-full h-full"
+                      preserveAspectRatio="none"
+                    >
+                      <defs>
+                        <linearGradient id="orgGrowthGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#FFD700" stopOpacity="0.35" />
+                          <stop offset="100%" stopColor="#FFD700" stopOpacity="0.02" />
+                        </linearGradient>
+                      </defs>
+                      <path d={areaPath} fill="url(#orgGrowthGrad)" />
+                      <path
+                        d={linePath}
+                        fill="none"
+                        stroke="#FFD700"
+                        strokeWidth="2"
+                        strokeLinejoin="round"
+                        strokeLinecap="round"
+                        vectorEffect="non-scaling-stroke"
+                      />
+                      {pts.map((p, i) => (
+                        <circle
+                          key={i}
+                          cx={p.x}
+                          cy={p.y}
+                          r="4"
+                          fill="#FFD700"
+                          vectorEffect="non-scaling-stroke"
+                        />
+                      ))}
+                    </svg>
+                    {/* HTML labels — never distorted */}
+                    {pts.map((p, i) => (
+                      <span
+                        key={`val-${i}`}
+                        className="absolute text-[10px] text-gray-400 -translate-x-1/2 -translate-y-full"
+                        style={{ left: `${p.xPct}%`, top: `${p.yPct}%` }}
+                      >
+                        {p.v}
+                      </span>
+                    ))}
+                    {pts.map((p, i) => (
+                      <span
+                        key={`lbl-${i}`}
+                        className="absolute bottom-0 text-[10px] text-gray-500 -translate-x-1/2"
+                        style={{ left: `${p.xPct}%` }}
+                      >
+                        {p.label}
+                      </span>
+                    ))}
+                  </>
                 );
-              })}
+              })()}
             </div>
           </div>
         )}
@@ -307,7 +379,9 @@ export default function OrganizationManagement() {
         {/* Organizations by Status */}
         {orgStats && (
           <div className="bg-[#121212] border border-[#333] rounded-xl p-6">
-            <h2 className="text-lg font-bold text-white mb-4">{isEs ? "Organizaciones por estado" : "Organizations by Status"}</h2>
+            <h2 className="text-lg font-bold text-white mb-4">
+              {isEs ? "Organizaciones por estado" : "Organizations by Status"}
+            </h2>
             <div className="space-y-3">
               {orgStats.byStatus.map((entry) => {
                 const pct = total > 0 ? Math.round((entry.count / total) * 100) : 0;
@@ -335,7 +409,9 @@ export default function OrganizationManagement() {
             {/* Plans breakdown */}
             {orgStats.byPlan.length > 0 && (
               <div className="mt-6 pt-4 border-t border-[#333]">
-                <h3 className="text-sm font-semibold text-gray-400 mb-3">{isEs ? "Por plan" : "By Plan"}</h3>
+                <h3 className="text-sm font-semibold text-gray-400 mb-3">
+                  {isEs ? "Por plan" : "By Plan"}
+                </h3>
                 <div className="space-y-2">
                   {orgStats.byPlan.map((entry) => (
                     <div key={entry.plan} className="flex justify-between text-sm">
@@ -409,12 +485,18 @@ export default function OrganizationManagement() {
           <thead className="bg-[#0f0f0f] border-b border-[#333]">
             <tr>
               <th className="px-4 py-3 text-gray-400 font-medium">{isEs ? "Nombre" : "Name"}</th>
-              <th className="px-4 py-3 text-gray-400 font-medium">{isEs ? "Razon social" : "Legal Name"}</th>
+              <th className="px-4 py-3 text-gray-400 font-medium">
+                {isEs ? "Razon social" : "Legal Name"}
+              </th>
               <th className="px-4 py-3 text-gray-400 font-medium">Email</th>
               <th className="px-4 py-3 text-gray-400 font-medium">Plan</th>
-              <th className="px-4 py-3 text-gray-400 font-medium text-center">{isEs ? "Asientos" : "Seats"}</th>
+              <th className="px-4 py-3 text-gray-400 font-medium text-center">
+                {isEs ? "Asientos" : "Seats"}
+              </th>
               <th className="px-4 py-3 text-gray-400 font-medium">{isEs ? "Estado" : "Status"}</th>
-              <th className="px-4 py-3 text-gray-400 font-medium">{isEs ? "Ubicacion" : "Location"}</th>
+              <th className="px-4 py-3 text-gray-400 font-medium">
+                {isEs ? "Ubicacion" : "Location"}
+              </th>
               <th className="px-4 py-3 text-gray-400 font-medium">{isEs ? "Creado" : "Created"}</th>
             </tr>
           </thead>
@@ -422,7 +504,9 @@ export default function OrganizationManagement() {
             {filtered.length === 0 ? (
               <tr>
                 <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
-                  {isEs ? "Ninguna organizacion coincide con los filtros actuales." : "No organizations match the current filters."}
+                  {isEs
+                    ? "Ninguna organizacion coincide con los filtros actuales."
+                    : "No organizations match the current filters."}
                 </td>
               </tr>
             ) : (

@@ -7,8 +7,8 @@ const reportsHelpContent: HelpModuleContent = {
     en: "Help center: Reports & Analytics",
   },
   description: {
-    es: "Este modulo consolida datos de clientes, solicitudes, prestamos, facturas, inventario, equipo, ubicaciones y pedidos para analisis operativo.",
-    en: "This module consolidates data from customers, requests, loans, invoices, inventory, team, locations, and orders for operational analysis.",
+    es: "Este modulo consolida datos de clientes, solicitudes, prestamos, financiero, inventario, equipo, ubicaciones, pedidos, danos y transferencias para analisis operativo.",
+    en: "This module consolidates data from customers, requests, loans, financial, inventory, team, locations, orders, damages, and transfers for operational analysis.",
   },
   sections: [
     {
@@ -18,6 +18,20 @@ const reportsHelpContent: HelpModuleContent = {
         es: "Aqui puedes explorar datos por modulo, detectar tendencias y exportar informacion para auditoria, seguimiento o toma de decisiones.",
         en: "Here you can explore module-level data, detect trends, and export information for audit, follow-up, or decision making.",
       },
+      howTo: [
+        {
+          es: "Abre el modulo desde el menu lateral en Reportes.",
+          en: "Open the module from the sidebar under Reports.",
+        },
+        {
+          es: "Selecciona el modulo de negocio (pestana) que deseas analizar.",
+          en: "Select the business module (tab) you want to analyze.",
+        },
+        {
+          es: "Define el rango de fechas y aplica filtros antes de revisar la tabla o exportar datos.",
+          en: "Set the date range and apply filters before reviewing the table or exporting data.",
+        },
+      ],
       tips: [
         {
           es: "Define primero el modulo y el rango de fechas para reducir ruido y obtener analisis mas accionable.",
@@ -32,6 +46,20 @@ const reportsHelpContent: HelpModuleContent = {
         es: "Puedes cambiar entre modulos de negocio, refrescar datos, revisar KPIs, aplicar filtros avanzados y exportar resultados en CSV.",
         en: "You can switch between business modules, refresh data, review KPIs, apply advanced filters, and export results to CSV.",
       },
+      howTo: [
+        {
+          es: "Para cambiar modulo: usa las pestanas en la parte superior para seleccionar el dominio de negocio.",
+          en: "To switch module: use the tabs at the top to select the business domain.",
+        },
+        {
+          es: "Para exportar: haz clic en el boton de exportar CSV despues de aplicar los filtros necesarios.",
+          en: "To export: click the export CSV button after applying the necessary filters.",
+        },
+        {
+          es: "Para refrescar: usa el boton de actualizacion del encabezado para sincronizar datos recientes.",
+          en: "To refresh: use the header update button to sync recent data.",
+        },
+      ],
       bestPractices: [
         {
           es: "Antes de exportar, valida que filtros, modulo activo y rango de fechas correspondan al analisis requerido.",
@@ -46,6 +74,24 @@ const reportsHelpContent: HelpModuleContent = {
         es: "Selecciona modulo, revisa KPIs, aplica filtros y rango de fechas, valida tabla y finalmente exporta el corte necesario.",
         en: "Select module, review KPIs, apply filters and date range, validate the table, and finally export the needed snapshot.",
       },
+      howTo: [
+        {
+          es: "Selecciona el modulo de negocio que corresponde al analisis requerido.",
+          en: "Select the business module that corresponds to the required analysis.",
+        },
+        {
+          es: "Revisa los KPIs del modulo activo para entender el contexto del periodo.",
+          en: "Review the KPIs of the active module to understand the period context.",
+        },
+        {
+          es: "Aplica filtros y define el rango de fechas para acotar los datos al segmento requerido.",
+          en: "Apply filters and set the date range to narrow data to the required segment.",
+        },
+        {
+          es: "Valida los resultados en la tabla y luego exporta en CSV si necesitas compartir o analizar externamente.",
+          en: "Validate results in the table and then export to CSV if you need to share or analyze externally.",
+        },
+      ],
       warnings: [
         {
           es: "Exportar sin revisar contexto puede mezclar datos de modulos o periodos no deseados.",
@@ -60,6 +106,20 @@ const reportsHelpContent: HelpModuleContent = {
         es: "Un error frecuente es interpretar KPIs sin considerar el modulo activo. Cada modulo cambia metricas, columnas y logica de filtros.",
         en: "A common mistake is interpreting KPIs without considering the active module. Each module changes metrics, columns, and filter logic.",
       },
+      howTo: [
+        {
+          es: "Siempre verifica la pestana activa antes de interpretar KPIs o exportar datos.",
+          en: "Always verify the active tab before interpreting KPIs or exporting data.",
+        },
+        {
+          es: "Si los datos no corresponden al analisis esperado, revisa modulo y rango de fechas primero.",
+          en: "If data doesn't match the expected analysis, review module and date range first.",
+        },
+        {
+          es: "Para analisis multi-modulo, exporta y combina los CSV fuera de esta herramienta.",
+          en: "For multi-module analysis, export and combine CSVs outside this tool.",
+        },
+      ],
     },
   ],
   walkthrough: [
@@ -76,8 +136,8 @@ const reportsHelpContent: HelpModuleContent = {
       id: "step-2-modules",
       title: { es: "2) Cambia el modulo", en: "2) Switch module" },
       body: {
-        es: "Estas pestanas te permiten enfocarte en un dominio especifico como clientes, prestamos o facturas.",
-        en: "These tabs let you focus on a specific domain such as customers, loans, or invoices.",
+        es: "Estas pestanas te permiten enfocarte en un dominio especifico como clientes, prestamos, financiero, danos o transferencias.",
+        en: "These tabs let you focus on a specific domain such as customers, loans, financial, damages, or transfers.",
       },
       targetSelector: '[data-help-id="reports-modules"]',
     },
@@ -115,6 +175,24 @@ const reportsHelpContent: HelpModuleContent = {
         es: "Confirma modulo y periodo antes de compartir o exportar reportes para evitar decisiones con datos incompletos.",
         en: "Confirm module and period before sharing or exporting reports to avoid decisions based on incomplete data.",
       },
+    },
+    {
+      id: "step-6-damages",
+      title: { es: "6) Modulo de danos", en: "6) Damages module" },
+      body: {
+        es: "La pestana de danos muestra items danados o perdidos detectados en inspecciones, con detalles del prestamo y estimacion de costo de reparacion.",
+        en: "The damages tab shows damaged or lost items detected during inspections, with loan details and estimated repair costs.",
+      },
+      targetSelector: '[data-help-id="reports-modules"]',
+    },
+    {
+      id: "step-7-transfers",
+      title: { es: "7) Modulo de transferencias", en: "7) Transfers module" },
+      body: {
+        es: "La pestana de transferencias presenta movimientos de materiales entre ubicaciones, con estado actual, notas y conteo de items.",
+        en: "The transfers tab shows material movements between locations, with current status, notes, and item count.",
+      },
+      targetSelector: '[data-help-id="reports-modules"]',
     },
   ],
 };

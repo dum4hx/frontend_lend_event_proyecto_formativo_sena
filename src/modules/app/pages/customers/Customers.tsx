@@ -8,6 +8,7 @@ import { useState, useCallback } from "react";
 import { Users, UserCheck, UserX, ShieldOff } from "lucide-react";
 import { PageHeader, Pagination } from "../../../../components/ui";
 import { useLanguage } from "../../../../contexts/useLanguage";
+import { usePermissions } from "../../../../contexts/usePermissions";
 import { useConfirmModal } from "../../../../hooks/useConfirmModal";
 import { useToast } from "../../../../hooks/useToast";
 import {
@@ -33,6 +34,7 @@ import { CustomerTable } from "./CustomerTable";
 import { CustomerDetailModal } from "./CustomerDetailModal";
 import { CustomerCreateModal } from "./CustomerCreateModal";
 import { CustomerEditModal } from "./CustomerEditModal";
+import Unauthorized from "../../../../pages/Unauthorized";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -64,6 +66,7 @@ function StatCard({
 export default function Customers() {
   const { language } = useLanguage();
   const isEs = language === "es";
+  const { hasPermission } = usePermissions();
   const { showToast } = useToast();
   const { showConfirm, ConfirmModal } = useConfirmModal();
 
@@ -251,6 +254,8 @@ export default function Customers() {
   // --- Render ----------------------------------------------------------------
   const loading = customersLoading || docTypesLoading;
 
+  if (!hasPermission("customers:read")) return <Unauthorized />;
+
   return (
     <div className="page-container">
       {/* Header */}
@@ -259,7 +264,9 @@ export default function Customers() {
           title={isEs ? "Clientes" : "Customers"}
           titleAccent=""
           subtitle={
-            isEs ? "Gestiona los clientes de tu organización" : "Manage your organization's customers"
+            isEs
+              ? "Gestiona los clientes de tu organización"
+              : "Manage your organization's customers"
           }
         />
       </div>

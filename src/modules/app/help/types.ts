@@ -14,6 +14,8 @@ export interface HelpContentSection {
   tips?: HelpText[];
   warnings?: HelpText[];
   bestPractices?: HelpText[];
+  /** Step-by-step how-to instructions shown as a numbered list. */
+  howTo?: HelpText[];
 }
 
 export interface HelpAdvanceOn {
@@ -31,7 +33,7 @@ export interface HelpWalkthroughStep {
   advanceOn?: HelpAdvanceOn;
 }
 
-export type HelpFormMode = "create" | "edit" | "both";
+export type HelpFormMode = "create" | "edit" | "both" | "delete";
 
 export interface HelpFormFieldGuide {
   id: string;
@@ -58,7 +60,7 @@ export interface HelpFormGuide {
   purpose: HelpText;
   mode: HelpFormMode;
   selector?: string;
-  usageFlow: HelpText[];
+  usageFlow?: HelpText[];
   fields: HelpFormFieldGuide[];
   actions: HelpFormActionGuide[];
 }

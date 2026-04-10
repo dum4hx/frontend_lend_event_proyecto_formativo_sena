@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
-import { IconButton } from "../../../../components/ui";
+import { IconButton, EntityLink } from "../../../../components/ui";
 import { useLanguage } from "../../../../contexts/useLanguage";
+import { getWorkflowStatusLabel } from "../../../../utils/statusLabels";
 import type { OrderView } from "./types";
 import { WORKFLOW_STEPS } from "./types";
 import { formatDate, getStatusBadgeStyle, getStepIndex } from "./helpers";
@@ -11,11 +12,7 @@ interface OrderDetailModalProps {
   order: OrderView;
 }
 
-export function OrderDetailModal({
-  open,
-  onClose,
-  order,
-}: OrderDetailModalProps) {
+export function OrderDetailModal({ open, onClose, order }: OrderDetailModalProps) {
   const { language } = useLanguage();
   const isEs = language === "es";
 
@@ -24,10 +21,7 @@ export function OrderDetailModal({
   const activeStepIndex = getStepIndex(order.workflowStatus);
 
   return (
-    <div
-      className="modal-overlay"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
+    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-content max-w-5xl max-h-[92vh] overflow-hidden">
         <div className="modal-header">
           <div>
@@ -43,11 +37,7 @@ export function OrderDetailModal({
           <IconButton
             icon={X}
             onClick={onClose}
-            ariaLabel={
-              isEs
-                ? "Cerrar modal de detalles"
-                : "Close order details modal"
-            }
+            ariaLabel={isEs ? "Cerrar modal de detalles" : "Close order details modal"}
             intent="secondary"
           />
         </div>
@@ -58,35 +48,28 @@ export function OrderDetailModal({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <p className="text-gray-500 text-sm">
-                    {isEs ? "ID de Solicitud" : "Request ID"}
+                    {isEs ? "Código de Solicitud" : "Request Code"}
                   </p>
                   <p className="text-white font-semibold break-all">
-                    {order.request._id}
+                    {order.request.code ?? order.request._id}
                   </p>
                 </div>
                 <div>
-                  <p className="text-gray-500 text-sm">
-                    {isEs ? "Cliente" : "Customer"}
-                  </p>
-                  <p className="text-white font-semibold">
-                    {order.customerName}
-                  </p>
+                  <p className="text-gray-500 text-sm">{isEs ? "Cliente" : "Customer"}</p>
+                  <EntityLink
+                    entityType="customer"
+                    entityId={order.request.customerId?._id ?? ""}
+                    label={order.customerName}
+                    className="font-semibold"
+                  />
                 </div>
                 <div>
-                  <p className="text-gray-500 text-sm">
-                    {isEs ? "Fecha de Inicio" : "Start Date"}
-                  </p>
-                  <p className="text-gray-300">
-                    {formatDate(order.request.startDate)}
-                  </p>
+                  <p className="text-gray-500 text-sm">{isEs ? "Fecha de Inicio" : "Start Date"}</p>
+                  <p className="text-gray-300">{formatDate(order.request.startDate)}</p>
                 </div>
                 <div>
-                  <p className="text-gray-500 text-sm">
-                    {isEs ? "Fecha de Fin" : "End Date"}
-                  </p>
-                  <p className="text-gray-300">
-                    {formatDate(order.request.endDate)}
-                  </p>
+                  <p className="text-gray-500 text-sm">{isEs ? "Fecha de Fin" : "End Date"}</p>
+                  <p className="text-gray-300">{formatDate(order.request.endDate)}</p>
                 </div>
               </div>
 
@@ -106,14 +89,140 @@ export function OrderDetailModal({
                 </div>
               </div>
 
+              {(order.request.totalAmount != null ||
+                order.request.subtotal != null ||
+                order.request.depositAmount != null) && (
+                <div className="border border-[#2a2a2a] rounded-lg p-4 bg-[#1a1a1a] space-y-3">
+                  <p className="text-xs font-semibold text-[#FFD700] uppercase tracking-wider">
+                    {isEs ? "Resumen Financiero" : "Financial Summary"}
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {order.request.totalDays != null && (
+                      <div>
+                        <p className="text-gray-500 text-xs">
+                          {isEs ? "Días totales" : "Total Days"}
+                        </p>
+                        <p className="text-white font-semibold">{order.request.totalDays}</p>
+                      </div>
+                    )}
+                    {order.request.subtotal != null && (
+                      <div>
+                        <p className="text-gray-500 text-xs">{isEs ? "Subtotal" : "Subtotal"}</p>
+                        <p className="text-white font-semibold">
+                          ${order.request.subtotal.toLocaleString()}
+                        </p>
+                      </div>
+                    )}
+                    {(order.request.discountAmount ?? 0) > 0 && (
+                      <div>
+                        <p className="text-gray-500 text-xs">{isEs ? "Descuento" : "Discount"}</p>
+                        <p className="text-green-400 font-semibold">
+                          -${order.request.discountAmount!.toLocaleString()}
+                        </p>
+                      </div>
+                    )}
+                    {order.request.totalAmount != null && (
+                      <div>
+                        <p className="text-gray-500 text-xs">{isEs ? "Total" : "Total Amount"}</p>
+                        <p className="text-white font-bold text-base">
+                          ${order.request.totalAmount.toLocaleString()}
+                        </p>
+                      </div>
+                    )}
+                    {order.request.depositAmount != null && (
+                      <div>
+                        <p className="text-gray-500 text-xs">
+                          {isEs ? "Depósito requerido" : "Required Deposit"}
+                        </p>
+                        <p className="text-white font-semibold">
+                          ${order.request.depositAmount.toLocaleString()}
+                        </p>
+                      </div>
+                    )}
+                    {order.request.depositPaidAt != null && (
+                      <div>
+                        <p className="text-gray-500 text-xs">
+                          {isEs ? "Depósito pagado" : "Deposit Paid"}
+                        </p>
+                        <p className="text-green-400 font-semibold">
+                          {formatDate(order.request.depositPaidAt)}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {order.loan && (
+                <div className="border border-[#2a2a2a] rounded-lg p-4 bg-[#1a1a1a] space-y-3">
+                  <p className="text-xs font-semibold text-[#FFD700] uppercase tracking-wider">
+                    {isEs ? "Estado del Préstamo" : "Loan Status"}
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {order.loan.totalAmount != null && (
+                      <div>
+                        <p className="text-gray-500 text-xs">{isEs ? "Total" : "Total Amount"}</p>
+                        <p className="text-white font-semibold">
+                          ${order.loan.totalAmount.toLocaleString()}
+                        </p>
+                      </div>
+                    )}
+                    {order.loan.deposit?.amount != null && (
+                      <div>
+                        <p className="text-gray-500 text-xs">{isEs ? "Depósito" : "Deposit"}</p>
+                        <p className="text-white font-semibold">
+                          ${order.loan.deposit.amount.toLocaleString()}
+                        </p>
+                      </div>
+                    )}
+                    {(order.loan.damageFees ?? 0) > 0 && (
+                      <div>
+                        <p className="text-gray-500 text-xs">
+                          {isEs ? "Cargos por daño" : "Damage Fees"}
+                        </p>
+                        <p className="text-red-400 font-semibold">
+                          ${order.loan.damageFees!.toLocaleString()}
+                        </p>
+                      </div>
+                    )}
+                    {(order.loan.lateFees ?? 0) > 0 && (
+                      <div>
+                        <p className="text-gray-500 text-xs">
+                          {isEs ? "Cargos por mora" : "Late Fees"}
+                        </p>
+                        <p className="text-red-400 font-semibold">
+                          ${order.loan.lateFees!.toLocaleString()}
+                        </p>
+                      </div>
+                    )}
+                    {order.loan.deposit?.status && (
+                      <div>
+                        <p className="text-gray-500 text-xs">
+                          {isEs ? "Estado depósito" : "Deposit Status"}
+                        </p>
+                        <p className="text-gray-300 text-sm capitalize">
+                          {order.loan.deposit.status.replace(/_/g, " ")}
+                        </p>
+                      </div>
+                    )}
+                    {order.loan.deposit?.refundAvailable && (
+                      <div>
+                        <p className="text-gray-500 text-xs">
+                          {isEs ? "Devolución disponible" : "Refundable Amount"}
+                        </p>
+                        <p className="text-green-400 font-semibold">
+                          ${(order.loan.deposit.refundableAmount ?? 0).toLocaleString()}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {order.request.notes && (
                 <div>
-                  <p className="text-gray-500 text-sm">
-                    {isEs ? "Notas" : "Notes"}
-                  </p>
-                  <p className="text-gray-300 text-sm whitespace-pre-wrap">
-                    {order.request.notes}
-                  </p>
+                  <p className="text-gray-500 text-sm">{isEs ? "Notas" : "Notes"}</p>
+                  <p className="text-gray-300 text-sm whitespace-pre-wrap">{order.request.notes}</p>
                 </div>
               )}
             </div>
@@ -121,9 +230,7 @@ export function OrderDetailModal({
             <aside className="border-t lg:border-t-0 lg:border-l border-[#333] bg-[#151515] p-6 space-y-4">
               <div>
                 <p className="text-gray-500 text-sm mb-2">
-                  {isEs
-                    ? "Seguimiento del Flujo"
-                    : "Workflow Tracking"}
+                  {isEs ? "Seguimiento del Flujo" : "Workflow Tracking"}
                 </p>
                 <div className="space-y-2">
                   {WORKFLOW_STEPS.map((step, index) => {
@@ -137,7 +244,7 @@ export function OrderDetailModal({
                             : "border-[#333] text-gray-500"
                         }`}
                       >
-                        {step.label}
+                        {isEs ? step.labelEs : step.labelEn}
                       </div>
                     );
                   })}
@@ -151,7 +258,7 @@ export function OrderDetailModal({
                 <span
                   className={`inline-flex mt-2 px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadgeStyle(order.workflowStatus)}`}
                 >
-                  {order.workflowLabel}
+                  {getWorkflowStatusLabel(order.workflowStatus, language as "en" | "es")}
                 </span>
               </div>
 
@@ -159,8 +266,8 @@ export function OrderDetailModal({
                 order.workflowStatus === "order_cancelled") && (
                 <p className="text-red-300 text-sm">
                   {isEs
-                    ? `Este pedido está en estado terminal: ${order.workflowLabel}`
-                    : `This order is in a terminal state: ${order.workflowLabel}`}
+                    ? `Este pedido está en estado terminal: ${getWorkflowStatusLabel(order.workflowStatus, "es")}`
+                    : `This order is in a terminal state: ${getWorkflowStatusLabel(order.workflowStatus, "en")}`}
                 </p>
               )}
             </aside>

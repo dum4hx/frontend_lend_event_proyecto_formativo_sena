@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { RefreshCw, MapPin } from "lucide-react";
 import { useAuth } from "../../../contexts/useAuth";
 import { useLanguage } from "../../../contexts/useLanguage";
+import { usePermissions } from "../../../contexts/usePermissions";
 import { LoadingSpinner, SearchableSelect, PageHeader } from "../../../components/ui";
 import { pageVariants } from "../../../lib/animations";
 import { getLocation as fetchLocationById } from "../../../services/warehouseOperatorService";
@@ -33,6 +34,7 @@ import { OpsDeadlinesPanel } from "./operations/OpsDeadlinesPanel";
 import { OpsDamagesPanel } from "./operations/OpsDamagesPanel";
 import { useQueryClient } from "@tanstack/react-query";
 import { OPERATIONS_KEYS } from "../../../hooks/queries/useOperationsQueries";
+import Unauthorized from "../../../pages/Unauthorized";
 
 type TabKey =
   | "overview"
@@ -79,6 +81,7 @@ export default function OperationsDashboard() {
   const { user } = useAuth();
   const { language } = useLanguage();
   const isEs = language === "es";
+  const { hasPermission } = usePermissions();
   const queryClient = useQueryClient();
 
   // If user has multiple locations, let them pick one
@@ -135,6 +138,8 @@ export default function OperationsDashboard() {
     return <NoLocationState isEs={isEs} />;
   }
 
+  if (!hasPermission("operations:read")) return <Unauthorized />;
+
   const locationOptions = locationIds.map((id) => ({
     value: id,
     label: locationMap[id] || id,
@@ -165,6 +170,8 @@ export default function OperationsDashboard() {
                     value={selectedLocation}
                     onChange={setSelectedLocation}
                     placeholder={isEs ? "Seleccionar ubicación" : "Select location"}
+                    searchPlaceholder={isEs ? "Escribe para buscar…" : "Type to search…"}
+                    noResultsText={isEs ? "Sin resultados" : "No results found"}
                   />
                 </div>
               )}
@@ -201,7 +208,10 @@ export default function OperationsDashboard() {
       ) : null}
 
       {/* Tab Navigation */}
-      <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none" data-help-id="operations-tabs">
+      <div
+        className="flex gap-1 overflow-x-auto pb-1 scrollbar-none"
+        data-help-id="operations-tabs"
+      >
         {TABS.map((tab) => (
           <button
             key={tab.key}

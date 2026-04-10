@@ -15,9 +15,19 @@ Each section explains the purpose of a permission and the action it allows.
 - [`customers:delete`](#customersdelete)
 - [`customers:read`](#customersread)
 - [`customers:update`](#customersupdate)
+- [`code_schemes:read`](#code_schemesread)
+- [`code_schemes:create`](#code_schemescreate)
+- [`code_schemes:update`](#code_schemesupdate)
+- [`code_schemes:delete`](#code_schemesdelete)
 - [`inspections:create`](#inspectionscreate)
 - [`inspections:read`](#inspectionsread)
 - [`inspections:update`](#inspectionsupdate)
+- [`incidents:create`](#incidentscreate)
+- [`incidents:read`](#incidentsread)
+- [`incidents:update`](#incidentsupdate)
+- [`incidents:acknowledge`](#incidentsacknowledge)
+- [`incidents:resolve`](#incidentsresolve)
+- [`incidents:dismiss`](#incidentsdismiss)
 - [`invoices:create`](#invoicescreate)
 - [`invoices:read`](#invoicesread)
 - [`invoices:update`](#invoicesupdate)
@@ -34,6 +44,11 @@ Each section explains the purpose of a permission and the action it allows.
 - [`materials:delete`](#materialsdelete)
 - [`materials:read`](#materialsread)
 - [`materials:update`](#materialsupdate)
+- [`maintenance:create`](#maintenancecreate)
+- [`maintenance:delete`](#maintenancedelete)
+- [`maintenance:read`](#maintenanceread)
+- [`maintenance:resolve`](#maintenanceresolve)
+- [`maintenance:update`](#maintenanceupdate)
 - [`operations:read`](#operationsread)
 - [`organization:delete`](#organizationdelete)
 - [`organization:read`](#organizationread)
@@ -49,9 +64,11 @@ Each section explains the purpose of a permission and the action it allows.
 - [`platform:manage`](#platformmanage)
 - [`reports:read`](#reportsread)
 - [`requests:approve`](#requestsapprove)
+- [`requests:cancel`](#requestscancel)
 - [`requests:create`](#requestscreate)
 - [`requests:delete`](#requestsdelete)
 - [`requests:read`](#requestsread)
+- [`requests:ready`](#requestsready)
 - [`requests:update`](#requestsupdate)
 - [`roles:create`](#rolescreate)
 - [`roles:delete`](#rolesdelete)
@@ -65,6 +82,9 @@ Each section explains the purpose of a permission and the action it allows.
 - [`transfers:create`](#transferscreate)
 - [`transfers:read`](#transfersread)
 - [`transfers:update`](#transfersupdate)
+- [`transfers:accept`](#transfersaccept)
+- [`transfers:send`](#transferssend)
+- [`transfers:receive`](#transfersreceive)
 - [`transfer_rejection_reasons:manage`](#transfer_rejection_reasonsmanage)
 - [`users:create`](#userscreate)
 - [`users:delete`](#usersdelete)
@@ -192,6 +212,39 @@ Each section explains the purpose of a permission and the action it allows.
 - **Purpose:** Allows acknowledging, resolving, or dismissing incidents.
 - **Allowed Action:** Modify existing records in this resource.
 - **Resource Target:** Incidents
+
+### `incidents:acknowledge`
+
+- **Display Name:** Acknowledge Incidents
+- **Category:** Incidents
+- **Scope:** Organization
+- **Active:** Yes
+- **Purpose:** Allows acknowledging open incidents, confirming they are being investigated. Granted to warehouse operators and above. Acknowledging an incident does **not** automatically change material instance statuses.
+- **Allowed Action:** Transition incident from `open` → `acknowledged`.
+- **Resource Target:** Incidents
+- **Roles:** `super_admin`, `owner`, `warehouse_operator`
+
+### `incidents:resolve`
+
+- **Display Name:** Resolve Incidents
+- **Category:** Incidents
+- **Scope:** Organization
+- **Active:** Yes
+- **Purpose:** Allows resolving incidents with a resolution note. Resolving a `damage` or `issue` incident automatically transitions the related material instances to `maintenance` or `available` respectively.
+- **Allowed Action:** Transition incident from `open`/`acknowledged` → `resolved`.
+- **Resource Target:** Incidents
+- **Roles:** `super_admin`, `owner`, `manager`
+
+### `incidents:dismiss`
+
+- **Display Name:** Dismiss Incidents
+- **Category:** Incidents
+- **Scope:** Organization
+- **Active:** Yes
+- **Purpose:** Allows dismissing incidents deemed invalid or not actionable. Dismissal does **not** automatically change material instance statuses — manual correction is expected.
+- **Allowed Action:** Transition incident from `open`/`acknowledged` → `dismissed`.
+- **Resource Target:** Incidents
+- **Roles:** `super_admin`, `owner`, `manager`
 
 ### `invoices:create`
 
@@ -485,13 +538,25 @@ Each section explains the purpose of a permission and the action it allows.
 
 ### `requests:approve`
 
-- **Display Name:** Approve Requests
+- **Display Name:** Aprobar Solicitudes
 - **Category:** Requests
 - **Scope:** Organization
 - **Active:** Yes
 - **Purpose:** Allows authorizing or rejecting submitted requests.
-- **Allowed Action:** Approve pending workflows for this resource.
+- **Allowed Action:** Approve or reject pending loan requests.
 - **Resource Target:** Requests
+- **Roles:** `super_admin`, `owner`, `manager`, `warehouse_operator`
+
+### `requests:cancel`
+
+- **Display Name:** Cancelar Solicitudes
+- **Category:** Requests
+- **Scope:** Organization
+- **Active:** Yes
+- **Purpose:** Allows cancelling loan requests and releasing any assigned materials.
+- **Allowed Action:** Transition a request to the `cancelled` status.
+- **Resource Target:** Requests
+- **Roles:** `super_admin`, `owner`, `manager`, `warehouse_operator`, `commercial_advisor`
 
 ### `requests:create`
 
@@ -521,6 +586,16 @@ Each section explains the purpose of a permission and the action it allows.
 - **Active:** Yes
 - **Purpose:** Allows viewing and tracking the status of requests.
 - **Allowed Action:** View/list records and details for this resource.
+- **Resource Target:** Requests
+
+### `requests:ready`
+
+- **Display Name:** Marcar Solicitud como Lista
+- **Category:** Requests
+- **Scope:** Organization
+- **Active:** Yes
+- **Purpose:** Allows marking a request as ready for pickup once materials have been assigned.
+- **Allowed Action:** Transition a request to the `ready` status.
 - **Resource Target:** Requests
 
 ### `requests:update`
@@ -625,11 +700,11 @@ Each section explains the purpose of a permission and the action it allows.
 
 ### `transfers:create`
 
-- **Display Name:** Create Transfers
+- **Display Name:** Crear Transferencias
 - **Category:** Transfers
 - **Scope:** Organization
 - **Active:** Yes
-- **Purpose:** Allows creating transfer requests and initiating physical transfers between locations.
+- **Purpose:** Allows creating transfer requests between locations.
 - **Allowed Action:** Create new records in this resource.
 - **Resource Target:** Transfers
 
@@ -645,12 +720,42 @@ Each section explains the purpose of a permission and the action it allows.
 
 ### `transfers:update`
 
-- **Display Name:** Update Transfers
+- **Display Name:** Actualizar Transferencias
 - **Category:** Transfers
 - **Scope:** Organization
 - **Active:** Yes
-- **Purpose:** Allows responding to transfer requests and marking transfers as received.
+- **Purpose:** Allows editing and cancelling transfer requests.
 - **Allowed Action:** Modify existing records in this resource.
+- **Resource Target:** Transfers
+
+### `transfers:accept`
+
+- **Display Name:** Aceptar o Rechazar Transferencias
+- **Category:** Transfers
+- **Scope:** Organization
+- **Active:** Yes
+- **Purpose:** Allows approving or rejecting transfer requests. The user must be assigned to the source location.
+- **Allowed Action:** Approve or reject transfer request records.
+- **Resource Target:** Transfers
+
+### `transfers:send`
+
+- **Display Name:** Enviar Transferencias
+- **Category:** Transfers
+- **Scope:** Organization
+- **Active:** Yes
+- **Purpose:** Allows initiating the physical shipment of materials between locations.
+- **Allowed Action:** Initiate physical transfer shipments.
+- **Resource Target:** Transfers
+
+### `transfers:receive`
+
+- **Display Name:** Recibir Transferencias
+- **Category:** Transfers
+- **Scope:** Organization
+- **Active:** Yes
+- **Purpose:** Allows marking a transfer as received at the destination location.
+- **Allowed Action:** Mark transfer shipments as received.
 - **Resource Target:** Transfers
 
 ### `transfer_rejection_reasons:manage`
@@ -663,6 +768,108 @@ Each section explains the purpose of a permission and the action it allows.
 - **Allowed Action:** Create, modify, and delete rejection reason records.
 - **Resource Target:** TransferRejectionReason
 - **Roles:** super_admin, owner, manager
+
+### `maintenance:read`
+
+- **Display Name:** View Maintenance Batches
+- **Category:** Maintenance
+- **Scope:** Organization
+- **Active:** Yes
+- **Purpose:** Allows viewing maintenance batches, their items, and status.
+- **Allowed Action:** View/list records and details for this resource.
+- **Resource Target:** MaintenanceBatch
+- **Roles:** super_admin, owner, manager, warehouse_operator
+
+### `maintenance:create`
+
+- **Display Name:** Create Maintenance Batches
+- **Category:** Maintenance
+- **Scope:** Organization
+- **Active:** Yes
+- **Purpose:** Allows creating new maintenance batches for damaged or lost items.
+- **Allowed Action:** Create new records in this resource.
+- **Resource Target:** MaintenanceBatch
+- **Roles:** super_admin, owner, warehouse_operator
+
+### `maintenance:update`
+
+- **Display Name:** Update Maintenance Batches
+- **Category:** Maintenance
+- **Scope:** Organization
+- **Active:** Yes
+- **Purpose:** Allows editing batch details, adding/removing items, starting and cancelling batches.
+- **Allowed Action:** Modify existing records in this resource.
+- **Resource Target:** MaintenanceBatch
+- **Roles:** super_admin, owner, warehouse_operator
+
+### `maintenance:resolve`
+
+- **Display Name:** Resolve Maintenance Items
+- **Category:** Maintenance
+- **Scope:** Organization
+- **Active:** Yes
+- **Purpose:** Allows resolving individual maintenance items as repaired or unrecoverable.
+- **Allowed Action:** Transition maintenance items to terminal states.
+- **Resource Target:** MaintenanceBatch
+- **Roles:** super_admin, owner, warehouse_operator
+
+### `maintenance:delete`
+
+- **Display Name:** Delete Maintenance Batches
+- **Category:** Maintenance
+- **Scope:** Organization
+- **Active:** Yes
+- **Purpose:** Allows permanently removing maintenance batch records.
+- **Allowed Action:** Remove records from this resource.
+- **Resource Target:** MaintenanceBatch
+- **Roles:** super_admin, owner
+
+### `code_schemes:read`
+
+- **Display Name:** Ver Esquemas de Código
+- **Category:** Code_schemes
+- **Scope:** Organization
+- **Active:** Yes
+- **Purpose:** Allows viewing code generation schemes for the organization.
+- **Allowed Action:** Read records from this resource.
+- **Resource Target:** CodeScheme
+- **Roles:** super_admin, owner, manager
+
+### `code_schemes:create`
+
+- **Display Name:** Crear Esquemas de Código
+- **Category:** Code_schemes
+- **Scope:** Organization
+- **Active:** Yes
+- **Purpose:** Allows creating new code generation schemes.
+- **Allowed Action:** Create new records in this resource.
+- **Resource Target:** CodeScheme
+- **Requires:** `code_schemes:read`
+- **Roles:** super_admin, owner
+
+### `code_schemes:update`
+
+- **Display Name:** Actualizar Esquemas de Código
+- **Category:** Code_schemes
+- **Scope:** Organization
+- **Active:** Yes
+- **Purpose:** Allows modifying existing code generation schemes.
+- **Allowed Action:** Modify records in this resource.
+- **Resource Target:** CodeScheme
+- **Requires:** `code_schemes:read`
+- **Roles:** super_admin, owner
+
+### `code_schemes:delete`
+
+- **Display Name:** Eliminar Esquemas de Código
+- **Category:** Code_schemes
+- **Scope:** Organization
+- **Active:** Yes
+- **Purpose:** Allows deleting code generation schemes.
+- **Allowed Action:** Remove records from this resource.
+- **Resource Target:** CodeScheme
+- **Requires:** `code_schemes:read`
+- **Roles:** super_admin, owner
 
 ### `users:create`
 

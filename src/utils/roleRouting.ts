@@ -5,9 +5,42 @@
  * user permissions (primary) or role name (legacy fallback).
  */
 
+import { getNavItemsByPrefix } from "../config/modulePermissions";
+
 // ---------------------------------------------------------------------------
 // Permission-based routing (preferred)
 // ---------------------------------------------------------------------------
+
+/**
+ * Returns the first URL the user is authorised to visit after login.
+ *
+ * Resolution order:
+ * 1. `platform:manage` → `/super-admin` (first accessible super-admin nav item)
+ * 2. Any org-scoped permission → first `/app` nav item the user has access to
+ * 3. Fallback → `/`
+ */
+export function getFirstAccessibleUrl(permissions: string[]): string {
+  const permSet = new Set(permissions);
+
+  if (permSet.has("platform:manage")) {
+    const superAdminItems = getNavItemsByPrefix("/super-admin");
+    const first = superAdminItems.find(
+      (item) =>
+        item.requiredPermissions.length === 0 ||
+        item.requiredPermissions.some((p) => permSet.has(p)),
+    );
+    return first?.path ?? "/super-admin";
+  }
+
+  const appItems = getNavItemsByPrefix("/app");
+  const first = appItems.find(
+    (item) =>
+      item.requiredPermissions.length === 0 || item.requiredPermissions.some((p) => permSet.has(p)),
+  );
+  if (first) return first.path;
+
+  return "/";
+}
 
 /**
  * Determine the best dashboard URL for a user based on their permissions.

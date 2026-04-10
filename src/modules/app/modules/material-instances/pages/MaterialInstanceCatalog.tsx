@@ -11,7 +11,12 @@ import {
 } from "../components";
 import { AdminPagination } from "../../../components";
 import { ExcelExportImport } from "../../../../../components/export/ExcelExportImport";
+import { FEATURE_FLAGS } from "../../../../../config/featureFlags";
 import { useToast } from "../../../../../contexts/ToastContext";
+import { useLanguage } from "../../../../../contexts/useLanguage";
+import { usePermissions } from "../../../../../contexts/usePermissions";
+import { useActionPermission } from "../../../../../hooks/useActionPermission";
+import Unauthorized from "../../../../../pages/Unauthorized";
 import {
   getLocations,
   type WarehouseLocation,
@@ -23,6 +28,10 @@ import type {
 } from "../../../../../types/api";
 
 export const MaterialInstanceCatalog: React.FC = () => {
+  const { t, language } = useLanguage();
+  const { hasPermission } = usePermissions();
+  const isEs = language === "es";
+  const { guard, isAllowed } = useActionPermission(isEs ? "es" : "en");
   const navigate = useNavigate();
   const { instances, loading, error, removeInstance, addInstance, updateInstanceStatus, refetch } =
     useMaterialInstances();
@@ -120,21 +129,21 @@ export const MaterialInstanceCatalog: React.FC = () => {
   const handleDelete = (instance: MaterialInstance) => {
     showToast(
       "warning",
-      `Do you want to delete instance "${instance.serialNumber}"? This action cannot be undone.`,
-      "Confirm Deletion",
+      t("materialInstances.toast.deleteConfirm", { serial: instance.serialNumber }),
+      t("materialInstances.toast.deleteConfirmTitle"),
       {
         duration: Infinity,
         action: {
-          label: "Confirm",
+          label: t("materialInstances.toast.deleteConfirmBtn"),
           onClick: async () => {
             try {
               await removeInstance(instance._id);
-              showToast("success", "Material instance deleted successfully", "Success");
+              showToast("success", t("materialInstances.toast.deleteSuccess"), t("common.success"));
             } catch (error: unknown) {
               showToast(
                 "error",
-                error instanceof Error ? error.message : "Failed to delete material instance",
-                "Error",
+                error instanceof Error ? error.message : t("materialInstances.toast.deleteError"),
+                t("common.error"),
               );
             }
           },
@@ -150,14 +159,14 @@ export const MaterialInstanceCatalog: React.FC = () => {
         serialNumber: data.serialNumber.trim(),
         barcode: data.barcode?.trim() || undefined,
       });
-      showToast("success", "Material instance created successfully", "Success");
+      showToast("success", t("materialInstances.toast.createSuccess"), t("common.success"));
       setIsFormModalOpen(false);
       setFormInitialData(undefined);
     } catch (error: unknown) {
       showToast(
         "error",
-        error instanceof Error ? error.message : "Failed to save material instance",
-        "Error",
+        error instanceof Error ? error.message : t("materialInstances.toast.saveError"),
+        t("common.error"),
       );
     }
   };
@@ -237,14 +246,14 @@ export const MaterialInstanceCatalog: React.FC = () => {
 
       showToast(
         "success",
-        `Imported ${successCount}/${data.length} material instances`,
-        "Import Complete",
+        t("materialInstances.toast.importSuccess", { success: successCount, total: data.length }),
+        t("materialInstances.toast.importSuccessTitle"),
       );
     } catch (error: unknown) {
       showToast(
         "error",
-        error instanceof Error ? error.message : "Error importing material instances",
-        "Import Failed",
+        error instanceof Error ? error.message : t("materialInstances.toast.importError"),
+        t("materialInstances.toast.importErrorTitle"),
       );
     }
   };
@@ -283,10 +292,13 @@ export const MaterialInstanceCatalog: React.FC = () => {
         setSelectedInstance(matchedInstance);
         showToast(
           "success",
-          `Match found: ${matchedInstance.serialNumber}${
-            matchedInstance.barcode ? ` (barcode ${matchedInstance.barcode})` : ""
-          }`,
-          "Scan Successful",
+          matchedInstance.barcode
+            ? t("materialInstances.toast.scanFoundBarcode", {
+                serial: matchedInstance.serialNumber,
+                barcode: matchedInstance.barcode,
+              })
+            : t("materialInstances.toast.scanFound", { serial: matchedInstance.serialNumber }),
+          t("materialInstances.toast.scanFoundTitle"),
         );
         return;
       }
@@ -294,12 +306,12 @@ export const MaterialInstanceCatalog: React.FC = () => {
       setFormInitialData({ barcode: cleanedCode });
       showToast(
         "warning",
-        `No instance found for barcode "${cleanedCode}". Register as new?`,
-        "Scan Not Found",
+        t("materialInstances.toast.scanNotFound", { code: cleanedCode }),
+        t("materialInstances.toast.scanNotFoundTitle"),
         {
           duration: 8000,
           action: {
-            label: "Register Instance",
+            label: t("materialInstances.toast.scanRegister"),
             onClick: () => {
               if (!canCreateInstance) {
                 setIsDependencyModalOpen(true);
@@ -311,7 +323,7 @@ export const MaterialInstanceCatalog: React.FC = () => {
         },
       );
     },
-    [canCreateInstance, findInstanceByScannedCode, showToast],
+    [canCreateInstance, findInstanceByScannedCode, showToast, t],
   );
 
   useBarcodeScanner({
@@ -340,14 +352,19 @@ export const MaterialInstanceCatalog: React.FC = () => {
       setSelectedInstance(updated);
       showToast(
         "success",
-        `Status updated to ${status.toUpperCase()} for ${updated.serialNumber}`,
-        "Status Updated",
+        t("materialInstances.toast.statusUpdated", {
+          status: status.toUpperCase(),
+          serial: updated.serialNumber,
+        }),
+        t("materialInstances.toast.statusUpdatedTitle"),
       );
     } catch (statusError: unknown) {
       showToast(
         "error",
-        statusError instanceof Error ? statusError.message : "Failed to update material status",
-        "Error",
+        statusError instanceof Error
+          ? statusError.message
+          : t("materialInstances.toast.statusError"),
+        t("common.error"),
       );
     } finally {
       setStatusUpdateLoading(false);
@@ -356,14 +373,14 @@ export const MaterialInstanceCatalog: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#121212] p-8">
+      <div className="min-h-screen bg-[#121212] p-4 sm:p-6 lg:p-8">
         <div className="max-w-7xl mx-auto animate-pulse">
-          <div className="mb-8 space-y-3">
+          <div className="mb-6 sm:mb-8 space-y-3">
             <div className="h-9 w-72 rounded bg-[#262626]" />
             <div className="h-4 w-96 rounded bg-[#222]" />
           </div>
           <div className="mb-6 h-14 rounded-lg bg-[#1a1a1a] border border-[#333]" />
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
             <div className="h-28 rounded-lg bg-[#1a1a1a] border border-[#333]" />
             <div className="h-28 rounded-lg bg-[#1a1a1a] border border-[#333]" />
             <div className="h-28 rounded-lg bg-[#1a1a1a] border border-[#333]" />
@@ -381,10 +398,10 @@ export const MaterialInstanceCatalog: React.FC = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-[#121212] p-8 flex items-center justify-center">
+      <div className="min-h-screen bg-[#121212] p-4 sm:p-6 lg:p-8 flex items-center justify-center">
         <div className="bg-[#1a1a1a] border border-red-900/70 rounded-xl p-6 max-w-lg w-full">
           <h2 className="text-xl font-semibold text-red-300 mb-2">
-            Unable to load material instances
+            {t("materialInstances.errorLoad")}
           </h2>
           <p className="text-sm text-red-200/80 mb-4">{error}</p>
           <button
@@ -392,7 +409,7 @@ export const MaterialInstanceCatalog: React.FC = () => {
             onClick={() => void refetch()}
             className="px-4 py-2 rounded-lg border border-[#B88A00] text-[#FFD700] hover:bg-[#FFD700]/10 transition-colors"
           >
-            Retry
+            {t("materialInstances.retry")}
           </button>
         </div>
       </div>
@@ -407,26 +424,32 @@ export const MaterialInstanceCatalog: React.FC = () => {
     {} as Record<string, number>,
   );
 
+  if (!hasPermission("materials:read")) {
+    return <Unauthorized />;
+  }
+
   return (
-    <div className="min-h-screen bg-[#121212] p-8">
+    <div className="min-h-screen bg-[#121212] p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div data-help-id="material-instances-title" className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Material Instances</h1>
-          <p className="text-gray-400">Manage your physical inventory of material items</p>
+        <div data-help-id="material-instances-title" className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">
+            {t("materialInstances.title")}
+          </h1>
+          <p className="text-sm sm:text-base text-gray-400">{t("materialInstances.description")}</p>
         </div>
 
         {/* Actions Bar */}
-        <div data-help-id="material-instances-actions" className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="flex-1 relative">
+        <div data-help-id="material-instances-actions" className="flex flex-col gap-4 mb-6">
+          <div className="relative">
             <label htmlFor={searchInputId} className="sr-only">
-              Search material instances by serial number, barcode, material type, or location
+              {t("materialInstances.searchLabel")}
             </label>
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
             <input
               id={searchInputId}
               type="text"
-              placeholder="Search by serial, barcode, type, or location..."
+              placeholder={t("materialInstances.searchPlaceholder")}
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
@@ -435,55 +458,71 @@ export const MaterialInstanceCatalog: React.FC = () => {
               className="w-full pl-12 pr-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#FFD700]"
             />
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
             <button
               type="button"
               onClick={() => setShowBarcodePreview((prev) => !prev)}
-              className="flex items-center gap-2 px-4 py-3 rounded-lg border border-[#333] bg-[#1a1a1a] text-gray-300 transition-colors hover:bg-[#202020] hover:text-white"
+              className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg border border-[#333] bg-[#1a1a1a] text-gray-300 transition-colors hover:bg-[#202020] hover:text-white text-sm sm:text-base"
             >
               <Eye size={18} />
-              {showBarcodePreview ? "Hide Barcodes" : "Show Barcodes"}
+              <span className="hidden sm:inline">
+                {showBarcodePreview
+                  ? t("materialInstances.hideBarcodes")
+                  : t("materialInstances.showBarcodes")}
+              </span>
             </button>
             <button
               type="button"
               onClick={() => handleOpenBarcodePrintModal(filteredInstances)}
               disabled={filteredInstances.length === 0}
-              className="flex items-center gap-2 px-4 py-3 rounded-lg border border-[#FFD700]/35 bg-[#FFD700]/8 text-[#FFD700] font-semibold transition-colors hover:bg-[#FFD700]/14 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg border border-[#FFD700]/35 bg-[#FFD700]/8 text-[#FFD700] font-semibold transition-colors hover:bg-[#FFD700]/14 disabled:cursor-not-allowed disabled:opacity-50 text-sm sm:text-base"
             >
               <Printer size={18} />
-              Print Barcodes
+              <span className="hidden sm:inline">{t("materialInstances.printBarcodes")}</span>
             </button>
             <button
               type="button"
               onClick={() => handleOpenBarcodePrintModal(selectedInstances)}
               disabled={selectedInstances.length === 0}
-              className="flex items-center gap-2 px-4 py-3 rounded-lg border border-[#333] bg-[#1a1a1a] text-gray-300 transition-colors hover:bg-[#202020] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg border border-[#333] bg-[#1a1a1a] text-gray-300 transition-colors hover:bg-[#202020] hover:text-white disabled:cursor-not-allowed disabled:opacity-50 text-sm sm:text-base"
             >
               <Printer size={18} />
-              Print Selected ({selectedInstances.length})
+              <span className="hidden sm:inline">
+                {t("materialInstances.printSelected", { count: selectedInstances.length })}
+              </span>
             </button>
             <ExcelExportImport
               data={exportRows}
               filename="material-instances"
-              onImport={handleImportInstances}
+              onImport={FEATURE_FLAGS.ENABLE_DATA_IMPORT ? handleImportInstances : undefined}
+              importDisabled={
+                FEATURE_FLAGS.ENABLE_DATA_IMPORT ? !isAllowed("materials:create") : undefined
+              }
+              onImportDenied={
+                FEATURE_FLAGS.ENABLE_DATA_IMPORT ? guard("materials:create", () => {}) : undefined
+              }
               showLabels={true}
             />
             <button
-              onClick={handleOpenCreateModal}
-              className="flex items-center gap-2 px-6 py-3 font-semibold rounded-lg transition-colors whitespace-nowrap gold-action-btn"
+              onClick={guard("materials:create", handleOpenCreateModal)}
+              aria-disabled={!isAllowed("materials:create")}
+              className={`flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 font-semibold rounded-lg transition-colors whitespace-nowrap gold-action-btn col-span-2 sm:col-span-1 text-sm sm:text-base ${!isAllowed("materials:create") ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               <Plus size={20} />
-              New Instance
+              {t("materialInstances.newInstance")}
             </button>
           </div>
         </div>
 
         {/* Barcode Scanner */}
-        <div data-help-id="material-instances-scanner" className="bg-[#1a1a1a] border border-[#333] rounded-lg p-5 mb-6 space-y-4">
+        <div
+          data-help-id="material-instances-scanner"
+          className="bg-[#1a1a1a] border border-[#333] rounded-lg p-3 sm:p-5 mb-6 space-y-3 sm:space-y-4"
+        >
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div className="flex items-center gap-2">
               <Barcode size={18} className="text-[#FFD700]" />
-              <h2 className="text-white font-semibold">Barcode Scanner Workflow</h2>
+              <h2 className="text-white font-semibold">{t("materialInstances.scannerTitle")}</h2>
             </div>
             <button
               type="button"
@@ -494,14 +533,13 @@ export const MaterialInstanceCatalog: React.FC = () => {
                   : "border-[#555] text-gray-300 bg-[#202020]"
               }`}
             >
-              {isScannerEnabled ? "Scanner Enabled" : "Scanner Disabled"}
+              {isScannerEnabled
+                ? t("materialInstances.scannerEnabled")
+                : t("materialInstances.scannerDisabled")}
             </button>
           </div>
 
-          <p className="text-sm text-gray-400">
-            Use your hardware scanner (keyboard mode) and press Enter automatically, or type a code
-            manually below.
-          </p>
+          <p className="text-sm text-gray-400">{t("materialInstances.scannerDescription")}</p>
 
           <div className="flex flex-col md:flex-row gap-3">
             <div className="flex-1">
@@ -520,7 +558,7 @@ export const MaterialInstanceCatalog: React.FC = () => {
                   }
                 }}
                 className="w-full px-4 py-2.5 bg-[#111] border border-[#333] rounded text-white placeholder-gray-500 focus:outline-none focus:border-[#FFD700]"
-                placeholder="Scan barcode or type serial"
+                placeholder={t("materialInstances.scanPlaceholder")}
               />
             </div>
             <button
@@ -528,70 +566,76 @@ export const MaterialInstanceCatalog: React.FC = () => {
               onClick={handleManualScan}
               className="px-4 py-2.5 border border-[#B88A00] text-[#FFD700] hover:bg-[#FFD700]/10 rounded font-medium transition-colors"
             >
-              Find Code
+              {t("materialInstances.findCode")}
             </button>
           </div>
 
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 pt-1">
             <p className="text-xs text-gray-500">
-              Last scanned:{" "}
+              {t("materialInstances.lastScanned")}{" "}
               <span className="text-gray-300 font-mono">{lastScannedCode || "-"}</span>
             </p>
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 disabled={!selectedInstance || statusUpdateLoading}
-                onClick={() => void handleQuickStatusChange("loaned")}
+                onClick={guard("materials:update", () => void handleQuickStatusChange("loaned"))}
                 className="px-3 py-1.5 text-xs rounded border border-yellow-600/40 text-yellow-300 bg-yellow-700/10 hover:bg-yellow-700/20 transition-colors disabled:opacity-50"
               >
-                Mark Loaned
+                {t("materialInstances.markLoaned")}
               </button>
               <button
                 type="button"
                 disabled={!selectedInstance || statusUpdateLoading}
-                onClick={() => void handleQuickStatusChange("returned")}
+                onClick={guard("materials:update", () => void handleQuickStatusChange("returned"))}
                 className="px-3 py-1.5 text-xs rounded border border-blue-600/40 text-blue-300 bg-blue-700/10 hover:bg-blue-700/20 transition-colors disabled:opacity-50"
               >
-                Mark Returned
+                {t("materialInstances.markReturned")}
               </button>
               <button
                 type="button"
                 disabled={!selectedInstance || statusUpdateLoading}
-                onClick={() => void handleQuickStatusChange("available")}
+                onClick={guard("materials:update", () => void handleQuickStatusChange("available"))}
                 className="px-3 py-1.5 text-xs rounded border border-green-600/40 text-green-300 bg-green-700/10 hover:bg-green-700/20 transition-colors disabled:opacity-50"
               >
-                Mark Available
+                {t("materialInstances.markAvailable")}
               </button>
               <button
                 type="button"
                 disabled={!selectedInstance || statusUpdateLoading}
-                onClick={() => void handleQuickStatusChange("maintenance")}
+                onClick={guard(
+                  "materials:update",
+                  () => void handleQuickStatusChange("maintenance"),
+                )}
                 className="px-3 py-1.5 text-xs rounded border border-orange-600/40 text-orange-300 bg-orange-700/10 hover:bg-orange-700/20 transition-colors disabled:opacity-50"
               >
-                Mark Maintenance
+                {t("materialInstances.markMaintenance")}
               </button>
             </div>
           </div>
         </div>
 
         {/* Stats */}
-        <div data-help-id="material-instances-stats" className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
+        <div
+          data-help-id="material-instances-stats"
+          className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6"
+        >
           <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-6">
-            <p className="text-gray-400 text-sm mb-1">Total Instances</p>
+            <p className="text-gray-400 text-sm mb-1">{t("materialInstances.totalInstances")}</p>
             <p className="text-3xl font-bold text-white">{instances.length}</p>
           </div>
           <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-6">
-            <p className="text-gray-400 text-sm mb-1">Available</p>
+            <p className="text-gray-400 text-sm mb-1">{t("materialInstances.available")}</p>
             <p className="text-3xl font-bold text-green-400">{statusCounts.available || 0}</p>
           </div>
           <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-6">
-            <p className="text-gray-400 text-sm mb-1">In Use</p>
+            <p className="text-gray-400 text-sm mb-1">{t("materialInstances.inUse")}</p>
             <p className="text-3xl font-bold text-yellow-400">
               {(statusCounts.reserved || 0) + (statusCounts.loaned || 0)}
             </p>
           </div>
           <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-6">
-            <p className="text-gray-400 text-sm mb-1">Needs Attention</p>
+            <p className="text-gray-400 text-sm mb-1">{t("materialInstances.needsAttention")}</p>
             <p className="text-3xl font-bold text-red-400">
               {(statusCounts.maintenance || 0) + (statusCounts.damaged || 0)}
             </p>
@@ -599,12 +643,14 @@ export const MaterialInstanceCatalog: React.FC = () => {
         </div>
 
         {/* Instance List */}
-        <div data-help-id="material-instances-list" className="bg-[#1a1a1a] border border-[#333] rounded-lg p-6">
+        <div
+          data-help-id="material-instances-list"
+          className="bg-[#1a1a1a] border border-[#333] rounded-lg p-6"
+        >
           {selectedInstances.length > 0 && (
             <div className="mb-4 flex flex-col gap-3 rounded-lg border border-[#3b3320] bg-[#1b1710] px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
               <p className="text-[#FFD700]">
-                {selectedInstances.length} material{selectedInstances.length === 1 ? "" : "s"}{" "}
-                selected for printing.
+                {t("materialInstances.selectedForPrint", { count: selectedInstances.length })}
               </p>
               <div className="flex flex-wrap gap-2">
                 <button
@@ -612,14 +658,14 @@ export const MaterialInstanceCatalog: React.FC = () => {
                   onClick={() => handleOpenBarcodePrintModal(selectedInstances)}
                   className="rounded-lg border border-[#FFD700]/35 bg-[#FFD700]/10 px-3 py-2 font-semibold text-[#FFD700] transition-colors hover:bg-[#FFD700]/16"
                 >
-                  Print Selected
+                  {t("materialInstances.printSelectedBtn")}
                 </button>
                 <button
                   type="button"
                   onClick={() => setSelectedInstanceIds([])}
                   className="rounded-lg border border-[#333] bg-[#1a1a1a] px-3 py-2 text-gray-300 transition-colors hover:bg-[#202020] hover:text-white"
                 >
-                  Clear Selection
+                  {t("materialInstances.clearSelection")}
                 </button>
               </div>
             </div>
@@ -633,8 +679,8 @@ export const MaterialInstanceCatalog: React.FC = () => {
             onEdit={() => {
               showToast(
                 "info",
-                "Edit flow for instance data is not available yet. Use View for details.",
-                "Coming Soon",
+                t("materialInstances.toast.editComingSoon"),
+                t("materialInstances.toast.editComingSoonTitle"),
               );
             }}
             onDelete={handleDelete}
@@ -648,7 +694,7 @@ export const MaterialInstanceCatalog: React.FC = () => {
               totalPages={totalPages}
               totalItems={filteredInstances.length}
               pageSize={pageSize}
-              itemLabel="instances"
+              itemLabel={t("materialInstances.paginationLabel")}
               onPageChange={setPage}
             />
           </div>
@@ -660,7 +706,9 @@ export const MaterialInstanceCatalog: React.FC = () => {
             <div className="bg-[#121212] border border-[#333] rounded-xl w-full max-w-2xl overflow-hidden shadow-2xl">
               <div className="flex items-center justify-between px-6 py-4 border-b border-[#333]">
                 <h2 className="text-xl font-bold text-white">
-                  {formInitialData?.barcode ? "Register Scanned Barcode" : "New Material Instance"}
+                  {formInitialData?.barcode
+                    ? t("materialInstances.registerBarcode")
+                    : t("materialInstances.newInstanceModal")}
                 </h2>
                 <button
                   onClick={() => {
@@ -691,7 +739,9 @@ export const MaterialInstanceCatalog: React.FC = () => {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
             <div className="bg-[#121212] border border-[#333] rounded-xl w-full max-w-xl overflow-hidden shadow-2xl">
               <div className="flex items-center justify-between px-6 py-4 border-b border-[#333]">
-                <h2 className="text-xl font-bold text-white">Requirements Missing</h2>
+                <h2 className="text-xl font-bold text-white">
+                  {t("materialInstances.requirementsTitle")}
+                </h2>
                 <button
                   onClick={() => setIsDependencyModalOpen(false)}
                   className="p-2 text-gray-400 hover:text-white transition-colors"
@@ -705,10 +755,10 @@ export const MaterialInstanceCatalog: React.FC = () => {
                   <AlertTriangle className="text-[#FFD700] mt-0.5" size={22} />
                   <div>
                     <p className="text-white font-semibold mb-2">
-                      You need setup data before creating a material instance.
+                      {t("materialInstances.requirementsMessage")}
                     </p>
                     <p className="text-gray-300 text-sm">
-                      Create the following first, then return and click New Instance again.
+                      {t("materialInstances.requirementsHint")}
                     </p>
                   </div>
                 </div>
@@ -716,12 +766,12 @@ export const MaterialInstanceCatalog: React.FC = () => {
                 <div className="space-y-2 mb-6">
                   {!hasMaterialTypes && (
                     <div className="text-sm text-red-300 bg-[#2a1f1f] border border-[#4a2a2a] rounded-lg px-3 py-2">
-                      Missing: at least one Material Type
+                      {t("materialInstances.missingTypes")}
                     </div>
                   )}
                   {!hasLocations && (
                     <div className="text-sm text-red-300 bg-[#2a1f1f] border border-[#4a2a2a] rounded-lg px-3 py-2">
-                      Missing: at least one Location
+                      {t("materialInstances.missingLocations")}
                     </div>
                   )}
                 </div>
@@ -735,7 +785,7 @@ export const MaterialInstanceCatalog: React.FC = () => {
                       }}
                       className="px-5 py-2.5 font-semibold rounded-lg transition-colors gold-action-btn"
                     >
-                      Go to Material Types
+                      {t("materialInstances.goToTypes")}
                     </button>
                   )}
                   {!hasLocations && (
@@ -746,14 +796,14 @@ export const MaterialInstanceCatalog: React.FC = () => {
                       }}
                       className="px-5 py-2.5 font-semibold rounded-lg transition-colors gold-action-btn"
                     >
-                      Go to Locations
+                      {t("materialInstances.goToLocations")}
                     </button>
                   )}
                   <button
                     onClick={() => setIsDependencyModalOpen(false)}
                     className="px-5 py-2.5 bg-transparent text-gray-300 border border-[#333] rounded-lg hover:bg-[#222] transition-colors"
                   >
-                    Close
+                    {t("common.close")}
                   </button>
                 </div>
               </div>

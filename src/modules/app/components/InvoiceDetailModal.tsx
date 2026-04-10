@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { FileText, X, DollarSign } from "lucide-react";
 import { useLanguage } from "../../../contexts/useLanguage";
-import { LoadingSpinner, ErrorDisplay } from "../../../components/ui";
+import { LoadingSpinner, ErrorDisplay, EntityLink } from "../../../components/ui";
 import Button from "../../../components/ui/Button";
 import { getInvoiceById } from "../../../services/invoiceService";
 import type { Invoice, InvoiceCustomer } from "../../../types/api";
@@ -174,7 +174,15 @@ export function InvoiceDetailModal({
                 </div>
                 <div className="bg-[#1a1a1a] border border-[#222] rounded-lg p-4">
                   <p className="text-gray-400 text-xs mb-1">{isEs ? "Cliente" : "Customer"}</p>
-                  <p className="text-white text-sm">{getCustomerName(detail.customerId)}</p>
+                  <EntityLink
+                    entityType="customer"
+                    entityId={
+                      typeof detail.customerId === "object"
+                        ? detail.customerId._id
+                        : detail.customerId
+                    }
+                    label={getCustomerName(detail.customerId)}
+                  />
                 </div>
                 {detail.dueDate && (
                   <div className="bg-[#1a1a1a] border border-[#222] rounded-lg p-4">

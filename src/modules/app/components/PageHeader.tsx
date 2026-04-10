@@ -16,7 +16,6 @@ export const PageHeader: React.FC = () => {
       "/app/team": isEs ? "Equipo" : "Team",
       "/app/roles": isEs ? "Gestión de Roles" : "Role Management",
       "/app/subscription": isEs ? "Suscripción" : "Subscription",
-      "/app/ia-settings": isEs ? "Configuración IA" : "IA Settings",
       "/app/settings": isEs ? "Configuración" : "Settings",
       "/app/material-categories": isEs ? "Categorías de Material" : "Material Categories",
       "/app/material-types": isEs ? "Tipos de Material" : "Material Types",

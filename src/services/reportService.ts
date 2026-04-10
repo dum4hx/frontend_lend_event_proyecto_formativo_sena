@@ -8,11 +8,11 @@
 import { get, type ApiSuccessResponse } from "../lib/api";
 import type {
   ReportsQueryParams,
-  ReportsLoansResponse,
-  ReportsInventoryResponse,
-  ReportsFinancialResponse,
-  ReportsDamagesResponse,
-  ReportsTransfersResponse,
+  ReportsLoansData,
+  ReportsInventoryData,
+  ReportsFinancialData,
+  ReportsDamagesData,
+  ReportsTransfersData,
 } from "../types/api";
 
 type QueryRecord = Record<string, string | number | boolean | undefined>;
@@ -24,34 +24,34 @@ function toQueryRecord(params: ReportsQueryParams): QueryRecord {
 /** Fetch loans report. */
 export async function getLoansReport(
   params: ReportsQueryParams = {},
-): Promise<ApiSuccessResponse<ReportsLoansResponse>> {
-  return get<ReportsLoansResponse>("/reports/loans", toQueryRecord(params));
+): Promise<ApiSuccessResponse<ReportsLoansData>> {
+  return get<ReportsLoansData>("/reports/loans", toQueryRecord(params));
 }
 
 /** Fetch inventory report. */
 export async function getInventoryReport(
   params: ReportsQueryParams = {},
-): Promise<ApiSuccessResponse<ReportsInventoryResponse>> {
-  return get<ReportsInventoryResponse>("/reports/inventory", toQueryRecord(params));
+): Promise<ApiSuccessResponse<ReportsInventoryData>> {
+  return get<ReportsInventoryData>("/reports/inventory", toQueryRecord(params));
 }
 
 /** Fetch financial report. */
 export async function getFinancialReport(
   params: ReportsQueryParams = {},
-): Promise<ApiSuccessResponse<ReportsFinancialResponse>> {
-  return get<ReportsFinancialResponse>("/reports/financial", toQueryRecord(params));
+): Promise<ApiSuccessResponse<ReportsFinancialData>> {
+  return get<ReportsFinancialData>("/reports/financial", toQueryRecord(params));
 }
 
 /** Fetch damages report. */
 export async function getDamagesReport(
   params: ReportsQueryParams = {},
-): Promise<ApiSuccessResponse<ReportsDamagesResponse>> {
-  return get<ReportsDamagesResponse>("/reports/damages", toQueryRecord(params));
+): Promise<ApiSuccessResponse<ReportsDamagesData>> {
+  return get<ReportsDamagesData>("/reports/damages", toQueryRecord(params));
 }
 
 /** Fetch transfers report. */
 export async function getTransfersReport(
   params: ReportsQueryParams = {},
-): Promise<ApiSuccessResponse<ReportsTransfersResponse>> {
-  return get<ReportsTransfersResponse>("/reports/transfers", toQueryRecord(params));
+): Promise<ApiSuccessResponse<ReportsTransfersData>> {
+  return get<ReportsTransfersData>("/reports/transfers", toQueryRecord(params));
 }

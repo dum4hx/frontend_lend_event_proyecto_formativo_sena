@@ -16,10 +16,11 @@ afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
 describe("loginUser()", () => {
-  it("returns user data on success", async () => {
+  it("returns pendingOtp data on success", async () => {
     const res = await loginUser({ email: "test@test.com", password: "pass" });
     expect(res.status).toBe("success");
-    expect(res.data.user.email).toBe("test@test.com");
+    expect(res.data.pendingOtp).toBe(true);
+    expect(res.data.email).toBe("test@test.com");
   });
 
   it("throws ApiError on invalid credentials", async () => {

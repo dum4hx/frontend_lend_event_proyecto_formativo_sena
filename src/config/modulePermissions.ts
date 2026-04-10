@@ -80,13 +80,6 @@ export const allNavItems: NavItem[] = [
     section: "Organization",
   },
   {
-    id: "ia-settings",
-    label: "IA Settings",
-    path: "/app/ia-settings",
-    requiredPermissions: ["organization:update"],
-    section: "Organization",
-  },
-  {
     id: "settings",
     label: "Settings",
     path: "/app/settings",
@@ -127,21 +120,21 @@ export const allNavItems: NavItem[] = [
     id: "attributes",
     label: "Attributes",
     path: "/app/attributes",
-    requiredPermissions: ["materials:read"],
+    requiredPermissions: ["material_attributes:read"],
     section: "Materials",
   },
   {
     id: "plans",
     label: "Material Plans",
     path: "/app/plans",
-    requiredPermissions: ["materials:read"],
+    requiredPermissions: ["packages:read"],
     section: "Materials",
   },
   {
     id: "transfer-requests",
     label: "Transfer Requests",
     path: "/app/transfer-requests",
-    requiredPermissions: ["transfers:read", "transfers:create"],
+    requiredPermissions: ["transfers:read"],
     section: "Materials",
   },
 
@@ -157,14 +150,14 @@ export const allNavItems: NavItem[] = [
     id: "locations",
     label: "Locations",
     path: "/app/locations",
-    requiredPermissions: ["materials:read"],
+    requiredPermissions: ["locations:read", "locations:create", "locations:update"],
     section: "Warehouse",
   },
   {
     id: "inspections",
     label: "Inspections",
     path: "/app/inspections",
-    requiredPermissions: ["inspections:read", "inspections:create"],
+    requiredPermissions: ["inspections:read"],
     section: "Warehouse",
   },
   {
@@ -172,6 +165,13 @@ export const allNavItems: NavItem[] = [
     label: "Incidents",
     path: "/app/incidents",
     requiredPermissions: ["incidents:read"],
+    section: "Warehouse",
+  },
+  {
+    id: "maintenance",
+    label: "Maintenance",
+    path: "/app/maintenance",
+    requiredPermissions: ["maintenance:read"],
     section: "Warehouse",
   },
 
@@ -218,6 +218,13 @@ export const allNavItems: NavItem[] = [
     requiredPermissions: ["payment_methods:read"],
     section: "Commerce",
   },
+  {
+    id: "code-schemes",
+    label: "Code Schemes",
+    path: "/app/settings/code-schemes",
+    requiredPermissions: ["code_schemes:read"],
+    section: "Commerce",
+  },
 
   // -- /super-admin (separate module, kept here for getNavItemsByPrefix) --
   {
@@ -249,11 +256,11 @@ export const allNavItems: NavItem[] = [
     section: "Management",
   },
   {
-    id: "ai-monitor",
-    label: "AI Chatbot Monitor",
-    path: "/super-admin/ai-monitor",
+    id: "sa-reports",
+    label: "Reports",
+    path: "/super-admin/reports",
     requiredPermissions: ["platform:manage"],
-    section: "Monitoring",
+    section: "Management",
   },
   {
     id: "sa-settings",

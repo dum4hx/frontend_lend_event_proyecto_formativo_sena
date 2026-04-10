@@ -5,25 +5,31 @@
  */
 
 import { get, post, type ApiSuccessResponse } from "../lib/api";
-import type { Inspection, CreateInspectionPayload, PendingLoan } from "../types/api";
+import type {
+  Inspection,
+  InspectionListItem,
+  InspectionsQueryParams,
+  CreateInspectionPayload,
+  PendingLoan,
+} from "../types/api";
 
 // ─── List ──────────────────────────────────────────────────────────────────
 
-/** List all inspections. */
-export async function getInspections(): Promise<
+/** List all inspections with optional filters. */
+export async function getInspections(params: InspectionsQueryParams = {}): Promise<
   ApiSuccessResponse<{
-    inspections: Inspection[];
+    inspections: InspectionListItem[];
     total: number;
     page: number;
     totalPages: number;
   }>
 > {
   return get<{
-    inspections: Inspection[];
+    inspections: InspectionListItem[];
     total: number;
     page: number;
     totalPages: number;
-  }>("/inspections");
+  }>("/inspections", params as Record<string, string | number | boolean | undefined>);
 }
 
 /** List all loans that have been returned but not yet inspected. */

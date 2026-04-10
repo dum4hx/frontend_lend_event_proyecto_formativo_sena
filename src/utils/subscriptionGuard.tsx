@@ -43,7 +43,7 @@ export function RequireActiveSubscription({
       }
 
       // Owners: enforce active subscription via API
-      if (user?.roleName === "owner") {
+      if (user?.roleName.toLowerCase() === "propietario") {
         try {
           const res = await getPaymentStatus();
           if (!res.data.isActive) {

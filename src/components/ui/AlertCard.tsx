@@ -24,8 +24,8 @@ import {
   type KeyboardEvent,
 } from "react";
 import { CheckCircle2, Info, AlertTriangle, XCircle, X } from "lucide-react";
-import { EXPORT_I18N } from "../../types/export";
 import IconButton from "./IconButton";
+import { useLanguage } from "../../contexts/useLanguage";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -173,7 +173,8 @@ export function AlertCard({
   if (!isVisible) return null;
 
   const Icon = ICONS[type];
-  const ariaLabel = title ?? EXPORT_I18N[`alert.${type}`] ?? type;
+  const { t } = useLanguage();
+  const ariaLabel = title ?? t(`alert.${type}`) ?? type;
 
   return (
     <div
@@ -214,7 +215,7 @@ export function AlertCard({
           intent="close"
           className="alert-card__close !p-1"
           onClick={dismiss}
-          ariaLabel={EXPORT_I18N["alert.dismiss"]}
+          ariaLabel={t("alert.dismiss")}
           tabIndex={0}
         />
       </div>

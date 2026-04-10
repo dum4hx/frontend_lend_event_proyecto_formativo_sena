@@ -1,8 +1,8 @@
 /**
  * Incident service.
  *
- * Manages incident reports (novedades) linked to loans — damage, loss,
- * overdue, and other notable events in the loan lifecycle.
+ * Manages incident reports (novedades) across loan operations, transit,
+ * storage, maintenance, and other operational contexts.
  */
 
 import { get, post, type ApiSuccessResponse } from "../lib/api";

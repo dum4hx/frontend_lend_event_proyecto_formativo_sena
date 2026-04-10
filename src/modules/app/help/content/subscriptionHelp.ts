@@ -18,6 +18,20 @@ const subscriptionHelpContent: HelpModuleContent = {
         es: "Aqui controlas el estado de tu plan y su impacto economico y operativo.",
         en: "Here you control plan status and its financial and operational impact.",
       },
+      howTo: [
+        {
+          es: "Abre el modulo de Suscripcion desde el menu de configuracion.",
+          en: "Open the Subscription module from the settings menu.",
+        },
+        {
+          es: "Revisa las tarjetas de metricas: plan actual, asientos y fecha de renovacion.",
+          en: "Review the metrics cards: current plan, seats, and renewal date.",
+        },
+        {
+          es: "Consulta el historial de facturacion antes de hacer cualquier cambio de plan.",
+          en: "Check billing history before making any plan changes.",
+        },
+      ],
       tips: [
         {
           es: "Revisa el historial antes de cambiar plan para entender tendencia de costos.",
@@ -29,9 +43,23 @@ const subscriptionHelpContent: HelpModuleContent = {
       id: "functions",
       title: { es: "Funciones clave", en: "Key functions" },
       body: {
-        es: "Puedes exportar historial, abrir portal de facturacion, ajustar asientos, cambiar plan y cancelar suscripcion.",
-        en: "You can export history, open billing portal, adjust seats, change plan, and cancel subscription.",
+        es: "Puedes exportar historial, abrir portal de facturacion, ajustar asientos, cambiar plan y cancelar suscripcion. Las mejoras de plan se aplican de inmediato; las degradaciones se programan al final del periodo y pueden cancelarse.",
+        en: "You can export history, open billing portal, adjust seats, change plan, and cancel subscription. Upgrades take effect immediately; downgrades are scheduled at period end and can be cancelled.",
       },
+      howTo: [
+        {
+          es: "Para ajustar asientos: usa el control de asientos en las opciones del plan activo.",
+          en: "To adjust seats: use the seat control in the active plan options.",
+        },
+        {
+          es: "Para ver historial de facturacion: haz clic en exportar historial y guarda el CSV.",
+          en: "To view billing history: click export history and save the CSV.",
+        },
+        {
+          es: "Para cambiar de plan: usa la seccion de comparacion de planes y selecciona el nuevo.",
+          en: "To change plan: use the plan comparison section and select the new one.",
+        },
+      ],
       bestPractices: [
         {
           es: "Ajusta asientos segun uso real para optimizar costo mensual.",
@@ -46,6 +74,24 @@ const subscriptionHelpContent: HelpModuleContent = {
         es: "Flujo recomendado: revisa metricas, ajusta asientos, compara planes y finalmente valida historial exportado.",
         en: "Recommended flow: review metrics, adjust seats, compare plans, then validate exported billing history.",
       },
+      howTo: [
+        {
+          es: "Revisa las tarjetas de metricas para entender el uso actual de asientos y costo.",
+          en: "Review the metrics cards to understand current seat usage and cost.",
+        },
+        {
+          es: "Ajusta el numero de asientos al uso real del equipo para evitar sobrecostos.",
+          en: "Adjust the number of seats to actual team usage to avoid overcharges.",
+        },
+        {
+          es: "Compara las opciones de plan disponibles antes de tomar la decision de cambio.",
+          en: "Compare available plan options before making the change decision.",
+        },
+        {
+          es: "Exporta el historial de facturacion y guardalo como respaldo despues de los cambios.",
+          en: "Export the billing history and save it as a backup after the changes.",
+        },
+      ],
       warnings: [
         {
           es: "Cambios de plan y cancelacion pueden afectar acceso a funciones premium.",
@@ -60,6 +106,20 @@ const subscriptionHelpContent: HelpModuleContent = {
         es: "Error frecuente: aumentar asientos sin evaluar demanda real. Usa historial y uso actual como referencia.",
         en: "Common mistake: increasing seats without evaluating real demand. Use history and current usage as reference.",
       },
+      howTo: [
+        {
+          es: "Antes de agregar asientos, revisa cuantos estan actualmente en uso en las metricas.",
+          en: "Before adding seats, review how many are currently in use in the metrics.",
+        },
+        {
+          es: "Consulta el historial exportado para ver si el uso ha sido consistente en periodos anteriores.",
+          en: "Check the exported history to see if usage has been consistent in previous periods.",
+        },
+        {
+          es: "Para cancelacion: confirma el impacto en automatizaciones y acceso antes de proceder.",
+          en: "For cancellation: confirm the impact on automations and access before proceeding.",
+        },
+      ],
     },
   ],
   walkthrough: [
@@ -98,10 +158,36 @@ const subscriptionHelpContent: HelpModuleContent = {
       id: "step-4-plans",
       title: { es: "4) Evalua planes", en: "4) Evaluate plans" },
       body: {
-        es: "Compara planes disponibles y selecciona el mas alineado a capacidad y presupuesto.",
-        en: "Compare available plans and select the one aligned with capacity and budget.",
+        es: "Compara planes disponibles y selecciona el mas alineado a capacidad y presupuesto. Los planes dinamicos muestran un desglose de costos estimado basado en tus asientos actuales.",
+        en: "Compare available plans and select the one aligned with capacity and budget. Dynamic plans show an estimated cost breakdown based on your current seats.",
       },
       targetSelector: '[data-help-id="subscription-plans"]',
+    },
+    {
+      id: "step-4b-cost-preview",
+      title: { es: "4b) Vista previa de costos", en: "4b) Cost preview" },
+      body: {
+        es: "Para planes con modelo por asiento, se calcula automaticamente el costo estimado mensual usando el numero actual de asientos de tu organizacion.",
+        en: "For per-seat plans, the estimated monthly cost is automatically calculated using your organization's current seat count.",
+      },
+      targetSelector: '[data-help-id="plan-cost-preview"]',
+      tip: {
+        es: "Revisa el desglose antes de hacer checkout para evitar sorpresas en la factura.",
+        en: "Review the breakdown before checkout to avoid billing surprises.",
+      },
+    },
+    {
+      id: "step-4c-pending-change",
+      title: { es: "4c) Cambio de plan pendiente", en: "4c) Pending plan change" },
+      body: {
+        es: "Las mejoras de plan se aplican inmediatamente. Las degradaciones se programan al final del periodo de facturacion actual. Si hay un cambio pendiente, aparecera un banner que permite cancelarlo antes de que se aplique.",
+        en: "Plan upgrades take effect immediately. Downgrades are scheduled at the end of the current billing period. If there is a pending change, a banner will appear allowing you to cancel it before it takes effect.",
+      },
+      targetSelector: '[data-help-id="subscription-pending-change"]',
+      tip: {
+        es: "Puedes cancelar un cambio pendiente en cualquier momento antes de la fecha efectiva.",
+        en: "You can cancel a pending change at any time before the effective date.",
+      },
     },
     {
       id: "step-5-danger",

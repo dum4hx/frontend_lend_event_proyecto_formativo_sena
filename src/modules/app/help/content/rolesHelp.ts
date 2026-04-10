@@ -152,6 +152,20 @@ const rolesHelpContent: HelpModuleContent = {
         es: "Aqui puedes crear, editar y eliminar roles personalizados, y revisar cobertura de permisos frente al catalogo disponible.",
         en: "Here you can create, edit, and delete custom roles, and review permission coverage against the available catalog.",
       },
+      howTo: [
+        {
+          es: "Abre el modulo desde Gestion > Roles.",
+          en: "Open the module from Management > Roles.",
+        },
+        {
+          es: "Revisa las tarjetas de metricas para entender cobertura y salud del modelo de permisos.",
+          en: "Review the metrics cards to understand permission model health and coverage.",
+        },
+        {
+          es: "Haz clic en 'Nuevo rol' para abrir el formulario y definir nombre y permisos del rol.",
+          en: "Click 'New role' to open the form and define the role name and permissions.",
+        },
+      ],
       tips: [
         {
           es: "Mantener pocos roles bien definidos facilita auditoria y soporte.",
@@ -166,6 +180,20 @@ const rolesHelpContent: HelpModuleContent = {
         es: "Puedes buscar roles, ordenar por nombre/tipo/permisos, ajustar paginacion y ver permisos por rol.",
         en: "You can search roles, sort by name/type/permissions, adjust pagination, and preview role permissions.",
       },
+      howTo: [
+        {
+          es: "Para ver permisos: haz clic en el icono de vista de un rol para ver su cobertura detallada.",
+          en: "To view permissions: click the view icon on a role to see its detailed coverage.",
+        },
+        {
+          es: "Para editar: localiza el rol custom y usa la accion de edicion para actualizar nombre o permisos.",
+          en: "To edit: locate the custom role and use the edit action to update name or permissions.",
+        },
+        {
+          es: "Para eliminar: confirma que el rol no tiene usuarios asignados antes de proceder.",
+          en: "To delete: confirm the role has no assigned users before proceeding.",
+        },
+      ],
       bestPractices: [
         {
           es: "Usa roles de sistema como referencia y crea roles custom solo cuando sea necesario.",
@@ -180,6 +208,24 @@ const rolesHelpContent: HelpModuleContent = {
         es: "Flujo recomendado: revisa metricas, filtra y ordena, valida permisos del rol y luego aplica edicion o creacion.",
         en: "Recommended flow: review metrics, filter and sort, validate role permissions, then apply edit or creation.",
       },
+      howTo: [
+        {
+          es: "Revisa las tarjetas de metricas para detectar cobertura baja o roles sin permisos.",
+          en: "Review the metrics cards to detect low coverage or roles without permissions.",
+        },
+        {
+          es: "Filtra por tipo (sistema/custom) para enfocar la revision donde apliques cambios.",
+          en: "Filter by type (system/custom) to focus review where you apply changes.",
+        },
+        {
+          es: "Abre el detalle de permisos del rol antes de editar para entender su alcance actual.",
+          en: "Open the role permissions detail before editing to understand its current scope.",
+        },
+        {
+          es: "Aplica la edicion o crea un nuevo rol con los permisos necesarios.",
+          en: "Apply the edit or create a new role with the required permissions.",
+        },
+      ],
       warnings: [
         {
           es: "Eliminar un rol puede afectar acceso de usuarios asignados.",
@@ -194,6 +240,58 @@ const rolesHelpContent: HelpModuleContent = {
         es: "Error frecuente: crear roles muy similares. Prefiere consolidar para reducir complejidad operativa.",
         en: "Common mistake: creating highly similar roles. Prefer consolidation to reduce operational complexity.",
       },
+      howTo: [
+        {
+          es: "Busca por nombre antes de crear para verificar que no exista un rol equivalente.",
+          en: "Search by name before creating to verify an equivalent role doesn't already exist.",
+        },
+        {
+          es: "Compara permisos entre roles similares antes de consolidar; usa la vista de permisos para hacerlo.",
+          en: "Compare permissions between similar roles before consolidating; use the permissions view to do so.",
+        },
+        {
+          es: "Si identificas duplicados, asigna los usuarios al rol que continuara y elimina el redundante.",
+          en: "If you identify duplicates, reassign users to the surviving role and delete the redundant one.",
+        },
+      ],
+    },
+    {
+      id: "permission-dependencies",
+      title: { es: "Dependencias de permisos", en: "Permission dependencies" },
+      body: {
+        es: "Algunos permisos requieren otros para funcionar correctamente. El formulario de rol muestra estas dependencias y te avisa cuando faltan permisos requeridos.",
+        en: "Some permissions require others to work correctly. The role form shows these dependencies and warns you when required permissions are missing.",
+      },
+      howTo: [
+        {
+          es: "Al seleccionar un permiso, busca el indicador de dependencias (icono de eslabón) junto al nombre.",
+          en: "When selecting a permission, look for the dependency indicator (link icon) next to the name.",
+        },
+        {
+          es: "Haz clic en el indicador para expandir la lista de permisos requeridos.",
+          en: "Click the indicator to expand the list of required permissions.",
+        },
+        {
+          es: "Los permisos satisfechos se muestran en verde; los faltantes en ámbar con opción para agregarlos.",
+          en: "Satisfied permissions appear in green; missing ones in amber with an option to add them.",
+        },
+        {
+          es: "Usa el botón '+ Agregar requeridos' para añadir automáticamente los permisos faltantes.",
+          en: "Use the '+ Add required' button to automatically add missing permissions.",
+        },
+      ],
+      tips: [
+        {
+          es: "Si ves un borde ámbar alrededor de un permiso, significa que tiene dependencias no satisfechas.",
+          en: "If you see an amber border around a permission, it means it has unsatisfied dependencies.",
+        },
+      ],
+      warnings: [
+        {
+          es: "Asignar un permiso sin sus dependencias puede causar errores funcionales para el usuario con ese rol.",
+          en: "Assigning a permission without its dependencies can cause functional errors for users with that role.",
+        },
+      ],
     },
   ],
   walkthrough: [
@@ -249,6 +347,19 @@ const rolesHelpContent: HelpModuleContent = {
         en: "Pagination helps you review all roles as the catalog grows.",
       },
       targetSelector: '[data-help-id="roles-pagination"]',
+    },
+    {
+      id: "step-6-dependencies",
+      title: { es: "6) Revisa dependencias de permisos", en: "6) Review permission dependencies" },
+      body: {
+        es: "Al crear o editar un rol, cada permiso muestra sus dependencias con un indicador de eslabón. Expándelo para ver qué permisos adicionales se requieren y si ya están incluidos en el rol.",
+        en: "When creating or editing a role, each permission shows its dependencies with a link indicator. Expand it to see which additional permissions are required and whether they are already included in the role.",
+      },
+      targetSelector: '[data-help-id="roles-form-permissions"]',
+      tip: {
+        es: "Los permisos con dependencias faltantes muestran un borde ámbar. Usa '+ Agregar requeridos' para resolverlo rápidamente.",
+        en: "Permissions with missing dependencies show an amber border. Use '+ Add required' to resolve it quickly.",
+      },
     },
   ],
   formGuides: rolesFormGuides,

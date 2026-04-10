@@ -9,14 +9,19 @@
 
 import React, { useRef } from "react";
 import { Download, Upload } from "lucide-react";
-import * as XLSX from "xlsx";
+import * as XLSX from "xlsx-js-style";
 import { Button } from "../ui";
+import { useLanguage } from "../../contexts/useLanguage";
 
 interface ExcelExportImportProps {
   data: Record<string, unknown>[];
   filename: string;
   onImport?: (data: Record<string, unknown>[]) => void;
   showLabels?: boolean;
+  /** When true the import button is visually and functionally disabled. */
+  importDisabled?: boolean;
+  /** Callback fired when the disabled import button is clicked (e.g. to show a toast). */
+  onImportDenied?: () => void;
 }
 
 /**
@@ -53,7 +58,10 @@ export const ExcelExportImport: React.FC<ExcelExportImportProps> = ({
   filename,
   onImport,
   showLabels = true,
+  importDisabled = false,
+  onImportDenied,
 }) => {
+  const { t } = useLanguage();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   /**
@@ -136,17 +144,28 @@ export const ExcelExportImport: React.FC<ExcelExportImportProps> = ({
   return (
     <div className="flex gap-2">
       {/* Export Button - Unified Design System */}
-      <Button onClick={handleExport} title="Export data as Excel">
+      <Button onClick={handleExport} title={t("common.exportTooltip")}>
         <Download size={18} />
-        {showLabels && "Export"}
+        {showLabels && t("common.export")}
       </Button>
 
       {/* Import Button - Unified Design System */}
       {onImport && (
         <>
-          <Button onClick={() => fileInputRef.current?.click()} title="Import data from Excel">
+          <Button
+            onClick={() => {
+              if (importDisabled) {
+                onImportDenied?.();
+                return;
+              }
+              fileInputRef.current?.click();
+            }}
+            aria-disabled={importDisabled}
+            className={importDisabled ? "opacity-50 cursor-not-allowed" : ""}
+            title={t("common.importTooltip")}
+          >
             <Upload size={18} />
-            {showLabels && "Import"}
+            {showLabels && t("common.import")}
           </Button>
           <input
             ref={fileInputRef}

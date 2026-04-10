@@ -10,8 +10,10 @@ export interface DashboardStats {
   activeLoans: number;
   overdueLoans: number;
   paidInvoicesTotal: number;
+  paidInvoicesCount: number;
   pendingInvoicesTotal: number;
   pendingInvoicesCount: number;
+  overdueInvoicesCount: number;
   recentRequests: LoanRequest[];
   recentOverdueLoans: Loan[];
   /** Timestamp captured at fetch time — safe to use in render without triggering impure-function lint rule */
@@ -48,16 +50,16 @@ export function useDashboardStats() {
         activeLoans: activeLoansRes.data.total,
         overdueLoans: overdueLoansRes.data.total,
         paidInvoicesTotal: invoicesRes.data.paid.total,
+        paidInvoicesCount: invoicesRes.data.paid.count,
         pendingInvoicesTotal: invoicesRes.data.pending.total,
         pendingInvoicesCount: invoicesRes.data.pending.count,
+        overdueInvoicesCount: invoicesRes.data.overdueCount,
         recentRequests: pendingRequestsRes.data.requests ?? [],
         recentOverdueLoans: overdueLoansListRes.data.loans ?? [],
         fetchedAt: Date.now(),
       });
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to load dashboard data",
-      );
+      setError(err instanceof Error ? err.message : "Failed to load dashboard data");
     } finally {
       setLoading(false);
     }

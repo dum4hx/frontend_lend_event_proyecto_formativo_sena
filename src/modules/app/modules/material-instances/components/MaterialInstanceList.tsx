@@ -1,8 +1,11 @@
 import React, { useEffect, useRef } from "react";
 import { Eye, Edit, Printer, Trash2 } from "lucide-react";
-import { type MaterialInstance, MATERIAL_INSTANCE_STATUS_LABELS } from "../../../../../types/api";
+import type { MaterialInstance } from "../../../../../types/api";
 import { AdminTable } from "../../../components";
 import { MaterialBarcode } from "./MaterialBarcode";
+import { useLanguage } from "../../../../../contexts/useLanguage";
+import { getMaterialInstanceStatusLabel } from "../../../../../utils/statusLabels";
+import { PermissionGuardedButton } from "../../../../../components/ui";
 
 interface MaterialInstanceListProps {
   instances: MaterialInstance[];
@@ -27,6 +30,7 @@ export const MaterialInstanceList: React.FC<MaterialInstanceListProps> = ({
   onToggleSelect,
   onToggleSelectAll,
 }) => {
+  const { t, language } = useLanguage();
   const selectAllRef = useRef<HTMLInputElement | null>(null);
 
   const getStatusColor = (status: string) => {
@@ -59,7 +63,7 @@ export const MaterialInstanceList: React.FC<MaterialInstanceListProps> = ({
   if (instances.length === 0) {
     return (
       <div className="text-center py-12 text-gray-400">
-        <p>No material instances found. Create your first instance to get started.</p>
+        <p>{t("materialInstances.list.emptyMessage")}</p>
       </div>
     );
   }
@@ -78,14 +82,26 @@ export const MaterialInstanceList: React.FC<MaterialInstanceListProps> = ({
               aria-label="Select all visible material instances"
             />
           </th>
-          <th className="text-left py-4 px-4 text-gray-400 font-semibold">Serial Number</th>
           <th className="text-left py-4 px-4 text-gray-400 font-semibold">
-            {showBarcodePreview ? "Barcode Preview" : "Barcode"}
+            {t("materialInstances.list.serialNumber")}
           </th>
-          <th className="text-left py-4 px-4 text-gray-400 font-semibold">Material Type</th>
-          <th className="text-left py-4 px-4 text-gray-400 font-semibold">Location</th>
-          <th className="text-left py-4 px-4 text-gray-400 font-semibold">Status</th>
-          <th className="text-right py-4 px-4 text-gray-400 font-semibold">Actions</th>
+          <th className="text-left py-4 px-4 text-gray-400 font-semibold">
+            {showBarcodePreview
+              ? t("materialInstances.list.barcodePreview")
+              : t("materialInstances.list.barcode")}
+          </th>
+          <th className="text-left py-4 px-4 text-gray-400 font-semibold">
+            {t("materialInstances.list.materialType")}
+          </th>
+          <th className="text-left py-4 px-4 text-gray-400 font-semibold">
+            {t("materialInstances.list.location")}
+          </th>
+          <th className="text-left py-4 px-4 text-gray-400 font-semibold">
+            {t("materialInstances.list.status")}
+          </th>
+          <th className="text-right py-4 px-4 text-gray-400 font-semibold">
+            {t("materialInstances.list.actions")}
+          </th>
         </tr>
       </thead>
       <tbody>
@@ -116,7 +132,7 @@ export const MaterialInstanceList: React.FC<MaterialInstanceListProps> = ({
                   />
                   {!instance.barcode && (
                     <span className="inline-flex rounded-full border border-[#4a4330] bg-[#2b2412] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#FFD700]">
-                      Using serial
+                      {t("materialInstances.list.usingSerial")}
                     </span>
                   )}
                 </div>
@@ -128,7 +144,7 @@ export const MaterialInstanceList: React.FC<MaterialInstanceListProps> = ({
             <td className="py-4 px-4 text-gray-400">{instance.locationId?.name || "Unknown"}</td>
             <td className="py-4 px-4">
               <span className={`font-semibold ${getStatusColor(instance.status)}`}>
-                {MATERIAL_INSTANCE_STATUS_LABELS[instance.status]}
+                {getMaterialInstanceStatusLabel(instance.status, language)}
               </span>
             </td>
             <td className="py-4 px-4">
@@ -137,42 +153,46 @@ export const MaterialInstanceList: React.FC<MaterialInstanceListProps> = ({
                   type="button"
                   onClick={() => onView(instance)}
                   className="p-2 text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors"
-                  title="View Details"
-                  aria-label={`View details for instance ${instance.serialNumber}`}
+                  title={t("materialInstances.list.viewDetails")}
+                  aria-label={t("materialInstances.list.viewDetailsAria", {
+                    serial: instance.serialNumber,
+                  })}
                 >
                   <Eye size={18} />
                 </button>
                 {onEdit && (
-                  <button
-                    type="button"
+                  <PermissionGuardedButton
+                    icon={Edit}
+                    intent="edit"
+                    ariaLabel={t("materialInstances.list.editAria", {
+                      serial: instance.serialNumber,
+                    })}
+                    requiredPermission="materials:update"
                     onClick={() => onEdit(instance)}
-                    className="p-2 text-[#FFD700] hover:bg-[#FFD700]/10 rounded-lg transition-colors"
-                    title="Edit Status"
-                    aria-label={`Edit instance ${instance.serialNumber}`}
-                  >
-                    <Edit size={18} />
-                  </button>
+                  />
                 )}
                 {onPrint && (
                   <button
                     type="button"
                     onClick={() => onPrint(instance)}
                     className="p-2 text-gray-300 border border-[#3b3b3b] hover:bg-white/5 rounded-lg transition-colors"
-                    title="Print Barcode"
-                    aria-label={`Print barcode for instance ${instance.serialNumber}`}
+                    title={t("materialInstances.list.printBarcode")}
+                    aria-label={t("materialInstances.list.printBarcodeAria", {
+                      serial: instance.serialNumber,
+                    })}
                   >
                     <Printer size={18} />
                   </button>
                 )}
-                <button
-                  type="button"
+                <PermissionGuardedButton
+                  icon={Trash2}
+                  intent="delete"
+                  ariaLabel={t("materialInstances.list.deleteAria", {
+                    serial: instance.serialNumber,
+                  })}
+                  requiredPermission="materials:delete"
                   onClick={() => onDelete(instance)}
-                  className="p-2 text-red-300 border border-red-500/40 hover:bg-red-500/15 rounded-lg transition-colors"
-                  title="Delete Instance"
-                  aria-label={`Delete instance ${instance.serialNumber}`}
-                >
-                  <Trash2 size={18} />
-                </button>
+                />
               </div>
             </td>
           </tr>

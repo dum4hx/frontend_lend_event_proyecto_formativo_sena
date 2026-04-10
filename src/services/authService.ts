@@ -11,7 +11,13 @@ import type {
   RegisterPayload,
   RegisterResponseData,
   LoginPayload,
-  LoginResponseData,
+  LoginPendingOtpResponseData,
+  VerifyLoginOtpPayload,
+  VerifyLoginOtpResponseData,
+  VerifyBackupCodePayload,
+  VerifyBackupCodeResponseData,
+  ResendLoginOtpPayload,
+  ResendLoginOtpResponseData,
   ChangePasswordPayload,
   ForgotPasswordPayload,
   VerifyResetCodePayload,
@@ -67,18 +73,66 @@ export async function verifyEmail(
 // --- Login ------------------------------------------------------------------
 
 /**
- * Authenticate a user.  The backend responds with Set-Cookie headers
- * that the browser stores automatically.
+ * Authenticate a user.  The backend sends an OTP to the user's email and
+ * responds with `{ pendingOtp: true, email }`.  No auth cookies are issued
+ * at this step.  The client must call `verifyLoginOtp` or `verifyBackupCode`
+ * to complete the flow.
  */
 export async function loginUser(
   payload: LoginPayload,
-): Promise<ApiSuccessResponse<LoginResponseData>> {
+): Promise<ApiSuccessResponse<LoginPendingOtpResponseData>> {
   const normalised: LoginPayload = {
     ...payload,
     email: payload.email.toLowerCase(),
   };
 
-  return post<LoginResponseData, LoginPayload>("/auth/login", normalised);
+  return post<LoginPendingOtpResponseData, LoginPayload>("/auth/login", normalised);
+}
+
+// --- Verify Login OTP -------------------------------------------------------
+
+/**
+ * Complete the 2FA login by verifying the 6-digit OTP sent to the user's email.
+ * On success, auth cookies are set.  The first 2FA login also returns
+ * 10 single-use backup codes in `data.backupCodes`.
+ */
+export async function verifyLoginOtp(
+  payload: VerifyLoginOtpPayload,
+): Promise<ApiSuccessResponse<VerifyLoginOtpResponseData>> {
+  return post<VerifyLoginOtpResponseData, VerifyLoginOtpPayload>("/auth/verify-login-otp", {
+    email: payload.email.toLowerCase(),
+    code: payload.code,
+  });
+}
+
+// --- Verify Backup Code -----------------------------------------------------
+
+/**
+ * Complete login using a single-use backup code instead of the email OTP.
+ * Issues auth cookies on success.
+ */
+export async function verifyBackupCode(
+  payload: VerifyBackupCodePayload,
+): Promise<ApiSuccessResponse<VerifyBackupCodeResponseData>> {
+  return post<VerifyBackupCodeResponseData, VerifyBackupCodePayload>("/auth/verify-backup-code", {
+    email: payload.email.toLowerCase(),
+    backupCode: payload.backupCode,
+  });
+}
+
+// --- Resend Login OTP -------------------------------------------------------
+
+/**
+ * Re-validate credentials and send a new OTP to the user's email.
+ * Use when the original OTP was not received or has expired.
+ */
+export async function resendLoginOtp(
+  payload: ResendLoginOtpPayload,
+): Promise<ApiSuccessResponse<ResendLoginOtpResponseData>> {
+  return post<ResendLoginOtpResponseData, ResendLoginOtpPayload>("/auth/resend-login-otp", {
+    email: payload.email.toLowerCase(),
+    password: payload.password,
+  });
 }
 
 // --- Change Password --------------------------------------------------------
@@ -114,10 +168,10 @@ export async function forgotPassword(
 export async function verifyResetCode(
   payload: VerifyResetCodePayload,
 ): Promise<ApiSuccessResponse<VerifyResetCodeResponseData>> {
-  return post<VerifyResetCodeResponseData, VerifyResetCodePayload>(
-    "/auth/verify-reset-code",
-    { email: payload.email.toLowerCase(), code: payload.code },
-  );
+  return post<VerifyResetCodeResponseData, VerifyResetCodePayload>("/auth/verify-reset-code", {
+    email: payload.email.toLowerCase(),
+    code: payload.code,
+  });
 }
 
 // --- Reset Password ---------------------------------------------------------

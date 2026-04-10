@@ -26,13 +26,8 @@ export const handlers = [
     return HttpResponse.json({
       status: "success",
       data: {
-        user: {
-          _id: "u1",
-          email: body.email,
-          role: "owner",
-          status: "active",
-          name: { firstName: "Test", firstSurname: "User" },
-        },
+        pendingOtp: true,
+        email: body.email,
       },
     });
   }),

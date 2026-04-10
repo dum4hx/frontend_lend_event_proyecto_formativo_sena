@@ -18,6 +18,24 @@ const rentalsHelpContent: HelpModuleContent = {
         es: "Aqui se controla el tramo activo del ciclo del prestamo, desde su seguimiento hasta la devolucion y los ajustes financieros asociados.",
         en: "Here you control the active part of the loan lifecycle, from monitoring to return and related financial adjustments.",
       },
+      howTo: [
+        {
+          es: "Abre el modulo desde el menu lateral en Prestamos.",
+          en: "Open the module from the sidebar under Rentals.",
+        },
+        {
+          es: "Filtra por estado para ver prestamos activos, vencidos o retornados segun tu tarea.",
+          en: "Filter by status to see active, overdue, or returned loans based on your task.",
+        },
+        {
+          es: "Localiza el prestamo correcto usando el buscador o los filtros de cliente.",
+          en: "Locate the correct loan using the search bar or customer filters.",
+        },
+        {
+          es: "Usa las acciones del registro para extender, devolver o reembolsar deposito.",
+          en: "Use the record actions to extend, return, or refund the deposit.",
+        },
+      ],
       tips: [
         {
           es: "Revisar el detalle del prestamo antes de devolver o reembolsar evita cierres prematuros o devoluciones financieras incorrectas.",
@@ -32,6 +50,20 @@ const rentalsHelpContent: HelpModuleContent = {
         es: "Puedes buscar prestamos por cliente o identificador, filtrar por estado, revisar detalle, extender fechas, registrar devoluciones y reembolsar depositos.",
         en: "You can search loans by customer or identifier, filter by status, review details, extend dates, register returns, and refund deposits.",
       },
+      howTo: [
+        {
+          es: "Para extender un prestamo: abre el menu de acciones del registro y selecciona Extender.",
+          en: "To extend a loan: open the record's action menu and select Extend.",
+        },
+        {
+          es: "Para registrar devolucion: selecciona el prestamo y confirma 'Marcar como devuelto'.",
+          en: "To register a return: select the loan and confirm 'Mark as returned'.",
+        },
+        {
+          es: "Para reembolsar deposito: abre acciones y usa la opcion de reembolso, confirma el monto.",
+          en: "To refund deposit: open actions and use the refund option, confirm the amount.",
+        },
+      ],
       bestPractices: [
         {
           es: "Antes de extender un prestamo, valida disponibilidad futura del material para no crear conflictos con reservas posteriores.",
@@ -46,6 +78,24 @@ const rentalsHelpContent: HelpModuleContent = {
         es: "Filtra por estado, abre el detalle del prestamo correcto y luego ejecuta la accion requerida: extender, devolver o reembolsar deposito.",
         en: "Filter by status, open the correct loan detail, and then execute the required action: extend, return, or refund deposit.",
       },
+      howTo: [
+        {
+          es: "Filtra la lista por el estado correcto (activo, vencido, etc.) para reducir el ruido.",
+          en: "Filter the list by the correct status (active, overdue, etc.) to reduce noise.",
+        },
+        {
+          es: "Localiza el prestamo del cliente especifico usando el buscador.",
+          en: "Locate the specific customer's loan using the search bar.",
+        },
+        {
+          es: "Abre el detalle del prestamo para revisar fechas, estado y montos.",
+          en: "Open the loan detail to review dates, status, and amounts.",
+        },
+        {
+          es: "Ejecuta la accion correspondiente: extender fecha, confirmar devolucion o reembolsar deposito.",
+          en: "Execute the corresponding action: extend date, confirm return, or refund deposit.",
+        },
+      ],
       warnings: [
         {
           es: "Devolver o reembolsar el prestamo equivocado impacta inventario, caja y trazabilidad operativa.",
@@ -60,6 +110,20 @@ const rentalsHelpContent: HelpModuleContent = {
         es: "Un error frecuente es trabajar sin filtrar por estado y operar sobre registros ya cerrados. Usa el filtro para centrarte en prestamos activos, vencidos o retornados segun la tarea.",
         en: "A common mistake is working without filtering by status and acting on already closed records. Use the filter to focus on active, overdue, or returned loans depending on the task.",
       },
+      howTo: [
+        {
+          es: "Aplica el filtro 'Activo' o 'Vencido' antes de buscar registros para operar.",
+          en: "Apply the 'Active' or 'Overdue' filter before searching records to work on.",
+        },
+        {
+          es: "Verifica el estado del prestamo en la columna correspondiente antes de ejecutar cualquier accion.",
+          en: "Check the loan status in the relevant column before executing any action.",
+        },
+        {
+          es: "Si el prestamo esta cerrado, consulta el historial de prestamos en lugar de este modulo.",
+          en: "If the loan is closed, consult the loans history instead of this module.",
+        },
+      ],
     },
   ],
   walkthrough: [
@@ -126,7 +190,10 @@ const rentalsHelpContent: HelpModuleContent = {
         {
           id: "extend-notes",
           label: { es: "Notas", en: "Notes" },
-          purpose: { es: "Registrar justificacion operativa", en: "Record operational justification" },
+          purpose: {
+            es: "Registrar justificacion operativa",
+            en: "Record operational justification",
+          },
           dataType: { es: "Texto multilinea", en: "Multiline text" },
           selector: '[data-help-id="rentals-extend-notes"]',
         },
@@ -216,6 +283,50 @@ const rentalsHelpContent: HelpModuleContent = {
           purpose: { es: "Registrar reembolso", en: "Register refund" },
           consequence: { es: "Habilita cierre financiero", en: "Enables financial closure" },
           selector: '[data-help-id="rentals-refund-submit"]',
+        },
+      ],
+    },
+    {
+      id: "rentals-complete-form",
+      title: { es: "Accion: Completar prestamo", en: "Action: Complete loan" },
+      purpose: {
+        es: "Cerrar definitivamente el prestamo despues de inspeccion y resolucion de deposito.",
+        en: "Permanently close the loan after inspection and deposit resolution.",
+      },
+      mode: "edit",
+      selector: '[data-help-id="rentals-complete-form"]',
+      usageFlow: [
+        {
+          es: "Paso 1: valida que el prestamo este en estado 'devuelto'.",
+          en: "Step 1: validate the loan is in 'returned' status.",
+        },
+        {
+          es: "Paso 2: verifica que la inspeccion este completa y el deposito resuelto.",
+          en: "Step 2: verify the inspection is complete and the deposit resolved.",
+        },
+        { es: "Paso 3: confirma la finalizacion.", en: "Step 3: confirm completion." },
+      ],
+      fields: [],
+      actions: [
+        {
+          id: "complete-cancel",
+          label: { es: "Cancelar", en: "Cancel" },
+          purpose: { es: "Salir sin completar", en: "Exit without completing" },
+          consequence: {
+            es: "Prestamo mantiene estado actual",
+            en: "Loan keeps current status",
+          },
+          selector: '[data-help-id="rentals-complete-cancel"]',
+        },
+        {
+          id: "complete-submit",
+          label: { es: "Completar prestamo", en: "Complete loan" },
+          purpose: { es: "Finalizar el prestamo", en: "Finalize the loan" },
+          consequence: {
+            es: "Cierra el prestamo definitivamente",
+            en: "Permanently closes the loan",
+          },
+          selector: '[data-help-id="rentals-complete-submit"]',
         },
       ],
     },

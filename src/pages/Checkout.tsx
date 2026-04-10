@@ -13,6 +13,7 @@ import {
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { useAuth } from "../contexts/useAuth";
+import { useLanguage } from "../contexts/useLanguage";
 import LoginModal from "../components/LoginModal";
 import { getSubscriptionType, calculatePlanCost } from "../services/subscriptionTypeService";
 import { createCheckoutSession } from "../services/billingService";
@@ -31,6 +32,7 @@ function formatDollars(amount: number): string {
 export default function Checkout() {
   const [searchParams] = useSearchParams();
   const { user, isLoggedIn, isLoading: authLoading } = useAuth();
+  const { t } = useLanguage();
 
   const planId = searchParams.get("plan") ?? "";
   const initialSeats = Math.max(1, Number(searchParams.get("seats")) || 1);
@@ -48,7 +50,7 @@ export default function Checkout() {
 
   useEffect(() => {
     if (!planId) {
-      setError("No plan specified. Please select a plan first.");
+      setError(t("publicSite.checkout.error.noPlan"));
       setLoading(false);
       return;
     }
@@ -61,7 +63,9 @@ export default function Checkout() {
         if (!cancelled) setPlan(res.data.subscriptionType);
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof ApiError ? err.message : "Failed to load plan details.");
+          setError(
+            err instanceof ApiError ? err.message : t("publicSite.checkout.error.loadFailed"),
+          );
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -72,7 +76,7 @@ export default function Checkout() {
     return () => {
       cancelled = true;
     };
-  }, [planId]);
+  }, [planId, t]);
 
   // ─── Recalculate cost when seats change ───────────────────────────────
 
@@ -126,11 +130,8 @@ export default function Checkout() {
     }
 
     // Only organization owners can purchase subscriptions
-    if (user?.roleName !== "owner") {
-      setError(
-        "Only organization owners can purchase subscriptions. " +
-          "Please contact your organization owner.",
-      );
+    if (user?.roleName.toLocaleLowerCase() !== "propietario") {
+      setError(t("publicSite.checkout.error.notOwner"));
       return;
     }
 
@@ -151,9 +152,7 @@ export default function Checkout() {
       // sensitive payment data passes through our servers or frontend.
       window.location.href = res.data.checkoutUrl;
     } catch (err) {
-      setError(
-        err instanceof ApiError ? err.message : "Unable to initiate checkout. Please try again.",
-      );
+      setError(err instanceof ApiError ? err.message : t("publicSite.checkout.error.initFailed"));
       setSubmitting(false);
     }
   };
@@ -170,7 +169,7 @@ export default function Checkout() {
         <Header />
         <main className="flex-grow flex items-center justify-center">
           <Loader2 className="w-8 h-8 text-yellow-400 animate-spin" />
-          <span className="ml-3 text-gray-400">Loading…</span>
+          <span className="ml-3 text-gray-400">{t("publicSite.checkout.loading")}</span>
         </main>
         <Footer />
       </div>
@@ -187,7 +186,7 @@ export default function Checkout() {
           <AlertCircle className="w-12 h-12 text-red-400 mb-4" />
           <p className="text-red-400 mb-6 text-center max-w-md">{error}</p>
           <Link to="/packages" className="text-yellow-400 underline hover:text-yellow-300">
-            ← Back to Plans
+            ← {t("publicSite.checkout.backToPlans")}
           </Link>
         </main>
         <Footer />
@@ -220,13 +219,14 @@ export default function Checkout() {
             className="inline-flex items-center text-gray-400 hover:text-yellow-400 mb-8 transition-colors"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Plans
+            {t("publicSite.checkout.backToPlans")}
           </Link>
 
           {/* ── Plan summary card ─────────────────────────────────────── */}
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 mb-6">
             <h1 className="text-3xl font-extrabold mb-2">
-              Subscribe to <span className="text-yellow-400">{plan?.displayName}</span>
+              {t("publicSite.checkout.subscribeTo")}{" "}
+              <span className="text-yellow-400">{plan?.displayName}</span>
             </h1>
             {plan?.description && <p className="text-gray-500 mb-6">{plan.description}</p>}
 
@@ -234,9 +234,13 @@ export default function Checkout() {
             {isDynamic && (
               <div className="bg-black/50 border border-zinc-800 rounded-xl p-5 mb-6">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-semibold text-gray-300">Team Seats</span>
+                  <span className="text-sm font-semibold text-gray-300">
+                    {t("publicSite.checkout.seats.label")}
+                  </span>
                   <span className="text-sm text-gray-500">
-                    {plan?.maxSeats === -1 ? "Unlimited available" : `Max ${plan?.maxSeats} seats`}
+                    {plan?.maxSeats === -1
+                      ? t("publicSite.checkout.seats.unlimited")
+                      : t("publicSite.checkout.seats.max", { maxSeats: plan?.maxSeats ?? 0 })}
                   </span>
                 </div>
 
@@ -245,7 +249,7 @@ export default function Checkout() {
                     onClick={decrementSeats}
                     disabled={seatCount <= minSeats}
                     className="w-10 h-10 flex items-center justify-center rounded-lg bg-zinc-800 hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                    aria-label="Remove seat"
+                    aria-label={t("publicSite.checkout.seats.removeSeat")}
                   >
                     <Minus className="w-4 h-4" />
                   </button>
@@ -253,7 +257,9 @@ export default function Checkout() {
                   <div className="flex-grow text-center">
                     <span className="text-2xl font-bold">{seatCount}</span>
                     <span className="text-gray-500 text-sm ml-2">
-                      {seatCount === 1 ? "seat" : "seats"}
+                      {seatCount === 1
+                        ? t("publicSite.checkout.seats.singular")
+                        : t("publicSite.checkout.seats.plural")}
                     </span>
                   </div>
 
@@ -261,7 +267,7 @@ export default function Checkout() {
                     onClick={incrementSeats}
                     disabled={seatCount >= maxSeats}
                     className="w-10 h-10 flex items-center justify-center rounded-lg bg-zinc-800 hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                    aria-label="Add seat"
+                    aria-label={t("publicSite.checkout.seats.addSeat")}
                   >
                     <Plus className="w-4 h-4" />
                   </button>
@@ -274,29 +280,40 @@ export default function Checkout() {
               {costResult ? (
                 <>
                   <div className="flex justify-between text-sm text-gray-400">
-                    <span>Base price</span>
-                    <span>${formatDollars(costResult.baseCost)}/mo</span>
+                    <span>{t("publicSite.checkout.cost.basePrice")}</span>
+                    <span>
+                      ${formatDollars(costResult.baseCost)}
+                      {t("publicSite.checkout.cost.perMonth")}
+                    </span>
                   </div>
                   {isDynamic && costResult.seatCost > 0 && (
                     <div className="flex justify-between text-sm text-gray-400">
                       <span>
-                        Seats ({seatCount} &times; ${formatDollars(costResult.seatCost / seatCount)}
-                        )
+                        {t("publicSite.checkout.cost.seats", {
+                          seatCount,
+                          unitPrice: formatDollars(costResult.seatCost / seatCount),
+                        })}
                       </span>
-                      <span>${formatDollars(costResult.seatCost)}/mo</span>
+                      <span>
+                        ${formatDollars(costResult.seatCost)}
+                        {t("publicSite.checkout.cost.perMonth")}
+                      </span>
                     </div>
                   )}
                   <div className="flex justify-between text-lg font-bold pt-2 border-t border-zinc-800">
-                    <span>Total</span>
+                    <span>{t("publicSite.checkout.cost.total")}</span>
                     <span className="text-yellow-400">
-                      ${formatDollars(costResult.totalCost)}/mo
+                      ${formatDollars(costResult.totalCost)}
+                      {t("publicSite.checkout.cost.perMonth")}
                     </span>
                   </div>
                 </>
               ) : calculating ? (
                 <div className="flex items-center justify-center py-3">
                   <Loader2 className="w-5 h-5 text-yellow-400 animate-spin" />
-                  <span className="ml-2 text-sm text-gray-500">Calculating…</span>
+                  <span className="ml-2 text-sm text-gray-500">
+                    {t("publicSite.checkout.calculating")}
+                  </span>
                 </div>
               ) : null}
             </div>
@@ -319,17 +336,17 @@ export default function Checkout() {
             {submitting ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                Redirecting to Stripe…
+                {t("publicSite.checkout.button.redirecting")}
               </>
             ) : !isLoggedIn ? (
               <>
                 <Lock className="w-5 h-5" />
-                Sign in & Subscribe
+                {t("publicSite.checkout.button.signInSubscribe")}
               </>
             ) : (
               <>
                 <CreditCard className="w-5 h-5" />
-                Subscribe Now
+                {t("publicSite.checkout.button.subscribeNow")}
               </>
             )}
           </button>
@@ -338,15 +355,15 @@ export default function Checkout() {
           <div className="flex items-center justify-center gap-6 mt-6 text-xs text-gray-600">
             <div className="flex items-center gap-1.5">
               <Shield className="w-4 h-4" />
-              <span>PCI-DSS Compliant</span>
+              <span>{t("publicSite.checkout.security.pciDss")}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <Lock className="w-4 h-4" />
-              <span>256-bit SSL</span>
+              <span>{t("publicSite.checkout.security.ssl")}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <CreditCard className="w-4 h-4" />
-              <span>Powered by Stripe</span>
+              <span>{t("publicSite.checkout.security.stripe")}</span>
             </div>
           </div>
         </div>

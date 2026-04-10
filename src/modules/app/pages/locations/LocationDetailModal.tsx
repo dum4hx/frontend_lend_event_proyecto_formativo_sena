@@ -4,10 +4,17 @@
 
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
-import { Modal, SearchableSelect, StatusBadge, type SelectOption } from "../../../../components/ui";
+import {
+  Modal,
+  SearchableSelect,
+  StatusBadge,
+  EntityLink,
+  type SelectOption,
+} from "../../../../components/ui";
 import type { WarehouseLocation } from "../../../../services/warehouseOperatorService";
 import type { MaterialType, MaterialCategory } from "../../../../types/api";
 import { useLanguage } from "../../../../contexts/useLanguage";
+import { getLocationStatusLabel } from "../../../../utils/statusLabels";
 import { formatAddress, resolveCategoryName, filterMaterialTypes } from "./helpers";
 import { LOCATION_STATUS_COLORS } from "./types";
 
@@ -79,12 +86,20 @@ export function LocationDetailModal({
                 {isEs ? "Información básica" : "Basic Information"}
               </h3>
               <div className="space-y-4">
+                {location.code && (
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase font-semibold">
+                      {isEs ? "C\u00f3digo" : "Code"}
+                    </p>
+                    <p className="text-white font-mono font-medium mt-1">{location.code}</p>
+                  </div>
+                )}
                 <div>
                   <p className="text-xs text-gray-500 uppercase font-semibold">
                     {isEs ? "Estado" : "Status"}
                   </p>
                   <div className="mt-1">
-                    <StatusBadge status={location.status} colorMap={LOCATION_STATUS_COLORS} />
+                    <StatusBadge status={location.status} colorMap={LOCATION_STATUS_COLORS} label={getLocationStatusLabel(location.status as "available" | "full_capacity" | "maintenance" | "inactive", language as "en" | "es")} className="!text-white" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -226,12 +241,22 @@ export function LocationDetailModal({
                       <tr key={mt._id} className="group hover:bg-white/5 transition-colors">
                         <td className="px-3 py-2.5">
                           <div className="flex flex-col">
-                            <span className="text-sm font-semibold text-gray-200 group-hover:text-white">
-                              {mt.name}
-                            </span>
-                            <span className="text-[10px] text-gray-500 group-hover:text-yellow-500/70 transition-colors">
-                              {categoryName}
-                            </span>
+                            <EntityLink
+                              entityType="materialType"
+                              entityId={mt._id}
+                              label={mt.name}
+                              className="text-sm font-semibold"
+                            />
+                            <EntityLink
+                              entityType="category"
+                              entityId={
+                                typeof mt.categoryId === "object"
+                                  ? mt.categoryId._id
+                                  : mt.categoryId
+                              }
+                              label={categoryName}
+                              className="text-[10px]"
+                            />
                           </div>
                         </td>
                         <td className="px-3 py-2.5 text-right">

@@ -18,6 +18,20 @@ const ordersHelpContent: HelpModuleContent = {
         es: "Desde aqui el equipo puede registrar solicitudes, revisar su estado operativo y ejecutar acciones segun permisos y etapa del flujo.",
         en: "From here the team can register requests, review their operational status, and execute actions based on permissions and workflow stage.",
       },
+      howTo: [
+        {
+          es: "Abre el modulo desde el menu lateral en Operaciones > Pedidos.",
+          en: "Open the module from the sidebar in Operations > Orders.",
+        },
+        {
+          es: "Usa el filtro de estado para ver pedidos segun la etapa del flujo que necesitas gestionar.",
+          en: "Use the status filter to view orders by the workflow stage you need to manage.",
+        },
+        {
+          es: "Haz clic en 'Nuevo Pedido' para registrar una nueva solicitud con cliente, fechas e items.",
+          en: "Click 'New Order' to register a new request with customer, dates, and items.",
+        },
+      ],
       tips: [
         {
           es: "Antes de crear un pedido, confirma disponibilidad de inventario, cliente y fechas para evitar rechazos posteriores.",
@@ -29,9 +43,31 @@ const ordersHelpContent: HelpModuleContent = {
       id: "functions",
       title: { es: "Funciones clave", en: "Key functions" },
       body: {
-        es: "Puedes crear pedidos, aprobar o rechazar solicitudes, reactivar rechazados, preparar materiales, iniciar prestamos, cerrar devoluciones y registrar pagos de deposito.",
-        en: "You can create orders, approve or reject requests, reactivate rejected ones, prepare materials, start loans, close returns, and record deposit payments.",
+        es: "Puedes crear pedidos, aprobar o rechazar solicitudes, cancelar pedidos activos, reactivar rechazados, preparar materiales, iniciar prestamos, cerrar devoluciones y registrar pagos de deposito.",
+        en: "You can create orders, approve or reject requests, cancel active orders, reactivate rejected ones, prepare materials, start loans, close returns, and record deposit payments.",
       },
+      howTo: [
+        {
+          es: "Para aprobar/rechazar: abre el detalle del pedido, valida informacion y ejecuta la accion correspondiente.",
+          en: "To approve/reject: open the order detail, validate information, and execute the corresponding action.",
+        },
+        {
+          es: "Para cancelar: selecciona la accion Cancelar disponible en pedidos pendientes, aprobados, con deposito pendiente, asignados o listos.",
+          en: "To cancel: select the Cancel action available on pending, approved, deposit pending, assigned, or ready orders.",
+        },
+        {
+          es: "Para preparar materiales: mueve el pedido a estado 'En preparacion' seleccionando la accion Preparar.",
+          en: "To prepare materials: move the order to 'In preparation' status by selecting the Prepare action.",
+        },
+        {
+          es: "Para iniciar prestamo: confirma que la preparacion esta completa y ejecuta la accion de inicio de prestamo.",
+          en: "To start the loan: confirm preparation is complete and execute the start loan action.",
+        },
+        {
+          es: "Para registrar deposito: usa la accion de pago disponible segun el estado actual del pedido.",
+          en: "To register deposit: use the payment action available based on the current order status.",
+        },
+      ],
       bestPractices: [
         {
           es: "Usa el detalle del pedido antes de aprobar para verificar cantidades, paquetes y dependencias operativas.",
@@ -46,6 +82,24 @@ const ordersHelpContent: HelpModuleContent = {
         es: "Filtra por estado, revisa el pedido correcto, valida detalle, aprueba o rechaza, y cuando aplique prepara materiales e inicia el prestamo.",
         en: "Filter by status, review the correct order, validate details, approve or reject it, and when applicable prepare materials and start the loan.",
       },
+      howTo: [
+        {
+          es: "Filtra la lista por estado 'Pendiente' para ver pedidos que requieren aprobacion.",
+          en: "Filter the list by 'Pending' status to see orders that require approval.",
+        },
+        {
+          es: "Abre el detalle del pedido correcto y verifica cliente, items y fechas.",
+          en: "Open the correct order detail and verify customer, items, and dates.",
+        },
+        {
+          es: "Aprueba o rechaza segun la informacion validada.",
+          en: "Approve or reject based on the validated information.",
+        },
+        {
+          es: "Sigue el flujo: prepara materiales > inicia prestamo > registra devolucion > confirma deposito.",
+          en: "Follow the flow: prepare materials > start loan > register return > confirm deposit.",
+        },
+      ],
       warnings: [
         {
           es: "Registrar acciones sobre el pedido equivocado puede afectar inventario, cobros y trazabilidad de prestamos.",
@@ -60,6 +114,20 @@ const ordersHelpContent: HelpModuleContent = {
         es: "Un error comun es trabajar solo con el texto buscado sin revisar el estado real del pedido. Confirma siempre la etapa del flujo antes de aprobar, reactivar o marcar pagos.",
         en: "A common mistake is working only from search text without reviewing the real order status. Always confirm the workflow stage before approving, reactivating, or marking payments.",
       },
+      howTo: [
+        {
+          es: "Antes de ejecutar cualquier accion, abre el detalle del pedido para confirmar su estado actual.",
+          en: "Before executing any action, open the order detail to confirm its current status.",
+        },
+        {
+          es: "Usa el filtro de estado para navegar al grupo correcto en lugar de buscar solo por texto.",
+          en: "Use the status filter to navigate to the correct group instead of searching by text alone.",
+        },
+        {
+          es: "Para reactivar un pedido rechazado, verifica que el motivo de rechazo fue resuelto antes de continuar.",
+          en: "To reactivate a rejected order, verify the rejection reason was resolved before continuing.",
+        },
+      ],
     },
   ],
   walkthrough: [
@@ -145,9 +213,7 @@ const ordersHelpContent: HelpModuleContent = {
           },
           dataType: { es: "Seleccion (select)", en: "Selection (select)" },
           required: true,
-          validations: [
-            { es: "Obligatorio", en: "Required" },
-          ],
+          validations: [{ es: "Obligatorio", en: "Required" }],
           example: { es: "Ana Gomez - ana@empresa.com", en: "Ana Gomez - ana@company.com" },
           selector: '[data-help-id="orders-form-customer"]',
         },
@@ -194,9 +260,7 @@ const ordersHelpContent: HelpModuleContent = {
           },
           dataType: { es: "Moneda (COP)", en: "Currency (COP)" },
           required: true,
-          validations: [
-            { es: "Numerico", en: "Numeric" },
-          ],
+          validations: [{ es: "Numerico", en: "Numeric" }],
           example: { es: "50000", en: "50000" },
           selector: '[data-help-id="orders-form-deposit-amount"]',
         },

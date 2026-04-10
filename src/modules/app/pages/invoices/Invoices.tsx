@@ -13,6 +13,8 @@ import InvoiceDetailModal from "../../components/InvoiceDetailModal";
 import { useInvoices } from "../../hooks/useInvoices";
 import { getPaymentMethods } from "../../../../services/paymentMethodService";
 import { useLanguage } from "../../../../contexts/useLanguage";
+import { usePermissions } from "../../../../contexts/usePermissions";
+import Unauthorized from "../../../../pages/Unauthorized";
 import { useToast } from "../../../../hooks/useToast";
 import { InvoicesFilters } from "./InvoicesFilters";
 import { InvoicesTable } from "./InvoicesTable";
@@ -22,8 +24,9 @@ import type { Invoice, InvoiceStatus, InvoiceType, InvoiceTab, PaymentMethod } f
 // ─── Component ──────────────────────────────────────────────────────────
 
 export function Invoices() {
-  const { language, locale } = useLanguage();
+  const { t, language, locale } = useLanguage();
   const isEs = language === "es";
+  const { hasPermission } = usePermissions();
   const { showToast } = useToast();
 
   // Data & API
@@ -191,6 +194,8 @@ export function Invoices() {
     );
   }
 
+  if (!hasPermission("invoices:read")) return <Unauthorized />;
+
   // ── Render ──────────────────────────────────────────────────────────────
 
   return (
@@ -198,8 +203,8 @@ export function Invoices() {
       <div className="page-container">
         <div data-help-id="invoices-header">
           <PageHeader
-            title="Invoices"
-            titleAccent="Dashboard"
+            title={t("invoices.title")}
+            titleAccent={t("invoices.titleAccent")}
             subtitle={
               isEs
                 ? "Gestiona, rastrea y procesa pagos de facturas. Genera reportes de ingresos."

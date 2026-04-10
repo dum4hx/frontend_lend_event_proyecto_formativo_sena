@@ -142,7 +142,7 @@ function loanFields(loan: Loan): DetailField[] {
       ? formatPersonName((loan.customerId as Customer).name)
       : shortId(loan.customerId as string);
   return [
-    { label: "Loan ID", value: shortId(loan._id) },
+    { label: "Loan Code", value: loan.code ?? shortId(loan._id) },
     { label: "Customer", value: customerLabel },
     { label: "Status", value: <StatusBadge status={loan.status} /> },
     { label: "Start", value: formatDate(loan.startDate) },

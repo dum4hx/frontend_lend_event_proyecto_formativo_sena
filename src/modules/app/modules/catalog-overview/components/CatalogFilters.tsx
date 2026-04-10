@@ -1,5 +1,6 @@
 import React from "react";
-import { SearchInput } from "../../../../../components/ui";
+import { SearchInput, SearchableSelect, type SelectOption } from "../../../../../components/ui";
+import { useLanguage } from "../../../../../contexts/useLanguage";
 import type { MaterialCategory } from "../../../../../types/api";
 
 interface CatalogFiltersProps {
@@ -13,10 +14,16 @@ interface CatalogFiltersProps {
   onCategoryChange: (categoryId: string) => void;
   /** Available categories for the dropdown. */
   categories: MaterialCategory[];
+  /** Currently selected location ID (empty string = all). */
+  locationId: string;
+  /** Called when location filter changes. */
+  onLocationChange: (locationId: string) => void;
+  /** Available locations for the dropdown. */
+  locationOptions: SelectOption[];
 }
 
 /**
- * CatalogFilters — Search input + category dropdown for filtering
+ * CatalogFilters — Search input + category + location dropdowns for filtering
  * the catalog overview table. Dark neon styling.
  */
 export const CatalogFilters: React.FC<CatalogFiltersProps> = ({
@@ -25,30 +32,47 @@ export const CatalogFilters: React.FC<CatalogFiltersProps> = ({
   categoryId,
   onCategoryChange,
   categories,
+  locationId,
+  onLocationChange,
+  locationOptions,
 }) => {
+  const { t } = useLanguage();
+  const categoryOptions: SelectOption[] = [
+    { value: "", label: t("catalogOverview.filters.allCategories") },
+    ...categories.map((cat) => ({ value: cat._id, label: cat.name })),
+  ];
+
   return (
-    <div className="flex flex-col md:flex-row md:items-center gap-4">
+    <div className="flex flex-col md:flex-row md:items-end gap-4">
       <SearchInput
         value={search}
         onChange={onSearchChange}
-        placeholder="Search material types…"
+        placeholder={t("catalogOverview.filters.searchPlaceholder")}
         className="w-full md:w-80"
       />
 
-      <select
+      <SearchableSelect
+        options={categoryOptions}
         value={categoryId}
-        onChange={(e) => onCategoryChange(e.target.value)}
-        className="h-10 px-3 bg-[#121212] border border-[#222] rounded-lg text-sm text-white
-          focus:outline-none focus:border-[#FFD700] focus:ring-1 focus:ring-[#FFD700]/20
-          transition-all"
-      >
-        <option value="">All Categories</option>
-        {categories.map((cat) => (
-          <option key={cat._id} value={cat._id}>
-            {cat.name}
-          </option>
-        ))}
-      </select>
+        onChange={onCategoryChange}
+        placeholder={t("catalogOverview.filters.allCategories")}
+        searchPlaceholder={t("catalogOverview.filters.typeToSearch")}
+        noResultsText={t("catalogOverview.filters.noResults")}
+        className="w-full md:w-56"
+      />
+
+      <SearchableSelect
+        options={[
+          { value: "", label: t("catalogOverview.filters.allLocations") },
+          ...locationOptions,
+        ]}
+        value={locationId}
+        onChange={onLocationChange}
+        placeholder={t("catalogOverview.filters.allLocations")}
+        searchPlaceholder={t("catalogOverview.filters.typeToSearch")}
+        noResultsText={t("catalogOverview.filters.noResults")}
+        className="w-full md:w-56"
+      />
     </div>
   );
 };

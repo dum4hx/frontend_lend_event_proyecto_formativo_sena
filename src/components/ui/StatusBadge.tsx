@@ -7,11 +7,13 @@
 
 export interface StatusBadgeProps {
   /** Status string value (lowercased internally). */
-  status: string;
+  status: string | undefined;
   /** Custom colour map keyed by status → Tailwind class string. Falls back to neutral. */
   colorMap?: Record<string, string>;
   /** Extra class names on the root element. */
   className?: string;
+  /** Override the displayed label text instead of auto-formatting the status string. */
+  label?: string;
 }
 
 /** Default colour map covering common statuses across the app. */
@@ -35,6 +37,9 @@ const defaultColorMap: Record<string, string> = {
   invited: "badge-warning",
   partially_applied: "badge-warning",
   refund_pending: "badge-warning",
+  in_progress: "badge-warning",
+  in_repair: "badge-warning",
+  acknowledged: "badge-warning",
   // Danger
   inactive: "badge-danger",
   cancelled: "badge-danger",
@@ -45,6 +50,8 @@ const defaultColorMap: Record<string, string> = {
   blacklisted: "badge-danger",
   expired: "badge-danger",
   retired: "badge-danger",
+  unrecoverable: "badge-danger",
+  open: "badge-danger",
   // Info
   assigned: "badge-info",
   ready: "badge-info",
@@ -52,10 +59,12 @@ const defaultColorMap: Record<string, string> = {
   returned: "badge-info",
   loaned: "badge-info",
   in_use: "badge-info",
+  repaired: "badge-info",
   // Gold
   applied: "badge-gold",
   closed: "badge-neutral",
   deprecated: "badge-neutral",
+  dismissed: "badge-neutral",
 };
 
 /** Human-readable label for a status key. */
@@ -63,10 +72,11 @@ function formatLabel(status: string): string {
   return status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-export function StatusBadge({ status, colorMap, className = "" }: StatusBadgeProps) {
+export function StatusBadge({ status, colorMap, className = "", label }: StatusBadgeProps) {
+  if (!status) return null;
   const key = status.toLowerCase();
   const merged = colorMap ? { ...defaultColorMap, ...colorMap } : defaultColorMap;
   const badgeClass = merged[key] ?? "badge-neutral";
 
-  return <span className={`badge ${badgeClass} ${className}`}>{formatLabel(key)}</span>;
+  return <span className={`badge ${badgeClass} ${className}`}>{label ?? formatLabel(key)}</span>;
 }

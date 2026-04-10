@@ -1,11 +1,22 @@
-import React, { useState, useCallback } from "react";
-import { RefreshCcw } from "lucide-react";
+import React, { useState, useCallback, useMemo } from "react";
+import { RefreshCcw, FileText, Table2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useCatalogOverview, useMaterialCategories, materialKeys } from "../../../../../hooks/queries";
-import { LoadingSpinner, ErrorDisplay, EmptyState } from "../../../../../components/ui";
+import { useLanguage } from "../../../../../contexts/useLanguage";
+import { usePermissions } from "../../../../../contexts/usePermissions";
+import { exportTableToPDF, exportTableToXLSX } from "../../../../../utils/tableExport";
+import type { CatalogMaterialType } from "../../../../../types/api";
+import {
+  useCatalogOverview,
+  useMaterialCategories,
+  materialKeys,
+  useLocations,
+} from "../../../../../hooks/queries";
+import { ErrorDisplay, EmptyState } from "../../../../../components/ui";
 import { AdminPagination } from "../../../components";
 import { CatalogSummaryCards, CatalogFilters, CatalogTable } from "../components";
 import type { CatalogOverviewQueryParams } from "../../../../../types/api";
+import type { SelectOption } from "../../../../../components/ui";
+import Unauthorized from "../../../../../pages/Unauthorized";
 
 /**
  * CatalogOverview — Aggregated operational view of the material catalog.
@@ -15,16 +26,20 @@ import type { CatalogOverviewQueryParams } from "../../../../../types/api";
  */
 export const CatalogOverview: React.FC = () => {
   const queryClient = useQueryClient();
+  const { t } = useLanguage();
+  const { hasPermission } = usePermissions();
 
   // ── Filter state ──────────────────────────────────────────────────────
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState("");
+  const [locationId, setLocationId] = useState("");
   const [page, setPage] = useState(1);
   const limit = 20;
 
   const params: CatalogOverviewQueryParams = {
     ...(search && { search }),
     ...(categoryId && { categoryId }),
+    ...(locationId && { locationId }),
     page,
     limit,
   };
@@ -32,7 +47,17 @@ export const CatalogOverview: React.FC = () => {
   // ── Data hooks ────────────────────────────────────────────────────────
   const { data, isLoading, isError, error } = useCatalogOverview(params);
   const { data: categories = [] } = useMaterialCategories();
+  const { data: locations = [] } = useLocations();
 
+  const locationOptions: SelectOption[] = locations.map((loc) => ({
+    value: loc._id,
+    label: loc.name,
+  }));
+  // ── Derived data ──────────────────────────────────────────────────
+  const summary = data?.summary;
+  const materialTypes = useMemo(() => data?.materialTypes ?? [], [data?.materialTypes]);
+  const pagination = data?.pagination;
+  const totalPages = pagination?.totalPages ?? 1;
   // ── Handlers ──────────────────────────────────────────────────────────
   const handleSearchChange = useCallback((value: string) => {
     setSearch(value);
@@ -44,27 +69,65 @@ export const CatalogOverview: React.FC = () => {
     setPage(1);
   }, []);
 
+  const handleLocationChange = useCallback((value: string) => {
+    setLocationId(value);
+    setPage(1);
+  }, []);
+
   const handleRefresh = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: materialKeys.catalogOverview.all });
   }, [queryClient]);
 
+  const buildExportData = useCallback(
+    (items: CatalogMaterialType[]) => {
+      const headers = [
+        t("catalogOverview.table.name"),
+        t("catalogOverview.table.pricePerDay"),
+        t("catalogOverview.table.categories"),
+        t("catalogOverview.table.instances"),
+        t("catalogOverview.table.available"),
+        t("catalogOverview.table.availability"),
+        t("catalogOverview.table.utilization"),
+        t("catalogOverview.table.alerts"),
+      ];
+      const rows = items.map((mt) => ({
+        Name: mt.name,
+        "Price / Day": mt.pricePerDay,
+        Categories: mt.categories.map((c) => c.name).join(", ") || "—",
+        Instances: mt.totals.totalInstances,
+        Available: mt.totals.available,
+        "Availability %": `${(mt.metrics.availabilityRate * 100).toFixed(1)}%`,
+        "Utilization %": `${(mt.metrics.utilizationRate * 100).toFixed(1)}%`,
+        Alerts: mt.alerts.map((a) => a.type).join(", ") || "—",
+      }));
+      return { headers, rows };
+    },
+    [t],
+  );
+
+  const handleExportPDF = useCallback(() => {
+    const date = new Date().toISOString().slice(0, 10);
+    const exportData = buildExportData(materialTypes);
+    exportTableToPDF(exportData, `catalog-overview-${date}.pdf`, "Catalog Overview");
+  }, [materialTypes, buildExportData]);
+
+  const handleExportXLSX = useCallback(() => {
+    const date = new Date().toISOString().slice(0, 10);
+    const exportData = buildExportData(materialTypes);
+    exportTableToXLSX(exportData, `catalog-overview-${date}.xlsx`);
+  }, [materialTypes, buildExportData]);
+
   // ── Loading / Error states ────────────────────────────────────────────
-  if (isLoading && !data) {
+  if (isError) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <LoadingSpinner size="lg" />
-      </div>
+      <ErrorDisplay
+        error={error?.message ?? t("catalogOverview.errorLoad")}
+        onRetry={handleRefresh}
+      />
     );
   }
 
-  if (isError) {
-    return <ErrorDisplay error={error?.message ?? "Failed to load catalog overview"} onRetry={handleRefresh} />;
-  }
-
-  const summary = data?.summary;
-  const materialTypes = data?.materialTypes ?? [];
-  const pagination = data?.pagination;
-  const totalPages = pagination?.totalPages ?? 1;
+  if (!hasPermission("materials:read")) return <Unauthorized />;
 
   return (
     <div className="p-6 md:p-10 space-y-10 animate-in fade-in duration-500">
@@ -72,22 +135,40 @@ export const CatalogOverview: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-3xl font-extrabold text-white tracking-tight">
-            Catalog <span className="text-[#FFD700]">Overview</span>
+            {t("catalogOverview.title")}{" "}
+            <span className="text-[#FFD700]">{t("catalogOverview.titleHighlight")}</span>
           </h1>
-          <p className="text-gray-400 mt-2 text-sm max-w-lg">
-            Aggregated operational view of your material catalog — availability,
-            utilization, and alerts at a glance.
-          </p>
+          <p className="text-gray-400 mt-2 text-sm max-w-lg">{t("catalogOverview.description")}</p>
         </div>
 
-        <button
-          onClick={handleRefresh}
-          disabled={isLoading}
-          className="p-3 bg-[#1a1a1a] border border-[#333] text-gray-400 hover:text-white hover:border-[#444] rounded-xl transition-all disabled:opacity-50 self-start"
-          title="Refresh data"
-        >
-          <RefreshCcw className={`w-5 h-5 ${isLoading ? "animate-spin" : ""}`} />
-        </button>
+        <div className="flex items-center gap-3 self-start">
+          <button
+            onClick={handleExportPDF}
+            disabled={isLoading || materialTypes.length === 0}
+            className="flex items-center gap-2 px-4 py-2 gold-action-btn font-semibold rounded-lg transition disabled:opacity-50"
+            title={t("catalogOverview.exportPdf")}
+          >
+            <FileText className="w-4 h-4" />
+            PDF
+          </button>
+          <button
+            onClick={handleExportXLSX}
+            disabled={isLoading || materialTypes.length === 0}
+            className="flex items-center gap-2 px-4 py-2 gold-action-btn font-semibold rounded-lg transition disabled:opacity-50"
+            title={t("catalogOverview.exportExcel")}
+          >
+            <Table2 className="w-4 h-4" />
+            XLS
+          </button>
+          <button
+            onClick={handleRefresh}
+            disabled={isLoading}
+            className="p-3 bg-[#1a1a1a] border border-[#333] text-gray-400 hover:text-white hover:border-[#444] rounded-xl transition-all disabled:opacity-50"
+            title={t("catalogOverview.refresh")}
+          >
+            <RefreshCcw className={`w-5 h-5 ${isLoading ? "animate-spin" : ""}`} />
+          </button>
+        </div>
       </div>
 
       {/* ── Summary Cards ──────────────────────────────────────────────── */}
@@ -100,13 +181,16 @@ export const CatalogOverview: React.FC = () => {
         categoryId={categoryId}
         onCategoryChange={handleCategoryChange}
         categories={categories}
+        locationId={locationId}
+        onLocationChange={handleLocationChange}
+        locationOptions={locationOptions}
       />
 
       {/* ── Table ──────────────────────────────────────────────────────── */}
       {materialTypes.length === 0 && !isLoading ? (
         <EmptyState
-          title="No material types found"
-          description="Try adjusting your search or category filter."
+          title={t("catalogOverview.empty")}
+          description={t("catalogOverview.emptyHint")}
         />
       ) : (
         <CatalogTable data={materialTypes} loading={isLoading} />
@@ -119,7 +203,7 @@ export const CatalogOverview: React.FC = () => {
           totalPages={totalPages}
           totalItems={pagination.total}
           pageSize={limit}
-          itemLabel="material types"
+          itemLabel={t("catalogOverview.paginationLabel")}
           onPageChange={setPage}
         />
       )}

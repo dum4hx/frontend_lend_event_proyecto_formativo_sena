@@ -37,9 +37,7 @@ const teamFormGuides = createCrudFormGuides({
       },
       dataType: { es: "Texto", en: "Text" },
       required: true,
-      validations: [
-        { es: "Solo letras y espacios", en: "Letters and spaces only" },
-      ],
+      validations: [{ es: "Solo letras y espacios", en: "Letters and spaces only" }],
       selector: '[data-help-id="team-form-first-name"]',
     },
     {
@@ -62,9 +60,7 @@ const teamFormGuides = createCrudFormGuides({
       },
       dataType: { es: "Email", en: "Email" },
       required: true,
-      validations: [
-        { es: "Formato de email valido", en: "Valid email format" },
-      ],
+      validations: [{ es: "Formato de email valido", en: "Valid email format" }],
       example: { es: "persona@empresa.com", en: "person@company.com" },
       selector: '[data-help-id="team-form-email"]',
     },
@@ -185,6 +181,20 @@ const teamHelpContent: HelpModuleContent = {
         es: "Aqui puedes invitar miembros, editar perfiles y controlar su acceso a la plataforma.",
         en: "Here you can invite members, edit profiles, and control platform access.",
       },
+      howTo: [
+        {
+          es: "Abre el modulo desde Gestion > Equipo.",
+          en: "Open the module from Management > Team.",
+        },
+        {
+          es: "Usa el buscador y filtros de estado/rol para localizar el miembro que necesitas gestionar.",
+          en: "Use the search box and status/role filters to locate the member you need to manage.",
+        },
+        {
+          es: "Haz clic en 'Invitar miembro' para enviar una invitacion con el rol correcto ya seleccionado.",
+          en: "Click 'Invite member' to send an invitation with the correct role already selected.",
+        },
+      ],
       tips: [
         {
           es: "Asigna roles con permisos minimos necesarios para reducir riesgos.",
@@ -199,6 +209,20 @@ const teamHelpContent: HelpModuleContent = {
         es: "Filtra por nombre, rol y estado, revisa la tabla y ejecuta acciones como invitar, editar, desactivar y reactivar.",
         en: "Filter by name, role, and status, inspect the table, and run actions like invite, edit, deactivate, and reactivate.",
       },
+      howTo: [
+        {
+          es: "Para invitar: haz clic en 'Invitar', ingresa el email y selecciona el rol antes de enviar.",
+          en: "To invite: click 'Invite', enter the email, and select the role before sending.",
+        },
+        {
+          es: "Para editar perfil: localiza el miembro y usa el icono de edicion para actualizar rol o datos.",
+          en: "To edit profile: locate the member and use the edit icon to update role or data.",
+        },
+        {
+          es: "Para desactivar/reactivar: usa la accion de estado disponible en la fila del miembro.",
+          en: "To deactivate/reactivate: use the status action available in the member row.",
+        },
+      ],
       bestPractices: [
         {
           es: "Revisa miembros inactivos periodicamente para mantener orden administrativo.",
@@ -213,6 +237,24 @@ const teamHelpContent: HelpModuleContent = {
         es: "Flujo recomendado: revisa resumen, aplica filtros, valida detalle y luego ejecuta cambios de estado o perfil.",
         en: "Recommended flow: review summary, apply filters, validate details, then execute profile or status changes.",
       },
+      howTo: [
+        {
+          es: "Revisa las metricas del encabezado para ver estado global del equipo.",
+          en: "Review header metrics to see the team's overall status.",
+        },
+        {
+          es: "Filtra por estado 'Activo' o 'Inactivo' para identificar casos que necesitan atencion.",
+          en: "Filter by 'Active' or 'Inactive' status to identify cases that need attention.",
+        },
+        {
+          es: "Abre el detalle del miembro para validar rol y accesos antes de hacer cambios.",
+          en: "Open the member detail to validate role and access before making changes.",
+        },
+        {
+          es: "Aplica el cambio de estado (desactivar/reactivar) o actualiza el perfil segun sea necesario.",
+          en: "Apply the status change (deactivate/reactivate) or update the profile as needed.",
+        },
+      ],
       warnings: [
         {
           es: "Desactivar un miembro retira su acceso inmediatamente.",
@@ -227,6 +269,20 @@ const teamHelpContent: HelpModuleContent = {
         es: "Error frecuente: invitar usuarios sin validar rol esperado. Confirma permisos antes de enviar invitacion.",
         en: "Common mistake: inviting users without validating intended role. Confirm permissions before sending invites.",
       },
+      howTo: [
+        {
+          es: "Antes de invitar, revisa la tabla de roles disponibles y confirma el rol correcto para el nuevo miembro.",
+          en: "Before inviting, review the available roles table and confirm the correct role for the new member.",
+        },
+        {
+          es: "Si el invitado no recibio el correo, verifica que el email ingresado es correcto y reenvía la invitacion.",
+          en: "If the invitee didn't receive the email, verify the address entered is correct and resend the invitation.",
+        },
+        {
+          es: "Para cambiar el rol de un miembro existente, usa la edicion de perfil en lugar de reinvitar.",
+          en: "To change an existing member's role, use the profile edit instead of re-inviting.",
+        },
+      ],
     },
   ],
   walkthrough: [
