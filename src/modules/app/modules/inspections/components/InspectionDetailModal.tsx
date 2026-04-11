@@ -31,6 +31,21 @@ export const InspectionDetailModal: React.FC<InspectionDetailModalProps> = ({
     lost: { icon: XCircle, color: "text-red-500", label: t("inspections.lossReport") },
   };
 
+  // Map condition values to translated labels
+  const getConditionLabel = (condition?: string): string => {
+    if (!condition) return t("inspections.notAvailable");
+    switch (condition.toLowerCase()) {
+      case "good":
+        return t("inspections.conditionGood");
+      case "damaged":
+        return t("inspections.conditionDamaged");
+      case "lost":
+        return t("inspections.conditionLost");
+      default:
+        return condition;
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-[#121212] border border-[#333] rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
@@ -65,9 +80,9 @@ export const InspectionDetailModal: React.FC<InspectionDetailModalProps> = ({
                     {t("inspections.performedBy")}
                   </label>
                   <p className="text-white font-medium">
-                    {inspection.inspectedBy?.profile?.firstName || "N/A"}
+                    {inspection.inspectedBy?.profile?.firstName || t("inspections.notAvailable")}
                   </p>
-                  <p className="text-xs text-gray-500">{inspection.inspectedBy?.email || "N/A"}</p>
+                  <p className="text-xs text-gray-500">{inspection.inspectedBy?.email || t("inspections.notAvailable")}</p>
                 </div>
               </div>
               <div className="flex items-center">
@@ -159,17 +174,17 @@ export const InspectionDetailModal: React.FC<InspectionDetailModalProps> = ({
                           {item.conditionBefore && (
                             <div>
                               <label className="block text-[10px] text-gray-500 mb-1 font-bold uppercase tracking-wider">
-                                Condición inicial
+                                {t("reports.col.conditionBefore")}
                               </label>
-                              <p className="text-gray-300 text-sm capitalize">{item.conditionBefore}</p>
+                              <p className="text-gray-300 text-sm">{getConditionLabel(item.conditionBefore)}</p>
                             </div>
                           )}
                           {item.conditionAfter && (
                             <div>
                               <label className="block text-[10px] text-gray-500 mb-1 font-bold uppercase tracking-wider">
-                                Condición final
+                                {t("reports.col.conditionAfter")}
                               </label>
-                              <p className="text-gray-300 text-sm capitalize font-medium">{item.conditionAfter}</p>
+                              <p className="text-gray-300 text-sm font-medium">{getConditionLabel(item.conditionAfter)}</p>
                             </div>
                           )}
                         </div>

@@ -5,10 +5,12 @@ import {
   type MaterialAttribute,
   type MaterialType,
 } from "../../../../../types/api";
+import type { WarehouseLocation } from "../../../../../services/warehouseOperatorService";
 import { getMaterialInstanceStatusLabel } from "../../../../../utils/statusLabels";
 import { useLanguage } from "../../../../../contexts/useLanguage";
 import { MaterialBarcode } from "./MaterialBarcode";
-import { getMaterialAttributes, getMaterialTypes } from "../../../../../services/materialService";
+import { getMaterialAttributes, getMaterialTypes, getMaterialInstance } from "../../../../../services/materialService";
+import { getLocation } from "../../../../../services/warehouseOperatorService";
 import { EntityLink } from "../../../../../components/ui";
 
 interface MaterialInstanceDetailModalProps {
@@ -29,6 +31,8 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
   const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
   const [loadingAttributes, setLoadingAttributes] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [location, setLocation] = useState<WarehouseLocation | null>(null);
+  const [loadingLocation, setLoadingLocation] = useState(false);
 
   useEffect(() => {
     async function loadResources() {
@@ -45,6 +49,24 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
     }
     loadResources();
   }, []);
+
+  // Load location if name is missing
+  useEffect(() => {
+    if (instance.locationId?._id && !instance.locationId?.name) {
+      const loadLocationData = async () => {
+        setLoadingLocation(true);
+        try {
+          const res = await getLocation(instance.locationId._id);
+          setLocation(res.data);
+        } catch (error) {
+          console.error("Failed to load location:", error);
+        } finally {
+          setLoadingLocation(false);
+        }
+      };
+      loadLocationData();
+    }
+  }, [instance.locationId]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -160,7 +182,7 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
               <EntityLink
                 entityType="location"
                 entityId={instance.locationId?._id ?? ""}
-                label={instance.locationId?.name || t("common.noResults")}
+                label={location?.name?.trim() || instance.locationId?.name?.trim() ? location?.name ?? instance.locationId?.name : t("common.unknownLocation")}
               />
             </div>
           </div>

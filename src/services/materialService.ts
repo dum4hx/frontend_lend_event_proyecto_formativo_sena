@@ -115,14 +115,14 @@ function normalizeMaterialLocation(
     return {
       _id: location,
       id: location,
-      name: "Unknown location",
+      name: "",
     };
   }
 
   return {
     _id: location?._id ?? location?.id ?? "",
     id: location?.id ?? location?._id ?? "",
-    name: location?.name ?? "Unknown location",
+    name: location?.name ?? "",
   };
 }
 

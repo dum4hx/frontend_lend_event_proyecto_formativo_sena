@@ -32,6 +32,7 @@
   "common.verifyingSubscription": "Verificando suscripción...",
   "common.operator": "Operador",
   "common.viewDetails": "Ver detalles",
+  "common.date": "Fecha",
   "alert.success": "Éxito",
   "alert.info": "Información",
   "alert.warning": "Advertencia",
@@ -421,6 +422,10 @@
   "materialInstances.detail.refreshData": "Actualizar datos",
   "common.typeToSearch": "Escribe para buscar…",
   "common.noResults": "Sin resultados",
+  "common.unknownMaterialType": "Tipo de material desconocido",
+  "common.unknownLocation": "Ubicación desconocida",
+  "common.notAssigned": "No asignado",
+  "materialInstances.detail.notAssignedLocation": "Ubicación no asignada",
   "common.success": "Éxito",
   "common.error": "Error",
 

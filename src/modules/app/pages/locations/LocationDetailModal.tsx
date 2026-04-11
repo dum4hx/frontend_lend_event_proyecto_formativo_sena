@@ -29,6 +29,8 @@ interface LocationDetailModalProps {
   materialTypes: MaterialType[];
   /** All categories */
   categories: MaterialCategory[];
+  /** Whether to hide material capacities section (useful for inspections) */
+  hideCapacities?: boolean;
 }
 
 const ITEMS_PER_PAGE = 8;
@@ -39,6 +41,7 @@ export function LocationDetailModal({
   location,
   materialTypes,
   categories,
+  hideCapacities = false,
 }: LocationDetailModalProps) {
   const { language, t } = useLanguage();
   const isEs = language === "es";
@@ -73,19 +76,19 @@ export function LocationDetailModal({
       title={isEs ? "Detalles de ubicación" : "Location Details"}
       size="lg"
     >
-      <div className="space-y-6">
+      <div className="space-y-2">
         {/* Header */}
-        <p className="text-gray-400 text-sm">{location.name}</p>
+        <p className="text-gray-400 text-sm font-medium">{location.name}</p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {/* Basic & Address Info */}
-          <div className="space-y-6">
-            <div className="bg-[#1a1a1a] rounded-xl p-5 border border-[#333]">
-              <h3 className="text-sm font-bold text-yellow-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+          <div className="space-y-2">
+            <div className="bg-[#1a1a1a] rounded-xl p-3 border border-[#333]">
+              <h3 className="text-sm font-bold text-yellow-500 uppercase tracking-wider mb-2 flex items-center gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-yellow-500" />
                 {isEs ? "Información básica" : "Basic Information"}
               </h3>
-              <div className="space-y-4">
+              <div className="space-y-2">
                 {location.code && (
                   <div>
                     <p className="text-xs text-gray-500 uppercase font-semibold">
@@ -102,12 +105,12 @@ export function LocationDetailModal({
                     <StatusBadge status={location.status} colorMap={LOCATION_STATUS_COLORS} label={getLocationStatusLabel(location.status as "available" | "full_capacity" | "maintenance" | "inactive", language as "en" | "es")} className="!text-white" />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
                     <p className="text-xs text-gray-500 uppercase font-semibold">
                       {isEs ? "Creado" : "Created"}
                     </p>
-                    <p className="text-white font-medium mt-1">
+                    <p className="text-white font-medium mt-0.5">
                       {location.createdAt
                         ? new Date(location.createdAt).toLocaleDateString()
                         : "N/A"}
@@ -117,7 +120,7 @@ export function LocationDetailModal({
                     <p className="text-xs text-gray-500 uppercase font-semibold">
                       {isEs ? "Actualizado" : "Updated"}
                     </p>
-                    <p className="text-white font-medium mt-1">
+                    <p className="text-white font-medium mt-0.5">
                       {location.updatedAt
                         ? new Date(location.updatedAt).toLocaleDateString()
                         : "N/A"}
@@ -127,15 +130,15 @@ export function LocationDetailModal({
               </div>
             </div>
 
-            <div className="bg-[#1a1a1a] rounded-xl p-5 border border-[#333]">
-              <h3 className="text-sm font-bold text-yellow-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+            <div className="bg-[#1a1a1a] rounded-xl p-3 border border-[#333]">
+              <h3 className="text-sm font-bold text-yellow-500 uppercase tracking-wider mb-2 flex items-center gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-yellow-500" />
                 {isEs ? "Datos de dirección" : "Address Details"}
               </h3>
-              <div className="space-y-4">
-                <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-2">
+                <div className="grid grid-cols-3 gap-2">
                   <div>
-                    <p className="text-xs text-gray-500 font-semibold mb-1">
+                    <p className="text-xs text-gray-500 font-semibold mb-0.5">
                       {isEs ? "País" : "Country"}
                     </p>
                     <p className="text-white text-sm bg-[#111] p-2 rounded-lg border border-[#2a2a2a] truncate">
@@ -143,7 +146,7 @@ export function LocationDetailModal({
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 font-semibold mb-1">
+                    <p className="text-xs text-gray-500 font-semibold mb-0.5">
                       {isEs ? "Departamento" : "Department"}
                     </p>
                     <p className="text-white text-sm bg-[#111] p-2 rounded-lg border border-[#2a2a2a] truncate">
@@ -151,7 +154,7 @@ export function LocationDetailModal({
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 font-semibold mb-1">
+                    <p className="text-xs text-gray-500 font-semibold mb-0.5">
                       {isEs ? "Ciudad" : "City"}
                     </p>
                     <p className="text-white text-sm bg-[#111] p-2 rounded-lg border border-[#2a2a2a] truncate">
@@ -160,19 +163,19 @@ export function LocationDetailModal({
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 font-semibold mb-1">
+                  <p className="text-xs text-gray-500 font-semibold mb-0.5">
                     {isEs ? "Dirección completa" : "Full Address"}
                   </p>
-                  <p className="text-white text-sm bg-[#111] p-3 rounded-lg border border-[#2a2a2a] break-words">
+                  <p className="text-white text-sm bg-[#111] p-2 rounded-lg border border-[#2a2a2a] break-words">
                     {formatAddress(location.address)}
                   </p>
                 </div>
                 {location.address?.additionalDetails && (
                   <div>
-                    <p className="text-xs text-gray-500 font-semibold mb-1">
+                    <p className="text-xs text-gray-500 font-semibold mb-0.5">
                       {isEs ? "Detalles adicionales" : "Additional Details"}
                     </p>
-                    <p className="text-white text-sm bg-[#111] p-3 rounded-lg border border-[#2a2a2a] break-words">
+                    <p className="text-white text-sm bg-[#111] p-2 rounded-lg border border-[#2a2a2a] break-words">
                       {location.address.additionalDetails}
                     </p>
                   </div>
@@ -182,9 +185,10 @@ export function LocationDetailModal({
           </div>
 
           {/* Material Capacities */}
+          {!hideCapacities && (
           <div className="bg-[#1a1a1a] rounded-xl border border-[#333] flex flex-col h-full">
-            <div className="p-4 border-b border-[#333]">
-              <div className="flex items-center justify-between mb-3">
+            <div className="p-3 border-b border-[#333]">
+              <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm font-bold text-yellow-500 uppercase tracking-wider flex items-center gap-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-yellow-500" />
                   {isEs ? "Capacidades de material" : "Material Capacities"}
@@ -306,14 +310,15 @@ export function LocationDetailModal({
               </div>
             )}
           </div>
+          )}
         </div>
       </div>
 
       {/* Footer handled by modal itself, adding close button */}
-      <div className="flex justify-end gap-3 mt-6 pt-5 border-t border-[#333]">
+      <div className="flex justify-end gap-3 mt-4 pt-3 border-t border-[#333]">
         <button
           onClick={onClose}
-          className="px-8 py-2.5 bg-[#1a1a1a] text-white font-bold rounded-xl hover:bg-[#222] transition-all border border-[#333] shadow-lg shadow-black/20 active:scale-95 text-sm uppercase tracking-wider"
+          className="px-8 py-2 bg-[#1a1a1a] text-white font-bold rounded-xl hover:bg-[#222] transition-all border border-[#333] shadow-lg shadow-black/20 active:scale-95 text-sm uppercase tracking-wider"
         >
           {t("common.closeDetails")}
         </button>

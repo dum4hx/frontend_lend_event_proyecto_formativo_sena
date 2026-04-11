@@ -15,7 +15,7 @@ export const CompletedInspectionsTable: React.FC<CompletedInspectionsTableProps>
   inspections,
   onView,
 }) => {
-  const { t } = useLanguage();
+  const { t, formatDate } = useLanguage();
 
   if (inspections.length === 0) {
     return (
@@ -53,6 +53,9 @@ export const CompletedInspectionsTable: React.FC<CompletedInspectionsTableProps>
               {t("inspections.loanRef")}
             </th>
             <th className="text-left py-4 px-6 text-gray-400 font-semibold text-xs uppercase tracking-wider">
+              {t("common.date") || "Fecha"}
+            </th>
+            <th className="text-left py-4 px-6 text-gray-400 font-semibold text-xs uppercase tracking-wider">
               {t("inspections.statusSummary")}
             </th>
             <th className="text-left py-4 px-6 text-gray-400 font-semibold text-xs uppercase tracking-wider">
@@ -86,6 +89,11 @@ export const CompletedInspectionsTable: React.FC<CompletedInspectionsTableProps>
                       ? inspection.loanId
                       : (inspection.loanId.code ??
                         `#${inspection.loanId._id.slice(-8).toUpperCase()}`)}
+                  </span>
+                </td>
+                <td className="py-5 px-6">
+                  <span className="text-gray-400 text-xs">
+                    {formatDate(inspection.createdAt)}
                   </span>
                 </td>
                 <td className="py-5 px-6">

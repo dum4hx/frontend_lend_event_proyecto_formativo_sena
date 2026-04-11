@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { X, Save, AlertCircle, Eye } from "lucide-react";
 import { useLanguage } from "../../../../../contexts/useLanguage";
 import { useAuth } from "../../../../../contexts/useAuth";
@@ -8,11 +8,12 @@ import type {
   InspectionItemInput,
   InspectionCondition,
   MaterialInstance,
+  MaterialType,
 } from "../../../../../types/api";
 import { ConditionPicker } from "./ConditionPicker";
 import Button from "../../../../../components/ui/Button";
 import { MaterialInstanceDetailModal } from "../../../modules/material-instances/components/MaterialInstanceDetailModal";
-import { getMaterialInstance } from "../../../../../services/materialService";
+import { getMaterialInstance, getMaterialTypes } from "../../../../../services/materialService";
 
 interface InspectionFormModalProps {
   loan: PendingLoan;
@@ -53,6 +54,26 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
   // For material instance preview
   const [selectedInstance, setSelectedInstance] = useState<MaterialInstance | null>(null);
   const [loadingInstance, setLoadingInstance] = useState(false);
+
+  // Material types map for enriching loan data
+  const [materialTypesMap, setMaterialTypesMap] = useState<Record<string, MaterialType>>({});
+
+  // Load material types on mount to enrich loan data with names
+  useEffect(() => {
+    const loadMaterialTypes = async () => {
+      try {
+        const res = await getMaterialTypes();
+        const typeMap: Record<string, MaterialType> = {};
+        (res.data.materialTypes || []).forEach((type) => {
+          typeMap[type._id] = type;
+        });
+        setMaterialTypesMap(typeMap);
+      } catch (err) {
+        console.error("Failed to load material types:", err);
+      }
+    };
+    loadMaterialTypes();
+  }, []);;
 
   // Derive per-item description errors: required when damaged or lost
   const descriptionErrors = items.map(
@@ -118,7 +139,7 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
       className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
       data-help-id="inspections-form-create"
     >
-      <div className="bg-[#121212] border border-[#333] rounded-xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl">
+      <div className="bg-[#121212] border border-[#333] rounded-xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl">
         {/* Header */}
         <div className="p-6 border-b border-[#333] flex items-center justify-between bg-[#1a1a1a] rounded-t-xl">
           <div className="flex-1">
@@ -150,7 +171,7 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
         </div>
 
         {/* Content */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-8">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
           {error && (
             <div className="bg-red-900/30 border border-red-500/50 text-red-200 p-4 rounded-lg flex items-center space-x-3">
               <AlertCircle className="w-5 h-5 flex-shrink-0" />
@@ -166,19 +187,24 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
             {loan.materialInstances.map((mi, index) => (
               <div
                 key={mi.materialInstanceId._id}
-                className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-5 space-y-4 hover:border-[#333] transition-colors"
+                className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4 space-y-3 hover:border-[#333] transition-colors"
               >
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#2a2a2a] pb-4">
                   <div className="flex items-center gap-3">
                     <div>
                       <p className="text-white font-medium">
-                        {mi.materialType?.name || mi.materialInstanceId.serialNumber}
+                        {(() => {
+                          // Try to get material type name from API response first, then from loaded map
+                          const typeName =
+                            mi.materialType?.name ||
+                            materialTypesMap[mi.materialTypeId]?.name;
+                          
+                          return typeName || mi.materialInstanceId.serialNumber;
+                        })()}
                       </p>
-                      {mi.materialType?.name && (
-                        <p className="text-xs text-gray-400 mt-1">
-                          {t("inspections.serialNumber")}: <span className="font-mono text-gray-300">{mi.materialInstanceId.serialNumber}</span>
-                        </p>
-                      )}
+                      <p className="text-xs text-gray-400 mt-1">
+                        {t("inspections.serialNumber")}: <span className="font-mono text-gray-300">{mi.materialInstanceId.serialNumber}</span>
+                      </p>
                     </div>
                     <button
                       type="button"
@@ -268,7 +294,7 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
             ))}
           </div>
 
-          <div className="border-t border-[#333] pt-6 space-y-6">
+          <div className="border-t border-[#333] pt-4 space-y-4">
             <div>
               <label className="block text-sm font-semibold text-white mb-2 uppercase tracking-wide">
                 {t("inspections.overallNotes")}
@@ -276,14 +302,14 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
               <textarea
                 data-help-id="inspections-form-overall-notes"
                 placeholder={t("inspections.overallNotesPlaceholder")}
-                className="w-full bg-[#1a1a1a] border border-[#333] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#FFD700] min-h-[100px]"
+                className="w-full bg-[#1a1a1a] border border-[#333] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#FFD700] min-h-[80px]"
                 value={overallNotes}
                 onChange={(e) => setOverallNotes(e.target.value)}
               />
             </div>
 
             {hasDamagedOrLostItems && (
-              <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-4 space-y-3">
+              <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-4 space-y-2">
                 <label className="block text-sm font-semibold text-white uppercase tracking-wide">
                   {t("inspections.invoiceDueDate")}{" "}
                   <span className="text-gray-500 font-normal text-xs">
