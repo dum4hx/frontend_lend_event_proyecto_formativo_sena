@@ -177,6 +177,16 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
                 </p>
               </div>
               <div>
+                <p className="text-gray-500 text-sm">{t("loans.detail.approvedBy")}</p>
+                <p className="text-gray-300">
+                  {req.approvedBy ? (
+                    formatUserName(req.approvedBy)
+                  ) : (
+                    <span className="text-gray-600 italic text-xs">{t("loans.detail.notSet")}</span>
+                  )}
+                </p>
+              </div>
+              <div>
                 <p className="text-gray-500 text-sm">{t("loans.detail.loanCreatedAt")}</p>
                 <p className="text-gray-300">
                   {loanDetail?.createdAt ? (
@@ -306,19 +316,23 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
                         </p>
                       </div>
                     )}
-                    {(loan?.damageFees ?? 0) > 0 && (
+                    {loan && (
                       <div>
                         <p className="text-gray-500 text-xs">{t("loans.detail.damageFees")}</p>
-                        <p className="text-red-400 font-semibold">
-                          ${loan!.damageFees!.toLocaleString()}
+                        <p
+                          className={`font-semibold ${(loan.damageFees ?? 0) > 0 ? "text-red-400" : "text-gray-400"}`}
+                        >
+                          ${(loan.damageFees ?? 0).toLocaleString()}
                         </p>
                       </div>
                     )}
-                    {(loan?.lateFees ?? 0) > 0 && (
+                    {loan && (
                       <div>
                         <p className="text-gray-500 text-xs">{t("loans.detail.lateFees")}</p>
-                        <p className="text-red-400 font-semibold">
-                          ${loan!.lateFees!.toLocaleString()}
+                        <p
+                          className={`font-semibold ${(loan.lateFees ?? 0) > 0 ? "text-red-400" : "text-gray-400"}`}
+                        >
+                          ${(loan.lateFees ?? 0).toLocaleString()}
                         </p>
                       </div>
                     )}

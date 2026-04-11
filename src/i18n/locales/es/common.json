@@ -997,6 +997,7 @@
   "loans.detail.loanCreatedAt": "Préstamo creado",
   "loans.detail.createdBy": "Creado por",
   "loans.detail.approvedAt": "Aprobado el",
+  "loans.detail.approvedBy": "Aprobado por",
   "loans.detail.checkedOutAt": "Fecha de Checkout",
   "loans.detail.checkedOutBy": "Checkout por",
   "loans.detail.conditionAtCheckout": "Condición en Checkout",
@@ -1064,5 +1065,21 @@
   "loans.modal.complete.depositResolved": "El depósito ha sido resuelto. Listo para cerrar.",
   "loans.modal.complete.depositPending": "Advertencia: El depósito no ha sido completamente resuelto. Al completar se finalizará el préstamo de todos modos.",
   "loans.modal.complete.submit": "Completar Préstamo",
-  "loans.modal.complete.submitting": "Completando..."
+  "loans.modal.complete.submitting": "Completando...",
+
+  "orders.prepare.shortfall.title": "Stock Local Insuficiente",
+  "orders.prepare.shortfall.description": "{count} tipo(s) de material no pueden suplirse completamente desde sus ubicaciones accesibles.",
+  "orders.prepare.shortfall.moreNeeded": "{count} más necesarios",
+  "orders.prepare.shortfall.suggestedSources": "Fuentes de traslado sugeridas",
+  "orders.prepare.shortfall.from": "Desde",
+  "orders.prepare.shortfall.destinationLabel": "Ubicación de Destino",
+  "orders.prepare.shortfall.destinationPlaceholder": "Seleccione destino…",
+  "orders.prepare.shortfall.destinationConflict": "El destino no puede ser igual a una ubicación de origen.",
+  "orders.prepare.shortfall.destinationRequired": "Requerido para crear la solicitud de traslado.",
+  "orders.prepare.shortfall.notesLabel": "Notas",
+  "orders.prepare.shortfall.notesPlaceholder": "Razón o contexto para el traslado…",
+  "orders.prepare.shortfall.creating": "Creando…",
+  "orders.prepare.shortfall.createTransfer": "Crear Solicitud de Traslado ({count})",
+  "orders.prepare.shortfall.createTransfers": "Crear Solicitudes de Traslado ({count})",
+  "orders.prepare.shortfall.noSources": "Ninguna otra ubicación del almacén tiene las instancias requeridas disponibles."
 }

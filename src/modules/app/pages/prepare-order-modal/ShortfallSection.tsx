@@ -1,5 +1,6 @@
 import { AlertTriangle, ArrowLeftRight, ArrowRight } from "lucide-react";
 import Button from "../../../../components/ui/Button";
+import { useLanguage } from "../../../../contexts/useLanguage";
 import type { WarehouseLocation } from "../../../../services/warehouseOperatorService";
 import type { MaterialTypeRow, ShortfallGroup } from "./types";
 
@@ -32,17 +33,20 @@ export default function ShortfallSection({
   submittingTransfer,
   onCreateTransferRequests,
 }: ShortfallSectionProps) {
+  const { t } = useLanguage();
+
   if (shortfallByType.size === 0) return null;
 
   return (
     <div className="rounded-lg border border-yellow-500/40 bg-yellow-500/5 p-4 space-y-4">
       <div className="flex items-center gap-2">
         <AlertTriangle size={15} className="text-yellow-400 flex-shrink-0" />
-        <h3 className="font-semibold text-yellow-300 text-sm">Insufficient Local Stock</h3>
+        <h3 className="font-semibold text-yellow-300 text-sm">
+          {t("orders.prepare.shortfall.title")}
+        </h3>
       </div>
       <p className="text-sm text-yellow-200/70">
-        {shortfallByType.size} material type(s) cannot be fully fulfilled from your accessible
-        locations.
+        {t("orders.prepare.shortfall.description", { count: shortfallByType.size })}
       </p>
 
       {/* Shortfall summary per type */}
@@ -53,7 +57,9 @@ export default function ShortfallSection({
             <div key={typeId} className="flex items-center gap-2 text-sm">
               <span className="text-gray-300">{row?.materialTypeName ?? typeId}</span>
               <ArrowRight size={12} className="text-gray-500 flex-shrink-0" />
-              <span className="text-red-400">{need} more needed</span>
+              <span className="text-red-400">
+                {t("orders.prepare.shortfall.moreNeeded", { count: need })}
+              </span>
             </div>
           );
         })}
@@ -62,7 +68,7 @@ export default function ShortfallSection({
       {shortfallGroups.length > 0 ? (
         <>
           <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">
-            Suggested transfer sources
+            {t("orders.prepare.shortfall.suggestedSources")}
           </p>
           <div className="space-y-2">
             {shortfallGroups.map((group) => (
@@ -70,7 +76,9 @@ export default function ShortfallSection({
                 key={group.fromLocationId}
                 className="flex items-start gap-3 bg-[#121212] rounded-lg px-3 py-2 text-sm"
               >
-                <span className="text-gray-500 text-xs mt-0.5 flex-shrink-0">From</span>
+                <span className="text-gray-500 text-xs mt-0.5 flex-shrink-0">
+                  {t("orders.prepare.shortfall.from")}
+                </span>
                 <div>
                   <span className="text-white font-medium">{group.fromLocationName}</span>
                   <div className="flex flex-wrap gap-1 mt-1">
@@ -95,7 +103,7 @@ export default function ShortfallSection({
                 htmlFor="transfer-destination"
                 className="block text-sm font-medium text-gray-300 mb-1"
               >
-                Destination Location{" "}
+                {t("orders.prepare.shortfall.destinationLabel")}{" "}
                 <span className="text-red-400" aria-hidden="true">
                   *
                 </span>
@@ -106,7 +114,7 @@ export default function ShortfallSection({
                 onChange={(e) => onDestinationChange(e.target.value)}
                 className="w-full px-3 py-2 bg-[#121212] border border-[#444] rounded-lg text-white focus:outline-none focus:border-[#FFD700] transition-colors text-sm"
               >
-                <option value="">Select destination…</option>
+                <option value="">{t("orders.prepare.shortfall.destinationPlaceholder")}</option>
                 {userLocations.map((loc) => (
                   <option key={loc._id} value={loc._id}>
                     {loc.name}
@@ -115,12 +123,12 @@ export default function ShortfallSection({
               </select>
               {destinationConflict && (
                 <p className="text-xs text-red-400 mt-1">
-                  Destination cannot be the same as a source location.
+                  {t("orders.prepare.shortfall.destinationConflict")}
                 </p>
               )}
               {destinationLocationId === "" && shortfallGroups.length > 0 && (
                 <p className="text-xs text-gray-500 mt-1">
-                  Required to create the transfer request.
+                  {t("orders.prepare.shortfall.destinationRequired")}
                 </p>
               )}
             </div>
@@ -130,7 +138,8 @@ export default function ShortfallSection({
                 htmlFor="transfer-notes"
                 className="block text-sm font-medium text-gray-300 mb-1"
               >
-                Notes <span className="text-gray-500 font-normal">(optional)</span>
+                {t("orders.prepare.shortfall.notesLabel")}{" "}
+                <span className="text-gray-500 font-normal">({t("common.optional")})</span>
               </label>
               <textarea
                 id="transfer-notes"
@@ -138,7 +147,7 @@ export default function ShortfallSection({
                 onChange={(e) => onTransferNotesChange(e.target.value)}
                 rows={2}
                 maxLength={500}
-                placeholder="Reason or context for the transfer…"
+                placeholder={t("orders.prepare.shortfall.notesPlaceholder")}
                 className="w-full px-3 py-2 bg-[#121212] border border-[#444] rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-[#FFD700] transition-colors text-sm resize-none"
               />
             </div>
@@ -150,14 +159,16 @@ export default function ShortfallSection({
               className="bg-yellow-500/15 text-yellow-300 border-yellow-500/40 hover:bg-yellow-500/25 disabled:opacity-50"
             >
               {submittingTransfer
-                ? "Creating…"
-                : `Create Transfer Request${shortfallGroups.length > 1 ? "s" : ""} (${shortfallGroups.length})`}
+                ? t("orders.prepare.shortfall.creating")
+                : shortfallGroups.length > 1
+                  ? t("orders.prepare.shortfall.createTransfers", { count: shortfallGroups.length })
+                  : t("orders.prepare.shortfall.createTransfer", { count: shortfallGroups.length })}
             </Button>
           </div>
         </>
       ) : (
         <p className="text-sm text-yellow-200/60 italic">
-          No other warehouse locations have the required instances available.
+          {t("orders.prepare.shortfall.noSources")}
         </p>
       )}
     </div>

@@ -989,6 +989,7 @@
   "loans.detail.loanCreatedAt": "Loan Created",
   "loans.detail.createdBy": "Created By",
   "loans.detail.approvedAt": "Approved At",
+  "loans.detail.approvedBy": "Approved By",
   "loans.detail.checkedOutAt": "Checked Out At",
   "loans.detail.checkedOutBy": "Checked Out By",
   "loans.detail.conditionAtCheckout": "Condition at Checkout",
@@ -1056,5 +1057,21 @@
   "loans.modal.complete.depositResolved": "Deposit has been resolved. Ready to close.",
   "loans.modal.complete.depositPending": "Warning: The deposit has not been fully resolved. Completing will finalize the loan regardless.",
   "loans.modal.complete.submit": "Complete Loan",
-  "loans.modal.complete.submitting": "Completing..."
+  "loans.modal.complete.submitting": "Completing...",
+
+  "orders.prepare.shortfall.title": "Insufficient Local Stock",
+  "orders.prepare.shortfall.description": "{count} material type(s) cannot be fully fulfilled from your accessible locations.",
+  "orders.prepare.shortfall.moreNeeded": "{count} more needed",
+  "orders.prepare.shortfall.suggestedSources": "Suggested transfer sources",
+  "orders.prepare.shortfall.from": "From",
+  "orders.prepare.shortfall.destinationLabel": "Destination Location",
+  "orders.prepare.shortfall.destinationPlaceholder": "Select destination…",
+  "orders.prepare.shortfall.destinationConflict": "Destination cannot be the same as a source location.",
+  "orders.prepare.shortfall.destinationRequired": "Required to create the transfer request.",
+  "orders.prepare.shortfall.notesLabel": "Notes",
+  "orders.prepare.shortfall.notesPlaceholder": "Reason or context for the transfer…",
+  "orders.prepare.shortfall.creating": "Creating…",
+  "orders.prepare.shortfall.createTransfer": "Create Transfer Request ({count})",
+  "orders.prepare.shortfall.createTransfers": "Create Transfer Requests ({count})",
+  "orders.prepare.shortfall.noSources": "No other warehouse locations have the required instances available."
 }
