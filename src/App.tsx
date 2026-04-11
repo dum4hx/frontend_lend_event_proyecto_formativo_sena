@@ -111,7 +111,7 @@ const AdminReports = lazy(() => import("./modules/super-admin/pages/AdminReports
  * - On mutations (services invalidate/refresh as needed)
  * - No polling — only real changes sync
  */
-function AppRoutes() {
+export function AppRoutes() {
   return (
     <BrowserRouter>
       <ScrollToTop />
