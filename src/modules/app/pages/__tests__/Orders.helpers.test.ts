@@ -10,6 +10,7 @@ import {
 function buildMaterial(id: string, name: string, categoryId: string): MaterialType {
   return {
     _id: id,
+    code: `MT-${id}`,
     organizationId: "org-1",
     name,
     description: `${name} description`,

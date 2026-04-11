@@ -7,7 +7,7 @@ const operationsHelpContent: HelpModuleContent = {
     en: "Help center: Operations",
   },
   description: {
-    es: "Este panel concentra la operacion diaria por ubicacion: inspecciones, finanzas vencidas, inventario critico, transferencias, vencimientos y danos.",
+    es: "Este panel concentra la operacion diaria por ubicacion: inspecciones, finanzas vencidas, inventario critico, transferencias, vencimientos y daños.",
     en: "This dashboard centralizes daily location operations: inspections, overdue financials, critical inventory, transfers, deadlines, and damages.",
   },
   sections: [
@@ -158,7 +158,7 @@ const operationsHelpContent: HelpModuleContent = {
       id: "step-4-tabs",
       title: { es: "4) Navegacion por tabs", en: "4) Tab navigation" },
       body: {
-        es: "Usa estas pestanas para entrar al area especifica: inspecciones, finanzas, inventario, transferencias, vencimientos o danos.",
+        es: "Usa estas pestanas para entrar al area especifica: inspecciones, finanzas, inventario, transferencias, vencimientos o daños.",
         en: "Use these tabs to enter specific areas: inspections, financials, inventory, transfers, deadlines, or damages.",
       },
       targetSelector: '[data-help-id="operations-tabs"]',

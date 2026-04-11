@@ -5,6 +5,8 @@ import { loginUser, refreshToken } from "../services/authService";
 import { useAuth } from "../contexts/useAuth";
 import { ApiError } from "../lib/api";
 import { validateLoginForm } from "../utils/validators";
+import { useLanguage } from "../contexts/useLanguage";
+import type { TranslationKey } from "../i18n/translations";
 
 interface LoginModalProps {
   open: boolean;
@@ -23,6 +25,7 @@ export default function LoginModal({
 }: LoginModalProps) {
   const { checkAuth } = useAuth();
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -57,7 +60,7 @@ export default function LoginModal({
 
     const validation = validateLoginForm({ email, password });
     if (!validation.isValid) {
-      setError(validation.message ?? "Validation failed");
+      setError(t(validation.message as TranslationKey));
       return;
     }
 
@@ -68,10 +71,7 @@ export default function LoginModal({
       await checkAuth();
       onAuthenticated();
     } catch (err: unknown) {
-      const message =
-        err instanceof ApiError
-          ? err.message
-          : "Connection error. Please try again.";
+      const message = err instanceof ApiError ? err.message : "Connection error. Please try again.";
 
       if (err instanceof ApiError && err.statusCode === 401) {
         try {
@@ -119,9 +119,7 @@ export default function LoginModal({
           </button>
 
           <h2 className="text-2xl font-extrabold mb-1">Sign In</h2>
-          <p className="text-gray-500 text-sm mb-6">
-            Log in to continue with your subscription
-          </p>
+          <p className="text-gray-500 text-sm mb-6">Log in to continue with your subscription</p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Error */}

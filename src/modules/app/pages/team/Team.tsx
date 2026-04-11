@@ -12,10 +12,17 @@ import { PageHeader } from "../../../../components/ui/PageHeader";
 import { Pagination } from "../../../../components/ui/Pagination";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import { pageVariants } from "../../../../lib/animations";
-import { useUsers, useDeactivateUser, useReactivateUser } from "../../../../hooks/queries/useUserQueries";
+import {
+  useUsers,
+  useDeactivateUser,
+  useReactivateUser,
+  useResendInvite,
+} from "../../../../hooks/queries/useUserQueries";
 import { useRoles } from "../../../../hooks/queries/useRoleQueries";
 import { useConfirmModal } from "../../../../hooks/useConfirmModal";
 import { useActionPermission } from "../../../../hooks/useActionPermission";
+import { usePermissions } from "../../../../contexts/usePermissions";
+import { useToast } from "../../../../contexts/ToastContext";
 import { TeamFilters } from "./TeamFilters";
 import { TeamMemberTable } from "./TeamMemberTable";
 import { TeamMemberDetailModal } from "./TeamMemberDetailModal";
@@ -23,6 +30,7 @@ import { InviteUserModal } from "./InviteUserModal";
 import { EditUserModal } from "./EditUserModal";
 import type { TeamMember } from "./types";
 import type { User, UserStatus } from "../../../../types/api";
+import Unauthorized from "../../../../pages/Unauthorized";
 
 const PAGE_SIZE = 15;
 
@@ -46,6 +54,7 @@ function toTeamMember(u: User): TeamMember {
 export function Team() {
   const { language } = useLanguage();
   const isEs = language === "es";
+  const { hasPermission } = usePermissions();
 
   // ── Filter state ──────────────────────────────────────────────────────
   const [search, setSearch] = useState("");
@@ -70,8 +79,10 @@ export function Team() {
   const rolesQuery = useRoles();
   const deactivateMutation = useDeactivateUser();
   const reactivateMutation = useReactivateUser();
+  const resendInviteMutation = useResendInvite();
   const { showConfirm, ConfirmModal } = useConfirmModal();
   const { guard, isAllowed } = useActionPermission(isEs ? "es" : "en");
+  const { showToast } = useToast();
 
   const canInvite = isAllowed("users:create");
 
@@ -106,14 +117,45 @@ export function Team() {
   async function handleReactivate(member: TeamMember) {
     const confirmed = await showConfirm({
       title: isEs ? "Reactivar miembro" : "Reactivate member",
-      message: isEs
-        ? `¿Reactivar a ${member.fullName}?`
-        : `Reactivate ${member.fullName}?`,
+      message: isEs ? `¿Reactivar a ${member.fullName}?` : `Reactivate ${member.fullName}?`,
       confirmText: isEs ? "Reactivar" : "Reactivate",
       variant: "info",
     });
     if (confirmed) {
       reactivateMutation.mutate(member.id);
+    }
+  }
+
+  async function handleResendInvite(member: TeamMember) {
+    const confirmed = await showConfirm({
+      title: isEs ? "Reenviar invitación" : "Resend invitation",
+      message: isEs
+        ? `¿Reenviar la invitación a ${member.fullName}?`
+        : `Resend invitation to ${member.fullName}?`,
+      confirmText: isEs ? "Reenviar" : "Resend",
+      variant: "info",
+    });
+    if (confirmed) {
+      resendInviteMutation.mutate(member.id, {
+        onSuccess: () =>
+          showToast(
+            "success",
+            isEs
+              ? `La invitación fue reenviada a ${member.fullName}.`
+              : `Invitation resent to ${member.fullName}.`,
+            isEs ? "Invitación reenviada" : "Invitation resent",
+          ),
+        onError: (err) =>
+          showToast(
+            "error",
+            err instanceof Error
+              ? err.message
+              : isEs
+                ? "No se pudo reenviar la invitación."
+                : "Failed to resend the invitation.",
+            isEs ? "Error al reenviar" : "Resend failed",
+          ),
+      });
     }
   }
 
@@ -131,6 +173,8 @@ export function Team() {
     { label: isEs ? "Inactivos" : "Inactive", value: inactiveCount },
     { label: isEs ? "Roles" : "Roles", value: rolesQuery.data?.items.length ?? 0 },
   ];
+
+  if (!hasPermission("users:read")) return <Unauthorized />;
 
   return (
     <AnimatedPage>
@@ -161,10 +205,14 @@ export function Team() {
                 aria-disabled={!canInvite}
                 title={
                   canInvite
-                    ? (isEs ? "Invitar miembro" : "Invite Member")
-                    : (isEs ? "Sin permiso: users:create" : "Missing permission: users:create")
+                    ? isEs
+                      ? "Invitar miembro"
+                      : "Invite Member"
+                    : isEs
+                      ? "Sin permiso: users:create"
+                      : "Missing permission: users:create"
                 }
-                className={`gold-action-btn flex items-center gap-2 transition-opacity ${!canInvite ? "opacity-50 cursor-not-allowed" : ""}`}
+                className={`w-full sm:w-auto shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 font-semibold rounded-lg transition gold-action-btn ${!canInvite ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 <UserPlus size={16} />
                 {isEs ? "Invitar miembro" : "Invite Member"}
@@ -205,17 +253,14 @@ export function Team() {
             onEdit={(m) => setEditingMember(m)}
             onDeactivate={handleDeactivate}
             onReactivate={handleReactivate}
+            onResendInvite={handleResendInvite}
           />
         </div>
 
         {/* Pagination */}
         {totalPages > 1 && (
           <div data-help-id="team-pagination">
-            <Pagination
-              page={page}
-              totalPages={totalPages}
-              onPageChange={setPage}
-            />
+            <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
           </div>
         )}
 
@@ -232,7 +277,10 @@ export function Team() {
         <InviteUserModal
           open={showInvite}
           onClose={() => setShowInvite(false)}
-          onSuccess={() => setShowInvite(false)}
+          onSuccess={() => {
+            setShowInvite(false);
+            void usersQuery.refetch();
+          }}
           availableRoles={rolesQuery.data?.items ?? []}
         />
 
@@ -245,10 +293,7 @@ export function Team() {
         />
 
         {/* Detail Modal */}
-        <TeamMemberDetailModal
-          member={viewingMember}
-          onClose={() => setViewingMember(null)}
-        />
+        <TeamMemberDetailModal member={viewingMember} onClose={() => setViewingMember(null)} />
 
         {/* Confirm dialogs */}
         <ConfirmModal />

@@ -19,6 +19,8 @@ export interface MaterialSelectorProps {
   title?: string;
   recentMaterials?: MaterialType[];
   showPrice?: boolean;
+  /** Current language for i18n ("en" | "es"). Defaults to "en". */
+  language?: "en" | "es";
 }
 
 function normalizeSearchText(value: string): string {
@@ -58,10 +60,13 @@ export const MaterialSelector: React.FC<MaterialSelectorProps> = ({
   getMaterialUsageCount,
   formatPrice,
   singleSelect = false,
-  title = "Quick Material Picker",
+  title,
   recentMaterials = [],
   showPrice = true,
+  language = "en",
 }) => {
+  const isEs = language === "es";
+  const resolvedTitle = title ?? (isEs ? "Selector rápido de materiales" : "Quick Material Picker");
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [selectedMaterialIds, setSelectedMaterialIds] = useState<string[]>([]);
@@ -157,12 +162,12 @@ export const MaterialSelector: React.FC<MaterialSelectorProps> = ({
 
   return (
     <div className="rounded-lg border border-[#333] bg-[#1a1a1a] p-4 space-y-3">
-      <p className="text-sm font-semibold text-white">{title}</p>
+      <p className="text-sm font-semibold text-white">{resolvedTitle}</p>
 
       {recentMaterials.length > 0 && (
         <div className="space-y-2">
           <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
-            Recently Used
+            {isEs ? "Usados recientemente" : "Recently Used"}
           </p>
           <div className="flex flex-wrap gap-2">
             {recentMaterials.map((material) => (
@@ -171,7 +176,7 @@ export const MaterialSelector: React.FC<MaterialSelectorProps> = ({
                 variant="secondary"
                 size="sm"
                 onClick={() => handleAddSingle(material)}
-                title={`Add ${material.name}`}
+                title={isEs ? `Agregar ${material.name}` : `Add ${material.name}`}
                 disabled={!isMaterialSelectable(material._id)}
                 className={
                   !isMaterialSelectable(material._id) ? "border-red-500/30 text-red-300" : ""
@@ -189,7 +194,7 @@ export const MaterialSelector: React.FC<MaterialSelectorProps> = ({
         onChange={(e) => setCategoryId(e.target.value)}
         className="w-full px-3 py-2 bg-[#111] border border-[#333] rounded-lg text-white text-sm focus:outline-none focus:border-[#FFD700]"
       >
-        <option value="">All categories</option>
+        <option value="">{isEs ? "Todas las categorías" : "All categories"}</option>
         {categories.map((category) => (
           <option key={`selector-category-${category._id}`} value={category._id}>
             {category.name}
@@ -203,20 +208,32 @@ export const MaterialSelector: React.FC<MaterialSelectorProps> = ({
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="Search material by name or description..."
+        placeholder={
+          isEs
+            ? "Buscar material por nombre o descripción..."
+            : "Search material by name or description..."
+        }
         className="w-full px-3 py-2 bg-[#111] border border-[#333] rounded-lg text-white text-sm focus:outline-none focus:border-[#FFD700] placeholder-gray-600"
       />
       <p className="text-[11px] text-gray-500">
-        Tip: Press Ctrl/Cmd + K to focus search, then Enter to add the first result.
+        {isEs
+          ? "Consejo: Presiona Ctrl/Cmd + K para enfocar la búsqueda, luego Enter para agregar el primer resultado."
+          : "Tip: Press Ctrl/Cmd + K to focus search, then Enter to add the first result."}
       </p>
 
       <p className="text-[11px] text-gray-500">
-        {filteredMaterials.length} result{filteredMaterials.length === 1 ? "" : "s"} in real time
+        {isEs
+          ? `${filteredMaterials.length} resultado${filteredMaterials.length === 1 ? "" : "s"} en tiempo real`
+          : `${filteredMaterials.length} result${filteredMaterials.length === 1 ? "" : "s"} in real time`}
       </p>
 
       <div className="max-h-44 overflow-y-auto space-y-2 pr-1">
         {filteredMaterials.length === 0 ? (
-          <p className="text-xs text-gray-500">No materials found for current filters.</p>
+          <p className="text-xs text-gray-500">
+            {isEs
+              ? "No se encontraron materiales para los filtros actuales."
+              : "No materials found for current filters."}
+          </p>
         ) : (
           filteredMaterials.map((material) => {
             const selected = selectedMaterialIds.includes(material._id);
@@ -240,7 +257,7 @@ export const MaterialSelector: React.FC<MaterialSelectorProps> = ({
                   <span className="block text-gray-400 truncate">{material.description}</span>
                   {showPrice && formatPrice && (
                     <span className="block text-gray-400 truncate">
-                      {formatPrice(material.pricePerDay)} / day
+                      {formatPrice(material.pricePerDay)} / {isEs ? "día" : "day"}
                     </span>
                   )}
                   {(() => {
@@ -259,7 +276,7 @@ export const MaterialSelector: React.FC<MaterialSelectorProps> = ({
                     if (count <= 0) return null;
                     return (
                       <span className="block text-[11px] text-[#FFD700] truncate">
-                        Used {count} times
+                        {isEs ? `Usado ${count} veces` : `Used ${count} times`}
                       </span>
                     );
                   })()}
@@ -278,7 +295,9 @@ export const MaterialSelector: React.FC<MaterialSelectorProps> = ({
           className="w-full"
           disabled={selectedMaterialIds.length === 0}
         >
-          Add selected items ({selectedMaterialIds.length})
+          {isEs
+            ? `Agregar items seleccionados (${selectedMaterialIds.length})`
+            : `Add selected items (${selectedMaterialIds.length})`}
         </Button>
       )}
     </div>

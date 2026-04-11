@@ -43,8 +43,8 @@ const subscriptionHelpContent: HelpModuleContent = {
       id: "functions",
       title: { es: "Funciones clave", en: "Key functions" },
       body: {
-        es: "Puedes exportar historial, abrir portal de facturacion, ajustar asientos, cambiar plan y cancelar suscripcion.",
-        en: "You can export history, open billing portal, adjust seats, change plan, and cancel subscription.",
+        es: "Puedes exportar historial, abrir portal de facturacion, ajustar asientos, cambiar plan y cancelar suscripcion. Las mejoras de plan se aplican de inmediato; las degradaciones se programan al final del periodo y pueden cancelarse.",
+        en: "You can export history, open billing portal, adjust seats, change plan, and cancel subscription. Upgrades take effect immediately; downgrades are scheduled at period end and can be cancelled.",
       },
       howTo: [
         {
@@ -158,10 +158,36 @@ const subscriptionHelpContent: HelpModuleContent = {
       id: "step-4-plans",
       title: { es: "4) Evalua planes", en: "4) Evaluate plans" },
       body: {
-        es: "Compara planes disponibles y selecciona el mas alineado a capacidad y presupuesto.",
-        en: "Compare available plans and select the one aligned with capacity and budget.",
+        es: "Compara planes disponibles y selecciona el mas alineado a capacidad y presupuesto. Los planes dinamicos muestran un desglose de costos estimado basado en tus asientos actuales.",
+        en: "Compare available plans and select the one aligned with capacity and budget. Dynamic plans show an estimated cost breakdown based on your current seats.",
       },
       targetSelector: '[data-help-id="subscription-plans"]',
+    },
+    {
+      id: "step-4b-cost-preview",
+      title: { es: "4b) Vista previa de costos", en: "4b) Cost preview" },
+      body: {
+        es: "Para planes con modelo por asiento, se calcula automaticamente el costo estimado mensual usando el numero actual de asientos de tu organizacion.",
+        en: "For per-seat plans, the estimated monthly cost is automatically calculated using your organization's current seat count.",
+      },
+      targetSelector: '[data-help-id="plan-cost-preview"]',
+      tip: {
+        es: "Revisa el desglose antes de hacer checkout para evitar sorpresas en la factura.",
+        en: "Review the breakdown before checkout to avoid billing surprises.",
+      },
+    },
+    {
+      id: "step-4c-pending-change",
+      title: { es: "4c) Cambio de plan pendiente", en: "4c) Pending plan change" },
+      body: {
+        es: "Las mejoras de plan se aplican inmediatamente. Las degradaciones se programan al final del periodo de facturacion actual. Si hay un cambio pendiente, aparecera un banner que permite cancelarlo antes de que se aplique.",
+        en: "Plan upgrades take effect immediately. Downgrades are scheduled at the end of the current billing period. If there is a pending change, a banner will appear allowing you to cancel it before it takes effect.",
+      },
+      targetSelector: '[data-help-id="subscription-pending-change"]',
+      tip: {
+        es: "Puedes cancelar un cambio pendiente en cualquier momento antes de la fecha efectiva.",
+        en: "You can cancel a pending change at any time before the effective date.",
+      },
     },
     {
       id: "step-5-danger",

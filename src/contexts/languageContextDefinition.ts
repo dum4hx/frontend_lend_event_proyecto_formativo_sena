@@ -17,7 +17,7 @@ export interface LanguageContextValue {
   formatCurrency: (value: number, currency?: string) => string;
 }
 
-const DEFAULT_LANGUAGE: SupportedLanguage = "en";
+const DEFAULT_LANGUAGE: SupportedLanguage = "es";
 const DEFAULT_LOCALE = LANGUAGE_TO_LOCALE[DEFAULT_LANGUAGE];
 
 export const defaultLanguageContextValue: LanguageContextValue = {

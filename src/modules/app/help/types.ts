@@ -33,7 +33,7 @@ export interface HelpWalkthroughStep {
   advanceOn?: HelpAdvanceOn;
 }
 
-export type HelpFormMode = "create" | "edit" | "both";
+export type HelpFormMode = "create" | "edit" | "both" | "delete";
 
 export interface HelpFormFieldGuide {
   id: string;

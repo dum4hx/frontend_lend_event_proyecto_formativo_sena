@@ -4,9 +4,10 @@
  */
 
 import React from "react";
-import { Eye, Pencil, Play, Plus, XCircle } from "lucide-react";
+import { Eye, Pencil, Play, Plus, XCircle, Wrench } from "lucide-react";
 import { DataTable, StatusBadge, type ColumnDef } from "../../../../../components/ui";
 import { useLanguage } from "../../../../../contexts/useLanguage";
+import { getMaintenanceBatchStatusLabel } from "../../../../../utils/statusLabels";
 import type { MaintenanceBatchListItem } from "../../../../../types/api";
 
 interface BatchListTableProps {
@@ -24,6 +25,12 @@ interface BatchListTableProps {
   onCancel: (batch: MaintenanceBatchListItem) => void;
   /** Add items callback (draft only). */
   onAddItems: (batch: MaintenanceBatchListItem) => void;
+  /** Repair materials callback (in_progress only). */
+  onRepairItems: (batch: MaintenanceBatchListItem) => void;
+  /** Whether the user has maintenance:update permission. */
+  canUpdate: boolean;
+  /** Whether the user has maintenance:resolve permission. */
+  canResolve: boolean;
 }
 
 export function BatchListTable({
@@ -34,10 +41,23 @@ export function BatchListTable({
   onStart,
   onCancel,
   onAddItems,
+  onRepairItems,
+  canUpdate,
+  canResolve,
 }: BatchListTableProps) {
-  const { t, formatDate, formatCurrency } = useLanguage();
+  const { t, formatDate, formatCurrency, language } = useLanguage();
 
   const columns: ColumnDef<MaintenanceBatchListItem>[] = [
+    {
+      key: "batchNumber",
+      header: t("maintenance.batchNumber"),
+      render: (row) => (
+        <span className="font-mono text-xs text-[#FFD700] bg-[#FFD700]/10 px-2 py-0.5 rounded">
+          {row.batchNumber ?? `#${row._id.slice(-6).toUpperCase()}`}
+        </span>
+      ),
+      width: "w-40",
+    },
     {
       key: "name",
       header: t("maintenance.batchName"),
@@ -46,7 +66,12 @@ export function BatchListTable({
     {
       key: "status",
       header: "Status",
-      render: (row) => <StatusBadge status={row.status} />,
+      render: (row) => (
+        <StatusBadge
+          status={row.status}
+          label={getMaintenanceBatchStatusLabel(row.status, language)}
+        />
+      ),
       width: "w-32",
     },
     {
@@ -94,7 +119,7 @@ export function BatchListTable({
           >
             <Eye size={16} />
           </button>
-          {row.status === "draft" && (
+          {row.status === "draft" && canUpdate && (
             <>
               <button
                 type="button"
@@ -133,7 +158,20 @@ export function BatchListTable({
               )}
             </>
           )}
-          {(row.status === "draft" || row.status === "in_progress") && (
+          {row.status === "in_progress" && canResolve && (
+            <button
+              type="button"
+              className="p-1 rounded hover:bg-white/10 text-[#FFD700] hover:text-yellow-300 transition-colors"
+              title={t("maintenance.action.repairItems")}
+              onClick={(e) => {
+                e.stopPropagation();
+                onRepairItems(row);
+              }}
+            >
+              <Wrench size={16} />
+            </button>
+          )}
+          {(row.status === "draft" || row.status === "in_progress") && canUpdate && (
             <button
               type="button"
               className="p-1 rounded hover:bg-white/10 text-red-400 hover:text-red-300 transition-colors"

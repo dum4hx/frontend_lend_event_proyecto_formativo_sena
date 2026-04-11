@@ -6,6 +6,8 @@ import { MapPin, Zap, Eye, Edit2, Trash2 } from "lucide-react";
 import type { WarehouseLocation } from "../../../../services/warehouseOperatorService";
 import { StatusBadge, LoadingSpinner } from "../../../../components/ui";
 import { useLanguage } from "../../../../contexts/useLanguage";
+import { useActionPermission } from "../../../../hooks/useActionPermission";
+import { getLocationStatusLabel } from "../../../../utils/statusLabels";
 import { formatAddress, calculateLocationCapacity, calculateOccupied } from "./helpers";
 import { LOCATION_STATUS_COLORS } from "./types";
 
@@ -40,6 +42,7 @@ export function LocationsTable({
 }: LocationsTableProps) {
   const { language } = useLanguage();
   const isEs = language === "es";
+  const { guard } = useActionPermission(isEs ? "es" : "en");
 
   if (loading) {
     return (
@@ -83,14 +86,17 @@ export function LocationsTable({
           >
             {/* Status Badge */}
             <div className="absolute top-4 right-4">
-              <StatusBadge status={location.status} colorMap={LOCATION_STATUS_COLORS} />
+              <StatusBadge status={location.status} colorMap={LOCATION_STATUS_COLORS} label={getLocationStatusLabel(location.status as "available" | "full_capacity" | "maintenance" | "inactive", language as "en" | "es")} />
             </div>
 
             {/* Header */}
             <div className="mb-5 pr-24">
-              <h3 className="text-xl font-bold text-white mb-2 group-hover:text-[#FFD700] transition-colors">
+              <h3 className="text-xl font-bold text-white mb-1 group-hover:text-[#FFD700] transition-colors">
                 {location.name}
               </h3>
+              {location.code && (
+                <p className="text-xs font-mono text-[#FFD700]/80 mb-2">{location.code}</p>
+              )}
               <div className="flex items-start gap-2 text-gray-400">
                 <MapPin size={16} className="mt-0.5 flex-shrink-0 text-[#FFD700]/70" />
                 <div className="text-sm leading-relaxed">
@@ -151,8 +157,9 @@ export function LocationsTable({
 
               {canEdit && (
                 <button
-                  onClick={() => onEdit(location)}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#0f0f0f] border border-[#2a2a2a] text-gray-300 hover:bg-[#FFD700]/10 hover:border-[#FFD700] hover:text-[#FFD700] transition-all duration-200 group/btn"
+                  onClick={guard("locations:update", () => onEdit(location))}
+                  aria-disabled={!canEdit}
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#0f0f0f] border border-[#2a2a2a] text-gray-300 hover:bg-[#FFD700]/10 hover:border-[#FFD700] hover:text-[#FFD700] transition-all duration-200 group/btn ${!canEdit ? "opacity-40 cursor-not-allowed" : ""}`}
                   title={isEs ? "Editar" : "Edit"}
                 >
                   <Edit2 size={16} className="group-hover/btn:scale-110 transition-transform" />
@@ -162,8 +169,9 @@ export function LocationsTable({
 
               {canDelete && (
                 <button
-                  onClick={() => onDelete(location._id)}
-                  className="flex items-center justify-center w-10 h-10 rounded-lg bg-red-950/30 border border-red-900/30 text-red-400 hover:bg-red-950/50 hover:border-red-500/50 hover:text-red-300 transition-all duration-200 group/btn"
+                  onClick={guard("locations:delete", () => onDelete(location._id))}
+                  aria-disabled={!canDelete}
+                  className={`flex items-center justify-center w-10 h-10 rounded-lg bg-red-950/30 border border-red-900/30 text-red-400 hover:bg-red-950/50 hover:border-red-500/50 hover:text-red-300 transition-all duration-200 group/btn ${!canDelete ? "opacity-40 cursor-not-allowed" : ""}`}
                   title={isEs ? "Eliminar" : "Delete"}
                 >
                   <Trash2 size={16} className="group-hover/btn:scale-110 transition-transform" />

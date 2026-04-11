@@ -1,5 +1,9 @@
 import React, { useState } from "react";
-import { ClipboardCheck, History, Search, RefreshCcw } from "lucide-react";
+import { ClipboardCheck, History, Search, RefreshCcw, CheckCircle2, XCircle } from "lucide-react";
+import { useLanguage } from "../../../../../contexts/useLanguage";
+import { usePermissions } from "../../../../../contexts/usePermissions";
+import { useActionPermission } from "../../../../../hooks/useActionPermission";
+import Unauthorized from "../../../../../pages/Unauthorized";
 import { useInspections } from "../hooks/useInspections";
 import {
   PendingLoansTable,
@@ -8,19 +12,43 @@ import {
   InspectionDetailModal,
 } from "../components";
 import { LoadingSpinner, ErrorDisplay } from "../../../../../components/ui";
-import type { PendingLoan, InspectionListItem } from "../../../../../types/api";
+import type {
+  PendingLoan,
+  InspectionListItem,
+  Inspection,
+  CreateInspectionPayload,
+} from "../../../../../types/api";
 
 /**
  * Inspections Catalog — Main dashboard for Warehouse Operator to manage loan returns.
  * High-impact UI with tabs, metrics, and real-time list updates.
  */
 export const InspectionsCatalog: React.FC = () => {
+  const { t } = useLanguage();
+  const { hasPermission } = usePermissions();
+  const { guard } = useActionPermission("en");
   const { inspections, pendingLoans, loading, error, recordInspection, refetch } = useInspections();
 
   const [activeTab, setActiveTab] = useState<"pending" | "history">("pending");
   const [selectedLoan, setSelectedLoan] = useState<PendingLoan | null>(null);
   const [selectedInspection, setSelectedInspection] = useState<InspectionListItem | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [successNotification, setSuccessNotification] = useState<{
+    inspectionNumber: string;
+  } | null>(null);
+  const [errorNotification, setErrorNotification] = useState<string | null>(null);
+
+  const handleSaveInspection = async (payload: CreateInspectionPayload): Promise<Inspection> => {
+    try {
+      const inspection = (await recordInspection(payload)) as Inspection;
+      setSuccessNotification({ inspectionNumber: inspection.inspectionNumber ?? inspection._id });
+      setActiveTab("history");
+      return inspection;
+    } catch (err) {
+      setErrorNotification((err as Error).message ?? t("inspections.saveFailed"));
+      throw err;
+    }
+  };
 
   const filteredPending = pendingLoans.filter(
     (l) =>
@@ -50,24 +78,23 @@ export const InspectionsCatalog: React.FC = () => {
     return <ErrorDisplay error={error} onRetry={refetch} />;
   }
 
+  if (!hasPermission("inspections:read")) return <Unauthorized />;
+
   return (
     <div className="p-6 md:p-10 space-y-10 animate-in fade-in duration-500">
       {/* Header & Stats */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div data-help-id="inspections-title">
           <h1 className="text-3xl font-extrabold text-white tracking-tight">
-            Inspections <span className="text-[#FFD700]">Hub</span>
+            {t("inspections.title")} <span className="text-[#FFD700]">Hub</span>
           </h1>
-          <p className="text-gray-400 mt-2 text-sm max-w-lg">
-            Assess material status upon return and automatically generate damage invoices for
-            customers.
-          </p>
+          <p className="text-gray-400 mt-2 text-sm max-w-lg">{t("inspections.description")}</p>
         </div>
 
         <div className="flex items-center space-x-4" data-help-id="inspections-stats">
           <div className="bg-[#1a1a1a] border border-[#222] px-6 py-3 rounded-xl shadow-lg">
             <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">
-              Pending Tasks
+              {t("inspections.tabPending")}
             </p>
             <p className="text-2xl font-black text-[#FFD700]">{pendingLoans.length}</p>
           </div>
@@ -82,6 +109,43 @@ export const InspectionsCatalog: React.FC = () => {
         </div>
       </div>
 
+      {/* Notification Cards */}
+      {successNotification && (
+        <div className="flex items-start gap-3 bg-green-900/30 border border-green-500/40 text-green-200 p-4 rounded-xl shadow-lg animate-in fade-in duration-300">
+          <CheckCircle2 className="w-5 h-5 flex-shrink-0 text-green-400 mt-0.5" />
+          <div className="flex-1">
+            <p className="font-semibold text-sm text-green-300">{t("inspections.saveSuccess")}</p>
+            <p className="text-sm mt-1 text-green-400/80">
+              {t("inspections.saveSuccessBody", { code: successNotification.inspectionNumber })}
+            </p>
+          </div>
+          <button
+            onClick={() => setSuccessNotification(null)}
+            className="text-green-500 hover:text-green-300 transition-colors flex-shrink-0"
+            aria-label="Dismiss"
+          >
+            <XCircle className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {errorNotification && (
+        <div className="flex items-start gap-3 bg-red-900/30 border border-red-500/40 text-red-200 p-4 rounded-xl shadow-lg animate-in fade-in duration-300">
+          <XCircle className="w-5 h-5 flex-shrink-0 text-red-400 mt-0.5" />
+          <div className="flex-1">
+            <p className="font-semibold text-sm text-red-300">{t("inspections.saveFailed")}</p>
+            <p className="text-sm mt-1 text-red-400/80">{errorNotification}</p>
+          </div>
+          <button
+            onClick={() => setErrorNotification(null)}
+            className="text-red-500 hover:text-red-300 transition-colors flex-shrink-0"
+            aria-label="Dismiss"
+          >
+            <XCircle className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Tabs & Filters */}
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#222] pb-1">
@@ -94,7 +158,7 @@ export const InspectionsCatalog: React.FC = () => {
             >
               <div className="flex items-center">
                 <ClipboardCheck className="w-4 h-4 mr-2" />
-                Pending Inspections
+                {t("inspections.tabPending")}
               </div>
               {activeTab === "pending" && (
                 <div className="absolute bottom-0 left-0 right-0 h-1 bg-[#FFD700] rounded-t-full shadow-[0_-2px_6px_rgba(255,215,0,0.4)]" />
@@ -108,7 +172,7 @@ export const InspectionsCatalog: React.FC = () => {
             >
               <div className="flex items-center">
                 <History className="w-4 h-4 mr-2" />
-                Completed History
+                {t("inspections.tabCompleted")}
               </div>
               {activeTab === "history" && (
                 <div className="absolute bottom-0 left-0 right-0 h-1 bg-[#FFD700] rounded-t-full shadow-[0_-2px_6px_rgba(255,215,0,0.4)]" />
@@ -134,7 +198,16 @@ export const InspectionsCatalog: React.FC = () => {
           data-help-id="inspections-content"
         >
           {activeTab === "pending" ? (
-            <PendingLoansTable loans={filteredPending} onInspect={setSelectedLoan} />
+            <PendingLoansTable
+              loans={filteredPending}
+              onInspect={(loan) =>
+                guard("inspections:create", () => {
+                  setSuccessNotification(null);
+                  setErrorNotification(null);
+                  setSelectedLoan(loan);
+                })()
+              }
+            />
           ) : (
             <CompletedInspectionsTable
               inspections={filteredHistory}
@@ -156,7 +229,7 @@ export const InspectionsCatalog: React.FC = () => {
         <InspectionFormModal
           loan={selectedLoan}
           onClose={() => setSelectedLoan(null)}
-          onSave={recordInspection}
+          onSave={handleSaveInspection}
         />
       )}
 

@@ -11,6 +11,7 @@ import { ApiError } from "../../../../lib/api";
 import { updateUser, updateUserRole } from "../../../../services/adminService";
 import { getLocations } from "../../../../services/warehouseOperatorService";
 import { validateFirstName, validateLastName } from "../../../../utils/validators";
+import type { TranslationKey } from "../../../../i18n/translations";
 import type { Role } from "../../../../types/api";
 import type { WarehouseLocation } from "../../../../services/warehouseOperatorService";
 import type { TeamMember } from "./types";
@@ -39,7 +40,7 @@ interface OwnerSecurity {
 const OWNER_PHRASE = "TRANSFER OWNER";
 
 export function EditUserModal({ member, availableRoles, onClose, onSuccess }: EditUserModalProps) {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const isEs = language === "es";
 
   const locationsQuery = useQuery({
@@ -51,7 +52,12 @@ export function EditUserModal({ member, availableRoles, onClose, onSuccess }: Ed
   });
   const availableLocations: WarehouseLocation[] = locationsQuery.data ?? [];
 
-  const [form, setForm] = useState<EditFormValues>({ firstName: "", firstSurname: "", roleId: "", locations: [] });
+  const [form, setForm] = useState<EditFormValues>({
+    firstName: "",
+    firstSurname: "",
+    roleId: "",
+    locations: [],
+  });
   const [errors, setErrors] = useState<
     Partial<Record<keyof Omit<EditFormValues, "roleId" | "locations">, string>>
   >({});
@@ -89,7 +95,10 @@ export function EditUserModal({ member, availableRoles, onClose, onSuccess }: Ed
   }, [member]);
 
   const selectedRoleName = availableRoles.find((r) => r._id === form.roleId)?.name ?? "";
-  const isOwnerPromotion = !!member && member.roleName !== "owner" && selectedRoleName === "owner";
+  const isOwnerPromotion =
+    !!member &&
+    member.roleName.toLowerCase() !== "propietario" &&
+    selectedRoleName.toLowerCase() === "propietario";
 
   const validateOwnerSecurity = useCallback((): Partial<Record<keyof OwnerSecurity, string>> => {
     const errs: Partial<Record<keyof OwnerSecurity, string>> = {};
@@ -119,10 +128,10 @@ export function EditUserModal({ member, availableRoles, onClose, onSuccess }: Ed
         field === "firstName"
           ? validateFirstName(value).isValid
             ? undefined
-            : validateFirstName(value).message
+            : t(validateFirstName(value).message as TranslationKey)
           : validateLastName(value).isValid
             ? undefined
-            : validateLastName(value).message;
+            : t(validateLastName(value).message as TranslationKey);
       setErrors((prev) => ({ ...prev, [field]: msg }));
     }
     setFormError(null);
@@ -135,10 +144,10 @@ export function EditUserModal({ member, availableRoles, onClose, onSuccess }: Ed
       field === "firstName"
         ? validateFirstName(value).isValid
           ? undefined
-          : validateFirstName(value).message
+          : t(validateFirstName(value).message as TranslationKey)
         : validateLastName(value).isValid
           ? undefined
-          : validateLastName(value).message;
+          : t(validateLastName(value).message as TranslationKey);
     setErrors((prev) => ({ ...prev, [field]: msg }));
   }
 
@@ -162,8 +171,8 @@ export function EditUserModal({ member, availableRoles, onClose, onSuccess }: Ed
     const lastErr = validateLastName(form.firstSurname);
     if (!firstErr.isValid || !lastErr.isValid) {
       setErrors({
-        firstName: firstErr.isValid ? undefined : firstErr.message,
-        firstSurname: lastErr.isValid ? undefined : lastErr.message,
+        firstName: firstErr.isValid ? undefined : t(firstErr.message as TranslationKey),
+        firstSurname: lastErr.isValid ? undefined : t(lastErr.message as TranslationKey),
       });
       setTouched({ firstName: true, firstSurname: true });
       return;
@@ -184,9 +193,7 @@ export function EditUserModal({ member, availableRoles, onClose, onSuccess }: Ed
 
     if (form.locations.length === 0) {
       setFormError(
-        isEs
-          ? "Selecciona al menos una ubicación."
-          : "Please select at least one location.",
+        isEs ? "Selecciona al menos una ubicación." : "Please select at least one location.",
       );
       return;
     }

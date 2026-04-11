@@ -10,12 +10,14 @@ import {
 } from "../../../services/materialService";
 import { MaterialAttributeForm } from "../modules/material-attributes/components/AttributeForm";
 import { useToast } from "../../../contexts/ToastContext";
-import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
+import { ConfirmDialog, PermissionGuardedButton } from "../../../components/ui";
 import { LoadingSpinner } from "../../../components/ui/LoadingSpinner";
 import { ErrorDisplay } from "../../../components/ui/ErrorDisplay";
 import { PageHeader } from "../../../components/ui/PageHeader";
 import type { MaterialAttribute, CreateMaterialAttributePayload } from "../../../types/api";
 import { usePermissions } from "../../../contexts/usePermissions";
+import { useActionPermission } from "../../../hooks/useActionPermission";
+import Unauthorized from "../../../pages/Unauthorized";
 
 export default function Attributes() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -28,6 +30,7 @@ export default function Attributes() {
   const { hasPermission } = usePermissions();
   const { language } = useLanguage();
   const isEs = language === "es";
+  const { guard, isAllowed } = useActionPermission(isEs ? "es" : "en");
 
   const {
     data: attributesData,
@@ -37,10 +40,6 @@ export default function Attributes() {
   } = useApiQuery(getMaterialAttributes, { context: "Material Attributes" });
 
   const attributes = useMemo(() => attributesData?.data?.attributes || [], [attributesData]);
-
-  const canCreate = hasPermission("material_attributes:create");
-  const canEdit = hasPermission("material_attributes:update");
-  const canDelete = hasPermission("material_attributes:delete");
 
   const filtered = useMemo(() => {
     return attributes.filter(
@@ -105,6 +104,8 @@ export default function Attributes() {
     return <ErrorDisplay error={attributesError} onRetry={refetchAttributes} />;
   }
 
+  if (!hasPermission("material_attributes:read")) return <Unauthorized />;
+
   return (
     <div className="page-container">
       <div data-help-id="attributes-title">
@@ -116,18 +117,17 @@ export default function Attributes() {
               : "Define reusable metrics for material catalog items"
           }
           actions={
-            canCreate ? (
-              <button
-                onClick={() => {
-                  setSelectedAttribute(undefined);
-                  setIsModalOpen(true);
-                }}
-                className="flex items-center gap-2 px-4 py-2 bg-[#FFD700] text-black rounded-[8px] font-semibold hover:bg-[#FFC700] transition-all"
-              >
-                <Plus size={20} />
-                {isEs ? "Agregar Atributo" : "Add Attribute"}
-              </button>
-            ) : undefined
+            <button
+              onClick={guard("material_attributes:create", () => {
+                setSelectedAttribute(undefined);
+                setIsModalOpen(true);
+              })}
+              aria-disabled={!isAllowed("material_attributes:create")}
+              className={`flex items-center gap-2 px-4 py-2 bg-[#FFD700] text-black rounded-[8px] font-semibold hover:bg-[#FFC700] transition-all ${!isAllowed("material_attributes:create") ? "opacity-50 cursor-not-allowed" : ""}`}
+            >
+              <Plus size={20} />
+              {isEs ? "Agregar Atributo" : "Add Attribute"}
+            </button>
           }
         />
       </div>
@@ -164,30 +164,26 @@ export default function Attributes() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                {canEdit && (
-                  <button
-                    onClick={() => {
-                      setSelectedAttribute(attribute);
-                      setIsModalOpen(true);
-                    }}
-                    className="p-2 hover:bg-[#121212] rounded-[6px] text-gray-400 hover:text-[#FFD700] transition-all"
-                    title="Edit Attribute"
-                  >
-                    <Edit2 size={18} />
-                  </button>
-                )}
-                {canDelete && (
-                  <button
-                    onClick={() => {
-                      setAttributeToDelete(attribute);
-                      setIsDeleteDialogOpen(true);
-                    }}
-                    className="p-2 hover:bg-[#121212] rounded-[6px] text-gray-400 hover:text-red-400 transition-all"
-                    title="Delete Attribute"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                )}
+                <PermissionGuardedButton
+                  icon={Edit2}
+                  intent="edit"
+                  ariaLabel={isEs ? "Editar atributo" : "Edit Attribute"}
+                  requiredPermission="material_attributes:update"
+                  onClick={() => {
+                    setSelectedAttribute(attribute);
+                    setIsModalOpen(true);
+                  }}
+                />
+                <PermissionGuardedButton
+                  icon={Trash2}
+                  intent="delete"
+                  ariaLabel={isEs ? "Eliminar atributo" : "Delete Attribute"}
+                  requiredPermission="material_attributes:delete"
+                  onClick={() => {
+                    setAttributeToDelete(attribute);
+                    setIsDeleteDialogOpen(true);
+                  }}
+                />
               </div>
             </div>
 
@@ -221,7 +217,10 @@ export default function Attributes() {
 
       {/* Empty State */}
       {filtered.length === 0 && (
-        <div data-help-id="attributes-empty" className="text-center py-12 bg-[#1a1a1a] rounded-[12px] border border-dashed border-[#333]">
+        <div
+          data-help-id="attributes-empty"
+          className="text-center py-12 bg-[#1a1a1a] rounded-[12px] border border-dashed border-[#333]"
+        >
           <p className="text-gray-400">
             {isEs ? "No se encontraron atributos" : "No attributes found"}
           </p>

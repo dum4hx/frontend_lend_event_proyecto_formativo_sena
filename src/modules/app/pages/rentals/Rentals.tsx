@@ -22,6 +22,7 @@ import {
 } from "./RentalModals";
 import { customerFullName } from "./helpers";
 import type { LoanView, LoanFilter, Loan, Customer, ExtendLoanPayload } from "./types";
+import Unauthorized from "../../../../pages/Unauthorized";
 
 // ─── Component ──────────────────────────────────────────────────────────
 
@@ -60,7 +61,7 @@ export function Rentals() {
   const [completeTarget, setCompleteTarget] = useState<LoanView | null>(null);
 
   // ── Permissions ──────────────────────────────────────────────────────────
-  const canExtend = hasPermission("loans:extend");
+  const canExtend = hasPermission("loans:update");
   const canReturn = hasPermission("loans:return");
   const canComplete = hasPermission("loans:update");
 
@@ -136,7 +137,7 @@ export function Rentals() {
     setSubmitting(true);
     try {
       const payload: ExtendLoanPayload = {
-        newEndDate,
+        newEndDate: `${newEndDate}T00:00:00.000Z`,
         ...(extendNotes.trim() ? { notes: extendNotes.trim() } : {}),
       };
       await extendLoan(extendTarget.loan._id, payload);
@@ -250,6 +251,8 @@ export function Rentals() {
       setSubmitting(false);
     }
   };
+
+  if (!hasPermission("loans:read")) return <Unauthorized />;
 
   // ── Render ────────────────────────────────────────────────────────────────
 

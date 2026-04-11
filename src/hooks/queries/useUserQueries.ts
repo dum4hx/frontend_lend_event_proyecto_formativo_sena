@@ -11,6 +11,7 @@ import {
   updateUserRole,
   deactivateUser,
   reactivateUser,
+  resendInvite,
   deleteUser,
 } from "../../services/userService";
 import type {
@@ -103,6 +104,16 @@ export function useReactivateUser() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => reactivateUser(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: userKeys.lists() });
+    },
+  });
+}
+
+export function useResendInvite() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => resendInvite(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: userKeys.lists() });
     },

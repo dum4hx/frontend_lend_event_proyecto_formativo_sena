@@ -11,6 +11,7 @@ import { updateLocation as apiUpdateLocation } from "../../../../services/wareho
 import { useLanguage } from "../../../../contexts/useLanguage";
 import { useToast } from "../../../../contexts/ToastContext";
 import { validateLocationV2 } from "../../../../utils/validators";
+import type { TranslationKey } from "../../../../i18n/translations";
 import { useColombiaAddress } from "./useColombiaAddress";
 import { resolveCategoryName, applyBulkCapacityToRows, parseLegacyStreet } from "./helpers";
 import { STREET_TYPES, STATUS_OPTIONS } from "./types";
@@ -41,11 +42,12 @@ export function LocationEditModal({
   materialTypes,
   categories,
 }: LocationEditModalProps) {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const isEs = language === "es";
   const { showToast } = useToast();
 
   const [form, setForm] = useState<LocationFormData>({
+    code: "",
     name: "",
     status: "available",
     address: {
@@ -100,6 +102,7 @@ export function LocationEditModal({
     });
 
     setForm({
+      code: location.code || "",
       name: location.name || "",
       status: location.status || "available",
       address: {
@@ -216,6 +219,18 @@ export function LocationEditModal({
   const handleSubmit = async () => {
     if (!location) return;
 
+    // Validate code
+    const codeRegex = /^[A-Z0-9]{1,10}$/;
+    const codeError = !form.code.trim()
+      ? isEs
+        ? "El código es obligatorio"
+        : "Code is required"
+      : !codeRegex.test(form.code)
+        ? isEs
+          ? "Código inválido (1-10 caracteres alfanuméricos en mayúsculas)"
+          : "Invalid code (1-10 uppercase alphanumeric characters)"
+        : undefined;
+
     const validation = validateLocationV2({
       name: form.name,
       address: {
@@ -230,15 +245,23 @@ export function LocationEditModal({
       materialCapacities: form.materialCapacities,
     });
 
-    if (!validation.isValid || !form.address.state.trim()) {
+    if (!validation.isValid || !form.address.state.trim() || codeError) {
       const capErrors: Record<string, string> = {};
       form.materialCapacities.forEach((c) => {
         if (c.maxQuantity === "") capErrors[`capacity_${c.materialTypeId}`] = "Required";
       });
+      const translatedValidationErrors = Object.fromEntries(
+        Object.entries(validation.errors).map(([k, v]) => [k, t(v as TranslationKey)]),
+      );
       const stateError = !form.address.state.trim()
         ? { "address.state": isEs ? "El departamento es obligatorio" : "Department is required" }
         : {};
-      setFieldErrors({ ...validation.errors, ...capErrors, ...stateError });
+      setFieldErrors({
+        ...translatedValidationErrors,
+        ...capErrors,
+        ...stateError,
+        ...(codeError ? { code: codeError } : {}),
+      });
       showToast(
         "warning",
         isEs ? "Completa todos los campos requeridos" : "Please fill all required fields",
@@ -249,6 +272,7 @@ export function LocationEditModal({
     setSubmitting(true);
     try {
       await apiUpdateLocation(location._id, {
+        code: form.code,
         name: form.name,
         status: form.status,
         address: {
@@ -307,6 +331,38 @@ export function LocationEditModal({
               {isEs ? "Información general" : "General Information"}
             </h3>
 
+            {/* Code */}
+            <div>
+              <label className="form-label">
+                {isEs ? "Código" : "Code"} <span className="text-red-400">*</span>
+              </label>
+              <input
+                data-help-id="locations-form-code"
+                value={form.code}
+                onChange={(e) => {
+                  const upper = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+                  setForm((s) => ({ ...s, code: upper }));
+                  setFieldErrors((s) => ({
+                    ...s,
+                    code: upper.trim()
+                      ? undefined
+                      : isEs
+                        ? "El código es obligatorio"
+                        : "Code is required",
+                  }));
+                }}
+                maxLength={10}
+                placeholder={isEs ? "Ej. BOG01" : "e.g. BOG01"}
+                className={`input uppercase ${fieldErrors.code ? "input-error" : ""}`}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                {isEs
+                  ? "1-10 caracteres alfanuméricos en mayúsculas"
+                  : "1-10 uppercase alphanumeric characters"}
+              </p>
+              {fieldErrors.code && <p className="form-error">{fieldErrors.code}</p>}
+            </div>
+
             {/* Name */}
             <div>
               <label className="form-label">
@@ -344,11 +400,7 @@ export function LocationEditModal({
             {/* Country */}
             <div>
               <label className="form-label">{isEs ? "País" : "Country"}</label>
-              <input
-                value="Colombia"
-                disabled
-                className="input opacity-50 cursor-not-allowed"
-              />
+              <input value="Colombia" disabled className="input opacity-50 cursor-not-allowed" />
             </div>
 
             {/* Department + City */}
@@ -358,24 +410,24 @@ export function LocationEditModal({
                   {isEs ? "Departamento" : "Department"} <span className="text-red-400">*</span>
                 </label>
                 <div data-help-id="locations-form-department">
-                <SearchableSelect
-                  options={departmentOptions}
-                  value={colombia.selectedDepartment}
-                  onChange={(v) => {
-                    const dept = colombia.departments.find((d) => d.id.toString() === v);
-                    if (dept) {
-                      colombia.setSelectedDepartment(v);
-                      colombia.setDepartmentQuery(dept.name);
-                      updateAddress("state", dept.name);
-                      colombia.setCityQuery("");
-                      updateAddress("city", "");
-                      setFieldErrors((s) => ({ ...s, "address.state": undefined }));
-                    }
-                  }}
-                  placeholder={isEs ? "Buscar departamento..." : "Search department..."}
-                  disabled={colombia.loadingDepartments}
-                  error={fieldErrors["address.state"]}
-                />
+                  <SearchableSelect
+                    options={departmentOptions}
+                    value={colombia.selectedDepartment}
+                    onChange={(v) => {
+                      const dept = colombia.departments.find((d) => d.id.toString() === v);
+                      if (dept) {
+                        colombia.setSelectedDepartment(v);
+                        colombia.setDepartmentQuery(dept.name);
+                        updateAddress("state", dept.name);
+                        colombia.setCityQuery("");
+                        updateAddress("city", "");
+                        setFieldErrors((s) => ({ ...s, "address.state": undefined }));
+                      }
+                    }}
+                    placeholder={isEs ? "Buscar departamento..." : "Search department..."}
+                    disabled={colombia.loadingDepartments}
+                    error={fieldErrors["address.state"]}
+                  />
                 </div>
               </div>
               <div>
@@ -383,26 +435,26 @@ export function LocationEditModal({
                   {isEs ? "Ciudad" : "City"} <span className="text-red-400">*</span>
                 </label>
                 <div data-help-id="locations-form-city">
-                <SearchableSelect
-                  options={cityOptions}
-                  value={form.address.city}
-                  onChange={(v) => {
-                    updateAddress("city", v);
-                    colombia.setCityQuery(v);
-                    setFieldErrors((s) => ({ ...s, "address.city": undefined }));
-                  }}
-                  placeholder={
-                    colombia.selectedDepartment
-                      ? isEs
-                        ? "Buscar ciudad..."
-                        : "Search city..."
-                      : isEs
-                        ? "Selecciona depto."
-                        : "Select dept first"
-                  }
-                  disabled={!colombia.selectedDepartment || colombia.loadingCities}
-                  error={fieldErrors["address.city"]}
-                />
+                  <SearchableSelect
+                    options={cityOptions}
+                    value={form.address.city}
+                    onChange={(v) => {
+                      updateAddress("city", v);
+                      colombia.setCityQuery(v);
+                      setFieldErrors((s) => ({ ...s, "address.city": undefined }));
+                    }}
+                    placeholder={
+                      colombia.selectedDepartment
+                        ? isEs
+                          ? "Buscar ciudad..."
+                          : "Search city..."
+                        : isEs
+                          ? "Selecciona depto."
+                          : "Select dept first"
+                    }
+                    disabled={!colombia.selectedDepartment || colombia.loadingCities}
+                    error={fieldErrors["address.city"]}
+                  />
                 </div>
               </div>
             </div>

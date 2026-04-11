@@ -3,6 +3,7 @@
  * Provides clear visual hierarchy and accessibility features.
  */
 
+import React from "react";
 import { AlertCircle } from "lucide-react";
 import { useLanguage } from "../../contexts/useLanguage";
 import Button, { type ButtonVariant } from "./Button";
@@ -12,7 +13,7 @@ export interface ConfirmDialogProps {
   onClose: () => void;
   onConfirm: () => void | Promise<void>;
   title: string;
-  message: string;
+  message: React.ReactNode;
   confirmText?: string;
   cancelText?: string;
   /** Optional secondary action rendered between Cancel and Confirm */
@@ -69,7 +70,7 @@ export function ConfirmDialog({
 
   return (
     <div
-      className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -94,9 +95,9 @@ export function ConfirmDialog({
 
         {/* Message */}
         <div className="px-6 py-5">
-          <p id="dialog-message" className="text-gray-300 leading-relaxed">
+          <div id="dialog-message" className="text-gray-300 leading-relaxed">
             {message}
-          </p>
+          </div>
         </div>
 
         {/* Actions */}

@@ -11,8 +11,10 @@ import { LanguageContext } from "./languageContextDefinition";
 const LANGUAGE_STORAGE_KEY = "lendevent_language";
 
 function getBrowserLanguage(): SupportedLanguage {
-  if (typeof navigator === "undefined") return "en";
-  return navigator.language.toLowerCase().startsWith("es") ? "es" : "en";
+  // Spanish is the default language for this deployment.
+  // Browser language detection is kept for compatibility but always returns "es".
+  if (typeof navigator === "undefined") return "es";
+  return "es";
 }
 
 function getStoredLanguage(): SupportedLanguage {

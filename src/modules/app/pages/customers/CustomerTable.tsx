@@ -3,10 +3,16 @@
  */
 
 import { Edit2, Eye, Ban, UserX, RotateCcw, Trash2 } from "lucide-react";
-import { DataTable, StatusBadge, type ColumnDef } from "../../../../components/ui";
+import {
+  DataTable,
+  StatusBadge,
+  PermissionGuardedButton,
+  type ColumnDef,
+} from "../../../../components/ui";
 import IconButton from "../../../../components/ui/IconButton";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import type { Customer, DocumentTypeInfo } from "../../../../types/api";
+import { getCustomerStatusLabel } from "../../../../utils/statusLabels";
 
 interface CustomerTableProps {
   /** Customer rows. */
@@ -90,7 +96,9 @@ export function CustomerTable({
     {
       key: "status",
       header: isEs ? "Estado" : "Status",
-      render: (row) => <StatusBadge status={row.status} />,
+      render: (row) => (
+        <StatusBadge status={row.status} label={getCustomerStatusLabel(row.status, language)} />
+      ),
     },
     {
       key: "actions",
@@ -105,48 +113,40 @@ export function CustomerTable({
             ariaLabel={isEs ? "Ver detalle" : "View details"}
             title={isEs ? "Ver detalle" : "View details"}
           />
-          <IconButton
+          <PermissionGuardedButton
             icon={Edit2}
             intent="edit"
             onClick={() => onEdit(row)}
+            requiredPermission="customers:update"
             ariaLabel={isEs ? "Editar" : "Edit"}
-            title={isEs ? "Editar" : "Edit"}
           />
 
           {row.status === "active" && (
             <>
-              <IconButton
+              <PermissionGuardedButton
                 icon={UserX}
                 intent="reject"
                 onClick={() => onDeactivate(row)}
+                requiredPermission="customers:update"
                 ariaLabel={isEs ? "Desactivar" : "Deactivate"}
-                title={isEs ? "Desactivar" : "Deactivate"}
               />
-              <IconButton
+              <PermissionGuardedButton
                 icon={Ban}
                 intent="reject"
                 onClick={() => onBlacklist(row)}
+                requiredPermission="customers:update"
                 ariaLabel={isEs ? "Bloquear" : "Block"}
-                title={isEs ? "Bloquear" : "Block"}
               />
             </>
           )}
 
           {(row.status === "inactive" || row.status === "blacklisted") && (
-            <IconButton
+            <PermissionGuardedButton
               icon={RotateCcw}
               intent="approve"
               onClick={() => onReactivate(row)}
+              requiredPermission="customers:update"
               ariaLabel={
-                row.status === "blacklisted"
-                  ? isEs
-                    ? "Desbloquear"
-                    : "Unblock"
-                  : isEs
-                    ? "Reactivar"
-                    : "Reactivate"
-              }
-              title={
                 row.status === "blacklisted"
                   ? isEs
                     ? "Desbloquear"
@@ -158,12 +158,12 @@ export function CustomerTable({
             />
           )}
 
-          <IconButton
+          <PermissionGuardedButton
             icon={Trash2}
             intent="delete"
             onClick={() => onDelete(row)}
+            requiredPermission="customers:delete"
             ariaLabel={isEs ? "Eliminar" : "Delete"}
-            title={isEs ? "Eliminar" : "Delete"}
           />
         </div>
       ),

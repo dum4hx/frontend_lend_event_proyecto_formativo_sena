@@ -10,7 +10,17 @@ export type SettingsModuleId =
   | "appearance"
   | "account"
   | "organization";
-export type AccountField = "name" | "email" | "phone" | "legalName" | "taxId";
+/** Fields belonging to the current user's own profile (Account panel). */
+export type AccountField =
+  | "firstName"
+  | "secondName"
+  | "firstSurname"
+  | "secondSurname"
+  | "email"
+  | "phone";
+
+/** Fields belonging to the organization's basic profile (Organization panel). */
+export type OrgProfileField = "name" | "email" | "phone" | "legalName" | "taxId";
 
 export interface SettingsPreferences {
   notifications: {
@@ -91,7 +101,7 @@ export const SETTING_MODULES: SettingModule[] = [
     categoryKey: "settings.module.account",
     icon: <UserCircle2 size={28} />,
     descriptionKey: "settings.module.accountDescription",
-    requiredPermissions: ["organization:update"],
+    requiredPermissions: [],
   },
   {
     id: "organization",

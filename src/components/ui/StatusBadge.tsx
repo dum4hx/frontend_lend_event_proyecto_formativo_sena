@@ -12,6 +12,8 @@ export interface StatusBadgeProps {
   colorMap?: Record<string, string>;
   /** Extra class names on the root element. */
   className?: string;
+  /** Override the displayed label text instead of auto-formatting the status string. */
+  label?: string;
 }
 
 /** Default colour map covering common statuses across the app. */
@@ -70,11 +72,11 @@ function formatLabel(status: string): string {
   return status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-export function StatusBadge({ status, colorMap, className = "" }: StatusBadgeProps) {
+export function StatusBadge({ status, colorMap, className = "", label }: StatusBadgeProps) {
   if (!status) return null;
   const key = status.toLowerCase();
   const merged = colorMap ? { ...defaultColorMap, ...colorMap } : defaultColorMap;
   const badgeClass = merged[key] ?? "badge-neutral";
 
-  return <span className={`badge ${badgeClass} ${className}`}>{formatLabel(key)}</span>;
+  return <span className={`badge ${badgeClass} ${className}`}>{label ?? formatLabel(key)}</span>;
 }

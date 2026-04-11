@@ -17,6 +17,7 @@ import { StatCard, AdminTable } from "../components";
 import { PageHeader, GreetingCard } from "../../../components/ui";
 import { useDashboardStats } from "../hooks/useDashboardStats";
 import { useLanguage } from "../../../contexts/useLanguage";
+import { getLoanRequestStatusLabel, getLoanStatusLabel } from "../../../utils/statusLabels";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -111,7 +112,10 @@ export default function AdminDashboard() {
       )}
 
       {/* ── Stat cards ── */}
-      <div data-help-id="dashboard-stat-cards" className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+      <div
+        data-help-id="dashboard-stat-cards"
+        className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6"
+      >
         <StatCard
           label={isEs ? "Usuarios totales" : "Total Users"}
           value={loading ? "—" : fmt(stats?.totalUsers ?? 0)}
@@ -153,7 +157,10 @@ export default function AdminDashboard() {
       {/* ── Main grid ── */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* ── Pending Requests (2/3) ── */}
-        <div data-help-id="dashboard-pending-requests" className="xl:col-span-2 bg-[#121212] border border-[#333] rounded-xl p-5 space-y-4">
+        <div
+          data-help-id="dashboard-pending-requests"
+          className="xl:col-span-2 bg-[#121212] border border-[#333] rounded-xl p-5 space-y-4"
+        >
           <div className="flex items-center justify-between">
             <h2 className="text-white font-semibold text-base">
               {isEs ? "Solicitudes pendientes" : "Pending Requests"}
@@ -183,7 +190,7 @@ export default function AdminDashboard() {
             <AdminTable>
               <thead>
                 <tr className="border-b border-[#333] text-gray-400 text-xs uppercase">
-                  <th className="px-4 py-3 font-medium">ID</th>
+                  <th className="px-4 py-3 font-medium">{isEs ? "Código" : "Code"}</th>
                   <th className="px-4 py-3 font-medium">{isEs ? "Items" : "Items"}</th>
                   <th className="px-4 py-3 font-medium">{isEs ? "Inicio" : "Start"}</th>
                   <th className="px-4 py-3 font-medium">{isEs ? "Fin" : "End"}</th>
@@ -198,7 +205,7 @@ export default function AdminDashboard() {
                   >
                     <td className="px-4 py-3 font-mono font-medium">
                       <Link to="/app/orders" className="entity-link">
-                        {shortId(req._id)}
+                        {req.code ?? shortId(req._id)}
                       </Link>
                     </td>
                     <td className="px-4 py-3 text-gray-300">
@@ -215,17 +222,7 @@ export default function AdminDashboard() {
                       <span
                         className={`text-xs px-2 py-0.5 rounded-full font-medium ${REQUEST_BADGE[req.status] ?? "bg-gray-500/20 text-gray-400"}`}
                       >
-                        {isEs
-                          ? req.status === "pending"
-                            ? "pendiente"
-                            : req.status === "approved"
-                              ? "aprobado"
-                              : req.status === "rejected"
-                                ? "rechazado"
-                                : req.status === "ready"
-                                  ? "listo"
-                                  : "cancelado"
-                          : req.status}
+                        {getLoanRequestStatusLabel(req.status, language)}
                       </span>
                     </td>
                   </tr>
@@ -238,7 +235,10 @@ export default function AdminDashboard() {
         {/* ── Right column (1/3) ── */}
         <div className="space-y-6">
           {/* ── Invoice Summary ── */}
-          <div data-help-id="dashboard-invoice-summary" className="bg-[#121212] border border-[#333] rounded-xl p-5 space-y-4">
+          <div
+            data-help-id="dashboard-invoice-summary"
+            className="bg-[#121212] border border-[#333] rounded-xl p-5 space-y-4"
+          >
             <div className="flex items-center justify-between">
               <h2 className="text-white font-semibold text-base">
                 {isEs ? "Resumen de facturas" : "Invoice Summary"}
@@ -254,39 +254,52 @@ export default function AdminDashboard() {
             {loading ? (
               <div className="space-y-3">
                 <div className="h-4 bg-[#1a1a1a] rounded animate-pulse" />
+                <div className="h-4 bg-[#1a1a1a] rounded animate-pulse" />
+                <div className="h-4 bg-[#1a1a1a] rounded animate-pulse" />
                 <div className="h-8 bg-[#1a1a1a] rounded animate-pulse" />
-                <div className="h-4 bg-[#1a1a1a] rounded animate-pulse w-2/3" />
               </div>
             ) : (
               <>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-xs text-gray-400">
-                    <span>{isEs ? "Pagado" : "Paid"}</span>
-                    <span className="text-green-400 font-medium">
+                {/* Invoice counts and amounts */}
+                <div className="grid grid-cols-3 gap-2 text-center mb-4">
+                  <div className="bg-[#0a0a0a] border border-[#333] rounded-lg p-2">
+                    <div className="text-xs text-gray-400">{isEs ? "Pagado" : "Paid"}</div>
+                    <div className="text-sm font-semibold text-green-400">
+                      {fmt(stats?.paidInvoicesCount ?? 0)}
+                    </div>
+                    <div className="text-xs text-gray-500">
                       ${fmt(stats?.paidInvoicesTotal ?? 0)}
-                    </span>
+                    </div>
                   </div>
-                  <div className="w-full bg-[#0a0a0a] rounded-full h-2 border border-[#333]">
+                  <div className="bg-[#0a0a0a] border border-[#333] rounded-lg p-2">
+                    <div className="text-xs text-gray-400">{isEs ? "Pendiente" : "Pending"}</div>
+                    <div className="text-sm font-semibold text-yellow-400">
+                      {fmt(stats?.pendingInvoicesCount ?? 0)}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      ${fmt(stats?.pendingInvoicesTotal ?? 0)}
+                    </div>
+                  </div>
+                  <div className="bg-[#0a0a0a] border border-[#333] rounded-lg p-2">
+                    <div className="text-xs text-gray-400">{isEs ? "Vencidas" : "Overdue"}</div>
+                    <div className="text-sm font-semibold text-red-400">
+                      {fmt(stats?.overdueInvoicesCount ?? 0)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Progress bar */}
+                <div className="space-y-1">
+                  <div className="w-full bg-[#0a0a0a] rounded-full h-2 border border-[#333] overflow-hidden">
                     <div
-                      className="bg-[#FFD700] h-full rounded-full transition-all duration-500"
+                      className="bg-[#FFD700] h-full transition-all duration-500"
                       style={{ width: `${paidPct}%` }}
                     />
                   </div>
                   <div className="flex justify-between text-xs text-gray-400">
-                    <span>
-                      {isEs ? "Pendiente" : "Pending"} ({stats?.pendingInvoicesCount ?? 0})
-                    </span>
-                    <span className="text-yellow-400 font-medium">
-                      ${fmt(stats?.pendingInvoicesTotal ?? 0)}
-                    </span>
+                    <span>{isEs ? "Recaudación" : "Collection"}</span>
+                    <span className="text-yellow-400 font-medium">{paidPct}%</span>
                   </div>
-                </div>
-
-                <div className="text-center text-2xl font-bold text-white pt-1">
-                  {paidPct}%
-                  <span className="text-xs font-normal text-gray-400 ml-1">
-                    {isEs ? "recaudado" : "collected"}
-                  </span>
                 </div>
               </>
             )}
@@ -354,7 +367,7 @@ export default function AdminDashboard() {
           <AdminTable>
             <thead>
               <tr className="border-b border-[#333] text-gray-400 text-xs uppercase">
-                <th className="px-4 py-3 font-medium">ID</th>
+                <th className="px-4 py-3 font-medium">{isEs ? "Código" : "Code"}</th>
                 <th className="px-4 py-3 font-medium">{isEs ? "Fecha limite" : "Due Date"}</th>
                 <th className="px-4 py-3 font-medium">{isEs ? "Dias tarde" : "Days Late"}</th>
                 <th className="px-4 py-3 font-medium">{isEs ? "Estado" : "Status"}</th>
@@ -368,7 +381,7 @@ export default function AdminDashboard() {
                 >
                   <td className="px-4 py-3 font-mono font-medium">
                     <Link to="/app/rentals" className="entity-link">
-                      {shortId(loan._id)}
+                      {loan.code ?? shortId(loan._id)}
                     </Link>
                   </td>
                   <td className="px-4 py-3 text-gray-400">{fmtDate(loan.endDate, locale)}</td>
@@ -379,15 +392,7 @@ export default function AdminDashboard() {
                     <span
                       className={`text-xs px-2 py-0.5 rounded-full font-medium ${LOAN_BADGE[loan.status] ?? "bg-gray-500/20 text-gray-400"}`}
                     >
-                      {isEs
-                        ? loan.status === "active"
-                          ? "activo"
-                          : loan.status === "overdue"
-                            ? "vencido"
-                            : loan.status === "returned"
-                              ? "devuelto"
-                              : "cerrado"
-                        : loan.status}
+                      {getLoanStatusLabel(loan.status, language)}
                     </span>
                   </td>
                 </tr>

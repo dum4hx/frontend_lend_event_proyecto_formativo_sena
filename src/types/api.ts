@@ -263,6 +263,7 @@ export interface MaterialCategory {
   _id: string;
   organizationId: string;
   name: string;
+  code: string;
   description?: string;
   attributes: CategoryAttribute[];
   createdAt: string;
@@ -272,6 +273,7 @@ export interface MaterialCategory {
 /** Payload to create a new material category. */
 export interface CreateMaterialCategoryPayload {
   name: string;
+  code: string;
   description?: string;
   attributes?: CategoryAttribute[];
 }
@@ -294,6 +296,7 @@ export interface MaterialTypeAttribute {
 export interface MaterialType {
   _id: string;
   organizationId: string;
+  code: string;
   name: string;
   description: string;
   categoryId:
@@ -310,6 +313,7 @@ export interface MaterialType {
 
 /** Payload to create a new material type. */
 export interface CreateMaterialTypePayload {
+  code: string;
   name: string;
   description?: string;
   categoryId: string[];
@@ -441,6 +445,9 @@ export interface Package {
   // Backwards-compatible alias used by older frontend code
   materialTypes?: PackageMaterialEntry[];
   pricePerDay?: number;
+  discountRate?: number;
+  depositAmount?: number;
+  status?: "active" | "inactive";
 }
 
 export interface CreatePackagePayload {
@@ -485,6 +492,7 @@ export interface LoanRequestItem {
 
 export interface LoanRequest {
   _id: string;
+  code?: string;
   customerId: {
     _id?: string;
     email: string;
@@ -523,7 +531,7 @@ export interface AssignMaterialPayload {
 
 // ─── Loans ─────────────────────────────────────────────────────────────────
 
-export type LoanStatus = "active" | "overdue" | "returned" | "closed";
+export type LoanStatus = "active" | "overdue" | "returned" | "inspected" | "closed";
 
 export type DepositStatus =
   | "not_required"
@@ -542,8 +550,10 @@ export interface DepositTransaction {
 
 export interface Loan {
   _id: string;
+  code?: string;
   customerId: string | Customer;
-  requestId: string;
+  requestId?: string;
+  requestCode?: string;
   status: LoanStatus;
   startDate: string;
   endDate: string;
@@ -631,6 +641,8 @@ export interface InspectionItemResponse {
 export interface Inspection {
   _id: string;
   organizationId: string;
+  /** Auto-generated inspection code from the active code scheme. */
+  inspectionNumber?: string;
   loanId: string;
   inspectedBy: {
     email: string;
@@ -646,6 +658,7 @@ export interface Inspection {
 export interface InspectionListItem extends Omit<Inspection, "loanId"> {
   loanId: {
     _id: string;
+    code?: string;
     customerId: string;
     startDate: string;
     endDate: string;
@@ -667,6 +680,7 @@ export interface InspectionsQueryParams {
 
 export interface PendingLoan {
   _id: string;
+  code?: string;
   customerId: {
     _id?: string;
     email: string;
@@ -713,6 +727,8 @@ export interface IncidentFinancialImpact {
 export interface Incident {
   _id: string;
   organizationId: string;
+  /** Auto-generated incident code from the active code scheme. */
+  incidentNumber?: string;
   context: IncidentContext;
   loanId?: string | Loan;
   locationId?: string;
@@ -799,6 +815,7 @@ export interface InvoiceCustomer {
 
 export interface InvoiceLoan {
   _id: string;
+  code?: string;
   startDate?: string;
   endDate?: string;
 }
@@ -902,6 +919,8 @@ export interface MaintenanceBatchItem {
 /** Full maintenance batch with populated references (detail view). */
 export interface MaintenanceBatch {
   _id: string;
+  /** Auto-generated batch code from the active code scheme. */
+  batchNumber?: string;
   name: string;
   status: MaintenanceBatchStatus;
   items: MaintenanceBatchItem[];
@@ -922,6 +941,8 @@ export interface MaintenanceBatch {
 /** Slim batch representation used in list responses. */
 export interface MaintenanceBatchListItem {
   _id: string;
+  /** Auto-generated batch code from the active code scheme. */
+  batchNumber?: string;
   name: string;
   status: MaintenanceBatchStatus;
   items: MaintenanceBatchItem[];
@@ -1007,6 +1028,27 @@ export interface UpdateSeatsPayload {
 
 export interface CancelSubscriptionPayload {
   cancelImmediately?: boolean;
+}
+
+export interface ChangePlanPayload {
+  plan: string;
+  seatCount?: number;
+}
+
+export interface ChangePlanResult {
+  type: "upgrade" | "downgrade";
+  effectiveDate: string;
+  previousPlan: string;
+  newPlan: string;
+}
+
+export interface PendingChange {
+  pendingPlan: string;
+  effectiveDate: string;
+}
+
+export interface PendingChangeData {
+  pendingChange: PendingChange | null;
 }
 
 // ─── Admin Analytics ───────────────────────────────────────────────────────
@@ -1219,6 +1261,44 @@ export interface LoginPayload {
   password: string;
 }
 
+export interface LoginPendingOtpResponseData {
+  pendingOtp: true;
+  email: string;
+}
+
+export interface VerifyLoginOtpPayload {
+  email: string;
+  code: string;
+}
+
+export interface VerifyLoginOtpResponseData {
+  user: User;
+  permissions: string[];
+  /** Only present on the very first 2FA login — 10 single-use backup codes. */
+  backupCodes?: string[];
+}
+
+export interface VerifyBackupCodePayload {
+  email: string;
+  backupCode: string;
+}
+
+export interface VerifyBackupCodeResponseData {
+  user: User;
+  permissions: string[];
+  remainingBackupCodes: number;
+}
+
+export interface ResendLoginOtpPayload {
+  email: string;
+  password: string;
+}
+
+export interface ResendLoginOtpResponseData {
+  pendingOtp: true;
+  email: string;
+}
+
 export interface ChangePasswordPayload {
   currentPassword: string;
   newPassword: string;
@@ -1268,6 +1348,7 @@ export interface RegisterResponseData {
   permissions: string[];
 }
 
+/** @deprecated Use VerifyLoginOtpResponseData — login now requires OTP verification. */
 export interface LoginResponseData {
   user: User;
   permissions: string[];
@@ -1343,12 +1424,16 @@ export interface RolesListResponse {
   limit: number;
 }
 
-/** Permission */
+/** Permission returned by GET /permissions */
 export interface Permission {
   id: string;
   displayName: string;
   description: string;
   category: string;
+  /** Whether this is a platform-only (super-admin) permission. */
+  isPlatformPermission: boolean;
+  /** Permission IDs that must also be assigned when granting this permission. */
+  requires?: string[];
 }
 
 /** Permissions list response */
@@ -1835,6 +1920,8 @@ export interface ReportsQueryParams {
   startDate?: string;
   endDate?: string;
   status?: string;
+  locationId?: string;
+  customerId?: string;
   page?: number;
   limit?: number;
 }
@@ -1939,6 +2026,754 @@ export interface ReportsTransfersResponse {
   pagination: PaginationMeta;
 }
 
+// ─── Reports (API-aligned interfaces) ──────────────────────────────────────
+
+/** Loan item as returned by GET /reports/loans */
+export interface ReportLoanItem {
+  loanId: string;
+  customer: {
+    _id: string;
+    name: {
+      firstName: string;
+      secondName?: string;
+      firstSurname: string;
+      secondSurname?: string;
+    };
+    email: string;
+    documentNumber: string;
+  };
+  status: string;
+  startDate: string;
+  endDate: string;
+  returnedAt: string | null;
+  durationDays: number;
+  overdueDays: number;
+  totalAmount: number;
+  depositAmount: number;
+  depositStatus: string;
+  materialCount: number;
+}
+
+/** Full response shape for GET /reports/loans */
+export interface ReportsLoansData {
+  rows: ReportLoanItem[];
+  total: number;
+  page: number;
+  totalPages: number;
+  summary: {
+    totalLoans: number;
+    totalRevenue: number;
+    averageDurationDays: number;
+  };
+}
+
+/** Material-type breakdown item from GET /reports/inventory */
+export interface ReportInventoryByMaterialType {
+  _id: string;
+  total: number;
+  statuses: Array<{ status: string; count: number }>;
+  materialTypeId: string;
+  materialTypeName: string;
+}
+
+/** Location breakdown item from GET /reports/inventory */
+export interface ReportInventoryByLocation {
+  _id: string;
+  total: number;
+  statuses: Array<{ status: string; count: number }>;
+  locationId: string;
+  locationName: string;
+}
+
+/** Full response shape for GET /reports/inventory */
+export interface ReportsInventoryData {
+  totalInstances: number;
+  byMaterialType: ReportInventoryByMaterialType[];
+  byLocation: ReportInventoryByLocation[];
+}
+
+/** Invoice item as returned by GET /reports/financial */
+export interface ReportFinancialInvoice {
+  invoiceId: string;
+  customer: {
+    name: {
+      firstName: string;
+      secondName?: string;
+      firstSurname: string;
+      secondSurname?: string;
+    };
+    email: string;
+  };
+  type: string;
+  status: string;
+  totalAmount: number;
+  amountPaid: number;
+  amountDue: number;
+  createdAt: string;
+  dueDate: string;
+}
+
+/** Full response shape for GET /reports/financial */
+export interface ReportsFinancialData {
+  rows: ReportFinancialInvoice[];
+  total: number;
+  page: number;
+  totalPages: number;
+  summaryByType: Array<{
+    type: string;
+    totalAmount: number;
+    totalPaid: number;
+    totalDue: number;
+    count: number;
+  }>;
+  summaryByStatus: Array<{ status: string; totalAmount: number; count: number }>;
+}
+
+/** Damage item as returned by GET /reports/damages */
+export interface ReportDamageItem {
+  inspectionId: string;
+  loanId: string;
+  customer: { name: string };
+  inspectedAt: string;
+  item: {
+    materialInstanceId: string;
+    conditionBefore: string;
+    conditionAfter: string;
+    damageDescription: string;
+    chargeToCustomer: number;
+    estimatedRepairCost: number;
+  };
+}
+
+/** Full response shape for GET /reports/damages */
+export interface ReportsDamagesData {
+  damages: ReportDamageItem[];
+  total: number;
+  page: number;
+  totalPages: number;
+  summary: {
+    totalDamages: number;
+    totalCharges: number;
+    totalRepairCost: number;
+  };
+}
+
+/** Transfer item as returned by GET /reports/transfers */
+export interface ReportTransferItem {
+  _id: string;
+  fromLocation: { name: string };
+  toLocation: { name: string };
+  status: string;
+  items: unknown[];
+  notes: string;
+  createdAt: string;
+}
+
+/** Full response shape for GET /reports/transfers */
+export interface ReportsTransfersData {
+  transfers: ReportTransferItem[];
+  total: number;
+  page: number;
+  totalPages: number;
+  summaryByStatus: Array<{ _id: string; count: number }>;
+}
+
+// ─── Report Exports ────────────────────────────────────────────────────────
+
+/** Base query params shared by all /reports/exports/* endpoints. */
+export interface ExportBaseQueryParams {
+  startDate?: string;
+  endDate?: string;
+  includeIds?: boolean;
+  page?: number;
+  limit?: number;
+  [key: string]: unknown;
+}
+
+/** Standard pagination object returned by export endpoints. */
+export interface ExportPagination {
+  total: number;
+  page: number;
+  totalPages: number;
+}
+
+// ── Loan Activity (/reports/exports/loan-activity) ─────────────────────────
+
+export interface ExportLoanActivityParams extends ExportBaseQueryParams {
+  customerId?: string;
+  locationId?: string;
+  status?: string;
+}
+
+export interface ExportLoanActivityRow {
+  loanId?: string;
+  customerId?: string;
+  locationId?: string;
+  code: string;
+  customerName: string;
+  locationName: string;
+  status: string;
+  startDate: string;
+  endDate: string;
+  returnedAt: string | null;
+  durationDays: number;
+  overdueDays: number;
+  totalAmount: number;
+  materialCount: number;
+}
+
+export interface ExportLoanActivityPeriodComparison {
+  currentCount: number;
+  previousCount: number;
+  percentChange: number;
+  currentRevenue: number;
+  previousRevenue: number;
+  revenuePercentChange: number;
+}
+
+export interface ExportLoanActivitySummary {
+  totalLoans: number;
+  totalRevenue: number;
+  averageDurationDays: number;
+  overdueRate: number;
+  returnRate: number;
+  loansByMonth: Array<{ year: number; month: number; count: number; totalAmount: number }>;
+  loansByStatus: Array<{ status: string; count: number; totalAmount: number }>;
+  topMaterials: Array<{ materialName: string; loanCount: number }>;
+  topCustomers: Array<{ customerName: string; loanCount: number; totalAmount: number }>;
+  periodComparison?: ExportLoanActivityPeriodComparison;
+}
+
+export interface ExportLoanActivityData {
+  rows: ExportLoanActivityRow[];
+  pagination: ExportPagination;
+  summary?: ExportLoanActivitySummary;
+}
+
+// ── Sales (/reports/exports/sales) ─────────────────────────────────────────
+
+export interface ExportSalesParams extends ExportBaseQueryParams {
+  customerId?: string;
+  locationId?: string;
+  invoiceType?: string;
+  invoiceStatus?: string;
+  categoryId?: string;
+}
+
+export interface ExportSalesLoanRow {
+  loanId?: string;
+  customerId?: string;
+  locationId?: string;
+  code: string;
+  customerName: string;
+  customerEmail: string;
+  locationName: string;
+  startDate: string;
+  endDate: string;
+  totalAmount: number;
+  depositAmount: number;
+  status: string;
+  materialCount: number;
+}
+
+export interface ExportSalesInvoiceRow {
+  invoiceId?: string;
+  customerId?: string;
+  invoiceNumber: string;
+  type: string;
+  status: string;
+  customerName: string;
+  totalAmount: number;
+  amountPaid: number;
+  amountDue: number;
+  dueDate: string;
+  createdAt: string;
+}
+
+export interface ExportSalesPeriodComparison {
+  currentTotal: number;
+  previousTotal: number;
+  percentChange: number;
+}
+
+export interface ExportSalesSummary {
+  totalLoanRevenue: number;
+  totalInvoiceRevenue: number;
+  combinedRevenue: number;
+  averageLoanValue: number;
+  revenueByMonth: Array<{
+    year: number;
+    month: number;
+    loanRevenue: number;
+    invoiceRevenue: number;
+    total: number;
+  }>;
+  revenueByInvoiceType: Array<{ type: string; revenue: number; count: number }>;
+  topCustomersByRevenue: Array<{ customerName: string; totalRevenue: number; loanCount: number }>;
+  periodComparison?: ExportSalesPeriodComparison;
+}
+
+export interface ExportSalesData {
+  loanRows: ExportSalesLoanRow[];
+  invoiceRows: ExportSalesInvoiceRow[];
+  pagination: ExportPagination;
+  summary?: ExportSalesSummary;
+}
+
+// ── Inventory (/reports/exports/inventory) ─────────────────────────────────
+
+export interface ExportInventoryParams {
+  includeIds?: boolean;
+  locationId?: string;
+  categoryId?: string;
+  status?: string;
+  search?: string;
+}
+
+export interface ExportInventoryMaterialType {
+  materialTypeId?: string;
+  categoryIds?: string[];
+  code: string;
+  name: string;
+  description: string;
+  pricePerDay: number;
+  categoryNames: string[];
+  totalInstances: number;
+  instancesByStatus: Record<string, number>;
+  locationBreakdown: Array<{
+    locationName: string;
+    locationId?: string;
+    count: number;
+  }>;
+  utilizationRate?: number;
+  availabilityRate?: number;
+  damageRate?: number;
+  totalRevenue?: number;
+  totalLoans?: number;
+  averageLoanDurationDays?: number;
+  maintenanceCostTotal?: number;
+}
+
+export interface ExportInventoryLocation {
+  locationId?: string;
+  locationName: string;
+  totalInstances: number;
+  instancesByStatus: Record<string, number>;
+}
+
+export interface ExportInventorySummary {
+  totalCatalogItems: number;
+  totalInstances: number;
+  totalMaterialTypes: number;
+  totalLocations: number;
+  globalInstancesByStatus: Array<{ status: string; count: number }>;
+  globalAvailabilityRate: number;
+  globalUtilizationRate: number;
+  damageRate: number;
+  maintenanceRate: number;
+  estimatedDailyValue: number;
+  topMaterialTypesByStock: Array<{ name: string; total: number }>;
+  topLocationsByStock: Array<{ name: string; total: number }>;
+}
+
+export interface ExportInventoryData {
+  exportedAt: string;
+  totalMaterialTypes: number;
+  totalInstances: number;
+  materialTypes: ExportInventoryMaterialType[];
+  byMaterialType: ExportInventoryMaterialType[];
+  byLocation: ExportInventoryLocation[];
+  summary?: ExportInventorySummary;
+}
+
+// ── Damages (/reports/exports/damages) ─────────────────────────────────────
+
+export interface ExportDamagesParams extends ExportBaseQueryParams {
+  locationId?: string;
+  batchStatus?: string;
+  entryReason?: string;
+}
+
+export interface ExportDamagesBatch {
+  batchId?: string;
+  locationId?: string;
+  batchNumber: string;
+  name: string;
+  status: string;
+  locationName: string;
+  assignedTo: string;
+  totalEstimatedCost: number;
+  totalActualCost: number;
+  startedAt: string;
+  completedAt: string | null;
+  itemCount: number;
+}
+
+export interface ExportDamagesItem {
+  materialInstanceId?: string;
+  batchNumber: string;
+  serialNumber: string;
+  materialTypeName: string;
+  entryReason: string;
+  itemStatus: string;
+  estimatedCost: number;
+  actualCost: number;
+  repairNotes: string;
+  sourceType: string;
+  resolvedAt: string | null;
+}
+
+export interface ExportDamagesPeriodComparison {
+  currentCost: number;
+  previousCost: number;
+  percentChange: number;
+  currentItemCount: number;
+  previousItemCount: number;
+  itemCountPercentChange: number;
+}
+
+export interface ExportDamagesSummary {
+  totalBatches: number;
+  totalItems: number;
+  totalEstimatedCost: number;
+  totalActualCost: number;
+  costVariance: number;
+  costVariancePercent: number;
+  costByEntryReason: Array<{
+    reason: string;
+    estimatedCost: number;
+    actualCost: number;
+    itemCount: number;
+  }>;
+  costByMonth: Array<{
+    year: number;
+    month: number;
+    estimatedCost: number;
+    actualCost: number;
+    batchCount: number;
+  }>;
+  mostDamagedMaterials: Array<{
+    materialTypeName: string;
+    incidentCount: number;
+    totalCost: number;
+  }>;
+  averageRepairTimeDays: number;
+  resolutionBreakdown: Array<{ status: string; count: number }>;
+  periodComparison?: ExportDamagesPeriodComparison;
+}
+
+export interface ExportDamagesData {
+  batches: ExportDamagesBatch[];
+  items: ExportDamagesItem[];
+  pagination: ExportPagination;
+  summary?: ExportDamagesSummary;
+}
+
+// ── Transfers (/reports/exports/transfers) ─────────────────────────────────
+
+export interface ExportTransfersParams extends ExportBaseQueryParams {
+  status?: string;
+  fromLocationId?: string;
+  toLocationId?: string;
+}
+
+export interface ExportTransferRow {
+  transferId?: string;
+  fromLocationId?: string;
+  toLocationId?: string;
+  status: string;
+  fromLocation: string;
+  toLocation: string;
+  itemCount: number;
+  pickedBy: string;
+  receivedBy: string;
+  sentAt: string;
+  receivedAt: string | null;
+  transitDays: number;
+  senderNotes: string | null;
+  receiverNotes: string | null;
+  createdAt: string;
+}
+
+export interface ExportTransfersPeriodComparison {
+  currentTransfers: number;
+  previousTransfers: number;
+  percentChange: number;
+  currentItems: number;
+  previousItems: number;
+  itemsPercentChange: number;
+}
+
+export interface ExportTransfersSummary {
+  totalTransfers: number;
+  totalItemsMoved: number;
+  averageTransitDays: number;
+  completionRate: number;
+  issueRate: number;
+  transfersByStatus: Array<{ status: string; count: number; totalItems: number }>;
+  transfersByMonth: Array<{ year: number; month: number; count: number; totalItems: number }>;
+  receivedConditionBreakdown: Array<{ condition: string; count: number }>;
+  topRoutes: Array<{
+    fromLocation: string;
+    toLocation: string;
+    transferCount: number;
+    totalItems: number;
+  }>;
+  periodComparison?: ExportTransfersPeriodComparison;
+}
+
+export interface ExportTransfersData {
+  rows: ExportTransferRow[];
+  pagination: ExportPagination;
+  summary?: ExportTransfersSummary;
+}
+
+// ── Customers (/reports/exports/customers) ─────────────────────────────────
+
+export interface ExportCustomersParams extends ExportBaseQueryParams {
+  status?: string;
+}
+
+export interface ExportCustomersRow {
+  customerId?: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  documentType: string;
+  documentNumber: string;
+  status: string;
+  totalLoans: number;
+  activeLoans: number;
+  totalRevenue: number;
+  avgLoanAmount: number;
+  lastLoanAt: string | null;
+  createdAt: string;
+}
+
+export interface ExportCustomersPeriodComparison {
+  currentNewCustomers: number;
+  previousNewCustomers: number;
+  percentChange: number;
+}
+
+export interface ExportCustomersSummary {
+  totalCustomers: number;
+  byStatus: Array<{ status: string; count: number }>;
+  totalRevenue: number;
+  totalLoans: number;
+  topByRevenue: Array<{ fullName: string; totalRevenue: number }>;
+  topByLoanCount: Array<{ fullName: string; loanCount: number }>;
+  periodComparison?: ExportCustomersPeriodComparison;
+}
+
+/** Raw shape returned by the API (customers array + flat pagination). */
+export interface ExportCustomersRawData {
+  total: number;
+  page: number;
+  limit: number;
+  customers: ExportCustomersRow[];
+  summary?: ExportCustomersSummary;
+}
+
+/** Normalised shape consumed by the rest of the app. */
+export interface ExportCustomersData {
+  rows: ExportCustomersRow[];
+  pagination: ExportPagination;
+  summary?: ExportCustomersSummary;
+}
+
+// ── Locations (/reports/exports/locations) ─────────────────────────────────
+
+export interface ExportLocationsParams extends ExportBaseQueryParams {
+  status?: string;
+}
+
+export interface ExportLocationsRow {
+  locationId?: string;
+  name: string;
+  code: string;
+  status: string;
+  isActive: boolean;
+  address: {
+    streetType: string;
+    primaryNumber: string;
+    secondaryNumber: string;
+    complementaryNumber: string;
+    department: string;
+    city: string;
+    country: string;
+  };
+  additionalDetails: string | null;
+  materialCapacitiesSummary: {
+    totalCapacity: number;
+    totalOccupied: number;
+    occupancyRate: number;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ExportLocationsPeriodComparison {
+  currentLocations: number;
+  previousLocations: number;
+  percentChange: number;
+}
+
+export interface ExportLocationsSummary {
+  totalLocations: number;
+  byStatus: Array<{ status: string; count: number }>;
+  byActive: { active: number; inactive: number };
+  avgOccupancyRate: number;
+  totalCapacity: number;
+  totalOccupied: number;
+  topByOccupancy: Array<{ name: string; code: string; occupancyRate: number }>;
+  periodComparison?: ExportLocationsPeriodComparison;
+}
+
+/** Raw shape returned by the API (locations array + totalLocations). */
+export interface ExportLocationsRawData {
+  totalLocations: number;
+  locations: ExportLocationsRow[];
+  summary?: ExportLocationsSummary;
+}
+
+/** Normalised shape consumed by the rest of the app. */
+export interface ExportLocationsData {
+  rows: ExportLocationsRow[];
+  pagination: ExportPagination;
+  summary?: ExportLocationsSummary;
+}
+
+// ── Loan Requests (/reports/exports/requests) ─────────────────────────
+
+export interface ExportRequestsParams extends ExportBaseQueryParams {
+  status?: string;
+}
+
+export interface ExportRequestsRow {
+  requestId?: string;
+  code: string;
+  status: string;
+  itemCount: number;
+  totalAmount: number;
+  subtotal: number;
+  discountAmount: number;
+  depositAmount: number;
+  totalDays: number;
+  startDate: string;
+  endDate: string;
+  approvedAt: string | null;
+  rejectionReason: string | null;
+  createdAt: string;
+}
+
+export interface ExportRequestsFunnel {
+  approvalRate: number;
+  completionRate: number;
+  rejectionRate: number;
+  cancellationRate: number;
+  avgApprovalTimeHours: number;
+}
+
+export interface ExportRequestsPeriodComparison {
+  currentRequests: number;
+  previousRequests: number;
+  percentChange: number;
+}
+
+export interface ExportRequestsSummary {
+  totalRequests: number;
+  byStatus: Array<{ status: string; count: number }>;
+  byMonth: Array<{ year: number; month: number; count: number; totalAmount: number }>;
+  funnel: ExportRequestsFunnel;
+  avgRequestValue: number;
+  avgDuration: number;
+  totalRevenue: number;
+  periodComparison?: ExportRequestsPeriodComparison;
+}
+
+/** Raw shape returned by the API (requests array + flat pagination). */
+export interface ExportRequestsRawData {
+  total: number;
+  page: number;
+  limit: number;
+  requests: ExportRequestsRow[];
+  summary?: ExportRequestsSummary;
+}
+
+/** Normalised shape consumed by the rest of the app. */
+export interface ExportRequestsData {
+  rows: ExportRequestsRow[];
+  pagination: ExportPagination;
+  summary?: ExportRequestsSummary;
+}
+
+// ── Billing History (/reports/exports/billing-history) ─────────────────────
+
+export interface ExportBillingHistoryParams extends ExportBaseQueryParams {
+  eventType?: string;
+}
+
+export interface ExportBillingHistoryRow {
+  eventType: string;
+  amount: number | null;
+  currency: string;
+  previousPlan: string | null;
+  newPlan: string | null;
+  seatChange: number | null;
+  processed: boolean;
+  error: string | null;
+  createdAt: string;
+}
+
+export interface ExportBillingHistoryCurrentSubscription {
+  plan: string;
+  seatCount: number;
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
+  cancelAtPeriodEnd: boolean;
+  pendingPlan: string | null;
+  pendingPlanEffectiveDate: string | null;
+}
+
+export interface ExportBillingHistoryPeriodComparison {
+  currentEvents: number;
+  previousEvents: number;
+  eventsPercentChange: number;
+  currentAmountPaid: number;
+  previousAmountPaid: number;
+  amountPercentChange: number;
+}
+
+export interface ExportBillingHistorySummary {
+  totalEvents: number;
+  eventsByType: Array<{ eventType: string; count: number }>;
+  eventsByMonth: Array<{ year: number; month: number; count: number; totalAmount: number }>;
+  paymentSummary: Array<{
+    currency: string;
+    totalPaid: number;
+    paymentCount: number;
+    averagePayment: number;
+  }>;
+  paymentSuccessRate: number;
+  failedPaymentCount: number;
+  planChangeHistory: Array<{
+    eventType: string;
+    previousPlan: string;
+    newPlan: string;
+    seatChange: number;
+    createdAt: string;
+  }>;
+  periodComparison?: ExportBillingHistoryPeriodComparison;
+}
+
+export interface ExportBillingHistoryData {
+  currentSubscription: ExportBillingHistoryCurrentSubscription;
+  rows: ExportBillingHistoryRow[];
+  pagination: ExportPagination;
+  summary?: ExportBillingHistorySummary;
+}
+
 // ─── Location Operations (Warehouse Operator Dashboard) ────────────────────
 
 /** Priority levels for operational tasks. */
@@ -1988,20 +2823,21 @@ export interface OpsOverview {
 
 /** Individual inspection item in the queue. */
 export interface OpsInspectionItem {
+  _id: string;
   loanId: string;
-  customerId: string;
+  loanCode?: string;
+  instanceId: string;
+  materialTypeName: string;
+  serialNumber: string;
+  returnedAt: string;
+  timeWaitingMinutes: number;
+  loanEndDate: string;
   customerName: string;
-  itemCount: number;
-  returnDate: string;
-  status: "pending" | "in-progress";
+  priority: "low" | "medium" | "high";
 }
 
-/** Grouped inspection queue from GET /locations/:id/operations/inspections */
-export interface OpsInspectionsResponse {
-  pending: OpsInspectionItem[];
-  inProgress: OpsInspectionItem[];
-  total: number;
-}
+/** Flat inspection queue from GET /locations/:id/operations/inspections */
+export type OpsInspectionsResponse = OpsInspectionItem[];
 
 /** Overdue invoice entry from GET /locations/:id/operations/financials/overdue */
 export interface OpsOverdueInvoice {
@@ -2203,4 +3039,258 @@ export interface CatalogOverviewResponse {
     total: number;
     totalPages: number;
   };
+}
+
+// ─── Code Schemes ──────────────────────────────────────────────────────────
+
+/** The entity types a code scheme can target. */
+export type CodeSchemeEntityType =
+  | "loan"
+  | "loan_request"
+  | "invoice"
+  | "inspection"
+  | "incident"
+  | "maintenance_batch"
+  | "material_instance";
+
+/** A code scheme returned by the API. */
+export interface CodeScheme {
+  _id: string;
+  organizationId: string;
+  entityType: CodeSchemeEntityType;
+  name: string;
+  pattern: string;
+  isActive: boolean;
+  isDefault: boolean;
+  /** Only for material_instance — scoped to a specific material type. */
+  materialTypeId: string | null;
+  /** Only for material_instance — scoped to a specific category. */
+  categoryId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Payload for POST /code-schemes. */
+export interface CreateCodeSchemePayload {
+  entityType: CodeSchemeEntityType;
+  name: string;
+  pattern: string;
+  isActive?: boolean;
+  isDefault?: boolean;
+  /** Only for material_instance — scoped to a specific material type. */
+  materialTypeId?: string;
+  /** Only for material_instance — scoped to a specific category. */
+  categoryId?: string;
+}
+
+/** Payload for PUT /code-schemes/:id. Cannot change entityType. */
+export interface UpdateCodeSchemePayload {
+  name?: string;
+  pattern?: string;
+  isActive?: boolean;
+}
+
+/** Query parameters for GET /code-schemes. */
+export interface CodeSchemesQueryParams {
+  entityType?: CodeSchemeEntityType;
+}
+
+// ─── Admin Export Types ─────────────────────────────────────────────────────
+
+// --- Platform KPIs ---
+
+export interface AdminExportPlatformKpisParams {
+  startDate?: string;
+  endDate?: string;
+  includeIds?: boolean;
+}
+
+export interface AdminPlatformKpisMonthlyRow {
+  year: number;
+  month: number;
+  newOrgs: number;
+  newUsers: number;
+  totalLoans: number;
+  totalInvoices: number;
+}
+
+export interface AdminPlatformKpisCurrentKpis {
+  totalOrgs: number;
+  activeOrgs: number;
+  totalUsers: number;
+  activeUsers: number;
+  totalLoans: number;
+  totalInvoices: number;
+  mrr: number;
+  arr: number;
+}
+
+export interface AdminPlatformKpisPeriodComparison {
+  previous: { orgs: number; users: number; loans: number; invoices: number };
+  current: { orgs: number; users: number; loans: number; invoices: number };
+  changes: { orgs: number; users: number; loans: number; invoices: number };
+}
+
+export interface AdminPlatformKpisSummary {
+  currentKpis: AdminPlatformKpisCurrentKpis;
+  avgUsersPerOrg: number;
+  avgSeatsPerOrg: number;
+  avgCatalogItemsPerOrg: number;
+  orgsByStatus: Record<string, number>;
+  usersByStatus: Record<string, number>;
+  periodComparison?: AdminPlatformKpisPeriodComparison;
+}
+
+export interface AdminPlatformKpisDetailData {
+  monthlyBreakdown: AdminPlatformKpisMonthlyRow[];
+  generatedAt: string;
+}
+
+export interface AdminPlatformKpisSummaryData {
+  summary: AdminPlatformKpisSummary;
+  generatedAt: string;
+}
+
+// --- Subscriptions ---
+
+export interface AdminExportSubscriptionsParams {
+  startDate?: string;
+  endDate?: string;
+  plan?: string;
+  orgStatus?: string;
+  page?: number;
+  limit?: number;
+  includeIds?: boolean;
+}
+
+export interface AdminSubscriptionRow {
+  orgId: string;
+  orgName: string;
+  orgStatus: string;
+  plan: string;
+  seatCount: number;
+  catalogItemCount: number;
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
+  cancelAtPeriodEnd: boolean;
+  pendingPlan: string | null;
+  orgCreatedAt: string;
+}
+
+export interface AdminSubscriptionsPlanBreakdown {
+  plan: string;
+  count: number;
+  percentage: number;
+  estimatedMonthlyRevenue: number;
+}
+
+export interface AdminSubscriptionsPeriodComparison {
+  previous: { orgs: number; churn: number; upgrades: number; downgrades: number };
+  current: { orgs: number; churn: number; upgrades: number; downgrades: number };
+  changes: { orgs: number; churn: number; upgrades: number; downgrades: number };
+}
+
+export interface AdminSubscriptionsSummary {
+  totalOrgs: number;
+  byPlan: AdminSubscriptionsPlanBreakdown[];
+  byOrgStatus: Array<{ status: string; count: number }>;
+  churn: number;
+  upgrades: number;
+  downgrades: number;
+  paymentAnalytics: {
+    succeeded: number;
+    failed: number;
+    successRate: number;
+  };
+  topPlanByCount: { plan: string; count: number };
+  topPlanByRevenue: { plan: string; revenue: number };
+  periodComparison?: AdminSubscriptionsPeriodComparison;
+}
+
+export interface AdminSubscriptionsDetailData {
+  subscriptions: AdminSubscriptionRow[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  generatedAt: string;
+}
+
+export interface AdminSubscriptionsSummaryData {
+  summary: AdminSubscriptionsSummary;
+  generatedAt: string;
+}
+
+// --- Usage ---
+
+export interface AdminExportUsageParams {
+  startDate?: string;
+  endDate?: string;
+  plan?: string;
+  orgStatus?: string;
+  page?: number;
+  limit?: number;
+  includeIds?: boolean;
+}
+
+export interface AdminUsageOrgRow {
+  orgId: string;
+  orgName: string;
+  plan: string;
+  orgStatus: string;
+  userCount: number;
+  activeUserCount: number;
+  loanCount: number;
+  invoiceCount: number;
+  customerCount: number;
+  locationCount: number;
+  materialTypeCount: number;
+  materialInstanceCount: number;
+  createdAt: string;
+}
+
+export interface AdminUsagePlatformTotals {
+  organizations: number;
+  users: number;
+  loans: number;
+  invoices: number;
+  customers: number;
+  locations: number;
+  materialTypes: number;
+  materialInstances: number;
+}
+
+export interface AdminUsagePeriodComparison {
+  previous: { loans: number; invoices: number; users: number; customers: number };
+  current: { loans: number; invoices: number; users: number; customers: number };
+  changes: { loans: number; invoices: number; users: number; customers: number };
+}
+
+export interface AdminUsageSummary {
+  platformTotals: AdminUsagePlatformTotals;
+  avgPerOrg: {
+    users: number;
+    loans: number;
+    invoices: number;
+    customers: number;
+  };
+  topByLoans: Array<{ orgName: string; plan: string; count: number }>;
+  topByInvoices: Array<{ orgName: string; plan: string; count: number }>;
+  topByUsers: Array<{ orgName: string; plan: string; count: number }>;
+  usageDistribution: Array<{ bucket: string; orgCount: number }>;
+  periodComparison?: AdminUsagePeriodComparison;
+}
+
+export interface AdminUsageDetailData {
+  organizations: AdminUsageOrgRow[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  generatedAt: string;
+}
+
+export interface AdminUsageSummaryData {
+  summary: AdminUsageSummary;
+  generatedAt: string;
 }

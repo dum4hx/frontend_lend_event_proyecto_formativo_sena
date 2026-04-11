@@ -5,13 +5,16 @@
  * cancellation.
  */
 
-import { get, post, patch, type ApiSuccessResponse } from "../lib/api";
+import { get, post, patch, del, type ApiSuccessResponse } from "../lib/api";
 import type {
   CreateCheckoutPayload,
   CheckoutResult,
   CreatePortalPayload,
   UpdateSeatsPayload,
   CancelSubscriptionPayload,
+  ChangePlanPayload,
+  ChangePlanResult,
+  PendingChangeData,
   BillingHistoryEntry,
 } from "../types/api";
 
@@ -61,4 +64,30 @@ export async function getBillingHistory(
   limit = 50,
 ): Promise<ApiSuccessResponse<{ history: BillingHistoryEntry[] }>> {
   return get<{ history: BillingHistoryEntry[] }>("/billing/history", { limit });
+}
+
+// ─── Change Plan ───────────────────────────────────────────────────────────
+
+/** Change the subscription plan (upgrade or downgrade). */
+export async function changePlan(
+  payload: ChangePlanPayload,
+): Promise<ApiSuccessResponse<ChangePlanResult>> {
+  return post<ChangePlanResult, ChangePlanPayload>(
+    "/billing/change-plan",
+    payload,
+  );
+}
+
+// ─── Pending Changes ───────────────────────────────────────────────────────
+
+/** Get pending plan change information (scheduled downgrades). */
+export async function getPendingChanges(): Promise<
+  ApiSuccessResponse<PendingChangeData>
+> {
+  return get<PendingChangeData>("/billing/pending-changes");
+}
+
+/** Cancel a pending plan change (deferred downgrade). */
+export async function cancelPendingChange(): Promise<ApiSuccessResponse<null>> {
+  return del<null>("/billing/pending-changes");
 }

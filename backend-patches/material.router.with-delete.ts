@@ -1,9 +1,4 @@
-import {
-  Router,
-  type Request,
-  type Response,
-  type NextFunction,
-} from "express";
+import { Router, type Request, type Response, type NextFunction } from "express";
 import { z } from "zod";
 import {
   MaterialModel,
@@ -13,16 +8,9 @@ import {
   MaterialInstance,
   MaterialInstanceZodSchema,
 } from "../modules/material/models/material_instance.model.ts";
-import {
-  Category,
-  CategoryZodSchema,
-} from "../modules/material/models/category.model.ts";
+import { Category, CategoryZodSchema } from "../modules/material/models/category.model.ts";
 import { organizationService } from "../modules/organization/organization.service.ts";
-import {
-  validateBody,
-  validateQuery,
-  paginationSchema,
-} from "../middleware/validation.ts";
+import { validateBody, validateQuery, paginationSchema } from "../middleware/validation.ts";
 import {
   authenticate,
   requireActiveOrganization,
@@ -127,10 +115,9 @@ materialRouter.delete(
       if (!force) {
         const typeCount = await MaterialModel.countDocuments({ categoryId });
         if (typeCount > 0) {
-          throw AppError.badRequest(
-            "Cannot delete category with existing material types",
-            { typeCount },
-          );
+          throw AppError.badRequest("Cannot delete category with existing material types", {
+            typeCount,
+          });
         }
 
         const category = await Category.findByIdAndDelete(categoryId);
@@ -353,10 +340,9 @@ materialRouter.delete(
       });
 
       if (instanceCount > 0) {
-        throw AppError.badRequest(
-          "Cannot delete material type with existing instances",
-          { instanceCount },
-        );
+        throw AppError.badRequest("Cannot delete material type with existing instances", {
+          instanceCount,
+        });
       }
 
       const materialType = await MaterialModel.findByIdAndDelete(req.params.id);
@@ -390,13 +376,7 @@ materialRouter.get(
   validateQuery(listMaterialsQuerySchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const {
-        page = 1,
-        limit = 20,
-        status,
-        materialTypeId,
-        search,
-      } = req.query;
+      const { page = 1, limit = 20, status, materialTypeId, search } = req.query;
       const skip = (Number(page) - 1) * Number(limit);
 
       const query: Record<string, unknown> = {};
@@ -503,7 +483,7 @@ materialRouter.patch(
   validateBody(updateStatusSchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { status, notes } = req.body;
+      const { status, notes: _notes } = req.body;
 
       const instance = await MaterialInstance.findById(req.params.id);
       if (!instance) {
@@ -562,9 +542,7 @@ materialRouter.delete(
 
       // Only allow deletion if retired or never used
       if (!["available", "retired"].includes(instance.status)) {
-        throw AppError.badRequest(
-          "Can only delete available or retired material instances",
-        );
+        throw AppError.badRequest("Can only delete available or retired material instances");
       }
 
       await MaterialInstance.deleteOne({ _id: req.params.id });

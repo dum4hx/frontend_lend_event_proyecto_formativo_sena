@@ -255,6 +255,44 @@ const rolesHelpContent: HelpModuleContent = {
         },
       ],
     },
+    {
+      id: "permission-dependencies",
+      title: { es: "Dependencias de permisos", en: "Permission dependencies" },
+      body: {
+        es: "Algunos permisos requieren otros para funcionar correctamente. El formulario de rol muestra estas dependencias y te avisa cuando faltan permisos requeridos.",
+        en: "Some permissions require others to work correctly. The role form shows these dependencies and warns you when required permissions are missing.",
+      },
+      howTo: [
+        {
+          es: "Al seleccionar un permiso, busca el indicador de dependencias (icono de eslabón) junto al nombre.",
+          en: "When selecting a permission, look for the dependency indicator (link icon) next to the name.",
+        },
+        {
+          es: "Haz clic en el indicador para expandir la lista de permisos requeridos.",
+          en: "Click the indicator to expand the list of required permissions.",
+        },
+        {
+          es: "Los permisos satisfechos se muestran en verde; los faltantes en ámbar con opción para agregarlos.",
+          en: "Satisfied permissions appear in green; missing ones in amber with an option to add them.",
+        },
+        {
+          es: "Usa el botón '+ Agregar requeridos' para añadir automáticamente los permisos faltantes.",
+          en: "Use the '+ Add required' button to automatically add missing permissions.",
+        },
+      ],
+      tips: [
+        {
+          es: "Si ves un borde ámbar alrededor de un permiso, significa que tiene dependencias no satisfechas.",
+          en: "If you see an amber border around a permission, it means it has unsatisfied dependencies.",
+        },
+      ],
+      warnings: [
+        {
+          es: "Asignar un permiso sin sus dependencias puede causar errores funcionales para el usuario con ese rol.",
+          en: "Assigning a permission without its dependencies can cause functional errors for users with that role.",
+        },
+      ],
+    },
   ],
   walkthrough: [
     {
@@ -309,6 +347,19 @@ const rolesHelpContent: HelpModuleContent = {
         en: "Pagination helps you review all roles as the catalog grows.",
       },
       targetSelector: '[data-help-id="roles-pagination"]',
+    },
+    {
+      id: "step-6-dependencies",
+      title: { es: "6) Revisa dependencias de permisos", en: "6) Review permission dependencies" },
+      body: {
+        es: "Al crear o editar un rol, cada permiso muestra sus dependencias con un indicador de eslabón. Expándelo para ver qué permisos adicionales se requieren y si ya están incluidos en el rol.",
+        en: "When creating or editing a role, each permission shows its dependencies with a link indicator. Expand it to see which additional permissions are required and whether they are already included in the role.",
+      },
+      targetSelector: '[data-help-id="roles-form-permissions"]',
+      tip: {
+        es: "Los permisos con dependencias faltantes muestran un borde ámbar. Usa '+ Agregar requeridos' para resolverlo rápidamente.",
+        en: "Permissions with missing dependencies show an amber border. Use '+ Add required' to resolve it quickly.",
+      },
     },
   ],
   formGuides: rolesFormGuides,

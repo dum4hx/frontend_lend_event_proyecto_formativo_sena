@@ -7,8 +7,8 @@ const reportsHelpContent: HelpModuleContent = {
     en: "Help center: Reports & Analytics",
   },
   description: {
-    es: "Este modulo consolida datos de clientes, solicitudes, prestamos, facturas, inventario, equipo, ubicaciones y pedidos para analisis operativo.",
-    en: "This module consolidates data from customers, requests, loans, invoices, inventory, team, locations, and orders for operational analysis.",
+    es: "Este modulo consolida datos de clientes, solicitudes, prestamos, financiero, inventario, equipo, ubicaciones, pedidos, danos y transferencias para analisis operativo.",
+    en: "This module consolidates data from customers, requests, loans, financial, inventory, team, locations, orders, damages, and transfers for operational analysis.",
   },
   sections: [
     {
@@ -136,8 +136,8 @@ const reportsHelpContent: HelpModuleContent = {
       id: "step-2-modules",
       title: { es: "2) Cambia el modulo", en: "2) Switch module" },
       body: {
-        es: "Estas pestanas te permiten enfocarte en un dominio especifico como clientes, prestamos o facturas.",
-        en: "These tabs let you focus on a specific domain such as customers, loans, or invoices.",
+        es: "Estas pestanas te permiten enfocarte en un dominio especifico como clientes, prestamos, financiero, danos o transferencias.",
+        en: "These tabs let you focus on a specific domain such as customers, loans, financial, damages, or transfers.",
       },
       targetSelector: '[data-help-id="reports-modules"]',
     },
@@ -175,6 +175,24 @@ const reportsHelpContent: HelpModuleContent = {
         es: "Confirma modulo y periodo antes de compartir o exportar reportes para evitar decisiones con datos incompletos.",
         en: "Confirm module and period before sharing or exporting reports to avoid decisions based on incomplete data.",
       },
+    },
+    {
+      id: "step-6-damages",
+      title: { es: "6) Modulo de danos", en: "6) Damages module" },
+      body: {
+        es: "La pestana de danos muestra items danados o perdidos detectados en inspecciones, con detalles del prestamo y estimacion de costo de reparacion.",
+        en: "The damages tab shows damaged or lost items detected during inspections, with loan details and estimated repair costs.",
+      },
+      targetSelector: '[data-help-id="reports-modules"]',
+    },
+    {
+      id: "step-7-transfers",
+      title: { es: "7) Modulo de transferencias", en: "7) Transfers module" },
+      body: {
+        es: "La pestana de transferencias presenta movimientos de materiales entre ubicaciones, con estado actual, notas y conteo de items.",
+        en: "The transfers tab shows material movements between locations, with current status, notes, and item count.",
+      },
+      targetSelector: '[data-help-id="reports-modules"]',
     },
   ],
 };

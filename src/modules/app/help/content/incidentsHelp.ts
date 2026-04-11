@@ -34,8 +34,8 @@ const incidentsHelpContent: HelpModuleContent = {
       ],
       tips: [
         {
-          es: "Usa la barra de búsqueda para localizar novedades por ID de préstamo, ubicación o descripción.",
-          en: "Use the search bar to locate incidents by loan ID, location, or description.",
+          es: "Usa la barra de búsqueda para localizar novedades por código de préstamo, ubicación o descripción.",
+          en: "Use the search bar to locate incidents by loan code, location, or description.",
         },
       ],
     },

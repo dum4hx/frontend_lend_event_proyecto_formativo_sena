@@ -6,6 +6,7 @@
  */
 
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Wrench, Plus, RefreshCcw, FileText, Clock, CheckCircle, XCircle } from "lucide-react";
 import { useMaintenanceBatches } from "../hooks/useMaintenanceBatches";
 import {
@@ -18,6 +19,10 @@ import {
 } from "../components";
 import { LoadingSpinner, ErrorDisplay, Pagination } from "../../../../../components/ui";
 import { useLanguage } from "../../../../../contexts/useLanguage";
+import { useToast } from "../../../../../contexts/ToastContext";
+import { usePermissions } from "../../../../../contexts/usePermissions";
+import { useActionPermission } from "../../../../../hooks/useActionPermission";
+import Unauthorized from "../../../../../pages/Unauthorized";
 import type {
   MaintenanceBatchListItem,
   MaintenanceBatchItem,
@@ -37,7 +42,11 @@ const STATUS_TABS: Array<{ key: MaintenanceBatchStatus | "all"; icon: React.Reac
 ];
 
 export const MaintenanceCatalog: React.FC = () => {
-  const { t, formatCurrency } = useLanguage();
+  const { t, formatCurrency, language } = useLanguage();
+  const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
+  const { guard, isAllowed } = useActionPermission(language === "es" ? "es" : "en");
+  const navigate = useNavigate();
 
   const {
     batches,
@@ -78,22 +87,46 @@ export const MaintenanceCatalog: React.FC = () => {
   };
 
   const handleStartBatch = async (id: string) => {
-    await startBatch(id);
+    try {
+      await startBatch(id);
+      showToast("success", t("maintenance.startSuccess"), t("common.success"));
+    } catch (err) {
+      const error = err as Error;
+      showToast("error", error.message || t("maintenance.startError"), t("common.error"));
+    }
   };
 
   const handleCancelBatch = async (id: string) => {
-    await cancelBatch(id);
+    try {
+      await cancelBatch(id);
+      showToast("success", t("maintenance.cancelSuccess"), t("common.success"));
+    } catch (err) {
+      const error = err as Error;
+      showToast("error", error.message || t("maintenance.cancelError"), t("common.error"));
+    }
   };
 
   const handleAddItemsSubmit = async (payload: AddMaintenanceBatchItemsPayload) => {
     if (!selectedBatch) return;
-    await addItems(selectedBatch._id, payload);
-    setShowAddItems(false);
+    try {
+      await addItems(selectedBatch._id, payload);
+      showToast("success", t("maintenance.addItemsSuccess"), t("common.success"));
+      setShowAddItems(false);
+    } catch (err) {
+      const error = err as Error;
+      showToast("error", error.message || t("maintenance.addItemsError"), t("common.error"));
+    }
   };
 
   const handleRemoveItem = async (instanceId: string) => {
     if (!selectedBatch) return;
-    await removeItem(selectedBatch._id, instanceId);
+    try {
+      await removeItem(selectedBatch._id, instanceId);
+      showToast("success", t("maintenance.removeItemSuccess"), t("common.success"));
+    } catch (err) {
+      const error = err as Error;
+      showToast("error", error.message || t("maintenance.removeItemError"), t("common.error"));
+    }
   };
 
   const handleResolveSubmit = async (
@@ -101,8 +134,14 @@ export const MaintenanceCatalog: React.FC = () => {
     payload: ResolveMaintenanceBatchItemPayload,
   ) => {
     if (!selectedBatch) return;
-    await resolveItem(selectedBatch._id, instanceId, payload);
-    setResolveTarget(null);
+    try {
+      await resolveItem(selectedBatch._id, instanceId, payload);
+      showToast("success", t("maintenance.resolveSuccess"), t("common.success"));
+      setResolveTarget(null);
+    } catch (err) {
+      const error = err as Error;
+      showToast("error", error.message || t("maintenance.resolveError"), t("common.error"));
+    }
   };
 
   // ── Early returns ─────────────────────────────────────────────────────
@@ -118,6 +157,8 @@ export const MaintenanceCatalog: React.FC = () => {
   if (error && batches.length === 0) {
     return <ErrorDisplay error={error} onRetry={refetch} />;
   }
+
+  if (!hasPermission("maintenance:read")) return <Unauthorized />;
 
   // ── Computed stats ────────────────────────────────────────────────────
 
@@ -137,8 +178,9 @@ export const MaintenanceCatalog: React.FC = () => {
 
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setShowCreate(true)}
-            className="btn-primary flex items-center gap-2"
+            onClick={guard("maintenance:create", () => setShowCreate(true))}
+            aria-disabled={!isAllowed("maintenance:create")}
+            className={`btn-primary flex items-center gap-2 ${!isAllowed("maintenance:create") ? "opacity-50 cursor-not-allowed" : ""}`}
             data-help-id="maintenance-create-btn"
           >
             <Plus size={16} />
@@ -162,18 +204,21 @@ export const MaintenanceCatalog: React.FC = () => {
             {t("maintenance.stats.totalBatches")}
           </p>
           <p className="text-2xl font-black text-[#FFD700]">{pagination.total}</p>
+          <p className="text-xs text-gray-500 mt-1">{t("maintenance.stats.totalBatchesDesc")}</p>
         </div>
         <div className="bg-[#1a1a1a] border border-[#222] px-6 py-4 rounded-xl shadow-lg">
           <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">
             {t("maintenance.stats.estimatedCost")}
           </p>
           <p className="text-2xl font-black text-white">{formatCurrency(totalEstimated)}</p>
+          <p className="text-xs text-gray-500 mt-1">{t("maintenance.stats.estimatedCostDesc")}</p>
         </div>
         <div className="bg-[#1a1a1a] border border-[#222] px-6 py-4 rounded-xl shadow-lg">
           <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">
             {t("maintenance.stats.actualCost")}
           </p>
           <p className="text-2xl font-black text-white">{formatCurrency(totalActual)}</p>
+          <p className="text-xs text-gray-500 mt-1">{t("maintenance.stats.actualCostDesc")}</p>
         </div>
       </div>
 
@@ -211,13 +256,24 @@ export const MaintenanceCatalog: React.FC = () => {
           batches={batches}
           loading={loading}
           onView={handleView}
-          onEdit={handleEdit}
-          onStart={(batch: MaintenanceBatchListItem) => handleStartBatch(batch._id)}
-          onCancel={(batch: MaintenanceBatchListItem) => handleCancelBatch(batch._id)}
+          onEdit={(batch) => guard("maintenance:update", () => void handleEdit(batch))()}
+          onStart={(batch: MaintenanceBatchListItem) =>
+            guard("maintenance:update", () => void handleStartBatch(batch._id))()
+          }
+          onCancel={(batch: MaintenanceBatchListItem) =>
+            guard("maintenance:update", () => void handleCancelBatch(batch._id))()
+          }
           onAddItems={async (batch: MaintenanceBatchListItem) => {
-            await fetchDetail(batch._id);
-            setShowAddItems(true);
+            guard("maintenance:update", async () => {
+              await fetchDetail(batch._id);
+              setShowAddItems(true);
+            })();
           }}
+          onRepairItems={(batch: MaintenanceBatchListItem) =>
+            guard("maintenance:resolve", () => navigate(`/app/maintenance/${batch._id}/repair`))()
+          }
+          canUpdate={isAllowed("maintenance:update")}
+          canResolve={isAllowed("maintenance:resolve")}
         />
       </div>
 
@@ -237,8 +293,14 @@ export const MaintenanceCatalog: React.FC = () => {
         open={showCreate}
         onClose={() => setShowCreate(false)}
         onSubmit={async (payload: CreateMaintenanceBatchPayload) => {
-          await createBatch(payload);
-          setShowCreate(false);
+          try {
+            await createBatch(payload);
+            showToast("success", t("maintenance.createSuccess"), t("common.success"));
+            setShowCreate(false);
+          } catch (err) {
+            const error = err as Error;
+            showToast("error", error.message || t("maintenance.createError"), t("common.error"));
+          }
         }}
       />
 
@@ -252,9 +314,15 @@ export const MaintenanceCatalog: React.FC = () => {
           }}
           batch={selectedBatch}
           onSubmit={async (id: string, payload: UpdateMaintenanceBatchPayload) => {
-            await updateBatch(id, payload);
-            setEditBatch(null);
-            clearSelectedBatch();
+            try {
+              await updateBatch(id, payload);
+              showToast("success", t("maintenance.updateSuccess"), t("common.success"));
+              setEditBatch(null);
+              clearSelectedBatch();
+            } catch (err) {
+              const error = err as Error;
+              showToast("error", error.message || t("maintenance.updateError"), t("common.error"));
+            }
           }}
         />
       )}
@@ -266,9 +334,11 @@ export const MaintenanceCatalog: React.FC = () => {
           onClose={clearSelectedBatch}
           onStart={handleStartBatch}
           onCancel={handleCancelBatch}
-          onAddItems={() => setShowAddItems(true)}
-          onRemoveItem={handleRemoveItem}
-          onResolveItem={setResolveTarget}
+          onAddItems={() => guard("maintenance:update", () => setShowAddItems(true))()}
+          onRemoveItem={(instanceId) =>
+            guard("maintenance:update", () => void handleRemoveItem(instanceId))()
+          }
+          onResolveItem={(item) => guard("maintenance:resolve", () => setResolveTarget(item))()}
         />
       )}
 

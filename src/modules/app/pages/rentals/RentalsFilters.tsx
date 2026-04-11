@@ -34,7 +34,9 @@ export function RentalsFilters({
         <input
           type="text"
           placeholder={
-            isEs ? "Buscar por ID de prestamo o cliente..." : "Search by loan ID or customer..."
+            isEs
+              ? "Buscar por código de préstamo o cliente..."
+              : "Search by loan code or customer..."
           }
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
@@ -49,7 +51,7 @@ export function RentalsFilters({
         >
           {STATUS_OPTIONS.map((opt) => (
             <option key={opt} value={opt}>
-              {getStatusLabel(opt, isEs)}
+              {getStatusLabel(opt, isEs ? "es" : "en")}
             </option>
           ))}
         </select>

@@ -5,9 +5,10 @@ import Footer from "../components/Footer";
 import { verifyEmail } from "../services/authService";
 import { ApiError } from "../lib/api";
 import { useAuth } from "../contexts/useAuth";
-import { getDashboardUrlByPermissions } from "../utils/roleRouting";
+import { getFirstAccessibleUrl } from "../utils/roleRouting";
 import { validateCode } from "../utils/validators";
 import { useLanguage } from "../contexts/useLanguage";
+import type { TranslationKey } from "../i18n/translations";
 import styles from "./SignUp.module.css";
 
 const OTP_LENGTH = 6;
@@ -16,7 +17,7 @@ const EXPIRY_SECONDS = 5 * 60; // 5 minutes
 export default function EmailVerification() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const isEs = language === "es";
   const { checkAuth } = useAuth();
 
@@ -29,16 +30,6 @@ export default function EmailVerification() {
   const [loading, setLoading] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(EXPIRY_SECONDS);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-
-  const mapValidationMessage = (message?: string) => {
-    if (!isEs || !message) return message;
-    const validationMap: Record<string, string> = {
-      "Code is required": "El codigo es obligatorio",
-      "Code must be exactly 6 digits": "El codigo debe tener exactamente 6 digitos",
-    };
-
-    return validationMap[message] ?? message;
-  };
 
   // Redirect to sign-up if no email in state
   useEffect(() => {
@@ -109,10 +100,7 @@ export default function EmailVerification() {
   const handleVerify = async () => {
     const validation = validateCode(code);
     if (!validation.isValid) {
-      setError(
-        mapValidationMessage(validation.message) ||
-          (isEs ? "Ingresa un codigo valido de 6 digitos" : "Please enter a valid 6-digit code"),
-      );
+      setError(t(validation.message as TranslationKey));
       return;
     }
 
@@ -124,7 +112,7 @@ export default function EmailVerification() {
 
       // Cookies are now set — sync auth state
       const { permissions } = await checkAuth();
-      const dashboardUrl = getDashboardUrlByPermissions(permissions);
+      const dashboardUrl = getFirstAccessibleUrl(permissions);
       if (returnTo) {
         const joiner = returnTo.includes("?") ? "&" : "?";
         const destinationWithFlag = `${returnTo}${joiner}activationModal=1`;
@@ -188,7 +176,9 @@ export default function EmailVerification() {
             <h1 className="text-5xl text-white lg:text-6xl font-extrabold mb-6 leading-tight">
               {isEs ? "Verifica tu" : "Verify your"}
               <br />
-              <span className="text-yellow-400">{isEs ? "correo electronico" : "Email Address"}</span>
+              <span className="text-yellow-400">
+                {isEs ? "correo electronico" : "Email Address"}
+              </span>
             </h1>
 
             {/* Description */}
@@ -206,7 +196,11 @@ export default function EmailVerification() {
                 </div>
                 <div>
                   <p className="font-bold text-white">{isEs ? "Casi listo" : "Almost There"}</p>
-                  <p className="text-sm text-gray-400">{isEs ? "Un ultimo paso para activar tu cuenta." : "One quick step to activate your account."}</p>
+                  <p className="text-sm text-gray-400">
+                    {isEs
+                      ? "Un ultimo paso para activar tu cuenta."
+                      : "One quick step to activate your account."}
+                  </p>
                 </div>
               </div>
             </div>
@@ -231,7 +225,9 @@ export default function EmailVerification() {
               {isEs ? "Volver a registrarse" : "Back to Sign Up"}
             </button>
 
-            <h2 className="text-4xl font-extrabold mb-2">{isEs ? "Verificacion de correo" : "Email Verification"}</h2>
+            <h2 className="text-4xl font-extrabold mb-2">
+              {isEs ? "Verificacion de correo" : "Email Verification"}
+            </h2>
             <p className="text-gray-400 mb-2">
               {isEs ? "Enviamos un codigo a " : "We've sent a code to "}
               <span className="text-yellow-400 font-bold">{email}</span>
@@ -282,7 +278,11 @@ export default function EmailVerification() {
                           : "text-gray-300"
                     }`}
                   >
-                    {isExpired ? (isEs ? "Codigo expirado" : "Code expired") : formatTime(secondsLeft)}
+                    {isExpired
+                      ? isEs
+                        ? "Codigo expirado"
+                        : "Code expired"
+                      : formatTime(secondsLeft)}
                   </span>
                 </div>
               </div>
@@ -341,7 +341,13 @@ export default function EmailVerification() {
                 disabled={loading || !isCodeComplete || isExpired}
                 className={`w-full bg-yellow-400 text-black font-extrabold py-4 rounded-xl text-lg ${styles.glowButton} shadow-xl hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed transition`}
               >
-                {loading ? (isEs ? "Verificando..." : "Verifying...") : (isEs ? "Verificar correo" : "Verify Email")}
+                {loading
+                  ? isEs
+                    ? "Verificando..."
+                    : "Verifying..."
+                  : isEs
+                    ? "Verificar correo"
+                    : "Verify Email"}
               </button>
 
               {/* Help text */}

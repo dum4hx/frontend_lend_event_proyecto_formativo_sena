@@ -1,7 +1,7 @@
 import React from "react";
 import { X, CheckCircle, AlertTriangle, XCircle, FileText } from "lucide-react";
+import { useLanguage } from "../../../../../contexts/useLanguage";
 import type { InspectionListItem } from "../../../../../types/api";
-import { EntityLink } from "../../../../../components/ui";
 
 interface InspectionDetailModalProps {
   inspection: InspectionListItem;
@@ -15,18 +15,20 @@ export const InspectionDetailModal: React.FC<InspectionDetailModalProps> = ({
   inspection,
   onClose,
 }) => {
+  const { t, formatCurrency: formatCurrencyLocale } = useLanguage();
+
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("es-CO", {
-      style: "currency",
-      currency: "COP",
-      minimumFractionDigits: 0,
-    }).format(amount);
+    return formatCurrencyLocale(amount);
   };
 
   const statusIcons = {
-    good: { icon: CheckCircle, color: "text-green-500", label: "Good" },
-    damaged: { icon: AlertTriangle, color: "text-yellow-500", label: "Damaged" },
-    lost: { icon: XCircle, color: "text-red-500", label: "Lost" },
+    good: { icon: CheckCircle, color: "text-green-500", label: t("inspections.allGood") },
+    damaged: {
+      icon: AlertTriangle,
+      color: "text-yellow-500",
+      label: t("inspections.damagesFound"),
+    },
+    lost: { icon: XCircle, color: "text-red-500", label: t("inspections.lossReport") },
   };
 
   return (
@@ -35,8 +37,10 @@ export const InspectionDetailModal: React.FC<InspectionDetailModalProps> = ({
         {/* Header */}
         <div className="sticky top-0 bg-[#121212] border-b border-[#333] p-6 flex items-center justify-between z-10">
           <div>
-            <h2 className="text-2xl font-bold text-white">Inspection Details</h2>
-            <p className="text-sm text-gray-400 font-mono mt-1">{inspection._id}</p>
+            <h2 className="text-2xl font-bold text-white">{t("inspections.detailsTitle")}</h2>
+            <p className="text-sm text-gray-400 font-mono mt-1">
+              {inspection.inspectionNumber ?? inspection._id}
+            </p>
           </div>
           <button
             onClick={onClose}
@@ -50,15 +54,15 @@ export const InspectionDetailModal: React.FC<InspectionDetailModalProps> = ({
         <div className="p-8 space-y-10">
           <div>
             <h3 className="text-xs font-semibold text-[#FFD700] uppercase tracking-widest mb-4">
-              Loan Metadata
+              {t("inspections.loanMetadata")}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 bg-[#1a1a1a] p-5 rounded-lg border border-[#222]">
               <div>
-                <label className="block text-xs text-gray-400 mb-1 uppercase">Loan ID</label>
+                <label className="block text-xs text-gray-400 mb-1 uppercase">
+                  {t("inspections.loanIdDetail")}
+                </label>
                 <p className="text-white font-mono break-all font-medium">
-                  {typeof inspection.loanId === "string"
-                    ? inspection.loanId
-                    : (inspection.loanId as unknown as { _id: string })._id}
+                  {inspection.loanId.code ?? inspection.loanId._id}
                 </p>
               </div>
             </div>
@@ -81,20 +85,17 @@ export const InspectionDetailModal: React.FC<InspectionDetailModalProps> = ({
                         <div>
                           <p className="text-white font-medium capitalize">{status.label}</p>
                           <p className="text-xs text-gray-500 font-mono mt-0.5">
-                            SN: {item.materialInstanceId.serialNumber}{" "}
-                            <EntityLink
-                              entityType="materialInstance"
-                              entityId={item.materialInstanceId._id}
-                              label={item.materialInstanceId._id}
-                              className="font-mono text-xs"
-                            />
+                            SN:{" "}
+                            {typeof item.materialInstanceId === "string"
+                              ? item.materialInstanceId
+                              : item.materialInstanceId.serialNumber}
                           </p>
                         </div>
                       </div>
                       {item.chargeToCustomer !== undefined && item.chargeToCustomer > 0 && (
                         <div className="bg-red-900/40 px-3 py-1.5 rounded-full border border-red-500/30">
                           <p className="text-red-200 text-xs font-bold">
-                            Total Damage Cost:{" "}
+                            {t("inspections.totalDamageCost")}:{" "}
                             <span className="text-red-100 font-black">
                               {formatCurrency(item.chargeToCustomer)}
                             </span>
@@ -103,7 +104,7 @@ export const InspectionDetailModal: React.FC<InspectionDetailModalProps> = ({
                       )}
                       {item.repairRequired && (
                         <span className="bg-orange-900/40 px-3 py-1.5 rounded-full border border-orange-500/30 text-orange-200 text-xs font-bold">
-                          Repair Required
+                          {t("inspections.repairRequired")}
                         </span>
                       )}
                     </div>
@@ -113,7 +114,7 @@ export const InspectionDetailModal: React.FC<InspectionDetailModalProps> = ({
                         {item.damageDescription && (
                           <div className="bg-red-900/[0.15] border border-red-900/30 p-4 rounded-md">
                             <label className="block text-[10px] text-red-300 mb-1 font-bold uppercase tracking-wider">
-                              Damage Description
+                              {t("inspections.damageDescriptionDetail")}
                             </label>
                             <p className="text-gray-200 text-sm italic">
                               "{item.damageDescription}"
@@ -123,7 +124,7 @@ export const InspectionDetailModal: React.FC<InspectionDetailModalProps> = ({
                         {item.notes && (
                           <div className="bg-gray-800/20 border border-gray-700/50 p-4 rounded-md">
                             <label className="block text-[10px] text-gray-400 mb-1 font-bold uppercase tracking-wider">
-                              Specific Item Notes
+                              {t("inspections.itemNotesDetail")}
                             </label>
                             <p className="text-gray-300 text-sm">"{item.notes}"</p>
                           </div>
@@ -141,10 +142,10 @@ export const InspectionDetailModal: React.FC<InspectionDetailModalProps> = ({
               <FileText className="w-5 h-5 text-gray-400" />
               <div className="flex flex-col">
                 <span className="text-xs text-gray-400 uppercase font-bold tracking-widest">
-                  Overall Notes
+                  {t("inspections.overallNotesDetail")}
                 </span>
                 <p className="text-white mt-1 italic text-lg leading-relaxed whitespace-pre-line">
-                  {inspection.notes || "No notes registered."}
+                  {inspection.notes || t("inspections.noNotes")}
                 </p>
               </div>
             </div>

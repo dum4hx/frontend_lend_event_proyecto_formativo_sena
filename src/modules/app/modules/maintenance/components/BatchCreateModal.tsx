@@ -5,6 +5,7 @@
 import React, { useState } from "react";
 import { FormModal } from "../../../../../components/ui";
 import { useLanguage } from "../../../../../contexts/useLanguage";
+import styles from "./BatchCreateModal.module.css";
 import type { CreateMaintenanceBatchPayload } from "../../../../../types/api";
 
 interface BatchCreateModalProps {
@@ -24,6 +25,13 @@ export function BatchCreateModal({ open, onClose, onSubmit }: BatchCreateModalPr
   const [scheduledStartDate, setScheduledStartDate] = useState("");
   const [scheduledEndDate, setScheduledEndDate] = useState("");
   const [notes, setNotes] = useState("");
+
+  const handleStartDateChange = (value: string) => {
+    setScheduledStartDate(value);
+    if (scheduledEndDate && value > scheduledEndDate) {
+      setScheduledEndDate("");
+    }
+  };
 
   const resetForm = () => {
     setName("");
@@ -109,9 +117,9 @@ export function BatchCreateModal({ open, onClose, onSubmit }: BatchCreateModalPr
             <input
               id="batch-start-date"
               type="date"
-              className="form-input"
+              className={`form-input ${styles.dateInput}`}
               value={scheduledStartDate}
-              onChange={(e) => setScheduledStartDate(e.target.value)}
+              onChange={(e) => handleStartDateChange(e.target.value)}
               data-help-id="maintenance-batch-form-start-date"
             />
           </div>
@@ -122,9 +130,10 @@ export function BatchCreateModal({ open, onClose, onSubmit }: BatchCreateModalPr
             <input
               id="batch-end-date"
               type="date"
-              className="form-input"
+              className={`form-input ${styles.dateInput}`}
               value={scheduledEndDate}
               onChange={(e) => setScheduledEndDate(e.target.value)}
+              min={scheduledStartDate || undefined}
               data-help-id="maintenance-batch-form-end-date"
             />
           </div>

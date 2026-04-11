@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { X, Save, AlertCircle } from "lucide-react";
+import { useLanguage } from "../../../../../contexts/useLanguage";
+import { validateDamageDescription } from "../../../../../utils";
 import type {
   PendingLoan,
   InspectionItemInput,
@@ -28,6 +30,7 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
   onClose,
   onSave,
 }) => {
+  const { t } = useLanguage();
   const [items, setItems] = useState<InspectionItemInput[]>(
     loan.materialInstances.map((mi) => ({
       materialInstanceId: mi.materialInstanceId._id,
@@ -41,6 +44,14 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
   const [dueDate, setDueDate] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Derive per-item description errors: required when damaged or lost
+  const descriptionErrors = items.map(
+    (item) =>
+      (item.condition === "damaged" || item.condition === "lost") &&
+      !validateDamageDescription(item.damageDescription ?? "").isValid,
+  );
+  const hasDescriptionErrors = descriptionErrors.some(Boolean);
 
   // Check if any item is damaged or lost (for conditional dueDate display)
   const hasDamagedOrLostItems = items.some(
@@ -86,9 +97,11 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
         {/* Header */}
         <div className="p-6 border-b border-[#333] flex items-center justify-between bg-[#1a1a1a] rounded-t-xl">
           <div>
-            <h2 className="text-xl font-bold text-white">Perform Inspection</h2>
+            <h2 className="text-xl font-bold text-white">{t("inspections.performInspection")}</h2>
             <p className="text-sm text-gray-400 mt-1">
-              Loan ID: <span className="text-gray-300 font-mono">{loan._id}</span> • Customer:{" "}
+              {t("inspections.loanIdLabel")}:{" "}
+              <span className="text-gray-300 font-mono">{loan.code ?? loan._id}</span> •{" "}
+              {t("inspections.customerLabel")}:{" "}
               <span className="text-gray-300">
                 {`${loan.customerId.name.firstName} ${loan.customerId.name.firstSurname}`}
               </span>
@@ -113,7 +126,7 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
 
           <div className="space-y-6" data-help-id="inspections-form-items">
             <h3 className="text-sm font-semibold text-[#FFD700] uppercase tracking-wider">
-              Material Instances ({loan.materialInstances.length})
+              {t("inspections.materialInstances")} ({loan.materialInstances.length})
             </h3>
 
             {loan.materialInstances.map((mi, index) => (
@@ -139,22 +152,38 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
                     <>
                       <div className="col-span-1 md:col-span-2">
                         <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase">
-                          Damage Description <span className="text-red-500">*</span>
+                          {t("inspections.damageDescription")}{" "}
+                          <span className="text-red-500">*</span>
                         </label>
                         <textarea
                           data-help-id="inspections-form-damage-description"
-                          placeholder="Describe the damage or reason for loss..."
-                          className="w-full bg-[#0a0a0a] border border-[#333] rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-[#FFD700] min-h-[60px]"
+                          placeholder={t("inspections.damageDescriptionPlaceholder")}
+                          className={`w-full bg-[#0a0a0a] border rounded-md px-3 py-2 text-sm text-white focus:outline-none min-h-[60px] ${
+                            descriptionErrors[index]
+                              ? "border-red-500 bg-red-500/10 focus:border-red-400"
+                              : "border-[#333] focus:border-[#FFD700]"
+                          }`}
                           value={items[index].damageDescription || ""}
                           onChange={(e) =>
                             handleItemChange(index, "damageDescription", e.target.value)
                           }
-                          required={items[index].condition.toString() !== "good"}
+                          aria-invalid={descriptionErrors[index]}
+                          aria-describedby={
+                            descriptionErrors[index] ? `damage-desc-error-${index}` : undefined
+                          }
                         />
+                        {descriptionErrors[index] && (
+                          <p
+                            id={`damage-desc-error-${index}`}
+                            className="text-red-400 text-xs mt-1"
+                          >
+                            {t("inspections.damageDescriptionRequired")}
+                          </p>
+                        )}
                       </div>
                       <div className="md:col-span-1">
                         <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase">
-                          Damage Cost (COP)
+                          {t("inspections.damageCost")}
                         </label>
                         <input
                           data-help-id="inspections-form-damage-cost"
@@ -173,12 +202,12 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
                     className={items[index].condition === "good" ? "col-span-2" : "md:col-span-1"}
                   >
                     <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase">
-                      Item Notes
+                      {t("inspections.itemNotes")}
                     </label>
                     <input
                       data-help-id="inspections-form-item-notes"
                       type="text"
-                      placeholder="Optional notes for this item..."
+                      placeholder={t("inspections.itemNotesPlaceholder")}
                       className="w-full bg-[#0a0a0a] border border-[#333] rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-[#FFD700]"
                       value={items[index].notes || ""}
                       onChange={(e) => handleItemChange(index, "notes", e.target.value)}
@@ -192,11 +221,11 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
           <div className="border-t border-[#333] pt-6 space-y-6">
             <div>
               <label className="block text-sm font-semibold text-white mb-2 uppercase tracking-wide">
-                Overall Inspection Notes
+                {t("inspections.overallNotes")}
               </label>
               <textarea
                 data-help-id="inspections-form-overall-notes"
-                placeholder="Record any general observations about the loan return..."
+                placeholder={t("inspections.overallNotesPlaceholder")}
                 className="w-full bg-[#1a1a1a] border border-[#333] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#FFD700] min-h-[100px]"
                 value={overallNotes}
                 onChange={(e) => setOverallNotes(e.target.value)}
@@ -206,17 +235,16 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
             {hasDamagedOrLostItems && (
               <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-4 space-y-3">
                 <label className="block text-sm font-semibold text-white uppercase tracking-wide">
-                  Invoice Due Date{" "}
-                  <span className="text-gray-500 font-normal text-xs">(Optional)</span>
+                  {t("inspections.invoiceDueDate")}{" "}
+                  <span className="text-gray-500 font-normal text-xs">
+                    ({t("inspections.optional")})
+                  </span>
                 </label>
-                <p className="text-xs text-gray-400">
-                  Set when a damage invoice will be generated. If not provided, defaults to 30 days
-                  from creation.
-                </p>
+                <p className="text-xs text-gray-400">{t("inspections.invoiceDueDateHelp")}</p>
                 <input
                   data-help-id="inspections-form-due-date"
                   type="datetime-local"
-                  placeholder="Select due date and time"
+                  placeholder={t("inspections.selectDueDate")}
                   className="w-full bg-[#0a0a0a] border border-[#333] rounded-md px-4 py-2 text-sm text-white focus:outline-none focus:border-[#FFD700]"
                   value={dueDate}
                   onChange={(e) => setDueDate(e.target.value)}
@@ -235,16 +263,16 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
             data-help-id="inspections-form-cancel"
             className="border-[#444] text-gray-300 hover:bg-[#333] hover:text-white"
           >
-            Cancel
+            {t("inspections.cancel")}
           </Button>
           <Button
             type="submit"
             onClick={handleSubmit}
-            disabled={isSubmitting}
+            disabled={isSubmitting || hasDescriptionErrors}
             data-help-id="inspections-form-submit"
             className="bg-[#FFD700] text-black hover:bg-[#e6c200] font-bold"
           >
-            {isSubmitting ? "Saving..." : "Complete Inspection"}
+            {isSubmitting ? t("inspections.saving") : t("inspections.completeInspection")}
             <Save size={18} className="ml-2" />
           </Button>
         </div>

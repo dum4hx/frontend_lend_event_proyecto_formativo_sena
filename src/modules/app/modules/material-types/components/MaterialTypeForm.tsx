@@ -13,6 +13,8 @@ import type {
   MaterialType,
 } from "../../../../../types/api";
 import { Button, IconButton, QuickCreateModal } from "../../../../../components/ui";
+import { validateMaterialTypeCode, validateCategoryCode } from "../../../../../utils/validators";
+import { useLanguage } from "../../../../../contexts/useLanguage";
 
 interface MaterialTypeFormProps {
   categories: MaterialCategory[];
@@ -33,11 +35,12 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
   onCancel,
   initialData,
   isEditing = false,
-  title = isEditing ? "Update Material Type" : "Create Material Type",
+  title,
   onCategoryCreated,
   onAttributeCreated,
 }) => {
   const [formData, setFormData] = useState<CreateMaterialTypePayload>({
+    code: "",
     name: "",
     description: "",
     categoryId: [],
@@ -47,17 +50,20 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAttributeForm, setShowAttributeForm] = useState(false);
   const [categorySearchInput, setCategorySearchInput] = useState("");
+  const [codeTouched, setCodeTouched] = useState(false);
 
   // Quick-create category modal state
   const [showQuickCreateCategory, setShowQuickCreateCategory] = useState(false);
   const [quickCategoryName, setQuickCategoryName] = useState("");
   const [quickCategoryDescription, setQuickCategoryDescription] = useState("");
+  const [quickCategoryCode, setQuickCategoryCode] = useState("");
   const [quickCategoryLoading, setQuickCategoryLoading] = useState(false);
   /** Locally-appended categories created via QuickCreateModal (merged with prop list). */
   const [localCategories, setLocalCategories] = useState<MaterialCategory[]>([]);
 
   const { showToast } = useToast();
   const { hasPermission } = usePermissions();
+  const { t } = useLanguage();
   const {
     attributes: allAttributes,
     addAttribute,
@@ -131,6 +137,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
       }
 
       setFormData({
+        code: (initialData as MaterialType).code || "",
         name: initialData.name || "",
         description: initialData.description || "",
         categoryId: categoryIds,
@@ -142,13 +149,19 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
 
   const handleQuickCreateCategory = async (e: React.FormEvent) => {
     e.preventDefault();
+    const codeResult = validateCategoryCode(quickCategoryCode);
+    if (!codeResult.isValid) {
+      showToast("error", t(codeResult.message!));
+      return;
+    }
     if (!quickCategoryName.trim() || !quickCategoryDescription.trim()) {
-      showToast("error", "Name and description are required");
+      showToast("error", t("materialTypes.form.validation.nameAndDescRequired"));
       return;
     }
     setQuickCategoryLoading(true);
     try {
       const res = await createMaterialCategory({
+        code: quickCategoryCode.trim(),
         name: quickCategoryName.trim(),
         description: quickCategoryDescription.trim(),
       });
@@ -159,13 +172,14 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
         ...prev,
         categoryId: [...(Array.isArray(prev.categoryId) ? prev.categoryId : []), newCategory._id],
       }));
-      showToast("success", `Category "${newCategory.name}" created`);
+      showToast("success", t("materialTypes.form.toast.categoryCreated", { name: newCategory.name }));
       onCategoryCreated?.(newCategory);
       setShowQuickCreateCategory(false);
       setQuickCategoryName("");
       setQuickCategoryDescription("");
+      setQuickCategoryCode("");
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to create category";
+      const message = error instanceof Error ? error.message : t("materialTypes.form.toast.categoryCreateError");
       showToast("error", message);
     } finally {
       setQuickCategoryLoading(false);
@@ -174,20 +188,28 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setCodeTouched(true);
+    if (!isEditing) {
+      const codeResult = validateMaterialTypeCode(formData.code);
+      if (!codeResult.isValid) {
+        showToast("error", t(codeResult.message!));
+        return;
+      }
+    }
     if (!formData.name.trim()) {
-      showToast("error", "Material name is required");
+      showToast("error", t("materialTypes.form.validation.nameRequired"));
       return;
     }
     if (!(formData.description || "").trim()) {
-      showToast("error", "Description is required");
+      showToast("error", t("materialTypes.form.validation.descriptionRequired"));
       return;
     }
     if (!Array.isArray(formData.categoryId) || formData.categoryId.length === 0) {
-      showToast("error", "At least one category is required");
+      showToast("error", t("materialTypes.form.validation.categoryRequired"));
       return;
     }
     if (formData.pricePerDay <= 0) {
-      showToast("error", "Price per day must be greater than 0");
+      showToast("error", t("materialTypes.form.validation.priceRequired"));
       return;
     }
 
@@ -206,7 +228,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
     if (missingRequired.length > 0) {
       showToast(
         "error",
-        `Required attributes missing values: ${missingRequired.map((a) => attributeNameMap.get(a.attributeId) || a.attributeId).join(", ")}`,
+        t("materialTypes.form.validation.requiredAttributesMissing", { attributes: missingRequired.map((a) => attributeNameMap.get(a.attributeId) || a.attributeId).join(", ") }),
       );
       return;
     }
@@ -216,9 +238,8 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
       await onSubmit(formData as CreateMaterialTypePayload);
     } catch (error) {
       const err = error as Error & { details?: { errors?: Array<{ message: string }> } };
-      console.error("Error saving material type:", err);
       const errorMessage =
-        err.details?.errors?.[0]?.message || err.message || "Error saving material type";
+        err.details?.errors?.[0]?.message || err.message || t("materialTypes.toast.saveError");
       showToast("error", errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -229,11 +250,11 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
     try {
       await addAttribute(data);
       await refetchAttributes();
-      showToast("success", "Attribute created successfully");
+      showToast("success", t("materialTypes.form.toast.attributeCreated"));
       setShowAttributeForm(false);
       onAttributeCreated?.();
     } catch (err) {
-      showToast("error", (err as Error).message || "Failed to create attribute");
+      showToast("error", (err as Error).message || t("materialTypes.form.toast.attributeCreateError"));
     }
   };
 
@@ -293,11 +314,11 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
         <div className="p-6 border-b border-[#222] flex items-center justify-between bg-[#1a1a1a] rounded-t-2xl">
           <div>
             <h2 className="text-2xl font-black text-white tracking-tight">
-              {title.split(" ").slice(0, -2).join(" ")}{" "}
-              <span className="text-[#FFD700]">{title.split(" ").slice(-2).join(" ")}</span>
+              {(title ?? (isEditing ? t("materialTypes.page.editTitle") : t("materialTypes.page.createTitle"))).split(" ").slice(0, -2).join(" ")}{" "}
+              <span className="text-[#FFD700]">{(title ?? (isEditing ? t("materialTypes.page.editTitle") : t("materialTypes.page.createTitle"))).split(" ").slice(-2).join(" ")}</span>
             </h2>
             <p className="text-sm text-gray-400 mt-1">
-              Configure catalog items, pricing, and dynamic specifications.
+              {t("materialTypes.form.subtitle")}
             </p>
           </div>
           <button
@@ -322,14 +343,14 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
               <div className="flex items-center space-x-3 mb-2">
                 <div className="w-1 h-6 bg-[#FFD700] rounded-full shadow-[0_0_8px_#FFD700]" />
                 <h3 className="text-xs font-bold text-white uppercase tracking-widest">
-                  General Information
+                  {t("materialTypes.form.sectionGeneral")}
                 </h3>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-2" data-help-id="material-types-form-categories">
                   <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] ml-1">
-                    Categories *
+                    {t("materialTypes.form.categoriesLabel")} *
                   </label>
                   <div className="space-y-3">
                     {/* Category Selector Input */}
@@ -340,7 +361,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
                         onChange={(e) => setCategorySearchInput(e.target.value)}
                         className="flex-1 px-5 py-4 bg-[#1a1a1a] border border-[#222] rounded-xl text-white focus:outline-none focus:border-[#FFD700] focus:ring-1 focus:ring-[#FFD700]/20 transition-all"
                       >
-                        <option value="">Select category to add...</option>
+                        <option value="">{t("materialTypes.form.selectCategoryPlaceholder")}</option>
                         {allCategories
                           .filter(
                             (cat) =>
@@ -382,7 +403,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
                           disabled={isSubmitting}
                           data-help-id="material-types-form-quick-create-category"
                           className="px-4 py-4 bg-[#1a1a1a] border border-[#FFD700]/40 hover:border-[#FFD700] text-[#FFD700] font-bold rounded-xl transition-all flex items-center justify-center gap-1"
-                          title="Create new category"
+                          title={t("materialTypes.form.createCategoryTitle")}
                         >
                           <FolderPlus size={20} />
                         </button>
@@ -418,14 +439,14 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
                         })}
                       </div>
                     ) : (
-                      <p className="text-xs text-gray-500 italic">No categories selected yet</p>
+                      <p className="text-xs text-gray-500 italic">{t("materialTypes.form.noCategoriesSelected")}</p>
                     )}
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] ml-1">
-                    Material Name *
+                    {t("materialTypes.form.nameLabel")} *
                   </label>
                   <input
                     type="text"
@@ -433,14 +454,55 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className="w-full px-5 py-4 bg-[#1a1a1a] border border-[#222] rounded-xl text-white focus:outline-none focus:border-[#FFD700] focus:ring-1 focus:ring-[#FFD700]/20 transition-all"
-                    placeholder="e.g., LED Panel 50W"
+                    placeholder={t("materialTypes.form.namePlaceholder")}
                     required
                   />
                 </div>
 
+                {!isEditing && (
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] ml-1">
+                      {t("materialTypes.form.materialTypeCode")} *
+                    </label>
+                    <input
+                      type="text"
+                      data-help-id="material-types-form-code"
+                      value={formData.code}
+                      onChange={(e) => {
+                        const filtered = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+                        setFormData({ ...formData, code: filtered });
+                        setCodeTouched(true);
+                      }}
+                      maxLength={10}
+                      className={`w-full px-5 py-4 bg-[#1a1a1a] border rounded-xl text-white focus:outline-none focus:border-[#FFD700] focus:ring-1 focus:ring-[#FFD700]/20 transition-all ${
+                        codeTouched && !validateMaterialTypeCode(formData.code).isValid
+                          ? "border-red-500 bg-red-500/10"
+                          : "border-[#222]"
+                      }`}
+                      placeholder={t("materialTypes.form.codePlaceholder")}
+                      aria-invalid={codeTouched && !validateMaterialTypeCode(formData.code).isValid}
+                      aria-describedby={
+                        codeTouched && !validateMaterialTypeCode(formData.code).isValid
+                          ? "material-type-code-error"
+                          : undefined
+                      }
+                      required
+                    />
+                    {codeTouched && !validateMaterialTypeCode(formData.code).isValid ? (
+                      <p id="material-type-code-error" className="text-red-400 text-xs mt-1">
+                        {t(validateMaterialTypeCode(formData.code).message!)}
+                      </p>
+                    ) : (
+                      <p className="text-gray-500 text-xs mt-1">
+                        {t("materialTypes.form.codeHint")}
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] ml-1">
-                    Daily Price (COP) *
+                    {t("materialTypes.form.priceLabel")} *
                   </label>
                   <div className="relative">
                     <input
@@ -458,7 +520,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
 
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] ml-1">
-                    Description *
+                    {t("materialTypes.form.descriptionLabel")} *
                   </label>
                   <input
                     type="text"
@@ -466,7 +528,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     className="w-full px-5 py-4 bg-[#1a1a1a] border border-[#222] rounded-xl text-white focus:outline-none focus:border-[#FFD700] focus:ring-1 focus:ring-[#FFD700]/20 transition-all"
-                    placeholder="Brief details about the material..."
+                    placeholder={t("materialTypes.form.descriptionPlaceholder")}
                     required
                   />
                 </div>
@@ -479,7 +541,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
                 <div className="flex items-center space-x-3">
                   <div className="w-1 h-6 bg-[#FFD700] rounded-full shadow-[0_0_8px_#FFD700]" />
                   <h3 className="text-xs font-bold text-white uppercase tracking-widest">
-                    Technical Specifications
+                    {t("materialTypes.form.sectionTechnical")}
                   </h3>
                 </div>
                 <Button
@@ -491,7 +553,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
                   className="bg-[#1a1a1a] border-[#333] text-gray-300 hover:text-white hover:border-[#FFD700] transition-all"
                 >
                   <Plus size={16} className="mr-2" />
-                  New Attribute
+                  {t("materialTypes.form.newAttribute")}
                 </Button>
               </div>
 
@@ -499,14 +561,14 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
                 <div className="bg-[#1a1a1a]/50 border border-dashed border-[#333] rounded-2xl p-10 text-center">
                   <Info className="w-10 h-10 text-gray-600 mx-auto mb-4" />
                   <p className="text-gray-500 text-sm">
-                    Select at least one category to manage specific attributes.
+                    {t("materialTypes.form.noCategoryForAttributes")}
                   </p>
                 </div>
               ) : categoryAttributes.length === 0 ? (
                 <div className="bg-[#1a1a1a]/50 border border-dashed border-[#333] rounded-2xl p-10 text-center">
                   <Info className="w-10 h-10 text-gray-600 mx-auto mb-4" />
                   <p className="text-gray-500 text-sm">
-                    This category has no attributes. Create one or add to the category.
+                    {t("materialTypes.form.noAttributesForCategory")}
                   </p>
                 </div>
               ) : (
@@ -553,7 +615,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
                                 )}
                                 {isRequired && (
                                   <span className="text-xs bg-red-500/20 text-red-300 px-2 py-1 rounded border border-red-500/40">
-                                    Required
+                                    {t("materialTypes.form.requiredBadge")}
                                   </span>
                                 )}
                               </label>
@@ -561,7 +623,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
 
                             {isRequired && requiringCategories.length > 0 && (
                               <p className="text-xs text-gray-400 ml-6 mb-3">
-                                Required by: {requiringCategories.map((c) => c.name).join(", ")}
+                                {t("materialTypes.form.requiredBy", { categories: requiringCategories.map((c) => c.name).join(", ") })}
                               </p>
                             )}
 
@@ -574,7 +636,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
                                     className="w-full px-3 py-2 bg-[#111] border border-[#333] rounded-lg text-white text-sm focus:outline-none focus:border-[#FFD700]"
                                     disabled={isSubmitting}
                                   >
-                                    <option value="">-- Select value --</option>
+                                    <option value="">{t("materialTypes.form.selectValue")}</option>
                                     {attr.allowedValues.map((val) => (
                                       <option key={val} value={val}>
                                         {val}
@@ -586,13 +648,13 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
                                     type="text"
                                     value={currentValue?.value || ""}
                                     onChange={(e) => updateAttributeValue(attr._id, e.target.value)}
-                                    placeholder={`Enter ${attr.name}...`}
+                                    placeholder={t("materialTypes.form.enterAttributePlaceholder", { name: attr.name })}
                                     className="w-full px-3 py-2 bg-[#111] border border-[#333] rounded-lg text-white text-sm focus:outline-none focus:border-[#FFD700]"
                                     disabled={isSubmitting}
                                   />
                                 )}
                                 {isRequired && !currentValue?.value && (
-                                  <p className="text-xs text-red-400">This attribute is required</p>
+                                  <p className="text-xs text-red-400">{t("materialTypes.form.attributeRequiredError")}</p>
                                 )}
                               </div>
                             )}
@@ -617,7 +679,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
             data-help-id="material-types-form-cancel"
             className="px-8 border-[#333] text-gray-400 hover:text-white"
           >
-            Discard Changes
+            {t("materialTypes.form.discardChanges")}
           </Button>
           <Button
             form="material-type-form"
@@ -626,7 +688,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
             data-help-id="material-types-form-submit"
             className="px-10 bg-[#FFD700] text-black font-black uppercase tracking-widest hover:shadow-[0_0_20px_rgba(255,215,0,0.3)]"
           >
-            {isEditing ? "Update Item" : "Save Entry"}
+            {isEditing ? t("materialTypes.form.updateItem") : t("materialTypes.form.saveEntry")}
           </Button>
         </div>
       </div>
@@ -638,36 +700,67 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
           setShowQuickCreateCategory(false);
           setQuickCategoryName("");
           setQuickCategoryDescription("");
+          setQuickCategoryCode("");
         }}
-        title="New Category"
-        hint="Create a category without leaving this form."
+        title={t("materialTypes.form.quickCategory.title")}
+        hint={t("materialTypes.form.quickCategory.hint")}
         onSubmit={handleQuickCreateCategory}
         loading={quickCategoryLoading}
-        submitLabel="Create Category"
+        submitLabel={t("materialTypes.form.quickCategory.submitLabel")}
       >
         <div className="space-y-4">
           <div className="space-y-2">
             <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] ml-1">
-              Name *
+              {t("materialTypes.form.quickCategory.nameLabel")} *
             </label>
             <input
               type="text"
               value={quickCategoryName}
               onChange={(e) => setQuickCategoryName(e.target.value)}
               className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#222] rounded-xl text-white focus:outline-none focus:border-[#FFD700] focus:ring-1 focus:ring-[#FFD700]/20 transition-all"
-              placeholder="e.g., Lighting"
+              placeholder={t("materialTypes.form.quickCategory.namePlaceholder")}
               required
             />
           </div>
           <div className="space-y-2">
             <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] ml-1">
-              Description *
+              {t("materialCategories.form.categoryCode")} *
+            </label>
+            <input
+              type="text"
+              value={quickCategoryCode}
+              onChange={(e) => {
+                const filtered = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+                setQuickCategoryCode(filtered);
+              }}
+              maxLength={10}
+              className={`w-full px-4 py-3 bg-[#1a1a1a] border rounded-xl text-white focus:outline-none focus:border-[#FFD700] focus:ring-1 focus:ring-[#FFD700]/20 transition-all ${
+                quickCategoryCode && !validateCategoryCode(quickCategoryCode).isValid
+                  ? "border-red-500 bg-red-500/10"
+                  : "border-[#222]"
+              }`}
+              placeholder={t("materialCategories.form.codePlaceholder")}
+              required
+            />
+            {quickCategoryCode && !validateCategoryCode(quickCategoryCode).isValid ? (
+              <p className="text-red-400 text-xs mt-1">
+                {t(validateCategoryCode(quickCategoryCode).message!)}
+              </p>
+            ) : (
+              <p className="text-gray-500 text-xs mt-1">
+                {t("materialCategories.form.codeHint")}
+              </p>
+            )}
+          </div>
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] ml-1">
+              {t("materialTypes.form.quickCategory.descriptionLabel")} *
             </label>
             <textarea
               value={quickCategoryDescription}
               onChange={(e) => setQuickCategoryDescription(e.target.value)}
               className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#222] rounded-xl text-white focus:outline-none focus:border-[#FFD700] focus:ring-1 focus:ring-[#FFD700]/20 transition-all resize-none"
-              placeholder="Brief description of this category"
+              placeholder={t("materialTypes.form.quickCategory.descriptionPlaceholder")}
               rows={3}
               required
             />
@@ -681,7 +774,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
           <div className="bg-[#121212] border border-[#FFD700]/30 rounded-2xl max-w-xl w-full p-8 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
             <div className="flex items-center justify-between mb-8">
               <h4 className="text-xl font-black text-white italic tracking-tighter">
-                Quick <span className="text-[#FFD700]">Attribute</span> Setup
+                {t("materialTypes.form.quickAttribute.titlePrefix")} <span className="text-[#FFD700]">{t("materialTypes.form.quickAttribute.titleHighlight")}</span> {t("materialTypes.form.quickAttribute.titleSuffix")}
               </h4>
               <IconButton
                 icon={X}

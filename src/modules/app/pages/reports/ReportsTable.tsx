@@ -1,4 +1,5 @@
 import { ChevronLeft, ChevronRight, FileText, RefreshCw } from "lucide-react";
+import { useLanguage } from "../../../../contexts/useLanguage";
 import { PAGE_SIZE, statusBadgeClass, STATUS_COLUMNS } from "./helpers";
 import type { ReportRow } from "./types";
 
@@ -10,7 +11,8 @@ interface ReportsTableProps {
   page: number;
   onPageChange: (page: number) => void;
   moduleLabel: string;
-  isEs: boolean;
+  totalCount?: number;
+  isEs?: boolean;
 }
 
 export function ReportsTable({
@@ -21,10 +23,14 @@ export function ReportsTable({
   page,
   onPageChange,
   moduleLabel,
-  isEs,
+  totalCount,
 }: ReportsTableProps) {
-  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
-  const pagedRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const { t } = useLanguage();
+
+  const isServerPaginated = totalCount !== undefined;
+  const effectiveTotal = isServerPaginated ? totalCount : rows.length;
+  const totalPages = Math.max(1, Math.ceil(effectiveTotal / PAGE_SIZE));
+  const pagedRows = isServerPaginated ? rows : rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
@@ -32,16 +38,10 @@ export function ReportsTable({
       <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
         <div>
           <h2 className="text-white font-semibold">
-            {moduleLabel} {isEs ? "- Reporte" : "Report"}
+            {moduleLabel} — {t("reports.table.page")} {page} {t("reports.table.of")} {totalPages}
           </h2>
           <p className="text-gray-400 text-xs mt-0.5">
-            {loading
-              ? isEs
-                ? "Cargando..."
-                : "Loading…"
-              : isEs
-                ? `${rows.length} registros encontrados`
-                : `${rows.length} records found`}
+            {loading ? t("reports.table.loading") : `${effectiveTotal} records`}
           </p>
         </div>
       </div>
@@ -55,14 +55,13 @@ export function ReportsTable({
       {loading ? (
         <div className="p-12 text-center text-gray-400">
           <RefreshCw size={32} className="animate-spin mx-auto mb-3 text-yellow-400" />
-          {isEs ? "Cargando datos..." : "Loading data…"}
+          {t("reports.table.loading")}
         </div>
       ) : rows.length === 0 ? (
         <div className="p-12 text-center text-gray-400">
           <FileText size={40} className="mx-auto mb-3 opacity-40" />
-          {isEs
-            ? "No hay registros para esta combinacion de filtros."
-            : "No records for this filter combination."}
+          {t("reports.noData")}
+          <p className="text-xs mt-1 text-gray-500">{t("reports.noDataHint")}</p>
         </div>
       ) : (
         <div className="overflow-x-auto">
@@ -110,15 +109,18 @@ export function ReportsTable({
       {!loading && rows.length > 0 && (
         <div className="flex items-center justify-between px-6 py-4 border-t border-zinc-800">
           <span className="text-xs text-gray-400">
-            {isEs
-              ? `Mostrando ${(page - 1) * PAGE_SIZE + 1}-${Math.min(page * PAGE_SIZE, rows.length)} de ${rows.length}`
-              : `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, rows.length)} of ${rows.length}`}
+            {t("reports.table.showing", {
+              from: (page - 1) * PAGE_SIZE + 1,
+              to: Math.min(page * PAGE_SIZE, effectiveTotal),
+              total: effectiveTotal,
+            })}
           </span>
           <div className="flex items-center gap-1">
             <button
               onClick={() => onPageChange(Math.max(1, page - 1))}
               disabled={page === 1}
               className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-zinc-700 disabled:opacity-30 transition"
+              aria-label={t("reports.table.previous")}
             >
               <ChevronLeft size={18} />
             </button>
@@ -142,6 +144,7 @@ export function ReportsTable({
               onClick={() => onPageChange(Math.min(totalPages, page + 1))}
               disabled={page === totalPages}
               className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-zinc-700 disabled:opacity-30 transition"
+              aria-label={t("reports.table.next")}
             >
               <ChevronRight size={18} />
             </button>

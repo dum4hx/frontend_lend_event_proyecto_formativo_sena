@@ -79,7 +79,7 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({ onClos
           }
           return {
             value: loan._id,
-            label: `${loan._id.slice(-6).toUpperCase()} — ${customerName} (${loan.status})`,
+            label: `${loan.code ?? loan._id.slice(-6).toUpperCase()} — ${customerName} (${loan.status})`,
           };
         });
         setLoanOptions(options);
@@ -92,7 +92,7 @@ export const CreateIncidentModal: React.FC<CreateIncidentModalProps> = ({ onClos
       .then((res) => {
         const options = (res.data.instances ?? []).map((inst) => ({
           value: inst._id,
-          label: `${inst.serialNumber} — ${inst.model.name}`,
+          label: `${inst.serialNumber} — ${inst.model.name} — ${inst.status}`,
         }));
         setInstanceOptions(options);
       })

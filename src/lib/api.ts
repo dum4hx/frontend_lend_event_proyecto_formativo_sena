@@ -264,7 +264,7 @@ export async function request<TData, TBody = unknown>(
     } catch {
       // Network error – retryable.
       if (attempt < maxRetries) continue;
-      throw new ApiError("Network connection failed. Please check your internet.", 0);
+      throw new ApiError("Error de red. Por favor, verifica tu conexión a internet.", 0);
     }
 
     // -- Handle 401: attempt a silent token refresh then retry once. --------
@@ -276,7 +276,11 @@ export async function request<TData, TBody = unknown>(
       }
 
       // Refresh failed — throw so the UI can redirect to /login.
-      throw new ApiError("Session expired. Please log in again.", 401, "UNAUTHORIZED");
+      throw new ApiError(
+        "Sesión expirada. Por favor, inicia sesión nuevamente.",
+        401,
+        "UNAUTHORIZED",
+      );
     }
 
     // -- Handle rate limiting: respect Retry-After when retrying. -----------

@@ -15,6 +15,7 @@ import type {
   OrderView,
 } from "./types";
 import { WORKFLOW_STEPS } from "./types";
+import { getWorkflowStatusLabel } from "../../../../utils/statusLabels";
 
 export function formatDate(dateValue: string): string {
   if (!dateValue) return "-";
@@ -149,46 +150,41 @@ export function extractMaterialTypeIdFromPackageEntry(
 export function getWorkflowFromRequestAndLoan(
   request: LoanRequest,
   loan?: Loan,
+  language: "en" | "es" = "en",
 ): { status: WorkflowStatus; label: string } {
+  let status: WorkflowStatus;
+
   if (request.status === "rejected") {
-    return { status: "order_rejected", label: "Rejected" };
-  }
-  if (request.status === "cancelled") {
-    return { status: "order_cancelled", label: "Cancelled" };
-  }
-  if (request.status === "expired") {
-    return { status: "order_cancelled", label: "Expired" };
-  }
-
-  if (loan) {
+    status = "order_rejected";
+  } else if (request.status === "cancelled") {
+    status = "order_cancelled";
+  } else if (request.status === "expired") {
+    status = "order_cancelled";
+  } else if (loan) {
     if (loan.status === "returned" || loan.status === "closed") {
-      return { status: "order_completed", label: "Order Completed / Delivered" };
+      status = "order_completed";
+    } else if (loan.status === "active" || loan.status === "overdue") {
+      status = "order_in_use";
+    } else {
+      status = "order_created";
     }
-    if (loan.status === "active" || loan.status === "overdue") {
-      return { status: "order_in_use", label: "Order In Use / Loaned" };
-    }
+  } else if (request.status === "completed") {
+    status = "order_completed";
+  } else if (request.status === "shipped") {
+    status = "order_in_use";
+  } else if (request.status === "ready") {
+    status = "order_shipped";
+  } else if (request.status === "assigned") {
+    status = "order_assigned";
+  } else if (request.status === "deposit_pending") {
+    status = "order_deposit_pending";
+  } else if (request.status === "approved") {
+    status = "order_approved";
+  } else {
+    status = "order_created";
   }
 
-  if (request.status === "completed") {
-    return { status: "order_completed", label: "Order Completed / Delivered" };
-  }
-  if (request.status === "shipped") {
-    return { status: "order_in_use", label: "Order In Use / Loaned" };
-  }
-  if (request.status === "ready") {
-    return { status: "order_shipped", label: "Ready for Checkout" };
-  }
-  if (request.status === "assigned") {
-    return { status: "order_assigned", label: "Materials Assigned" };
-  }
-  if (request.status === "deposit_pending") {
-    return { status: "order_deposit_pending", label: "Deposit Pending" };
-  }
-  if (request.status === "approved") {
-    return { status: "order_approved", label: "Order Approved" };
-  }
-
-  return { status: "order_created", label: "Order Created" };
+  return { status, label: getWorkflowStatusLabel(status, language) };
 }
 
 export function getStatusBadgeStyle(status: WorkflowStatus): string {
@@ -267,10 +263,11 @@ export function buildOrderViewModel(
   customers: Customer[],
   packages: Package[],
   materialTypes: MaterialType[],
+  language: "en" | "es" = "en",
 ): OrderView[] {
   return requests.map((request) => {
     const relatedLoan = findRelatedLoan(request._id, loans);
-    const workflow = getWorkflowFromRequestAndLoan(request, relatedLoan);
+    const workflow = getWorkflowFromRequestAndLoan(request, relatedLoan, language);
     const customerId = extractCustomerIdFromRequest(request);
     const customer = customerId ? customers.find((entry) => entry._id === customerId) : undefined;
 

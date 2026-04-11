@@ -1,21 +1,12 @@
 import type { LoanStatus, LoanFilter, Customer } from "./types";
+import { getLoanStatusLabel } from "../../../../utils/statusLabels";
 
 /** Localized status label. */
-export function getStatusLabel(status: LoanFilter, isEs: boolean): string {
-  switch (status) {
-    case "all":
-      return isEs ? "Todos los estados" : "All Status";
-    case "active":
-      return isEs ? "Activo" : "Active";
-    case "overdue":
-      return isEs ? "Vencido" : "Overdue";
-    case "returned":
-      return isEs ? "Devuelto" : "Returned";
-    case "closed":
-      return isEs ? "Cerrado" : "Closed";
-    default:
-      return status;
+export function getStatusLabel(status: LoanFilter, language: "en" | "es"): string {
+  if (status === "all") {
+    return language === "es" ? "Todos los estados" : "All Status";
   }
+  return getLoanStatusLabel(status as LoanStatus, language);
 }
 
 /** Tailwind badge classes for loan status. */
@@ -27,6 +18,8 @@ export function getLoanStatusBadgeStyle(status: LoanStatus): string {
       return "bg-red-500/20 text-red-400 border border-red-500/30";
     case "returned":
       return "bg-blue-500/20 text-blue-400 border border-blue-500/30";
+    case "inspected":
+      return "bg-purple-500/20 text-purple-400 border border-purple-500/30";
     case "closed":
       return "bg-zinc-500/20 text-zinc-300 border border-zinc-500/30";
     default:

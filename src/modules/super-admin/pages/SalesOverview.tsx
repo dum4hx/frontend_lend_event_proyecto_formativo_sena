@@ -148,7 +148,10 @@ export default function SalesOverview() {
       const rawData = buildExportRows();
 
       if (rawData.length === 0) {
-        showAlert("warning", isEs ? "No hay datos disponibles para exportar." : "No data available to export.");
+        showAlert(
+          "warning",
+          isEs ? "No hay datos disponibles para exportar." : "No data available to export.",
+        );
         return;
       }
 
@@ -210,7 +213,12 @@ export default function SalesOverview() {
   }, []);
 
   if (loading) {
-    return <LoadingSpinner fullScreen message={isEs ? "Cargando analitica..." : "Loading analytics..."} />;
+    return (
+      <LoadingSpinner
+        fullScreen
+        message={isEs ? "Cargando analitica..." : "Loading analytics..."}
+      />
+    );
   }
 
   if (error) {
@@ -257,7 +265,9 @@ export default function SalesOverview() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-white">{isEs ? "Resumen de ventas" : "Sales Overview"}</h1>
+          <h1 className="text-3xl font-bold text-white">
+            {isEs ? "Resumen de ventas" : "Sales Overview"}
+          </h1>
           <p className="text-gray-400 mt-1">
             {isEs
               ? "Analitica completa y metricas de rendimiento para Lend Event"
@@ -308,9 +318,13 @@ export default function SalesOverview() {
         <div className="lg:col-span-2 bg-[#121212] border border-[#333] rounded-xl p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-lg font-bold text-white">{isEs ? "Comparacion de planes" : "Plan Comparison"}</h2>
+              <h2 className="text-lg font-bold text-white">
+                {isEs ? "Comparacion de planes" : "Plan Comparison"}
+              </h2>
               <p className="text-xs text-gray-500">
-                {isEs ? "Distribucion de suscripciones entre planes" : "Subscription distribution across plans"}
+                {isEs
+                  ? "Distribucion de suscripciones entre planes"
+                  : "Subscription distribution across plans"}
               </p>
             </div>
           </div>
@@ -318,13 +332,17 @@ export default function SalesOverview() {
           {/* Bar Chart */}
           <div className="flex items-end justify-around h-48 gap-4 mb-4">
             {plans.slice(0, 4).map((plan) => {
-              const height = Math.max(20, (plan.baseCost / maxPlanRevenue) * 100);
+              const growPct = Math.max(20, Math.round((plan.baseCost / maxPlanRevenue) * 100));
+              const emptyPct = 100 - growPct;
               return (
-                <div key={plan.plan} className="flex flex-col items-center flex-1">
-                  <div
-                    className="w-full max-w-[80px] bg-[#FFD700] rounded-t-lg transition-all hover:bg-yellow-300"
-                    style={{ height: `${height}%` }}
-                  />
+                <div key={plan.plan} className="flex flex-col items-center flex-1 h-full">
+                  <div className="flex flex-col w-full max-w-[80px] flex-1">
+                    <div style={{ flexGrow: emptyPct }} />
+                    <div
+                      className="w-full bg-[#FFD700] rounded-t-lg transition-all hover:bg-yellow-300"
+                      style={{ flexGrow: growPct }}
+                    />
+                  </div>
                 </div>
               );
             })}
@@ -343,7 +361,9 @@ export default function SalesOverview() {
             {plans.slice(0, 4).map((plan) => (
               <div key={plan.plan} className="text-center">
                 <p className="text-xs text-gray-400">{plan.displayName}</p>
-                <p className="text-white font-bold text-sm">{formatCurrency(plan.baseCost, locale)}</p>
+                <p className="text-white font-bold text-sm">
+                  {formatCurrency(plan.baseCost, locale)}
+                </p>
               </div>
             ))}
           </div>
@@ -351,8 +371,12 @@ export default function SalesOverview() {
 
         {/* Most Sold Plan - Donut Chart */}
         <div className="bg-[#121212] border border-[#333] rounded-xl p-6">
-          <h2 className="text-lg font-bold text-white mb-1">{isEs ? "Plan mas vendido" : "Most Sold Plan"}</h2>
-          <p className="text-xs text-gray-500 mb-6">{isEs ? "Distribucion actual" : "Current distribution"}</p>
+          <h2 className="text-lg font-bold text-white mb-1">
+            {isEs ? "Plan mas vendido" : "Most Sold Plan"}
+          </h2>
+          <p className="text-xs text-gray-500 mb-6">
+            {isEs ? "Distribucion actual" : "Current distribution"}
+          </p>
 
           {/* Simple Donut Visualization */}
           <div className="flex justify-center mb-6">
@@ -412,7 +436,9 @@ export default function SalesOverview() {
       <div className="bg-[#121212] border border-[#333] rounded-xl p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-lg font-bold text-white">{isEs ? "Analitica de ingresos" : "Revenue Analytics"}</h2>
+            <h2 className="text-lg font-bold text-white">
+              {isEs ? "Analitica de ingresos" : "Revenue Analytics"}
+            </h2>
             <p className="text-xs text-gray-500">
               {revenue ? `$${revenue.totalRevenue.toLocaleString()} total • ` : ""}
               {isEs ? "Tendencia mensual de ingresos" : "Monthly revenue trend"}
@@ -420,7 +446,8 @@ export default function SalesOverview() {
           </div>
           {revenue && (
             <span className="text-xs text-gray-500">
-              {isEs ? "Promedio por organizacion" : "Avg per org"}: ${revenue.averageRevenuePerOrganization.toLocaleString()}
+              {isEs ? "Promedio por organizacion" : "Avg per org"}: $
+              {revenue.averageRevenuePerOrganization.toLocaleString()}
             </span>
           )}
         </div>
@@ -454,7 +481,9 @@ function RevenueLineChart({
   if (displayTrend.length < 2) {
     return (
       <p className="text-gray-500 text-center py-8">
-        {isEs ? "No hay suficientes datos para renderizar la grafica." : "Not enough data to render chart."}
+        {isEs
+          ? "No hay suficientes datos para renderizar la grafica."
+          : "Not enough data to render chart."}
       </p>
     );
   }

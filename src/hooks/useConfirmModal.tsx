@@ -1,25 +1,25 @@
 /**
  * useConfirmModal — Hook for showing confirmation dialogs imperatively.
- * 
+ *
  * Replaces browser confirm() calls with a stylized modal dialog.
  * Provides promise-based API for awaiting user's choice.
- * 
+ *
  * Example:
  * ```tsx
  * const { showConfirm, ConfirmModal } = useConfirmModal();
- * 
+ *
  * const handleDelete = async () => {
  *   const confirmed = await showConfirm({
  *     title: 'Delete Item?',
  *     message: 'This action cannot be undone.',
  *     variant: 'danger',
  *   });
- *   
+ *
  *   if (confirmed) {
  *     // Perform deletion
  *   }
  * };
- * 
+ *
  * return (
  *   <>
  *     <button onClick={handleDelete}>Delete</button>
@@ -29,15 +29,15 @@
  * ```
  */
 
-import { useState, useCallback } from 'react';
-import { ConfirmDialog } from '../components/ui/ConfirmDialog';
+import { useState, useCallback } from "react";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 interface ConfirmOptions {
   title: string;
-  message: string;
+  message: React.ReactNode;
   confirmText?: string;
   cancelText?: string;
-  variant?: 'danger' | 'warning' | 'info';
+  variant?: "danger" | "warning" | "info";
 }
 
 interface ConfirmState extends ConfirmOptions {
@@ -48,8 +48,8 @@ interface ConfirmState extends ConfirmOptions {
 export function useConfirmModal() {
   const [state, setState] = useState<ConfirmState>({
     isOpen: false,
-    title: '',
-    message: '',
+    title: "",
+    message: "",
   });
 
   const closeModal = useCallback(() => {
@@ -80,18 +80,21 @@ export function useConfirmModal() {
     closeModal();
   }, [state, closeModal]);
 
-  const ConfirmModalComponent = useCallback(() => (
-    <ConfirmDialog
-      isOpen={state.isOpen}
-      onClose={handleCancel}
-      onConfirm={handleConfirm}
-      title={state.title}
-      message={state.message}
-      confirmText={state.confirmText}
-      cancelText={state.cancelText}
-      variant={state.variant}
-    />
-  ), [state, handleCancel, handleConfirm]);
+  const ConfirmModalComponent = useCallback(
+    () => (
+      <ConfirmDialog
+        isOpen={state.isOpen}
+        onClose={handleCancel}
+        onConfirm={handleConfirm}
+        title={state.title}
+        message={state.message}
+        confirmText={state.confirmText}
+        cancelText={state.cancelText}
+        variant={state.variant}
+      />
+    ),
+    [state, handleCancel, handleConfirm],
+  );
 
   return {
     showConfirm,

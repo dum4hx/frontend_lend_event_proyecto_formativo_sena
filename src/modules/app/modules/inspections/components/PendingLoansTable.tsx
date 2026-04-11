@@ -1,5 +1,6 @@
 import React from "react";
 import { ClipboardCheck, Calendar, User, Package } from "lucide-react";
+import { useLanguage } from "../../../../../contexts/useLanguage";
 import type { PendingLoan } from "../../../../../types/api";
 import { Button } from "../../../../../components/ui";
 
@@ -12,12 +13,14 @@ interface PendingLoansTableProps {
  * Table showing loans that have been returned but not yet inspected.
  */
 export const PendingLoansTable: React.FC<PendingLoansTableProps> = ({ loans, onInspect }) => {
+  const { t } = useLanguage();
+
   if (loans.length === 0) {
     return (
       <div className="text-center py-16 bg-[#1a1a1a] rounded-xl border border-dashed border-[#333]">
         <ClipboardCheck className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-white mb-1">All caught up!</h3>
-        <p className="text-gray-400">No pending inspections at the moment.</p>
+        <h3 className="text-lg font-medium text-white mb-1">{t("inspections.allCaughtUp")}</h3>
+        <p className="text-gray-400">{t("inspections.noPending")}</p>
       </div>
     );
   }
@@ -28,19 +31,19 @@ export const PendingLoansTable: React.FC<PendingLoansTableProps> = ({ loans, onI
         <thead>
           <tr className="bg-[#0f0f0f] border-b border-[#333]">
             <th className="text-left py-4 px-6 text-gray-400 font-semibold text-xs uppercase tracking-wider">
-              Loan Info
+              {t("inspections.loanInfo")}
             </th>
             <th className="text-left py-4 px-6 text-gray-400 font-semibold text-xs uppercase tracking-wider">
-              Customer
+              {t("inspections.customer")}
             </th>
             <th className="text-left py-4 px-6 text-gray-400 font-semibold text-xs uppercase tracking-wider">
-              Return Date
+              {t("inspections.returnDate")}
             </th>
             <th className="text-left py-4 px-6 text-gray-400 font-semibold text-xs uppercase tracking-wider">
-              Items
+              {t("inspections.items")}
             </th>
             <th className="text-right py-4 px-6 text-gray-400 font-semibold text-xs uppercase tracking-wider">
-              Action
+              {t("inspections.action")}
             </th>
           </tr>
         </thead>
@@ -50,9 +53,11 @@ export const PendingLoansTable: React.FC<PendingLoansTableProps> = ({ loans, onI
               <td className="py-5 px-6">
                 <div className="flex flex-col">
                   <span className="text-white font-mono text-sm group-hover:text-[#FFD700] transition-colors">
-                    {loan._id.slice(-8).toUpperCase()}
+                    {loan.code ?? loan._id.slice(-8).toUpperCase()}
                   </span>
-                  <span className="text-[10px] text-gray-500 font-mono">{loan._id}</span>
+                  <span className="text-[10px] text-gray-500 font-mono">
+                    {loan.code ? loan._id : ""}
+                  </span>
                 </div>
               </td>
               <td className="py-5 px-6">
@@ -83,7 +88,7 @@ export const PendingLoansTable: React.FC<PendingLoansTableProps> = ({ loans, onI
                   onClick={() => onInspect(loan)}
                   className="bg-[#FFD700]/10 text-[#FFD700] border border-[#FFD700]/30 hover:bg-[#FFD700] hover:text-black font-bold text-xs py-1.5 h-auto"
                 >
-                  Start Inspection
+                  {t("inspections.startInspection")}
                 </Button>
               </td>
             </tr>

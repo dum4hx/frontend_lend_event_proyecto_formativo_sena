@@ -95,7 +95,7 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
   const isEs = language === "es";
 
   const statusBadgeClass = REQUEST_STATUS_CLASSES[request.status];
-  const statusLabel = getRequestStatusLabel(request.status, isEs);
+  const statusLabel = getRequestStatusLabel(request.status, language);
   const createdDate = formatDate(request.createdAt, isEs);
   const updatedDate = request.updatedAt ? formatDate(request.updatedAt, isEs) : null;
 
@@ -1060,7 +1060,7 @@ export const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
                             </option>
                             {(Object.keys(CONDITION_LABEL) as TransferCondition[]).map((c) => (
                               <option key={c} value={c}>
-                                {getConditionLabel(c, isEs)}
+                                {getConditionLabel(c, language)}
                               </option>
                             ))}
                           </select>
@@ -1223,7 +1223,7 @@ export const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
                                   <span className="text-gray-300">{inst.serialNumber}</span>
                                   {condition && (
                                     <span className="text-gray-500">
-                                      {getConditionLabel(condition, isEs)}
+                                      {getConditionLabel(condition, language)}
                                     </span>
                                   )}
                                 </div>
@@ -1298,6 +1298,8 @@ interface ShipmentDetailModalProps {
   locationName: (id: string) => string;
   onClose: () => void;
   onReceive?: () => void;
+  /** Whether the current user has `transfers:receive` permission */
+  canReceive?: boolean;
 }
 
 /**
@@ -1310,12 +1312,13 @@ export const ShipmentDetailModal: React.FC<ShipmentDetailModalProps> = ({
   locationName,
   onClose,
   onReceive,
+  canReceive = true,
 }) => {
   const { language } = useLanguage();
   const isEs = language === "es";
 
   const statusBadgeClass = TRANSFER_STATUS_CLASSES[shipment.status];
-  const statusLabel = getTransferStatusLabel(shipment.status, isEs);
+  const statusLabel = getTransferStatusLabel(shipment.status, language);
   const createdDate = formatDate(shipment.createdAt, isEs);
   const updatedDate = shipment.updatedAt ? formatDate(shipment.updatedAt, isEs) : null;
 
@@ -1470,7 +1473,7 @@ export const ShipmentDetailModal: React.FC<ShipmentDetailModalProps> = ({
                           {isEs ? "Condición Enviada" : "Sent Condition"}
                         </p>
                         <p className="px-2 py-1 bg-[#1a1a1a] text-gray-300 rounded w-fit">
-                          {getConditionLabel(item.sentCondition, isEs)}
+                          {getConditionLabel(item.sentCondition, language)}
                         </p>
                       </div>
                     )}
@@ -1480,7 +1483,7 @@ export const ShipmentDetailModal: React.FC<ShipmentDetailModalProps> = ({
                           {isEs ? "Condición Recibida" : "Received Condition"}
                         </p>
                         <p className="px-2 py-1 bg-[#1a1a1a] text-gray-300 rounded w-fit">
-                          {getConditionLabel(item.receivedCondition, isEs)}
+                          {getConditionLabel(item.receivedCondition, language)}
                         </p>
                       </div>
                     )}
@@ -1534,7 +1537,8 @@ export const ShipmentDetailModal: React.FC<ShipmentDetailModalProps> = ({
           {onReceive && shipment.status === "in_transit" && (
             <button
               onClick={onReceive}
-              className="px-5 py-2.5 bg-blue-700/20 hover:bg-blue-600/30 text-blue-400 hover:text-blue-300 border border-blue-700/30 rounded-lg text-sm font-medium transition-all"
+              aria-disabled={!canReceive}
+              className={`px-5 py-2.5 bg-blue-700/20 hover:bg-blue-600/30 text-blue-400 hover:text-blue-300 border border-blue-700/30 rounded-lg text-sm font-medium transition-all ${!canReceive ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               {isEs ? "Marcar como Recibido" : "Mark as Received"}
             </button>
@@ -1675,7 +1679,7 @@ export const ReceiveTransferModal: React.FC<ReceiveTransferModalProps> = ({
                       </option>
                       {(Object.keys(CONDITION_LABEL) as TransferCondition[]).map((c) => (
                         <option key={c} value={c}>
-                          {getConditionLabel(c, isEs)}
+                          {getConditionLabel(c, language)}
                         </option>
                       ))}
                     </select>

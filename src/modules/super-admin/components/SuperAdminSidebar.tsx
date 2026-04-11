@@ -4,7 +4,6 @@ import {
   BarChart3,
   Users,
   CreditCard,
-  Bot,
   Settings,
   LogOut,
   Building2,
@@ -12,6 +11,7 @@ import {
   PanelLeftOpen,
   ChevronDown,
   ChevronRight,
+  FileBarChart,
 } from "lucide-react";
 import { useAuth } from "../../../contexts/useAuth";
 import { useLanguage } from "../../../contexts/useLanguage";
@@ -33,7 +33,7 @@ const iconMap: Record<string, React.ReactNode> = {
   organizations: <Building2 size={20} />,
   plans: <CreditCard size={20} />,
   "sa-plans": <CreditCard size={20} />,
-  "ai-monitor": <Bot size={20} />,
+  "sa-reports": <FileBarChart size={20} />,
   "sa-settings": <Settings size={20} />,
 };
 
@@ -215,7 +215,9 @@ export const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
           }`}
         >
           <LogOut size={16} />
-          {!isCollapsed && <span>{isLoggingOut ? t("common.loggingOut") : t("common.logout")}</span>}
+          {!isCollapsed && (
+            <span>{isLoggingOut ? t("common.loggingOut") : t("common.logout")}</span>
+          )}
         </button>
       </div>
       <AlertModal />

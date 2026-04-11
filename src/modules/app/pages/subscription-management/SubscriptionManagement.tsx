@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { CreditCard, Users, XCircle, ExternalLink, Download } from "lucide-react";
 import { StatCard } from "../../components";
 import { PageHeader } from "../../../../components/ui";
@@ -8,6 +8,9 @@ import {
   cancelSubscription,
   updateSeats,
   createCheckoutSession,
+  changePlan,
+  getPendingChanges,
+  cancelPendingChange,
 } from "../../../../services/billingService";
 import {
   getOrganizationUsage,
@@ -17,29 +20,38 @@ import {
 import {
   getSubscriptionTypesPublic,
   getSubscriptionTypes,
+  calculatePlanCost,
 } from "../../../../services/subscriptionTypeService";
 import { ErrorDisplay, AlertContainer, ConfirmDialog } from "../../../../components/ui";
 import { normalizeError, logError } from "../../../../utils/errorHandling";
 import { ApiError } from "../../../../lib/api";
 import { useAlerts } from "../../../../hooks/useAlerts";
-import { useAuth } from "../../../../contexts/useAuth";
 import { useLanguage } from "../../../../contexts/useLanguage";
-import { ExportSettingsModal } from "../../../../components/export/ExportSettingsModal";
-import { exportService, BILLING_HISTORY_POLICY } from "../../../../services/export";
+import { usePermissions } from "../../../../contexts/usePermissions";
+import Unauthorized from "../../../../pages/Unauthorized";
+import { getExportBillingHistory } from "../../../../services/reportExportService";
+import { exportTableToXLSX } from "../../../../utils/tableExport";
+import { buildBillingSummaryEntries } from "../reports/summaryBuilders";
+import { fetchAllPages } from "../reports/helpers";
 import { formatEventType, formatCurrency } from "./helpers";
 import BillingHistorySection from "./BillingHistorySection";
 import AvailablePlansGrid from "./AvailablePlansGrid";
-import type { ExportConfig, ExportProgress } from "../../../../types/export";
 import type {
   BillingHistoryEntry,
   AvailablePlan,
   Organization,
   PublicPlan,
   SubscriptionType,
+  PlanCostResult,
+  PendingChange,
+  ExportBillingHistoryData,
+  ExportBillingHistoryRow,
+  ExportBillingHistoryParams,
+  ExportBillingHistorySummary,
 } from "../../../../types/api";
 
 export default function SubscriptionManagement() {
-  const { language, locale } = useLanguage();
+  const { language, locale, t } = useLanguage();
   const isEs = language === "es";
 
   // Data
@@ -63,14 +75,15 @@ export default function SubscriptionManagement() {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelling, setCancelling] = useState(false);
 
-  // Export
-  const [exportOpen, setExportOpen] = useState(false);
-  const [exporting, setExporting] = useState(false);
-  const [exportProgress, setExportProgress] = useState<ExportProgress | undefined>();
-  const exportAbort = useRef<AbortController | null>(null);
+  // Pending plan change
+  const [pendingChange, setPendingChange] = useState<PendingChange | null>(null);
+  const [cancellingPendingChange, setCancellingPendingChange] = useState(false);
 
-  const { user } = useAuth();
+  // Export
+  const [exporting, setExporting] = useState(false);
+
   const { alerts, showAlert, dismissAlert } = useAlerts();
+  const { hasPermission } = usePermissions();
 
   // ─── Data Fetching ─────────────────────────────────────────────────────────
 
@@ -142,9 +155,10 @@ export default function SubscriptionManagement() {
         getBillingHistory(50),
         getOrganizationUsage(),
         getOrganization(),
+        getPendingChanges(),
       ]);
 
-      const [histRes, usageRes, orgRes] = results;
+      const [histRes, usageRes, orgRes, pendingRes] = results;
 
       if (histRes.status === "fulfilled") {
         setHistory(histRes.value.data.history ?? []);
@@ -184,6 +198,16 @@ export default function SubscriptionManagement() {
           setError(normalizeError(err).message);
         }
       }
+
+      if (pendingRes.status === "fulfilled") {
+        setPendingChange(pendingRes.value.data.pendingChange ?? null);
+      } else if (pendingRes.status === "rejected") {
+        const err = pendingRes.reason;
+        if (!(err instanceof ApiError && err.statusCode === 401)) {
+          // Non-auth errors are non-critical; just clear pending state
+          setPendingChange(null);
+        }
+      }
     } catch (err: unknown) {
       const normalized = normalizeError(err);
       setError(normalized.message);
@@ -215,143 +239,182 @@ export default function SubscriptionManagement() {
     try {
       setUpdatingSeats(true);
       await updateSeats({ seatCount });
-      showAlert(
-        "success",
-        isEs
-          ? `Cantidad de asientos actualizada a ${seatCount}.`
-          : `Seat count updated to ${seatCount}.`,
-      );
+      showAlert("success", t("subscription.seats.updateSuccess", { count: seatCount }));
       await fetchData();
     } catch (err: unknown) {
       showAlert("error", normalizeError(err).message);
     } finally {
       setUpdatingSeats(false);
     }
-  }, [seatCount, usage, showAlert, fetchData, isEs]);
+  }, [seatCount, usage, showAlert, fetchData, t]);
 
   const handleCancelSubscription = useCallback(async () => {
     try {
       setCancelling(true);
       await cancelSubscription({ cancelImmediately: false });
       setCancelDialogOpen(false);
-      showAlert(
-        "success",
-        isEs
-          ? "La suscripcion se cancelara al final del periodo de facturacion actual."
-          : "Subscription will be cancelled at the end of the current billing period.",
-      );
+      showAlert("success", t("subscription.cancelSuccess"));
       await fetchData();
     } catch (err: unknown) {
       showAlert("error", normalizeError(err).message);
     } finally {
       setCancelling(false);
     }
-  }, [showAlert, fetchData, isEs]);
+  }, [showAlert, fetchData, t]);
 
   // ─── Plan Upgrade / Change ───────────────────────────────────────────────
 
   const handleChangePlan = useCallback(
     async (planName: string) => {
-      try {
-        const successUrl = `${window.location.origin}/app/subscription`;
-        const cancelUrl = successUrl;
-        const result = await createCheckoutSession({
-          plan: planName,
-          seatCount: usage?.currentSeats ?? 1,
-          successUrl,
-          cancelUrl,
-        });
-        window.location.href = result.data.checkoutUrl;
-      } catch (err: unknown) {
-        showAlert("error", normalizeError(err).message);
+      const hasActiveSub = Boolean(organization?.subscription?.plan);
+
+      if (hasActiveSub) {
+        // Use the change-plan endpoint for existing subscribers
+        try {
+          const result = await changePlan({
+            plan: planName,
+            seatCount: usage?.currentSeats,
+          });
+
+          const displayName =
+            plans.find(
+              (p) =>
+                p.name === result.data.newPlan ||
+                p.name.toLowerCase() === result.data.newPlan.toLowerCase(),
+            )?.displayName ?? result.data.newPlan;
+
+          if (result.data.type === "upgrade") {
+            showAlert(
+              "success",
+              t("subscription.changePlan.upgradeSuccess", { plan: displayName }),
+            );
+          } else {
+            showAlert(
+              "info",
+              t("subscription.changePlan.downgradeScheduled", {
+                plan: displayName,
+                date: result.data.effectiveDate,
+              }),
+            );
+          }
+
+          await fetchData();
+        } catch (err: unknown) {
+          if (err instanceof ApiError && err.statusCode === 400) {
+            showAlert("warning", t("subscription.changePlan.samePlanError"));
+          } else {
+            showAlert("error", normalizeError(err).message);
+          }
+        }
+      } else {
+        // No active subscription — create checkout session
+        try {
+          const successUrl = `${window.location.origin}/app/subscription`;
+          const cancelUrl = successUrl;
+          const result = await createCheckoutSession({
+            plan: planName,
+            seatCount: usage?.currentSeats ?? 1,
+            successUrl,
+            cancelUrl,
+          });
+          window.location.href = result.data.checkoutUrl;
+        } catch (err: unknown) {
+          showAlert("error", normalizeError(err).message);
+        }
       }
     },
-    [usage?.currentSeats, showAlert],
+    [organization?.subscription?.plan, usage?.currentSeats, plans, showAlert, fetchData, t],
+  );
+
+  // ─── Cancel Pending Change ──────────────────────────────────────────────
+
+  const handleCancelPendingChange = useCallback(async () => {
+    try {
+      setCancellingPendingChange(true);
+      await cancelPendingChange();
+      setPendingChange(null);
+      showAlert("success", t("subscription.pendingChange.cancelSuccess"));
+      await fetchData();
+    } catch (err: unknown) {
+      showAlert("error", normalizeError(err).message);
+    } finally {
+      setCancellingPendingChange(false);
+    }
+  }, [showAlert, fetchData, t]);
+
+  // ─── Plan Cost Preview ─────────────────────────────────────────────────────
+
+  const handleCalculateCost = useCallback(
+    async (plan: string, seatCount: number): Promise<PlanCostResult> => {
+      const res = await calculatePlanCost(plan, seatCount);
+      return res.data;
+    },
+    [],
   );
 
   // ─── Export ────────────────────────────────────────────────────────────────
 
-  const buildExportRows = useCallback(
-    (entries: BillingHistoryEntry[]): Record<string, unknown>[] =>
-      entries.map((e) => ({
-        id: e._id,
-        eventType: formatEventType(e.eventType),
-        newPlan: e.newPlan ?? "",
-        seatChange: e.seatChange ?? "",
-        amount: e.amount != null ? e.amount / 100 : "",
-        currency: e.currency.toUpperCase(),
-        processed: e.processed ? (isEs ? "Si" : "Yes") : isEs ? "No" : "No",
-        createdAt: e.createdAt,
-      })),
-    [isEs],
-  );
+  const handleExportXLSX = useCallback(async () => {
+    setExporting(true);
+    try {
+      const { rows: allRows, summary } = await fetchAllPages<
+        ExportBillingHistoryData,
+        ExportBillingHistoryRow,
+        ExportBillingHistoryParams,
+        ExportBillingHistorySummary
+      >(
+        getExportBillingHistory,
+        {},
+        (d) => d.rows,
+        (d) => d.summary,
+      );
 
-  const handleExport = useCallback(
-    async (config: ExportConfig) => {
-      const abort = new AbortController();
-      exportAbort.current = abort;
-      setExporting(true);
-      setExportProgress(undefined);
-
-      try {
-        const freshRes = await getBillingHistory(500);
-        const rawData = buildExportRows(freshRes.data.history ?? []);
-
-        if (rawData.length === 0) {
-          showAlert(
-            "warning",
-            isEs
-              ? "No hay historial de facturacion para exportar."
-              : "No billing history to export.",
-          );
-          return;
-        }
-
-        const result = await exportService.export(
-          rawData,
-          config,
-          user?._id ?? "anonymous",
-          (p) => setExportProgress(p),
-          abort.signal,
-        );
-
-        if (result.status === "success") {
-          showAlert(
-            "success",
-            isEs
-              ? `Se exportaron ${result.metadata.recordCount} registros como ${result.filename}`
-              : `Exported ${result.metadata.recordCount} records as ${result.filename}`,
-          );
-          setExportOpen(false);
-        } else if (result.status === "cancelled") {
-          showAlert("info", result.reason);
-        } else {
-          showAlert("error", result.error);
-        }
-      } catch (err: unknown) {
-        showAlert("error", normalizeError(err).message);
-      } finally {
-        setExporting(false);
-        setExportProgress(undefined);
-        exportAbort.current = null;
+      if (allRows.length === 0) {
+        showAlert("warning", t("subscription.export.noHistory"));
+        return;
       }
-    },
-    [buildExportRows, user?._id, showAlert, isEs],
-  );
 
-  const handleExportPreview = useCallback(
-    async (config: ExportConfig) => {
-      const freshRes = await getBillingHistory(500);
-      const rawData = buildExportRows(freshRes.data.history ?? []);
-      if (rawData.length === 0) return undefined;
-      return exportService.preview(rawData, config, user?._id ?? "anonymous");
-    },
-    [buildExportRows, user?._id],
-  );
+      const headers = [
+        t("subscription.export.col.eventType"),
+        t("subscription.export.col.amount"),
+        t("subscription.export.col.currency"),
+        t("subscription.export.col.previousPlan"),
+        t("subscription.export.col.newPlan"),
+        t("subscription.export.col.seatChange"),
+        t("subscription.export.col.processed"),
+        t("subscription.export.col.date"),
+      ];
 
-  const handleCancelExport = useCallback(() => {
-    exportAbort.current?.abort();
-  }, []);
+      const rows = allRows.map((r) => ({
+        [headers[0]]: formatEventType(r.eventType),
+        [headers[1]]: r.amount != null ? r.amount / 100 : "",
+        [headers[2]]: r.currency.toUpperCase(),
+        [headers[3]]: r.previousPlan ?? "",
+        [headers[4]]: r.newPlan ?? "",
+        [headers[5]]: r.seatChange ?? "",
+        [headers[6]]: r.processed
+          ? t("subscription.export.processedYes")
+          : t("subscription.export.processedNo"),
+        [headers[7]]: r.createdAt,
+      }));
+
+      const fmtCur = (cents: number, cur: string) =>
+        formatCurrency(cents, cur, locale);
+
+      const summaryEntries = summary
+        ? buildBillingSummaryEntries(summary, t, fmtCur, language as "en" | "es")
+        : undefined;
+
+      const date = new Date().toISOString().slice(0, 10);
+      exportTableToXLSX({ headers, rows }, `billing_history_${date}.xlsx`, summaryEntries);
+
+      showAlert("success", t("subscription.export.success", { count: allRows.length, filename: `billing_history_${date}.xlsx` }));
+    } catch (err: unknown) {
+      showAlert("error", normalizeError(err).message);
+    } finally {
+      setExporting(false);
+    }
+  }, [showAlert, t, locale, language]);
 
   // ─── Derived stats ─────────────────────────────────────────────────────────
 
@@ -373,7 +436,9 @@ export default function SubscriptionManagement() {
     return <ErrorDisplay error={error} onRetry={fetchData} fullScreen />;
   }
 
-  const isOwner = user?.roleName === "owner";
+  const isOwner = hasPermission("billing:manage");
+
+  if (!hasPermission("subscription:manage")) return <Unauthorized />;
 
   return (
     <div className="page-container">
@@ -383,14 +448,12 @@ export default function SubscriptionManagement() {
       {/* Session expired banner (non-blocking) */}
       {sessionExpired && (
         <div className="mb-4 bg-red-900/30 border border-red-700 text-red-300 rounded-xl px-4 py-3">
-          {isEs
-            ? "Tu sesion parece haber expirado. Algunos datos no pudieron cargarse."
-            : "Your session appears to have expired. Some data could not be loaded."}
+          {t("subscription.sessionExpired")}
           <button
             onClick={() => (window.location.href = "/login")}
             className="ml-3 inline-flex items-center px-3 py-1 rounded-lg bg-red-700/50 hover:bg-red-700 text-white text-xs"
           >
-            {isEs ? "Iniciar sesion de nuevo" : "Log in again"}
+            {t("subscription.loginAgain")}
           </button>
         </div>
       )}
@@ -398,58 +461,32 @@ export default function SubscriptionManagement() {
       {/* Cancel confirm dialog */}
       <ConfirmDialog
         isOpen={cancelDialogOpen}
-        title={isEs ? "Cancelar suscripcion" : "Cancel Subscription"}
-        message={
-          isEs
-            ? "Tu suscripcion seguira activa hasta el final del periodo de facturacion actual. Luego, se revocara el acceso a funciones premium. Seguro que deseas cancelar?"
-            : "Your subscription will remain active until the end of the current billing period. After that, access to premium features will be revoked. Are you sure you want to cancel?"
-        }
+        title={t("subscription.cancelDialog.title")}
+        message={t("subscription.cancelDialog.message")}
         confirmText={
           cancelling
-            ? isEs
-              ? "Cancelando..."
-              : "Cancelling..."
-            : isEs
-              ? "Si, cancelar"
-              : "Yes, Cancel"
+            ? t("subscription.cancelDialog.confirming")
+            : t("subscription.cancelDialog.confirm")
         }
-        cancelText={isEs ? "Mantener suscripcion" : "Keep Subscription"}
+        cancelText={t("subscription.cancelDialog.cancel")}
         variant="danger"
         onConfirm={() => void handleCancelSubscription()}
         onClose={() => setCancelDialogOpen(false)}
         isLoading={cancelling}
       />
 
-      {/* Export Modal */}
-      <ExportSettingsModal
-        isOpen={exportOpen}
-        onClose={() => setExportOpen(false)}
-        onExport={(config) => void handleExport(config)}
-        onPreview={handleExportPreview}
-        module="billing-history"
-        policy={BILLING_HISTORY_POLICY}
-        allowedFormats={["xlsx"]}
-        exporting={exporting}
-        progress={exportProgress}
-        onCancel={handleCancelExport}
-      />
-
       <div data-help-id="subscription-title">
         <PageHeader
-          title={isEs ? "Gestion de suscripcion" : "Subscription Management"}
-          subtitle={
-            isEs
-              ? "Gestiona tu plan, asientos e historial de facturacion"
-              : "Manage your plan, seats, and billing history"
-          }
+          title={t("subscription.title")}
+          subtitle={t("subscription.subtitle")}
           actions={
             <button
-              onClick={() => setExportOpen(true)}
+              onClick={() => void handleExportXLSX()}
               className="export-btn w-full sm:w-auto flex items-center justify-center gap-2"
-              disabled={history.length === 0}
+              disabled={history.length === 0 || exporting}
             >
               <Download size={18} />
-              {isEs ? "Exportar historial" : "Export History"}
+              {t("subscription.exportHistory")}
             </button>
           }
         />
@@ -474,21 +511,24 @@ export default function SubscriptionManagement() {
       ) : (
         <>
           {/* Stat Cards */}
-          <div data-help-id="subscription-stats" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+          <div
+            data-help-id="subscription-stats"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8"
+          >
             <StatCard
-              label={isEs ? "Plan actual" : "Current Plan"}
-              value={currentPlanDetails?.displayName ?? "—"}
+              label={t("subscription.stats.currentPlan")}
+              value={currentPlanDetails?.displayName ?? currentPlan ?? "—"}
               icon={<CreditCard size={20} />}
             />
             <StatCard
-              label={isEs ? "Asientos" : "Seats"}
+              label={t("subscription.stats.seats")}
               value={
                 usage ? `${usage.currentSeats} / ${usage.maxSeats < 0 ? "∞" : usage.maxSeats}` : "—"
               }
               icon={<Users size={20} />}
             />
             <StatCard
-              label={isEs ? "Total pagado" : "Total Paid"}
+              label={t("subscription.stats.totalPaid")}
               value={totalSpend > 0 ? formatCurrency(totalSpend, currency, locale) : "$0.00"}
               icon={<CreditCard size={20} />}
             />
@@ -496,36 +536,33 @@ export default function SubscriptionManagement() {
 
           {/* Actions — owner only */}
           {isOwner && (
-            <div data-help-id="subscription-actions" className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div
+              data-help-id="subscription-actions"
+              className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8"
+            >
               {/* Manage via Stripe Portal */}
               <div className="bg-[#121212] border border-[#333] rounded-xl p-6">
                 <h2 className="text-lg font-bold text-white mb-2">
-                  {isEs ? "Portal de facturacion" : "Billing Portal"}
+                  {t("subscription.billing.title")}
                 </h2>
                 <p className="text-gray-400 text-sm mb-4">
-                  {isEs
-                    ? "Actualiza tu metodo de pago, descarga facturas y gestiona el cobro desde Stripe."
-                    : "Update your payment method, download invoices, and manage billing details through Stripe."}
+                  {t("subscription.billing.description")}
                 </p>
                 <button
                   onClick={() => void handleOpenPortal()}
                   className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-semibold gold-action-btn"
                 >
                   <ExternalLink size={16} />
-                  {isEs ? "Abrir portal de facturacion" : "Open Billing Portal"}
+                  {t("subscription.billing.openPortal")}
                 </button>
               </div>
 
               {/* Seat Management */}
               <div className="bg-[#121212] border border-[#333] rounded-xl p-6">
                 <h2 className="text-lg font-bold text-white mb-2">
-                  {isEs ? "Gestion de asientos" : "Seat Management"}
+                  {t("subscription.seats.title")}
                 </h2>
-                <p className="text-gray-400 text-sm mb-4">
-                  {isEs
-                    ? "Ajusta el numero de asientos de tu plan actual."
-                    : "Adjust the number of seats on your current plan."}
-                </p>
+                <p className="text-gray-400 text-sm mb-4">{t("subscription.seats.description")}</p>
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                   <input
                     type="number"
@@ -541,12 +578,8 @@ export default function SubscriptionManagement() {
                     className="w-full sm:w-auto px-4 py-2 rounded-lg transition-colors text-sm font-semibold gold-action-btn disabled:opacity-40"
                   >
                     {updatingSeats
-                      ? isEs
-                        ? "Actualizando..."
-                        : "Updating..."
-                      : isEs
-                        ? "Actualizar asientos"
-                        : "Update Seats"}
+                      ? t("subscription.seats.updating")
+                      : t("subscription.seats.updateButton")}
                   </button>
                 </div>
               </div>
@@ -555,40 +588,81 @@ export default function SubscriptionManagement() {
 
           {/* Available Plans — owner only */}
           {isOwner && (
-            <div data-help-id="subscription-plans" className="bg-[#121212] border border-[#333] rounded-xl p-6 mb-8">
-              <h2 className="text-lg font-bold text-white mb-4">
-                {isEs ? "Planes disponibles" : "Available Plans"}
-              </h2>
+            <div
+              data-help-id="subscription-plans"
+              className="bg-[#121212] border border-[#333] rounded-xl p-6 mb-8"
+            >
+              <h2 className="text-lg font-bold text-white mb-4">{t("subscription.plans.title")}</h2>
               <AvailablePlansGrid
                 plans={plans}
                 currentPlan={currentPlan}
                 isEs={isEs}
                 locale={locale}
                 onChangePlan={(p) => void handleChangePlan(p)}
+                currentSeats={usage?.currentSeats}
+                onCalculateCost={handleCalculateCost}
+                hasActiveSubscription={Boolean(organization?.subscription?.plan)}
+                pendingPlan={pendingChange?.pendingPlan}
               />
+            </div>
+          )}
+
+          {/* Pending Plan Change — owner only */}
+          {isOwner && pendingChange && (
+            <div
+              data-help-id="subscription-pending-change"
+              className="bg-[#121212] border border-amber-700/50 rounded-xl p-6 mb-8"
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <h2 className="text-lg font-bold text-amber-400 mb-1">
+                    {t("subscription.pendingChange.title")}
+                  </h2>
+                  <p className="text-gray-400 text-sm">
+                    {t("subscription.pendingChange.description", {
+                      plan:
+                        plans.find(
+                          (p) =>
+                            p.name === pendingChange.pendingPlan ||
+                            p.name.toLowerCase() === pendingChange.pendingPlan.toLowerCase(),
+                        )?.displayName ?? pendingChange.pendingPlan,
+                      date: pendingChange.effectiveDate,
+                    })}
+                  </p>
+                </div>
+                <button
+                  onClick={() => void handleCancelPendingChange()}
+                  disabled={cancellingPendingChange}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-medium shrink-0 danger-action-btn disabled:opacity-40"
+                >
+                  <XCircle size={16} />
+                  {cancellingPendingChange
+                    ? t("subscription.pendingChange.cancelling")
+                    : t("subscription.pendingChange.cancelButton")}
+                </button>
+              </div>
             </div>
           )}
 
           {/* Cancel Subscription — owner only */}
           {isOwner && (
-            <div data-help-id="subscription-danger" className="bg-[#121212] border border-red-900/40 rounded-xl p-6 mb-8">
+            <div
+              data-help-id="subscription-danger"
+              className="bg-[#121212] border border-red-900/40 rounded-xl p-6 mb-8"
+            >
               <div className="flex items-start justify-between">
                 <div>
                   <h2 className="text-lg font-bold text-white mb-1">
-                    {isEs ? "Zona de riesgo" : "Danger Zone"}
+                    {t("subscription.danger.title")}
                   </h2>
-                  <p className="text-gray-400 text-sm">
-                    {isEs
-                      ? "Cancelar tu suscripcion revocara el acceso a funciones premium al final del periodo de facturacion."
-                      : "Cancelling your subscription will revoke access to premium features at the end of your billing period."}
-                  </p>
+                  <p className="text-gray-400 text-sm">{t("subscription.danger.description")}</p>
                 </div>
                 <button
                   onClick={() => setCancelDialogOpen(true)}
                   className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-medium shrink-0 danger-action-btn"
                 >
                   <XCircle size={16} />
-                  {isEs ? "Cancelar suscripcion" : "Cancel Subscription"}
+                  {t("subscription.danger.cancelButton")}
                 </button>
               </div>
             </div>

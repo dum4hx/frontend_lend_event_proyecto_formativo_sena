@@ -7,7 +7,8 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Plus, Download, Upload } from "lucide-react";
-import * as XLSX from "xlsx";
+import { FEATURE_FLAGS } from "../../../../config/featureFlags";
+import * as XLSX from "xlsx-js-style";
 import { pageVariants } from "../../../../lib/animations";
 import { ConfirmDialog, PageHeader } from "../../../../components/ui";
 import { ExportSettingsModal } from "../../../../components/export/ExportSettingsModal";
@@ -28,6 +29,7 @@ import { usePermissions } from "../../../../contexts/usePermissions";
 import { useAuth } from "../../../../contexts/useAuth";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import { useToast } from "../../../../contexts/ToastContext";
+import { useActionPermission } from "../../../../hooks/useActionPermission";
 import Unauthorized from "../../../../pages/Unauthorized";
 
 import { LocationsFilters } from "./LocationsFilters";
@@ -49,6 +51,7 @@ export function Locations() {
   const { language } = useLanguage();
   const isEs = language === "es";
   const { showToast } = useToast();
+  const { guard, isAllowed } = useActionPermission(isEs ? "es" : "en");
 
   // ---- Data ----
   const [locations, setLocations] = useState<WarehouseLocation[]>([]);
@@ -136,7 +139,7 @@ export function Locations() {
   }, []);
 
   useEffect(() => {
-    if (hasPermission("materials:read")) void fetchLocations();
+    if (hasPermission("locations:read")) void fetchLocations();
   }, [hasPermission, fetchLocations]);
 
   // ---- Filtered + paginated ----
@@ -328,6 +331,7 @@ export function Locations() {
               parsedComp = m[4] || "";
             }
             payload = {
+              code: row[h("code")]?.trim().toUpperCase() || "",
               name: row[h("name")]?.trim() || "",
               organizationId: user?.organizationId ?? "",
               materialCapacities: rowCaps,
@@ -342,17 +346,18 @@ export function Locations() {
             };
           } else {
             payload = {
-              name: row[0]?.trim() || "",
+              code: row[0]?.trim().toUpperCase() || "",
+              name: row[1]?.trim() || "",
               organizationId: user?.organizationId ?? "",
               materialCapacities: rowCaps,
               address: {
-                streetType: row[1]?.trim() || "",
-                primaryNumber: row[2]?.trim() || "",
-                secondaryNumber: row[3]?.trim() || "",
-                complementaryNumber: row[4]?.trim() || "",
-                department: row[5]?.trim() || "",
-                city: row[6]?.trim() || "",
-                additionalDetails: row[7]?.trim() || undefined,
+                streetType: row[2]?.trim() || "",
+                primaryNumber: row[3]?.trim() || "",
+                secondaryNumber: row[4]?.trim() || "",
+                complementaryNumber: row[5]?.trim() || "",
+                department: row[6]?.trim() || "",
+                city: row[7]?.trim() || "",
+                additionalDetails: row[8]?.trim() || undefined,
               },
             };
           }
@@ -389,7 +394,7 @@ export function Locations() {
   };
 
   // ---- Permission gate ----
-  if (!hasPermission("materials:read")) return <Unauthorized />;
+  if (!hasPermission("locations:read")) return <Unauthorized />;
 
   return (
     <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit">
@@ -405,23 +410,28 @@ export function Locations() {
             actions={
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => setExportOpen(true)}
-                  className="export-btn flex items-center gap-2"
+                  onClick={guard("locations:read", () => setExportOpen(true))}
+                  aria-disabled={!isAllowed("locations:read")}
+                  className={`export-btn flex items-center gap-2 ${!isAllowed("locations:read") ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   <Download size={18} />
                   {isEs ? "Exportar" : "Export"}
                 </button>
-                <button
-                  onClick={() => setShowImportModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#1a1a1a] border border-[#333] text-gray-300 rounded-lg hover:bg-[#222] hover:border-[#444] hover:text-white transition-all"
-                >
-                  <Upload size={18} />
-                  {isEs ? "Importar" : "Import"}
-                </button>
+                {FEATURE_FLAGS.ENABLE_DATA_IMPORT && (
+                  <button
+                    onClick={guard("locations:create", () => setShowImportModal(true))}
+                    aria-disabled={!isAllowed("locations:create")}
+                    className={`flex items-center gap-2 px-4 py-2 bg-[#1a1a1a] border border-[#333] text-gray-300 rounded-lg hover:bg-[#222] hover:border-[#444] hover:text-white transition-all ${!isAllowed("locations:create") ? "opacity-50 cursor-not-allowed" : ""}`}
+                  >
+                    <Upload size={18} />
+                    {isEs ? "Importar" : "Import"}
+                  </button>
+                )}
                 {hasPermission("locations:create") && (
                   <button
-                    onClick={() => setCreateOpen(true)}
-                    className="flex items-center gap-2 bg-[#FFD700] text-black font-semibold px-4 py-2 rounded-lg hover:bg-[#FFC107] transition-all"
+                    onClick={guard("locations:create", () => setCreateOpen(true))}
+                    aria-disabled={!isAllowed("locations:create")}
+                    className={`flex items-center gap-2 bg-[#FFD700] text-black font-semibold px-4 py-2 rounded-lg hover:bg-[#FFC107] transition-all ${!isAllowed("locations:create") ? "opacity-50 cursor-not-allowed" : ""}`}
                   >
                     <Plus size={20} />
                     {isEs ? "Agregar ubicación" : "Add Location"}
@@ -508,7 +518,10 @@ export function Locations() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div data-help-id="locations-pagination" className="flex justify-center items-center gap-2 pt-4">
+              <div
+                data-help-id="locations-pagination"
+                className="flex justify-center items-center gap-2 pt-4"
+              >
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
@@ -599,8 +612,11 @@ export function Locations() {
         />
 
         {/* Import modal */}
-        {showImportModal && (
-          <div data-help-id="locations-import-modal" className="fixed inset-0 flex items-center justify-center z-50 bg-black/60 backdrop-blur-sm">
+        {FEATURE_FLAGS.ENABLE_DATA_IMPORT && showImportModal && (
+          <div
+            data-help-id="locations-import-modal"
+            className="fixed inset-0 flex items-center justify-center z-50 bg-black/60 backdrop-blur-sm"
+          >
             <div className="bg-[#1a1a1a] border border-[#333] rounded-xl p-6 w-full max-w-md shadow-2xl">
               <h3 className="text-lg font-bold text-white mb-4">
                 {isEs ? "Importar ubicaciones" : "Import Locations"}

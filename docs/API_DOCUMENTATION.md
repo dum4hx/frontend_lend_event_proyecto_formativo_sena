@@ -21,6 +21,7 @@
    - [Subscription Type Endpoints](#subscription-type-endpoints-super-admin)
    - [Billing Endpoints](#billing-endpoints)
    - [Admin Analytics (Super Admin)](#admin-analytics-endpoints-super-admin-only)
+   - [Admin Exports (Super Admin)](#admin-export-endpoints-super-admin-only)
    - [Customer Endpoints](#customer-endpoints)
    - [Location Endpoints](#location-endpoints)
    - [Material Endpoints](#material-endpoints)
@@ -296,20 +297,40 @@ The API uses **secure HttpOnly cookies** for authentication, providing protectio
 | `access_token`  | JWT for API authorization | 15 minutes | `/`            |
 | `refresh_token` | JWT for token refresh     | 7 days     | `/api/v1/auth` |
 
-### Authentication Flow
+### Authentication Flow (Mandatory 2FA)
+
+Every login requires two steps: credential verification followed by a one-time password (OTP) sent to the user's email.
 
 ```
-┌─────────────┐     POST /auth/login       ┌─────────────┐
-│   Client    │ ────────────────────────▶ │    API      │
-│             │◀──────────────────────────│             │
-└─────────────┘   Set-Cookie: access_token └─────────────┘
+Step 1 — Credentials
+┌─────────────┐     POST /auth/login              ┌─────────────┐
+│   Client    │ ──────────────────────────────────▶│    API      │
+│             │◀──────────────────────────────────│             │
+└─────────────┘   { pendingOtp: true, email }      └─────────────┘
+                  (no cookies — OTP sent via email)
+
+Step 2 — OTP Verification
+┌─────────────┐  POST /auth/verify-login-otp       ┌─────────────┐
+│   Client    │ ──────────────────────────────────▶│    API      │
+│             │◀──────────────────────────────────│             │
+└─────────────┘   Set-Cookie: access_token         └─────────────┘
+                  Set-Cookie: refresh_token
+                  + user / permissions / backupCodes (first login)
+
+Alternative Step 2 — Backup Code (if OTP unavailable)
+┌─────────────┐  POST /auth/verify-backup-code     ┌─────────────┐
+│   Client    │ ──────────────────────────────────▶│    API      │
+│             │◀──────────────────────────────────│             │
+└─────────────┘   Set-Cookie: access_token         └─────────────┘
                   Set-Cookie: refresh_token
 
-┌─────────────┐    GET /any-endpoint       ┌─────────────┐
-│   Client    │ ──────────────────────────▶│    API      │
-│             │   Cookie: access_token     │             │
-└─────────────┘                            └─────────────┘
+┌─────────────┐    GET /any-endpoint               ┌─────────────┐
+│   Client    │ ──────────────────────────────────▶│    API      │
+│             │   Cookie: access_token             │             │
+└─────────────┘                                    └─────────────┘
 ```
+
+**Backup Codes:** On the very first successful 2FA login, the server generates 10 single-use backup codes and returns them in the response. These codes can be used instead of an OTP if the user cannot access their email. Each code can only be used once.
 
 ### Cookie Configuration
 
@@ -488,7 +509,7 @@ Verifies the 6-digit OTP sent to the owner's email during registration. On succe
 
 #### POST /auth/login
 
-Authenticates user and sets JWT cookies.
+Authenticates user credentials and sends a one-time password (OTP) to the user's email. **Does not issue auth cookies.** The client must complete login by calling `/auth/verify-login-otp` or `/auth/verify-backup-code`.
 
 | Parameter | Location | Type   | Required | Description   |
 | --------- | -------- | ------ | -------- | ------------- |
@@ -501,19 +522,132 @@ Authenticates user and sets JWT cookies.
 {
   "status": "success",
   "data": {
+    "pendingOtp": true,
+    "email": "user@example.com"
+  },
+  "message": "OTP sent to your email. Please verify to complete login."
+}
+```
+
+**Error Responses:**
+
+| Status | Condition                        |
+| ------ | -------------------------------- |
+| 400    | Missing or invalid fields        |
+| 401    | Invalid email or password        |
+| 403    | Account deactivated or not found |
+
+---
+
+#### POST /auth/verify-login-otp
+
+Verifies the 6-digit OTP sent to the user's email during login. On success, issues auth cookies and returns user data. On the **first 2FA login**, the response includes 10 single-use backup codes.
+
+| Parameter | Location | Type   | Required | Description                    |
+| --------- | -------- | ------ | -------- | ------------------------------ |
+| email     | body     | string | Yes      | Email used during login        |
+| code      | body     | string | Yes      | 6-digit OTP received via email |
+
+**Response:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
     "user": {
       "id": "...",
-      "email": "...",
-      "name": { ... },
+      "email": "user@example.com",
+      "name": { "firstName": "...", "lastName": "..." },
       "roleId": "...",
-      "roleName": "...",
+      "roleName": "owner",
       "locations": ["..."],
-      "permissions": ["organization:read", "users:create", "users:read"]
+      "permissions": ["organization:read", "users:create", "..."]
     },
-    "permissions": ["organization:read", "users:create", "users:read"]
+    "permissions": ["organization:read", "users:create", "..."],
+    "backupCodes": ["a1b2c3d4", "e5f6a7b8", "..."]
   }
 }
 ```
+
+> **Note:** `backupCodes` is only present on the first 2FA login. On subsequent logins it is omitted.
+
+**Error Responses:**
+
+| Status | Condition                         | Details                                                            |
+| ------ | --------------------------------- | ------------------------------------------------------------------ |
+| 400    | Invalid OTP                       | `code: "OTP_INVALID"`, `attemptsLeft: number` (remaining attempts) |
+| 400    | OTP expired after 5 minutes       | `code: "OTP_EXPIRED"`                                              |
+| 400    | Too many failed attempts (5 max)  | `code: "OTP_MAX_ATTEMPTS"`                                         |
+| 400    | No pending OTP verification found | `code: "OTP_NOT_FOUND"`                                            |
+
+---
+
+#### POST /auth/verify-backup-code
+
+Completes login using a single-use backup code instead of the email OTP. Issues auth cookies on success.
+
+| Parameter  | Location | Type   | Required | Description                       |
+| ---------- | -------- | ------ | -------- | --------------------------------- |
+| email      | body     | string | Yes      | Email used during login           |
+| backupCode | body     | string | Yes      | One of the 10 issued backup codes |
+
+**Response:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "user": {
+      "id": "...",
+      "email": "user@example.com",
+      "name": { "firstName": "...", "lastName": "..." },
+      "roleId": "...",
+      "roleName": "owner",
+      "locations": ["..."],
+      "permissions": ["organization:read", "users:create", "..."]
+    },
+    "permissions": ["organization:read", "users:create", "..."],
+    "remainingBackupCodes": 9
+  }
+}
+```
+
+**Error Responses:**
+
+| Status | Condition                                           |
+| ------ | --------------------------------------------------- |
+| 400    | Invalid or already-used backup code, user not found |
+
+---
+
+#### POST /auth/resend-login-otp
+
+Re-validates credentials and sends a new OTP to the user's email. Use when the original OTP was not received or has expired.
+
+| Parameter | Location | Type   | Required | Description   |
+| --------- | -------- | ------ | -------- | ------------- |
+| email     | body     | string | Yes      | User email    |
+| password  | body     | string | Yes      | User password |
+
+**Response:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "pendingOtp": true,
+    "email": "user@example.com"
+  },
+  "message": "A new OTP has been sent to your email."
+}
+```
+
+**Error Responses:**
+
+| Status | Condition                 |
+| ------ | ------------------------- |
+| 400    | Missing or invalid fields |
+| 401    | Invalid credentials       |
 
 ---
 
@@ -989,12 +1123,12 @@ The roles API manages organization-scoped roles and permissions. All routes requ
 
 When an organization is registered, four default roles are seeded automatically:
 
-| Role                 | Type     | Read-only | Notes                                 |
-| -------------------- | -------- | --------- | ------------------------------------- |
-| `owner`              | `SYSTEM` | Yes       | Cannot be renamed, edited, or deleted |
-| `manager`            | `CUSTOM` | No        | Editable default role                 |
-| `warehouse_operator` | `CUSTOM` | No        | Editable default role                 |
-| `commercial_advisor` | `CUSTOM` | No        | Editable default role                 |
+| Role                  | Type     | Read-only | Notes                                 |
+| --------------------- | -------- | --------- | ------------------------------------- |
+| `Propietario`         | `SYSTEM` | Yes       | Cannot be renamed, edited, or deleted |
+| `Gerente`             | `CUSTOM` | No        | Editable default role                 |
+| `Operador de almacén` | `CUSTOM` | No        | Editable default role                 |
+| `Asesor comercial`    | `CUSTOM` | No        | Editable default role                 |
 
 Roles with `isReadOnly: true` (`type: "SYSTEM"`) are protected at the API level — any attempt to `PATCH` or `DELETE` them returns `403 Forbidden`.
 
@@ -1015,17 +1149,17 @@ List roles for the current organization. Supports pagination and sorting (see pa
     "items": [
       {
         "_id": "507f1f77bcf86cd799439012",
-        "name": "owner",
+        "name": "Propietario",
         "permissions": ["organization:read", "users:create"],
-        "description": "Organization owner — full access. System role, non-editable and non-deletable.",
+        "description": "Propietario de la organización — acceso completo. Rol del sistema, no editable y no eliminable.",
         "isReadOnly": true,
         "type": "SYSTEM"
       },
       {
         "_id": "507f1f77bcf86cd799439013",
-        "name": "manager",
+        "name": "Gerente",
         "permissions": ["materials:read", "requests:approve"],
-        "description": "Default manager role — can be customized by the owner.",
+        "description": "Rol de gerente predeterminado — puede ser personalizado por el propietario.",
         "isReadOnly": false,
         "type": "CUSTOM"
       }
@@ -1057,9 +1191,9 @@ Get details for a single role within the organization.
   "data": {
     "role": {
       "_id": "507f1f77bcf86cd799439012",
-      "name": "owner",
+      "name": "Propietario",
       "permissions": ["organization:read", "users:create"],
-      "description": "Organization owner — full access. System role, non-editable and non-deletable.",
+      "description": "Propietario de la organización — acceso completo. Rol del sistema, no editable y no eliminable.",
       "isReadOnly": true,
       "type": "SYSTEM"
     }
@@ -1081,11 +1215,27 @@ Create a new custom role for the current organization.
 
 **Permission Required:** `roles:create`
 
+**Permission Dependencies Validation:**
+
+Each permission may declare a list of _required_ permissions that must also be included in the same role assignment. The system validates this dependency chain and rejects the request if any dependencies are missing.
+
+**Example:** If you assign `loans:create` to a role, the system will automatically validate that the role also includes `loans:read`, `materials:read`, and `customers:read`. If any are missing, the API returns `400 Bad Request` with a detailed error message listing which dependencies are incomplete.
+
+**Business Logic for Frontend:**
+
+When the frontend allows users to assign permissions to a role, it should:
+
+1. Fetch `GET /permissions` to retrieve all available permissions and their dependency information (the `requires` field).
+2. When building the role's permission list in the UI, display the dependency graph so admins understand the "cost" of each permission.
+3. On save, let the backend validate the complete dependency chain. If validation fails (400), display the error message to the user explaining which dependencies are missing.
+4. Optionally, the UI can pre-emptively add required dependencies when the user selects a permission (auto-include), but **do not auto-include silently**—always show the admin what dependencies are being added.
+
 **Notes:**
 
 - The name `super_admin` is reserved and will be rejected.
 - Permissions belonging to the platform `super_admin` role are restricted and cannot be assigned to organization roles.
-- Use `GET /permissions` to retrieve the full list of valid, assignable permission identifiers.
+- Use `GET /permissions` to retrieve the full list of valid, assignable permission identifiers and their dependency information.
+- All error communications are in Spanish for organization users.
 
 **Response:** `201 Created`
 
@@ -1105,6 +1255,16 @@ Create a new custom role for the current organization.
 }
 ```
 
+**Error Responses:**
+
+| Status                                                                                                               | Condition                              | Details                                                                   |
+| -------------------------------------------------------------------------------------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------- |
+| 400                                                                                                                  | Incomplete permission dependencies     | `Dependencias de permisos incompletas:                                    |
+| - El permiso 'loans:create' requiere los siguientes permisos que no están incluidos: materials:read, customers:read` |
+| 400                                                                                                                  | Permission restricted to super_admin   | `The following permissions are restricted to the platform super-admin...` |
+| 400                                                                                                                  | Role name is 'super_admin'             | `The 'super_admin' role is platform-only...`                              |
+| 409                                                                                                                  | Name already taken in the organization | `Role with that name already exists`                                      |
+
 ---
 
 #### PATCH /roles/:id
@@ -1120,17 +1280,24 @@ Update an existing custom role. Only provided fields are updated.
 
 **Permission Required:** `roles:update`
 
+**Permission Dependencies Validation:**
+
+When updating the `permissions` array, the same dependency validation applies as in `POST /roles`. If the new permission set has incomplete dependencies, the API rejects the update with a detailed error message in Spanish listing all unsatisfied requirements.
+
 **Notes:**
 
 - System roles (`isReadOnly: true`) cannot be modified. Attempting to do so returns `403 Forbidden`.
+- If only updating `name` or `description`, permission dependencies are not re-validated (only checked when `permissions` is explicitly provided).
 
 **Error Responses:**
 
-| Status | Condition                                  | Message                                                               |
-| ------ | ------------------------------------------ | --------------------------------------------------------------------- |
-| 403    | Role is a system role (`isReadOnly: true`) | `The 'owner' role is a system role and cannot be modified or deleted` |
-| 404    | Role not found in organization             | `Role not found`                                                      |
-| 409    | Name already taken in organization         | `Role with that name already exists`                                  |
+| Status                                                                           | Condition                                  | Message                                                               |
+| -------------------------------------------------------------------------------- | ------------------------------------------ | --------------------------------------------------------------------- |
+| 400                                                                              | Incomplete permission dependencies         | `Dependencias de permisos incompletas:                                |
+| - El permiso '...' requiere los siguientes permisos que no están incluidos: ...` |
+| 403                                                                              | Role is a system role (`isReadOnly: true`) | `The 'owner' role is a system role and cannot be modified or deleted` |
+| 404                                                                              | Role not found in organization             | `Role not found`                                                      |
+| 409                                                                              | Name already taken in organization         | `Role with that name already exists`                                  |
 
 **Response:** `200 OK`
 
@@ -1268,13 +1435,77 @@ Returns the permission catalogue with optional filtering and grouping.
 
 **Response fields per permission object:**
 
-| Field                  | Type    | Description                                                |
-| ---------------------- | ------- | ---------------------------------------------------------- |
-| `id`                   | string  | Permission identifier in `resource:action` format          |
-| `displayName`          | string  | Human-readable label for UI display                        |
-| `description`          | string  | Short description of what granting this permission does    |
-| `category`             | string  | Grouping category (e.g. `Materials`, `Roles`, `Transfers`) |
-| `isPlatformPermission` | boolean | Whether this is a platform-only (super-admin) permission   |
+| Field                  | Type     | Description                                                                                                                                                                                                        |
+| ---------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `id`                   | string   | Permission identifier in `resource:action` format                                                                                                                                                                  |
+| `displayName`          | string   | Human-readable label for UI display                                                                                                                                                                                |
+| `description`          | string   | Short description of what granting this permission does                                                                                                                                                            |
+| `category`             | string   | Grouping category (e.g. `Materials`, `Roles`, `Transfers`)                                                                                                                                                         |
+| `isPlatformPermission` | boolean  | Whether this is a platform-only (super-admin) permission                                                                                                                                                           |
+| `requires`             | string[] | **NEW** — Array of permission IDs that must also be assigned to grant this permission. Empty array if no dependencies. Example: `loans:create` has `requires: ["loans:read", "materials:read", "customers:read"]`. |
+
+**Permission Dependencies — Frontend Implementation Guide:**
+
+The `requires` field establishes a **functional dependency chain**. This ensures that permissions do not grant incomplete capabilities:
+
+- **Cross-resource dependencies:** Assigning `loans:create` requires `materials:read` and `customers:read` because loan creation needs to lookup both resources.
+- **Same-resource dependencies:** Most `create` operations require the corresponding `read` permission (e.g., `users:create` → `users:read`) so the UI can display listings after creation.
+- **Operational dependencies:** Complex operations like `requests:assign` require `materials:read` to allow inventory picking.
+
+**Frontend Implementation Recommendations:**
+
+1. **Fetch permissions with metadata:**
+
+   ```bash
+   GET /permissions
+   ```
+
+   Cache the response locally so you have the full `requires[]` data for every permission.
+
+2. **Display permission dependencies in the role editor UI:**
+   - When the user clicks on a permission, show a tooltip or expandable section listing its dependencies.
+   - Example: `loans:create` → depends on: `loans:read`, `materials:read`, `customers:read`
+
+3. **Handle the 400 validation error gracefully:**
+
+   ```javascript
+   // When POST /roles or PATCH /roles/:id returns 400:
+   // Error message example:
+   // "Dependencias de permisos incompletas:
+   // - El permiso 'loans:create' requiere los siguientes permisos que no están incluidos: materials:read, customers:read"
+
+   // Display to the admin with suggestions to add the missing permissions.
+   ```
+
+4. **Optional auto-include of dependencies:**
+   - When the admin selects a permission, you may **optionally** auto-add its dependencies (but show what's being added).
+   - This prevents the frustration of seeing a 400 validation error, but the admin must be able to undo/customize the selection.
+
+**Example: Permission with dependencies**
+
+```json
+{
+  "id": "loans:create",
+  "displayName": "Create Loans",
+  "description": "Allows initiating new material loan records.",
+  "category": "Loans",
+  "isPlatformPermission": false,
+  "requires": ["loans:read", "materials:read", "customers:read"]
+}
+```
+
+**Example: Permission with no dependencies**
+
+```json
+{
+  "id": "loans:read",
+  "displayName": "View Loans",
+  "description": "Allows viewing active and historical loan records.",
+  "category": "Loans",
+  "isPlatformPermission": false,
+  "requires": []
+}
+```
 
 ---
 
@@ -1616,14 +1847,14 @@ Calculates the cost for a plan with a given seat count.
 
 Creates a Stripe Checkout session for subscription.
 
-| Parameter  | Location | Type    | Required | Description                                |
-| ---------- | -------- | ------- | -------- | ------------------------------------------ |
-| plan       | body     | string  | Yes      | `starter`, `professional`, or `enterprise` |
-| seatCount  | body     | integer | No       | Number of seats (default: 1)               |
-| successUrl | body     | string  | Yes      | URL to redirect on success                 |
-| cancelUrl  | body     | string  | Yes      | URL to redirect on cancel                  |
+| Parameter  | Location | Type    | Required | Description                                              |
+| ---------- | -------- | ------- | -------- | -------------------------------------------------------- |
+| plan       | body     | string  | Yes      | Plan name (e.g. `starter`, `professional`, `enterprise`) |
+| seatCount  | body     | integer | No       | Number of seats (default: 1, min: 1)                     |
+| successUrl | body     | string  | Yes      | URL to redirect on success                               |
+| cancelUrl  | body     | string  | Yes      | URL to redirect on cancel                                |
 
-**Permission Required:** Owner only
+**Permission Required:** `billing:manage`
 
 **Response:** `200 OK`
 
@@ -1636,6 +1867,14 @@ Creates a Stripe Checkout session for subscription.
 }
 ```
 
+**Error Conditions:**
+
+| Status | Condition                                        |
+| ------ | ------------------------------------------------ |
+| 400    | Plan is `free`, does not exist, or is not active |
+| 400    | Seat count invalid for the plan                  |
+| 409    | Organization already has an active subscription  |
+
 ---
 
 #### POST /billing/portal
@@ -1645,6 +1884,8 @@ Creates a Stripe Billing Portal session.
 | Parameter | Location | Type   | Required | Description                   |
 | --------- | -------- | ------ | -------- | ----------------------------- |
 | returnUrl | body     | string | Yes      | URL to return to after portal |
+
+**Permission Required:** `billing:manage`
 
 ---
 
@@ -1656,6 +1897,8 @@ Updates the subscription seat quantity.
 | --------- | -------- | ------- | -------- | -------------- |
 | seatCount | body     | integer | Yes      | New seat count |
 
+**Permission Required:** `billing:manage`
+
 ---
 
 #### POST /billing/cancel
@@ -1666,6 +1909,106 @@ Cancels the subscription.
 | ----------------- | -------- | ------- | -------- | -------------------------------------------- |
 | cancelImmediately | body     | boolean | No       | Cancel now or at period end (default: false) |
 
+**Permission Required:** `billing:manage`
+
+---
+
+#### POST /billing/change-plan
+
+Changes the subscription plan. Upgrades are applied immediately with Stripe proration. Downgrades are deferred to the end of the current billing period via Stripe Subscription Schedules.
+
+| Parameter | Location | Type    | Required | Description                                     |
+| --------- | -------- | ------- | -------- | ----------------------------------------------- |
+| plan      | body     | string  | Yes      | New plan name (e.g. `starter`, `professional`)  |
+| seatCount | body     | integer | No       | New seat count (defaults to current seat count) |
+
+**Permission Required:** `billing:manage`  
+**Requires:** Active organization with an active subscription.
+
+**Response (upgrade):** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "type": "upgrade",
+    "effectiveDate": "immediate",
+    "previousPlan": "starter",
+    "newPlan": "professional"
+  }
+}
+```
+
+**Response (downgrade):** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "type": "downgrade",
+    "effectiveDate": "2026-05-08T00:00:00.000Z",
+    "previousPlan": "professional",
+    "newPlan": "starter"
+  }
+}
+```
+
+**Error Conditions:**
+
+| Status | Condition                                     |
+| ------ | --------------------------------------------- |
+| 400    | No active subscription                        |
+| 400    | Same plan requested (`Ya estás en este plan`) |
+| 400    | Plan does not exist or is not active          |
+| 400    | Invalid seat count for the target plan        |
+
+---
+
+#### GET /billing/pending-changes
+
+Gets pending plan change information (scheduled downgrades).
+
+**Permission Required:** `billing:manage`
+
+**Response:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "pendingChange": {
+      "pendingPlan": "starter",
+      "effectiveDate": "2026-05-08T00:00:00.000Z"
+    }
+  }
+}
+```
+
+Returns `null` for `pendingChange` if no pending plan change exists.
+
+---
+
+#### DELETE /billing/pending-changes
+
+Cancels a pending plan change (deferred downgrade). Releases the Stripe Subscription Schedule, keeping the current subscription as-is.
+
+**Permission Required:** `billing:manage`
+
+**Response:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "message": "Cambio de plan pendiente cancelado exitosamente"
+}
+```
+
+**Error Conditions:**
+
+| Status | Condition                        |
+| ------ | -------------------------------- |
+| 400    | No pending plan change to cancel |
+
 ---
 
 #### GET /billing/history
@@ -1675,6 +2018,8 @@ Gets billing history for the organization.
 | Parameter | Location | Type    | Required | Description             |
 | --------- | -------- | ------- | -------- | ----------------------- |
 | limit     | query    | integer | No       | Max items (default: 50) |
+
+**Permission Required:** `billing:manage`
 
 ---
 
@@ -1992,6 +2337,326 @@ Gets all analytics in a single call for dashboard rendering.
 
 ---
 
+### Admin Export Endpoints (Super Admin Only)
+
+All admin export endpoints require `super_admin` role. They follow the `includeIds` toggle pattern:
+
+- `includeIds=true` (default) → detailed data rows with identifiers (org IDs, org names, plan, status — **no** sensitive PII like emails, phones, or addresses).
+- `includeIds=false` → aggregated summary with enriched metrics and `periodComparison` when date range is provided.
+
+---
+
+#### GET /admin/exports/platform-kpis
+
+Platform-wide KPIs: organization/user growth, loans, invoices, MRR/ARR.
+
+**Permission Required:** `super_admin` role
+
+**Query Parameters:**
+
+| Name       | Type    | Required | Description                                                                    |
+| ---------- | ------- | -------- | ------------------------------------------------------------------------------ |
+| startDate  | string  | No       | ISO date — filter records created on or after                                  |
+| endDate    | string  | No       | ISO date — filter records created on or before                                 |
+| includeIds | boolean | No       | `true` (default) returns monthly breakdown; `false` returns aggregated summary |
+
+**Response (includeIds=true):** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "monthlyBreakdown": [
+      {
+        "year": 2025,
+        "month": 1,
+        "newOrgs": 12,
+        "newUsers": 45,
+        "totalLoans": 320,
+        "totalInvoices": 280
+      }
+    ],
+    "generatedAt": "2025-07-15T12:00:00.000Z"
+  }
+}
+```
+
+**Response (includeIds=false):** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "summary": {
+      "currentKpis": {
+        "totalOrgs": 150,
+        "activeOrgs": 142,
+        "totalUsers": 523,
+        "activeUsers": 498,
+        "totalLoans": 8250,
+        "totalInvoices": 7890,
+        "mrr": 12500.0,
+        "arr": 150000.0
+      },
+      "avgUsersPerOrg": 3.49,
+      "avgSeatsPerOrg": 4.2,
+      "avgCatalogItemsPerOrg": 38.5,
+      "orgsByStatus": { "active": 142, "suspended": 5, "cancelled": 3 },
+      "usersByStatus": { "active": 498, "inactive": 15, "pending": 10 },
+      "periodComparison": {
+        "previous": {
+          "orgs": 130,
+          "users": 450,
+          "loans": 7000,
+          "invoices": 6500
+        },
+        "current": {
+          "orgs": 150,
+          "users": 523,
+          "loans": 8250,
+          "invoices": 7890
+        },
+        "changes": {
+          "orgs": 15.38,
+          "users": 16.22,
+          "loans": 17.86,
+          "invoices": 21.38
+        }
+      }
+    },
+    "generatedAt": "2025-07-15T12:00:00.000Z"
+  }
+}
+```
+
+---
+
+#### GET /admin/exports/subscriptions
+
+Subscription analytics: plan distribution, churn, upgrades/downgrades, payment success rate.
+
+**Permission Required:** `super_admin` role
+
+**Query Parameters:**
+
+| Name       | Type    | Required | Description                                                                       |
+| ---------- | ------- | -------- | --------------------------------------------------------------------------------- |
+| startDate  | string  | No       | ISO date — filter by organization creation date                                   |
+| endDate    | string  | No       | ISO date — filter by organization creation date                                   |
+| plan       | string  | No       | Filter by subscription plan (e.g., `starter`)                                     |
+| orgStatus  | string  | No       | Filter by org status: `active`, `suspended`, `cancelled`                          |
+| page       | number  | No       | Page number (default: 1) — only for includeIds=true                               |
+| limit      | number  | No       | Page size 1–200 (default: 50) — only for includeIds=true                          |
+| includeIds | boolean | No       | `true` (default) returns paginated org list; `false` returns aggregated analytics |
+
+**Response (includeIds=true):** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "subscriptions": [
+      {
+        "orgId": "6650...",
+        "orgName": "Acme Corp",
+        "orgStatus": "active",
+        "plan": "professional",
+        "seatCount": 5,
+        "catalogItemCount": 120,
+        "currentPeriodStart": "2025-07-01T00:00:00.000Z",
+        "currentPeriodEnd": "2025-07-31T23:59:59.000Z",
+        "cancelAtPeriodEnd": false,
+        "pendingPlan": null,
+        "orgCreatedAt": "2024-03-15T10:00:00.000Z"
+      }
+    ],
+    "total": 150,
+    "page": 1,
+    "limit": 50,
+    "totalPages": 3,
+    "generatedAt": "2025-07-15T12:00:00.000Z"
+  }
+}
+```
+
+**Response (includeIds=false):** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "summary": {
+      "totalOrgs": 150,
+      "byPlan": [
+        {
+          "plan": "free",
+          "count": 30,
+          "percentage": 20.0,
+          "estimatedMonthlyRevenue": 0
+        },
+        {
+          "plan": "starter",
+          "count": 50,
+          "percentage": 33.33,
+          "estimatedMonthlyRevenue": 1450
+        },
+        {
+          "plan": "professional",
+          "count": 60,
+          "percentage": 40.0,
+          "estimatedMonthlyRevenue": 5940
+        },
+        {
+          "plan": "enterprise",
+          "count": 10,
+          "percentage": 6.67,
+          "estimatedMonthlyRevenue": 2990
+        }
+      ],
+      "byOrgStatus": [
+        { "status": "active", "count": 142 },
+        { "status": "suspended", "count": 5 },
+        { "status": "cancelled", "count": 3 }
+      ],
+      "churn": 3,
+      "upgrades": 12,
+      "downgrades": 2,
+      "paymentAnalytics": {
+        "succeeded": 280,
+        "failed": 5,
+        "successRate": 98.25
+      },
+      "topPlanByCount": { "plan": "professional", "count": 60 },
+      "topPlanByRevenue": { "plan": "professional", "revenue": 5940 },
+      "periodComparison": {
+        "previous": { "orgs": 130, "churn": 2, "upgrades": 8, "downgrades": 1 },
+        "current": { "orgs": 150, "churn": 3, "upgrades": 12, "downgrades": 2 },
+        "changes": {
+          "orgs": 15.38,
+          "churn": 50.0,
+          "upgrades": 50.0,
+          "downgrades": 100.0
+        }
+      }
+    },
+    "generatedAt": "2025-07-15T12:00:00.000Z"
+  }
+}
+```
+
+---
+
+#### GET /admin/exports/usage
+
+Platform usage metrics per organization: loans, users, materials, invoices, customers, locations.
+
+**Permission Required:** `super_admin` role
+
+**Query Parameters:**
+
+| Name       | Type    | Required | Description                                                                               |
+| ---------- | ------- | -------- | ----------------------------------------------------------------------------------------- |
+| startDate  | string  | No       | ISO date — filter time-based counts (loans, invoices, customers)                          |
+| endDate    | string  | No       | ISO date — filter time-based counts                                                       |
+| plan       | string  | No       | Filter orgs by subscription plan                                                          |
+| orgStatus  | string  | No       | Filter by org status: `active`, `suspended`, `cancelled`                                  |
+| page       | number  | No       | Page number (default: 1) — only for includeIds=true                                       |
+| limit      | number  | No       | Page size 1–200 (default: 50) — only for includeIds=true                                  |
+| includeIds | boolean | No       | `true` (default) returns paginated per-org rows; `false` returns platform-wide aggregates |
+
+**Response (includeIds=true):** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "organizations": [
+      {
+        "orgId": "6650...",
+        "orgName": "Acme Corp",
+        "plan": "professional",
+        "orgStatus": "active",
+        "userCount": 8,
+        "activeUserCount": 7,
+        "loanCount": 250,
+        "invoiceCount": 220,
+        "customerCount": 45,
+        "locationCount": 3,
+        "materialTypeCount": 15,
+        "materialInstanceCount": 180,
+        "createdAt": "2024-03-15T10:00:00.000Z"
+      }
+    ],
+    "total": 150,
+    "page": 1,
+    "limit": 50,
+    "totalPages": 3,
+    "generatedAt": "2025-07-15T12:00:00.000Z"
+  }
+}
+```
+
+**Response (includeIds=false):** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "summary": {
+      "platformTotals": {
+        "organizations": 150,
+        "users": 523,
+        "loans": 8250,
+        "invoices": 7890,
+        "customers": 3200,
+        "locations": 45,
+        "materialTypes": 890,
+        "materialInstances": 12500
+      },
+      "avgPerOrg": {
+        "users": 3.49,
+        "loans": 55.0,
+        "invoices": 52.6,
+        "customers": 21.33
+      },
+      "topByLoans": [{ "orgName": "Acme Corp", "plan": "professional", "count": 520 }],
+      "topByInvoices": [{ "orgName": "Acme Corp", "plan": "professional", "count": 480 }],
+      "topByUsers": [{ "orgName": "Acme Corp", "plan": "professional", "count": 15 }],
+      "usageDistribution": [
+        { "bucket": "0", "orgCount": 5 },
+        { "bucket": "1-10", "orgCount": 20 },
+        { "bucket": "11-50", "orgCount": 45 },
+        { "bucket": "51-200", "orgCount": 60 },
+        { "bucket": "201+", "orgCount": 20 }
+      ],
+      "periodComparison": {
+        "previous": {
+          "loans": 7000,
+          "invoices": 6500,
+          "users": 450,
+          "customers": 2800
+        },
+        "current": {
+          "loans": 8250,
+          "invoices": 7890,
+          "users": 523,
+          "customers": 3200
+        },
+        "changes": {
+          "loans": 17.86,
+          "invoices": 21.38,
+          "users": 16.22,
+          "customers": 14.29
+        }
+      }
+    },
+    "generatedAt": "2025-07-15T12:00:00.000Z"
+  }
+}
+```
+
+---
+
 ### Customer Endpoints
 
 #### GET /customers/document-types
@@ -2180,7 +2845,7 @@ curl -X POST https://api.test.local/api/v1/customers \
 | Status | Condition                                                                         |
 | ------ | --------------------------------------------------------------------------------- |
 | `400`  | Missing required fields (`name.firstName`, `name.firstSurname`, `email`, `phone`) |
-| `400`  | Invalid phone format (must be E.164: `+573001234567`)                             |
+| `400`  | Formato de telefono invalido (must be E.164: `+573001234567`)                     |
 | `409`  | Email already in use by another customer **in the same organization**             |
 | `409`  | Phone already in use by another customer **in the same organization**             |
 
@@ -2390,6 +3055,8 @@ curl -X DELETE https://api.test.local/api/v1/customers/507f1f77bcf86cd799439011 
 
 Manage physical locations such as warehouses, offices, and operation points within an organization.
 
+**Location Code:** Each location has a unique alphanumeric `code` (1-10 characters, uppercase) that serves as a business identifier and can be referenced in loan and request documents. This code must be provided by the user when creating or updating a location and is unique within the organization.
+
 ### GET /locations
 
 Retrieves a paginated list of all locations in the organization.
@@ -2417,6 +3084,7 @@ Retrieves a paginated list of all locations in the organization.
     "items": [
       {
         "_id": "507f1f77bcf86cd799439011",
+        "code": "BOG01",
         "name": "Bodega Principal",
         "organizationId": "507f1f77bcf86cd799439012",
         "address": {
@@ -2466,6 +3134,7 @@ Retrieves a single location by its ID.
   "message": "Location fetched successfully",
   "data": {
     "_id": "507f1f77bcf86cd799439011",
+    "code": "BOG01",
     "name": "Bodega Principal",
     "organizationId": "507f1f77bcf86cd799439012",
     "address": {
@@ -2500,6 +3169,7 @@ Creates a new location in the organization.
 
 | Field                               | Type     | Required | Constraints        | Description                                                                                           |
 | ----------------------------------- | -------- | -------- | ------------------ | ----------------------------------------------------------------------------------------------------- |
+| code                                | string   | Yes      | 1-10 chars, regex  | Unique alphanumeric code (uppercase only, pattern `^[A-Z0-9]+$`). Business identifier for location.   |
 | name                                | string   | Yes      | 1-100 characters   | Location name                                                                                         |
 | address.streetType                  | string   | Yes      | Enum (9 values)    | One of: Calle, Carrera, Avenida, Avenida Calle, Avenida Carrera, Diagonal, Transversal, Circular, Via |
 | address.primaryNumber               | string   | Yes      | 1-20 characters    | Primary street/road number                                                                            |
@@ -2519,6 +3189,7 @@ Creates a new location in the organization.
 
 ```json
 {
+  "code": "MDE01",
   "name": "Bodega Norte",
   "address": {
     "streetType": "Carrera",
@@ -2546,6 +3217,7 @@ Creates a new location in the organization.
   "message": "Location created successfully",
   "data": {
     "_id": "507f1f77bcf86cd799439013",
+    "code": "MDE01",
     "name": "Bodega Norte",
     "organizationId": "507f1f77bcf86cd799439012",
     "address": {
@@ -2564,8 +3236,8 @@ Creates a new location in the organization.
 
 #### Error Responses
 
-- **400 Bad Request** – Validation errors (missing required fields, invalid format)
-- **409 Conflict** – Location with the same name already exists in the organization
+- **400 Bad Request** – Validation errors (missing required fields, invalid format, invalid code format)
+- **409 Conflict** – Location with the same name or code already exists in the organization
 
 ---
 
@@ -2586,10 +3258,18 @@ Updates an existing location (partial update).
 
 Same fields as POST, but all are optional. Only provided fields will be updated.
 
+| Field              | Type     | Required | Constraints       | Description                                                                                                    |
+| ------------------ | -------- | -------- | ----------------- | -------------------------------------------------------------------------------------------------------------- |
+| code               | string   | No       | 1-10 chars, regex | Unique alphanumeric code (uppercase only). If provided and conflicts with another location, returns 409 error. |
+| name               | string   | No       | 1-100 characters  | Location name                                                                                                  |
+| address            | object   | No       | -                 | Address fields (all optional)                                                                                  |
+| materialCapacities | object[] | No       | -                 | Array of material capacity mappings                                                                            |
+
 #### Example Request
 
 ```json
 {
+  "code": "MDE02",
   "address": {
     "state": "Cundinamarca",
     "additionalInfo": "Piso 3, oficina 301"
@@ -2605,6 +3285,7 @@ Same fields as POST, but all are optional. Only provided fields will be updated.
   "message": "Location updated successfully",
   "data": {
     "_id": "507f1f77bcf86cd799439011",
+    "code": "BOG01",
     "name": "Bodega Principal",
     "organizationId": "507f1f77bcf86cd799439012",
     "address": {
@@ -2623,8 +3304,9 @@ Same fields as POST, but all are optional. Only provided fields will be updated.
 
 #### Error Responses
 
-- **400 Bad Request** – Invalid location ID or validation errors
+- **400 Bad Request** – Invalid location ID, validation errors, or invalid code format
 - **404 Not Found** – Location does not exist
+- **409 Conflict** – Code already exists in the organization (when updating code field)
 
 ---
 
@@ -2753,11 +3435,12 @@ Creates a new category. Categories define which attributes are available to mate
 
 **Permission Required:** `materials:create`
 
-| Parameter   | Location | Type     | Required | Description                                                      |
-| ----------- | -------- | -------- | -------- | ---------------------------------------------------------------- |
-| name        | body     | string   | Yes      | Category name (max 100 chars, must be unique per organization)   |
-| description | body     | string   | Yes      | Category description (max 500 chars)                             |
-| attributes  | body     | object[] | No       | Array of attributes that belong to this category (default: `[]`) |
+| Parameter   | Location | Type     | Required | Description                                                                                               |
+| ----------- | -------- | -------- | -------- | --------------------------------------------------------------------------------------------------------- |
+| name        | body     | string   | Yes      | Category name (max 100 chars, must be unique per organization)                                            |
+| code        | body     | string   | Yes      | Short code (1-10 alphanumeric chars, uppercase, unique per org). Used in `{CATEGORY_CODE}` pattern token. |
+| description | body     | string   | Yes      | Category description (max 500 chars)                                                                      |
+| attributes  | body     | object[] | No       | Array of attributes that belong to this category (default: `[]`)                                          |
 
 **Attributes Array Structure:**
 
@@ -2775,6 +3458,7 @@ attributes: [
 ```json
 {
   "name": "Cameras",
+  "code": "CAM",
   "description": "Professional and consumer cameras",
   "attributes": [
     {
@@ -2795,6 +3479,7 @@ attributes: [
       "_id": "64f1a2b3c4d5e6f7a8b9c0c9",
       "organizationId": "64f1a2b3c4d5e6f7a8b9c0d0",
       "name": "Cameras",
+      "code": "CAM",
       "description": "Professional and consumer cameras",
       "attributes": [
         {
@@ -2813,6 +3498,7 @@ attributes: [
 
 - **400 Bad Request** – Category name already exists in this organization
 - **400 Bad Request** – Attribute ID is invalid or does not exist in organization
+- **409 Conflict** – Category code already exists in this organization
 
 ---
 
@@ -3331,6 +4017,7 @@ Creates a new material type. Validates against organization's catalog item limit
 | Parameter                | Location | Type     | Required | Description                                                                                                                                              |
 | ------------------------ | -------- | -------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | name                     | body     | string   | Yes      | Material name (max 150 chars)                                                                                                                            |
+| code                     | body     | string   | Yes      | Short code (1-10 alphanumeric chars, uppercase, unique per org). Used in `{TYPE_CODE}` pattern token.                                                    |
 | description              | body     | string   | Yes      | Description (max 500 chars)                                                                                                                              |
 | categoryId               | body     | string[] | Yes      | Array of category IDs (MongoDB ObjectIds). A material type can belong to multiple categories. Attribute availability is inherited from these categories. |
 | pricePerDay              | body     | number   | Yes      | Rental price per day (must be > 0)                                                                                                                       |
@@ -3344,6 +4031,7 @@ Creates a new material type. Validates against organization's catalog item limit
 ```json
 {
   "name": "Canon EOS R5",
+  "code": "CEOSR5",
   "categoryId": ["64f1a2b3c4d5e6f7a8b9c0c9"],
   "description": "Professional mirrorless camera",
   "pricePerDay": 1500,
@@ -3372,6 +4060,7 @@ Creates a new material type. Validates against organization's catalog item limit
       "_id": "64f1a2b3c4d5e6f7a8b9c0de",
       "organizationId": "64f1a2b3c4d5e6f7a8b9c0d0",
       "name": "Canon EOS R5",
+      "code": "CEOSR5",
       "categoryId": "64f1a2b3c4d5e6f7a8b9c0c9",
       "description": "Professional mirrorless camera",
       "pricePerDay": 1500,
@@ -3971,16 +4660,18 @@ Edits the `items`, `notes`, and/or `neededBy` of a transfer request. **Only the 
 
 #### PATCH /transfers/requests/:id/cancel
 
-Cancels a transfer request. **Only the user who created the request can cancel it, and only while its status is `requested`.** Sets the status to `cancelled`.
+Cancels a transfer request. **Only users assigned to the destination location (`toLocationId`) can cancel it, and only while its status is `requested`.** Sets the status to `cancelled`.
 
-> This is distinct from **rejection**, which is performed by a location-assigned user via `/respond`. Cancellation is an action by the requester themselves.
+> This is distinct from **rejection**, which is performed by a source-location-assigned user via `/respond`. Cancellation is performed by a user at the destination location.
 
 **Permission Required:** `transfers:update`
+
+**Location Requirement:** User must be assigned to the destination location (`toLocationId`) of the transfer request.
 
 **Error Responses:**
 
 - `400` — Request is not in `requested` status
-- `403` — Caller is not the request creator
+- `403` — User not assigned to the destination location
 - `404` — Transfer request not found
 
 **Response (200):**
@@ -4008,7 +4699,7 @@ Approves or rejects a transfer request. **Only users assigned to the source loca
 | rejectionReasonId | body     | string | Yes (when status=rejected) | ID of a valid, active `TransferRejectionReason`   |
 | rejectionNote     | body     | string | No                         | Free-text note explaining the rejection (max 500) |
 
-**Permission Required:** `transfers:update`
+**Permission Required:** `transfers:accept`
 
 **Location Requirement:** User must be assigned to the source location (`fromLocationId`) of the transfer request.
 
@@ -4032,7 +4723,7 @@ Initiates a physical transfer (shipment) at the **instance level**. Marks the it
 | items          | body     | array  | Yes      | List of `{ instanceId, sentCondition?, receivedCondition?, notes? }` (min 1 item). `sentCondition` and `receivedCondition` are enum: `OK`, `DAMAGED`, `MISSING_PARTS`, `DIRTY`, `REPAIR_REQUIRED`, `LOST` |
 | senderNotes    | body     | string | No       | Notes from the sender                                                                                                                                                                                     |
 
-**Permission Required:** `transfers:create`
+**Permission Required:** `transfers:send`
 
 ---
 
@@ -4045,7 +4736,7 @@ Marks a transfer as received at the destination location. Updates the location o
 | receiverNotes | body     | string | No       | Notes from the receiver                                                                                                                                                           |
 | items         | body     | array  | No       | List of `{ instanceId, receivedCondition }` to record per-item received condition. `receivedCondition` enum: `OK`, `DAMAGED`, `MISSING_PARTS`, `DIRTY`, `REPAIR_REQUIRED`, `LOST` |
 
-**Permission Required:** `transfers:update`
+**Permission Required:** `transfers:receive`
 
 ---
 
@@ -4393,7 +5084,9 @@ Validation and resolution behavior:
 
 #### POST /requests/:id/approve
 
-Approves a loan request (manager action).
+Approves a loan request (warehouse operator action).
+
+**Auth:** `authenticate` + `requireActiveOrganization` + `requests:approve`
 
 | Parameter | Location | Type   | Required | Description    |
 | --------- | -------- | ------ | -------- | -------------- |
@@ -4403,7 +5096,7 @@ Approves a loan request (manager action).
 
 #### POST /requests/:id/reject
 
-Rejects a loan request.
+Rejects a loan request (warehouse operator action).
 
 | Parameter | Location | Type   | Required | Description      |
 | --------- | -------- | ------ | -------- | ---------------- |
@@ -4437,6 +5130,39 @@ This endpoint performs assignment + ready transition atomically:
 - `409 CONFLICT`: request not in `approved` status, one/more instances unavailable, or **temporal overlap** — one or more instances are already reserved for an overlapping date range in another approved/assigned/ready request
 
 **Double-booking protection:** Before reserving instances, the server checks whether any of the requested `materialInstanceId` values are already assigned to another request whose date range overlaps the current request's `startDate`–`endDate`. If an overlap is detected, the entire operation is rolled back and a `409 CONFLICT` error is returned.
+
+---
+
+#### POST /requests/:id/ready
+
+Marks a request as ready for pickup. This is a warehouse operator action that confirms materials have been physically prepared.
+
+**Auth:** `authenticate` + `requireActiveOrganization` + `requests:ready`
+
+| Parameter | Location | Type   | Required | Description         |
+| --------- | -------- | ------ | -------- | ------------------- |
+| id        | path     | string | Yes      | The loan request ID |
+
+**Valid request state:** `assigned`
+
+**Success (200):**
+
+```json
+{
+  "status": "success",
+  "data": { "request": { "...requestObject", "status": "ready" } },
+  "message": "Solicitud lista para recolección"
+}
+```
+
+**Common errors:**
+
+| Code              | Condition                                                    |
+| ----------------- | ------------------------------------------------------------ |
+| `400 BAD_REQUEST` | No materials assigned to the request                         |
+| `403 FORBIDDEN`   | User lacks `requests:ready` permission                       |
+| `404 NOT_FOUND`   | Request not found in the organization                        |
+| `409 CONFLICT`    | Request is not in a status that allows transition to `ready` |
 
 ---
 
@@ -4541,6 +5267,39 @@ Instances that are `damaged`, `maintenance`, `retired`, `lost`, or won't be free
 **Common errors:**
 
 - `404 NOT_FOUND`: request does not exist in the organization
+
+---
+
+#### POST /requests/:id/cancel
+
+Cancels a loan request and releases any assigned materials back to available status.
+
+**Auth:** `authenticate` + `requireActiveOrganization` + `requests:cancel`
+
+| Parameter | Location | Type   | Required | Description         |
+| --------- | -------- | ------ | -------- | ------------------- |
+| id        | path     | string | Yes      | The loan request ID |
+
+**Valid request states:** All states except `shipped`, `completed`, `cancelled`, and `rejected`
+
+**Success (200):**
+
+```json
+{
+  "status": "success",
+  "data": { "request": { "...requestObject", "status": "cancelled" } },
+  "message": "Solicitud cancelada exitosamente"
+}
+```
+
+**Common errors:**
+
+| Code              | Condition                                           |
+| ----------------- | --------------------------------------------------- |
+| `400 BAD_REQUEST` | Invalid request ID format                           |
+| `403 FORBIDDEN`   | User lacks `requests:cancel` permission             |
+| `404 NOT_FOUND`   | Request not found in the organization               |
+| `409 CONFLICT`    | Request cannot be cancelled from its current status |
 
 ---
 
@@ -4769,6 +5528,17 @@ Creates an inspection for a returned loan. If damages or lost items are reported
 
 The server automatically populates `conditionBefore` from the material instance's `conditionAtCheckout` recorded when the loan was created, and computes `conditionDegraded` (boolean) by comparing the severity index of `conditionBefore` against the submitted `condition`. If no damages are found, the loan is auto-transitioned to `inspected` status.
 
+**Material instance status side-effects:** After the inspection is saved, each inspected material instance is automatically transitioned to a new status based on the reported condition:
+
+| `condition` reported        | MaterialInstance status set to |
+| --------------------------- | ------------------------------ |
+| `excellent`, `good`, `fair` | `available`                    |
+| `poor`                      | `maintenance`                  |
+| `damaged`                   | `damaged`                      |
+| `lost`                      | `lost`                         |
+
+The resulting status is also stored in the `transitionedToStatus` field on each inspection item sub-document for auditability.
+
 | Parameter                | Location | Type     | Required | Description                                                                                                                                                                                                                                                                                                                                                                                                       |
 | ------------------------ | -------- | -------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | loanId                   | body     | string   | Yes      | ID of the loan being inspected (must be in `returned` status)                                                                                                                                                                                                                                                                                                                                                     |
@@ -4845,7 +5615,35 @@ Extends a loan's end date.
 
 #### POST /loans/:id/return
 
-Marks a loan as returned.
+Marks a loan as returned and initiates the inspection process.
+
+**Auth:** `authenticate` + `requireActiveOrganization` + `loans:return`
+
+| Parameter | Location | Type   | Required | Description                         |
+| --------- | -------- | ------ | -------- | ----------------------------------- |
+| notes     | body     | string | No       | Return notes or damage observations |
+
+**Preconditions:**
+
+The loan must be in `active` or `overdue` status.
+
+**Response:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": { "loan": { "...loanObject", "status": "returned" } },
+  "message": "Préstamo marcado como devuelto - inspección pendiente"
+}
+```
+
+**Errors:**
+
+| Code            | Condition                                              |
+| --------------- | ------------------------------------------------------ |
+| `403 FORBIDDEN` | User lacks `loans:return` permission                   |
+| `404 NOT_FOUND` | Loan not found or not in an active/overdue state       |
+| `409 CONFLICT`  | Loan cannot transition to returned from current status |
 
 ---
 
@@ -5296,6 +6094,16 @@ Creates a new incident manually.
 
 **Note:** `loanId` is required when `context` is `"loan"`. For non-loan incidents (e.g., transit damage, warehouse storage issues), use the appropriate `context` value and optionally provide `locationId`.
 
+**Material instance status side-effects:** Each ID in `relatedMaterialInstances` is automatically transitioned based on incident `type` when the incident is created:
+
+| `type`                         | MaterialInstance status set to |
+| ------------------------------ | ------------------------------ |
+| `damage`                       | `damaged`                      |
+| `lost`                         | `lost`                         |
+| `issue`                        | `maintenance`                  |
+| `replacement`                  | `retired`                      |
+| `overdue`, `extended`, `other` | _(no automatic change)_        |
+
 **Response:** `201 Created`
 
 ```json
@@ -5342,7 +6150,7 @@ Acknowledges an open incident.
 | --------- | -------- | ------ | -------- | ----------- |
 | id        | path     | string | Yes      | Incident ID |
 
-**Auth:** `authenticate` + `requireActiveOrganization` + `incidents:update`
+**Auth:** `authenticate` + `requireActiveOrganization` + `incidents:acknowledge`
 
 **Response:** `200 OK`
 
@@ -5380,7 +6188,15 @@ Resolves an incident with a resolution note.
 | id         | path     | string | Yes      | Incident ID        |
 | resolution | body     | string | Yes      | Resolution details |
 
-**Auth:** `authenticate` + `requireActiveOrganization` + `incidents:update`
+**Auth:** `authenticate` + `requireActiveOrganization` + `incidents:resolve`
+
+**Material instance status side-effects:** Related material instances are automatically transitioned based on the incident `type` when resolution is saved:
+
+| `type`                        | MaterialInstance status set to |
+| ----------------------------- | ------------------------------ |
+| `damage`                      | `maintenance`                  |
+| `issue`                       | `available`                    |
+| `lost`, `replacement`, others | _(no automatic change)_        |
 
 **Example Request:**
 
@@ -5423,14 +6239,14 @@ Resolves an incident with a resolution note.
 
 #### POST /incidents/:id/dismiss
 
-Dismisses an open or acknowledged incident.
+Dismisses an open or acknowledged incident. Dismissal means the incident was a false alarm — no automatic material instance status changes are applied. Any instance status corrections must be made manually.
 
 | Parameter  | Location | Type   | Required | Description          |
 | ---------- | -------- | ------ | -------- | -------------------- |
 | id         | path     | string | Yes      | Incident ID          |
 | resolution | body     | string | Yes      | Reason for dismissal |
 
-**Auth:** `authenticate` + `requireActiveOrganization` + `incidents:update`
+**Auth:** `authenticate` + `requireActiveOrganization` + `incidents:dismiss`
 
 **Example Request:**
 
@@ -5752,6 +6568,22 @@ Returns customer status breakdown and the top 10 customers ranked by total loan 
 
 ### Reports Endpoints
 
+> **⚠️ Legacy — uso desaconsejado.** Estos endpoints se mantienen por compatibilidad retroactiva, pero se recomienda migrar a los **Report Export Endpoints** (sección siguiente). Los nuevos endpoints ofrecen el parámetro `includeIds` para controlar la presencia de IDs, métricas de negocio enriquecidas (tendencias, comparaciones de periodo, tasas de utilización, rutas top, etc.) y filtros más completos.
+>
+> **Tabla de migración:**
+>
+> | Endpoint legacy          | Reemplazo recomendado                | Notas                                                                                                            |
+> | ------------------------ | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
+> | `GET /reports/loans`     | `GET /reports/exports/loan-activity` | Métricas de duración, sobrepasos, tendencias mensuales y comparación de periodo                                  |
+> | `GET /reports/inventory` | `GET /reports/exports/inventory`     | Desglose por tipo/ubicación con tasas de utilización/disponibilidad/daño                                         |
+> | `GET /reports/financial` | `GET /reports/exports/sales`         | Combina préstamos + facturas con revenue breakdown y top clientes                                                |
+> | `GET /reports/damages`   | —                                    | Sin reemplazo directo; usa datos de inspección. `/exports/damages` usa datos de mantenimiento (fuente diferente) |
+> | `GET /reports/transfers` | `GET /reports/exports/transfers`     | Análisis de rutas, tiempos de tránsito, condición de ítems y comparación de periodo                              |
+> | `GET /reports/catalog`   | `GET /reports/exports/catalog`       | Catálogo detallado con disponibilidad por ubicación, ingreso estimado y costo de mantenimiento                   |
+> | —                        | `GET /reports/exports/locations`     | Nuevo: catálogo de ubicaciones con capacidades de material, tasas de ocupación y resumen por estado              |
+> | —                        | `GET /reports/exports/customers`     | Nuevo: listado de clientes con ingresos reales desde préstamos, top por revenue y por número de préstamos        |
+> | —                        | `GET /reports/exports/requests`      | Nuevo: solicitudes de préstamo con embudo de conversión, revenue analytics y comparación de periodo              |
+
 All reports endpoints require authentication, an active organization, and the `reports:read` permission. Reports are designed for operational analysis and support pagination, date-range filtering, and status filtering.
 
 **Common Query Parameters** (all optional):
@@ -5983,6 +6815,1121 @@ Transfer report with inter-location movement history and status summary.
   }
 }
 ```
+
+---
+
+### Report Export Endpoints
+
+These endpoints return JSON exports optimized for frontend consumption (the frontend handles CSV/XLSX generation). Each endpoint accepts an `includeIds` query parameter:
+
+- **`includeIds=true`** (default): Returns raw data with MongoDB ObjectIds, suitable for cross-referencing.
+- **`includeIds=false`**: Strips all IDs and adds enriched business metrics, period-over-period comparison, and summary analytics suitable for dashboards and reports.
+
+All export endpoints require authentication, an active organization, and the `reports:read` permission.
+
+---
+
+#### GET /reports/exports/sales
+
+Combined loan revenue + invoice sales export. Returns paginated loan and invoice rows.
+
+**Permission:** `reports:read`
+
+**Query Parameters:**
+
+| Parameter     | Type    | Description                                   |
+| ------------- | ------- | --------------------------------------------- |
+| startDate     | string  | Filter from this date (ISO 8601)              |
+| endDate       | string  | Filter up to this date (ISO 8601)             |
+| includeIds    | boolean | Include ObjectIds in response (default: true) |
+| customerId    | string  | Filter by customer ObjectId                   |
+| locationId    | string  | Filter by location ObjectId                   |
+| invoiceType   | string  | Filter invoices by type                       |
+| invoiceStatus | string  | Filter invoices by status                     |
+| categoryId    | string  | Filter loans by material category             |
+| page          | integer | Page number (default: 1)                      |
+| limit         | integer | Items per page (default: 50, max: 200)        |
+
+**Response (`includeIds=true`):** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "loanRows": [
+      {
+        "loanId": "665a1b2c3d4e5f6a7b8c9d0e",
+        "customerId": "665a1b2c3d4e5f6a7b8c9d0f",
+        "locationId": "665a1b2c3d4e5f6a7b8c9d10",
+        "code": "LN-0042",
+        "customerName": "Maria Garcia",
+        "customerEmail": "maria@example.com",
+        "locationName": "Bodega Principal",
+        "startDate": "2025-07-01T00:00:00.000Z",
+        "endDate": "2025-07-15T00:00:00.000Z",
+        "totalAmount": 350000,
+        "depositAmount": 50000,
+        "status": "active",
+        "materialCount": 5
+      }
+    ],
+    "invoiceRows": [
+      {
+        "invoiceId": "665a1b2c3d4e5f6a7b8c9d11",
+        "customerId": "665a1b2c3d4e5f6a7b8c9d0f",
+        "invoiceNumber": "INV-0087",
+        "type": "rental",
+        "status": "paid",
+        "customerName": "Maria Garcia",
+        "totalAmount": 350000,
+        "amountPaid": 350000,
+        "amountDue": 0,
+        "dueDate": "2025-07-15T00:00:00.000Z",
+        "createdAt": "2025-07-01T00:00:00.000Z"
+      }
+    ],
+    "pagination": { "total": 45, "page": 1, "totalPages": 1 }
+  }
+}
+```
+
+**Response (`includeIds=false`):** `200 OK`
+
+When `includeIds=false`, IDs are omitted from rows and a `summary` object is added:
+
+```json
+{
+  "status": "success",
+  "data": {
+    "loanRows": [ { "code": "LN-0042", "customerName": "...", ... } ],
+    "invoiceRows": [ { "invoiceNumber": "INV-0087", ... } ],
+    "pagination": { "total": 45, "page": 1, "totalPages": 1 },
+    "summary": {
+      "totalLoanRevenue": 12500000,
+      "totalInvoiceRevenue": 8700000,
+      "combinedRevenue": 21200000,
+      "averageLoanValue": 278000,
+      "revenueByMonth": [
+        { "year": 2025, "month": 6, "loanRevenue": 5000000, "invoiceRevenue": 3200000, "total": 8200000 },
+        { "year": 2025, "month": 7, "loanRevenue": 7500000, "invoiceRevenue": 5500000, "total": 13000000 }
+      ],
+      "revenueByInvoiceType": [
+        { "type": "rental", "revenue": 6500000, "count": 42 },
+        { "type": "damage", "revenue": 1200000, "count": 8 }
+      ],
+      "topCustomersByRevenue": [
+        { "customerName": "Maria Garcia", "totalRevenue": 2500000, "loanCount": 12 }
+      ],
+      "periodComparison": {
+        "currentTotal": 21200000,
+        "previousTotal": 18000000,
+        "percentChange": 17.78
+      }
+    }
+  }
+}
+```
+
+**Notes:**
+
+- `periodComparison` is included only when both `startDate` and `endDate` are provided. It compares the selected period against the immediately preceding period of equal duration.
+- `revenueByMonth` merges loan and invoice revenue into a single timeline.
+
+---
+
+#### GET /reports/exports/catalog
+
+Detailed material catalog export with per-location/status instance breakdown.
+
+**Permission:** `reports:read`
+
+**Query Parameters:**
+
+| Parameter  | Type    | Description                                      |
+| ---------- | ------- | ------------------------------------------------ |
+| includeIds | boolean | Include ObjectIds in response (default: true)    |
+| categoryId | string  | Filter by material category ObjectId             |
+| locationId | string  | Filter instances by location ObjectId            |
+| search     | string  | Search material types by name (case-insensitive) |
+| status     | string  | Filter instances by status                       |
+
+**Response (`includeIds=true`):** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "exportedAt": "2025-07-15T10:00:00.000Z",
+    "totalMaterialTypes": 25,
+    "materialTypes": [
+      {
+        "materialTypeId": "664abc123def456789012345",
+        "categoryIds": ["664abc123def456789012350"],
+        "code": "MT-0012",
+        "name": "Silla Plegable",
+        "description": "Silla plegable metálica",
+        "pricePerDay": 5000,
+        "categoryNames": ["Mobiliario"],
+        "totalInstances": 50,
+        "instancesByStatus": {
+          "available": 35,
+          "loaned": 10,
+          "damaged": 3,
+          "maintenance": 2
+        },
+        "locationBreakdown": [
+          {
+            "locationName": "Bodega Principal",
+            "locationId": "664abc123def456789012346",
+            "count": 30
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**Response (`includeIds=false`):** `200 OK`
+
+When `includeIds=false`, IDs are omitted and each material type includes enriched metrics. A global `summary` is also added:
+
+```json
+{
+  "status": "success",
+  "data": {
+    "exportedAt": "2025-07-15T10:00:00.000Z",
+    "totalMaterialTypes": 25,
+    "materialTypes": [
+      {
+        "code": "MT-0012",
+        "name": "Silla Plegable",
+        "description": "Silla plegable metálica",
+        "pricePerDay": 5000,
+        "categoryNames": ["Mobiliario"],
+        "totalInstances": 50,
+        "instancesByStatus": {
+          "available": 35,
+          "loaned": 10,
+          "damaged": 3,
+          "maintenance": 2
+        },
+        "locationBreakdown": [{ "locationName": "Bodega Principal", "count": 30 }],
+        "utilizationRate": 20.0,
+        "availabilityRate": 70.0,
+        "damageRate": 6.0,
+        "totalRevenue": 1250000,
+        "totalLoans": 45,
+        "averageLoanDurationDays": 5,
+        "maintenanceCostTotal": 75000
+      }
+    ],
+    "summary": {
+      "totalCatalogItems": 25,
+      "totalInstances": 380,
+      "globalAvailabilityRate": 68.42,
+      "globalUtilizationRate": 22.37,
+      "instancesByStatus": [
+        { "status": "available", "count": 260 },
+        { "status": "loaned", "count": 85 }
+      ],
+      "topRevenueGenerators": [
+        { "name": "Silla Plegable", "totalRevenue": 1250000, "totalLoans": 45 }
+      ]
+    }
+  }
+}
+```
+
+**Notes:**
+
+- `utilizationRate`, `availabilityRate`, and `damageRate` are percentages (0–100) with two decimal places.
+- `maintenanceCostTotal` is derived from MaintenanceBatch items linked to the material type.
+
+---
+
+#### GET /reports/exports/loan-activity
+
+Loan activity export with duration and overdue analysis. Returns paginated loan rows.
+
+**Permission:** `reports:read`
+
+**Query Parameters:**
+
+| Parameter  | Type    | Description                                   |
+| ---------- | ------- | --------------------------------------------- |
+| startDate  | string  | Filter from this date (ISO 8601)              |
+| endDate    | string  | Filter up to this date (ISO 8601)             |
+| includeIds | boolean | Include ObjectIds in response (default: true) |
+| customerId | string  | Filter by customer ObjectId                   |
+| locationId | string  | Filter by location ObjectId                   |
+| status     | string  | Filter by loan status                         |
+| page       | integer | Page number (default: 1)                      |
+| limit      | integer | Items per page (default: 50, max: 200)        |
+
+**Response (`includeIds=true`):** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "rows": [
+      {
+        "loanId": "665a1b2c3d4e5f6a7b8c9d0e",
+        "customerId": "665a1b2c3d4e5f6a7b8c9d0f",
+        "locationId": "665a1b2c3d4e5f6a7b8c9d10",
+        "code": "LN-0042",
+        "customerName": "Maria Garcia",
+        "locationName": "Bodega Principal",
+        "status": "active",
+        "startDate": "2025-07-01T00:00:00.000Z",
+        "endDate": "2025-07-15T00:00:00.000Z",
+        "returnedAt": null,
+        "durationDays": 14,
+        "overdueDays": 0,
+        "totalAmount": 350000,
+        "materialCount": 5
+      }
+    ],
+    "pagination": { "total": 45, "page": 1, "totalPages": 1 }
+  }
+}
+```
+
+**Response (`includeIds=false`):** `200 OK`
+
+When `includeIds=false`, IDs are omitted and an enriched `summary` is added:
+
+```json
+{
+  "status": "success",
+  "data": {
+    "rows": [ { "code": "LN-0042", "customerName": "...", ... } ],
+    "pagination": { "total": 45, "page": 1, "totalPages": 1 },
+    "summary": {
+      "totalLoans": 45,
+      "totalRevenue": 12500000,
+      "averageDurationDays": 7,
+      "overdueRate": 8.89,
+      "returnRate": 75.56,
+      "loansByMonth": [
+        { "year": 2025, "month": 7, "count": 28, "totalAmount": 8000000 }
+      ],
+      "loansByStatus": [
+        { "status": "active", "count": 23, "totalAmount": 6500000 }
+      ],
+      "topMaterials": [
+        { "materialName": "Silla Plegable", "loanCount": 32 }
+      ],
+      "topCustomers": [
+        { "customerName": "Maria Garcia", "loanCount": 12, "totalAmount": 2500000 }
+      ],
+      "periodComparison": {
+        "currentCount": 45,
+        "previousCount": 38,
+        "percentChange": 18.42,
+        "currentRevenue": 12500000,
+        "previousRevenue": 10200000,
+        "revenuePercentChange": 22.55
+      }
+    }
+  }
+}
+```
+
+**Notes:**
+
+- `overdueRate` and `returnRate` are percentages (0–100) with two decimal places.
+- `returnRate` counts loans with status `returned` or `closed`.
+- `periodComparison` is only included when both `startDate` and `endDate` are provided.
+
+---
+
+#### GET /reports/exports/damages
+
+Maintenance batch and damage cost export. Returns paginated batch rows and individual item-level detail.
+
+**Permission:** `reports:read`
+
+**Query Parameters:**
+
+| Parameter   | Type    | Description                                       |
+| ----------- | ------- | ------------------------------------------------- |
+| startDate   | string  | Filter from this date (ISO 8601)                  |
+| endDate     | string  | Filter up to this date (ISO 8601)                 |
+| includeIds  | boolean | Include ObjectIds in response (default: true)     |
+| locationId  | string  | Filter by location ObjectId                       |
+| batchStatus | string  | Filter by maintenance batch status                |
+| entryReason | string  | Filter items by entry reason (damaged/lost/other) |
+| page        | integer | Page number (default: 1)                          |
+| limit       | integer | Items per page (default: 50, max: 200)            |
+
+**Response (`includeIds=true`):** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "batches": [
+      {
+        "batchId": "665a1b2c3d4e5f6a7b8c9d12",
+        "locationId": "665a1b2c3d4e5f6a7b8c9d10",
+        "batchNumber": "MB-0005",
+        "name": "Reparación julio",
+        "status": "in_progress",
+        "locationName": "Bodega Principal",
+        "assignedTo": "Carlos Lopez",
+        "totalEstimatedCost": 250000,
+        "totalActualCost": 180000,
+        "startedAt": "2025-07-10T08:00:00.000Z",
+        "completedAt": null,
+        "itemCount": 8
+      }
+    ],
+    "items": [
+      {
+        "materialInstanceId": "664abc123def456789012347",
+        "batchNumber": "MB-0005",
+        "serialNumber": "SN-00123",
+        "materialTypeName": "Silla Plegable",
+        "entryReason": "damaged",
+        "itemStatus": "in_repair",
+        "estimatedCost": 35000,
+        "actualCost": 28000,
+        "repairNotes": "Pata doblada, requiere soldadura",
+        "sourceType": "inspection",
+        "resolvedAt": null
+      }
+    ],
+    "pagination": { "total": 12, "page": 1, "totalPages": 1 }
+  }
+}
+```
+
+**Response (`includeIds=false`):** `200 OK`
+
+When `includeIds=false`, IDs are omitted and an enriched `summary` is added:
+
+```json
+{
+  "status": "success",
+  "data": {
+    "batches": [ { "batchNumber": "MB-0005", ... } ],
+    "items": [ { "batchNumber": "MB-0005", "serialNumber": "SN-00123", ... } ],
+    "pagination": { "total": 12, "page": 1, "totalPages": 1 },
+    "summary": {
+      "totalBatches": 12,
+      "totalItems": 47,
+      "totalEstimatedCost": 1500000,
+      "totalActualCost": 1100000,
+      "costVariance": -400000,
+      "costVariancePercent": -26.67,
+      "costByEntryReason": [
+        { "reason": "damaged", "estimatedCost": 1000000, "actualCost": 750000, "itemCount": 30 },
+        { "reason": "lost", "estimatedCost": 400000, "actualCost": 300000, "itemCount": 12 }
+      ],
+      "costByMonth": [
+        { "year": 2025, "month": 7, "estimatedCost": 800000, "actualCost": 600000, "batchCount": 5 }
+      ],
+      "mostDamagedMaterials": [
+        { "materialTypeName": "Silla Plegable", "incidentCount": 15, "totalCost": 450000 }
+      ],
+      "averageRepairTimeDays": 4,
+      "resolutionBreakdown": [
+        { "status": "repaired", "count": 25 },
+        { "status": "unrecoverable", "count": 8 },
+        { "status": "in_repair", "count": 10 }
+      ],
+      "periodComparison": {
+        "currentCost": 1100000,
+        "previousCost": 950000,
+        "percentChange": 15.79,
+        "currentItemCount": 47,
+        "previousItemCount": 39,
+        "itemCountPercentChange": 20.51
+      }
+    }
+  }
+}
+```
+
+**Notes:**
+
+- `costVariance` = `totalActualCost - totalEstimatedCost`. Negative values indicate costs came in below estimates.
+- `costVariancePercent` represents the percentage difference.
+- `periodComparison` is only included when both `startDate` and `endDate` are provided.
+- The `items` array respects the `entryReason` filter (e.g., only damaged items), even though `batches` shows full batch data.
+
+---
+
+#### GET /reports/exports/inventory
+
+Inventory export grouped by material type and location. When `includeIds=false`, includes utilization, availability, damage, and maintenance rates, estimated daily catalog value, and top materials/locations by stock.
+
+**Permission:** `reports:read`
+
+**Query Parameters:**
+
+| Parameter  | Type   | Description                                                            |
+| ---------- | ------ | ---------------------------------------------------------------------- |
+| includeIds | string | `"true"` (default) includes IDs; `"false"` omits them and adds summary |
+| locationId | string | Filter by location ObjectId                                            |
+| categoryId | string | Filter by category ObjectId                                            |
+| status     | string | Filter by instance status (e.g., `available`, `loaned`, `damaged`)     |
+| search     | string | Search material type name (case-insensitive regex)                     |
+
+**Example Request:**
+
+```
+GET /api/v1/reports/exports/inventory?includeIds=false&status=available
+Authorization: Bearer <token>
+x-organization-id: <org-id>
+```
+
+**Success Response (200) — `includeIds=true`:**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "totalInstances": 150,
+    "byMaterialType": [
+      {
+        "materialTypeId": "665...",
+        "materialTypeName": "Proyector Epson",
+        "code": "MAT-001",
+        "pricePerDay": 15000,
+        "categoryNames": ["Electrónica"],
+        "totalInstances": 30,
+        "instancesByStatus": { "available": 20, "loaned": 8, "damaged": 2 }
+      }
+    ],
+    "byLocation": [
+      {
+        "locationId": "664...",
+        "locationName": "Sede Principal",
+        "totalInstances": 80,
+        "instancesByStatus": { "available": 50, "loaned": 25, "maintenance": 5 }
+      }
+    ]
+  }
+}
+```
+
+**Success Response (200) — `includeIds=false` (additional `summary`):**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "totalInstances": 150,
+    "byMaterialType": ["..."],
+    "byLocation": ["..."],
+    "summary": {
+      "totalInstances": 150,
+      "totalMaterialTypes": 12,
+      "totalLocations": 5,
+      "globalInstancesByStatus": [
+        { "status": "available", "count": 80 },
+        { "status": "loaned", "count": 50 },
+        { "status": "damaged", "count": 10 },
+        { "status": "maintenance", "count": 10 }
+      ],
+      "availabilityRate": 53.33,
+      "utilizationRate": 33.33,
+      "damageRate": 6.67,
+      "maintenanceRate": 6.67,
+      "estimatedDailyValue": 2250000,
+      "topMaterialTypesByStock": [{ "name": "Proyector Epson", "total": 30 }],
+      "topLocationsByStock": [{ "name": "Sede Principal", "total": 80 }]
+    }
+  }
+}
+```
+
+**Error Responses:**
+
+| Status | Condition                          |
+| ------ | ---------------------------------- |
+| 400    | Query parameter validation failure |
+| 401    | Not authenticated                  |
+| 403    | Missing `reports:read` permission  |
+
+---
+
+#### GET /reports/exports/transfers
+
+Transfer export with condition tracking, paginated rows, and enriched metrics (transit time, completion/issue rates, route analysis, condition breakdown, period comparison) when `includeIds=false`.
+
+**Permission:** `reports:read`
+
+**Query Parameters:**
+
+| Parameter      | Type    | Description                                                                       |
+| -------------- | ------- | --------------------------------------------------------------------------------- |
+| startDate      | string  | Filter from this date (ISO 8601)                                                  |
+| endDate        | string  | Filter up to this date (ISO 8601)                                                 |
+| includeIds     | string  | `"true"` (default) includes IDs; `"false"` omits them and adds summary            |
+| status         | string  | Filter by transfer status (`picking`, `in_transit`, `received`, `issue_reported`) |
+| fromLocationId | string  | Filter by origin location ObjectId                                                |
+| toLocationId   | string  | Filter by destination location ObjectId                                           |
+| page           | integer | Page number (default: 1)                                                          |
+| limit          | integer | Items per page (default: 50, max: 200)                                            |
+
+**Example Request:**
+
+```
+GET /api/v1/reports/exports/transfers?includeIds=false&startDate=2025-01-01&endDate=2025-06-30
+Authorization: Bearer <token>
+x-organization-id: <org-id>
+```
+
+**Success Response (200) — `includeIds=true`:**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "rows": [
+      {
+        "transferId": "665...",
+        "fromLocationId": "664a...",
+        "toLocationId": "664b...",
+        "status": "received",
+        "fromLocation": "Sede Principal",
+        "toLocation": "Sucursal Norte",
+        "itemCount": 5,
+        "pickedBy": "Juan Pérez",
+        "receivedBy": "María López",
+        "sentAt": "2025-03-10T08:00:00.000Z",
+        "receivedAt": "2025-03-12T14:30:00.000Z",
+        "transitDays": 3,
+        "senderNotes": null,
+        "receiverNotes": "Todo en orden",
+        "createdAt": "2025-03-10T07:50:00.000Z"
+      }
+    ],
+    "pagination": {
+      "total": 42,
+      "page": 1,
+      "totalPages": 1
+    }
+  }
+}
+```
+
+**Success Response (200) — `includeIds=false` (additional `summary`):**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "rows": ["..."],
+    "pagination": { "total": 42, "page": 1, "totalPages": 1 },
+    "summary": {
+      "totalTransfers": 42,
+      "totalItemsMoved": 185,
+      "averageTransitDays": 2,
+      "completionRate": 85.71,
+      "issueRate": 4.76,
+      "transfersByStatus": [
+        { "status": "received", "count": 36, "totalItems": 160 },
+        { "status": "in_transit", "count": 4, "totalItems": 15 }
+      ],
+      "transfersByMonth": [
+        { "year": 2025, "month": 1, "count": 8, "totalItems": 30 },
+        { "year": 2025, "month": 2, "count": 10, "totalItems": 45 }
+      ],
+      "receivedConditionBreakdown": [
+        { "condition": "good", "count": 140 },
+        { "condition": "damaged", "count": 12 }
+      ],
+      "topRoutes": [
+        {
+          "fromLocation": "Sede Principal",
+          "toLocation": "Sucursal Norte",
+          "transferCount": 15,
+          "totalItems": 60
+        }
+      ],
+      "periodComparison": {
+        "currentTransfers": 42,
+        "previousTransfers": 35,
+        "percentChange": 20.0,
+        "currentItems": 185,
+        "previousItems": 150,
+        "itemsPercentChange": 23.33
+      }
+    }
+  }
+}
+```
+
+**Notes:**
+
+- `transitDays` is calculated only when both `sentAt` and `receivedAt` exist.
+- `periodComparison` is included only when both `startDate` and `endDate` are provided.
+- `topRoutes` returns the 10 most-used origin→destination pairs.
+- `receivedConditionBreakdown` reflects the condition of items at reception.
+
+**Error Responses:**
+
+| Status | Condition                          |
+| ------ | ---------------------------------- |
+| 400    | Query parameter validation failure |
+| 401    | Not authenticated                  |
+| 403    | Missing `reports:read` permission  |
+
+---
+
+#### GET /reports/exports/billing-history
+
+Billing history export with subscription lifecycle events, payment tracking, and cost analytics. When `includeIds=false`, includes event breakdown by type/month, payment summary per currency, payment success rate, plan change history, and period comparison.
+
+**Permissions:** `reports:read` **AND** `billing:manage`
+
+**Query Parameters:**
+
+| Parameter  | Type    | Description                                                                                 |
+| ---------- | ------- | ------------------------------------------------------------------------------------------- |
+| startDate  | string  | Filter from this date (ISO 8601)                                                            |
+| endDate    | string  | Filter up to this date (ISO 8601)                                                           |
+| includeIds | string  | `"true"` (default) includes IDs; `"false"` omits them and adds summary                      |
+| eventType  | string  | Filter by event type (e.g., `payment_succeeded`, `plan_upgraded`, `subscription_cancelled`) |
+| page       | integer | Page number (default: 1)                                                                    |
+| limit      | integer | Items per page (default: 50, max: 200)                                                      |
+
+**Valid `eventType` values:** `subscription_created`, `subscription_updated`, `subscription_cancelled`, `payment_succeeded`, `payment_failed`, `invoice_paid`, `invoice_payment_failed`, `seat_added`, `seat_removed`, `plan_upgraded`, `plan_downgraded`.
+
+**Example Request:**
+
+```
+GET /api/v1/reports/exports/billing-history?includeIds=false&startDate=2025-01-01&endDate=2025-12-31
+Authorization: Bearer <token>
+x-organization-id: <org-id>
+```
+
+**Success Response (200) — `includeIds=true`:**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "currentSubscription": {
+      "plan": "professional",
+      "seatCount": 10,
+      "currentPeriodStart": "2025-06-01T00:00:00.000Z",
+      "currentPeriodEnd": "2025-07-01T00:00:00.000Z",
+      "cancelAtPeriodEnd": false,
+      "pendingPlan": null,
+      "pendingPlanEffectiveDate": null
+    },
+    "rows": [
+      {
+        "eventId": "665...",
+        "stripeEventId": "evt_...",
+        "stripeSubscriptionId": "sub_...",
+        "stripeInvoiceId": "in_...",
+        "stripePaymentIntentId": null,
+        "eventType": "payment_succeeded",
+        "amount": 50000,
+        "currency": "usd",
+        "previousPlan": null,
+        "newPlan": null,
+        "seatChange": null,
+        "processed": true,
+        "error": null,
+        "createdAt": "2025-06-01T00:05:00.000Z"
+      }
+    ],
+    "pagination": {
+      "total": 24,
+      "page": 1,
+      "totalPages": 1
+    }
+  }
+}
+```
+
+**Success Response (200) — `includeIds=false` (additional `summary`):**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "currentSubscription": { "..." },
+    "rows": [ "..." ],
+    "pagination": { "total": 24, "page": 1, "totalPages": 1 },
+    "summary": {
+      "totalEvents": 24,
+      "eventsByType": [
+        { "eventType": "payment_succeeded", "count": 12 },
+        { "eventType": "subscription_updated", "count": 6 },
+        { "eventType": "plan_upgraded", "count": 2 }
+      ],
+      "eventsByMonth": [
+        { "year": 2025, "month": 1, "count": 2, "totalAmount": 100000 },
+        { "year": 2025, "month": 2, "count": 3, "totalAmount": 150000 }
+      ],
+      "paymentSummary": [
+        {
+          "currency": "usd",
+          "totalPaid": 600000,
+          "paymentCount": 12,
+          "averagePayment": 50000
+        }
+      ],
+      "paymentSuccessRate": 92.31,
+      "failedPaymentCount": 1,
+      "planChangeHistory": [
+        {
+          "eventType": "plan_upgraded",
+          "previousPlan": "starter",
+          "newPlan": "professional",
+          "seatChange": 10,
+          "createdAt": "2025-03-15T10:00:00.000Z"
+        }
+      ],
+      "periodComparison": {
+        "currentEvents": 24,
+        "previousEvents": 18,
+        "eventsPercentChange": 33.33,
+        "currentAmountPaid": 600000,
+        "previousAmountPaid": 450000,
+        "amountPercentChange": 33.33
+      }
+    }
+  }
+}
+```
+
+**Notes:**
+
+- `amount` values are in the smallest currency unit (e.g., cents for USD).
+- `periodComparison` is included only when both `startDate` and `endDate` are provided.
+- `currentSubscription` always reflects the organization's live subscription state, regardless of filters.
+- `paymentSuccessRate` considers both `payment_succeeded`/`invoice_paid` (success) and `payment_failed`/`invoice_payment_failed` (failure).
+
+**Error Responses:**
+
+| Status | Condition                                             |
+| ------ | ----------------------------------------------------- |
+| 400    | Query parameter validation failure                    |
+| 401    | Not authenticated                                     |
+| 403    | Missing `reports:read` or `billing:manage` permission |
+
+---
+
+#### GET /reports/exports/locations
+
+Location catalog export with material capacity detail and summary. When `includeIds=false`, adds occupancy analytics, status breakdown, and top locations by occupancy.
+
+**Permission:** `reports:read`
+
+**Query Parameters:**
+
+| Parameter  | Type    | Default | Description                                           |
+| ---------- | ------- | ------- | ----------------------------------------------------- |
+| includeIds | boolean | `true`  | Include ObjectIds in the output                       |
+| locationId | string  | —       | Filter by specific location ID                        |
+| status     | string  | —       | Filter by status (`available`, `full_capacity`, etc.) |
+| isActive   | boolean | —       | Filter by active/inactive state                       |
+| search     | string  | —       | Partial match on location name (case-insensitive)     |
+
+**Example Request:**
+
+```
+GET /api/v1/reports/exports/locations?includeIds=false&status=available
+```
+
+**Success Response (includeIds=false):**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "totalLocations": 5,
+    "locations": [
+      {
+        "name": "Bodega Central",
+        "code": "BC01",
+        "status": "available",
+        "isActive": true,
+        "address": {
+          "street": "Calle 10 #5-30",
+          "city": "Bogotá",
+          "state": "Cundinamarca",
+          "country": "CO"
+        },
+        "additionalDetails": null,
+        "materialCapacitiesDetail": [
+          {
+            "typeName": "Silla plegable",
+            "maxQuantity": 200,
+            "currentQuantity": 150
+          },
+          {
+            "typeName": "Mesa redonda",
+            "maxQuantity": 50,
+            "currentQuantity": 30
+          }
+        ],
+        "materialCapacitiesSummary": {
+          "totalCapacity": 250,
+          "totalOccupied": 180,
+          "occupancyRate": 72
+        },
+        "createdAt": "2025-01-10T08:00:00.000Z",
+        "updatedAt": "2025-06-01T12:00:00.000Z"
+      }
+    ],
+    "summary": {
+      "totalLocations": 5,
+      "byStatus": [
+        { "status": "available", "count": 3 },
+        { "status": "full_capacity", "count": 1 },
+        { "status": "maintenance", "count": 1 }
+      ],
+      "byActive": { "active": 4, "inactive": 1 },
+      "avgOccupancyRate": 65.5,
+      "totalCapacity": 1200,
+      "totalOccupied": 786,
+      "topByOccupancy": [{ "name": "Bodega Norte", "code": "BN01", "occupancyRate": 95.2 }]
+    }
+  }
+}
+```
+
+**Notes:**
+
+- No pagination — returns all matching locations (catalog-style).
+- `materialCapacitiesDetail` includes resolved material type names via lookup.
+- `materialCapacitiesSummary` provides a per-location rollup of capacity.
+- `summary` is only included when `includeIds=false`.
+
+**Error Responses:**
+
+| Status | Condition                          |
+| ------ | ---------------------------------- |
+| 400    | Query parameter validation failure |
+| 401    | Not authenticated                  |
+| 403    | Missing `reports:read` permission  |
+
+---
+
+#### GET /reports/exports/customers
+
+Customer export with real revenue calculated from Loans. When `includeIds=false`, includes global revenue stats, top customers by revenue and loan count, and period comparison on `createdAt`.
+
+**Permission:** `reports:read`
+
+**Query Parameters:**
+
+| Parameter    | Type    | Default | Description                                            |
+| ------------ | ------- | ------- | ------------------------------------------------------ |
+| includeIds   | boolean | `true`  | Include ObjectIds in the output                        |
+| status       | string  | —       | Filter by status (`active`, `inactive`, `blacklisted`) |
+| search       | string  | —       | Search by firstName, firstSurname, email, or document  |
+| documentType | string  | —       | Filter by document type (`cc`, `ce`, `passport`, etc.) |
+| startDate    | date    | —       | Filter customers created from this date                |
+| endDate      | date    | —       | Filter customers created up to this date               |
+| page         | number  | `1`     | Page number                                            |
+| limit        | number  | `50`    | Items per page (max 200)                               |
+
+**Example Request:**
+
+```
+GET /api/v1/reports/exports/customers?includeIds=false&status=active&startDate=2025-01-01&endDate=2025-06-30
+```
+
+**Success Response (includeIds=false):**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "total": 120,
+    "page": 1,
+    "limit": 50,
+    "customers": [
+      {
+        "fullName": "María García López",
+        "email": "maria@example.com",
+        "phone": "+573001234567",
+        "documentType": "cc",
+        "documentNumber": "1234567890",
+        "status": "active",
+        "totalLoans": 8,
+        "activeLoans": 2,
+        "totalRevenue": 1500000,
+        "avgLoanAmount": 187500,
+        "lastLoanAt": "2025-06-15T10:00:00.000Z",
+        "createdAt": "2025-01-05T09:00:00.000Z"
+      }
+    ],
+    "summary": {
+      "totalCustomers": 120,
+      "byStatus": [
+        { "status": "active", "count": 100 },
+        { "status": "inactive", "count": 15 },
+        { "status": "blacklisted", "count": 5 }
+      ],
+      "totalRevenue": 45000000,
+      "totalLoans": 350,
+      "topByRevenue": [{ "fullName": "María García", "totalRevenue": 5000000 }],
+      "topByLoanCount": [{ "fullName": "Carlos Pérez", "loanCount": 25 }],
+      "periodComparison": {
+        "currentNewCustomers": 30,
+        "previousNewCustomers": 22,
+        "percentChange": 36.36
+      }
+    }
+  }
+}
+```
+
+**Notes:**
+
+- Revenue is calculated by aggregating `totalAmount` from the Loan model per customer.
+- `topByRevenue` and `topByLoanCount` are global (not affected by pagination).
+- `periodComparison` compares new customers in the selected date range vs. the previous equal-length period. Only included when both `startDate` and `endDate` are provided.
+- `summary` is only included when `includeIds=false`.
+
+**Error Responses:**
+
+| Status | Condition                          |
+| ------ | ---------------------------------- |
+| 400    | Query parameter validation failure |
+| 401    | Not authenticated                  |
+| 403    | Missing `reports:read` permission  |
+
+---
+
+#### GET /reports/exports/requests
+
+Loan request export with full conversion funnel analytics, monthly breakdown, and period comparison when `includeIds=false`. Supports dual date filters: `createdAtStart/End` on the request creation date and `loanStartFrom/To` on the requested loan start date.
+
+**Permission:** `reports:read`
+
+**Query Parameters:**
+
+| Parameter      | Type    | Default | Description                                                         |
+| -------------- | ------- | ------- | ------------------------------------------------------------------- |
+| includeIds     | boolean | `true`  | Include ObjectIds in the output                                     |
+| createdAtStart | date    | —       | Filter requests created from this date                              |
+| createdAtEnd   | date    | —       | Filter requests created up to this date                             |
+| loanStartFrom  | date    | —       | Filter by requested loan start date (from)                          |
+| loanStartTo    | date    | —       | Filter by requested loan start date (to)                            |
+| status         | string  | —       | Filter by request status (`pending`, `approved`, `completed`, etc.) |
+| customerId     | string  | —       | Filter by customer ID                                               |
+| page           | number  | `1`     | Page number                                                         |
+| limit          | number  | `50`    | Items per page (max 200)                                            |
+
+**Example Request:**
+
+```
+GET /api/v1/reports/exports/requests?includeIds=false&createdAtStart=2025-01-01&createdAtEnd=2025-06-30
+```
+
+**Success Response (includeIds=false):**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "total": 250,
+    "page": 1,
+    "limit": 50,
+    "requests": [
+      {
+        "code": "REQ-2025-0042",
+        "status": "completed",
+        "itemCount": 3,
+        "totalAmount": 450000,
+        "subtotal": 500000,
+        "discountAmount": 50000,
+        "depositAmount": 100000,
+        "totalDays": 7,
+        "startDate": "2025-03-10T00:00:00.000Z",
+        "endDate": "2025-03-17T00:00:00.000Z",
+        "approvedAt": "2025-03-08T14:30:00.000Z",
+        "rejectionReason": null,
+        "createdAt": "2025-03-07T10:00:00.000Z"
+      }
+    ],
+    "summary": {
+      "totalRequests": 250,
+      "byStatus": [
+        { "status": "completed", "count": 120 },
+        { "status": "approved", "count": 40 },
+        { "status": "pending", "count": 30 },
+        { "status": "rejected", "count": 25 },
+        { "status": "cancelled", "count": 15 },
+        { "status": "expired", "count": 20 }
+      ],
+      "byMonth": [
+        { "year": 2025, "month": 1, "count": 35, "totalAmount": 8500000 },
+        { "year": 2025, "month": 2, "count": 42, "totalAmount": 10200000 }
+      ],
+      "funnel": {
+        "approvalRate": 76.4,
+        "completionRate": 48,
+        "rejectionRate": 10,
+        "cancellationRate": 6,
+        "avgApprovalTimeHours": 18.5
+      },
+      "avgRequestValue": 380000,
+      "avgDuration": 5,
+      "totalRevenue": 95000000,
+      "periodComparison": {
+        "currentRequests": 250,
+        "previousRequests": 200,
+        "requestsPercentChange": 25,
+        "currentRevenue": 95000000,
+        "previousRevenue": 78000000,
+        "revenuePercentChange": 21.79
+      }
+    }
+  }
+}
+```
+
+**Notes:**
+
+- `itemCount` is the number of items in the request (no item detail array is included).
+- The **funnel** counts "approved" as all requests that reached any post-approval status (approved, deposit_pending, assigned, ready, shipped, completed).
+- `avgApprovalTimeHours` is `null` when no requests have `approvedAt`.
+- `periodComparison` uses `createdAtStart/End` to define the comparison window. Only included when both are provided.
+- `summary` is only included when `includeIds=false`.
+
+**Error Responses:**
+
+| Status | Condition                          |
+| ------ | ---------------------------------- |
+| 400    | Query parameter validation failure |
+| 401    | Not authenticated                  |
+| 403    | Missing `reports:read` permission  |
+
+---
+
+#### Frontend Consumption Guide
+
+These export endpoints return JSON. The frontend is responsible for converting to CSV/XLSX if needed.
+
+**Recommended workflow:**
+
+1. **Fetch data** with `includeIds=false` for dashboard reports or `includeIds=true` when IDs are needed for linking.
+2. **Apply pagination** using `page` and `limit` query params. The `pagination` object in the response tells total items and pages.
+3. **Generate files** client-side using a library such as `xlsx` (SheetJS) or `papaparse`:
+   ```js
+   // Example with SheetJS
+   import * as XLSX from "xlsx";
+   const wb = XLSX.utils.book_new();
+   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.loanRows), "Loans");
+   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.invoiceRows), "Invoices");
+   XLSX.writeFile(wb, "sales-export.xlsx");
+   ```
+4. **Period comparison** is automatic when `startDate` and `endDate` are both provided — the API compares against the immediately preceding period of equal duration.
 
 ---
 
@@ -7376,3 +9323,236 @@ Resolves a single item as `repaired` or `unrecoverable`. Syncs the material inst
 - `409` -- Batch not in `in_progress`, or item not in `in_repair` status.
 
 ---
+
+## Code Schemes
+
+Base path: `/api/v1/code-schemes`
+
+All endpoints require `authenticate` + active organization middleware.
+
+Code schemes define patterns used to auto-generate human-readable codes for multiple entities: Loans, Loan Requests, Invoices, Inspections, Incidents, Maintenance Batches, and Material Instances (e.g. `LO-2026-0001`, `INV-2026-0012`, `MI-000042`).
+
+### Supported Entity Types
+
+| Entity Type         | Default Pattern       | Auto-generated Field                        |
+| ------------------- | --------------------- | ------------------------------------------- |
+| `loan`              | `LO-{YYYY}-{SEQ:4}`   | `code`                                      |
+| `loan_request`      | `REQ-{YYYY}-{SEQ:4}`  | `code`                                      |
+| `invoice`           | `INV-{YYYY}-{SEQ:4}`  | `invoiceNumber`                             |
+| `inspection`        | `INSP-{YYYY}-{SEQ:4}` | `inspectionNumber`                          |
+| `incident`          | `INC-{YYYY}-{SEQ:4}`  | `incidentNumber`                            |
+| `maintenance_batch` | `MNT-{YYYY}-{SEQ:4}`  | `batchNumber`                               |
+| `material_instance` | `MI-{SEQ:6}`          | `serialNumber` (fallback when not provided) |
+
+### Supported Pattern Tokens
+
+| Token             | Description                | Example Output   | Entity Restriction  |
+| ----------------- | -------------------------- | ---------------- | ------------------- |
+| `{SEQ}`           | Unpadded sequential number | 1, 2, 42         | All                 |
+| `{SEQ:N}`         | Zero-padded to N digits    | `{SEQ:4}` → 0001 | All                 |
+| `{YYYY}`          | 4-digit year               | 2026             | All                 |
+| `{YY}`            | 2-digit year               | 26               | All                 |
+| `{MM}`            | 2-digit month (01-12)      | 04               | All                 |
+| `{DD}`            | 2-digit day (01-31)        | 06               | All                 |
+| `{LOCATION_CODE}` | Location code value        | ABC              | All                 |
+| `{TYPE_CODE}`     | Material type code         | EQP              | `material_instance` |
+| `{CATEGORY_CODE}` | Material category code     | AUD              | `material_instance` |
+
+Every pattern must contain exactly one `{SEQ}` or `{SEQ:N}` token.
+
+### Material Instance Scope Resolution
+
+`material_instance` schemes support scoping by `materialTypeId` or `categoryId`. When generating a serial number, the system resolves the scheme using a priority chain:
+
+1. **Type-scoped** — scheme with matching `materialTypeId` (highest priority)
+2. **Category-scoped** — scheme with matching `categoryId` of the material type
+3. **Global** — scheme with `materialTypeId: null` and `categoryId: null` (org-wide default)
+4. **Fallback** — hardcoded pattern `MI-{SEQ:6}` if no scheme exists
+
+### GET /code-schemes
+
+Lists all code schemes for the organization.
+
+**Permission:** `code_schemes:read`
+
+**Query parameters:**
+
+| Param        | Type   | Description                                                       |
+| ------------ | ------ | ----------------------------------------------------------------- |
+| `entityType` | string | Optional filter by entity type (see supported entity types above) |
+
+**Response (200):**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "schemes": [
+      {
+        "_id": "...",
+        "organizationId": "...",
+        "entityType": "loan",
+        "name": "Predeterminado Préstamo",
+        "pattern": "LO-{YYYY}-{SEQ:4}",
+        "isActive": true,
+        "isDefault": true,
+        "materialTypeId": null,
+        "categoryId": null,
+        "createdAt": "...",
+        "updatedAt": "..."
+      }
+    ]
+  }
+}
+```
+
+### GET /code-schemes/:id
+
+Gets a single code scheme.
+
+**Permission:** `code_schemes:read`
+
+**Response (200):**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "scheme": { ... }
+  }
+}
+```
+
+**Errors:**
+
+- `404` — Scheme not found.
+
+### POST /code-schemes
+
+Creates a new code scheme.
+
+**Permission:** `code_schemes:create`
+
+**Request body:**
+
+| Field            | Type           | Required | Description                                           |
+| ---------------- | -------------- | -------- | ----------------------------------------------------- |
+| `entityType`     | string         | Yes      | Target entity type                                    |
+| `name`           | string (1-100) | Yes      | Display name                                          |
+| `pattern`        | string (1-50)  | Yes      | Code pattern with tokens                              |
+| `isActive`       | boolean        | No       | Default `true`                                        |
+| `isDefault`      | boolean        | No       | Default `false`                                       |
+| `materialTypeId` | ObjectId       | No       | Scope to material type (only for `material_instance`) |
+| `categoryId`     | ObjectId       | No       | Scope to category (only for `material_instance`)      |
+
+> **Note:** `materialTypeId` and `categoryId` are mutually exclusive — you cannot set both. They are only valid when `entityType` is `"material_instance"`.
+
+**Example requests:**
+
+```json
+{
+  "entityType": "loan",
+  "name": "Préstamo por Ubicación",
+  "pattern": "LO-{LOCATION_CODE}-{YYYY}{MM}-{SEQ:4}",
+  "isDefault": false
+}
+```
+
+```json
+{
+  "entityType": "material_instance",
+  "name": "Equipos Electrónicos",
+  "pattern": "{TYPE_CODE}-{SEQ:5}",
+  "materialTypeId": "665012ab...",
+  "isDefault": true
+}
+```
+
+**Response (201):**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "scheme": { ... }
+  }
+}
+```
+
+**Errors:**
+
+- `400` — Invalid pattern (no `{SEQ}`, unknown token, too long, `{TYPE_CODE}`/`{CATEGORY_CODE}` on non-material_instance type).
+- `400` — `materialTypeId`/`categoryId` set on non-material_instance entity, or both set simultaneously.
+- `409` — Duplicate name for this entity type and scope.
+
+### PUT /code-schemes/:id
+
+Updates an existing code scheme. Cannot change `entityType`, `materialTypeId`, or `categoryId`.
+
+**Permission:** `code_schemes:update`
+
+**Request body:**
+
+| Field      | Type           | Required | Description              |
+| ---------- | -------------- | -------- | ------------------------ |
+| `name`     | string (1-100) | No       | Display name             |
+| `pattern`  | string (1-50)  | No       | Code pattern with tokens |
+| `isActive` | boolean        | No       | Active flag              |
+
+**Response (200):**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "scheme": { ... }
+  }
+}
+```
+
+**Errors:**
+
+- `400` — Invalid pattern or restricted tokens for entity type.
+- `404` — Scheme not found.
+
+### DELETE /code-schemes/:id
+
+Deletes a code scheme. Cannot delete the default scheme.
+
+**Permission:** `code_schemes:delete`
+
+**Response (200):**
+
+```json
+{
+  "status": "success",
+  "data": null
+}
+```
+
+**Errors:**
+
+- `400` — Cannot delete the default scheme.
+- `404` — Scheme not found.
+
+### PATCH /code-schemes/:id/set-default
+
+Sets a code scheme as the default for its entity type and scope. For `material_instance` schemes, the default is scoped by `materialTypeId`/`categoryId` — setting a type-scoped scheme as default only affects other type-scoped schemes with the same type. The previous default (if any) in the same scope is automatically unset.
+
+**Permission:** `code_schemes:update`
+
+**Response (200):**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "scheme": { ... }
+  }
+}
+```
+
+**Errors:**
+
+- `400` — Cannot set an inactive scheme as default.
+- `404` — Scheme not found.

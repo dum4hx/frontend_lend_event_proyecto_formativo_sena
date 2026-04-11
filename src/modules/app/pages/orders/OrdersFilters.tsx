@@ -18,21 +18,18 @@ export function OrdersFilters({
   onStatusChange,
   isEs,
 }: OrdersFiltersProps) {
-  const filterOptions = getFilterOptions(isEs);
+  const filterOptions = getFilterOptions(isEs ? "es" : "en");
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_220px] gap-3 md:gap-4">
       <div className="relative">
-        <Search
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
-          size={20}
-        />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={20} />
         <input
           type="text"
           placeholder={
             isEs
-              ? "Buscar por ID de solicitud o cliente..."
-              : "Search by request ID or customer..."
+              ? "Buscar por código de solicitud o cliente..."
+              : "Search by request code or customer..."
           }
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}

@@ -53,6 +53,7 @@ export async function deleteInventoryItem(id: string): Promise<ApiSuccessRespons
 export interface WarehouseLocation {
   _id: string;
   id: string;
+  code: string;
   name: string;
   organizationId: string;
   address: LocationAddress;
@@ -78,6 +79,7 @@ export interface LocationAddress {
 }
 
 export interface LocationCreatePayload {
+  code: string;
   name: string;
   organizationId: string;
   status?: "available" | "full_capacity" | "maintenance" | "inactive";

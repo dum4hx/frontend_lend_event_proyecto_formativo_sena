@@ -13,6 +13,22 @@
 const XLSX = require("xlsx");
 const path = require("path");
 
+/**
+ * Derives a material-type code from a human-readable name.
+ * Takes the first letter of each word, uppercases, and truncates to 10 chars.
+ * @param {string} name
+ * @returns {string}
+ */
+function toCode(name) {
+  return name
+    .replace(/[^a-zA-Z0-9\s]/g, "")
+    .split(/\s+/)
+    .map((w) => w.charAt(0))
+    .join("")
+    .toUpperCase()
+    .slice(0, 10);
+}
+
 const ROWS = [          
 
   // ── Decoration & Theming ───────────────────────────────────────────────
@@ -88,18 +104,20 @@ const ROWS = [
 
 const orderedRows = ROWS.map((row) => ({
   categoryName: row.categoryName,
+  code: toCode(row.name),
   name: row.name,
   pricePerDay: row.pricePerDay,
   description: row.description,
 }));
 
 const ws = XLSX.utils.json_to_sheet(orderedRows, {
-  header: ["categoryName", "name", "pricePerDay", "description"],
+  header: ["categoryName", "code", "name", "pricePerDay", "description"],
 });
 
 // Column widths
 ws["!cols"] = [
   { wch: 30 }, // categoryName
+  { wch: 12 }, // code
   { wch: 40 }, // name
   { wch: 14 }, // pricePerDay
   { wch: 58 }, // description

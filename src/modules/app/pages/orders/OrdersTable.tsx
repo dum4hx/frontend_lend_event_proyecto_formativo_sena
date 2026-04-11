@@ -8,10 +8,13 @@ import {
   CircleCheck,
   Eye,
   Banknote,
+  Ban,
 } from "lucide-react";
 import { Button, IconButton, EntityLink, type ColumnDef } from "../../../../components/ui";
 import { DataTable } from "../../../../components/ui";
 import { Pagination } from "../../../../components/ui";
+import { useActionPermission } from "../../../../hooks/useActionPermission";
+import { getWorkflowStatusLabel } from "../../../../utils/statusLabels";
 import type { OrderView } from "./types";
 import { formatDate, getStatusBadgeStyle } from "./helpers";
 
@@ -26,6 +29,7 @@ interface OrdersTableProps {
   onViewDetails: (order: OrderView) => void;
   onApprove: (requestId: string) => void;
   onReject: (order: OrderView) => void;
+  onCancel: (order: OrderView) => void;
   onReactivate: (order: OrderView) => void;
   onRecordPayment: (order: OrderView) => void;
   onRecordRentalPayment: (order: OrderView) => void;
@@ -35,7 +39,8 @@ interface OrdersTableProps {
   onCompleteLoan: (loanId: string) => void;
   canApproveRequest: boolean;
   canUpdateRequest: boolean;
-  canAssignRequest: boolean;
+  canCancelRequest: boolean;
+  canReadyRequest: boolean;
   canCreateLoan: boolean;
   canReturnLoan: boolean;
   canRecordPayment: boolean;
@@ -54,6 +59,7 @@ export function OrdersTable({
   onViewDetails,
   onApprove,
   onReject,
+  onCancel,
   onReactivate,
   onRecordPayment,
   onRecordRentalPayment,
@@ -63,13 +69,16 @@ export function OrdersTable({
   onCompleteLoan,
   canApproveRequest,
   canUpdateRequest,
-  canAssignRequest,
+  canCancelRequest,
+  canReadyRequest,
   canCreateLoan,
   canReturnLoan,
   canRecordPayment,
   requireFullPaymentBeforeCheckout,
   isEs,
 }: OrdersTableProps) {
+  const { guard } = useActionPermission(isEs ? "es" : "en");
+
   const renderActions = (order: OrderView) => (
     <div
       className="flex max-w-full flex-wrap items-center gap-1.5"
@@ -83,12 +92,12 @@ export function OrdersTable({
         className="h-8 w-8 rounded-md border border-[#3a3a3a] bg-[#161616] text-gray-400 hover:border-[#565656] hover:bg-[#1f1f1f] hover:text-white"
       />
 
-      {order.request.status === "pending" && (
+      {order.request.status === "pending" && canApproveRequest && (
         <Button
           size="sm"
           leftIcon={Check}
-          onClick={() => onApprove(order.request._id)}
-          disabled={submitting || !canApproveRequest}
+          onClick={guard("requests:approve", () => onApprove(order.request._id))}
+          disabled={submitting}
           variant="outline"
           className="h-8 rounded-md border-emerald-500/35 bg-emerald-500/8 px-2.5 text-[11px] font-semibold text-emerald-200 hover:bg-emerald-500/15"
         >
@@ -96,12 +105,12 @@ export function OrdersTable({
         </Button>
       )}
 
-      {order.request.status === "pending" && (
+      {order.request.status === "pending" && canUpdateRequest && (
         <Button
           size="sm"
           leftIcon={X}
-          onClick={() => onReject(order)}
-          disabled={submitting || !canUpdateRequest}
+          onClick={guard("requests:update", () => onReject(order))}
+          disabled={submitting}
           variant="outline"
           className="h-8 rounded-md border-red-500/40 bg-red-500/8 px-2.5 text-[11px] font-semibold text-red-300 hover:bg-red-500/15"
         >
@@ -109,12 +118,12 @@ export function OrdersTable({
         </Button>
       )}
 
-      {order.request.status === "rejected" && (
+      {order.request.status === "rejected" && canUpdateRequest && (
         <Button
           size="sm"
           leftIcon={RotateCcw}
-          onClick={() => onReactivate(order)}
-          disabled={submitting || !canUpdateRequest}
+          onClick={guard("requests:update", () => onReactivate(order))}
+          disabled={submitting}
           variant="outline"
           className="h-8 rounded-md border-[#FFD700]/40 bg-[#FFD700]/8 px-2.5 text-[11px] font-semibold text-[#FFD700] hover:bg-[#FFD700]/14"
         >
@@ -122,15 +131,32 @@ export function OrdersTable({
         </Button>
       )}
 
-      {order.request.depositAmount != null &&
+      {["pending", "approved", "deposit_pending", "assigned", "ready"].includes(
+        order.request.status,
+      ) &&
+        canCancelRequest && (
+          <Button
+            size="sm"
+            leftIcon={Ban}
+            onClick={guard("requests:cancel", () => onCancel(order))}
+            disabled={submitting}
+            variant="outline"
+            className="h-8 rounded-md border-red-500/40 bg-red-500/8 px-2.5 text-[11px] font-semibold text-red-300 hover:bg-red-500/15"
+          >
+            {isEs ? "Cancelar" : "Cancel"}
+          </Button>
+        )}
+
+      {canRecordPayment &&
+        order.request.depositAmount != null &&
         order.request.depositAmount > 0 &&
         !order.request.depositPaidAt &&
         ["approved", "deposit_pending", "assigned", "ready"].includes(order.request.status) && (
           <Button
             size="sm"
             leftIcon={CreditCard}
-            onClick={() => onRecordPayment(order)}
-            disabled={submitting || !canRecordPayment}
+            onClick={guard("requests:update", () => onRecordPayment(order))}
+            disabled={submitting}
             variant="outline"
             className="h-8 rounded-md border-orange-500/40 bg-orange-500/8 px-2.5 text-[11px] font-semibold text-orange-300 hover:bg-orange-500/15"
           >
@@ -138,7 +164,8 @@ export function OrdersTable({
           </Button>
         )}
 
-      {requireFullPaymentBeforeCheckout &&
+      {canRecordPayment &&
+        requireFullPaymentBeforeCheckout &&
         order.request.totalAmount != null &&
         order.request.totalAmount > 0 &&
         !order.request.rentalFeePaidAt &&
@@ -146,8 +173,8 @@ export function OrdersTable({
           <Button
             size="sm"
             leftIcon={Banknote}
-            onClick={() => onRecordRentalPayment(order)}
-            disabled={submitting || !canRecordPayment}
+            onClick={guard("requests:update", () => onRecordRentalPayment(order))}
+            disabled={submitting}
             variant="outline"
             className="h-8 rounded-md border-purple-500/40 bg-purple-500/8 px-2.5 text-[11px] font-semibold text-purple-300 hover:bg-purple-500/15"
           >
@@ -155,12 +182,12 @@ export function OrdersTable({
           </Button>
         )}
 
-      {!order.loan && order.request.status === "approved" && (
+      {!order.loan && order.request.status === "approved" && canReadyRequest && (
         <Button
           size="sm"
           leftIcon={Check}
-          onClick={() => onPrepare(order)}
-          disabled={submitting || !canAssignRequest}
+          onClick={guard("requests:ready", () => onPrepare(order))}
+          disabled={submitting}
           variant="outline"
           className="h-8 rounded-md border-sky-500/40 bg-sky-500/8 px-2.5 text-[11px] font-semibold text-sky-300 hover:bg-sky-500/15"
         >
@@ -168,12 +195,12 @@ export function OrdersTable({
         </Button>
       )}
 
-      {!order.loan && order.request.status === "assigned" && (
+      {!order.loan && order.request.status === "assigned" && canReadyRequest && (
         <Button
           size="sm"
           leftIcon={PackageCheck}
-          onClick={() => onShip(order)}
-          disabled={submitting || !canAssignRequest}
+          onClick={guard("requests:ready", () => onShip(order))}
+          disabled={submitting}
           variant="outline"
           className="h-8 rounded-md border-indigo-500/40 bg-indigo-500/8 px-2.5 text-[11px] font-semibold text-indigo-300 hover:bg-indigo-500/15"
         >
@@ -181,12 +208,12 @@ export function OrdersTable({
         </Button>
       )}
 
-      {!order.loan && order.request.status === "ready" && (
+      {!order.loan && order.request.status === "ready" && canCreateLoan && (
         <Button
           size="sm"
           leftIcon={Truck}
-          onClick={() => onStartLoan(order.request._id)}
-          disabled={submitting || !canCreateLoan}
+          onClick={guard("loans:create", () => onStartLoan(order.request._id))}
+          disabled={submitting}
           variant="outline"
           className="h-8 rounded-md border-blue-500/40 bg-blue-500/8 px-2.5 text-[11px] font-semibold text-blue-300 hover:bg-blue-500/15"
         >
@@ -194,31 +221,33 @@ export function OrdersTable({
         </Button>
       )}
 
-      {order.loan && (order.loan.status === "active" || order.loan.status === "overdue") && (
-        <Button
-          size="sm"
-          leftIcon={CircleCheck}
-          onClick={() => onCompleteLoan(order.loan!._id)}
-          disabled={submitting || !canReturnLoan}
-          variant="outline"
-          className="h-8 rounded-md border-cyan-500/40 bg-cyan-500/8 px-2.5 text-[11px] font-semibold text-cyan-300 hover:bg-cyan-500/15"
-        >
-          {isEs ? "Completar" : "Complete"}
-        </Button>
-      )}
+      {order.loan &&
+        (order.loan.status === "active" || order.loan.status === "overdue") &&
+        canReturnLoan && (
+          <Button
+            size="sm"
+            leftIcon={CircleCheck}
+            onClick={guard("loans:return", () => onCompleteLoan(order.loan!._id))}
+            disabled={submitting}
+            variant="outline"
+            className="h-8 rounded-md border-cyan-500/40 bg-cyan-500/8 px-2.5 text-[11px] font-semibold text-cyan-300 hover:bg-cyan-500/15"
+          >
+            {isEs ? "Completar" : "Complete"}
+          </Button>
+        )}
     </div>
   );
 
   const columns: ColumnDef<OrderView>[] = [
     {
       key: "requestId",
-      header: isEs ? "ID Solicitud" : "Request ID",
+      header: isEs ? "Código Solicitud" : "Request Code",
       render: (order) => (
         <span
           className="block max-w-full truncate font-semibold text-white"
-          title={order.request._id}
+          title={order.request.code ?? order.request._id}
         >
-          {order.request._id}
+          {order.request.code ?? order.request._id}
         </span>
       ),
     },
@@ -264,7 +293,7 @@ export function OrdersTable({
         <span
           className={`inline-flex items-center whitespace-nowrap px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadgeStyle(order.workflowStatus)}`}
         >
-          {order.workflowLabel}
+          {getWorkflowStatusLabel(order.workflowStatus, isEs ? "es" : "en")}
         </span>
       ),
     },

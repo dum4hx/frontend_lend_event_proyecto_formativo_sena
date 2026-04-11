@@ -113,6 +113,46 @@ const plansEditFormGuide = {
   ],
 };
 
+const plansDeleteConfirmGuide = {
+  id: "plans-delete-confirm",
+  title: { es: "Confirmación: Eliminar plan", en: "Confirm: Delete plan" },
+  purpose: {
+    es: "Confirmar la eliminación permanente de un plan del catálogo.",
+    en: "Confirm the permanent deletion of a plan from the catalog.",
+  },
+  mode: "delete" as const,
+  selector: '[data-help-id="plans-delete-confirm"]',
+  fields: [],
+  actions: [
+    {
+      id: "action-confirm-delete",
+      label: { es: "Eliminar", en: "Delete" },
+      purpose: {
+        es: "Confirma y elimina permanentemente el plan.",
+        en: "Confirms and permanently deletes the plan.",
+      },
+      consequence: {
+        es: "El plan se elimina del catálogo y ya no estará disponible.",
+        en: "The plan is removed from the catalog and will no longer be available.",
+      },
+      selector: '[data-help-id="plans-delete-confirm-submit"]',
+    },
+    {
+      id: "action-cancel-delete",
+      label: { es: "Cancelar", en: "Cancel" },
+      purpose: {
+        es: "Cancelar la eliminación y volver a la grilla.",
+        en: "Cancel deletion and return to the grid.",
+      },
+      consequence: {
+        es: "El plan no se elimina y todo permanece sin cambios.",
+        en: "The plan is not deleted and everything remains unchanged.",
+      },
+      selector: '[data-help-id="plans-delete-confirm-cancel"]',
+    },
+  ],
+};
+
 const plansHelpContent: HelpModuleContent = {
   moduleId: "plans",
   title: {
@@ -213,6 +253,54 @@ const plansHelpContent: HelpModuleContent = {
       ],
     },
     {
+      id: "delete",
+      title: { es: "Eliminar un plan", en: "Delete a plan" },
+      body: {
+        es: "Puedes eliminar un plan que ya no se necesita. La acción es irreversible y requiere confirmación.",
+        en: "You can delete a plan that is no longer needed. The action is irreversible and requires confirmation.",
+      },
+      howTo: [
+        {
+          es: "Localiza el plan en la grilla y haz clic en el icono de eliminar (papelera).",
+          en: "Locate the plan in the grid and click the delete icon (trash can).",
+        },
+        {
+          es: "Confirma la eliminación en el diálogo de confirmación.",
+          en: "Confirm the deletion in the confirmation dialog.",
+        },
+      ],
+      warnings: [
+        {
+          es: "Los planes eliminados no se pueden recuperar. Verifica que el plan no está asociado a pedidos activos.",
+          en: "Deleted plans cannot be recovered. Verify the plan is not linked to active orders.",
+        },
+      ],
+    },
+    {
+      id: "activate-deactivate",
+      title: { es: "Activar / desactivar planes", en: "Activate / deactivate plans" },
+      body: {
+        es: "Cada plan puede activarse o desactivarse. Un plan inactivo sigue existiendo en el catálogo pero no se puede usar en nuevos pedidos.",
+        en: "Each plan can be activated or deactivated. An inactive plan still exists in the catalog but cannot be used in new orders.",
+      },
+      howTo: [
+        {
+          es: "Haz clic en el icono de estado (toggle) en la tarjeta o en el detalle del plan.",
+          en: "Click the status icon (toggle) on the plan card or detail view.",
+        },
+        {
+          es: "El estado se actualiza inmediatamente sin necesidad de confirmación adicional.",
+          en: "The status updates immediately without requiring additional confirmation.",
+        },
+      ],
+      tips: [
+        {
+          es: "Desactiva temporalmente un plan en lugar de eliminarlo si planeas reutilizarlo.",
+          en: "Temporarily deactivate a plan instead of deleting it if you plan to reuse it.",
+        },
+      ],
+    },
+    {
       id: "common-errors",
       title: { es: "Errores comunes", en: "Common errors" },
       body: {
@@ -280,8 +368,34 @@ const plansHelpContent: HelpModuleContent = {
         en: "Check whether pricing is automatic or manually defined before quoting.",
       },
     },
+    {
+      id: "step-5-toggle-active",
+      title: { es: "5) Activa o desactiva un plan", en: "5) Activate or deactivate a plan" },
+      body: {
+        es: "Usa el icono de toggle en la tarjeta para cambiar el estado activo/inactivo del plan.",
+        en: "Use the toggle icon on the card to switch the plan's active/inactive status.",
+      },
+      targetSelector: '[data-help-id="plans-toggle-active"]',
+      tip: {
+        es: "Desactivar un plan lo oculta de nuevos pedidos sin eliminarlo del catálogo.",
+        en: "Deactivating a plan hides it from new orders without removing it from the catalog.",
+      },
+    },
+    {
+      id: "step-6-delete",
+      title: { es: "6) Elimina un plan", en: "6) Delete a plan" },
+      body: {
+        es: "Haz clic en el icono de papelera para eliminar un plan. Se pedirá confirmación antes de proceder.",
+        en: "Click the trash icon to delete a plan. Confirmation will be requested before proceeding.",
+      },
+      targetSelector: '[data-help-id="plans-delete"]',
+      warning: {
+        es: "La eliminación es permanente. Prefiere desactivar si podrías necesitar el plan más adelante.",
+        en: "Deletion is permanent. Prefer deactivating if you might need the plan later.",
+      },
+    },
   ],
-  formGuides: [plansCreateFormGuide, plansEditFormGuide],
+  formGuides: [plansCreateFormGuide, plansEditFormGuide, plansDeleteConfirmGuide],
 };
 
 export default plansHelpContent;

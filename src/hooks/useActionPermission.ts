@@ -21,12 +21,7 @@
 import { useCallback } from "react";
 import { usePermissions } from "../contexts/usePermissions";
 import { useToast } from "../contexts/ToastContext";
-
-/** Default denied messages by locale. */
-const DEFAULT_DENIED: Record<string, string> = {
-  en: "You don't have permission to perform this action.",
-  es: "No tienes permiso para realizar esta acción.",
-};
+import { useLanguage } from "../contexts/useLanguage";
 
 export interface ActionPermissionGuard {
   /**
@@ -34,19 +29,17 @@ export interface ActionPermissionGuard {
    * If the user lacks the permission a warning toast is shown and the
    * handler is NOT called.
    */
-  guard: (
-    permission: string,
-    handler: () => void,
-    deniedMessage?: string,
-  ) => () => void;
+  guard: (permission: string, handler: () => void, deniedMessage?: string) => () => void;
 
   /** True when the user holds the given permission. */
   isAllowed: (permission: string) => boolean;
 }
 
-export function useActionPermission(locale: "en" | "es" = "en"): ActionPermissionGuard {
+export function useActionPermission(locale?: "en" | "es"): ActionPermissionGuard {
   const { hasPermission } = usePermissions();
   const { showToast } = useToast();
+  const { t, language } = useLanguage();
+  const effectiveLocale = locale ?? language;
 
   const isAllowed = useCallback(
     (permission: string): boolean => hasPermission(permission),
@@ -54,25 +47,21 @@ export function useActionPermission(locale: "en" | "es" = "en"): ActionPermissio
   );
 
   const guard = useCallback(
-    (
-      permission: string,
-      handler: () => void,
-      deniedMessage?: string,
-    ): (() => void) => {
+    (permission: string, handler: () => void, deniedMessage?: string): (() => void) => {
       return () => {
         if (hasPermission(permission)) {
           handler();
         } else {
           showToast(
             "warning",
-            deniedMessage ?? DEFAULT_DENIED[locale],
-            locale === "es" ? "Acción no permitida" : "Action Not Allowed",
+            deniedMessage ?? t("actionPermission.denied"),
+            t("actionPermission.deniedTitle"),
             { duration: 4000 },
           );
         }
       };
     },
-    [hasPermission, showToast, locale],
+    [hasPermission, showToast, effectiveLocale, t],
   );
 
   return { guard, isAllowed };
