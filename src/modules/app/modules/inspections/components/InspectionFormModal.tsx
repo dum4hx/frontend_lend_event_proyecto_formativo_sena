@@ -136,9 +136,9 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
               >
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#2a2a2a] pb-4">
                   <div>
-                    <p className="text-white font-medium">{mi.materialInstanceId.serialNumber}</p>
-                    <p className="text-xs text-gray-500 font-mono mt-0.5">
-                      ID: {mi.materialInstanceId._id}
+                    <p className="text-white font-medium">{mi.materialType.name}</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {t("inspections.serialNumber")}: <span className="font-mono text-gray-300">{mi.materialInstanceId.serialNumber}</span>
                     </p>
                   </div>
                   <ConditionPicker

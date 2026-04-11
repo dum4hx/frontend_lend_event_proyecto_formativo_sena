@@ -44,6 +44,7 @@
   "inspections.selectDueDate": "Selecciona la fecha y hora de vencimiento",
   "inspections.saving": "Guardando...",
   "inspections.completeInspection": "Completar inspeccion",
+  "inspections.serialNumber": "Código de serie",
   "inspections.detailsTitle": "Detalles de la inspeccion",
   "inspections.loanMetadata": "Metadatos del prestamo",
   "inspections.loanIdDetail": "Código de préstamo",
