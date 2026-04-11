@@ -362,7 +362,7 @@ When the access token expires, call the refresh endpoint:
 POST /api/v1/auth/refresh
 ```
 
-The server reads the `refresh_token` cookie and issues new tokens automatically.
+The server reads the `refresh_token` cookie, validates that it is still active in server-side session storage, rotates it, and issues a new token pair.
 
 ### Logout
 
@@ -370,7 +370,15 @@ The server reads the `refresh_token` cookie and issues new tokens automatically.
 POST /api/v1/auth/logout
 ```
 
-Clears both authentication cookies.
+Revokes the current refresh session on the server and clears both authentication cookies.
+
+### Cache-Control for Authenticated Responses
+
+All authentication responses and authenticated API responses include anti-cache headers to avoid storing sensitive content in browser/proxy caches:
+
+- `Cache-Control: no-store, no-cache, must-revalidate, private`
+- `Pragma: no-cache`
+- `Expires: 0`
 
 ### Role-Based Access Control (RBAC)
 
@@ -655,31 +663,60 @@ Re-validates credentials and sends a new OTP to the user's email. Use when the o
 
 Refreshes access token using refresh token cookie.
 
-**Request:** No body required. `refresh_token` cookie must be present.
+**Request:** No body required. `refresh_token` cookie must be present and active.
 
 **Response:** `200 OK`
 
 ```json
 {
   "status": "success",
-  "message": "Tokens refreshed"
+  "message": "Tokens actualizados"
 }
 ```
+
+**Error Responses:**
+
+| Status | Condition                                           |
+| ------ | --------------------------------------------------- |
+| 401    | Missing, expired, revoked, or invalid refresh token |
 
 ---
 
 #### POST /auth/logout
 
-Clears authentication cookies.
+Revokes the current refresh session and clears authentication cookies.
 
 **Response:** `200 OK`
 
 ```json
 {
   "status": "success",
-  "message": "Logged out successfully"
+  "message": "Sesión cerrada exitosamente"
 }
 ```
+
+---
+
+#### POST /auth/logout-all
+
+Revokes all active refresh sessions for the authenticated user and clears local auth cookies.
+
+**Auth:** Required (`access_token` cookie)
+
+**Response:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "message": "Todas las sesiones activas fueron cerradas exitosamente"
+}
+```
+
+**Error Responses:**
+
+| Status | Condition               |
+| ------ | ----------------------- |
+| 401    | Unauthenticated request |
 
 ---
 
@@ -5031,6 +5068,13 @@ Creates a new package (bundle of materials).
 
 ### Loan Request Endpoints
 
+**Populated user references:** All request endpoints populate the following user reference fields when present:
+
+| Field        | Type   | Description                                                       |
+| ------------ | ------ | ----------------------------------------------------------------- |
+| `createdBy`  | object | User who created the request. Populated with `name` and `email`.  |
+| `approvedBy` | object | User who approved the request. Populated with `name` and `email`. |
+
 #### GET /requests
 
 Lists all loan requests in the organization.
@@ -5047,6 +5091,8 @@ Lists all loan requests in the organization.
 
 Creates a new loan request (commercial advisor action).
 
+**Auth:** `authenticate` + `requireActiveOrganization` + `requests:create`
+
 | Parameter      | Location | Type   | Required | Description                                                                       |
 | -------------- | -------- | ------ | -------- | --------------------------------------------------------------------------------- |
 | customerId     | body     | string | Yes      | Customer ID                                                                       |
@@ -5056,6 +5102,17 @@ Creates a new loan request (commercial advisor action).
 | depositDueDate | body     | string | Yes      | Date by which deposit must be paid (ISO 8601). Cannot be after `startDate`.       |
 | depositAmount  | body     | number | Yes      | Deposit amount in the organization's currency. Use `0` if no deposit is required. |
 | notes          | body     | string | No       | Additional notes                                                                  |
+
+**Automatic Fields:**
+
+The following fields are automatically populated by the server:
+
+| Field      | Type   | Description                                                                                               |
+| ---------- | ------ | --------------------------------------------------------------------------------------------------------- |
+| code       | string | Unique request identifier, auto-generated from the organization's `loan` code scheme (e.g. `LO-2026-001`) |
+| locationId | string | Organization location ID of the authenticated user (extracted from `user.locations[0]`)                   |
+
+**Note:** Requests and Loans share the same code scheme (`loan`). When a loan is created from a request, it inherits the request's code.
 
 `items[]` contract (recommended):
 
@@ -5305,6 +5362,12 @@ Cancels a loan request and releases any assigned materials back to available sta
 
 ### Loan Endpoints
 
+**Populated user references:** All loan endpoints populate the following user reference fields when present:
+
+| Field          | Type   | Description                                                                |
+| -------------- | ------ | -------------------------------------------------------------------------- |
+| `checkedOutBy` | object | User who checked out the loan (pickup). Populated with `name` and `email`. |
+
 #### GET /loans
 
 Lists all loans in the organization.
@@ -5325,7 +5388,7 @@ Gets all overdue loans (auto-updates overdue status).
 
 #### GET /loans/:id
 
-Gets a specific loan with full details. The response includes populated `customerId`, `requestId`, and `materialInstances`.
+Gets a specific loan with full details. The response includes populated `customerId`, `requestId`, `checkedOutBy`, and `materialInstances`.
 
 **Query Parameters:**
 
@@ -5420,6 +5483,8 @@ Creates a loan from a ready request (pickup / checkout action).
 On success:
 
 - A new `Loan` is created with `status: "active"`.
+- The loan **inherits the request's `code`** (both use the organization's `loan` code scheme).
+- The loan **inherits the request's `locationId`** (the user's assigned location at creation time).
 - The source request transitions to `status: "shipped"` and its `loanId` field is populated with the new loan's ID.
 - All assigned material instances are marked as `loaned`.
 - Each material instance's `conditionAtCheckout` is captured from the instance's current condition.
@@ -9330,14 +9395,15 @@ Base path: `/api/v1/code-schemes`
 
 All endpoints require `authenticate` + active organization middleware.
 
-Code schemes define patterns used to auto-generate human-readable codes for multiple entities: Loans, Loan Requests, Invoices, Inspections, Incidents, Maintenance Batches, and Material Instances (e.g. `LO-2026-0001`, `INV-2026-0012`, `MI-000042`).
+Code schemes define patterns used to auto-generate human-readable codes for multiple entities: Loans (which include both loans and loan requests), Invoices, Inspections, Incidents, Maintenance Batches, and Material Instances (e.g. `LO-2026-0001`, `INV-2026-0012`, `MI-000042`).
+
+**Important:** Loan Requests and Loans now share the same `loan` code scheme. When a loan is created from a request, it inherits the request's code. There is no separate `loan_request` entity type.
 
 ### Supported Entity Types
 
 | Entity Type         | Default Pattern       | Auto-generated Field                        |
 | ------------------- | --------------------- | ------------------------------------------- |
-| `loan`              | `LO-{YYYY}-{SEQ:4}`   | `code`                                      |
-| `loan_request`      | `REQ-{YYYY}-{SEQ:4}`  | `code`                                      |
+| `loan`              | `LO-{YYYY}-{SEQ:4}`   | `code` (for both loans and loan requests)   |
 | `invoice`           | `INV-{YYYY}-{SEQ:4}`  | `invoiceNumber`                             |
 | `inspection`        | `INSP-{YYYY}-{SEQ:4}` | `inspectionNumber`                          |
 | `incident`          | `INC-{YYYY}-{SEQ:4}`  | `incidentNumber`                            |

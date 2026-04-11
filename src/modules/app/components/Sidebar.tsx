@@ -73,6 +73,7 @@ const iconMap: Record<string, React.ReactNode> = {
   orders: <ShoppingCart size={20} />,
   contracts: <FileText size={20} />,
   rentals: <Package size={20} />,
+  loans: <Package size={20} />,
   invoices: <FileText size={20} />,
   reports: <BarChart3 size={20} />,
   pricing: <DollarSign size={20} />,

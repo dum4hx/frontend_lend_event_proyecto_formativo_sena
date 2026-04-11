@@ -72,6 +72,7 @@ import Attributes from "./modules/app/pages/Attributes";
 import Plans from "./modules/app/pages/Plans";
 import Orders from "./modules/app/pages/Orders";
 import Rentals from "./modules/app/pages/Rentals";
+import { Loans } from "./modules/app/pages/loans";
 import Invoices from "./modules/app/pages/Invoices";
 import PaymentMethods from "./modules/app/pages/PaymentMethods";
 import CodeSchemes from "./modules/app/pages/code-schemes";
@@ -177,6 +178,7 @@ function App() {
                   <Route path="locations" element={<Locations />} />
                   <Route path="orders" element={<Orders />} />
                   <Route path="rentals" element={<Rentals />} />
+                  <Route path="loans" element={<Loans />} />
                   <Route path="pricing" element={<PricingConfigs />} />
                   <Route path="invoices" element={<Invoices />} />
                   <Route path="payment-methods" element={<PaymentMethods />} />

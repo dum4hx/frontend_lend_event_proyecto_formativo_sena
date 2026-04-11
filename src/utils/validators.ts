@@ -868,3 +868,28 @@ export const validateSearchQuery = (query: string): ValidationResult => {
   }
   return { isValid: true };
 };
+/**
+ * Deposit due date validation for loan requests.
+ * Ensures depositDueDate falls between startDate and endDate (inclusive).
+ * @example validateDepositDueDate("2025-06-15", "2025-06-01", "2025-06-30") // { isValid: true }
+ * @example validateDepositDueDate("2025-05-01", "2025-06-01", "2025-06-30") // { isValid: false }
+ */
+export const validateDepositDueDate = (
+  depositDueDate: string,
+  startDate: string,
+  endDate: string,
+): ValidationResult => {
+  if (!depositDueDate) {
+    return { isValid: false, message: "loans.validation.depositDueDateRequired" };
+  }
+  if (!startDate || !endDate) {
+    return { isValid: true };
+  }
+  if (depositDueDate < startDate) {
+    return { isValid: false, message: "loans.validation.depositDueDateBeforeStart" };
+  }
+  if (depositDueDate > endDate) {
+    return { isValid: false, message: "loans.validation.depositDueDateAfterEnd" };
+  }
+  return { isValid: true };
+};
