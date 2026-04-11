@@ -230,9 +230,6 @@ function App() {
       <LanguageProvider>
         <ThemeProvider>
           <ToastProvider>
-<<<<<<< HEAD
-            <AppRoutes />
-=======
             <BrowserRouter>
               <ScrollToTop />
               <Routes>
@@ -342,7 +339,6 @@ function App() {
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
->>>>>>> 26f7ddc8b910949469e3a02c1d62fac3b55e8ea9
           </ToastProvider>
         </ThemeProvider>
       </LanguageProvider>
