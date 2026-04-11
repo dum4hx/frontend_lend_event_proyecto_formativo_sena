@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus } from "lucide-react";
-import { Button, PageHeader } from "../../../../components/ui";
+import { Plus, RefreshCw } from "lucide-react";
+import { Button, PageHeader, IconButton } from "../../../../components/ui";
 import type {
   Customer,
   CreateLoanRequestPayload,
@@ -537,8 +537,16 @@ export function Loans() {
           title={t("loans.title")}
           subtitle={t("loans.subtitle")}
           actions={
-            canCreateRequest ? (
-              <div data-help-id="loans-create-action">
+            <div data-help-id="loans-create-action" className="flex items-center gap-2">
+              <IconButton
+                icon={RefreshCw}
+                onClick={() => refreshData()}
+                disabled={loading}
+                ariaLabel={t("common.refresh")}
+                className={loading ? "animate-spin" : ""}
+                title={t("common.refresh")}
+              />
+              {canCreateRequest && (
                 <Button
                   leftIcon={Plus}
                   onClick={guard("requests:create", () => setShowCreateModal(true))}
@@ -547,8 +555,8 @@ export function Loans() {
                 >
                   {t("loans.newRequest")}
                 </Button>
-              </div>
-            ) : undefined
+              )}
+            </div>
           }
         />
       </div>
