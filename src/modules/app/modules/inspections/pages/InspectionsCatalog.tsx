@@ -60,9 +60,11 @@ export const InspectionsCatalog: React.FC = () => {
 
   const filteredHistory = inspections.filter((i) => {
     const loanIdStr = typeof i.loanId === "string" ? i.loanId : i.loanId._id;
+    const searchLower = searchTerm.toLowerCase();
     return (
-      i._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      loanIdStr.toLowerCase().includes(searchTerm.toLowerCase())
+      i._id.toLowerCase().includes(searchLower) ||
+      (i.inspectionNumber?.toLowerCase().includes(searchLower) ?? false) ||
+      loanIdStr.toLowerCase().includes(searchLower)
     );
   });
 
