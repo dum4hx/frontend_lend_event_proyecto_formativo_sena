@@ -34,3 +34,16 @@ export function toColombianPhone(digits: string): string {
 export function formatPhoneDigits(value: string): string {
   return value.replace(/\D/g, "").slice(0, 10);
 }
+
+export function normalizeRoleName(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
+export function isOwnerRoleName(roleName: string): boolean {
+  const normalized = normalizeRoleName(roleName);
+  return normalized === "propietario" || normalized === "owner";
+}

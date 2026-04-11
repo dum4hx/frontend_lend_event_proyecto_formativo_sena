@@ -1,7 +1,7 @@
 /**
  * InviteUserModal — Create / invite a new team member.
  */
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { FormModal } from "../../../../components/ui/FormModal";
 import { SearchableSelect } from "../../../../components/ui/SearchableSelect";
@@ -21,6 +21,7 @@ import type { TranslationKey } from "../../../../i18n/translations";
 import {
   TEAM_PHONE_PREFIX,
   formatPhoneDigits,
+  isOwnerRoleName,
   toColombianPhone,
   type TeamFormValues,
 } from "./types";
@@ -120,13 +121,35 @@ export function InviteUserModal({
     setErrors((prev) => ({ ...prev, [field]: msg }));
   }
 
+  const selectedRoleName = useMemo(
+    () => availableRoles.find((role) => role._id === form.roleId)?.name ?? "",
+    [availableRoles, form.roleId],
+  );
+  const allowMultipleLocations = isOwnerRoleName(selectedRoleName);
+
+  useEffect(() => {
+    if (!allowMultipleLocations && form.locations.length > 1) {
+      setForm((prev) => ({ ...prev, locations: prev.locations.slice(0, 1) }));
+      setFormError(
+        isEs
+          ? "Este rol solo puede estar asociado a una sede."
+          : "This role can only be associated with one location.",
+      );
+    }
+  }, [allowMultipleLocations, form.locations.length, isEs]);
+
   function toggleLocation(locId: string) {
     setForm((prev) => ({
       ...prev,
-      locations: prev.locations.includes(locId)
-        ? prev.locations.filter((l) => l !== locId)
-        : [...prev.locations, locId],
+      locations: allowMultipleLocations
+        ? prev.locations.includes(locId)
+          ? prev.locations.filter((id) => id !== locId)
+          : [...prev.locations, locId]
+        : prev.locations[0] === locId
+          ? []
+          : [locId],
     }));
+    setFormError(null);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -154,13 +177,22 @@ export function InviteUserModal({
       return;
     }
 
+    if (!allowMultipleLocations && form.locations.length > 1) {
+      setFormError(
+        isEs
+          ? "Este rol solo puede estar asociado a una sede."
+          : "This role can only be associated with one location.",
+      );
+      return;
+    }
+
     setSubmitting(true);
     try {
       await inviteUser({
         email: form.email,
         phone: toColombianPhone(form.phone),
         name: { firstName: form.firstName, firstSurname: form.firstSurname },
-        locations: form.locations,
+        locations: allowMultipleLocations ? form.locations : form.locations.slice(0, 1),
         roleId: form.roleId,
       });
       reset();
@@ -171,7 +203,16 @@ export function InviteUserModal({
           setErrors((prev) => ({ ...prev, email: err.message }));
           setTouched((prev) => ({ ...prev, email: true }));
         }
-        setFormError(err.message);
+        const lowerMessage = err.message.toLowerCase();
+        if (lowerMessage.includes("location") || lowerMessage.includes("ubicaci")) {
+          setFormError(
+            isEs
+              ? "No se pudo guardar la asignación de sedes para este rol."
+              : "Could not save location assignment for this role.",
+          );
+        } else {
+          setFormError(err.message);
+        }
       } else {
         setFormError(
           isEs ? "Error inesperado. Inténtalo de nuevo." : "Unexpected error. Please try again.",
@@ -295,7 +336,10 @@ export function InviteUserModal({
           <SearchableSelect
             options={roleOptions}
             value={form.roleId}
-            onChange={(v) => setForm((prev) => ({ ...prev, roleId: v }))}
+            onChange={(v) => {
+              setForm((prev) => ({ ...prev, roleId: v }));
+              setFormError(null);
+            }}
             placeholder={isEs ? "Seleccionar rol" : "Select role"}
           />
         </div>
@@ -303,8 +347,23 @@ export function InviteUserModal({
         {availableLocations.length > 0 && (
           <div data-help-id="team-form-locations">
             <label className="block text-xs text-zinc-400 mb-2">
-              {isEs ? "Ubicaciones *" : "Locations *"}
+              {allowMultipleLocations
+                ? isEs
+                  ? "Ubicaciones *"
+                  : "Locations *"
+                : isEs
+                  ? "Ubicación *"
+                  : "Location *"}
             </label>
+            <p className="text-[11px] text-zinc-500 mb-2">
+              {allowMultipleLocations
+                ? isEs
+                  ? "El rol Dueño puede asociarse a múltiples sedes."
+                  : "Owner role can be associated with multiple locations."
+                : isEs
+                  ? "Este rol solo puede estar asociado a una sede. Si eliges otra, reemplazará la actual."
+                  : "This role can only be associated with one location. Selecting another will replace the current one."}
+            </p>
             <div className="flex flex-wrap gap-2">
               {availableLocations.map((loc) => {
                 const selected = form.locations.includes(loc._id);
@@ -324,11 +383,19 @@ export function InviteUserModal({
                 );
               })}
             </div>
-            {form.locations.length === 0 && formError?.includes("location") && (
+            {((!allowMultipleLocations && form.locations.length > 1) || form.locations.length === 0) &&
+              (formError?.toLowerCase().includes("location") ||
+                formError?.toLowerCase().includes("ubicación")) && (
               <p className="text-xs text-red-400 mt-1">
-                {isEs ? "Selecciona al menos una ubicación." : "Select at least one location."}
+                {isEs
+                  ? form.locations.length === 0
+                    ? "Selecciona al menos una ubicación."
+                    : "Este rol solo puede estar asociado a una sede."
+                  : form.locations.length === 0
+                    ? "Select at least one location."
+                    : "This role can only be associated with one location."}
               </p>
-            )}
+              )}
           </div>
         )}
       </div>
