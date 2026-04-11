@@ -9,6 +9,7 @@ import {
   SearchableSelect,
   StatusBadge,
   EntityLink,
+  LinkedEntity,
   type SelectOption,
 } from "../../../../components/ui";
 import type { WarehouseLocation } from "../../../../services/warehouseOperatorService";
@@ -17,6 +18,7 @@ import { useLanguage } from "../../../../contexts/useLanguage";
 import { getLocationStatusLabel } from "../../../../utils/statusLabels";
 import { formatAddress, resolveCategoryName, filterMaterialTypes } from "./helpers";
 import { LOCATION_STATUS_COLORS } from "./types";
+import { formatManagerName, resolveLocationManager } from "./useLocationManagers";
 
 interface LocationDetailModalProps {
   /** Whether the modal is open */
@@ -42,6 +44,7 @@ export function LocationDetailModal({
 }: LocationDetailModalProps) {
   const { language, t } = useLanguage();
   const isEs = language === "es";
+  const manager = resolveLocationManager(location);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
@@ -100,6 +103,28 @@ export function LocationDetailModal({
                   </p>
                   <div className="mt-1">
                     <StatusBadge status={location.status} colorMap={LOCATION_STATUS_COLORS} label={getLocationStatusLabel(location.status as "available" | "full_capacity" | "maintenance" | "inactive", language as "en" | "es")} className="!text-white" />
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase font-semibold">
+                    {isEs ? "Gerente de sede" : "Site Manager"}
+                  </p>
+                  <div className="mt-1 space-y-1">
+                    {manager ? (
+                      <>
+                        <LinkedEntity
+                          type="user"
+                          id={manager._id}
+                          label={formatManagerName(manager)}
+                          className="font-semibold text-sm"
+                        />
+                        <p className="text-xs text-gray-400">{manager.email}</p>
+                      </>
+                    ) : (
+                      <p className="text-sm text-red-300">
+                        {isEs ? "Sin gerente asignado" : "No manager assigned"}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -245,7 +270,7 @@ export function LocationDetailModal({
                               entityType="materialType"
                               entityId={mt._id}
                               label={mt.name}
-                              className="text-sm font-semibold"
+                              className="text-sm font-semibold text-gray-100 hover:text-[#FFD700]"
                             />
                             <EntityLink
                               entityType="category"
@@ -255,7 +280,7 @@ export function LocationDetailModal({
                                   : mt.categoryId
                               }
                               label={categoryName}
-                              className="text-[10px]"
+                              className="text-[10px] text-gray-400 hover:text-[#FFD700]"
                             />
                           </div>
                         </td>

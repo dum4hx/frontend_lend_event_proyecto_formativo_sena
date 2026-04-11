@@ -37,6 +37,7 @@ import { LocationsTable } from "./LocationsTable";
 import { LocationDetailModal } from "./LocationDetailModal";
 import { LocationCreateModal } from "./LocationCreateModal";
 import { LocationEditModal } from "./LocationEditModal";
+import { useLocationManagerOptions } from "./useLocationManagers";
 import {
   calculateLocationCapacity,
   filterLocations,
@@ -52,6 +53,7 @@ export function Locations() {
   const isEs = language === "es";
   const { showToast } = useToast();
   const { guard, isAllowed } = useActionPermission(isEs ? "es" : "en");
+  const { managers, loading: managersLoading } = useLocationManagerOptions();
 
   // ---- Data ----
   const [locations, setLocations] = useState<WarehouseLocation[]>([]);
@@ -90,6 +92,16 @@ export function Locations() {
   // ---- Pagination ----
   const [page, setPage] = useState(1);
   const ITEMS_PER_PAGE = 12;
+
+  const managerIdByEmail = useMemo(
+    () =>
+      new Map(
+        managers.map((manager) => [manager.email.trim().toLowerCase(), manager._id] as const),
+      ),
+    [managers],
+  );
+
+  const validManagerIds = useMemo(() => new Set(managers.map((manager) => manager._id)), [managers]);
 
   // ---- Setup data ----
   useEffect(() => {
@@ -244,10 +256,72 @@ export function Locations() {
     exportAbort.current = null;
   }, []);
 
+  const handleDownloadImportTemplate = useCallback(() => {
+    const headers = [
+      "Code",
+      "Name",
+      "Manager Email",
+      "Street Type",
+      "Primary Number",
+      "Secondary Number",
+      "Complementary Number",
+      "Department",
+      "City",
+      "Additional Details",
+      ...materialTypes.map((type) => type.name),
+    ];
+
+    const sampleRow = [
+      "BOG01",
+      isEs ? "Bodega Principal" : "Main Warehouse",
+      "manager@company.com",
+      "Calle",
+      "49",
+      "6a",
+      "67",
+      "Tolima",
+      "Ibagué",
+      isEs ? "Cerca de la entrada principal" : "Near the main entrance",
+      ...materialTypes.map(() => "0"),
+    ];
+
+    const csv = [headers, sampleRow]
+      .map((row) => row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(","))
+      .join("\r\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "locations-import-template.csv";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  }, [isEs, materialTypes]);
+
   // ---- Import ----
   const handleImport = async () => {
     if (!importFile) {
       showToast("warning", isEs ? "Selecciona un archivo" : "Please select a file");
+      return;
+    }
+
+    if (managersLoading) {
+      showToast(
+        "warning",
+        isEs ? "Aún se están cargando los gerentes de sede" : "Site managers are still loading",
+      );
+      return;
+    }
+
+    if (managers.length === 0) {
+      showToast(
+        "warning",
+        isEs
+          ? "No hay gerentes de sede disponibles para importar ubicaciones"
+          : "No site managers are available to import locations",
+      );
       return;
     }
 
@@ -283,11 +357,28 @@ export function Locations() {
         rows = lines.slice(1).map((l) => parseCSVLine(l));
       }
 
-      const isLegacyFormat = headers.includes("name") && headers.includes("organizationId");
-      const isTemplateFormat = headers[0] === "Name" && headers[1] === "Street Type";
+      const normalizedHeaders = headers.map((header) =>
+        header.replace(/\s+/g, "").trim().toLowerCase(),
+      );
+      const hasManagerEmail = normalizedHeaders.includes("manageremail");
+      const hasManagerId = normalizedHeaders.includes("managerid");
+      const isLegacyFormat =
+        normalizedHeaders.includes("name") &&
+        normalizedHeaders.includes("organizationid") &&
+        (hasManagerEmail || hasManagerId);
+      const isTemplateFormat =
+        normalizedHeaders.includes("code") &&
+        normalizedHeaders.includes("name") &&
+        normalizedHeaders.includes("streettype") &&
+        (hasManagerEmail || hasManagerId);
 
       if (!isLegacyFormat && !isTemplateFormat) {
-        showToast("error", isEs ? "Formato inválido" : "Invalid file format");
+        showToast(
+          "error",
+          isEs
+            ? "Formato inválido. Usa la plantilla con Code, Name y Manager Email."
+            : "Invalid format. Use the template with Code, Name and Manager Email.",
+        );
         setImporting(false);
         return;
       }
@@ -303,8 +394,12 @@ export function Locations() {
 
       let successCount = 0;
       let errorCount = 0;
+      const importErrors: string[] = [];
 
-      for (const row of rows) {
+      const headerIndex = (headerName: string) =>
+        normalizedHeaders.findIndex((header) => header === headerName.replace(/\s+/g, "").trim().toLowerCase());
+
+      for (const [rowIndex, row] of rows.entries()) {
         if (!row[0]?.trim()) continue;
         try {
           const rowCaps = materialTypes.map((mt) => {
@@ -316,8 +411,27 @@ export function Locations() {
 
           let payload: LocationCreatePayload;
 
+          const managerEmailIdx = headerIndex("manageremail");
+          const managerIdIdx = headerIndex("managerid");
+          const rawManagerEmail =
+            managerEmailIdx >= 0 ? row[managerEmailIdx]?.trim().toLowerCase() || "" : "";
+          const rawManagerId = managerIdIdx >= 0 ? row[managerIdIdx]?.trim() || "" : "";
+          const resolvedManagerId = rawManagerId
+            ? validManagerIds.has(rawManagerId)
+              ? rawManagerId
+              : ""
+            : managerIdByEmail.get(rawManagerEmail) ?? "";
+
+          if (!resolvedManagerId) {
+            throw new Error(
+              isEs
+                ? "Manager Email o Manager ID inválido"
+                : "Invalid Manager Email or Manager ID",
+            );
+          }
+
           if (isLegacyFormat) {
-            const h = (name: string) => headers.indexOf(name);
+            const h = (name: string) => headerIndex(name);
             const street = row[h("street")]?.trim() || "";
             let parsedStreetType = "";
             let parsedPrimary = street;
@@ -334,6 +448,7 @@ export function Locations() {
               code: row[h("code")]?.trim().toUpperCase() || "",
               name: row[h("name")]?.trim() || "",
               organizationId: user?.organizationId ?? "",
+              managerId: resolvedManagerId,
               materialCapacities: rowCaps,
               address: {
                 streetType: parsedStreetType,
@@ -346,26 +461,32 @@ export function Locations() {
             };
           } else {
             payload = {
-              code: row[0]?.trim().toUpperCase() || "",
-              name: row[1]?.trim() || "",
+              code: row[headerIndex("code")]?.trim().toUpperCase() || "",
+              name: row[headerIndex("name")]?.trim() || "",
               organizationId: user?.organizationId ?? "",
+              managerId: resolvedManagerId,
               materialCapacities: rowCaps,
               address: {
-                streetType: row[2]?.trim() || "",
-                primaryNumber: row[3]?.trim() || "",
-                secondaryNumber: row[4]?.trim() || "",
-                complementaryNumber: row[5]?.trim() || "",
-                department: row[6]?.trim() || "",
-                city: row[7]?.trim() || "",
-                additionalDetails: row[8]?.trim() || undefined,
+                streetType: row[headerIndex("streettype")]?.trim() || "",
+                primaryNumber: row[headerIndex("primarynumber")]?.trim() || "",
+                secondaryNumber: row[headerIndex("secondarynumber")]?.trim() || "",
+                complementaryNumber: row[headerIndex("complementarynumber")]?.trim() || "",
+                department: row[headerIndex("department")]?.trim() || "",
+                city: row[headerIndex("city")]?.trim() || "",
+                additionalDetails: row[headerIndex("additionaldetails")]?.trim() || undefined,
               },
             };
           }
 
           await apiCreateLocation(payload);
           successCount++;
-        } catch {
+        } catch (error) {
           errorCount++;
+          if (importErrors.length < 3) {
+            importErrors.push(
+              `${isEs ? "Fila" : "Row"} ${rowIndex + 2}: ${(error as Error).message}`,
+            );
+          }
         }
       }
 
@@ -377,7 +498,10 @@ export function Locations() {
         await fetchLocations();
       }
       if (errorCount > 0) {
-        showToast("warning", isEs ? `Fallaron ${errorCount}` : `Failed: ${errorCount}`);
+        showToast(
+          "warning",
+          `${isEs ? `Fallaron ${errorCount}` : `Failed: ${errorCount}`}${importErrors.length > 0 ? `. ${importErrors.join(" | ")}` : ""}`,
+        );
       }
       if (successCount === 0 && errorCount === 0) {
         showToast("warning", isEs ? "Sin filas válidas" : "No valid rows found");
@@ -631,9 +755,22 @@ export function Locations() {
               </h3>
               <p className="text-gray-400 text-sm mb-4">
                 {isEs
-                  ? "Sube un archivo CSV o Excel con los datos de las ubicaciones."
-                  : "Upload a CSV or Excel file with location data."}
+                  ? "Sube un archivo CSV o Excel con los datos de las ubicaciones. Cada fila debe incluir Manager Email y un gerente puede administrar varias sedes."
+                  : "Upload a CSV or Excel file with location data. Each row must include Manager Email and one manager can oversee multiple locations."}
               </p>
+              <div className="mb-4 rounded-lg border border-[#3a3320] bg-[#15120a] px-4 py-3 text-xs text-[#d9c27a]">
+                {isEs
+                  ? "Columnas mínimas requeridas: Code, Name, Manager Email, Street Type, Primary Number, Secondary Number, Complementary Number, Department y City."
+                  : "Minimum required columns: Code, Name, Manager Email, Street Type, Primary Number, Secondary Number, Complementary Number, Department, and City."}
+              </div>
+              <button
+                type="button"
+                onClick={handleDownloadImportTemplate}
+                className="mb-4 inline-flex items-center gap-2 rounded-lg border border-[rgba(255,215,0,0.35)] bg-[rgba(255,215,0,0.1)] px-4 py-2 text-sm font-semibold text-[#FFD700] hover:bg-[rgba(255,215,0,0.18)] hover:border-[rgba(255,215,0,0.55)] transition-colors"
+              >
+                <Download size={16} />
+                {isEs ? "Descargar plantilla" : "Download template"}
+              </button>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -659,7 +796,7 @@ export function Locations() {
                 </button>
                 <button
                   onClick={() => void handleImport()}
-                  disabled={!importFile || importing}
+                  disabled={!importFile || importing || managersLoading || managers.length === 0}
                   className="px-6 py-2 bg-[#FFD700] text-black font-semibold rounded-lg hover:bg-[#FFC700] disabled:opacity-50"
                 >
                   {importing

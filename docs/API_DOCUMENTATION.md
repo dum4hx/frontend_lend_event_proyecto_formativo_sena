@@ -3208,6 +3208,7 @@ Creates a new location in the organization.
 | ----------------------------------- | -------- | -------- | ------------------ | ----------------------------------------------------------------------------------------------------- |
 | code                                | string   | Yes      | 1-10 chars, regex  | Unique alphanumeric code (uppercase only, pattern `^[A-Z0-9]+$`). Business identifier for location.   |
 | name                                | string   | Yes      | 1-100 characters   | Location name                                                                                         |
+| managerId                           | string   | Yes      | Valid ObjectId     | User assigned as the direct site manager. Must belong to the organization and have the site-manager role. |
 | address.streetType                  | string   | Yes      | Enum (9 values)    | One of: Calle, Carrera, Avenida, Avenida Calle, Avenida Carrera, Diagonal, Transversal, Circular, Via |
 | address.primaryNumber               | string   | Yes      | 1-20 characters    | Primary street/road number                                                                            |
 | address.secondaryNumber             | string   | Yes      | 1-20 characters    | Cross street number                                                                                   |
@@ -3228,6 +3229,7 @@ Creates a new location in the organization.
 {
   "code": "MDE01",
   "name": "Bodega Norte",
+  "managerId": "507f1f77bcf86cd799439099",
   "address": {
     "streetType": "Carrera",
     "primaryNumber": "50",
@@ -3257,6 +3259,15 @@ Creates a new location in the organization.
     "code": "MDE01",
     "name": "Bodega Norte",
     "organizationId": "507f1f77bcf86cd799439012",
+    "manager": {
+      "_id": "507f1f77bcf86cd799439099",
+      "email": "manager@acme.com",
+      "roleName": "Gerente de Sede",
+      "name": {
+        "firstName": "Laura",
+        "firstSurname": "Gomez"
+      }
+    },
     "address": {
       "country": "Colombia",
       "state": "Antioquia",
@@ -3293,12 +3304,13 @@ Updates an existing location (partial update).
 
 #### Request Body
 
-Same fields as POST, but all are optional. Only provided fields will be updated.
+Same fields as POST, but all are optional except that the location must still retain a valid `managerId` after the update. Only provided fields will be updated.
 
 | Field              | Type     | Required | Constraints       | Description                                                                                                    |
 | ------------------ | -------- | -------- | ----------------- | -------------------------------------------------------------------------------------------------------------- |
 | code               | string   | No       | 1-10 chars, regex | Unique alphanumeric code (uppercase only). If provided and conflicts with another location, returns 409 error. |
 | name               | string   | No       | 1-100 characters  | Location name                                                                                                  |
+| managerId          | string   | No       | Valid ObjectId    | Reassigns the site manager. The selected user must still have the site-manager role.                           |
 | address            | object   | No       | -                 | Address fields (all optional)                                                                                  |
 | materialCapacities | object[] | No       | -                 | Array of material capacity mappings                                                                            |
 

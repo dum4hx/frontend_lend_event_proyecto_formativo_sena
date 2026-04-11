@@ -6,7 +6,7 @@
  */
 
 import { get, post, patch, del, type ApiSuccessResponse } from "../lib/api";
-import type { PaginationMeta } from "../types/api";
+import type { PaginationMeta, PersonName } from "../types/api";
 
 // Inventory Items
 export interface InventoryItem {
@@ -56,6 +56,8 @@ export interface WarehouseLocation {
   code: string;
   name: string;
   organizationId: string;
+  manager?: WarehouseLocationManager | null;
+  managerId?: string | WarehouseLocationManager;
   address: LocationAddress;
   capacity: number;
   occupied: number;
@@ -78,10 +80,20 @@ export interface LocationAddress {
   formatted?: string;
 }
 
+export interface WarehouseLocationManager {
+  _id: string;
+  email: string;
+  roleId?: string;
+  roleName?: string;
+  name: PersonName;
+  status?: string;
+}
+
 export interface LocationCreatePayload {
   code: string;
   name: string;
   organizationId: string;
+  managerId?: string;
   status?: "available" | "full_capacity" | "maintenance" | "inactive";
   materialCapacities?: { materialTypeId: string; maxQuantity: number }[];
   address: {

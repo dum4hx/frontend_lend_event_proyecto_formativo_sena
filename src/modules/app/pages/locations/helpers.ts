@@ -112,8 +112,24 @@ export function resolveCategoryId(categoryId: unknown): string {
 export function buildExportRows(locs: WarehouseLocation[]): Record<string, string>[] {
   return locs.map((loc) => {
     const address = loc.address || ({} as LocationAddress);
+    const manager =
+      loc.manager ?? (loc.managerId && typeof loc.managerId === "object" ? loc.managerId : null);
+    const managerName = manager
+      ? [
+          manager.name.firstName,
+          manager.name.secondName,
+          manager.name.firstSurname,
+          manager.name.secondSurname,
+        ]
+          .filter(Boolean)
+          .join(" ")
+      : "";
+
     return {
+      Code: loc.code || "",
       Name: loc.name || "",
+      "Manager Name": managerName,
+      "Manager Email": manager?.email || "",
       Status: loc.isActive ? "active" : "inactive",
       "Street Type": address.streetType || "",
       "Primary Number": address.primaryNumber || "",
