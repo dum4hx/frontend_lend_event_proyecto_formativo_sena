@@ -305,7 +305,7 @@ export function Orders() {
   const handleApproveOrder = async (requestId: string) => {
     setSubmitting(true);
     try {
-      await approveRequest(requestId, "Approved from Orders module");
+      await approveRequest(requestId, "Aprovado desde el modulo de prestamos");
       showSuccess(t("orders.approveSuccess"), t("orders.orderUpdated"));
       await refreshData();
     } catch (error) {

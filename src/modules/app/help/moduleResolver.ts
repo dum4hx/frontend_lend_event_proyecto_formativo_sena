@@ -26,6 +26,10 @@ const HELP_MODULE_DEFINITIONS: HelpModuleDefinition[] = [
     routePrefixes: ["/app/rentals"],
   },
   {
+    moduleId: "loans",
+    routePrefixes: ["/app/loans"],
+  },
+  {
     moduleId: "inspections",
     routePrefixes: ["/app/inspections"],
   },

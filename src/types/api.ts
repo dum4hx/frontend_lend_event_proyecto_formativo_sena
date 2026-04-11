@@ -490,6 +490,22 @@ export interface LoanRequestItem {
   totalPrice?: number;
 }
 
+/** Populated user reference returned by the backend when user fields are populated. */
+export interface PopulatedUserRef {
+  _id: string;
+  email?: string;
+  name?: PersonName;
+}
+
+/** Material instance entry in assignedMaterials on a LoanRequest. */
+export interface AssignedMaterialEntry {
+  materialInstanceId: {
+    _id: string;
+    serialNumber: string;
+  };
+  itemIndex: number;
+}
+
 export interface LoanRequest {
   _id: string;
   code?: string;
@@ -512,6 +528,15 @@ export interface LoanRequest {
   totalDays?: number;
   rentalFeePaidAt?: string;
   loanId?: string;
+  locationId?: string;
+  createdBy?: PopulatedUserRef;
+  approvedBy?: PopulatedUserRef;
+  approvedAt?: string;
+  assignedBy?: PopulatedUserRef;
+  assignedAt?: string;
+  assignedMaterials?: AssignedMaterialEntry[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface CreateLoanRequestPayload {
@@ -548,6 +573,19 @@ export interface DepositTransaction {
   reference?: string;
 }
 
+/** Pricing snapshot item captured at checkout. */
+export interface PricingSnapshotItem {
+  itemType: string;
+  referenceId: string;
+  quantity: number;
+  strategyType: string;
+  configId?: string;
+  durationInDays: number;
+  basePricePerDay: number;
+  unitPrice: number;
+  totalPrice: number;
+}
+
 export interface Loan {
   _id: string;
   code?: string;
@@ -569,6 +607,12 @@ export interface Loan {
     refundAvailable?: boolean;
     refundableAmount?: number;
   };
+  locationId?: string;
+  checkedOutBy?: PopulatedUserRef;
+  checkedOutAt?: string;
+  pricingSnapshot?: PricingSnapshotItem[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 /** Loan from list endpoints (customerId is always populated as Customer). */
@@ -590,6 +634,7 @@ export interface LoanMaterialInstanceEntry {
     _id: string;
     name: string;
   };
+  conditionAtCheckout?: string;
 }
 
 /** Detailed loan response (default — flat list of instances). */

@@ -40,6 +40,8 @@ import type {
   MaintenanceItemStatus,
 } from "../types/api";
 
+import type { UnifiedLoanStatus } from "../modules/app/pages/loans/types";
+
 // ─── Primitives ────────────────────────────────────────────────────────────
 
 /** Bilingual label pair used in every status map. */
@@ -654,4 +656,43 @@ export function getMaintenanceItemStatusLabel(
   language: "en" | "es",
 ): string {
   return getLabel(MAINTENANCE_ITEM_STATUS_MAP, status, language);
+}
+
+// ─── Unified Loan Status (Loans module) ────────────────────────────────────
+
+export const UNIFIED_LOAN_STATUS_MAP: Record<UnifiedLoanStatus, StatusLocale> = {
+  pending: { en: "Pending", es: "Pendiente" },
+  approved: { en: "Approved", es: "Aprobado" },
+  assigned: { en: "Assigned", es: "Asignado" },
+  ready: { en: "Ready", es: "Listo" },
+  active: { en: "Active", es: "Activo" },
+  overdue: { en: "Overdue", es: "Vencido" },
+  returned: { en: "Returned", es: "Devuelto" },
+  inspected: { en: "Inspected", es: "Inspeccionado" },
+  closed: { en: "Closed", es: "Cerrado" },
+  rejected: { en: "Rejected", es: "Rechazado" },
+  cancelled: { en: "Cancelled", es: "Cancelado" },
+  expired: { en: "Expired", es: "Expirado" },
+};
+
+export const UNIFIED_LOAN_STATUS_COLORS: Record<UnifiedLoanStatus, string> = {
+  pending: "badge-warning",
+  approved: "badge-success",
+  assigned: "badge-info",
+  ready: "badge-info",
+  active: "badge-success",
+  overdue: "badge-danger",
+  returned: "badge-info",
+  inspected: "badge-info",
+  closed: "badge-success",
+  rejected: "badge-danger",
+  cancelled: "badge-danger",
+  expired: "badge-warning",
+};
+
+export function getUnifiedLoanStatusLabel(
+  status: UnifiedLoanStatus,
+  language: "en" | "es",
+): string {
+  return getLabel(UNIFIED_LOAN_STATUS_MAP, status, language);
 }

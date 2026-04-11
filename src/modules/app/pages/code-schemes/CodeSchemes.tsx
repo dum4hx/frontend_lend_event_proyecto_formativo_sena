@@ -33,7 +33,6 @@ import CodeSchemeFormModal from "./CodeSchemeFormModal";
 
 const ENTITY_TABS: CodeSchemeEntityType[] = [
   "loan",
-  "loan_request",
   "invoice",
   "inspection",
   "incident",
