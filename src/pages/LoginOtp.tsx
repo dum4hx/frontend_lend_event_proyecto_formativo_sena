@@ -5,13 +5,13 @@ import Footer from "../components/Footer";
 import { verifyLoginOtp, verifyBackupCode, resendLoginOtp } from "../services/authService";
 import { ApiError } from "../lib/api";
 import {
-  getFirstAccessibleUrl,
   requiresActiveSubscriptionByPermissions,
 } from "../utils/roleRouting";
 import { getPaymentStatus } from "../services/authService";
 import { useAuth } from "../contexts/useAuth";
 import { useLanguage } from "../contexts/useLanguage";
 import { BackupCodesModal } from "../components/ui";
+import { resolveSafePostAuthRedirect } from "../utils/authRoutePolicy";
 import styles from "./Login.module.css";
 
 const OTP_LENGTH = 6;
@@ -21,6 +21,7 @@ const MAX_ATTEMPTS = 5;
 interface OtpLocationState {
   email?: string;
   password?: string;
+  returnTo?: string;
 }
 
 interface OtpError {
@@ -38,6 +39,7 @@ export default function LoginOtp() {
   const state = location.state as OtpLocationState | null;
   const email = state?.email ?? "";
   const password = state?.password ?? "";
+  const returnTo = state?.returnTo;
 
   // Redirect to login if we arrived without the required state
   useEffect(() => {
@@ -78,7 +80,7 @@ export default function LoginOtp() {
 
   // ── Backup codes modal ───────────────────────────────────────────────────
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
-  const [pendingDashboardUrl, setPendingDashboardUrl] = useState("");
+  const [pendingPostAuthUrl, setPendingPostAuthUrl] = useState("");
   const [pendingGreetingName, setPendingGreetingName] = useState("");
 
   // ── Focus first OTP digit on mount ───────────────────────────────────────
@@ -167,13 +169,16 @@ export default function LoginOtp() {
 
   // ── Post-auth navigation helper ──────────────────────────────────────────
   const navigateAfterAuth = async (
+    roleName: string,
     permissions: string[],
     greetingName: string,
     newBackupCodes?: string[],
   ) => {
-    let dashboardUrl = "/login";
+    const targetUrl = resolveSafePostAuthRedirect(returnTo, permissions, roleName);
+    const isSubscriptionEntryPoint =
+      targetUrl.startsWith("/checkout") || targetUrl.startsWith("/packages");
 
-    if (requiresActiveSubscriptionByPermissions(permissions)) {
+    if (!isSubscriptionEntryPoint && requiresActiveSubscriptionByPermissions(permissions)) {
       try {
         const status = await getPaymentStatus();
         if (!status.data.isActive) {
@@ -185,17 +190,19 @@ export default function LoginOtp() {
       }
     }
 
-    dashboardUrl = getFirstAccessibleUrl(permissions);
-
     if (newBackupCodes && newBackupCodes.length > 0) {
       setBackupCodes(newBackupCodes);
-      setPendingDashboardUrl(dashboardUrl);
+      setPendingPostAuthUrl(targetUrl);
       setPendingGreetingName(greetingName);
       return; // navigation deferred until user closes backup codes modal
     }
 
-    navigate(dashboardUrl, {
-      state: { showGreeting: true, greetingName },
+    navigate(targetUrl, {
+      replace: true,
+      state:
+        targetUrl.startsWith("/app") || targetUrl.startsWith("/super-admin")
+          ? { showGreeting: true, greetingName }
+          : null,
     });
   };
 
@@ -210,9 +217,11 @@ export default function LoginOtp() {
     try {
       const response = await verifyLoginOtp({ email, code });
       const { user, permissions, backupCodes: newCodes } = response.data;
-      await checkAuth();
-      const greetingName = `${user.name.firstName} ${user.name.firstSurname}`.trim();
-      await navigateAfterAuth(permissions, greetingName, newCodes);
+      const session = await checkAuth();
+      const activeUser = session.user ?? user;
+      const activePermissions = session.permissions.length > 0 ? session.permissions : permissions;
+      const greetingName = `${activeUser.name.firstName} ${activeUser.name.firstSurname}`.trim();
+      await navigateAfterAuth(activeUser.roleName, activePermissions, greetingName, newCodes);
     } catch (err: unknown) {
       setError(resolveErrorMessage(err));
     } finally {
@@ -231,9 +240,11 @@ export default function LoginOtp() {
     try {
       const response = await verifyBackupCode({ email, backupCode: backupCodeValue.trim() });
       const { user, permissions } = response.data;
-      await checkAuth();
-      const greetingName = `${user.name.firstName} ${user.name.firstSurname}`.trim();
-      await navigateAfterAuth(permissions, greetingName);
+      const session = await checkAuth();
+      const activeUser = session.user ?? user;
+      const activePermissions = session.permissions.length > 0 ? session.permissions : permissions;
+      const greetingName = `${activeUser.name.firstName} ${activeUser.name.firstSurname}`.trim();
+      await navigateAfterAuth(activeUser.roleName, activePermissions, greetingName);
     } catch {
       setError({
         message: t("publicSite.login.otp.error.BACKUP_INVALID"),
@@ -267,8 +278,12 @@ export default function LoginOtp() {
   // ── Backup codes modal close ─────────────────────────────────────────────
   const handleBackupCodesClose = () => {
     setBackupCodes([]);
-    navigate(pendingDashboardUrl, {
-      state: { showGreeting: true, greetingName: pendingGreetingName },
+    navigate(pendingPostAuthUrl, {
+      replace: true,
+      state:
+        pendingPostAuthUrl.startsWith("/app") || pendingPostAuthUrl.startsWith("/super-admin")
+          ? { showGreeting: true, greetingName: pendingGreetingName }
+          : null,
     });
   };
 
@@ -328,7 +343,7 @@ export default function LoginOtp() {
                 Close
               </button>
               <button
-                onClick={() => navigate("/packages")}
+                onClick={() => navigate("/packages", { replace: true })}
                 className="flex-1 py-3 rounded-xl bg-yellow-400 text-black font-extrabold hover:bg-yellow-300 transition"
               >
                 Buy Subscription

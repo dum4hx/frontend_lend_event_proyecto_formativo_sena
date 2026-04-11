@@ -368,11 +368,6 @@ export default function Packages() {
     // If unauthenticated, open login/register modal and remember selection
     if (!isLoggedIn) {
       setPendingPlan(plan.name);
-      try {
-        localStorage.setItem("pendingCheckoutPlan", plan.name);
-      } catch {
-        // ignore storage failures
-      }
       setShowLoginModal(true);
       return;
     }
@@ -433,18 +428,9 @@ export default function Packages() {
             open={showLoginModal}
             onClose={() => setShowLoginModal(false)}
             registerReturnTo={registerReturnTo}
-            onAuthenticated={() => {
-              setShowLoginModal(false);
-              const planName = pendingPlan ?? localStorage.getItem("pendingCheckoutPlan");
-              if (planName) {
-                try {
-                  localStorage.removeItem("pendingCheckoutPlan");
-                } catch {
-                  /* Empty fallback */
-                }
-                navigate(`/checkout?plan=${encodeURIComponent(planName)}`);
-              }
-            }}
+            postAuthRedirect={
+              pendingPlan ? `/checkout?plan=${encodeURIComponent(pendingPlan)}` : undefined
+            }
           />
           <h2 className="text-4xl md:text-5xl font-extrabold mb-4">
             {t("publicSite.packages.hero.titlePrefix")} <span className="text-yellow-400">{t("publicSite.packages.hero.titleHighlight")}</span>

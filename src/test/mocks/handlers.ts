@@ -58,6 +58,11 @@ export const handlers = [
     return HttpResponse.json({ status: "success", data: {} });
   }),
 
+  /** POST /auth/logout-all — always succeeds. */
+  http.post(`${BASE}/auth/logout-all`, () => {
+    return HttpResponse.json({ status: "success", data: {} });
+  }),
+
   // ---- Users --------------------------------------------------------------
 
   /** GET /users — returns a tiny list. */

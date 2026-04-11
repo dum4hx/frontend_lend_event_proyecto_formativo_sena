@@ -6,7 +6,7 @@
  * transparently by the browser -- no manual token storage is needed.
  */
 
-import { post, get, type ApiSuccessResponse } from "../lib/api";
+import { post, get, ApiError, type ApiSuccessResponse } from "../lib/api";
 import type {
   RegisterPayload,
   RegisterResponseData,
@@ -213,6 +213,21 @@ export async function acceptInvite(
 /** Clear authentication cookies on the server. */
 export async function logoutUser(): Promise<ApiSuccessResponse<null>> {
   return post<null>("/auth/logout");
+}
+
+/**
+ * Clear all sessions for the current account.
+ * Falls back to `/auth/logout` when backend does not expose `/auth/logout-all`.
+ */
+export async function logoutAllSessions(): Promise<ApiSuccessResponse<null>> {
+  try {
+    return await post<null>("/auth/logout-all");
+  } catch (error) {
+    if (error instanceof ApiError && error.statusCode === 404) {
+      return logoutUser();
+    }
+    throw error;
+  }
 }
 
 // --- Current User -----------------------------------------------------------

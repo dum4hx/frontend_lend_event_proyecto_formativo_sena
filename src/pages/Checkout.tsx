@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useSearchParams, Link } from "react-router-dom";
+import { useSearchParams, Link, useLocation } from "react-router-dom";
 import {
   Loader2,
   AlertCircle,
@@ -31,6 +31,7 @@ function formatDollars(amount: number): string {
 
 export default function Checkout() {
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const { user, isLoggedIn, isLoading: authLoading } = useAuth();
   const { t } = useLanguage();
 
@@ -206,11 +207,7 @@ export default function Checkout() {
           <LoginModal
             open={showLoginModal}
             onClose={() => setShowLoginModal(false)}
-            onAuthenticated={() => {
-              setShowLoginModal(false);
-              // Now authenticated — trigger checkout automatically
-              void handleCheckout();
-            }}
+            postAuthRedirect={`${location.pathname}${location.search}`}
           />
 
           {/* Back link */}

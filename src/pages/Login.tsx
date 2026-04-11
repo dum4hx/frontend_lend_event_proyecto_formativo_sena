@@ -59,6 +59,7 @@ export default function Login() {
     try {
       await loginUser({ email: normalisedEmail, password: normalisedPassword });
       navigate("/auth/verify-otp", {
+        replace: true,
         state: { email: normalisedEmail, password: normalisedPassword },
       });
     } catch (err: unknown) {

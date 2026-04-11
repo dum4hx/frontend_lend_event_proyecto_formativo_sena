@@ -9,10 +9,11 @@
  *   openEntityDetail("customer", customerId);
  */
 
-import React, { useState, useCallback, lazy, Suspense } from "react";
+import React, { useState, useCallback, lazy, Suspense, useEffect } from "react";
 import { EntityDetailContext } from "./entityDetailContextDefinition";
 import type { EntityType } from "./entityDetailContextDefinition";
 import { LoadingSpinner } from "../components/ui";
+import { AUTH_SESSION_CLEARED_EVENT } from "../utils/authRoutePolicy";
 
 interface ActiveEntity {
   type: EntityType;
@@ -44,6 +45,17 @@ export function EntityDetailProvider({ children }: { children: React.ReactNode }
   const closeEntityDetail = useCallback(() => {
     setActive(null);
   }, []);
+
+  useEffect(() => {
+    function handleSessionCleared(): void {
+      closeEntityDetail();
+    }
+
+    window.addEventListener(AUTH_SESSION_CLEARED_EVENT, handleSessionCleared);
+    return () => {
+      window.removeEventListener(AUTH_SESSION_CLEARED_EVENT, handleSessionCleared);
+    };
+  }, [closeEntityDetail]);
 
   return (
     <EntityDetailContext.Provider value={{ openEntityDetail, closeEntityDetail }}>

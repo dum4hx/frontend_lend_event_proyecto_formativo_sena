@@ -6,7 +6,13 @@
 import { describe, it, expect, beforeAll, afterEach, afterAll } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/mocks/server";
-import { loginUser, registerUser, logoutUser, getCurrentUser } from "../authService";
+import {
+  loginUser,
+  registerUser,
+  logoutUser,
+  logoutAllSessions,
+  getCurrentUser,
+} from "../authService";
 import { ApiError } from "../../lib/api";
 
 const BASE = "http://localhost:3000/api/v1";
@@ -87,5 +93,24 @@ describe("getCurrentUser()", () => {
 describe("logoutUser()", () => {
   it("completes without throwing", async () => {
     await expect(logoutUser()).resolves.toBeDefined();
+  });
+});
+
+describe("logoutAllSessions()", () => {
+  it("uses /auth/logout-all when available", async () => {
+    await expect(logoutAllSessions()).resolves.toBeDefined();
+  });
+
+  it("falls back to /auth/logout when /auth/logout-all is missing", async () => {
+    server.use(
+      http.post(`${BASE}/auth/logout-all`, () => {
+        return HttpResponse.json({ status: "error", message: "Not found" }, { status: 404 });
+      }),
+      http.post(`${BASE}/auth/logout`, () => {
+        return HttpResponse.json({ status: "success", data: {} });
+      }),
+    );
+
+    await expect(logoutAllSessions()).resolves.toBeDefined();
   });
 });

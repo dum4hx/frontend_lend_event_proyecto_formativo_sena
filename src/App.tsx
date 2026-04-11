@@ -6,6 +6,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { ToastProvider } from "./contexts/ToastContext";
 import { RequirePermission } from "./utils/permissionGuard";
 import { RequireActiveSubscription } from "./utils/subscriptionGuard";
+import { PublicOnlyRoute, RequireAuthenticatedRoute } from "./utils/authGuards";
 import { LoadingSpinner } from "./components/ui";
 import ScrollToTop from "./components/ScrollToTop";
 import { usePermissions } from "./contexts/usePermissions";
@@ -104,23 +105,73 @@ const AdminReports = lazy(() => import("./modules/super-admin/pages/AdminReports
 
 function App() {
   return (
-    <AuthProvider>
-      <LanguageProvider>
-        <ThemeProvider>
-          <ToastProvider>
-            <BrowserRouter>
+    <BrowserRouter>
+      <AuthProvider>
+        <LanguageProvider>
+          <ThemeProvider>
+            <ToastProvider>
               <ScrollToTop />
               <Routes>
                 {/* Public Routes */}
-                <Route path="/" element={<Dashboard />} />
+                <Route
+                  path="/"
+                  element={
+                    <PublicOnlyRoute>
+                      <Dashboard />
+                    </PublicOnlyRoute>
+                  }
+                />
                 <Route path="/packages" element={<Paquetes />} />
                 <Route path="/about" element={<AboutPage />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/sign-up" element={<SignUp />} />
-                <Route path="/password-recovery" element={<PasswordRecovery />} />
-                <Route path="/accept-invite" element={<AcceptInvite />} />
-                <Route path="/verify-email" element={<EmailVerification />} />
-                <Route path="/auth/verify-otp" element={<LoginOtp />} />
+                <Route
+                  path="/login"
+                  element={
+                    <PublicOnlyRoute>
+                      <Login />
+                    </PublicOnlyRoute>
+                  }
+                />
+                <Route
+                  path="/sign-up"
+                  element={
+                    <PublicOnlyRoute>
+                      <SignUp />
+                    </PublicOnlyRoute>
+                  }
+                />
+                <Route
+                  path="/password-recovery"
+                  element={
+                    <PublicOnlyRoute>
+                      <PasswordRecovery />
+                    </PublicOnlyRoute>
+                  }
+                />
+                <Route
+                  path="/accept-invite"
+                  element={
+                    <PublicOnlyRoute>
+                      <AcceptInvite />
+                    </PublicOnlyRoute>
+                  }
+                />
+                <Route
+                  path="/verify-email"
+                  element={
+                    <PublicOnlyRoute>
+                      <EmailVerification />
+                    </PublicOnlyRoute>
+                  }
+                />
+                <Route
+                  path="/auth/verify-otp"
+                  element={
+                    <PublicOnlyRoute>
+                      <LoginOtp />
+                    </PublicOnlyRoute>
+                  }
+                />
+                {/* Checkout — public for unauthenticated, allowed for authenticated too */}
                 <Route path="/checkout" element={<Checkout />} />
                 <Route path="/checkout/success" element={<CheckoutSuccess />} />
                 <Route path="/export-demo" element={<ExportDemo />} />
@@ -140,20 +191,22 @@ function App() {
                 <Route
                   path="/app"
                   element={
-                    <RequirePermission
-                      requiredPermissions={[
-                        "analytics:read",
-                        "organization:read",
-                        "materials:read",
-                        "customers:read",
-                        "loans:read",
-                        "requests:read",
-                      ]}
-                    >
-                      <RequireActiveSubscription>
-                        <AppLayout />
-                      </RequireActiveSubscription>
-                    </RequirePermission>
+                    <RequireAuthenticatedRoute>
+                      <RequirePermission
+                        requiredPermissions={[
+                          "analytics:read",
+                          "organization:read",
+                          "materials:read",
+                          "customers:read",
+                          "loans:read",
+                          "requests:read",
+                        ]}
+                      >
+                        <RequireActiveSubscription>
+                          <AppLayout />
+                        </RequireActiveSubscription>
+                      </RequirePermission>
+                    </RequireAuthenticatedRoute>
                   }
                 >
                   <Route index element={<AppIndexRedirect />} />
@@ -190,11 +243,13 @@ function App() {
                 <Route
                   path="/super-admin"
                   element={
-                    <RequirePermission requiredPermissions={["platform:manage"]}>
-                      <Suspense fallback={<LoadingSpinner />}>
-                        <SuperAdminLayout />
-                      </Suspense>
-                    </RequirePermission>
+                    <RequireAuthenticatedRoute>
+                      <RequirePermission requiredPermissions={["platform:manage"]}>
+                        <Suspense fallback={<LoadingSpinner />}>
+                          <SuperAdminLayout />
+                        </Suspense>
+                      </RequirePermission>
+                    </RequireAuthenticatedRoute>
                   }
                 >
                   <Route index element={<SalesOverview />} />
@@ -215,11 +270,11 @@ function App() {
                 <Route path="/unauthorized" element={<Unauthorized />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
-            </BrowserRouter>
-          </ToastProvider>
-        </ThemeProvider>
-      </LanguageProvider>
-    </AuthProvider>
+            </ToastProvider>
+          </ThemeProvider>
+        </LanguageProvider>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
 

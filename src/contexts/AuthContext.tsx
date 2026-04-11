@@ -1,18 +1,16 @@
-﻿/**
- * Authentication context.
- *
- * Provides the currently-authenticated user (or null) to the
- * entire component tree and exposes a `checkAuth` helper that
- * pages call after login / logout to refresh the state.
- *
- * Also stores the user's permission list (fetched from /auth/me)
- * and persists it to sessionStorage so page reloads don't break the UI.
- */
-
-import { createContext, useState, useEffect, useCallback, type ReactNode } from "react";
-import { getCurrentUser } from "../services/authService";
+﻿import { createContext, useState, useEffect, useCallback, useRef, type ReactNode } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { getCurrentUser, refreshToken } from "../services/authService";
 import { ApiError } from "../lib/api";
+import { setAuthFailureHandler } from "../lib/api";
 import type { User } from "../types/api";
+import { queryClient } from "../lib/queryClient";
+import {
+  AUTH_SESSION_CLEARED_EVENT,
+  getAuthenticatedHomeUrl,
+  isPrivatePath,
+  isPublicAuthPath,
+} from "../utils/authRoutePolicy";
 
 // -- Storage key -------------------------------------------------------------
 
@@ -20,21 +18,35 @@ const PERMISSIONS_KEY = "lendevent_permissions";
 
 // -- Context shape -----------------------------------------------------------
 
-interface AuthContextValue {
+export interface AuthContextValue {
   /** The logged-in user, or `null` when unauthenticated. */
   user: User | null;
-  /** Shorthand boolean for `user !== null`. */
+  /** Canonical loading flag while session validation is in flight. */
+  loading: boolean;
+  /** Canonical auth flag derived from the resolved session. */
+  isAuthenticated: boolean;
+  /** Backward-compatible alias for `isAuthenticated`. */
   isLoggedIn: boolean;
-  /** `true` while the initial auth check is still in-flight. */
+  /** Backward-compatible alias for `loading`. */
   isLoading: boolean;
   /** Flat list of permission keys for the current user. */
   permissions: string[];
+  /** Last successful `/auth/me` validation timestamp. */
+  lastValidatedAt: number | null;
   /**
-   * Re-fetch /auth/me and update the context (user + permissions).
-   * Call this after login or logout to sync the UI.
+   * Force a full session validation cycle (`/auth/me`, then refresh+retry when needed).
    * Returns the fetched user and permissions.
    */
   checkAuth: () => Promise<{ user: User | null; permissions: string[] }>;
+  /**
+   * Validate session only when stale (unless `force=true`).
+   * Returns `true` when user remains authenticated.
+   */
+  ensureSession: (options?: { force?: boolean; staleMs?: number }) => Promise<boolean>;
+  /** Fast stale check used by route guards before sensitive rendering. */
+  isSessionStale: (staleMs?: number) => boolean;
+  /** Clears all auth state on the client. */
+  clearSession: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -73,47 +85,262 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+interface SessionResult {
+  user: User | null;
+  permissions: string[];
+}
+
+const DEFAULT_STALE_MS = 10 * 60_000;
+
+/**
+ * Snapshot of session state kept up-to-date every render via direct
+ * assignment (not a useEffect). Callbacks read from this ref so they
+ * never need state values in their dependency arrays, which would
+ * otherwise cause validateSession to change reference on every state
+ * update and trigger an infinite /auth/me polling loop.
+ */
+interface SessionSnapshot {
+  user: User | null;
+  permissions: string[];
+  lastValidatedAt: number | null;
+  pathname: string;
+}
+
 export function AuthProvider({ children }: AuthProviderProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const [user, setUser] = useState<User | null>(null);
   const [permissions, setPermissions] = useState<string[]>(loadPersistedPermissions);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [lastValidatedAt, setLastValidatedAt] = useState<number | null>(null);
 
-  const checkAuth = useCallback(async (): Promise<{ user: User | null; permissions: string[] }> => {
+  // Always-current snapshot — assigned on every render, never inside an effect.
+  // This lets callbacks read the latest state without listing it as a dep,
+  // which is the key fix preventing the infinite validateSession loop.
+  const sessionRef = useRef<SessionSnapshot>({
+    user,
+    permissions,
+    lastValidatedAt,
+    pathname: location.pathname,
+  });
+  sessionRef.current = { user, permissions, lastValidatedAt, pathname: location.pathname };
+
+  const validationInFlight = useRef<Promise<SessionResult> | null>(null);
+  const hasBootstrappedRef = useRef(false);
+
+  const applySession = useCallback((nextUser: User, nextPermissions: string[]) => {
+    setUser(nextUser);
+    setPermissions(nextPermissions);
+    setLastValidatedAt(Date.now());
+    persistPermissions(nextPermissions);
+  }, []);
+
+  const clearSession = useCallback(() => {
+    setUser(null);
+    setPermissions([]);
+    setLastValidatedAt(null);
+    clearPersistedPermissions();
+
     try {
-      const response = await getCurrentUser();
-      const fetchedUser = response.data.user;
-      const fetchedPermissions = response.data.permissions ?? fetchedUser.permissions ?? [];
+      localStorage.removeItem("pendingCheckoutPlan");
+    } catch {
+      /* storage unavailable */
+    }
 
-      setUser(fetchedUser);
-      setPermissions(fetchedPermissions);
-      persistPermissions(fetchedPermissions);
+    queryClient.clear();
+    window.dispatchEvent(new Event(AUTH_SESSION_CLEARED_EVENT));
+  }, []);
 
+  const fetchSession = useCallback(async (): Promise<SessionResult> => {
+    try {
+      const meResponse = await getCurrentUser();
+      const fetchedUser = meResponse.data.user;
+      const fetchedPermissions = meResponse.data.permissions ?? fetchedUser.permissions ?? [];
       return { user: fetchedUser, permissions: fetchedPermissions };
     } catch (error: unknown) {
-      // 401 is expected when the user is not logged in.
       if (error instanceof ApiError && error.statusCode === 401) {
-        setUser(null);
-      } else {
-        // Network or unexpected errors -- still clear the user.
-        console.error("[AuthContext] Failed to verify session:", error);
-        setUser(null);
+        // /auth/me returned 401. Attempt a single refresh, then retry once.
+        // If refresh fails, treat as definitively unauthenticated — no more retries.
+        try {
+          await refreshToken();
+          const retryResponse = await getCurrentUser();
+          const fetchedUser = retryResponse.data.user;
+          const fetchedPermissions =
+            retryResponse.data.permissions ?? fetchedUser.permissions ?? [];
+          return { user: fetchedUser, permissions: fetchedPermissions };
+        } catch {
+          return { user: null, permissions: [] };
+        }
       }
-      setPermissions([]);
-      clearPersistedPermissions();
+
+      // Network or server error — deny access defensively.
       return { user: null, permissions: [] };
-    } finally {
-      setIsLoading(false);
     }
   }, []);
 
-  // Check auth once on mount.
+  /**
+   * Validates the session via GET /auth/me (with one refresh retry on 401).
+   *
+   * STABLE: its dep array contains only the four stable callbacks above.
+   * All mutable state is read from sessionRef.current, not from closure.
+   * This prevents useEffect([validateSession]) from re-firing on every
+   * state update, which was the root cause of the infinite polling loop.
+   */
+  const validateSession = useCallback(
+    async ({
+      force = false,
+      staleMs = DEFAULT_STALE_MS,
+      redirectIfUnauthenticated = true,
+      redirectAuthenticatedFromPublic = true,
+      blocking = !hasBootstrappedRef.current,
+    }: {
+      force?: boolean;
+      staleMs?: number;
+      redirectIfUnauthenticated?: boolean;
+      redirectAuthenticatedFromPublic?: boolean;
+      // Full-screen loader should only be used during initial bootstrap.
+      blocking?: boolean;
+    } = {}): Promise<SessionResult> => {
+      // Read current session state from the ref (not from closure-captured state).
+      const snap = sessionRef.current;
+
+      const isFresh =
+        !force &&
+        snap.lastValidatedAt !== null &&
+        Date.now() - snap.lastValidatedAt <= staleMs &&
+        snap.user !== null;
+
+      if (isFresh) {
+        return { user: snap.user, permissions: snap.permissions };
+      }
+
+      // Coalesce concurrent validation calls — return the in-flight promise.
+      if (validationInFlight.current) {
+        return validationInFlight.current;
+      }
+
+      const shouldBlock = blocking && !hasBootstrappedRef.current;
+      if (shouldBlock) {
+        setLoading(true);
+      }
+
+      // Cleanup is inside the IIFE so it runs regardless of how the promise settles,
+      // and so callers who await the returned promise see it resolve after cleanup.
+      const pending = (async (): Promise<SessionResult> => {
+        try {
+          const result = await fetchSession();
+          if (result.user) {
+            applySession(result.user, result.permissions);
+            if (redirectAuthenticatedFromPublic && isPublicAuthPath(sessionRef.current.pathname)) {
+              navigate(getAuthenticatedHomeUrl(result.permissions, result.user.roleName), {
+                replace: true,
+              });
+            }
+          } else {
+            clearSession();
+            // Read pathname from ref at this point (user may have navigated).
+            if (redirectIfUnauthenticated && isPrivatePath(sessionRef.current.pathname)) {
+              navigate("/login", { replace: true, state: null });
+            }
+          }
+          return result;
+        } finally {
+          if (shouldBlock) {
+            setLoading(false);
+          }
+          hasBootstrappedRef.current = true;
+          validationInFlight.current = null;
+        }
+      })();
+
+      validationInFlight.current = pending;
+      return pending;
+    },
+    // IMPORTANT: no state values here. Adding user/permissions/lastValidatedAt
+    // would cause validateSession to get a new reference on every state change,
+    // and the mount effect below would re-fire, creating an infinite poll loop.
+    [applySession, clearSession, fetchSession, navigate],
+  );
+
+  const checkAuth = useCallback(async (): Promise<SessionResult> => {
+    return validateSession({ force: true, blocking: !hasBootstrappedRef.current });
+  }, [validateSession]);
+
+  const ensureSession = useCallback(
+    async ({ force = false, staleMs = DEFAULT_STALE_MS } = {}): Promise<boolean> => {
+      // Route-level revalidation is silent to avoid flashing global loaders.
+      const result = await validateSession({ force, staleMs, blocking: false });
+      return result.user !== null;
+    },
+    [validateSession],
+  );
+
+  // STABLE: reads from sessionRef so it needs no state in dep array.
+  const isSessionStale = useCallback(
+    (staleMs = DEFAULT_STALE_MS): boolean => {
+      const ts = sessionRef.current.lastValidatedAt;
+      if (ts === null) return true;
+      return Date.now() - ts > staleMs;
+    },
+    [],
+  );
+
+  // Initial session check — run exactly ONCE on mount.
+  // Empty dep array is intentional: validateSession is stable, but we still
+  // use [] to make it explicit that this must never re-fire due to state changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    void checkAuth();
-  }, [checkAuth]);
+    void validateSession({ force: true, blocking: true });
+  }, []);
+
+  useEffect(() => {
+    if (loading) {
+      return;
+    }
+
+    if (user && isPublicAuthPath(location.pathname)) {
+      navigate(getAuthenticatedHomeUrl(permissions, user.roleName), { replace: true });
+      return;
+    }
+
+    if (!user && isPrivatePath(location.pathname)) {
+      navigate("/login", { replace: true, state: null });
+    }
+  }, [loading, location.pathname, navigate, permissions, user]);
+
+  // Register the global 401-failure handler in the HTTP client.
+  // Reads pathname from sessionRef at the time of failure — no location dep needed.
+  useEffect(() => {
+    setAuthFailureHandler(async () => {
+      clearSession();
+      if (isPrivatePath(sessionRef.current.pathname)) {
+        navigate("/login", { replace: true, state: null });
+      }
+    });
+
+    return () => {
+      setAuthFailureHandler(null);
+    };
+  }, [clearSession, navigate]);
+
+  const isAuthenticated = user !== null;
 
   return (
     <AuthContext.Provider
-      value={{ user, isLoggedIn: user !== null, isLoading, permissions, checkAuth }}
+      value={{
+        user,
+        loading,
+        isAuthenticated,
+        isLoggedIn: isAuthenticated,
+        isLoading: loading,
+        permissions,
+        lastValidatedAt,
+        checkAuth,
+        ensureSession,
+        isSessionStale,
+        clearSession,
+      }}
     >
       {children}
     </AuthContext.Provider>

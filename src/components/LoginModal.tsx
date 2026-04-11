@@ -1,18 +1,18 @@
 import { useState, useEffect, useRef } from "react";
 import { X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { loginUser, refreshToken } from "../services/authService";
-import { useAuth } from "../contexts/useAuth";
+import { loginUser } from "../services/authService";
 import { ApiError } from "../lib/api";
 import { validateLoginForm } from "../utils/validators";
 import { useLanguage } from "../contexts/useLanguage";
+import { AUTH_SESSION_CLEARED_EVENT } from "../utils/authRoutePolicy";
 import type { TranslationKey } from "../i18n/translations";
 
 interface LoginModalProps {
   open: boolean;
   onClose: () => void;
-  /** Called after authentication succeeds (user is already set in context). */
-  onAuthenticated: () => void;
+  /** Target route to restore after OTP verification completes. */
+  postAuthRedirect?: string;
   /** When provided, used as the `returnTo` query param on the /sign-up redirect. */
   registerReturnTo?: string;
 }
@@ -20,10 +20,9 @@ interface LoginModalProps {
 export default function LoginModal({
   open,
   onClose,
-  onAuthenticated,
+  postAuthRedirect,
   registerReturnTo,
 }: LoginModalProps) {
-  const { checkAuth } = useAuth();
   const navigate = useNavigate();
   const { t } = useLanguage();
   const [email, setEmail] = useState("");
@@ -54,6 +53,16 @@ export default function LoginModal({
     return () => window.removeEventListener("keydown", handler);
   }, [open, onClose]);
 
+  // Close modal if the session is cleared (e.g., logout, 401 on another tab/window)
+  useEffect(() => {
+    if (!open) return;
+    const handler = () => {
+      onClose();
+    };
+    window.addEventListener(AUTH_SESSION_CLEARED_EVENT, handler);
+    return () => window.removeEventListener(AUTH_SESSION_CLEARED_EVENT, handler);
+  }, [open, onClose]);
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
@@ -64,25 +73,24 @@ export default function LoginModal({
       return;
     }
 
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedPassword = password.trim();
+
     setLoading(true);
 
     try {
-      await loginUser({ email, password });
-      await checkAuth();
-      onAuthenticated();
+      await loginUser({ email: normalizedEmail, password: normalizedPassword });
+      onClose();
+      navigate("/auth/verify-otp", {
+        replace: true,
+        state: {
+          email: normalizedEmail,
+          password: normalizedPassword,
+          returnTo: postAuthRedirect,
+        },
+      });
     } catch (err: unknown) {
       const message = err instanceof ApiError ? err.message : "Connection error. Please try again.";
-
-      if (err instanceof ApiError && err.statusCode === 401) {
-        try {
-          await refreshToken();
-          await checkAuth();
-          onAuthenticated();
-          return;
-        } catch {
-          // fall through
-        }
-      }
 
       setError(message);
     } finally {

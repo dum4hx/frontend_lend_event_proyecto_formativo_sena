@@ -131,11 +131,22 @@ function parseRetryAfter(res: Response): number | null {
 /** Flag to prevent concurrent refresh calls. */
 let isRefreshing = false;
 
+/** Optional callback executed when refresh fails and session must be invalidated. */
+let authFailureHandler: (() => void | Promise<void>) | null = null;
+
 /** Queue of callers waiting for a refresh to resolve. */
 let refreshQueue: Array<{
   resolve: (value: boolean) => void;
   reject: (reason: unknown) => void;
 }> = [];
+
+/**
+ * Register a global callback used when the refresh flow fails.
+ * The Auth provider uses this to clear local session state and redirect to login.
+ */
+export function setAuthFailureHandler(handler: (() => void | Promise<void>) | null): void {
+  authFailureHandler = handler;
+}
 
 /**
  * Attempt to refresh the access token by calling `POST /auth/refresh`.
@@ -273,6 +284,10 @@ export async function request<TData, TBody = unknown>(
 
       if (refreshed) {
         return request<TData, TBody>(path, { ...options, skipRefresh: true });
+      }
+
+      if (authFailureHandler) {
+        await authFailureHandler();
       }
 
       // Refresh failed — throw so the UI can redirect to /login.

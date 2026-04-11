@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/mocks/server";
-import { request, get, post, patch, del, ApiError, isApiError } from "../api";
+import { request, get, post, patch, del, ApiError, isApiError, setAuthFailureHandler } from "../api";
 
 const BASE = "http://localhost:3000/api/v1";
 
@@ -18,6 +18,10 @@ const BASE = "http://localhost:3000/api/v1";
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
+
+afterEach(() => {
+  setAuthFailureHandler(null);
+});
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -141,6 +145,26 @@ describe("request()", () => {
     );
 
     await expect(request("/test/unauth")).rejects.toThrow(ApiError);
+  });
+
+  it("runs auth failure handler when refresh fails", async () => {
+    let handlerRuns = 0;
+
+    server.use(
+      http.get(`${BASE}/test/unauth-handler`, () =>
+        HttpResponse.json({ status: "error", message: "Unauthorized" }, { status: 401 }),
+      ),
+      http.post(`${BASE}/auth/refresh`, () =>
+        HttpResponse.json({ status: "error", message: "Refresh failed" }, { status: 401 }),
+      ),
+    );
+
+    setAuthFailureHandler(() => {
+      handlerRuns += 1;
+    });
+
+    await expect(request("/test/unauth-handler")).rejects.toThrow(ApiError);
+    expect(handlerRuns).toBe(1);
   });
 });
 

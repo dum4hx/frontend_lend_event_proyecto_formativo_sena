@@ -7,6 +7,14 @@
 
 import { getNavItemsByPrefix } from "../config/modulePermissions";
 
+function normaliseRole(role: string): string {
+  return role
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+}
+
 // ---------------------------------------------------------------------------
 // Permission-based routing (preferred)
 // ---------------------------------------------------------------------------
@@ -98,17 +106,28 @@ export function requiresActiveSubscriptionByPermissions(permissions: string[]): 
 
 const ROLE_DASHBOARDS: Record<string, string> = {
   super_admin: "/super-admin",
+  superadmin: "/super-admin",
   warehouse_operator: "/app",
-  manager: "/app",
+  warehouseoperator: "/app",
+  operador_bodega: "/app",
+  operador_de_bodega: "/app",
+  location_manager: "/app",
+  locationmanager: "/app",
   commercial_advisor: "/app",
+  commercialadvisor: "/app",
+  manager: "/app",
+  gerente: "/app",
   owner: "/app",
+  propietario: "/app",
+  admin: "/app",
+  administrador: "/app",
 };
 
 /**
  * @deprecated Use `getDashboardUrlByPermissions` instead.
  */
 export function getDashboardUrlByRole(role: string): string {
-  const normalizedRole = role.toLowerCase();
+  const normalizedRole = normaliseRole(role);
   return ROLE_DASHBOARDS[normalizedRole] || "/";
 }
 
@@ -116,10 +135,12 @@ export function getDashboardUrlByRole(role: string): string {
  * @deprecated Use `requiresActiveSubscriptionByPermissions` instead.
  */
 export function requiresActiveSubscription(role: string): boolean {
-  const normalizedRole = role.toLowerCase();
+  const normalizedRole = normaliseRole(role);
   return (
     normalizedRole === "owner" ||
+    normalizedRole === "propietario" ||
     normalizedRole === "manager" ||
+    normalizedRole === "gerente" ||
     normalizedRole === "commercial_advisor"
   );
 }
