@@ -2,7 +2,7 @@
  * LocationsTable — Grid cards layout for warehouse locations
  */
 
-import { MapPin, Zap, Eye, Edit2, Trash2 } from "lucide-react";
+import { MapPin, Zap, Eye, Edit2, Trash2, UserRound } from "lucide-react";
 import type { WarehouseLocation } from "../../../../services/warehouseOperatorService";
 import { StatusBadge, LoadingSpinner } from "../../../../components/ui";
 import { useLanguage } from "../../../../contexts/useLanguage";
@@ -10,6 +10,7 @@ import { useActionPermission } from "../../../../hooks/useActionPermission";
 import { getLocationStatusLabel } from "../../../../utils/statusLabels";
 import { formatAddress, calculateLocationCapacity, calculateOccupied } from "./helpers";
 import { LOCATION_STATUS_COLORS } from "./types";
+import { formatManagerName, resolveLocationManager } from "./useLocationManagers";
 
 interface LocationsTableProps {
   /** Locations to render */
@@ -78,6 +79,7 @@ export function LocationsTable({
         const capacity = calculateLocationCapacity(location);
         const occupied = calculateOccupied(location);
         const available = Math.max(0, capacity - occupied);
+        const manager = resolveLocationManager(location);
 
         return (
           <div
@@ -97,6 +99,22 @@ export function LocationsTable({
               {location.code && (
                 <p className="text-xs font-mono text-[#FFD700]/80 mb-2">{location.code}</p>
               )}
+              <div className="flex items-start gap-2 mb-2 text-gray-400">
+                <UserRound size={14} className="mt-0.5 flex-shrink-0 text-[#FFD700]/70" />
+                <div className="text-xs leading-relaxed">
+                  <p className="text-gray-500 uppercase tracking-wider">
+                    {isEs ? "Gerente de sede" : "Site Manager"}
+                  </p>
+                  {manager ? (
+                    <>
+                      <p className="text-gray-200 font-medium">{formatManagerName(manager)}</p>
+                      <p className="text-gray-500">{manager.email}</p>
+                    </>
+                  ) : (
+                    <p className="text-red-300">{isEs ? "Sin gerente asignado" : "No manager assigned"}</p>
+                  )}
+                </div>
+              </div>
               <div className="flex items-start gap-2 text-gray-400">
                 <MapPin size={16} className="mt-0.5 flex-shrink-0 text-[#FFD700]/70" />
                 <div className="text-sm leading-relaxed">

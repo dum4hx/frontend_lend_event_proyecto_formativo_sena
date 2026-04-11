@@ -49,9 +49,25 @@ export function calculateLocationCapacity(location: WarehouseLocation): number {
  * Get occupied count from materialCapacities
  */
 export function calculateOccupied(location: WarehouseLocation): number {
-  const caps = location.materialCapacities as Array<{ currentQuantity?: number }> | undefined;
+  const caps = location.materialCapacities as
+    | Array<{ currentQuantity?: number; occupiedQuantity?: number; current?: number }>
+    | undefined;
+
   if (!caps || caps.length === 0) return location.occupied ?? 0;
-  return caps.reduce((sum, cap) => sum + (cap.currentQuantity || 0), 0);
+
+  const hasPerTypeOccupied = caps.some(
+    (cap) =>
+      typeof cap.currentQuantity === "number" ||
+      typeof cap.occupiedQuantity === "number" ||
+      typeof cap.current === "number",
+  );
+
+  if (!hasPerTypeOccupied) return location.occupied ?? 0;
+
+  return caps.reduce((sum, cap) => {
+    const value = cap.currentQuantity ?? cap.occupiedQuantity ?? cap.current ?? 0;
+    return sum + (Number.isFinite(value) ? value : 0);
+  }, 0);
 }
 
 /**
@@ -112,8 +128,24 @@ export function resolveCategoryId(categoryId: unknown): string {
 export function buildExportRows(locs: WarehouseLocation[]): Record<string, string>[] {
   return locs.map((loc) => {
     const address = loc.address || ({} as LocationAddress);
+    const manager =
+      loc.manager ?? (loc.managerId && typeof loc.managerId === "object" ? loc.managerId : null);
+    const managerName = manager
+      ? [
+          manager.name.firstName,
+          manager.name.secondName,
+          manager.name.firstSurname,
+          manager.name.secondSurname,
+        ]
+          .filter(Boolean)
+          .join(" ")
+      : "";
+
     return {
+      Code: loc.code || "",
       Name: loc.name || "",
+      "Manager Name": managerName,
+      "Manager Email": manager?.email || "",
       Status: loc.isActive ? "active" : "inactive",
       "Street Type": address.streetType || "",
       "Primary Number": address.primaryNumber || "",

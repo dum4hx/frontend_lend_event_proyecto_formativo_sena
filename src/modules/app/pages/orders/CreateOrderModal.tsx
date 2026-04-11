@@ -575,14 +575,29 @@ export function CreateOrderModal({
       nextErrors.depositDueDate = isEs
         ? "Selecciona la fecha límite del depósito."
         : "Select a deposit due date.";
-    } else if (isDatetimeIncomplete(formData.depositDueDate)) {
+    } else if (
+      isDatetimeIncomplete(formData.depositDueDate) ||
+      !formData.depositDueDate.includes("T")
+    ) {
       nextErrors.depositDueDate = isEs
         ? "Establece tanto la fecha como la hora límite del depósito."
         : "Please set both date and hour for the deposit due date.";
-    } else if (formData.depositDueDate > formData.startDate) {
+    } else if (
+      formData.startDate &&
+      formData.startDate.includes("T") &&
+      new Date(formData.depositDueDate) < new Date(formData.startDate)
+    ) {
       nextErrors.depositDueDate = isEs
-        ? "La fecha límite del depósito debe ser anterior o igual a la fecha de inicio."
-        : "Deposit due date must be before or on the start date.";
+        ? "La fecha y hora límite del depósito no puede ser anterior a la fecha y hora de inicio."
+        : "Deposit due date and time cannot be before the start date and time.";
+    } else if (
+      formData.endDate &&
+      formData.endDate.includes("T") &&
+      new Date(formData.depositDueDate) > new Date(formData.endDate)
+    ) {
+      nextErrors.depositDueDate = isEs
+        ? "La fecha y hora límite del depósito no puede ser posterior a la fecha y hora de fin."
+        : "Deposit due date and time cannot be after the end date and time.";
     }
 
     if (formData.depositAmount === "") {
@@ -813,7 +828,8 @@ export function CreateOrderModal({
                     <input
                       type="datetime-local"
                       value={formData.depositDueDate}
-                      max={formData.startDate || undefined}
+                      min={formData.startDate || undefined}
+                      max={formData.endDate || undefined}
                       onChange={(e) =>
                         setFormData((prev) => ({
                           ...prev,

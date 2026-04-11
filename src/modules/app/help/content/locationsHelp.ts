@@ -34,6 +34,17 @@ const locationCreateFormGuide = {
       selector: '[data-help-id="locations-form-name"]',
     },
     {
+      id: "field-manager",
+      label: { es: "Gerente de sede", en: "Site manager" },
+      purpose: {
+        es: "Define el responsable directo de la sede y limita la lista a usuarios con rol gerente.",
+        en: "Defines the direct owner of the site and limits the list to users with the manager role.",
+      },
+      dataType: { es: "Seleccion", en: "Select" },
+      required: true,
+      selector: '[data-help-id="locations-form-manager"]',
+    },
+    {
       id: "field-department",
       label: { es: "Departamento", en: "Department" },
       purpose: {
@@ -154,8 +165,8 @@ const locationsHelpContent: HelpModuleContent = {
     en: "Help center: Locations",
   },
   description: {
-    es: "Este modulo permite administrar ubicaciones fisicas del almacen, su capacidad y operaciones de importacion o exportacion.",
-    en: "This module lets you manage physical warehouse locations, their capacity, and import/export operations.",
+    es: "Este modulo permite administrar ubicaciones fisicas del almacen, su capacidad, el gerente responsable y operaciones de importacion o exportacion.",
+    en: "This module lets you manage physical warehouse locations, their capacity, the responsible manager, and import/export operations.",
   },
   sections: [
     {
@@ -195,16 +206,16 @@ const locationsHelpContent: HelpModuleContent = {
       },
       howTo: [
         {
-          es: "Para crear: haz clic en 'Nueva ubicacion', completa datos de direccion y capacidad, y guarda.",
-          en: "To create: click 'New location', fill in address and capacity data, then save.",
+          es: "Para crear: haz clic en 'Nueva ubicacion', asigna un gerente de sede, completa direccion y capacidad, y guarda.",
+          en: "To create: click 'New location', assign a site manager, complete address and capacity, then save.",
         },
         {
           es: "Para configurar capacidad masiva: usa la herramienta de capacidad en el formulario para asignar cantidades a varios tipos a la vez.",
           en: "To configure bulk capacity: use the capacity tool in the form to assign quantities to multiple types at once.",
         },
         {
-          es: "Para importar: descarga la plantilla, completa los campos y sube el archivo.",
-          en: "To import: download the template, fill in the fields, and upload the file.",
+          es: "Para importar: descarga la plantilla, completa los campos incluyendo Manager Email y sube el archivo.",
+          en: "To import: download the template, fill in the fields including Manager Email, and upload the file.",
         },
         {
           es: "Para eliminar: verifica que no haya inventario activo en la ubicacion antes de confirmar.",
@@ -254,8 +265,8 @@ const locationsHelpContent: HelpModuleContent = {
       id: "common-errors",
       title: { es: "Errores comunes", en: "Common errors" },
       body: {
-        es: "Error frecuente: importar archivos con formato incorrecto o sin capacidades alineadas a tipos de material. Revisa plantilla antes de cargar.",
-        en: "Common mistake: importing files with invalid format or capacities not aligned to material types. Review the template before uploading.",
+        es: "Error frecuente: importar archivos con formato incorrecto, sin gerente asignado o con capacidades no alineadas a tipos de material. Revisa la plantilla antes de cargar.",
+        en: "Common mistake: importing files with invalid format, without an assigned manager, or with capacities not aligned to material types. Review the template before uploading.",
       },
       howTo: [
         {
@@ -263,8 +274,8 @@ const locationsHelpContent: HelpModuleContent = {
           en: "Download the official template from the import button.",
         },
         {
-          es: "Verifica que los nombres de columna coincidan y que cada fila tenga todos los campos requeridos.",
-          en: "Verify that column names match and each row has all required fields.",
+          es: "Verifica que los nombres de columna coincidan y que cada fila tenga todos los campos requeridos, especialmente Manager Email.",
+          en: "Verify that column names match and each row has all required fields, especially Manager Email.",
         },
         {
           es: "Sube el archivo y lee el resumen de errores para corregir antes de reintentar.",

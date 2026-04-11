@@ -1,6 +1,7 @@
 import { CheckCircle2, Package as PackageIcon, Zap } from "lucide-react";
 import type { AvailableMaterialInstance } from "../../../../types/api";
 import type { MaterialTypeRow } from "./types";
+import { useLanguage } from "../../../../contexts/useLanguage";
 
 interface MaterialAssignmentCardProps {
   row: MaterialTypeRow;
@@ -16,6 +17,7 @@ export default function MaterialAssignmentCard({
   onAutoAssign,
 }: MaterialAssignmentCardProps) {
   const isFulfilled = selected.length >= row.quantity;
+  const { t } = useLanguage();
 
   const renderInstanceBadge = (inst: AvailableMaterialInstance) => {
     const isSelected = selected.includes(inst._id);
@@ -47,7 +49,9 @@ export default function MaterialAssignmentCard({
             isAvailNow ? "bg-[#FFD700]/20 text-[#FFD700]" : "bg-gray-700/80 text-gray-400"
           }`}
         >
-          {isAvailNow ? "available" : "upcoming"}
+          {isAvailNow
+            ? t("orders.prepare.availability.available")
+            : t("orders.prepare.availability.upcoming")}
         </span>
       </button>
     );
@@ -81,13 +85,13 @@ export default function MaterialAssignmentCard({
           onClick={() => onAutoAssign(row)}
         >
           <Zap size={10} />
-          Auto-assign
+          {t("orders.prepare.autoAssign")}
         </button>
       </div>
 
       {/* Instance badges */}
       {row.currentUserInstances.length === 0 ? (
-        <p className="text-xs text-gray-500 italic">No instances in your accessible locations.</p>
+        <p className="text-xs text-gray-500 italic">{t("orders.prepare.noInstances")}</p>
       ) : (
         <div className="flex flex-wrap gap-2">
           {row.currentUserInstances.map(renderInstanceBadge)}

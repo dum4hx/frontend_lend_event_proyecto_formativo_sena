@@ -87,20 +87,21 @@ const teamFormGuides = createCrudFormGuides({
       selector: '[data-help-id="team-form-role"]',
     },
     {
-      id: "field-owner-security",
-      label: { es: "Validacion de propietario", en: "Owner validation" },
+      id: "field-location",
+      label: { es: "Ubicacion", en: "Location" },
       purpose: {
-        es: "Confirma controles adicionales cuando se promueve a propietario.",
-        en: "Confirms additional controls when promoting to owner.",
+        es: "Asigna las sedes operativas del usuario segun su rol.",
+        en: "Assigns the user's operating locations according to role.",
       },
-      dataType: { es: "Confirmacion critica", en: "Critical confirmation" },
+      dataType: { es: "Seleccion dinamica", en: "Dynamic select" },
+      required: true,
       validations: [
         {
-          es: "Visible solo en transferencia de propietario",
-          en: "Visible only during owner transfer",
+          es: "Dueño: multiples ubicaciones. Otros roles: una sola ubicacion",
+          en: "Owner: multiple locations. Other roles: a single location",
         },
       ],
-      selector: '[data-help-id="team-form-owner-security"]',
+      selector: '[data-help-id="team-form-locations"]',
     },
   ],
   actions: {
@@ -137,8 +138,8 @@ const teamFormGuides = createCrudFormGuides({
         id: "action-edit-submit",
         label: { es: "Guardar cambios", en: "Save changes" },
         purpose: {
-          es: "Actualiza datos de perfil, rol y ubicaciones del miembro.",
-          en: "Updates member profile, role, and assigned locations.",
+          es: "Actualiza datos de perfil, rol y la ubicacion asignada del miembro.",
+          en: "Updates member profile, role, and assigned location.",
         },
         consequence: {
           es: "Los cambios impactan inmediatamente la operacion del usuario.",
@@ -211,8 +212,8 @@ const teamHelpContent: HelpModuleContent = {
       },
       howTo: [
         {
-          es: "Para invitar: haz clic en 'Invitar', ingresa el email y selecciona el rol antes de enviar.",
-          en: "To invite: click 'Invite', enter the email, and select the role before sending.",
+          es: "Para invitar: haz clic en 'Invitar', ingresa el email y selecciona rol. Si es Dueño puedes elegir varias sedes; en otros roles solo una.",
+          en: "To invite: click 'Invite', enter the email, and select role. Owner can have multiple locations; other roles can only have one.",
         },
         {
           es: "Para editar perfil: localiza el miembro y usa el icono de edicion para actualizar rol o datos.",
@@ -266,8 +267,8 @@ const teamHelpContent: HelpModuleContent = {
       id: "common-errors",
       title: { es: "Errores comunes", en: "Common errors" },
       body: {
-        es: "Error frecuente: invitar usuarios sin validar rol esperado. Confirma permisos antes de enviar invitacion.",
-        en: "Common mistake: inviting users without validating intended role. Confirm permissions before sending invites.",
+        es: "Errores frecuentes: invitar usuarios sin validar rol esperado o con asignacion de sedes incompatible con el rol. Confirma permisos y sedes antes de enviar invitacion.",
+        en: "Common mistakes: inviting users without validating intended role or with role-incompatible location assignment. Confirm permissions and locations before sending invites.",
       },
       howTo: [
         {

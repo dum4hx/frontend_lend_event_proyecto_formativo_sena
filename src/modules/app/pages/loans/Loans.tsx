@@ -551,6 +551,7 @@ export function Loans() {
                   leftIcon={Plus}
                   onClick={guard("requests:create", () => setShowCreateModal(true))}
                   variant="outline"
+                  title={t("loans.actions.newRequest")}
                   className="w-full sm:w-auto border-[#FFD700]/40 text-[#FFD700] bg-[#FFD700]/8 hover:bg-[#FFD700]/16"
                 >
                   {t("loans.newRequest")}

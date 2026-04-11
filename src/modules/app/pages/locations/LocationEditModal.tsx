@@ -16,6 +16,7 @@ import { useColombiaAddress } from "./useColombiaAddress";
 import { resolveCategoryName, applyBulkCapacityToRows, parseLegacyStreet } from "./helpers";
 import { STREET_TYPES, STATUS_OPTIONS } from "./types";
 import type { LocationFormData, LocationFieldErrors, MaterialCapacityRow } from "./types";
+import { resolveLocationManagerId, useLocationManagerOptions } from "./useLocationManagers";
 
 interface LocationEditModalProps {
   /** Whether the modal is open */
@@ -45,10 +46,12 @@ export function LocationEditModal({
   const { language, t } = useLanguage();
   const isEs = language === "es";
   const { showToast } = useToast();
+  const { managerOptions, loading: managersLoading } = useLocationManagerOptions();
 
   const [form, setForm] = useState<LocationFormData>({
     code: "",
     name: "",
+    managerId: "",
     status: "available",
     address: {
       state: "",
@@ -104,6 +107,7 @@ export function LocationEditModal({
     setForm({
       code: location.code || "",
       name: location.name || "",
+      managerId: resolveLocationManagerId(location),
       status: location.status || "available",
       address: {
         state: resolvedDept,
@@ -171,7 +175,7 @@ export function LocationEditModal({
     ...categories.map((c) => ({ value: c._id, label: c.name })),
   ];
 
-  const updateForm = <K extends keyof Pick<LocationFormData, "name" | "status">>(
+  const updateForm = <K extends keyof Pick<LocationFormData, "name" | "managerId" | "status">>(
     k: K,
     v: LocationFormData[K],
   ) => setForm((s) => ({ ...s, [k]: v }));
@@ -245,7 +249,13 @@ export function LocationEditModal({
       materialCapacities: form.materialCapacities,
     });
 
-    if (!validation.isValid || !form.address.state.trim() || codeError) {
+    const managerError = !form.managerId
+      ? isEs
+        ? "Debes asignar un gerente de sede"
+        : "A site manager must be assigned"
+      : undefined;
+
+    if (!validation.isValid || !form.address.state.trim() || codeError || managerError) {
       const capErrors: Record<string, string> = {};
       form.materialCapacities.forEach((c) => {
         if (c.maxQuantity === "") capErrors[`capacity_${c.materialTypeId}`] = "Required";
@@ -260,6 +270,7 @@ export function LocationEditModal({
         ...translatedValidationErrors,
         ...capErrors,
         ...stateError,
+        ...(managerError ? { managerId: managerError } : {}),
         ...(codeError ? { code: codeError } : {}),
       });
       showToast(
@@ -274,6 +285,7 @@ export function LocationEditModal({
       await apiUpdateLocation(location._id, {
         code: form.code,
         name: form.name,
+        managerId: form.managerId,
         status: form.status,
         address: {
           streetType: form.address.streetType,
@@ -395,6 +407,45 @@ export function LocationEditModal({
                 onChange={(v) => updateForm("status", v as LocationFormData["status"])}
                 placeholder={isEs ? "Estado" : "Status"}
               />
+            </div>
+
+            <div data-help-id="locations-form-manager">
+              <label className="form-label">
+                {isEs ? "Gerente de sede" : "Site Manager"}{" "}
+                <span className="text-red-400">*</span>
+              </label>
+              <SearchableSelect
+                options={managerOptions}
+                value={form.managerId}
+                onChange={(value) => {
+                  updateForm("managerId", value);
+                  setFieldErrors((s) => ({ ...s, managerId: undefined }));
+                }}
+                placeholder={
+                  managersLoading
+                    ? isEs
+                      ? "Cargando gerentes..."
+                      : "Loading managers..."
+                    : isEs
+                      ? "Selecciona un gerente"
+                      : "Select a manager"
+                }
+                disabled={managersLoading || managerOptions.length === 0}
+                error={fieldErrors.managerId}
+                searchPlaceholder={
+                  isEs ? "Buscar gerente por nombre o correo..." : "Search by name or email..."
+                }
+                noResultsText={
+                  isEs ? "No hay gerentes disponibles" : "No managers available"
+                }
+              />
+              {managerOptions.length === 0 && !managersLoading && (
+                <p className="text-xs text-amber-400 mt-1">
+                  {isEs
+                    ? "No hay usuarios con rol de gerente de sede disponibles."
+                    : "No users with the site manager role are available."}
+                </p>
+              )}
             </div>
 
             {/* Country */}
@@ -708,7 +759,7 @@ export function LocationEditModal({
           </button>
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || managersLoading || managerOptions.length === 0}
             data-help-id="locations-form-submit"
             className="px-8 py-2.5 bg-[#FFD700] text-black font-bold rounded-lg hover:bg-[#FFC700] transition-transform active:scale-95 shadow-[0_0_20px_rgba(255,215,0,0.2)] disabled:opacity-50"
           >

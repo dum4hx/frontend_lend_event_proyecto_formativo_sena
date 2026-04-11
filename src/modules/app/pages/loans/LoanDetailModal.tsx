@@ -20,6 +20,7 @@ import type {
   PricingStrategyType,
 } from "../../../../types/api";
 import { getLoanDetailGrouped } from "../../../../services/loanService";
+import { getInspections } from "../../../../services/inspectionService";
 import {
   getDepositStatusLabel,
   getMaterialInstanceStatusLabel,
@@ -43,6 +44,7 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
   const [loanDetail, setLoanDetail] = useState<LoanDetailGrouped | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [inspectionNumber, setInspectionNumber] = useState<string | null>(null);
 
   // Fetch grouped detail when a loan exists
   useEffect(() => {
@@ -64,6 +66,27 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
       cancelled = true;
     };
   }, [open, view.loan]);
+
+  // Fetch inspection number when status is "inspected" or beyond
+  useEffect(() => {
+    if (!open || !view.loan) return;
+    if (view.status !== "inspected" && view.status !== "closed") return;
+    let cancelled = false;
+    async function fetchInspection() {
+      try {
+        const res = await getInspections({ loanId: view.loan!._id, limit: 1 });
+        if (!cancelled && res.data.inspections.length > 0) {
+          setInspectionNumber(res.data.inspections[0].inspectionNumber ?? null);
+        }
+      } catch {
+        if (!cancelled) setInspectionNumber(null);
+      }
+    }
+    fetchInspection();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, view.loan, view.status]);
 
   if (!open) return null;
 
@@ -177,6 +200,16 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
                 </p>
               </div>
               <div>
+                <p className="text-gray-500 text-sm">{t("loans.detail.approvedBy")}</p>
+                <p className="text-gray-300">
+                  {req.approvedBy ? (
+                    formatUserName(req.approvedBy)
+                  ) : (
+                    <span className="text-gray-600 italic text-xs">{t("loans.detail.notSet")}</span>
+                  )}
+                </p>
+              </div>
+              <div>
                 <p className="text-gray-500 text-sm">{t("loans.detail.loanCreatedAt")}</p>
                 <p className="text-gray-300">
                   {loanDetail?.createdAt ? (
@@ -206,6 +239,12 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
                   )}
                 </p>
               </div>
+              {inspectionNumber && (
+                <div>
+                  <p className="text-gray-500 text-sm">{t("loans.detail.inspectionNumber")}</p>
+                  <p className="text-white font-semibold font-mono">{inspectionNumber}</p>
+                </div>
+              )}
             </div>
 
             {/* Items */}
@@ -306,19 +345,23 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
                         </p>
                       </div>
                     )}
-                    {(loan?.damageFees ?? 0) > 0 && (
+                    {loan && (
                       <div>
                         <p className="text-gray-500 text-xs">{t("loans.detail.damageFees")}</p>
-                        <p className="text-red-400 font-semibold">
-                          ${loan!.damageFees!.toLocaleString()}
+                        <p
+                          className={`font-semibold ${(loan.damageFees ?? 0) > 0 ? "text-red-400" : "text-gray-400"}`}
+                        >
+                          ${(loan.damageFees ?? 0).toLocaleString()}
                         </p>
                       </div>
                     )}
-                    {(loan?.lateFees ?? 0) > 0 && (
+                    {loan && (
                       <div>
                         <p className="text-gray-500 text-xs">{t("loans.detail.lateFees")}</p>
-                        <p className="text-red-400 font-semibold">
-                          ${loan!.lateFees!.toLocaleString()}
+                        <p
+                          className={`font-semibold ${(loan.lateFees ?? 0) > 0 ? "text-red-400" : "text-gray-400"}`}
+                        >
+                          ${(loan.lateFees ?? 0).toLocaleString()}
                         </p>
                       </div>
                     )}

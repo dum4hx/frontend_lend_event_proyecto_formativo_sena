@@ -52,6 +52,7 @@ export interface LocationFormAddress {
 export interface LocationFormData {
   code: string;
   name: string;
+  managerId: string;
   status: LocationStatus;
   address: LocationFormAddress;
   materialCapacities: MaterialCapacityRow[];
@@ -78,6 +79,7 @@ export const STATUS_OPTIONS: { value: LocationStatus; labelEn: string; labelEs: 
 export const INITIAL_FORM: LocationFormData = {
   code: "",
   name: "",
+  managerId: "",
   status: "available",
   address: {
     state: "",
