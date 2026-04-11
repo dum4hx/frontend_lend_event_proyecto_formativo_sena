@@ -26,21 +26,21 @@ export const ConditionPicker: React.FC<ConditionPickerProps> = ({
   }[] = [
     {
       id: "good",
-      label: "Good",
+      label: "Bueno",
       icon: CheckCircle,
       activeColor: "bg-green-600 border-green-500",
       hoverColor: "hover:bg-green-700 hover:border-green-600",
     },
     {
       id: "damaged",
-      label: "Damaged",
+      label: "Dañado",
       icon: AlertTriangle,
       activeColor: "bg-yellow-600 border-yellow-500",
       hoverColor: "hover:bg-yellow-700 hover:border-yellow-600",
     },
     {
       id: "lost",
-      label: "Lost",
+      label: "Perdido",
       icon: XCircle,
       activeColor: "bg-red-600 border-red-500",
       hoverColor: "hover:bg-red-700 hover:border-red-600",

@@ -40,7 +40,7 @@ export function LocationDetailModal({
   materialTypes,
   categories,
 }: LocationDetailModalProps) {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const isEs = language === "es";
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -315,7 +315,7 @@ export function LocationDetailModal({
           onClick={onClose}
           className="px-8 py-2.5 bg-[#1a1a1a] text-white font-bold rounded-xl hover:bg-[#222] transition-all border border-[#333] shadow-lg shadow-black/20 active:scale-95 text-sm uppercase tracking-wider"
         >
-          {isEs ? "Cerrar detalles" : "Close Details"}
+          {t("common.closeDetails")}
         </button>
       </div>
     </Modal>

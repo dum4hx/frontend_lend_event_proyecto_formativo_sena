@@ -102,7 +102,8 @@ export const InspectionsCatalog: React.FC = () => {
             onClick={refetch}
             disabled={loading}
             className="p-3 bg-[#1a1a1a] border border-[#333] text-gray-400 hover:text-white hover:border-[#444] rounded-xl transition-all disabled:opacity-50"
-            title="Refresh lists"
+            title={t("inspections.refreshLists")}
+            aria-label={t("inspections.refreshLists")}
           >
             <RefreshCcw className={`w-5 h-5 ${loading ? "animate-spin" : ""}`} />
           </button>
@@ -122,7 +123,7 @@ export const InspectionsCatalog: React.FC = () => {
           <button
             onClick={() => setSuccessNotification(null)}
             className="text-green-500 hover:text-green-300 transition-colors flex-shrink-0"
-            aria-label="Dismiss"
+            aria-label={t("inspections.dismissToast")}
           >
             <XCircle className="w-4 h-4" />
           </button>
@@ -139,7 +140,7 @@ export const InspectionsCatalog: React.FC = () => {
           <button
             onClick={() => setErrorNotification(null)}
             className="text-red-500 hover:text-red-300 transition-colors flex-shrink-0"
-            aria-label="Dismiss"
+            aria-label={t("inspections.dismissToast")}
           >
             <XCircle className="w-4 h-4" />
           </button>
@@ -184,7 +185,7 @@ export const InspectionsCatalog: React.FC = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 group-focus-within:text-[#FFD700] transition-colors" />
             <input
               type="text"
-              placeholder="Filter by ID or customer..."
+              placeholder={t("inspections.filterByCustomer")}
               className="w-full bg-[#121212] border border-[#222] rounded-lg pl-10 pr-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#FFD700] focus:ring-1 focus:ring-[#FFD700]/20 transition-all font-mono"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}

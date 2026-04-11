@@ -1,14 +1,18 @@
 import React, { useState } from "react";
-import { X, Save, AlertCircle } from "lucide-react";
+import { X, Save, AlertCircle, Eye } from "lucide-react";
 import { useLanguage } from "../../../../../contexts/useLanguage";
+import { useAuth } from "../../../../../contexts/useAuth";
 import { validateDamageDescription } from "../../../../../utils";
 import type {
   PendingLoan,
   InspectionItemInput,
   InspectionCondition,
+  MaterialInstance,
 } from "../../../../../types/api";
 import { ConditionPicker } from "./ConditionPicker";
 import Button from "../../../../../components/ui/Button";
+import { MaterialInstanceDetailModal } from "../../../modules/material-instances/components/MaterialInstanceDetailModal";
+import { getMaterialInstance } from "../../../../../services/materialService";
 
 interface InspectionFormModalProps {
   loan: PendingLoan;
@@ -31,6 +35,7 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
   onSave,
 }) => {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const [items, setItems] = useState<InspectionItemInput[]>(
     loan.materialInstances.map((mi) => ({
       materialInstanceId: mi.materialInstanceId._id,
@@ -44,6 +49,10 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
   const [dueDate, setDueDate] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // For material instance preview
+  const [selectedInstance, setSelectedInstance] = useState<MaterialInstance | null>(null);
+  const [loadingInstance, setLoadingInstance] = useState(false);
 
   // Derive per-item description errors: required when damaged or lost
   const descriptionErrors = items.map(
@@ -57,6 +66,22 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
   const hasDamagedOrLostItems = items.some(
     (item) => item.condition === "damaged" || item.condition === "lost",
   );
+
+  const handleViewDetails = async (instanceId: string) => {
+    setLoadingInstance(true);
+    try {
+      const res = await getMaterialInstance(instanceId);
+      setSelectedInstance(res.data.instance);
+    } catch (err) {
+      console.error("Failed to load material instance details:", err);
+    } finally {
+      setLoadingInstance(false);
+    }
+  };
+
+  const handleCloseDetails = () => {
+    setSelectedInstance(null);
+  };
 
   const handleItemChange = <K extends keyof InspectionItemInput>(
     index: number,
@@ -96,7 +121,7 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
       <div className="bg-[#121212] border border-[#333] rounded-xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl">
         {/* Header */}
         <div className="p-6 border-b border-[#333] flex items-center justify-between bg-[#1a1a1a] rounded-t-xl">
-          <div>
+          <div className="flex-1">
             <h2 className="text-xl font-bold text-white">{t("inspections.performInspection")}</h2>
             <p className="text-sm text-gray-400 mt-1">
               {t("inspections.loanIdLabel")}:{" "}
@@ -106,10 +131,19 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
                 {`${loan.customerId.name.firstName} ${loan.customerId.name.firstSurname}`}
               </span>
             </p>
+            {user && (
+              <p className="text-xs text-gray-500 mt-2">
+                <span className="text-gray-400">{user.name.firstName} {user.name.firstSurname}</span>
+                <span className="text-gray-600 mx-1">•</span>
+                <span className="text-gray-500 text-[10px] uppercase tracking-tight">{user.roleName}</span>
+                <span className="text-gray-600 mx-1">•</span>
+                <span className="text-gray-400">{user.email}</span>
+              </p>
+            )}
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-[#333] rounded-lg"
+            className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-[#333] rounded-lg flex-shrink-0"
           >
             <X size={20} />
           </button>
@@ -135,11 +169,27 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
                 className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-5 space-y-4 hover:border-[#333] transition-colors"
               >
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#2a2a2a] pb-4">
-                  <div>
-                    <p className="text-white font-medium">{mi.materialInstanceId.serialNumber}</p>
-                    <p className="text-xs text-gray-500 font-mono mt-0.5">
-                      ID: {mi.materialInstanceId._id}
-                    </p>
+                  <div className="flex items-center gap-3">
+                    <div>
+                      <p className="text-white font-medium">
+                        {mi.materialType?.name || mi.materialInstanceId.serialNumber}
+                      </p>
+                      {mi.materialType?.name && (
+                        <p className="text-xs text-gray-400 mt-1">
+                          {t("inspections.serialNumber")}: <span className="font-mono text-gray-300">{mi.materialInstanceId.serialNumber}</span>
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleViewDetails(mi.materialInstanceId._id)}
+                      disabled={loadingInstance}
+                      className="p-2 text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      title={t("inspections.viewMaterialInstance")}
+                      aria-label={t("inspections.viewMaterialInstance")}
+                    >
+                      <Eye size={18} />
+                    </button>
                   </div>
                   <ConditionPicker
                     value={items[index].condition}
@@ -277,6 +327,15 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
           </Button>
         </div>
       </div>
+
+      {/* Material Instance Detail Preview */}
+      {selectedInstance && (
+        <MaterialInstanceDetailModal
+          instance={selectedInstance}
+          loanCode={loan.code || loan._id}
+          onClose={handleCloseDetails}
+        />
+      )}
     </div>
   );
 };
