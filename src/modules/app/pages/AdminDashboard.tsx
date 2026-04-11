@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { StatCard, AdminTable } from "../components";
-import { PageHeader, GreetingCard } from "../../../components/ui";
+import { PageHeader, GreetingCard, IconButton } from "../../../components/ui"; import { RefreshCw } from "lucide-react";
 import { useDashboardStats } from "../hooks/useDashboardStats";
 import { useLanguage } from "../../../contexts/useLanguage";
 import { getLoanRequestStatusLabel, getLoanStatusLabel } from "../../../utils/statusLabels";
@@ -93,6 +93,15 @@ export default function AdminDashboard() {
               : isEs
                 ? "Bienvenido de nuevo. Aqui tienes tu resumen"
                 : "Welcome back! Here's your overview"
+          }
+          actions={
+            <IconButton
+              icon={RefreshCw}
+              onClick={() => window.location.reload()}
+              disabled={false}
+              ariaLabel={isEs ? "Recargar" : "Refresh"}
+              title={isEs ? "Recargar" : "Refresh"}
+            />
           }
         />
       </div>

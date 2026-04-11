@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, Search, ChevronDown, DollarSign, Calculator, Loader2, Trash2 } from "lucide-react";
+import { Plus, Search, ChevronDown, DollarSign, Calculator, Loader2, Trash2, RefreshCw } from "lucide-react";
 import { useLanguage } from "../../../../contexts/useLanguage";
-import { Button, PageHeader } from "../../../../components/ui";
+import { Button, PageHeader, IconButton } from "../../../../components/ui";
 import { usePermissions } from "../../../../contexts/usePermissions";
 import { useActionPermission } from "../../../../hooks/useActionPermission";
 import Unauthorized from "../../../../pages/Unauthorized";
@@ -332,6 +332,14 @@ export default function PricingConfigs() {
           subtitle={t("pricing.description")}
           actions={
             <div className="flex gap-3" data-help-id="pricing-actions">
+              <IconButton
+                icon={RefreshCw}
+                onClick={() => void fetchConfigs()}
+                disabled={loading}
+                ariaLabel={t("common.refresh")}
+                className={loading ? "animate-spin" : ""}
+                title={t("common.refresh")}
+              />
               {canPreview && (
                 <Button
                   leftIcon={Calculator}

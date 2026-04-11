@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, X, CreditCard, Ban } from "lucide-react";
+import { Plus, X, CreditCard, Ban, RefreshCw } from "lucide-react";
 import { Button, IconButton, PageHeader } from "../../../../components/ui";
 import type {
   Customer,
@@ -564,8 +564,16 @@ export function Orders() {
           title={t("orders.title")}
           subtitle={t("orders.subtitle")}
           actions={
-            canCreateRequest ? (
-              <div data-help-id="orders-create-action">
+            <div data-help-id="orders-create-action" className="flex items-center gap-2">
+              <IconButton
+                icon={RefreshCw}
+                onClick={() => refreshData()}
+                disabled={loading}
+                ariaLabel={t("common.refresh")}
+                className={loading ? "animate-spin" : ""}
+                title={t("common.refresh")}
+              />
+              {canCreateRequest && (
                 <Button
                   leftIcon={Plus}
                   onClick={guard("requests:create", () => setShowCreateModal(true))}
@@ -574,8 +582,8 @@ export function Orders() {
                 >
                   {t("orders.newOrder")}
                 </Button>
-              </div>
-            ) : undefined
+              )}
+            </div>
           }
         />
       </div>

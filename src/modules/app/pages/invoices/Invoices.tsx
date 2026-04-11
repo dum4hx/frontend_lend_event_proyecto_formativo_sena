@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { RefreshCcw, FileText, DollarSign, Filter } from "lucide-react";
+import { RefreshCw, FileText, DollarSign, Filter } from "lucide-react";
 import {
   AnimatedPage,
   LoadingSpinner,
   ErrorDisplay,
   StatCard,
   PageHeader,
+  IconButton,
 } from "../../../../components/ui";
 import PaymentRecordingModal from "../../components/PaymentRecordingModal";
 import VoidInvoiceModal from "../../components/VoidInvoiceModal";
@@ -211,14 +212,14 @@ export function Invoices() {
                 : "Manage, track, and process invoice payments. Generate income reports."
             }
             actions={
-              <button
+              <IconButton
+                icon={RefreshCw}
                 onClick={() => refetch()}
                 disabled={loading}
-                className="p-3 bg-[#1a1a1a] border border-[#333] text-gray-400 hover:text-white hover:border-[#444] rounded-xl transition-all disabled:opacity-50"
+                ariaLabel={isEs ? "Actualizar" : "Refresh"}
+                className={loading ? "animate-spin" : ""}
                 title={isEs ? "Actualizar" : "Refresh"}
-              >
-                <RefreshCcw className={`w-5 h-5 ${loading ? "animate-spin" : ""}`} />
-              </button>
+              />
             }
           />
         </div>

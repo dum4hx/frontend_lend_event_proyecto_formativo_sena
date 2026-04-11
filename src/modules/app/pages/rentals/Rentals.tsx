@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AnimatedPage, PageHeader } from "../../../../components/ui";
+import { RefreshCw } from "lucide-react";
+import { AnimatedPage, PageHeader, IconButton } from "../../../../components/ui";
 import {
   getLoans,
   extendLoan,
@@ -266,6 +267,16 @@ export function Rentals() {
               isEs
                 ? "Haz seguimiento de prestamos activos y devoluciones"
                 : "Track active loans and manage returns"
+            }
+            actions={
+              <IconButton
+                icon={RefreshCw}
+                onClick={() => fetchData()}
+                disabled={loading}
+                ariaLabel={isEs ? "Recargar" : "Refresh"}
+                className={loading ? "animate-spin" : ""}
+                title={isEs ? "Recargar" : "Refresh"}
+              />
             }
           />
         </div>

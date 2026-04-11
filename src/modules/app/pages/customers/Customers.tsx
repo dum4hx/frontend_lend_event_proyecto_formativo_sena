@@ -6,7 +6,7 @@
 
 import { useState, useCallback } from "react";
 import { Users, UserCheck, UserX, ShieldOff } from "lucide-react";
-import { PageHeader, Pagination } from "../../../../components/ui";
+import { PageHeader, Pagination, IconButton } from "../../../../components/ui"; import { RefreshCw } from "lucide-react";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import { usePermissions } from "../../../../contexts/usePermissions";
 import { useConfirmModal } from "../../../../hooks/useConfirmModal";
@@ -267,6 +267,15 @@ export default function Customers() {
             isEs
               ? "Gestiona los clientes de tu organización"
               : "Manage your organization's customers"
+          }
+          actions={
+            <IconButton
+              icon={RefreshCw}
+              onClick={() => window.location.reload()}
+              disabled={false}
+              ariaLabel={isEs ? "Recargar" : "Refresh"}
+              title={isEs ? "Recargar" : "Refresh"}
+            />
           }
         />
       </div>

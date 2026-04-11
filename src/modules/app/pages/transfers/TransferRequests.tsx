@@ -23,7 +23,7 @@ import {
 import { getLocations } from "../../../../services/warehouseOperatorService";
 import { getUser } from "../../../../services/userService";
 import { getMaterialType } from "../../../../services/materialService";
-import { AnimatedPage, PageHeader, EntityLink } from "../../../../components/ui";
+import { AnimatedPage, PageHeader, EntityLink, IconButton } from "../../../../components/ui";
 import Unauthorized from "../../../../pages/Unauthorized";
 import {
   REQUEST_STATUS_LABEL,
@@ -387,14 +387,30 @@ export function TransferRequests() {
                 : "Manage material transfers between locations"
             }
             actions={
-              <button
-                onClick={guard("transfers:create", () => setShowCreateModal(true))}
-                aria-disabled={!isAllowed("transfers:create")}
-                className={`flex items-center gap-2 h-10 px-5 bg-[#FFD700] hover:bg-[#FFD700]/90 text-black font-semibold rounded text-sm transition-all shadow-md hover:shadow-lg active:scale-95 shrink-0 ${!isAllowed("transfers:create") ? "opacity-50 cursor-not-allowed" : ""}`}
-              >
-                <Plus size={16} />
-                {isEs ? "Nueva Solicitud" : "New Request"}
-              </button>
+              <div className="flex items-center gap-2">
+                <IconButton
+                  icon={RefreshCw}
+                  onClick={() => {
+                    if (activeTab === "requests") {
+                      void loadRequests();
+                    } else {
+                      void loadTransfers();
+                    }
+                  }}
+                  disabled={requestsLoading || transfersLoading}
+                  ariaLabel={isEs ? "Recargar" : "Refresh"}
+                  className={requestsLoading || transfersLoading ? "animate-spin" : ""}
+                  title={isEs ? "Recargar" : "Refresh"}
+                />
+                <button
+                  onClick={guard("transfers:create", () => setShowCreateModal(true))}
+                  aria-disabled={!isAllowed("transfers:create")}
+                  className={`flex items-center gap-2 h-10 px-5 bg-[#FFD700] hover:bg-[#FFD700]/90 text-black font-semibold rounded text-sm transition-all shadow-md hover:shadow-lg active:scale-95 shrink-0 ${!isAllowed("transfers:create") ? "opacity-50 cursor-not-allowed" : ""}`}
+                >
+                  <Plus size={16} />
+                  {isEs ? "Nueva Solicitud" : "New Request"}
+                </button>
+              </div>
             }
           />
         </div>

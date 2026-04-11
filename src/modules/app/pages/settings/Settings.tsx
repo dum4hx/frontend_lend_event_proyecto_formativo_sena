@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Settings as SettingsIcon, Lock, Save, RotateCcw } from "lucide-react";
 import { StatCard } from "../../components";
-import { PageHeader } from "../../../../components/ui/PageHeader";
+import { PageHeader, IconButton } from "../../../../components/ui"; import { RefreshCw } from "lucide-react";
 import { getOrganization, updateOrganization } from "../../../../services/adminService";
 import {
   getOrganizationSettings,
@@ -436,7 +436,20 @@ export default function Settings() {
   return (
     <div className="page-container">
       <div data-help-id="settings-title">
-        <PageHeader title={t("settings.title")} subtitle={t("settings.description")} />
+        <PageHeader
+          title={t("settings.title")}
+          subtitle={t("settings.description")}
+          actions={
+            <IconButton
+              icon={RefreshCw}
+              onClick={() => window.location.reload()}
+              disabled={loading}
+              ariaLabel={t("common.refresh")}
+              className={loading ? "animate-spin" : ""}
+              title={t("common.refresh")}
+            />
+          }
+        />
       </div>
 
       <div data-help-id="settings-stats" className="grid grid-cols-1 md:grid-cols-2 gap-6">

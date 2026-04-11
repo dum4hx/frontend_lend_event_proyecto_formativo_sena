@@ -3,6 +3,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "../../contexts/useAuth";
 import {
   getUsers,
   getUser,
@@ -81,11 +82,19 @@ export function useUpdateUser() {
 
 export function useUpdateUserRole() {
   const qc = useQueryClient();
+  const { checkAuth, user } = useAuth();
+  
   return useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: UpdateUserRolePayload }) =>
       updateUserRole(id, payload),
-    onSuccess: () => {
+    onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: userKeys.lists() });
+      qc.invalidateQueries({ queryKey: userKeys.detail(vars.id) });
+      
+      // If the current user's role was changed, refresh auth context to reload permissions
+      if (user && user._id === vars.id) {
+        void checkAuth();
+      }
     },
   });
 }

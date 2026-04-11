@@ -6,11 +6,11 @@
 
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Plus, Download, Upload } from "lucide-react";
+import { Plus, Download, Upload, RefreshCw } from "lucide-react";
 import { FEATURE_FLAGS } from "../../../../config/featureFlags";
 import * as XLSX from "xlsx-js-style";
 import { pageVariants } from "../../../../lib/animations";
-import { ConfirmDialog, PageHeader } from "../../../../components/ui";
+import { ConfirmDialog, PageHeader, IconButton } from "../../../../components/ui";
 import { ExportSettingsModal } from "../../../../components/export/ExportSettingsModal";
 import { exportService, LOCATIONS_POLICY } from "../../../../services/export";
 import {
@@ -409,6 +409,14 @@ export function Locations() {
             }
             actions={
               <div className="flex items-center gap-3">
+                <IconButton
+                  icon={RefreshCw}
+                  onClick={() => void fetchLocations()}
+                  disabled={loading}
+                  ariaLabel={isEs ? "Actualizar" : "Refresh"}
+                  className={loading ? "animate-spin" : ""}
+                  title={isEs ? "Actualizar" : "Refresh"}
+                />
                 <button
                   onClick={guard("locations:read", () => setExportOpen(true))}
                   aria-disabled={!isAllowed("locations:read")}

@@ -6,12 +6,11 @@ import {
   Trash2,
   Loader2,
   Hash,
-  RefreshCcw,
+  RefreshCw,
   Star,
   StarOff,
 } from "lucide-react";
-import { Button, PageHeader } from "../../../../components/ui";
-import { PermissionGuardedButton } from "../../../../components/ui/PermissionGuardedButton";
+import { Button, PageHeader, PermissionGuardedButton, IconButton } from "../../../../components/ui";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import { getPaymentMethodStatusLabel } from "../../../../utils/statusLabels";
 import { usePermissions } from "../../../../contexts/usePermissions";
@@ -215,14 +214,14 @@ export default function CodeSchemes() {
           subtitle={t("settings.codeSchemes.description")}
           actions={
             <div className="flex items-center gap-3" data-help-id="code-schemes-actions">
-              <button
+              <IconButton
+                icon={RefreshCw}
                 onClick={() => void refetch()}
                 disabled={isLoading}
-                className="p-3 bg-[#1a1a1a] border border-[#333] text-gray-400 hover:text-white hover:border-[#444] rounded-xl transition-all disabled:opacity-50"
+                ariaLabel={isEs ? "Actualizar" : "Refresh"}
+                className={isLoading ? "animate-spin" : ""}
                 title={isEs ? "Actualizar" : "Refresh"}
-              >
-                <RefreshCcw className={`w-5 h-5 ${isLoading ? "animate-spin" : ""}`} />
-              </button>
+              />
               <Button
                 variant="primary"
                 size="md"
