@@ -159,7 +159,6 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
                 showCodeLabel={false}
               />
             </div>
-            <p className="mt-3 text-white font-mono break-all">{resolvedCode || t("materialInstances.detail.notAssigned")}</p>
             {!instance.barcode && (
               <p className="mt-2 text-xs text-[#FFD700]">
                 {t("materialInstances.detail.barcodeUsingSerial")}

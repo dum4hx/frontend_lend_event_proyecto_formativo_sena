@@ -1,7 +1,9 @@
-import React from "react";
-import { X, CheckCircle, AlertTriangle, XCircle, FileText, User, Clock } from "lucide-react";
+import React, { useState } from "react";
+import { X, CheckCircle, AlertTriangle, XCircle, FileText, User, Clock, Eye } from "lucide-react";
 import { useLanguage } from "../../../../../contexts/useLanguage";
-import type { InspectionListItem } from "../../../../../types/api";
+import type { InspectionListItem, MaterialInstance } from "../../../../../types/api";
+import { getMaterialInstance } from "../../../../../services/materialService";
+import { MaterialInstanceDetailModal } from "../../material-instances/components/MaterialInstanceDetailModal";
 
 interface InspectionDetailModalProps {
   inspection: InspectionListItem;
@@ -16,6 +18,8 @@ export const InspectionDetailModal: React.FC<InspectionDetailModalProps> = ({
   onClose,
 }) => {
   const { t, formatCurrency: formatCurrencyLocale } = useLanguage();
+  const [selectedInstance, setSelectedInstance] = useState<MaterialInstance | null>(null);
+  const [loadingInstance, setLoadingInstance] = useState(false);
 
   const formatCurrency = (amount: number) => {
     return formatCurrencyLocale(amount);
@@ -46,6 +50,22 @@ export const InspectionDetailModal: React.FC<InspectionDetailModalProps> = ({
     }
   };
 
+  const handleViewDetails = async (instanceId: string) => {
+    setLoadingInstance(true);
+    try {
+      const res = await getMaterialInstance(instanceId);
+      setSelectedInstance(res.data.instance);
+    } catch (err) {
+      console.error("Failed to load material instance details:", err);
+    } finally {
+      setLoadingInstance(false);
+    }
+  };
+
+  const handleCloseDetails = () => {
+    setSelectedInstance(null);
+  };
+
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-[#121212] border border-[#333] rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
@@ -73,16 +93,23 @@ export const InspectionDetailModal: React.FC<InspectionDetailModalProps> = ({
               {t("inspections.inspectionInfo")}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-[#1a1a1a] p-5 rounded-lg border border-[#222]">
-              <div className="flex items-center">
-                <User className="w-4 h-4 text-gray-500 mr-3" />
-                <div>
-                  <label className="block text-xs text-gray-400 mb-1 uppercase">
+              <div className="flex items-start">
+                <User className="w-4 h-4 text-gray-500 mr-3 mt-1" />
+                <div className="w-full">
+                  <label className="block text-xs text-gray-400 mb-2 uppercase font-semibold">
                     {t("inspections.performedBy")}
                   </label>
-                  <p className="text-white font-medium">
+                  <div className="space-y-1">
+                    <p className="text-white font-medium">
                     {inspection.inspectedBy?.profile?.firstName || t("inspections.notAvailable")}
-                  </p>
-                  <p className="text-xs text-gray-500">{inspection.inspectedBy?.email || t("inspections.notAvailable")}</p>
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      {inspection.inspectedBy?.email || t("inspections.notAvailable")}
+                    </p>
+                    <p className="text-xs text-amber-400 font-medium">
+                    {inspection.inspectedBy?.role?.name || t("inspections.notAvailable")}
+                    </p>
+                  </div>
                 </div>
               </div>
               <div className="flex items-center">
@@ -136,11 +163,11 @@ export const InspectionDetailModal: React.FC<InspectionDetailModalProps> = ({
                     >
                       {/* Material Header */}
                       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-4 pb-4 border-b border-[#222]">
-                        <div className="flex items-start">
+                        <div className="flex items-start flex-1">
                           <StatusIcon className={`w-5 h-5 mr-3 mt-1 flex-shrink-0 ${status.color}`} />
-                          <div>
+                          <div className="flex-1">
                             <p className="text-white font-semibold text-lg">
-                              {item.materialType?.name || "Material sin nombre"}
+                              {item.materialType?.name || t("inspections.notAvailable")}
                             </p>
                             <p className="text-xs text-gray-400 font-mono mt-2">
                               {t("inspections.serialNumber")}: <span className="text-gray-300 font-medium">
@@ -152,18 +179,31 @@ export const InspectionDetailModal: React.FC<InspectionDetailModalProps> = ({
                             <p className="text-xs text-gray-500 italic">{status.label}</p>
                           </div>
                         </div>
-                        <div className="flex flex-wrap gap-2 md:justify-end">
-                          {item.chargeToCustomer !== undefined && item.chargeToCustomer > 0 && (
-                            <div className="bg-red-900/40 px-3 py-1.5 rounded-full border border-red-500/30">
-                              <p className="text-red-200 text-xs font-bold">
-                                {t("inspections.totalDamageCost")}: <span className="text-red-100 font-black">{formatCurrency(item.chargeToCustomer)}</span>
-                              </p>
-                            </div>
-                          )}
-                          {item.repairRequired && (
-                            <span className="bg-orange-900/40 px-3 py-1.5 rounded-full border border-orange-500/30 text-orange-200 text-xs font-bold">
-                              {t("inspections.repairRequired")}
-                            </span>
+                        <div className="flex flex-col gap-2 md:items-end">
+                          <div className="flex flex-wrap gap-2 md:justify-end">
+                            {item.chargeToCustomer !== undefined && item.chargeToCustomer > 0 && (
+                              <div className="bg-red-900/40 px-3 py-1.5 rounded-full border border-red-500/30">
+                                <p className="text-red-200 text-xs font-bold">
+                                  {t("inspections.totalDamageCost")}: <span className="text-red-100 font-black">{formatCurrency(item.chargeToCustomer)}</span>
+                                </p>
+                              </div>
+                            )}
+                            {item.repairRequired && (
+                              <span className="bg-orange-900/40 px-3 py-1.5 rounded-full border border-orange-500/30 text-orange-200 text-xs font-bold">
+                                {t("inspections.repairRequired")}
+                              </span>
+                            )}
+                          </div>
+                          {typeof item.materialInstanceId !== "string" && (
+                            <button
+                              onClick={() => handleViewDetails(item.materialInstanceId._id)}
+                              disabled={loadingInstance}
+                              className="flex items-center gap-2 px-3 py-1.5 bg-[#FFD700]/10 hover:bg-[#FFD700]/20 border border-[#FFD700]/30 text-[#FFD700] rounded-md transition-all text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                              title={t("inspections.viewMaterialInstance")}
+                            >
+                              <Eye size={14} />
+                              {loadingInstance ? t("common.loading") : t("inspections.viewDetail")}
+                            </button>
                           )}
                         </div>
                       </div>
@@ -239,6 +279,15 @@ export const InspectionDetailModal: React.FC<InspectionDetailModalProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Material Instance Detail Modal */}
+      {selectedInstance && (
+        <MaterialInstanceDetailModal
+          instance={selectedInstance}
+          loanCode={inspection.loanId.code ?? inspection.loanId._id}
+          onClose={handleCloseDetails}
+        />
+      )}
     </div>
   );
 };

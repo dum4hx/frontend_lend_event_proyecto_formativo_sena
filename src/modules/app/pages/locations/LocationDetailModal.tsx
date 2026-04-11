@@ -80,7 +80,7 @@ export function LocationDetailModal({
         {/* Header */}
         <p className="text-gray-400 text-sm font-medium">{location.name}</p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className={`grid gap-3 ${hideCapacities ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
           {/* Basic & Address Info */}
           <div className="space-y-2">
             <div className="bg-[#1a1a1a] rounded-xl p-3 border border-[#333]">
@@ -105,7 +105,7 @@ export function LocationDetailModal({
                     <StatusBadge status={location.status} colorMap={LOCATION_STATUS_COLORS} label={getLocationStatusLabel(location.status as "available" | "full_capacity" | "maintenance" | "inactive", language as "en" | "es")} className="!text-white" />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <p className="text-xs text-gray-500 uppercase font-semibold">
                       {isEs ? "Creado" : "Created"}
@@ -136,7 +136,7 @@ export function LocationDetailModal({
                 {isEs ? "Datos de dirección" : "Address Details"}
               </h3>
               <div className="space-y-2">
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                   <div>
                     <p className="text-xs text-gray-500 font-semibold mb-0.5">
                       {isEs ? "País" : "Country"}

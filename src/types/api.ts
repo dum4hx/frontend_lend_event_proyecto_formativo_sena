@@ -674,7 +674,7 @@ export interface InspectionItemResponse {
     serialNumber: string;
     modelId: string;
   };
-  materialType?: {
+  materialType: {
     _id: string;
     name: string;
   };
@@ -696,6 +696,10 @@ export interface Inspection {
   inspectedBy: {
     email: string;
     profile: { firstName: string };
+    role?: {
+      _id: string;
+      name: string;
+    };
   };
   items: InspectionItemResponse[];
   notes?: string;
