@@ -15,6 +15,9 @@ import type {
   LoanMaterialInstanceEntry,
   MaterialInstanceStatus,
   DepositStatus,
+  PopulatedUserRef,
+  PricingSnapshotItem,
+  PricingStrategyType,
 } from "../../../../types/api";
 import { getLoanDetailGrouped } from "../../../../services/loanService";
 import {
@@ -77,6 +80,27 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
     setCollapsed((prev) => ({ ...prev, [typeId]: !prev[typeId] }));
   }
 
+  const formatUserName = (ref: PopulatedUserRef | undefined): string => {
+    if (!ref) return t("loans.detail.notSet");
+    if (ref.name) {
+      const { firstName, secondName, firstSurname, secondSurname } = ref.name;
+      const full = [firstName, secondName, firstSurname, secondSurname]
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+      return full || ref.email || t("loans.detail.notSet");
+    }
+    return ref.email || t("loans.detail.notSet");
+  };
+
+  const strategyLabels: Record<PricingStrategyType, string> = {
+    per_day: isEs ? "Por día" : "Per day",
+    weekly_monthly: isEs ? "Semanal/Mensual" : "Weekly-Monthly",
+    fixed: isEs ? "Fijo" : "Fixed",
+  };
+
+  const pricingSnapshot: PricingSnapshotItem[] = loanDetail?.pricingSnapshot ?? [];
+
   return (
     <div
       className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
@@ -100,7 +124,7 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
           {/* ── Left Panel ── */}
           <div className="p-6 md:p-7 space-y-5 max-h-[calc(92vh-84px)] overflow-y-auto">
             {/* Basic info grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <p className="text-gray-500 text-sm">{t("loans.detail.loanCode")}</p>
                 <p className="text-white font-semibold break-all font-mono">{code}</p>
@@ -121,6 +145,66 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
               <div>
                 <p className="text-gray-500 text-sm">{t("loans.detail.endDate")}</p>
                 <p className="text-gray-300">{formatDate(req.endDate)}</p>
+              </div>
+              <div>
+                <p className="text-gray-500 text-sm">{t("loans.detail.requestCreatedAt")}</p>
+                <p className="text-gray-300">
+                  {req.createdAt ? (
+                    formatDate(req.createdAt)
+                  ) : (
+                    <span className="text-gray-600 italic text-xs">{t("loans.detail.notSet")}</span>
+                  )}
+                </p>
+              </div>
+              <div>
+                <p className="text-gray-500 text-sm">{t("loans.detail.createdBy")}</p>
+                <p className="text-gray-300">
+                  {req.createdBy ? (
+                    formatUserName(req.createdBy)
+                  ) : (
+                    <span className="text-gray-600 italic text-xs">{t("loans.detail.notSet")}</span>
+                  )}
+                </p>
+              </div>
+              <div>
+                <p className="text-gray-500 text-sm">{t("loans.detail.approvedAt")}</p>
+                <p className="text-gray-300">
+                  {req.approvedAt ? (
+                    formatDate(req.approvedAt)
+                  ) : (
+                    <span className="text-gray-600 italic text-xs">{t("loans.detail.notSet")}</span>
+                  )}
+                </p>
+              </div>
+              <div>
+                <p className="text-gray-500 text-sm">{t("loans.detail.loanCreatedAt")}</p>
+                <p className="text-gray-300">
+                  {loanDetail?.createdAt ? (
+                    formatDate(loanDetail.createdAt)
+                  ) : (
+                    <span className="text-gray-600 italic text-xs">{t("loans.detail.notSet")}</span>
+                  )}
+                </p>
+              </div>
+              <div>
+                <p className="text-gray-500 text-sm">{t("loans.detail.checkedOutAt")}</p>
+                <p className="text-gray-300">
+                  {loanDetail?.checkedOutAt ? (
+                    formatDate(loanDetail.checkedOutAt)
+                  ) : (
+                    <span className="text-gray-600 italic text-xs">{t("loans.detail.notSet")}</span>
+                  )}
+                </p>
+              </div>
+              <div>
+                <p className="text-gray-500 text-sm">{t("loans.detail.checkedOutBy")}</p>
+                <p className="text-gray-300">
+                  {loanDetail?.checkedOutBy ? (
+                    formatUserName(loanDetail.checkedOutBy)
+                  ) : (
+                    <span className="text-gray-600 italic text-xs">{t("loans.detail.notSet")}</span>
+                  )}
+                </p>
               </div>
             </div>
 
@@ -196,6 +280,14 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
                         </p>
                       </div>
                     )}
+                    {req.depositDueDate != null && (
+                      <div>
+                        <p className="text-gray-500 text-xs">{t("loans.detail.depositDueDate")}</p>
+                        <p className="text-yellow-400 font-semibold">
+                          {formatDate(req.depositDueDate)}
+                        </p>
+                      </div>
+                    )}
                     {req.depositPaidAt != null && (
                       <div>
                         <p className="text-gray-500 text-xs">{t("loans.detail.depositPaidAt")}</p>
@@ -232,6 +324,88 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
                     )}
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* Pricing Breakdown (collapsable) */}
+            {loan && (
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={() => toggleCollapse("__pricing__")}
+                  className="w-full flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-2 text-sm font-semibold text-[#FFD700] uppercase tracking-wider">
+                    <DollarSign size={14} />
+                    <span>{t("loans.detail.pricingBreakdown")}</span>
+                    <span className="text-xs text-gray-500 font-normal normal-case">
+                      ({pricingSnapshot.length})
+                    </span>
+                  </div>
+                  {collapsed["__pricing__"] ? (
+                    <ChevronDown size={14} className="text-gray-500 shrink-0" />
+                  ) : (
+                    <ChevronUp size={14} className="text-gray-500 shrink-0" />
+                  )}
+                </button>
+
+                {!collapsed["__pricing__"] && (
+                  <div className="border border-[#2a2a2a] rounded-xl p-4 bg-[#171717]">
+                    {pricingSnapshot.length === 0 ? (
+                      <p className="text-gray-500 text-sm">{t("loans.detail.noBreakdown")}</p>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left">
+                          <thead>
+                            <tr className="text-gray-500 text-xs uppercase tracking-wider border-b border-[#333]">
+                              <th className="pb-2 pr-3 font-medium">Type</th>
+                              <th className="pb-2 pr-3 font-medium">
+                                {t("loans.detail.pricingStrategy")}
+                              </th>
+                              <th className="pb-2 pr-3 font-medium text-center">
+                                {t("loans.detail.pricingQuantity")}
+                              </th>
+                              <th className="pb-2 pr-3 font-medium text-center">
+                                {t("loans.detail.pricingDuration")}
+                              </th>
+                              <th className="pb-2 pr-3 font-medium text-right">
+                                {t("loans.detail.pricingBasePricePerDay")}
+                              </th>
+                              <th className="pb-2 pr-3 font-medium text-right">
+                                {t("loans.detail.pricingUnitPrice")}
+                              </th>
+                              <th className="pb-2 font-medium text-right">
+                                {t("loans.detail.pricingTotal")}
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[#2a2a2a]">
+                            {pricingSnapshot.map((item, idx) => (
+                              <tr key={idx} className="text-gray-300">
+                                <td className="py-2 pr-3 capitalize">{item.itemType}</td>
+                                <td className="py-2 pr-3">
+                                  {strategyLabels[item.strategyType as PricingStrategyType] ??
+                                    item.strategyType}
+                                </td>
+                                <td className="py-2 pr-3 text-center">{item.quantity}</td>
+                                <td className="py-2 pr-3 text-center">{item.durationInDays}</td>
+                                <td className="py-2 pr-3 text-right">
+                                  ${item.basePricePerDay.toLocaleString()}
+                                </td>
+                                <td className="py-2 pr-3 text-right">
+                                  ${item.unitPrice.toLocaleString()}
+                                </td>
+                                <td className="py-2 text-right text-white font-semibold">
+                                  ${item.totalPrice.toLocaleString()}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
@@ -284,11 +458,27 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
                           {instances.map((entry) => (
                             <div
                               key={entry.materialInstanceId._id}
-                              className="flex items-center justify-between px-4 py-3"
+                              className="flex items-center gap-3 px-4 py-3"
                             >
-                              <span className="text-white font-mono text-sm">
+                              <span className="text-white font-mono text-sm flex-1">
                                 {entry.materialInstanceId.serialNumber}
                               </span>
+                              {entry.conditionAtCheckout && (
+                                <span
+                                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                                    entry.conditionAtCheckout === "good"
+                                      ? "bg-green-500/20 text-green-400"
+                                      : entry.conditionAtCheckout === "damaged"
+                                        ? "bg-amber-500/20 text-amber-400"
+                                        : entry.conditionAtCheckout === "lost"
+                                          ? "bg-red-500/20 text-red-400"
+                                          : "bg-gray-500/20 text-gray-400"
+                                  }`}
+                                >
+                                  {entry.conditionAtCheckout.charAt(0).toUpperCase() +
+                                    entry.conditionAtCheckout.slice(1)}
+                                </span>
+                              )}
                               <span className="text-xs text-gray-400">
                                 {getMaterialInstanceStatusLabel(
                                   entry.materialInstanceId.status as MaterialInstanceStatus,
