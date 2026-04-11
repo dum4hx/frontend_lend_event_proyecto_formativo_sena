@@ -850,9 +850,12 @@ export interface InvoiceLineItem {
 export interface InvoicePayment {
   _id: string;
   amount: number;
-  paymentMethodId: string;
+  paymentMethodId?: string;
+  method?: string;
   reference?: string;
-  recordedAt: string;
+  notes?: string;
+  recordedAt?: string;
+  paidAt?: string;
 }
 
 export interface InvoiceCustomer {
@@ -866,11 +869,23 @@ export interface InvoiceCustomer {
   email?: string;
 }
 
+export interface InvoiceLoanMaterialInstance {
+  materialInstanceId: string | { _id: string; serialNumber?: string; name?: string };
+  materialTypeId: string | { _id: string; name?: string };
+  conditionAtCheckout?: string;
+}
+
 export interface InvoiceLoan {
   _id: string;
   code?: string;
   startDate?: string;
   endDate?: string;
+  materialInstances?: InvoiceLoanMaterialInstance[];
+}
+
+export interface InvoiceInspection {
+  _id: string;
+  inspectionNumber?: string;
 }
 
 export interface Invoice {
@@ -881,7 +896,7 @@ export interface Invoice {
   type: InvoiceType;
   customerId: InvoiceCustomer | string;
   loanId?: InvoiceLoan | string;
-  inspectionId?: string;
+  inspectionId?: InvoiceInspection | string;
   lineItems: InvoiceLineItem[];
   subtotal: number;
   taxRate: number;

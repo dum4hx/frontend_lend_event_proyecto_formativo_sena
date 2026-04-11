@@ -8,10 +8,11 @@ import {
   ThumbsUp,
   ThumbsDown,
   Ban,
+  Banknote,
   Package,
+  PackageCheck,
   CreditCard,
   Truck,
-  Play,
   AlertCircle,
   FileX,
 } from "lucide-react";
@@ -192,6 +193,7 @@ export function LoansTable({
                       variant="outline"
                       leftIcon={Eye}
                       onClick={() => onViewDetail(v)}
+                      title={t("loans.actions.viewDetails")}
                     >
                       {t("common.details")}
                     </Button>
@@ -217,7 +219,7 @@ export function LoansTable({
                           icon={Ban}
                           intent="delete"
                           ariaLabel={t("loans.actions.cancel")}
-                          requiredPermission="requests:update"
+                          requiredPermission="requests:cancel"
                           onClick={() => onCancel(v)}
                         />
                       </>
@@ -229,34 +231,47 @@ export function LoansTable({
                           icon={Package}
                           intent="edit"
                           ariaLabel={t("loans.actions.prepare")}
-                          requiredPermission="requests:update"
+                          requiredPermission="requests:assign"
                           onClick={() => onPrepare(v)}
                         />
-                        <PermissionGuardedButton
-                          icon={CreditCard}
-                          intent="edit"
-                          ariaLabel={t("loans.actions.recordPayment")}
-                          requiredPermission="requests:update"
-                          onClick={() => onRecordPayment(v)}
-                        />
+                        {!v.request.depositPaidAt && (
+                          <PermissionGuardedButton
+                            icon={CreditCard}
+                            intent="edit"
+                            ariaLabel={t("loans.actions.recordPayment")}
+                            requiredPermission="requests:update"
+                            onClick={() => onRecordPayment(v)}
+                          />
+                        )}
                       </>
                     )}
 
                     {v.status === "assigned" && (
                       <>
+                        {!v.request.depositPaidAt && (
+                          <PermissionGuardedButton
+                            icon={CreditCard}
+                            intent="edit"
+                            ariaLabel={t("loans.actions.recordPayment")}
+                            requiredPermission="requests:update"
+                            onClick={() => onRecordPayment(v)}
+                          />
+                        )}
+                        {!v.request.rentalFeePaidAt && (
+                          <PermissionGuardedButton
+                            icon={Banknote}
+                            intent="approve"
+                            ariaLabel={t("loans.actions.recordRentalPayment")}
+                            requiredPermission="requests:update"
+                            onClick={() => onRecordRentalPayment(v)}
+                          />
+                        )}
                         <PermissionGuardedButton
-                          icon={CreditCard}
+                          icon={PackageCheck}
                           intent="edit"
-                          ariaLabel={t("loans.actions.recordPayment")}
-                          requiredPermission="requests:update"
-                          onClick={() => onRecordPayment(v)}
-                        />
-                        <PermissionGuardedButton
-                          icon={CreditCard}
-                          intent="edit"
-                          ariaLabel={t("loans.actions.recordRentalPayment")}
-                          requiredPermission="requests:update"
-                          onClick={() => onRecordRentalPayment(v)}
+                          ariaLabel={t("loans.actions.ship")}
+                          requiredPermission="requests:ready"
+                          onClick={() => onShip(v)}
                         />
                       </>
                     )}
@@ -265,13 +280,6 @@ export function LoansTable({
                       <>
                         <PermissionGuardedButton
                           icon={Truck}
-                          intent="edit"
-                          ariaLabel={t("loans.actions.ship")}
-                          requiredPermission="requests:update"
-                          onClick={() => onShip(v)}
-                        />
-                        <PermissionGuardedButton
-                          icon={Play}
                           intent="approve"
                           ariaLabel={t("loans.actions.startLoan")}
                           requiredPermission="loans:create"
