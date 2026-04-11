@@ -18,6 +18,7 @@ import { ExternalLink } from "lucide-react";
 import { DetailModal, type DetailField } from "./DetailModal";
 import { StatusBadge } from "./StatusBadge";
 import { LoadingSpinner } from "./LoadingSpinner";
+import { useLanguage } from "../../contexts/useLanguage";
 import type {
   Customer,
   User,
@@ -72,17 +73,48 @@ function shortId(id: string): string {
   return `#${id.slice(-6).toUpperCase()}`;
 }
 
+function getStatusLabel(status: string | undefined, isEs: boolean): string | undefined {
+  if (!status) return undefined;
+  if (!isEs) return undefined;
+
+  const translations: Record<string, string> = {
+    active: "Activo",
+    inactive: "Inactivo",
+    invited: "Invitado",
+    suspended: "Suspendido",
+    pending: "Pendiente",
+    approved: "Aprobado",
+    rejected: "Rechazado",
+    cancelled: "Cancelado",
+    completed: "Completado",
+    maintenance: "Mantenimiento",
+    in_progress: "En progreso",
+    open: "Abierto",
+    closed: "Cerrado",
+    paid: "Pagado",
+    overdue: "Vencido",
+  };
+
+  return translations[status.toLowerCase()];
+}
+
 // ─── Entity → DetailField[] builders ───────────────────────────────────────
 
-function customerFields(c: Customer): DetailField[] {
+function customerFields(c: Customer, isEs: boolean): DetailField[] {
   return [
-    { label: "Name", value: formatPersonName(c.name) },
-    { label: "Email", value: c.email },
-    { label: "Phone", value: c.phone },
-    { label: "Document", value: `${c.documentType.toUpperCase()} ${c.documentNumber}` },
-    { label: "Status", value: <StatusBadge status={c.status} /> },
+    { label: isEs ? "Nombre" : "Name", value: formatPersonName(c.name) },
+    { label: isEs ? "Correo" : "Email", value: c.email },
+    { label: isEs ? "Teléfono" : "Phone", value: c.phone },
     {
-      label: "Address",
+      label: isEs ? "Documento" : "Document",
+      value: `${c.documentType.toUpperCase()} ${c.documentNumber}`,
+    },
+    {
+      label: isEs ? "Estado" : "Status",
+      value: <StatusBadge status={c.status} label={getStatusLabel(c.status, isEs)} />,
+    },
+    {
+      label: isEs ? "Dirección" : "Address",
       value: c.address
         ? [c.address.department, c.address.city].filter(Boolean).join(", ") || "—"
         : "—",
@@ -90,65 +122,77 @@ function customerFields(c: Customer): DetailField[] {
   ];
 }
 
-function userFields(u: User): DetailField[] {
+function userFields(u: User, isEs: boolean): DetailField[] {
   return [
-    { label: "Name", value: formatPersonName(u.name) },
-    { label: "Email", value: u.email },
-    { label: "Role", value: u.roleName },
-    { label: "Status", value: <StatusBadge status={u.status} /> },
-    { label: "Phone", value: u.phone ?? "—" },
+    { label: isEs ? "Nombre" : "Name", value: formatPersonName(u.name) },
+    { label: isEs ? "Correo" : "Email", value: u.email },
+    { label: isEs ? "Rol" : "Role", value: u.roleName },
+    {
+      label: isEs ? "Estado" : "Status",
+      value: <StatusBadge status={u.status} label={getStatusLabel(u.status, isEs)} />,
+    },
+    { label: isEs ? "Teléfono" : "Phone", value: u.phone ?? "—" },
   ];
 }
 
-function materialTypeFields(mt: MaterialType): DetailField[] {
+function materialTypeFields(mt: MaterialType, isEs: boolean): DetailField[] {
   const categoryName =
     typeof mt.categoryId === "object" && mt.categoryId !== null
       ? mt.categoryId.name
       : String(mt.categoryId);
   return [
-    { label: "Name", value: mt.name },
-    { label: "Description", value: mt.description || "—" },
-    { label: "Category", value: categoryName },
-    { label: "Price / Day", value: `$${mt.pricePerDay.toLocaleString()}` },
-    { label: "Attributes", value: `${mt.attributes.length} defined` },
+    { label: isEs ? "Nombre" : "Name", value: mt.name },
+    { label: isEs ? "Descripción" : "Description", value: mt.description || "—" },
+    { label: isEs ? "Categoría" : "Category", value: categoryName },
+    { label: isEs ? "Precio / Día" : "Price / Day", value: `$${mt.pricePerDay.toLocaleString()}` },
+    {
+      label: isEs ? "Atributos" : "Attributes",
+      value: `${mt.attributes.length} ${isEs ? "definidos" : "defined"}`,
+    },
   ];
 }
 
-function invoiceFields(inv: Invoice): DetailField[] {
+function invoiceFields(inv: Invoice, isEs: boolean): DetailField[] {
   const customerName =
     typeof inv.customerId === "object" && inv.customerId !== null
       ? formatPersonName((inv.customerId as InvoiceCustomer).name)
       : shortId(inv.customerId as string);
   return [
-    { label: "Invoice #", value: inv.invoiceNumber },
-    { label: "Customer", value: customerName },
-    { label: "Type", value: inv.type },
-    { label: "Status", value: <StatusBadge status={inv.status} /> },
+    { label: isEs ? "Factura #" : "Invoice #", value: inv.invoiceNumber },
+    { label: isEs ? "Cliente" : "Customer", value: customerName },
+    { label: isEs ? "Tipo" : "Type", value: inv.type },
     {
-      label: "Total",
+      label: isEs ? "Estado" : "Status",
+      value: <StatusBadge status={inv.status} label={getStatusLabel(inv.status, isEs)} />,
+    },
+    {
+      label: isEs ? "Total" : "Total",
       value: `$${inv.totalAmount.toLocaleString()}`,
     },
     {
-      label: "Amount Due",
+      label: isEs ? "Saldo pendiente" : "Amount Due",
       value: `$${inv.amountDue.toLocaleString()}`,
     },
-    { label: "Due Date", value: formatDate(inv.dueDate) },
+    { label: isEs ? "Fecha de vencimiento" : "Due Date", value: formatDate(inv.dueDate) },
   ];
 }
 
-function loanFields(loan: Loan): DetailField[] {
+function loanFields(loan: Loan, isEs: boolean): DetailField[] {
   const customerLabel =
     typeof loan.customerId === "object" && loan.customerId !== null
       ? formatPersonName((loan.customerId as Customer).name)
       : shortId(loan.customerId as string);
   return [
-    { label: "Loan Code", value: loan.code ?? shortId(loan._id) },
-    { label: "Customer", value: customerLabel },
-    { label: "Status", value: <StatusBadge status={loan.status} /> },
-    { label: "Start", value: formatDate(loan.startDate) },
-    { label: "End", value: formatDate(loan.endDate) },
+    { label: isEs ? "Código de préstamo" : "Loan Code", value: loan.code ?? shortId(loan._id) },
+    { label: isEs ? "Cliente" : "Customer", value: customerLabel },
     {
-      label: "Deposit",
+      label: isEs ? "Estado" : "Status",
+      value: <StatusBadge status={loan.status} label={getStatusLabel(loan.status, isEs)} />,
+    },
+    { label: isEs ? "Inicio" : "Start", value: formatDate(loan.startDate) },
+    { label: isEs ? "Fin" : "End", value: formatDate(loan.endDate) },
+    {
+      label: isEs ? "Depósito" : "Deposit",
       value: `$${loan.deposit.amount.toLocaleString()} (${loan.deposit.status})`,
     },
   ];
@@ -157,30 +201,43 @@ function loanFields(loan: Loan): DetailField[] {
 function buildFields(
   type: EntityType,
   entity: Customer | User | MaterialType | Invoice | Loan,
+  isEs: boolean,
 ): DetailField[] {
   switch (type) {
     case "customer":
-      return customerFields(entity as Customer);
+      return customerFields(entity as Customer, isEs);
     case "user":
-      return userFields(entity as User);
+      return userFields(entity as User, isEs);
     case "materialType":
-      return materialTypeFields(entity as MaterialType);
+      return materialTypeFields(entity as MaterialType, isEs);
     case "invoice":
-      return invoiceFields(entity as Invoice);
+      return invoiceFields(entity as Invoice, isEs);
     case "loan":
-      return loanFields(entity as Loan);
+      return loanFields(entity as Loan, isEs);
     default:
       return [];
   }
 }
 
-const entityTitles: Record<EntityType, string> = {
-  customer: "Customer Details",
-  user: "User Details",
-  materialType: "Material Type Details",
-  invoice: "Invoice Details",
-  loan: "Loan Details",
-};
+function getEntityTitle(type: EntityType, isEs: boolean): string {
+  if (isEs) {
+    return {
+      customer: "Detalles del cliente",
+      user: "Detalles del usuario",
+      materialType: "Detalles del tipo de material",
+      invoice: "Detalles de la factura",
+      loan: "Detalles del préstamo",
+    }[type];
+  }
+
+  return {
+    customer: "Customer Details",
+    user: "User Details",
+    materialType: "Material Type Details",
+    invoice: "Invoice Details",
+    loan: "Loan Details",
+  }[type];
+}
 
 // ─── Component ─────────────────────────────────────────────────────────────
 
@@ -192,6 +249,8 @@ export function LinkedEntity({
   fetchFn,
   className = "",
 }: LinkedEntityProps) {
+  const { language } = useLanguage();
+  const isEs = language === "es";
   const [open, setOpen] = useState(false);
   const [entity, setEntity] = useState<Customer | User | MaterialType | Invoice | Loan | null>(
     preloaded ?? null,
@@ -251,13 +310,13 @@ export function LinkedEntity({
       <DetailModal
         open={open}
         onClose={() => setOpen(false)}
-        title={entityTitles[type]}
+        title={getEntityTitle(type, isEs)}
         size="md"
         fields={
           fetchError
-            ? [{ label: "Error", value: fetchError }]
+            ? [{ label: isEs ? "Error" : "Error", value: fetchError }]
             : entity
-              ? buildFields(type, entity)
+              ? buildFields(type, entity, isEs)
               : [{ label: "ID", value: id }]
         }
       />

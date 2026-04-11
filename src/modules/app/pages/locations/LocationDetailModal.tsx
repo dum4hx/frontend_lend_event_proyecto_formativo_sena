@@ -13,6 +13,7 @@ import {
   type SelectOption,
 } from "../../../../components/ui";
 import type { WarehouseLocation } from "../../../../services/warehouseOperatorService";
+import { getUser } from "../../../../services/userService";
 import type { MaterialType, MaterialCategory } from "../../../../types/api";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import { getLocationStatusLabel } from "../../../../utils/statusLabels";
@@ -116,6 +117,17 @@ export function LocationDetailModal({
                           type="user"
                           id={manager._id}
                           label={formatManagerName(manager)}
+                          fetchFn={async (userId) => {
+                            const res = await getUser(userId);
+                            return {
+                              ...res.data.user,
+                              roleName:
+                                res.data.user.roleName ||
+                                manager.roleName ||
+                                (isEs ? "Gerente de sede" : "Site Manager"),
+                              roleId: res.data.user.roleId || manager.roleId || "",
+                            };
+                          }}
                           className="font-semibold text-sm"
                         />
                         <p className="text-xs text-gray-400">{manager.email}</p>

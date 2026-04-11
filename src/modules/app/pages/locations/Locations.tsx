@@ -40,6 +40,7 @@ import { LocationEditModal } from "./LocationEditModal";
 import { useLocationManagerOptions } from "./useLocationManagers";
 import {
   calculateLocationCapacity,
+  calculateOccupied,
   filterLocations,
   buildExportRows,
   parseCSVLine,
@@ -131,11 +132,7 @@ export function Locations() {
         const normalized = items
           .map((loc: WarehouseLocation & { occupied?: number }) => ({
             ...loc,
-            occupied:
-              (loc.materialCapacities as Array<{ currentQuantity?: number }>)?.reduce(
-                (sum, cap) => sum + (cap.currentQuantity || 0),
-                0,
-              ) || 0,
+            occupied: calculateOccupied(loc),
             id: loc.id || (loc as unknown as { _id?: string })._id || "",
           }))
           .filter((loc) => loc.id);

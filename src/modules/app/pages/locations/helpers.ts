@@ -49,9 +49,25 @@ export function calculateLocationCapacity(location: WarehouseLocation): number {
  * Get occupied count from materialCapacities
  */
 export function calculateOccupied(location: WarehouseLocation): number {
-  const caps = location.materialCapacities as Array<{ currentQuantity?: number }> | undefined;
+  const caps = location.materialCapacities as
+    | Array<{ currentQuantity?: number; occupiedQuantity?: number; current?: number }>
+    | undefined;
+
   if (!caps || caps.length === 0) return location.occupied ?? 0;
-  return caps.reduce((sum, cap) => sum + (cap.currentQuantity || 0), 0);
+
+  const hasPerTypeOccupied = caps.some(
+    (cap) =>
+      typeof cap.currentQuantity === "number" ||
+      typeof cap.occupiedQuantity === "number" ||
+      typeof cap.current === "number",
+  );
+
+  if (!hasPerTypeOccupied) return location.occupied ?? 0;
+
+  return caps.reduce((sum, cap) => {
+    const value = cap.currentQuantity ?? cap.occupiedQuantity ?? cap.current ?? 0;
+    return sum + (Number.isFinite(value) ? value : 0);
+  }, 0);
 }
 
 /**
