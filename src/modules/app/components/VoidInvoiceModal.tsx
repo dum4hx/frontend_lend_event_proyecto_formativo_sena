@@ -28,7 +28,7 @@ export function VoidInvoiceModal({
   onSubmit,
   isLoading = false,
 }: VoidInvoiceModalProps) {
-  const { language, locale } = useLanguage();
+  const { language, locale, t } = useLanguage();
   const isEs = language === "es";
 
   const [reason, setReason] = useState("");

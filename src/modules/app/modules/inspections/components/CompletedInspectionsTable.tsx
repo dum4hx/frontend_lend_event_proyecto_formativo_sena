@@ -35,6 +35,12 @@ export const CompletedInspectionsTable: React.FC<CompletedInspectionsTableProps>
     return { icon: CheckCircle, color: "text-green-500", text: t("inspections.allGood") };
   };
 
+  const sortedInspections = [...inspections].sort((a, b) => {
+    const dateA = new Date(a.createdAt).getTime();
+    const dateB = new Date(b.createdAt).getTime();
+    return dateB - dateA; // Descendente: más reciente primero
+  });
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse">
@@ -58,7 +64,7 @@ export const CompletedInspectionsTable: React.FC<CompletedInspectionsTableProps>
           </tr>
         </thead>
         <tbody className="divide-y divide-[#222]">
-          {[...inspections].reverse().map((inspection) => {
+          {sortedInspections.map((inspection) => {
             const status = getOverallCondition(inspection.items);
             const StatusIcon = status.icon;
 
@@ -100,7 +106,8 @@ export const CompletedInspectionsTable: React.FC<CompletedInspectionsTableProps>
                   <button
                     onClick={() => onView(inspection)}
                     className="p-2 text-gray-400 hover:text-[#FFD700] hover:bg-[#333] rounded-lg transition-all"
-                    title="View details"
+                    title={t("inspections.viewDetails")}
+                    aria-label={t("inspections.viewDetails")}
                   >
                     <Eye size={18} />
                   </button>

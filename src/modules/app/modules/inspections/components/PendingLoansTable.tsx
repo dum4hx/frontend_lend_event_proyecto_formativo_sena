@@ -55,9 +55,6 @@ export const PendingLoansTable: React.FC<PendingLoansTableProps> = ({ loans, onI
                   <span className="text-white font-mono text-sm group-hover:text-[#FFD700] transition-colors">
                     {loan.code ?? loan._id.slice(-8).toUpperCase()}
                   </span>
-                  <span className="text-[10px] text-gray-500 font-mono">
-                    {loan.code ? loan._id : ""}
-                  </span>
                 </div>
               </td>
               <td className="py-5 px-6">
@@ -80,7 +77,12 @@ export const PendingLoansTable: React.FC<PendingLoansTableProps> = ({ loans, onI
               <td className="py-5 px-6">
                 <div className="flex items-center text-gray-400">
                   <Package className="w-3.5 h-3.5 mr-2 text-gray-500" />
-                  <span className="text-sm">{loan.materialInstances.length} items</span>
+                  <span className="text-sm">
+                    {loan.materialInstances.length === 1
+                      ? t("inspections.itemCount", { count: 1 })
+                      : t("inspections.itemCountPlural", { count: loan.materialInstances.length })
+                    }
+                  </span>
                 </div>
               </td>
               <td className="py-5 px-6 text-right">

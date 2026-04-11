@@ -674,6 +674,10 @@ export interface InspectionItemResponse {
     serialNumber: string;
     modelId: string;
   };
+  materialType?: {
+    _id: string;
+    name: string;
+  };
   conditionBefore?: InspectionCondition;
   conditionAfter: InspectionCondition;
   conditionDegraded?: boolean;
@@ -738,6 +742,10 @@ export interface PendingLoan {
       modelId: string;
     };
     materialTypeId: string;
+    materialType?: {
+      _id: string;
+      name: string;
+    };
   }>;
   startDate: string;
   endDate: string;
