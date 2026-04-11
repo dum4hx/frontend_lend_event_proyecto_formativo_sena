@@ -2,7 +2,7 @@
  * LocationDetailModal — Read-only view of a location's full details
  */
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import {
   Modal,
@@ -16,6 +16,7 @@ import type { WarehouseLocation } from "../../../../services/warehouseOperatorSe
 import { getUser } from "../../../../services/userService";
 import type { MaterialType, MaterialCategory } from "../../../../types/api";
 import { useLanguage } from "../../../../contexts/useLanguage";
+import { useInventoryReport } from "../../../../hooks/queries/useReportQueries";
 import { getLocationStatusLabel } from "../../../../utils/statusLabels";
 import { formatAddress, resolveCategoryName, filterMaterialTypes } from "./helpers";
 import { LOCATION_STATUS_COLORS } from "./types";
@@ -51,7 +52,52 @@ export function LocationDetailModal({
   const [selectedCategory, setSelectedCategory] = useState("");
   const [page, setPage] = useState(1);
 
-  if (!location) return null;
+  const { data: inventoryReport, isFetching: isInventoryFetching } = useInventoryReport(
+    location?._id ? { locationId: location._id } : {},
+    { enabled: open && !!location?._id },
+  );
+
+  const availableByType = useMemo<Record<string, number>>(() => {
+    if (!inventoryReport) return {};
+
+    const map: Record<string, number> = {};
+
+    const byMaterialType = (inventoryReport as { byMaterialType?: unknown[] }).byMaterialType;
+    if (Array.isArray(byMaterialType)) {
+      byMaterialType.forEach((item) => {
+        const row = item as {
+          materialTypeId?: string;
+          _id?: string;
+          statuses?: Array<{ status: string; count: number }>;
+        };
+        const materialTypeId = row.materialTypeId || row._id;
+        if (!materialTypeId) return;
+        const available = row.statuses?.find((status) => status.status === "available")?.count ?? 0;
+        map[materialTypeId] = available;
+      });
+    }
+
+    // Backward-compatible shape from older docs.
+    const inventory = (inventoryReport as { inventory?: unknown[] }).inventory;
+    if (Array.isArray(inventory)) {
+      inventory.forEach((item) => {
+        const row = item as {
+          materialType?: { _id?: string };
+          statusBreakdown?: Array<{ status: string; count: number }>;
+        };
+        const materialTypeId = row.materialType?._id;
+        if (!materialTypeId) return;
+        const available =
+          row.statusBreakdown?.find((status) => status.status === "available")?.count ?? 0;
+        map[materialTypeId] = available;
+      });
+    }
+
+    return map;
+  }, [inventoryReport]);
+
+  const availabilityLoaded = !isInventoryFetching;
+  const hasBackendAvailabilityData = !!inventoryReport;
 
   const categoryOptions: SelectOption[] = [
     { value: "", label: isEs ? "Todas las categorías" : "All Categories" },
@@ -69,6 +115,46 @@ export function LocationDetailModal({
     (page - 1) * ITEMS_PER_PAGE,
     page * ITEMS_PER_PAGE,
   );
+
+  if (!location) return null;
+
+  const resolveCapacityByMaterialType = (materialTypeId: string) => {
+    const capacity = (location.materialCapacities || []).find((entry) => {
+      const entryTypeId =
+        typeof entry.materialTypeId === "string"
+          ? entry.materialTypeId
+          : (entry.materialTypeId as { _id?: string })?._id;
+      return entryTypeId === materialTypeId;
+    }) as
+      | {
+          materialTypeId: string;
+          maxQuantity?: number;
+          currentQuantity?: number;
+          availableQuantity?: number;
+        }
+      | undefined;
+
+    const maxQuantity = Math.max(0, Number(capacity?.maxQuantity ?? 0));
+    const currentQuantity = Math.max(0, Number(capacity?.currentQuantity ?? 0));
+    const computedAvailable = Math.max(0, maxQuantity - currentQuantity);
+    const availableQuantity = Math.max(
+      0,
+      Number(capacity?.availableQuantity ?? computedAvailable),
+    );
+
+    const availableFromBackend = availableByType[materialTypeId] ?? 0;
+    const hasBackendAvailability = hasBackendAvailabilityData;
+
+    return {
+      maxQuantity,
+      availableQuantity: hasBackendAvailability ? availableFromBackend : availableQuantity,
+      hasInstances:
+        hasBackendAvailability
+          ? availableFromBackend > 0
+          : currentQuantity > 0 || availableQuantity < maxQuantity,
+      hasBackendAvailability,
+    };
+  };
 
   return (
     <Modal
@@ -264,15 +350,16 @@ export function LocationDetailModal({
                       {isEs ? "Tipo de material" : "Material Type"}
                     </th>
                     <th className="px-3 py-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-right">
+                      {isEs ? "Disponibles" : "Available"}
+                    </th>
+                    <th className="px-3 py-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-right">
                       {isEs ? "Límite" : "Limit"}
                     </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#2a2a2a]">
                   {paginatedMaterials.map((mt) => {
-                    const cap = (location.materialCapacities || []).find(
-                      (c) => c.materialTypeId === mt._id,
-                    );
+                    const cap = resolveCapacityByMaterialType(mt._id);
                     const categoryName = resolveCategoryName(mt.categoryId, categories);
                     return (
                       <tr key={mt._id} className="group hover:bg-white/5 transition-colors">
@@ -297,8 +384,22 @@ export function LocationDetailModal({
                           </div>
                         </td>
                         <td className="px-3 py-2.5 text-right">
+                          <div className="flex flex-col items-end gap-1">
+                            <span className="text-sm font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20 min-w-8 text-center">
+                              {availabilityLoaded && cap.hasBackendAvailability
+                                ? cap.availableQuantity
+                                : "-"}
+                            </span>
+                            {availabilityLoaded && cap.hasBackendAvailability && !cap.hasInstances && (
+                              <span className="text-[10px] text-gray-500">
+                                {isEs ? "Sin instancias" : "No instances"}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2.5 text-right">
                           <span className="text-sm font-mono font-bold text-yellow-500 bg-yellow-500/10 px-2 py-1 rounded border border-yellow-500/20">
-                            {cap?.maxQuantity || 0}
+                            {cap.maxQuantity}
                           </span>
                         </td>
                       </tr>

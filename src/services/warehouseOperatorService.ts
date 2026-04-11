@@ -63,7 +63,12 @@ export interface WarehouseLocation {
   occupied: number;
   status: "available" | "full_capacity" | "maintenance" | "inactive";
   isActive: boolean;
-  materialCapacities?: { materialTypeId: string; maxQuantity: number }[];
+  materialCapacities?: {
+    materialTypeId: string | { _id: string; name?: string };
+    maxQuantity: number;
+    currentQuantity?: number;
+    availableQuantity?: number;
+  }[];
   createdAt: string;
   updatedAt: string;
 }
