@@ -24,6 +24,7 @@ import {
 import { getMaterialInstance } from "../../../../../services/materialService";
 import type {
   MaterialInstance,
+  MaterialInstanceStatus,
   CreateMaterialInstancePayload,
 } from "../../../../../types/api";
 

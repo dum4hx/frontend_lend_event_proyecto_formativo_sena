@@ -240,13 +240,13 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
 
           <div>
             <label className="block text-sm font-medium text-gray-400 mb-2">{t("materialInstances.detail.loanCode")}</label>
-            {loanCode ? (
+            {shouldShowRelatedCode ? (
               <button
-                onClick={() => copy(loanCode)}
+                onClick={() => copy(relatedCodeValue)}
                 className="text-gray-400 text-sm font-mono hover:text-[#FFD700] transition-colors flex items-center gap-1 group/copy"
                 title="Haz click para copiar"
               >
-                {loanCode}
+                {relatedCodeValue}
                 <Copy size={14} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
               </button>
             ) : (
