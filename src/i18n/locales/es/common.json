@@ -1099,6 +1099,7 @@
   "loans.detail.preparedBy": "Preparado por",
   "loans.detail.inspectionNumber": "Número de Inspección",
   "loans.detail.inspectionDone": "Inspección Realizada",
+  "loans.detail.inspectionDate": "Fecha de inspección",
   "loans.detail.conditionAtCheckout": "Condición en Checkout",
   "loans.detail.pricingBreakdown": "Desglose de Cobro",
   "loans.detail.pricingStrategy": "Estrategia",

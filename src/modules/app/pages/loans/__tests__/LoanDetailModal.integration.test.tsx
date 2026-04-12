@@ -56,6 +56,8 @@ vi.mock("../../../../../contexts/useLanguage", () => ({
         "loans.detail.checkedOutBy": "Checked Out By",
         "loans.detail.preparedAt": "Preparation Date",
         "loans.detail.preparedBy": "Prepared By",
+        "loans.detail.inspectionDone": "Inspection Done",
+        "loans.detail.inspectionDate": "Inspection Date",
         "loans.detail.items": "Items",
         "loans.detail.notes": "Notes",
         "loans.detail.notSet": "Not set",
@@ -259,6 +261,53 @@ describe("LoanDetailModal materials integration", () => {
     expect(await screen.findByText("SN-100")).toBeInTheDocument();
     expect(screen.getByText("Camera body")).toBeInTheDocument();
     expect(screen.getByText("1 material(s)")).toBeInTheDocument();
+  });
+
+  it("renders inspection number and inspection date for returned loans", async () => {
+    const view = buildView();
+    view.status = "returned";
+    if (view.loan) {
+      view.loan.status = "returned";
+    }
+
+    mocks.getInspections.mockResolvedValue({
+      status: "success",
+      data: {
+        inspections: [
+          {
+            _id: "inspection-1",
+            organizationId: "org-1",
+            inspectionNumber: "INSP-2026-001",
+            loanId: {
+              _id: "loan-1",
+              code: "LOAN-001",
+              customerId: "customer-1",
+              startDate: "2026-04-01T08:00:00.000Z",
+              endDate: "2026-04-03T08:00:00.000Z",
+            },
+            inspectedBy: {
+              email: "inspector@example.com",
+              profile: { firstName: "Inspector" },
+              role: { _id: "role-1", name: "Operator" },
+            },
+            items: [],
+            status: "completed",
+            createdAt: "2026-04-10T15:30:00.000Z",
+          },
+        ],
+      },
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/app/loans"]}>
+        <LoanDetailModal open onClose={vi.fn()} view={view} />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText("Inspection Done")).toBeInTheDocument();
+    expect(screen.getByText("INSP-2026-001")).toBeInTheDocument();
+    expect(screen.getByText("Inspection Date")).toBeInTheDocument();
+    expect(screen.getByText("2026", { exact: false })).toBeInTheDocument();
   });
 
   it("sends search to server", async () => {

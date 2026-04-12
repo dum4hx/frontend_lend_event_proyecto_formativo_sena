@@ -75,7 +75,10 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
   const [materialsLoadedOnce, setMaterialsLoadedOnce] = useState(false);
   const [materialsError, setMaterialsError] = useState<string | null>(null);
   const [materialsReloadNonce, setMaterialsReloadNonce] = useState(0);
-  const [inspectionNumber, setInspectionNumber] = useState<string | null>(null);
+  const [inspectionSummary, setInspectionSummary] = useState<{
+    inspectionNumber: string | null;
+    inspectionDate: string | null;
+  } | null>(null);
   const [relatedInvoiceId, setRelatedInvoiceId] = useState<string | null>(null);
   const [invoiceLookupLoading, setInvoiceLookupLoading] = useState(false);
   const [invoiceLookupError, setInvoiceLookupError] = useState<string | null>(null);
@@ -104,7 +107,7 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
     };
   }, [open, view.loan]);
 
-  // Fetch inspection number when status is "returned", "inspected", or "closed"
+  // Fetch latest inspection metadata when status is "returned", "inspected", or "closed"
   useEffect(() => {
     if (!open || !view.loan) return;
     if (view.status !== "returned" && view.status !== "inspected" && view.status !== "closed")
@@ -114,10 +117,19 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
       try {
         const res = await getInspections({ loanId: view.loan!._id, limit: 1 });
         if (!cancelled && res.data.inspections.length > 0) {
-          setInspectionNumber(res.data.inspections[0].inspectionNumber ?? null);
+          const latestInspection = [...res.data.inspections].sort((a, b) => {
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          })[0];
+
+          setInspectionSummary({
+            inspectionNumber: latestInspection.inspectionNumber ?? null,
+            inspectionDate: latestInspection.createdAt ?? null,
+          });
+        } else if (!cancelled) {
+          setInspectionSummary(null);
         }
       } catch {
-        if (!cancelled) setInspectionNumber(null);
+        if (!cancelled) setInspectionSummary(null);
       }
     }
     fetchInspection();
@@ -526,21 +538,39 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
                   )}
                 </p>
               </div>
-              {inspectionNumber && (
+              {(view.status === "returned" ||
+                view.status === "inspected" ||
+                view.status === "closed") && (
                 <div>
                   <p className="text-gray-500 text-sm">{t("loans.detail.inspectionDone")}</p>
-                  {inspectionNumber ? (
+                  {inspectionSummary?.inspectionNumber ? (
                     <div className="flex items-center gap-2 flex-wrap mt-0.5">
                       <span className="text-green-400 font-semibold">
                         {isEs ? "S\u00ed" : "Yes"}
                       </span>
                       <span className="text-white font-semibold font-mono text-xs">
-                        {inspectionNumber}
+                        {inspectionSummary.inspectionNumber}
                       </span>
                     </div>
                   ) : (
-                    <p className="text-red-400 font-semibold">{isEs ? "No" : "No"}</p>
+                    <span className="text-gray-600 italic text-xs">{t("loans.detail.notSet")}</span>
                   )}
+                </div>
+              )}
+              {(view.status === "returned" ||
+                view.status === "inspected" ||
+                view.status === "closed") && (
+                <div>
+                  <p className="text-gray-500 text-sm">{t("loans.detail.inspectionDate")}</p>
+                  <p className="text-gray-300">
+                    {inspectionSummary?.inspectionDate ? (
+                      formatDate(inspectionSummary.inspectionDate)
+                    ) : (
+                      <span className="text-gray-600 italic text-xs">
+                        {t("loans.detail.notSet")}
+                      </span>
+                    )}
+                  </p>
                 </div>
               )}
             </div>
