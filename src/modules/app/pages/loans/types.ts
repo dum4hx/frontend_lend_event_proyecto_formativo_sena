@@ -11,7 +11,6 @@ export type UnifiedLoanStatus =
   | "active"
   | "overdue"
   | "returned"
-  | "inspected"
   | "closed"
   | "rejected"
   | "cancelled"
