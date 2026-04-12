@@ -324,6 +324,8 @@ export const MaterialInstanceCatalog: React.FC = () => {
 
       const matchedInstance = findInstanceByScannedCode(cleanedCode);
       if (matchedInstance) {
+        // Show the toast immediately with the local data, then fetch the full
+        // detail (which includes loanContext / requestCode) in the background.
         setSelectedInstance(matchedInstance);
         showToast(
           "success",
@@ -335,6 +337,11 @@ export const MaterialInstanceCatalog: React.FC = () => {
             : t("materialInstances.toast.scanFound", { serial: matchedInstance.serialNumber }),
           t("materialInstances.toast.scanFoundTitle"),
         );
+        void loadInstanceDetail(matchedInstance).then((detail) => {
+          if (detail) {
+            setSelectedInstance(detail);
+          }
+        });
         return;
       }
 
@@ -358,7 +365,7 @@ export const MaterialInstanceCatalog: React.FC = () => {
         },
       );
     },
-    [canCreateInstance, findInstanceByScannedCode, showToast, t],
+    [canCreateInstance, findInstanceByScannedCode, loadInstanceDetail, showToast, t],
   );
 
   useBarcodeScanner({
