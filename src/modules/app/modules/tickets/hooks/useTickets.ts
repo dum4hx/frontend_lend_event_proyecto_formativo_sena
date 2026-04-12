@@ -14,6 +14,7 @@ import {
   approveTicket,
   rejectTicket,
   cancelTicket,
+  type TicketsListData,
 } from "../../../../../services/ticketService";
 import type {
   Ticket,
@@ -59,10 +60,15 @@ export function useTickets() {
       if (status) params.status = status;
       if (type) params.type = type;
       const res = await getTickets(params);
+      const data: TicketsListData = res.data ?? ({} as TicketsListData);
       setState((prev) => ({
         ...prev,
-        tickets: res.data.tickets || [],
-        pagination: res.data.pagination,
+        tickets: data.tickets ?? [],
+        pagination: {
+          total: data.total ?? 0,
+          page: data.page ?? 1,
+          totalPages: data.totalPages ?? 0,
+        },
         loading: false,
       }));
     } catch (err) {

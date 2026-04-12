@@ -574,7 +574,7 @@ export const WORKFLOW_STATUS_MAP: Record<WorkflowStatus, StatusLocale> = {
   order_created: { en: "Order Created", es: "Pedido creado" },
   order_deposit_pending: { en: "Deposit Pending", es: "Depósito pendiente" },
   order_approved: { en: "Order Approved", es: "Pedido aprobado" },
-  order_assigned: { en: "Materials Assigned", es: "Materiales asignados" },
+  order_assigned: { en: "Materials Prepared", es: "Materiales preparados" },
   order_shipped: { en: "Ready for Checkout", es: "Listo para despacho" },
   order_in_use: { en: "Order In Use / Loaned", es: "Pedido en uso / prestado" },
   order_completed: { en: "Order Completed / Delivered", es: "Pedido completado / entregado" },

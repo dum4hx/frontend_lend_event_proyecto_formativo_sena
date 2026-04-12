@@ -159,6 +159,18 @@ export function OrderDetailModal({ open, onClose, order }: OrderDetailModalProps
                     {isEs ? "Estado del Préstamo" : "Loan Status"}
                   </p>
                   <div className="grid grid-cols-2 gap-3">
+                    {order.loan.preparedBy && (
+                      <div>
+                        <p className="text-gray-500 text-xs">{isEs ? "Preparado por" : "Prepared By"}</p>
+                        <p className="text-gray-300 text-sm">{order.loan.preparedBy.name ? `${order.loan.preparedBy.name.firstName} ${order.loan.preparedBy.name.firstSurname}`.trim() : order.loan.preparedBy.email}</p>
+                      </div>
+                    )}
+                    {order.loan.preparedAt && (
+                      <div>
+                        <p className="text-gray-500 text-xs">{isEs ? "Fecha de Preparación" : "Preparation Date"}</p>
+                        <p className="text-gray-300 text-sm">{formatDate(order.loan.preparedAt)}</p>
+                      </div>
+                    )}
                     {order.loan.totalAmount != null && (
                       <div>
                         <p className="text-gray-500 text-xs">{isEs ? "Total" : "Total Amount"}</p>

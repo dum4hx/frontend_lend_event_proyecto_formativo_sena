@@ -19,14 +19,16 @@ import type {
 
 // ─── List ──────────────────────────────────────────────────────────────────
 
+/** Flat pagination shape returned by the tickets endpoint. */
+export interface TicketsListData extends PaginationMeta {
+  tickets: TicketListItem[];
+}
+
 /** List tickets with optional filters and pagination. */
-export async function getTickets(params?: TicketQueryParams): Promise<
-  ApiSuccessResponse<{
-    tickets: TicketListItem[];
-    pagination: PaginationMeta;
-  }>
-> {
-  return get<{ tickets: TicketListItem[]; pagination: PaginationMeta }>(
+export async function getTickets(
+  params?: TicketQueryParams,
+): Promise<ApiSuccessResponse<TicketsListData>> {
+  return get<TicketsListData>(
     "/tickets",
     params as Record<string, string | number | boolean | undefined>,
   );

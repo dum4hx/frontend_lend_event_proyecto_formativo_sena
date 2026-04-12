@@ -230,9 +230,27 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
                   )}
                 </p>
               </div>
-              {(view.status === "returned" ||
-                view.status === "inspected" ||
-                view.status === "closed") && (
+              <div>
+                <p className="text-gray-500 text-sm">{t("loans.detail.preparedAt")}</p>
+                <p className="text-gray-300">
+                  {loanDetail?.preparedAt ? (
+                    formatDate(loanDetail.preparedAt)
+                  ) : (
+                    <span className="text-gray-600 italic text-xs">{t("loans.detail.notSet")}</span>
+                  )}
+                </p>
+              </div>
+              <div>
+                <p className="text-gray-500 text-sm">{t("loans.detail.preparedBy")}</p>
+                <p className="text-gray-300">
+                  {loanDetail?.preparedBy ? (
+                    formatUserName(loanDetail.preparedBy)
+                  ) : (
+                    <span className="text-gray-600 italic text-xs">{t("loans.detail.notSet")}</span>
+                  )}
+                </p>
+              </div>
+              {inspectionNumber && (
                 <div>
                   <p className="text-gray-500 text-sm">{t("loans.detail.inspectionDone")}</p>
                   {inspectionNumber ? (
