@@ -48,7 +48,7 @@ export const UNIFIED_WORKFLOW_STEPS: WorkflowStepDef[] = [
   { status: "approved", labelEn: "Approved", labelEs: "Aprobada" },
   { status: "assigned", labelEn: "Materials Prepared", labelEs: "Materiales Preparados" },
   { status: "ready", labelEn: "Ready for Checkout", labelEs: "Listo para Despacho" },
-  { status: "active", labelEn: "Active (In Use)", labelEs: "Activo (En Uso)" },
+  { status: "active", labelEn: "Active Loan", labelEs: "Préstamo Activo" },
   { status: "overdue", labelEn: "Overdue", labelEs: "Vencido" },
   { status: "returned", labelEn: "Returned", labelEs: "Devuelto" },
   { status: "inspected", labelEn: "Inspected", labelEs: "Inspeccionado" },

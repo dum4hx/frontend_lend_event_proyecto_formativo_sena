@@ -784,6 +784,28 @@ export const validateCategoryDescription = (description?: string): ValidationRes
 };
 
 /**
+ * Extension fee validation for loan extend action.
+ * Rules:
+ * - Required (value must be present)
+ * - Must be a finite number
+ * - Must be >= 0 (no negative fees)
+ * Example: 0 (no fee), 50000 (COP fee amount)
+ */
+export const validateExtensionFee = (value: string): ValidationResult => {
+  if (value === "" || value === undefined) {
+    return { isValid: false, message: "common.validation.extensionFeeRequired" };
+  }
+  const num = Number(value);
+  if (!Number.isFinite(num)) {
+    return { isValid: false, message: "common.validation.extensionFeeInvalid" };
+  }
+  if (num < 0) {
+    return { isValid: false, message: "common.validation.extensionFeeNonNegative" };
+  }
+  return { isValid: true };
+};
+
+/**
  * Code scheme name validation (1-100 chars, non-empty).
  * Returns i18n keys so callers can translate via t().
  */
@@ -1012,6 +1034,24 @@ export const validateEstimatedCost = (value: string | number): ValidationResult 
 export const validateTicketNotes = (value: string): ValidationResult => {
   if (value.length > 1000) {
     return { isValid: false, message: "tickets.validation.notesMaxLength" };
+  }
+  return { isValid: true };
+};
+
+/**
+ * Future-date validator.
+ * Ensures the provided ISO/date string is strictly in the future.
+ * @example validateFutureDate("2099-01-01") // { isValid: true }
+ * @example validateFutureDate("2000-01-01") // { isValid: false }
+ */
+export const validateFutureDate = (value: string): ValidationResult => {
+  if (!value) return { isValid: true };
+  const date = new Date(value);
+  if (isNaN(date.getTime())) {
+    return { isValid: false, message: "tickets.validation.deadlinePast" };
+  }
+  if (date.getTime() <= Date.now()) {
+    return { isValid: false, message: "tickets.validation.deadlinePast" };
   }
   return { isValid: true };
 };

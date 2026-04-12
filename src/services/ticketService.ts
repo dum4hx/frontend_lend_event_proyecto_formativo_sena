@@ -14,6 +14,8 @@ import type {
   CreateTicketPayload,
   ApproveTicketPayload,
   RejectTicketPayload,
+  UpdateTicketPayload,
+  TicketCapableUsersData,
   PaginationMeta,
 } from "../types/api";
 
@@ -76,4 +78,30 @@ export async function rejectTicket(
 /** Cancel a ticket (only the creator may cancel). */
 export async function cancelTicket(id: string): Promise<ApiSuccessResponse<Ticket>> {
   return patch<Ticket>(`/tickets/${id}/cancel`);
+}
+
+// ─── Capable Users ────────────────────────────────────────────────────────
+
+/**
+ * Returns the list of active users in the ticket's location who hold the
+ * domain-specific permission needed to fulfil the request.
+ * Endpoint: GET /tickets/:id/capable-users
+ */
+export async function getCapableUsers(
+  id: string,
+): Promise<ApiSuccessResponse<TicketCapableUsersData>> {
+  return get<TicketCapableUsersData>(`/tickets/${id}/capable-users`);
+}
+
+// ─── General Update ───────────────────────────────────────────────────────
+
+/**
+ * Updates mutable fields on an existing ticket (e.g. assigneeId).
+ * Requires backend PATCH /tickets/:id endpoint.
+ */
+export async function updateTicket(
+  id: string,
+  payload: UpdateTicketPayload,
+): Promise<ApiSuccessResponse<Ticket>> {
+  return patch<Ticket, UpdateTicketPayload>(`/tickets/${id}`, payload);
 }

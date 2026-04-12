@@ -274,9 +274,9 @@ export const TicketsCatalog: React.FC = () => {
         <TicketCreateModal
           onClose={() => setShowCreate(false)}
           onSave={async (payload) => {
-            await createTicket(payload);
+            const ticket = await createTicket(payload);
             showToast("success", t("tickets.toast.created"), t("tickets.toast.createdTitle"));
-            setShowCreate(false);
+            return ticket;
           }}
         />
       )}

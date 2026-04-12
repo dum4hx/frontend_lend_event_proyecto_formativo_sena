@@ -1,6 +1,5 @@
 import {
   Eye,
-  CalendarRange,
   RotateCcw,
   HandCoins,
   CheckCircle,
@@ -44,7 +43,7 @@ interface LoansTableProps {
   onRecordRentalPayment: (v: UnifiedLoanView) => void;
   onStartLoan: (v: UnifiedLoanView) => void;
   /** Post-checkout action callbacks. */
-  onExtend: (v: UnifiedLoanView) => void;
+  // onExtend temporarily disabled
   onReturn: (v: UnifiedLoanView) => void;
   onRefund: (v: UnifiedLoanView) => void;
   onComplete: (v: UnifiedLoanView) => void;
@@ -63,7 +62,6 @@ export function LoansTable({
   onRecordPayment,
   onRecordRentalPayment,
   onStartLoan,
-  onExtend,
   onReturn,
   onRefund,
   onComplete,
@@ -247,13 +245,6 @@ export function LoansTable({
                     {/* Post-checkout actions */}
                     {(v.status === "active" || v.status === "overdue") && v.loan && (
                       <>
-                        <PermissionGuardedButton
-                          icon={CalendarRange}
-                          intent="edit"
-                          ariaLabel={t("loans.actions.extend")}
-                          requiredPermission="loans:update"
-                          onClick={() => onExtend(v)}
-                        />
                         <PermissionGuardedButton
                           icon={RotateCcw}
                           intent="edit"

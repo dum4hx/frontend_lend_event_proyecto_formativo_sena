@@ -52,7 +52,7 @@ import {
   ReactivateLoanModal,
   RecordPaymentModal,
   RecordRentalPaymentModal,
-  ExtendLoanModal,
+  ExtendLoanModal as _ExtendLoanModal,
   ReturnLoanModal,
   RefundDepositModal,
   CompleteLoanModal,
@@ -113,9 +113,10 @@ export function Loans() {
   >([]);
 
   // Post-checkout modals
-  const [showExtendModal, setShowExtendModal] = useState(false);
+  const [_showExtendModal, setShowExtendModal] = useState(false);
   const [extendTarget, setExtendTarget] = useState<UnifiedLoanView | null>(null);
   const [newEndDate, setNewEndDate] = useState("");
+  const [extendFee, setExtendFee] = useState("");
   const [extendNotes, setExtendNotes] = useState("");
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [returnTarget, setReturnTarget] = useState<UnifiedLoanView | null>(null);
@@ -373,19 +374,23 @@ export function Loans() {
 
   // ── Post-checkout handlers ─────────────────────────────────────────────
 
-  const handleOpenExtend = (v: UnifiedLoanView) => {
+  const _handleOpenExtend = (v: UnifiedLoanView) => {
     setExtendTarget(v);
-    setNewEndDate(v.loan?.endDate.slice(0, 10) ?? "");
+    setNewEndDate(v.loan?.endDate.slice(0, 16) ?? "");
+    setExtendFee("");
     setExtendNotes("");
     setShowExtendModal(true);
   };
 
-  const handleExtendLoan = async () => {
+  const _handleExtendLoan = async () => {
     if (!extendTarget?.loan || !newEndDate) return;
+    const fee = parseFloat(extendFee);
+    if (!Number.isFinite(fee) || fee < 0) return;
     setSubmitting(true);
     try {
       await extendLoan(extendTarget.loan._id, {
-        newEndDate: `${newEndDate}T00:00:00.000Z`,
+        newEndDate: new Date(newEndDate).toISOString(),
+        extensionFee: fee,
         ...(extendNotes.trim() ? { notes: extendNotes.trim() } : {}),
       });
       showSuccess(t("loans.extendSuccess"), t("loans.extendSuccessTitle"));
@@ -535,7 +540,6 @@ export function Loans() {
           onRecordPayment={handleRecordPayment}
           onRecordRentalPayment={handleRecordRentalPayment}
           onStartLoan={handleStartLoan}
-          onExtend={handleOpenExtend}
           onReturn={handleOpenReturn}
           onRefund={handleOpenRefund}
           onComplete={handleOpenComplete}
@@ -632,20 +636,7 @@ export function Loans() {
         submitting={submitting}
       />
 
-      <ExtendLoanModal
-        show={showExtendModal}
-        onClose={() => {
-          setShowExtendModal(false);
-          setExtendTarget(null);
-        }}
-        target={extendTarget}
-        newEndDate={newEndDate}
-        onEndDateChange={setNewEndDate}
-        notes={extendNotes}
-        onNotesChange={setExtendNotes}
-        onSubmit={() => void handleExtendLoan()}
-        submitting={submitting}
-      />
+      {/* ExtendLoanModal temporarily disabled */}
 
       <ReturnLoanModal
         show={showReturnModal}

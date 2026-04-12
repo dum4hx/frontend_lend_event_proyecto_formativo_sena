@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useToast } from "../../../../../contexts/ToastContext";
 import { useLanguage } from "../../../../../contexts/useLanguage";
+import { useAuth } from "../../../../../contexts/useAuth";
 import { useMaterialTypes } from "../../material-types/hooks";
 import {
   getLocations,
@@ -25,6 +26,7 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
 }) => {
   const { materialTypes } = useMaterialTypes();
   const { t } = useLanguage();
+  const { user } = useAuth();
   const [useBarcodeAsSerial, setUseBarcodeAsSerial] = useState(false);
   const [formData, setFormData] = useState<CreateMaterialInstancePayload>({
     modelId: "",
@@ -44,7 +46,12 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
     const city = address.city ?? "Unknown city";
     const formattedStreet =
       address.formatted ||
-      [address.streetType, address.primaryNumber, address.secondaryNumber, address.complementaryNumber]
+      [
+        address.streetType,
+        address.primaryNumber,
+        address.secondaryNumber,
+        address.complementaryNumber,
+      ]
         .filter(Boolean)
         .join(" ");
 
@@ -53,13 +60,18 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
 
   const fetchLocations = useCallback(async () => {
     try {
-      const response = await getLocations();
-      setLocations(response.data.items || []);
-    } catch (error) {
-      console.error("Error fetching locations:", error);
+      const response = await getLocations({ limit: 100 });
+      const allItems = response.data.items || [];
+      const userLocationIds = user?.locations;
+      const filtered =
+        Array.isArray(userLocationIds) && userLocationIds.length > 0
+          ? allItems.filter((loc) => userLocationIds.includes(loc._id))
+          : allItems;
+      setLocations(filtered);
+    } catch {
       showToast("error", t("materialInstances.form.toast.loadLocationsError"));
     }
-  }, [showToast, t]);
+  }, [showToast, t, user]);
 
   useEffect(() => {
     fetchLocations();
@@ -85,9 +97,10 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
     const byType = codeSchemes.find((s) => s.materialTypeId === formData.modelId);
     if (byType) return byType;
     if (selectedType?.categoryId) {
-      const catId = typeof selectedType.categoryId === "string"
-        ? selectedType.categoryId
-        : selectedType.categoryId._id;
+      const catId =
+        typeof selectedType.categoryId === "string"
+          ? selectedType.categoryId
+          : selectedType.categoryId._id;
       const byCat = codeSchemes.find((s) => s.categoryId === catId && !s.materialTypeId);
       if (byCat) return byCat;
     }
@@ -150,23 +163,27 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
     });
   }, [formData.barcode, useBarcodeAsSerial]);
 
-  const validate = useCallback((data: CreateMaterialInstancePayload) => {
-    const newErrors: Record<string, string> = {};
-    if (!data.modelId) newErrors.modelId = t("materialInstances.form.validation.modelRequired");
-    if (useBarcodeAsSerial && !data.barcode?.trim()) {
-      newErrors.barcode = t("materialInstances.form.validation.barcodeRequiredForSerial");
-    }
-    if (useBarcodeAsSerial && !(data.serialNumber ?? "").trim()) {
-      newErrors.serialNumber = t("materialInstances.form.validation.serialRequiredFromBarcode");
-    } else if ((data.serialNumber ?? "").length > 100) {
-      newErrors.serialNumber = t("materialInstances.form.validation.serialTooLong");
-    }
-    if (data.barcode && data.barcode.length > 120) {
-      newErrors.barcode = t("materialInstances.form.validation.barcodeTooLong");
-    }
-    if (!data.locationId) newErrors.locationId = t("materialInstances.form.validation.locationRequired");
-    return newErrors;
-  }, [useBarcodeAsSerial, t]);
+  const validate = useCallback(
+    (data: CreateMaterialInstancePayload) => {
+      const newErrors: Record<string, string> = {};
+      if (!data.modelId) newErrors.modelId = t("materialInstances.form.validation.modelRequired");
+      if (useBarcodeAsSerial && !data.barcode?.trim()) {
+        newErrors.barcode = t("materialInstances.form.validation.barcodeRequiredForSerial");
+      }
+      if (useBarcodeAsSerial && !(data.serialNumber ?? "").trim()) {
+        newErrors.serialNumber = t("materialInstances.form.validation.serialRequiredFromBarcode");
+      } else if ((data.serialNumber ?? "").length > 100) {
+        newErrors.serialNumber = t("materialInstances.form.validation.serialTooLong");
+      }
+      if (data.barcode && data.barcode.length > 120) {
+        newErrors.barcode = t("materialInstances.form.validation.barcodeTooLong");
+      }
+      if (!data.locationId)
+        newErrors.locationId = t("materialInstances.form.validation.locationRequired");
+      return newErrors;
+    },
+    [useBarcodeAsSerial, t],
+  );
 
   useEffect(() => {
     const validationErrors = validate(formData);
@@ -213,7 +230,10 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
       setIsSubmitting(true);
       await onSubmit(formData);
     } catch (error: unknown) {
-      showToast("error", error instanceof Error ? error.message : t("materialInstances.form.toast.saveError"));
+      showToast(
+        "error",
+        error instanceof Error ? error.message : t("materialInstances.form.toast.saveError"),
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -222,143 +242,157 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
   return (
     <form
       onSubmit={handleSubmit}
-      className="space-y-6"
+      className="flex flex-col max-h-[calc(100vh-10rem)]"
       data-help-id={isEditing ? "material-instances-form-edit" : "material-instances-form-create"}
     >
-      <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">{t("materialInstances.form.materialTypeLabel")} *</label>
-        <select
-          data-help-id="material-instances-form-model"
-          value={formData.modelId}
-          onChange={(e) => handleChange("modelId", e.target.value)}
-          onBlur={() => setTouched((prev) => ({ ...prev, modelId: true }))}
-          className={`w-full px-4 py-3 bg-[#1a1a1a] border ${
-            touched.modelId && errors.modelId ? "border-red-500" : "border-[#333]"
-          } rounded-lg text-white focus:outline-none focus:border-[#FFD700]`}
-          required
-          disabled={isEditing}
-        >
-          <option value="">{t("materialInstances.form.selectMaterialType")}</option>
-          {materialTypes.map((type) => (
-            <option key={type._id} value={type._id}>
-              {type.name}
-            </option>
-          ))}
-        </select>
-        {touched.modelId && errors.modelId && (
-          <p className="text-xs text-red-500 mt-1">{errors.modelId}</p>
-        )}
-        {isEditing && (
-          <p className="text-xs text-gray-500 mt-1">
-            {t("materialInstances.form.materialTypeCannotChange")}
-          </p>
-        )}
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">
-          {t("materialInstances.form.serialLabel")}
-        </label>
-        <input
-          type="text"
-          data-help-id="material-instances-form-serial"
-          value={formData.serialNumber ?? ""}
-          onChange={(e) => handleChange("serialNumber", e.target.value)}
-          onBlur={() => setTouched((prev) => ({ ...prev, serialNumber: true }))}
-          className={`w-full px-4 py-3 bg-[#1a1a1a] border ${
-            touched.serialNumber && errors.serialNumber ? "border-red-500" : "border-[#333]"
-          } rounded-lg text-white focus:outline-none focus:border-[#FFD700] disabled:opacity-60 disabled:cursor-not-allowed`}
-          placeholder={t("materialInstances.form.serialPlaceholder")}
-          maxLength={100}
-          disabled={useBarcodeAsSerial}
-        />
-        {touched.serialNumber && errors.serialNumber && (
-          <p className="text-xs text-red-500 mt-1">{errors.serialNumber}</p>
-        )}
-        <p className="text-xs text-gray-500 mt-1">
-          {useBarcodeAsSerial
-            ? t("materialInstances.form.serialHintAuto")
-            : t("materialInstances.form.serialHintOptional")}
-        </p>
-        {!useBarcodeAsSerial && !(formData.serialNumber ?? "").trim() && codeSchemePreview && (
-          <div className="flex items-center gap-2 mt-2 bg-[#0d0d0d] border border-[#222] rounded-lg px-3 py-2">
-            <span className="text-xs text-gray-500 shrink-0">
-              {t("materialInstances.form.serialAutoPreviewLabel")}
-            </span>
-            <span className="text-sm text-[#FFD700] font-mono font-semibold truncate">
-              {codeSchemePreview}
-            </span>
-          </div>
-        )}
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">
-          {t("materialInstances.form.barcodeLabel")}
-        </label>
-        <input
-          type="text"
-          data-help-id="material-instances-form-barcode"
-          value={formData.barcode ?? ""}
-          onChange={(e) => handleChange("barcode", e.target.value)}
-          onBlur={() => setTouched((prev) => ({ ...prev, barcode: true }))}
-          className={`w-full px-4 py-3 bg-[#1a1a1a] border ${
-            touched.barcode && errors.barcode ? "border-red-500" : "border-[#333]"
-          } rounded-lg text-white focus:outline-none focus:border-[#FFD700]`}
-          placeholder={t("materialInstances.form.barcodePlaceholder")}
-          maxLength={120}
-        />
-        {touched.barcode && errors.barcode && (
-          <p className="text-xs text-red-500 mt-1">{errors.barcode}</p>
-        )}
-        <p className="text-xs text-gray-500 mt-1">
-          {t("materialInstances.form.barcodeHint")}
-        </p>
-      </div>
-
-      <div className="rounded-lg border border-[#333] bg-[#151515] px-4 py-3" data-help-id="material-instances-form-barcode-toggle">
-        <label className="flex items-center justify-between gap-4 cursor-pointer">
-          <div>
-            <p className="text-sm font-medium text-gray-200">{t("materialInstances.form.barcodeAsSerialLabel")}</p>
-            <p className="text-xs text-gray-500 mt-0.5">
-              {t("materialInstances.form.barcodeAsSerialHint")}
+      <div className="overflow-y-auto flex-1 space-y-6 pr-1">
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            {t("materialInstances.form.materialTypeLabel")} *
+          </label>
+          <select
+            data-help-id="material-instances-form-model"
+            value={formData.modelId}
+            onChange={(e) => handleChange("modelId", e.target.value)}
+            onBlur={() => setTouched((prev) => ({ ...prev, modelId: true }))}
+            className={`w-full px-4 py-3 bg-[#1a1a1a] border ${
+              touched.modelId && errors.modelId ? "border-red-500" : "border-[#333]"
+            } rounded-lg text-white focus:outline-none focus:border-[#FFD700]`}
+            required
+            disabled={isEditing}
+          >
+            <option value="">{t("materialInstances.form.selectMaterialType")}</option>
+            {materialTypes.map((type) => (
+              <option key={type._id} value={type._id}>
+                {type.name}
+              </option>
+            ))}
+          </select>
+          {touched.modelId && errors.modelId && (
+            <p className="text-xs text-red-500 mt-1">{errors.modelId}</p>
+          )}
+          {isEditing && (
+            <p className="text-xs text-gray-500 mt-1">
+              {t("materialInstances.form.materialTypeCannotChange")}
             </p>
-          </div>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            {t("materialInstances.form.serialLabel")}
+          </label>
           <input
-            type="checkbox"
-            checked={useBarcodeAsSerial}
-            onChange={(e) => handleBarcodeAsSerialToggle(e.target.checked)}
-            className="h-4 w-4 rounded border-[#444] bg-[#1a1a1a] text-[#FFD700] focus:ring-[#FFD700]"
+            type="text"
+            data-help-id="material-instances-form-serial"
+            value={formData.serialNumber ?? ""}
+            onChange={(e) => handleChange("serialNumber", e.target.value)}
+            onBlur={() => setTouched((prev) => ({ ...prev, serialNumber: true }))}
+            className={`w-full px-4 py-3 bg-[#1a1a1a] border ${
+              touched.serialNumber && errors.serialNumber ? "border-red-500" : "border-[#333]"
+            } rounded-lg text-white focus:outline-none focus:border-[#FFD700] disabled:opacity-60 disabled:cursor-not-allowed`}
+            placeholder={t("materialInstances.form.serialPlaceholder")}
+            maxLength={100}
+            disabled={useBarcodeAsSerial}
           />
-        </label>
-      </div>
+          {touched.serialNumber && errors.serialNumber && (
+            <p className="text-xs text-red-500 mt-1">{errors.serialNumber}</p>
+          )}
+          <p className="text-xs text-gray-500 mt-1">
+            {useBarcodeAsSerial
+              ? t("materialInstances.form.serialHintAuto")
+              : t("materialInstances.form.serialHintOptional")}
+          </p>
+          {!useBarcodeAsSerial && !(formData.serialNumber ?? "").trim() && codeSchemePreview && (
+            <div className="flex items-center gap-2 mt-2 bg-[#0d0d0d] border border-[#222] rounded-lg px-3 py-2">
+              <span className="text-xs text-gray-500 shrink-0">
+                {t("materialInstances.form.serialAutoPreviewLabel")}
+              </span>
+              <span className="text-sm text-[#FFD700] font-mono font-semibold truncate">
+                {codeSchemePreview}
+              </span>
+            </div>
+          )}
+        </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">{t("materialInstances.form.locationLabel")} *</label>
-        <select
-          data-help-id="material-instances-form-location"
-          value={formData.locationId}
-          onChange={(e) => handleChange("locationId", e.target.value)}
-          onBlur={() => setTouched((prev) => ({ ...prev, locationId: true }))}
-          className={`w-full px-4 py-3 bg-[#1a1a1a] border ${
-            touched.locationId && errors.locationId ? "border-red-500" : "border-[#333]"
-          } rounded-lg text-white focus:outline-none focus:border-[#FFD700]`}
-          required
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            {t("materialInstances.form.barcodeLabel")}
+          </label>
+          <input
+            type="text"
+            data-help-id="material-instances-form-barcode"
+            value={formData.barcode ?? ""}
+            onChange={(e) => handleChange("barcode", e.target.value)}
+            onBlur={() => setTouched((prev) => ({ ...prev, barcode: true }))}
+            className={`w-full px-4 py-3 bg-[#1a1a1a] border ${
+              touched.barcode && errors.barcode ? "border-red-500" : "border-[#333]"
+            } rounded-lg text-white focus:outline-none focus:border-[#FFD700]`}
+            placeholder={t("materialInstances.form.barcodePlaceholder")}
+            maxLength={120}
+          />
+          {touched.barcode && errors.barcode && (
+            <p className="text-xs text-red-500 mt-1">{errors.barcode}</p>
+          )}
+          <p className="text-xs text-gray-500 mt-1">{t("materialInstances.form.barcodeHint")}</p>
+        </div>
+
+        <div
+          className="rounded-lg border border-[#333] bg-[#151515] px-4 py-3"
+          data-help-id="material-instances-form-barcode-toggle"
         >
-          <option value="">{t("materialInstances.form.selectLocation")}</option>
-          {locations.map((loc) => (
-            <option key={loc._id} value={loc._id}>
-              {loc.name} — {formatLocationAddress(loc)}
-            </option>
-          ))}
-        </select>
-        {touched.locationId && errors.locationId && (
-          <p className="text-xs text-red-500 mt-1">{errors.locationId}</p>
-        )}
+          <label className="flex items-center justify-between gap-4 cursor-pointer">
+            <div>
+              <p className="text-sm font-medium text-gray-200">
+                {t("materialInstances.form.barcodeAsSerialLabel")}
+              </p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {t("materialInstances.form.barcodeAsSerialHint")}
+              </p>
+            </div>
+            <input
+              type="checkbox"
+              checked={useBarcodeAsSerial}
+              onChange={(e) => handleBarcodeAsSerialToggle(e.target.checked)}
+              className="h-4 w-4 rounded border-[#444] bg-[#1a1a1a] text-[#FFD700] focus:ring-[#FFD700]"
+            />
+          </label>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            {t("materialInstances.form.locationLabel")} *
+          </label>
+          <select
+            data-help-id="material-instances-form-location"
+            value={formData.locationId}
+            onChange={(e) => handleChange("locationId", e.target.value)}
+            onBlur={() => setTouched((prev) => ({ ...prev, locationId: true }))}
+            className={`w-full px-4 py-3 bg-[#1a1a1a] border ${
+              touched.locationId && errors.locationId ? "border-red-500" : "border-[#333]"
+            } rounded-lg text-white focus:outline-none focus:border-[#FFD700]`}
+            required
+          >
+            <option value="">{t("materialInstances.form.selectLocation")}</option>
+            {locations.map((loc) => (
+              <option key={loc._id} value={loc._id}>
+                {loc.name} — {formatLocationAddress(loc)}
+              </option>
+            ))}
+          </select>
+          {touched.locationId && errors.locationId && (
+            <p className="text-xs text-red-500 mt-1">{errors.locationId}</p>
+          )}
+        </div>
       </div>
 
-      <div className="flex gap-4 pt-4">
-        <Button type="submit" loading={isSubmitting} className="flex-1" data-help-id="material-instances-form-submit">
+      <div className="flex gap-4 pt-4 shrink-0">
+        <Button
+          type="submit"
+          loading={isSubmitting}
+          className="flex-1"
+          data-help-id="material-instances-form-submit"
+        >
           {isSubmitting
             ? isEditing
               ? t("materialInstances.form.submittingUpdate")

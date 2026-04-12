@@ -4634,6 +4634,55 @@ Gets a specific material instance.
 
 **Permission Required:** `materials:read`
 
+**Response (200):**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "instance": {
+      "_id": "6614db5e22111f21ef33af10",
+      "serialNumber": "SN-1001",
+      "status": "reserved",
+      "model": {
+        "_id": "6614db5e22111f21ef33af00",
+        "name": "Canon EOS",
+        "description": "Camera",
+        "pricePerDay": 1000,
+        "categoryId": "6614db5e22111f21ef33ae90"
+      },
+      "loanContext": {
+        "loanId": null,
+        "loanCode": null,
+        "requestId": "6614db5e22111f21ef33b000",
+        "requestCode": "REQ-2026-0012",
+        "source": "request"
+      }
+    }
+  }
+}
+```
+
+`loanContext` contract:
+
+| Field       | Type                        | Description                                                                           |
+| ----------- | --------------------------- | ------------------------------------------------------------------------------------- |
+| loanId      | string \| null              | Loan ID when a direct active/overdue loan relation exists                             |
+| loanCode    | string \| null              | Loan code when `loanId` exists                                                        |
+| requestId   | string \| null              | Related request ID (from the loan's request or fallback assignment lookup)            |
+| requestCode | string \| null              | Related request code                                                                  |
+| source      | `loan` \| `request` \| null | Indicates whether relation was resolved from a loan (`loan`) or directly from request |
+
+Behavior by material instance status:
+
+- `reserved` and `loaned`: backend resolves and returns `loanContext` relation values when found.
+- Any other status (`available`, `returned`, `maintenance`, `damaged`, `lost`, `retired`): `loanContext` is returned with `null` values.
+
+Resolution order used by backend:
+
+1. Direct loan relation (`loans.materialInstances.materialInstanceId`) scoped by `organizationId`.
+2. Fallback request relation (`requests.assignedMaterials.materialInstanceId`) scoped by `organizationId` and request state.
+
 ---
 
 #### POST /materials/instances
@@ -5835,12 +5884,29 @@ Lists all loans that have been returned but have not yet been inspected. This en
 
 #### POST /loans/:id/extend
 
-Extends a loan's end date.
+Extends a loan's end date and applies an extension fee.
 
-| Parameter  | Location | Type   | Required | Description             |
-| ---------- | -------- | ------ | -------- | ----------------------- |
-| newEndDate | body     | string | Yes      | New end date (ISO 8601) |
-| notes      | body     | string | No       | Extension notes         |
+**Auth:** `authenticate` + `requireActiveOrganization` + `loans:update`
+
+| Parameter    | Location | Type   | Required | Description                     |
+| ------------ | -------- | ------ | -------- | ------------------------------- |
+| newEndDate   | body     | string | Yes      | New end date (ISO 8601)         |
+| extensionFee | body     | number | Yes      | Extension fee amount (>= 0)     |
+| notes        | body     | string | No       | Extension notes (max 500 chars) |
+
+**Behavior:**
+
+- The `extensionFee` is accumulated in the loan's `extensionFees` field (supports multiple extensions).
+- The loan's `totalAmount` is incremented by the `extensionFee`.
+- If the loan is `overdue`, it transitions back to `active`.
+
+**Errors:**
+
+| Code              | Condition                                          |
+| ----------------- | -------------------------------------------------- |
+| `400 BAD_REQUEST` | New end date is not after the current end date     |
+| `400 BAD_REQUEST` | Extension fee is negative                          |
+| `404 NOT_FOUND`   | Loan not found or not in `active`/`overdue` status |
 
 ---
 
@@ -10042,6 +10108,50 @@ Retrieves a single ticket by ID. Only the creator or the assignee may view it.
 - `400` — Invalid ticket ID format.
 - `403` — User is neither the creator nor the assignee.
 - `404` — Ticket not found.
+
+---
+
+### GET /tickets/:id/capable-users
+
+**Smart endpoint.** Returns the list of active users in the ticket's location whose role holds the domain-specific permission needed to _fulfill_ the request. Only the ticket creator or assignee may call this endpoint.
+
+The permission looked up per ticket type is:
+
+| Ticket type           | Required domain permission |
+| --------------------- | -------------------------- |
+| `transfer_request`    | `transfers:create`         |
+| `incident_report`     | `incidents:create`         |
+| `maintenance_request` | `maintenance:create`       |
+| `inspection_request`  | `inspections:create`       |
+| `generic`             | `tickets:approve`          |
+
+**Permission:** `tickets:read`
+
+**Response `200`:**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "ticketType": "transfer_request",
+    "requiredPermission": "transfers:create",
+    "users": [
+      {
+        "_id": "682d...",
+        "name": { "firstName": "Ana", "firstSurname": "Gómez" },
+        "email": "ana.gomez@example.com",
+        "roleId": "681f...",
+        "roleName": "Gerente"
+      }
+    ]
+  }
+}
+```
+
+**Errors:**
+
+- `400` — Invalid ticket ID format.
+- `403`/`404` — Ticket not found or user is neither creator nor assignee.
 
 ---
 

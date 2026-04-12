@@ -12,6 +12,7 @@ import { Button } from "../../../../components/ui";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import type { UnifiedLoanView } from "./types";
 import { formatDate } from "./helpers";
+import { validateExtensionFee } from "../../../../utils/validators";
 
 // ─── Shared backdrop ────────────────────────────────────────────────────
 
@@ -426,6 +427,8 @@ interface ExtendLoanModalProps {
   target: UnifiedLoanView | null;
   newEndDate: string;
   onEndDateChange: (value: string) => void;
+  extensionFee: string;
+  onExtensionFeeChange: (value: string) => void;
   notes: string;
   onNotesChange: (value: string) => void;
   onSubmit: () => void;
@@ -438,6 +441,8 @@ export function ExtendLoanModal({
   target,
   newEndDate,
   onEndDateChange,
+  extensionFee,
+  onExtensionFeeChange,
   notes,
   onNotesChange,
   onSubmit,
@@ -446,6 +451,9 @@ export function ExtendLoanModal({
   const { t } = useLanguage();
 
   if (!show || !target || !target.loan) return null;
+
+  const feeValidation = validateExtensionFee(extensionFee);
+  const isFormValid = !!newEndDate && feeValidation.isValid;
 
   return (
     <ModalShell onClose={onClose}>
@@ -482,17 +490,47 @@ export function ExtendLoanModal({
         <div className="space-y-3">
           <div>
             <label className="block text-sm text-gray-400 mb-1">
-              {t("loans.actions.newEndDate")}
+              {t("loans.actions.newEndDate")} <span className="text-red-400">*</span>
             </label>
             <input
               data-help-id="loans-extend-end-date"
-              type="date"
+              type="datetime-local"
               value={newEndDate}
-              min={target.loan.endDate.slice(0, 10)}
+              min={target.loan.endDate.slice(0, 16)}
               onChange={(e) => onEndDateChange(e.target.value)}
               className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded-lg text-white focus:outline-none focus:border-[#FFD700] transition-all"
             />
           </div>
+
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">
+              {t("loans.actions.extensionFee")} <span className="text-red-400">*</span>
+            </label>
+            <input
+              data-help-id="loans-extend-fee"
+              type="number"
+              min={0}
+              step="any"
+              value={extensionFee}
+              onChange={(e) => onExtensionFeeChange(e.target.value)}
+              placeholder={t("loans.actions.extensionFeePlaceholder")}
+              aria-invalid={extensionFee !== "" && !feeValidation.isValid}
+              aria-describedby={
+                extensionFee !== "" && !feeValidation.isValid ? "extend-fee-error" : undefined
+              }
+              className={`w-full px-3 py-2 bg-[#1a1a1a] border rounded-lg text-white placeholder-gray-600 focus:outline-none transition-all ${
+                extensionFee !== "" && !feeValidation.isValid
+                  ? "border-red-500 bg-red-500/10 focus:border-red-400"
+                  : "border-[#333] focus:border-[#FFD700]"
+              }`}
+            />
+            {extensionFee !== "" && !feeValidation.isValid && (
+              <p id="extend-fee-error" className="text-red-400 text-xs mt-1">
+                {t(feeValidation.message as Parameters<typeof t>[0])}
+              </p>
+            )}
+          </div>
+
           <div>
             <label className="block text-sm text-gray-400 mb-1">
               {t("loans.actions.notes")}{" "}
@@ -516,7 +554,7 @@ export function ExtendLoanModal({
           <Button
             leftIcon={CalendarRange}
             onClick={onSubmit}
-            disabled={submitting || !newEndDate}
+            disabled={submitting || !isFormValid}
             className="bg-blue-500 hover:bg-blue-600 text-white border-transparent"
           >
             {submitting ? t("common.processing") : t("loans.actions.extend")}
@@ -557,7 +595,7 @@ export function ReturnLoanModal({
         <h2 className="text-xl font-semibold text-white">{t("loans.modal.return.title")}</h2>
         <p className="text-zinc-400 text-sm">{t("loans.modal.return.subtitle")}</p>
         <p className="text-zinc-400 text-sm">
-          {t("loans.table.code")}: {" "}
+          {t("loans.table.code")}:{" "}
           <span className="text-white font-medium">
             {target.loan.code ?? `#${target.loan._id.slice(-8).toUpperCase()}`}
           </span>

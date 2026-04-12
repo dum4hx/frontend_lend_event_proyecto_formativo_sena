@@ -607,6 +607,7 @@ export interface Loan {
   totalAmount?: number;
   damageFees?: number;
   lateFees?: number;
+  extensionFees?: number;
   deposit: {
     amount: number;
     status: DepositStatus;
@@ -660,6 +661,8 @@ export interface LoanDetailGrouped extends Omit<Loan, "customerId"> {
 
 export interface ExtendLoanPayload {
   newEndDate: string;
+  /** Extension fee amount in the organization's currency (>= 0). Required by API. */
+  extensionFee: number;
   notes?: string;
 }
 
@@ -3501,4 +3504,23 @@ export interface ApproveTicketPayload {
 /** Body for PATCH /tickets/:id/reject. */
 export interface RejectTicketPayload {
   resolutionNote: string;
+}
+
+/** A single user entry returned by GET /tickets/:id/capable-users. */
+export interface TicketCapableUser {
+  _id: string;
+  name: { firstName: string; firstSurname: string };
+  email: string;
+  role: string;
+}
+
+/** Response data for GET /tickets/:id/capable-users. */
+export interface TicketCapableUsersData {
+  ticketType: TicketType;
+  users: TicketCapableUser[];
+}
+
+/** Body for PATCH /tickets/:id — general ticket update (e.g. set assignee). */
+export interface UpdateTicketPayload {
+  assigneeId?: string;
 }
