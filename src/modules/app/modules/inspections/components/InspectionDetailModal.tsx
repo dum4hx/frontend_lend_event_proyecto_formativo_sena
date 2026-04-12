@@ -286,11 +286,7 @@ export const InspectionDetailModal: React.FC<InspectionDetailModalProps> = ({
 
       {/* Material Instance Detail Modal */}
       {selectedInstance && (
-        <MaterialInstanceDetailModal
-          instance={selectedInstance}
-          loanCode={inspection.loanId.code ?? inspection.loanId._id}
-          onClose={handleCloseDetails}
-        />
+        <MaterialInstanceDetailModal instance={selectedInstance} onClose={handleCloseDetails} />
       )}
     </div>
   );

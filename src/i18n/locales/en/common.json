@@ -438,6 +438,7 @@
   "materialInstances.detail.technicalSpecifications": "Especificaciones Técnicas",
   "materialInstances.detail.loadingSpecifications": "Cargando especificaciones...",
   "materialInstances.detail.loanCode": "Código de Préstamo",
+  "materialInstances.detail.requestCode": "Request Code",
   "materialInstances.detail.close": "Cerrar",
   "materialInstances.detail.refreshData": "Actualizar datos",
   "common.typeToSearch": "Escribe para buscar…",

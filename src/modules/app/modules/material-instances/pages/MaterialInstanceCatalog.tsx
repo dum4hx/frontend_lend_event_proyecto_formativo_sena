@@ -21,147 +21,11 @@ import {
   getLocations,
   type WarehouseLocation,
 } from "../../../../../services/warehouseOperatorService";
-import { getLoan, getRequests } from "../../../../../services/loanService";
-import { get } from "../../../../../lib/api";
+import { getMaterialInstance } from "../../../../../services/materialService";
 import type {
   MaterialInstance,
   CreateMaterialInstancePayload,
-  MaterialInstanceStatus,
-  LoanRequest,
-  LoanRequestStatus,
 } from "../../../../../types/api";
-
-const LOAN_CODE_VISIBLE_STATUSES: MaterialInstanceStatus[] = ["loaned", "reserved"];
-const REQUEST_SEARCH_PAGE_SIZE = 50;
-const REQUEST_SEARCH_MAX_PAGES = 10;
-
-type LooseRecord = Record<string, unknown>;
-
-function asRecord(value: unknown): LooseRecord | null {
-  return typeof value === "object" && value !== null ? (value as LooseRecord) : null;
-}
-
-function readCode(value: unknown): string | null {
-  if (typeof value === "string") {
-    const trimmed = value.trim();
-    return trimmed.length > 0 ? trimmed : null;
-  }
-  return null;
-}
-
-function readNestedCode(entity: unknown): string | null {
-  const obj = asRecord(entity);
-  if (!obj) {
-    return null;
-  }
-
-  return (
-    readCode(obj.code) ??
-    readCode(obj.loanCode) ??
-    readCode(obj.requestCode) ??
-    readCode(asRecord(obj.loanId)?.code) ??
-    readCode(asRecord(obj.requestId)?.code)
-  );
-}
-
-async function resolveFromInstanceDetail(instanceId: string): Promise<string | null> {
-  const response = await get<{ instance: LooseRecord }>(`/materials/instances/${instanceId}`);
-  const raw = asRecord(response.data.instance);
-
-  if (!raw) {
-    return null;
-  }
-
-  return (
-    readCode(raw.loanCode) ??
-    readCode(raw.requestCode) ??
-    readNestedCode(raw.loan) ??
-    readNestedCode(raw.currentLoan) ??
-    readNestedCode(raw.activeLoan) ??
-    readNestedCode(raw.loanId) ??
-    readNestedCode(raw.request) ??
-    readNestedCode(raw.currentRequest) ??
-    readNestedCode(raw.activeRequest) ??
-    readNestedCode(raw.requestId) ??
-    readNestedCode(raw.reservation)
-  );
-}
-
-function hasAssignedInstance(request: LoanRequest, instanceId: string): boolean {
-  return (request.assignedMaterials ?? []).some((entry) => {
-    const entryInstanceId =
-      typeof entry.materialInstanceId === "string"
-        ? entry.materialInstanceId
-        : entry.materialInstanceId?._id;
-    return entryInstanceId === instanceId;
-  });
-}
-
-async function findRequestByInstance(
-  statuses: LoanRequestStatus[],
-  instanceId: string,
-): Promise<LoanRequest | null> {
-  for (const status of statuses) {
-    let page = 1;
-    let totalPages = 1;
-
-    while (page <= totalPages && page <= REQUEST_SEARCH_MAX_PAGES) {
-      const response = await getRequests({ status, page, limit: REQUEST_SEARCH_PAGE_SIZE });
-      const requests = response.data.requests ?? [];
-      const match = requests.find((request) => hasAssignedInstance(request, instanceId));
-
-      if (match) {
-        return match;
-      }
-
-      totalPages = Math.max(1, response.data.totalPages ?? 1);
-      page += 1;
-    }
-  }
-
-  return null;
-}
-
-async function resolveInstanceLoanCode(instance: MaterialInstance): Promise<string | null> {
-  if (!LOAN_CODE_VISIBLE_STATUSES.includes(instance.status)) {
-    return null;
-  }
-
-  // Preferred path: use the instance detail relation if backend includes it.
-  try {
-    const codeFromInstance = await resolveFromInstanceDetail(instance._id);
-    if (codeFromInstance) {
-      return codeFromInstance;
-    }
-  } catch {
-    // Ignore and fallback to requests/loans traversal.
-  }
-
-  const requestStatuses: LoanRequestStatus[] =
-    instance.status === "loaned" ? ["shipped", "completed"] : ["assigned", "ready"];
-
-  let relatedRequest: LoanRequest | null = null;
-  try {
-    relatedRequest = await findRequestByInstance(requestStatuses, instance._id);
-  } catch {
-    return null;
-  }
-
-  if (!relatedRequest) {
-    return null;
-  }
-
-  if (relatedRequest.loanId) {
-    try {
-      const loanResponse = await getLoan(relatedRequest.loanId);
-      return loanResponse.data.loan.code ?? relatedRequest.code ?? null;
-    } catch {
-      return relatedRequest.code ?? null;
-    }
-  }
-
-  return relatedRequest.code ?? null;
-}
 
 export const MaterialInstanceCatalog: React.FC = () => {
   const { t, language } = useLanguage();
@@ -190,10 +54,7 @@ export const MaterialInstanceCatalog: React.FC = () => {
   const [isBarcodePrintModalOpen, setIsBarcodePrintModalOpen] = useState(false);
   const [barcodePrintSelection, setBarcodePrintSelection] = useState<MaterialInstance[]>([]);
   const [selectedInstanceIds, setSelectedInstanceIds] = useState<string[]>([]);
-  const [loanCodeByInstance, setLoanCodeByInstance] = useState<
-    Record<string, { status: MaterialInstanceStatus; code: string | null }>
-  >({});
-  const [isLoadingLoanCode, setIsLoadingLoanCode] = useState(false);
+  const [isLoadingSelectedInstanceDetail, setIsLoadingSelectedInstanceDetail] = useState(false);
   const pageSize = 10;
   const searchInputId = "material-instances-search";
   const scannerInputId = "material-instances-scanner";
@@ -265,44 +126,6 @@ export const MaterialInstanceCatalog: React.FC = () => {
       current.filter((instanceId) => instances.some((instance) => instance._id === instanceId)),
     );
   }, [instances]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadLoanCode() {
-      if (!selectedInstance || !LOAN_CODE_VISIBLE_STATUSES.includes(selectedInstance.status)) {
-        setIsLoadingLoanCode(false);
-        return;
-      }
-
-      const cached = loanCodeByInstance[selectedInstance._id];
-      if (cached && cached.status === selectedInstance.status) {
-        setIsLoadingLoanCode(false);
-        return;
-      }
-
-      setIsLoadingLoanCode(true);
-      try {
-        const code = await resolveInstanceLoanCode(selectedInstance);
-        if (!cancelled) {
-          setLoanCodeByInstance((current) => ({
-            ...current,
-            [selectedInstance._id]: { status: selectedInstance.status, code },
-          }));
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoadingLoanCode(false);
-        }
-      }
-    }
-
-    void loadLoanCode();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedInstance, loanCodeByInstance]);
 
   const handleDelete = (instance: MaterialInstance) => {
     showToast(
@@ -383,6 +206,39 @@ export const MaterialInstanceCatalog: React.FC = () => {
       return Array.from(nextIds);
     });
   };
+
+  const loadInstanceDetail = useCallback(async (instance: MaterialInstance) => {
+    try {
+      const response = await getMaterialInstance(instance._id);
+      return response.data.instance;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const handleViewInstance = useCallback(
+    async (instance: MaterialInstance) => {
+      setIsLoadingSelectedInstanceDetail(true);
+      try {
+        const detail = await loadInstanceDetail(instance);
+        setSelectedInstance(detail ?? instance);
+      } finally {
+        setIsLoadingSelectedInstanceDetail(false);
+      }
+    },
+    [loadInstanceDetail],
+  );
+
+  const handleRefreshSelectedInstance = useCallback(
+    async (instance: MaterialInstance) => {
+      const detail = await loadInstanceDetail(instance);
+      if (detail) {
+        setSelectedInstance(detail);
+      }
+      return detail;
+    },
+    [loadInstanceDetail],
+  );
 
   interface ImportRow {
     modelId?: string;
@@ -852,7 +708,9 @@ export const MaterialInstanceCatalog: React.FC = () => {
           <MaterialInstanceList
             instances={pagedInstances}
             selectedInstanceIds={selectedInstanceIds}
-            onView={setSelectedInstance}
+            onView={(instance) => {
+              void handleViewInstance(instance);
+            }}
             onPrint={(instance) => handleOpenBarcodePrintModal([instance])}
             onEdit={() => {
               showToast(
@@ -993,10 +851,17 @@ export const MaterialInstanceCatalog: React.FC = () => {
         {selectedInstance && (
           <MaterialInstanceDetailModal
             instance={selectedInstance}
-            loanCode={loanCodeByInstance[selectedInstance._id]?.code ?? undefined}
-            isLoanCodeLoading={isLoadingLoanCode}
+            onRefreshData={handleRefreshSelectedInstance}
             onClose={() => setSelectedInstance(null)}
           />
+        )}
+
+        {isLoadingSelectedInstanceDetail && (
+          <div className="fixed inset-0 z-[55] flex items-center justify-center bg-black/40">
+            <div className="rounded-lg border border-[#333] bg-[#121212] px-4 py-3 text-sm text-gray-300">
+              {t("common.loading")}...
+            </div>
+          </div>
         )}
 
         <BarcodePrintModal

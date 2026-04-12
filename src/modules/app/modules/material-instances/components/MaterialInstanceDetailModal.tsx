@@ -16,16 +16,12 @@ import { EntityLink } from "../../../../../components/ui";
 interface MaterialInstanceDetailModalProps {
   instance: MaterialInstance;
   onClose: () => void;
-  loanCode?: string;
-  isLoanCodeLoading?: boolean;
   onRefreshData?: (instance: MaterialInstance) => Promise<MaterialInstance | null>;
 }
 
 export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalProps> = ({
   instance,
   onClose,
-  loanCode,
-  isLoanCodeLoading = false,
   onRefreshData,
 }) => {
   const { language, t } = useLanguage();
@@ -90,7 +86,19 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
     instance.attributes && instance.attributes.length > 0 ? instance.attributes : typeAttributes;
 
   const resolvedCode = instance.barcode?.trim() || instance.serialNumber.trim();
-  const shouldShowLoanCode = instance.status === "loaned" || instance.status === "reserved";
+  const relatedCodeLabel =
+    instance.status === "loaned"
+      ? t("materialInstances.detail.loanCode")
+      : instance.status === "reserved"
+        ? t("materialInstances.detail.requestCode")
+        : null;
+  const relatedCodeValue =
+    instance.status === "loaned"
+      ? instance.loanContext?.loanCode?.trim() ?? ""
+      : instance.status === "reserved"
+        ? instance.loanContext?.requestCode?.trim() ?? ""
+        : "";
+  const shouldShowRelatedCode = relatedCodeLabel !== null && relatedCodeValue.length > 0;
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
@@ -221,14 +229,10 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
             </div>
           )}
 
-          {shouldShowLoanCode && (
+          {shouldShowRelatedCode && (
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">{t("materialInstances.detail.loanCode")}</label>
-              <p className="text-gray-400 text-sm font-mono">
-                {isLoanCodeLoading
-                  ? `${t("common.loading")}...`
-                  : loanCode || t("materialInstances.detail.notAssigned")}
-              </p>
+              <label className="block text-sm font-medium text-gray-400 mb-2">{relatedCodeLabel}</label>
+              <p className="text-gray-400 text-sm font-mono">{relatedCodeValue}</p>
             </div>
           )}
         </div>
