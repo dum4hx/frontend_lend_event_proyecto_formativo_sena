@@ -398,7 +398,7 @@ All authentication responses and authenticated API responses include anti-cache 
   "organization": ["organization:read", "organization:update"],
   "users": ["users:create", "users:read", "users:update", "users:delete"],
   "customers": ["customers:create", "customers:read", "customers:update", "customers:delete"],
-  "materials": ["materials:create", "materials:read", "materials:update", "materials:delete", "materials:state:update"],
+  "materials": ["material_types:create", "categories:create", "material_instances:create", "materials:read", "materials:update", "materials:delete", "materials:state:update"],
   "loans": ["loans:create", "loans:read", "loans:update", "loans:checkout", "loans:return"],
   "invoices": ["invoices:create", "invoices:read", "invoices:update"],
   "subscription_types": ["subscription_types:create", "subscription_types:read", "subscription_types:update", "subscription_types:delete"]
@@ -3163,6 +3163,12 @@ Retrieves a paginated list of all locations in the organization.
           "additionalDetails": "Piso 2"
         },
         "isActive": true,
+        "occupied": 12,
+        "occupancySummary": {
+          "totalCapacity": 40,
+          "occupied": 12,
+          "occupancyRate": 30
+        },
         "createdAt": "2026-02-20T10:30:00.000Z",
         "updatedAt": "2026-02-20T10:30:00.000Z"
       }
@@ -3176,6 +3182,13 @@ Retrieves a paginated list of all locations in the organization.
   }
 }
 ```
+
+**Fuente de verdad de ocupación:**
+
+- `occupied` es la fuente de verdad para la ocupación total de la sede.
+- `occupancySummary.occupied` siempre refleja el mismo valor que `occupied`.
+- `materialCapacities[].currentQuantity` se expone como desglose por tipo cuando existe configuración de capacidades.
+- Si una sede tiene inventario pero no tiene entrada de capacidad para un tipo de material, `occupied` sigue reflejando correctamente la ocupación total.
 
 ---
 
@@ -3223,6 +3236,12 @@ Retrieves a single location by its ID.
       "department": "Cundinamarca",
       "city": "Bogotá",
       "additionalDetails": "Piso 2"
+    },
+    "occupied": 12,
+    "occupancySummary": {
+      "totalCapacity": 40,
+      "occupied": 12,
+      "occupancyRate": 30
     },
     "createdAt": "2026-02-20T10:30:00.000Z",
     "updatedAt": "2026-02-20T10:30:00.000Z"
@@ -3593,7 +3612,7 @@ curl -X GET https://api.test.local/api/v1/materials/categories \
 
 Creates a new category. Categories define which attributes are available to material types within them.
 
-**Permission Required:** `materials:create`
+**Permission Required:** `categories:create`
 
 | Parameter   | Location | Type     | Required | Description                                                                                               |
 | ----------- | -------- | -------- | -------- | --------------------------------------------------------------------------------------------------------- |
@@ -4172,7 +4191,7 @@ Creates a new material type. Validates against organization's catalog item limit
 - Each attribute can be independently marked as required or optional for this material type. Required attributes must have non-empty values.
 - When an attribute is assigned to a material type, the value must be one of the attribute's `allowedValues` (if the attribute has constraints).
 
-**Permission Required:** `materials:create`
+**Permission Required:** `material_types:create`
 
 | Parameter                | Location | Type     | Required | Description                                                                                                                                              |
 | ------------------------ | -------- | -------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -4621,7 +4640,7 @@ Gets a specific material instance.
 
 Creates a new material instance.
 
-**Permission Required:** `materials:create`
+**Permission Required:** `material_instances:create`
 
 | Parameter          | Location | Type    | Required | Description                                                                                 |
 | ------------------ | -------- | ------- | -------- | ------------------------------------------------------------------------------------------- |

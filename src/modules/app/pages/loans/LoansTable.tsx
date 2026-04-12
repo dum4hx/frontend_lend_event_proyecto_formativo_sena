@@ -226,54 +226,43 @@ export function LoansTable({
                     )}
 
                     {v.status === "approved" && (
-                      <>
-                        <PermissionGuardedButton
-                          icon={Package}
-                          intent="edit"
-                          ariaLabel={t("loans.actions.prepare")}
-                          requiredPermission="requests:assign"
-                          onClick={() => onPrepare(v)}
-                        />
-                        {!v.request.depositPaidAt && (
-                          <PermissionGuardedButton
-                            icon={CreditCard}
-                            intent="edit"
-                            ariaLabel={t("loans.actions.recordPayment")}
-                            requiredPermission="requests:update"
-                            onClick={() => onRecordPayment(v)}
-                          />
-                        )}
-                      </>
+                      <PermissionGuardedButton
+                        icon={Package}
+                        intent="edit"
+                        ariaLabel={t("loans.actions.prepare")}
+                        requiredPermission="requests:assign"
+                        onClick={() => onPrepare(v)}
+                      />
+                    )}
+
+                    {/* Payment actions — conditioned only on whether payment dates are set */}
+                    {!v.request.depositPaidAt && (
+                      <PermissionGuardedButton
+                        icon={CreditCard}
+                        intent="edit"
+                        ariaLabel={t("loans.actions.recordPayment")}
+                        requiredPermission="requests:update"
+                        onClick={() => onRecordPayment(v)}
+                      />
+                    )}
+                    {!v.request.rentalFeePaidAt && (
+                      <PermissionGuardedButton
+                        icon={Banknote}
+                        intent="approve"
+                        ariaLabel={t("loans.actions.recordRentalPayment")}
+                        requiredPermission="requests:update"
+                        onClick={() => onRecordRentalPayment(v)}
+                      />
                     )}
 
                     {v.status === "assigned" && (
-                      <>
-                        {!v.request.depositPaidAt && (
-                          <PermissionGuardedButton
-                            icon={CreditCard}
-                            intent="edit"
-                            ariaLabel={t("loans.actions.recordPayment")}
-                            requiredPermission="requests:update"
-                            onClick={() => onRecordPayment(v)}
-                          />
-                        )}
-                        {!v.request.rentalFeePaidAt && (
-                          <PermissionGuardedButton
-                            icon={Banknote}
-                            intent="approve"
-                            ariaLabel={t("loans.actions.recordRentalPayment")}
-                            requiredPermission="requests:update"
-                            onClick={() => onRecordRentalPayment(v)}
-                          />
-                        )}
-                        <PermissionGuardedButton
-                          icon={PackageCheck}
-                          intent="edit"
-                          ariaLabel={t("loans.actions.ship")}
-                          requiredPermission="requests:ready"
-                          onClick={() => onShip(v)}
-                        />
-                      </>
+                      <PermissionGuardedButton
+                        icon={PackageCheck}
+                        intent="edit"
+                        ariaLabel={t("loans.actions.ship")}
+                        requiredPermission="requests:ready"
+                        onClick={() => onShip(v)}
+                      />
                     )}
 
                     {v.status === "ready" && (

@@ -254,7 +254,7 @@ export function Loans() {
   const handleApprove = async (v: UnifiedLoanView) => {
     setSubmitting(true);
     try {
-      await approveRequest(v.request._id, "Approved from Loans module");
+      await approveRequest(v.request._id, "Aprovado desde el modulo de prestamos.");
       showSuccess(t("loans.approveSuccess"), t("loans.updated"));
       await refreshData();
     } catch (error) {

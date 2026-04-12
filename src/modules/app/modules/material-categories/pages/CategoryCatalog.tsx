@@ -248,17 +248,17 @@ export const CategoryCatalog: React.FC = () => {
               filename="material-categories"
               onImport={FEATURE_FLAGS.ENABLE_DATA_IMPORT ? handleImportCategories : undefined}
               importDisabled={
-                FEATURE_FLAGS.ENABLE_DATA_IMPORT ? !isAllowed("materials:create") : undefined
+                FEATURE_FLAGS.ENABLE_DATA_IMPORT ? !isAllowed("categories:create") : undefined
               }
               onImportDenied={
-                FEATURE_FLAGS.ENABLE_DATA_IMPORT ? guard("materials:create", () => {}) : undefined
+                FEATURE_FLAGS.ENABLE_DATA_IMPORT ? guard("categories:create", () => {}) : undefined
               }
               showLabels={true}
             />
             <button
-              onClick={guard("materials:create", () => navigate("create"))}
-              aria-disabled={!isAllowed("materials:create")}
-              className={`flex items-center gap-2 px-6 py-3 font-semibold rounded-lg transition-colors whitespace-nowrap border border-[#B88A00] text-[#FFD700] hover:bg-[#FFD700]/10 ${!isAllowed("materials:create") ? "opacity-50 cursor-not-allowed" : ""}`}
+              onClick={guard("categories:create", () => navigate("create"))}
+              aria-disabled={!isAllowed("categories:create")}
+              className={`flex items-center gap-2 px-6 py-3 font-semibold rounded-lg transition-colors whitespace-nowrap border border-[#B88A00] text-[#FFD700] hover:bg-[#FFD700]/10 ${!isAllowed("categories:create") ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               <Plus size={20} />
               {t("materialCategories.newCategory")}
@@ -296,9 +296,9 @@ export const CategoryCatalog: React.FC = () => {
               </p>
               {!searchTerm && (
                 <button
-                  onClick={guard("materials:create", () => navigate("create"))}
-                  aria-disabled={!isAllowed("materials:create")}
-                  className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-[#B88A00] text-[#FFD700] hover:bg-[#FFD700]/10 transition-colors ${!isAllowed("materials:create") ? "opacity-50 cursor-not-allowed" : ""}`}
+                  onClick={guard("categories:create", () => navigate("create"))}
+                  aria-disabled={!isAllowed("categories:create")}
+                  className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-[#B88A00] text-[#FFD700] hover:bg-[#FFD700]/10 transition-colors ${!isAllowed("categories:create") ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   <Plus size={18} />
                   {t("materialCategories.createCategory")}

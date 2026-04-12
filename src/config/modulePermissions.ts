@@ -317,9 +317,9 @@ export interface RoutePermission {
 
 /** Additional sub-routes not present in sidebar navigation. */
 const additionalRoutePermissions: RoutePermission[] = [
-  { path: "/app/material-categories/create", requiredPermissions: ["materials:create"] },
-  { path: "/app/material-types/create", requiredPermissions: ["materials:create"] },
-  { path: "/app/material-instances/create", requiredPermissions: ["materials:create"] },
+  { path: "/app/material-categories/create", requiredPermissions: ["categories:create"] },
+  { path: "/app/material-types/create", requiredPermissions: ["material_types:create"] },
+  { path: "/app/material-instances/create", requiredPermissions: ["material_instances:create"] },
 ];
 
 export const routePermissions: RoutePermission[] = [

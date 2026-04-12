@@ -2,7 +2,7 @@
 
 Generated at: 2026-03-08T21:18:03.050Z
 
-Total permissions: 56
+Total permissions: 58
 
 This document is generated from the MongoDB `permissions` collection.
 Each section explains the purpose of a permission and the action it allows.
@@ -40,7 +40,9 @@ Each section explains the purpose of a permission and the action it allows.
 - [`material_attributes:delete`](#material_attributesdelete)
 - [`material_attributes:read`](#material_attributesread)
 - [`material_attributes:update`](#material_attributesupdate)
-- [`materials:create`](#materialscreate)
+- [`material_types:create`](#material_typescreate)
+- [`categories:create`](#categoriescreate)
+- [`material_instances:create`](#material_instancescreate)
 - [`materials:delete`](#materialsdelete)
 - [`materials:read`](#materialsread)
 - [`materials:update`](#materialsupdate)
@@ -327,15 +329,41 @@ Each section explains the purpose of a permission and the action it allows.
 - **Allowed Action:** Modify existing records in this resource.
 - **Resource Target:** Loans
 
-### `materials:create`
+### `material_types:create`
 
-- **Display Name:** Create Materials
+- **Display Name:** Crear Tipos de Material
 - **Category:** Materials
 - **Scope:** Organization
 - **Active:** Yes
-- **Purpose:** Allows adding new materials or inventory items.
-- **Allowed Action:** Create new records in this resource.
+- **Purpose:** Allows creating new material types in the catalog.
+- **Allowed Action:** Create new material type records.
 - **Resource Target:** Materials
+- **Requires:** `materials:read`
+- **Roles:** `super_admin`, `owner`, `manager`
+
+### `categories:create`
+
+- **Display Name:** Crear Categorías
+- **Category:** Materials
+- **Scope:** Organization
+- **Active:** Yes
+- **Purpose:** Allows creating new material categories.
+- **Allowed Action:** Create new category records.
+- **Resource Target:** Materials
+- **Requires:** `materials:read`
+- **Roles:** `super_admin`, `owner`, `manager`
+
+### `material_instances:create`
+
+- **Display Name:** Crear Instancias de Material
+- **Category:** Materials
+- **Scope:** Organization
+- **Active:** Yes
+- **Purpose:** Allows registering new material instances (physical units) in the inventory.
+- **Allowed Action:** Create new material instance records.
+- **Resource Target:** Materials
+- **Requires:** `materials:read`
+- **Roles:** `super_admin`, `owner`, `manager`
 
 ### `materials:delete`
 

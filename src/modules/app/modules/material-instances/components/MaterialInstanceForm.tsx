@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useToast } from "../../../../../contexts/ToastContext";
 import { useLanguage } from "../../../../../contexts/useLanguage";
 import { useMaterialTypes } from "../../material-types/hooks";
@@ -6,7 +6,8 @@ import {
   getLocations,
   type WarehouseLocation,
 } from "../../../../../services/warehouseOperatorService";
-import type { CreateMaterialInstancePayload } from "../../../../../types/api";
+import { getCodeSchemes } from "../../../../../services/codeSchemeService";
+import type { CreateMaterialInstancePayload, CodeScheme } from "../../../../../types/api";
 import { Button } from "../../../../../components/ui";
 
 interface MaterialInstanceFormProps {
@@ -36,6 +37,7 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const { showToast } = useToast();
+  const [codeSchemes, setCodeSchemes] = useState<CodeScheme[]>([]);
 
   const formatLocationAddress = useCallback((location: WarehouseLocation) => {
     const address = location.address;
@@ -62,6 +64,58 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
   useEffect(() => {
     fetchLocations();
   }, [fetchLocations]);
+
+  useEffect(() => {
+    const fetchSchemes = async () => {
+      try {
+        const res = await getCodeSchemes({ entityType: "material_instance" });
+        setCodeSchemes(res.data.schemes.filter((s) => s.isActive));
+      } catch {
+        // Non-critical — preview simply won't show
+      }
+    };
+    fetchSchemes();
+  }, []);
+
+  /** Resolve the code scheme applicable to the selected material type. */
+  const resolvedScheme = useMemo(() => {
+    if (!formData.modelId || codeSchemes.length === 0) return null;
+    const selectedType = materialTypes.find((mt) => mt._id === formData.modelId);
+    // Priority: type-scoped → category-scoped → global default → null
+    const byType = codeSchemes.find((s) => s.materialTypeId === formData.modelId);
+    if (byType) return byType;
+    if (selectedType?.categoryId) {
+      const catId = typeof selectedType.categoryId === "string"
+        ? selectedType.categoryId
+        : selectedType.categoryId._id;
+      const byCat = codeSchemes.find((s) => s.categoryId === catId && !s.materialTypeId);
+      if (byCat) return byCat;
+    }
+    return codeSchemes.find((s) => s.isDefault && !s.materialTypeId && !s.categoryId) ?? null;
+  }, [formData.modelId, codeSchemes, materialTypes]);
+
+  /** Build a sample preview from the resolved code scheme pattern. */
+  const codeSchemePreview = useMemo(() => {
+    const pattern = resolvedScheme?.pattern ?? "MI-{SEQ:6}";
+    if (!formData.modelId) return null;
+    const TOKEN_SAMPLES: Record<string, string> = {
+      "{YYYY}": new Date().getFullYear().toString(),
+      "{YY}": new Date().getFullYear().toString().slice(-2),
+      "{MM}": String(new Date().getMonth() + 1).padStart(2, "0"),
+      "{DD}": String(new Date().getDate()).padStart(2, "0"),
+      "{LOCATION_CODE}": "ABC",
+      "{TYPE_CODE}": "EQP",
+      "{CATEGORY_CODE}": "AUD",
+    };
+    let result = pattern;
+    for (const [token, sample] of Object.entries(TOKEN_SAMPLES)) {
+      result = result.replaceAll(token, sample);
+    }
+    // Handle {SEQ:N} with zero-padded sample
+    result = result.replace(/\{SEQ:(\d+)\}/gi, (_m, n) => "1".padStart(Number(n), "0"));
+    result = result.replace(/\{SEQ\}/gi, "1");
+    return result;
+  }, [resolvedScheme, formData.modelId]);
 
   useEffect(() => {
     if (initialData) {
@@ -102,11 +156,9 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
     if (useBarcodeAsSerial && !data.barcode?.trim()) {
       newErrors.barcode = t("materialInstances.form.validation.barcodeRequiredForSerial");
     }
-    if (!data.serialNumber.trim()) {
-      newErrors.serialNumber = useBarcodeAsSerial
-        ? t("materialInstances.form.validation.serialRequiredFromBarcode")
-        : t("materialInstances.form.validation.serialRequired");
-    } else if (data.serialNumber.length > 100) {
+    if (useBarcodeAsSerial && !(data.serialNumber ?? "").trim()) {
+      newErrors.serialNumber = t("materialInstances.form.validation.serialRequiredFromBarcode");
+    } else if ((data.serialNumber ?? "").length > 100) {
       newErrors.serialNumber = t("materialInstances.form.validation.serialTooLong");
     }
     if (data.barcode && data.barcode.length > 120) {
@@ -205,19 +257,18 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
 
       <div>
         <label className="block text-sm font-medium text-gray-300 mb-2">
-          {t("materialInstances.form.serialLabel")} *
+          {t("materialInstances.form.serialLabel")}
         </label>
         <input
           type="text"
           data-help-id="material-instances-form-serial"
-          value={formData.serialNumber}
+          value={formData.serialNumber ?? ""}
           onChange={(e) => handleChange("serialNumber", e.target.value)}
           onBlur={() => setTouched((prev) => ({ ...prev, serialNumber: true }))}
           className={`w-full px-4 py-3 bg-[#1a1a1a] border ${
             touched.serialNumber && errors.serialNumber ? "border-red-500" : "border-[#333]"
           } rounded-lg text-white focus:outline-none focus:border-[#FFD700] disabled:opacity-60 disabled:cursor-not-allowed`}
           placeholder={t("materialInstances.form.serialPlaceholder")}
-          required
           maxLength={100}
           disabled={useBarcodeAsSerial}
         />
@@ -227,8 +278,18 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
         <p className="text-xs text-gray-500 mt-1">
           {useBarcodeAsSerial
             ? t("materialInstances.form.serialHintAuto")
-            : t("materialInstances.form.serialHint")}
+            : t("materialInstances.form.serialHintOptional")}
         </p>
+        {!useBarcodeAsSerial && !(formData.serialNumber ?? "").trim() && codeSchemePreview && (
+          <div className="flex items-center gap-2 mt-2 bg-[#0d0d0d] border border-[#222] rounded-lg px-3 py-2">
+            <span className="text-xs text-gray-500 shrink-0">
+              {t("materialInstances.form.serialAutoPreviewLabel")}
+            </span>
+            <span className="text-sm text-[#FFD700] font-mono font-semibold truncate">
+              {codeSchemePreview}
+            </span>
+          </div>
+        )}
       </div>
 
       <div>
