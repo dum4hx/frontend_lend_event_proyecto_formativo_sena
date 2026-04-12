@@ -1,12 +1,79 @@
 import React from "react";
-import { ClipboardCheck, Calendar, User, Package } from "lucide-react";
+import { ClipboardCheck, Calendar, User, Package, Copy } from "lucide-react";
 import { useLanguage } from "../../../../../contexts/useLanguage";
+import { useCopyToClipboard } from "../../../../../hooks/useCopyToClipboard";
 import type { PendingLoan } from "../../../../../types/api";
 import { Button } from "../../../../../components/ui";
 
 interface PendingLoansTableProps {
   loans: PendingLoan[];
   onInspect: (loan: PendingLoan) => void;
+}
+
+/**
+ * Table row component showing a single pending loan
+ */
+function TableRow({
+  loan,
+  onInspect,
+}: {
+  loan: PendingLoan;
+  onInspect: (loan: PendingLoan) => void;
+}) {
+  const { t } = useLanguage();
+  const { copy } = useCopyToClipboard();
+
+  return (
+    <tr className="hover:bg-[#1a1a1a] transition-all duration-150 group">
+      <td className="py-5 px-6">
+        <div className="flex flex-col">
+          <button
+            onClick={() => copy(loan.code ?? loan._id)}
+            className="text-white font-mono text-sm group-hover:text-[#FFD700] transition-colors flex items-center gap-1 hover:underline"
+            title="Haz click para copiar"
+          >
+            {loan.code ?? loan._id.slice(-8).toUpperCase()}
+            <Copy size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+          </button>
+        </div>
+      </td>
+      <td className="py-5 px-6">
+        <div className="flex items-center">
+          <User className="w-3.5 h-3.5 text-gray-500 mr-2" />
+          <div className="flex flex-col">
+            <span className="text-gray-200 text-sm font-medium">
+              {`${loan.customerId.name.firstName} ${loan.customerId.name.firstSurname}`}
+            </span>
+            <span className="text-xs text-gray-500">{loan.customerId.email}</span>
+          </div>
+        </div>
+      </td>
+      <td className="py-5 px-6">
+        <div className="flex items-center text-gray-400">
+          <Calendar className="w-3.5 h-3.5 mr-2 text-gray-500" />
+          <span className="text-sm">{new Date(loan.endDate).toLocaleDateString()}</span>
+        </div>
+      </td>
+      <td className="py-5 px-6">
+        <div className="flex items-center text-gray-400">
+          <Package className="w-3.5 h-3.5 mr-2 text-gray-500" />
+          <span className="text-sm">
+            {loan.materialInstances.length === 1
+              ? t("inspections.itemCount", { count: 1 })
+              : t("inspections.itemCountPlural", { count: loan.materialInstances.length })}
+          </span>
+        </div>
+      </td>
+      <td className="py-5 px-6 text-right">
+        <Button
+          onClick={() => onInspect(loan)}
+          className="bg-[#FFD700]/10 text-[#FFD700] border border-[#FFD700]/30 hover:bg-[#FFD700] hover:text-black font-bold text-xs py-1.5 h-auto"
+        >
+          {t("inspections.startInspection")}
+        </Button>
+      </td>
+    </tr>
+  );
 }
 
 /**
@@ -49,51 +116,7 @@ export const PendingLoansTable: React.FC<PendingLoansTableProps> = ({ loans, onI
         </thead>
         <tbody className="divide-y divide-[#222]">
           {loans.map((loan) => (
-            <tr key={loan._id} className="hover:bg-[#1a1a1a] transition-all duration-150 group">
-              <td className="py-5 px-6">
-                <div className="flex flex-col">
-                  <span className="text-white font-mono text-sm group-hover:text-[#FFD700] transition-colors">
-                    {loan.code ?? loan._id.slice(-8).toUpperCase()}
-                  </span>
-                </div>
-              </td>
-              <td className="py-5 px-6">
-                <div className="flex items-center">
-                  <User className="w-3.5 h-3.5 text-gray-500 mr-2" />
-                  <div className="flex flex-col">
-                    <span className="text-gray-200 text-sm font-medium">
-                      {`${loan.customerId.name.firstName} ${loan.customerId.name.firstSurname}`}
-                    </span>
-                    <span className="text-xs text-gray-500">{loan.customerId.email}</span>
-                  </div>
-                </div>
-              </td>
-              <td className="py-5 px-6">
-                <div className="flex items-center text-gray-400">
-                  <Calendar className="w-3.5 h-3.5 mr-2 text-gray-500" />
-                  <span className="text-sm">{new Date(loan.endDate).toLocaleDateString()}</span>
-                </div>
-              </td>
-              <td className="py-5 px-6">
-                <div className="flex items-center text-gray-400">
-                  <Package className="w-3.5 h-3.5 mr-2 text-gray-500" />
-                  <span className="text-sm">
-                    {loan.materialInstances.length === 1
-                      ? t("inspections.itemCount", { count: 1 })
-                      : t("inspections.itemCountPlural", { count: loan.materialInstances.length })
-                    }
-                  </span>
-                </div>
-              </td>
-              <td className="py-5 px-6 text-right">
-                <Button
-                  onClick={() => onInspect(loan)}
-                  className="bg-[#FFD700]/10 text-[#FFD700] border border-[#FFD700]/30 hover:bg-[#FFD700] hover:text-black font-bold text-xs py-1.5 h-auto"
-                >
-                  {t("inspections.startInspection")}
-                </Button>
-              </td>
-            </tr>
+            <TableRow key={loan._id} loan={loan} onInspect={onInspect} />
           ))}
         </tbody>
       </table>

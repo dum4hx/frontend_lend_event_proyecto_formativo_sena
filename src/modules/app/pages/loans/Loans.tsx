@@ -42,7 +42,7 @@ import PrepareOrderModal from "../PrepareOrderModal";
 import Unauthorized from "../../../../pages/Unauthorized";
 
 import type { UnifiedLoanView, LoanFilterTab, LoanSubFilter } from "./types";
-import { buildUnifiedLoanViews, filterByTabAndSubFilter, filterBySearch } from "./helpers";
+import { buildUnifiedLoanViews, filterByTabAndSubFilter, filterBySearch, filterByStates, filterByDateRange } from "./helpers";
 import { LoansFilters } from "./LoansFilters";
 import { LoansTable } from "./LoansTable";
 import { LoanDetailModal } from "./LoanDetailModal";
@@ -91,6 +91,9 @@ export function Loans() {
   const [activeTab, setActiveTab] = useState<LoanFilterTab>("all");
   const [subFilter, setSubFilter] = useState<LoanSubFilter>("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedStates, setSelectedStates] = useState<string[]>([]);
+  const [dateFrom, setDateFrom] = useState<string | null>(null);
+  const [dateTo, setDateTo] = useState<string | null>(null);
 
   // ── Modal state ────────────────────────────────────────────────────────
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -221,8 +224,18 @@ export function Loans() {
   const filteredViews = useMemo(() => {
     let result = filterByTabAndSubFilter(unifiedViews, activeTab, subFilter);
     result = filterBySearch(result, searchTerm);
+    result = filterByStates(result, selectedStates as any);
+    result = filterByDateRange(result, dateFrom, dateTo);
+    
+    // Sort by creation date (newest first)
+    result = result.sort((a, b) => {
+      const dateA = a.request.createdAt ? new Date(a.request.createdAt).getTime() : 0;
+      const dateB = b.request.createdAt ? new Date(b.request.createdAt).getTime() : 0;
+      return dateB - dateA;
+    });
+    
     return result;
-  }, [unifiedViews, activeTab, subFilter, searchTerm]);
+  }, [unifiedViews, activeTab, subFilter, searchTerm, selectedStates, dateFrom, dateTo]);
 
   // ── Action handlers ────────────────────────────────────────────────────
 
@@ -511,35 +524,67 @@ export function Loans() {
 
       <div data-help-id="loans-filters">
         <LoansFilters
-          activeTab={activeTab}
-          onTabChange={(tab) => {
-            setActiveTab(tab);
-            setSubFilter("all");
-          }}
-          subFilter={subFilter}
-          onSubFilterChange={setSubFilter}
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
+          selectedStates={selectedStates}
+          onSelectedStatesChange={setSelectedStates}
+          dateFrom={dateFrom}
+          onDateFromChange={setDateFrom}
+          dateTo={dateTo}
+          onDateToChange={setDateTo}
+          onClearFilters={() => {
+            setSelectedStates([]);
+            setDateFrom(null);
+            setDateTo(null);
+          }}
         />
       </div>
 
-      <div data-help-id="loans-table">
+      {/* Results summary */}
+      <div className="mb-4 flex items-center justify-between px-1">
+        <div className="text-sm text-gray-400">
+          {searchTerm && (
+            <span>
+              {t("loans.table.searchResults", { count: filteredViews.length })} •{" "}
+            </span>
+          )}
+          <span>
+            {filteredViews.length} {filteredViews.length === 1 ? t("loans.table.resultSingular") : t("loans.table.resultPlural")}
+          </span>
+          {unifiedViews.length > filteredViews.length && (
+            <span className="text-gray-500"> (de {unifiedViews.length} totales)</span>
+          )}
+        </div>
+        {(selectedStates.length > 0 || dateFrom || dateTo) && (
+          <div className="text-xs text-gray-500">
+            {selectedStates.length > 0 && <span>{selectedStates.length} estado(s)</span>}
+            {selectedStates.length > 0 && (dateFrom || dateTo) && <span className="mx-1">•</span>}
+            {(dateFrom || dateTo) && (
+              <span>
+                {dateFrom} {dateTo && `→ ${dateTo}`}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div data-help-id="loans-content">
         <LoansTable
-          loans={filteredViews}
-          totalCount={unifiedViews.length}
-          loading={loading}
-          submitting={submitting}
-          onViewDetail={handleViewDetail}
-          onCancel={handleOpenCancel}
-          onPrepare={handlePrepare}
-          onRecordPayment={handleRecordPayment}
-          onRecordRentalPayment={handleRecordRentalPayment}
-          onStartLoan={handleStartLoan}
-          onExtend={handleOpenExtend}
-          onReturn={handleOpenReturn}
-          onRefund={handleOpenRefund}
-          onComplete={handleOpenComplete}
-        />
+            loans={filteredViews}
+            totalCount={unifiedViews.length}
+            loading={loading}
+            submitting={submitting}
+            onViewDetail={handleViewDetail}
+            onCancel={handleOpenCancel}
+            onPrepare={handlePrepare}
+            onRecordPayment={handleRecordPayment}
+            onRecordRentalPayment={handleRecordRentalPayment}
+            onStartLoan={handleStartLoan}
+            onExtend={handleOpenExtend}
+            onReturn={handleOpenReturn}
+            onRefund={handleOpenRefund}
+            onComplete={handleOpenComplete}
+          />
       </div>
 
       {/* ── Modals ── */}

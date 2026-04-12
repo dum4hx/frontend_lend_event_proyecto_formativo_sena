@@ -9,11 +9,13 @@ import {
   Eye,
   Banknote,
   Ban,
+  Copy,
 } from "lucide-react";
 import { Button, IconButton, EntityLink, type ColumnDef } from "../../../../components/ui";
 import { DataTable } from "../../../../components/ui";
 import { Pagination } from "../../../../components/ui";
 import { useActionPermission } from "../../../../hooks/useActionPermission";
+import { useCopyToClipboard } from "../../../../hooks/useCopyToClipboard";
 import { getWorkflowStatusLabel } from "../../../../utils/statusLabels";
 import type { OrderView } from "./types";
 import { formatDate, getStatusBadgeStyle } from "./helpers";
@@ -78,6 +80,7 @@ export function OrdersTable({
   isEs,
 }: OrdersTableProps) {
   const { guard } = useActionPermission(isEs ? "es" : "en");
+  const { copy } = useCopyToClipboard();
 
   const renderActions = (order: OrderView) => (
     <div
@@ -243,12 +246,17 @@ export function OrdersTable({
       key: "requestId",
       header: isEs ? "Código Solicitud" : "Request Code",
       render: (order) => (
-        <span
-          className="block max-w-full truncate font-semibold text-white"
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            copy(order.request.code ?? order.request._id);
+          }}
+          className="block max-w-full truncate font-semibold text-white hover:text-[#FFD700] hover:underline transition-colors flex items-center gap-1 group/copy"
           title={order.request.code ?? order.request._id}
         >
           {order.request.code ?? order.request._id}
-        </span>
+          <Copy size={14} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+        </button>
       ),
     },
     {

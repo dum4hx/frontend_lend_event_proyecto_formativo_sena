@@ -2,9 +2,10 @@
  * OpsInventoryPanel — Inventory issues categorized as damaged, maintenance, or lost.
  */
 import { motion } from "framer-motion";
-import { Wrench, AlertTriangle, Search } from "lucide-react";
+import { Wrench, AlertTriangle, Search, Copy } from "lucide-react";
 import type { OpsInventoryIssue, OpsInventoryIssuesResponse } from "../../../../types/api";
 import { useLanguage } from "../../../../contexts/useLanguage";
+import { useCopyToClipboard } from "../../../../hooks/useCopyToClipboard";
 import { listItemVariants } from "../../../../lib/animations";
 
 interface OpsInventoryPanelProps {
@@ -40,6 +41,7 @@ const categoryConfig: Record<
 
 function IssueRow({ item, index }: { item: OpsInventoryIssue; index: number }) {
   const { language } = useLanguage();
+  const { copy } = useCopyToClipboard();
   const isEs = language === "es";
   const cfg = categoryConfig[item.category];
 
@@ -62,7 +64,14 @@ function IssueRow({ item, index }: { item: OpsInventoryIssue; index: number }) {
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-zinc-200 truncate">{item.materialTypeName}</p>
-        <p className="text-xs text-zinc-500 font-mono">{item.serialNumber}</p>
+        <button
+          onClick={() => copy(item.serialNumber)}
+          className="text-xs text-zinc-500 font-mono hover:text-[#FFD700] hover:underline transition-colors flex items-center gap-1 group/copy"
+          title="Haz click para copiar"
+        >
+          {item.serialNumber}
+          <Copy size={11} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+        </button>
       </div>
       <span
         className={`text-xs px-2 py-0.5 rounded-full font-medium ${cfg.color} ${cfg.bg} border ${cfg.border} shrink-0`}

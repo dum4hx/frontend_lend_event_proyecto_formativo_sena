@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, Info, RefreshCw } from "lucide-react";
+import { X, Info, RefreshCw, Copy } from "lucide-react";
 import {
   type MaterialInstance,
   type MaterialAttribute,
@@ -8,6 +8,7 @@ import {
 import type { WarehouseLocation } from "../../../../../services/warehouseOperatorService";
 import { getMaterialInstanceStatusLabel } from "../../../../../utils/statusLabels";
 import { useLanguage } from "../../../../../contexts/useLanguage";
+import { useCopyToClipboard } from "../../../../../hooks/useCopyToClipboard";
 import { MaterialBarcode } from "./MaterialBarcode";
 import { getMaterialAttributes, getMaterialTypes } from "../../../../../services/materialService";
 import { getLocation } from "../../../../../services/warehouseOperatorService";
@@ -27,6 +28,7 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
   onRefreshData,
 }) => {
   const { language, t } = useLanguage();
+  const { copy } = useCopyToClipboard();
   const [attributeDefinitions, setAttributeDefinitions] = useState<MaterialAttribute[]>([]);
   const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
   const [loadingAttributes, setLoadingAttributes] = useState(false);
@@ -135,7 +137,14 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
           <div className="grid grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-2">{t("materialInstances.detail.serialNumber")}</label>
-              <p className="text-white font-mono font-semibold text-lg">{instance.serialNumber}</p>
+              <button
+                onClick={() => copy(instance.serialNumber)}
+                className="text-white font-mono font-semibold text-lg hover:text-[#FFD700] transition-colors flex items-center gap-1 group/copy"
+                title="Haz click para copiar"
+              >
+                {instance.serialNumber}
+                <Copy size={16} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+              </button>
             </div>
 
             <div>
@@ -220,7 +229,18 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
 
           <div>
             <label className="block text-sm font-medium text-gray-400 mb-2">{t("materialInstances.detail.loanCode")}</label>
-            <p className="text-gray-400 text-sm font-mono">{loanCode || t("materialInstances.detail.notAssigned")}</p>
+            {loanCode ? (
+              <button
+                onClick={() => copy(loanCode)}
+                className="text-gray-400 text-sm font-mono hover:text-[#FFD700] transition-colors flex items-center gap-1 group/copy"
+                title="Haz click para copiar"
+              >
+                {loanCode}
+                <Copy size={14} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+              </button>
+            ) : (
+              <p className="text-gray-400 text-sm font-mono">{t("materialInstances.detail.notAssigned")}</p>
+            )}
           </div>
         </div>
 

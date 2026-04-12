@@ -3,8 +3,10 @@
  */
 
 import React, { useState } from "react";
+import { Copy } from "lucide-react";
 import { FormModal } from "../../../../../components/ui";
 import { useLanguage } from "../../../../../contexts/useLanguage";
+import { useCopyToClipboard } from "../../../../../hooks/useCopyToClipboard";
 import type {
   MaintenanceBatchItem,
   MaintenanceResolution,
@@ -26,6 +28,7 @@ const RESOLUTIONS: MaintenanceResolution[] = ["repaired", "unrecoverable"];
 
 export function ResolveItemModal({ open, onClose, item, onSubmit }: ResolveItemModalProps) {
   const { t } = useLanguage();
+  const { copy } = useCopyToClipboard();
   const [loading, setLoading] = useState(false);
   const [resolution, setResolution] = useState<MaintenanceResolution>("repaired");
   const [actualCost, setActualCost] = useState("");
@@ -84,7 +87,15 @@ export function ResolveItemModal({ open, onClose, item, onSubmit }: ResolveItemM
         {serialNumber && (
           <div className="p-3 bg-[#1a1a1a] rounded-lg border border-[#333]">
             <span className="text-xs text-gray-400 uppercase">{t("maintenance.serialNumber")}</span>
-            <p className="text-white font-mono">{serialNumber}</p>
+            <button
+              type="button"
+              onClick={() => copy(serialNumber)}
+              className="text-white font-mono hover:text-[#FFD700] hover:underline transition-colors flex items-center gap-1 group/copy w-fit"
+              title="Haz click para copiar"
+            >
+              {serialNumber}
+              <Copy size={12} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+            </button>
           </div>
         )}
 

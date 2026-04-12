@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { X, Save, AlertCircle, Eye } from "lucide-react";
+import { X, Save, AlertCircle, Eye, Copy } from "lucide-react";
 import { useLanguage } from "../../../../../contexts/useLanguage";
 import { useAuth } from "../../../../../contexts/useAuth";
+import { useCopyToClipboard } from "../../../../../hooks/useCopyToClipboard";
 import { validateDamageDescription } from "../../../../../utils";
 import type {
   PendingLoan,
@@ -37,6 +38,7 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
 }) => {
   const { t } = useLanguage();
   const { user } = useAuth();
+  const { copy } = useCopyToClipboard();
   const [items, setItems] = useState<InspectionItemInput[]>(
     loan.materialInstances.map((mi) => ({
       materialInstanceId: mi.materialInstanceId._id,
@@ -147,7 +149,15 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
             <h2 className="text-xl font-bold text-white">{t("inspections.performInspection")}</h2>
             <p className="text-sm text-gray-400 mt-1">
               {t("inspections.loanIdLabel")}:{" "}
-              <span className="text-gray-300 font-mono">{loan.code ?? loan._id}</span> •{" "}
+              <button
+                onClick={() => copy(loan.code ?? loan._id)}
+                className="text-gray-300 font-mono hover:text-[#FFD700] hover:underline transition-colors inline-flex items-center gap-1 group/copy"
+                title="Haz click para copiar"
+              >
+                {loan.code ?? loan._id}
+                <Copy size={12} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+              </button>
+              {" "} •{" "}
               {t("inspections.customerLabel")}:{" "}
               <span className="text-gray-300">
                 {`${loan.customerId.name.firstName} ${loan.customerId.name.firstSurname}`}
@@ -204,7 +214,16 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
                         })()}
                       </p>
                       <p className="text-xs text-gray-400 mt-1">
-                        {t("inspections.serialNumber")}: <span className="font-mono text-gray-300">{mi.materialInstanceId.serialNumber}</span>
+                        {t("inspections.serialNumber")}: 
+                        <button
+                          type="button"
+                          onClick={() => copy(mi.materialInstanceId.serialNumber)}
+                          className="ml-1 font-mono text-gray-300 hover:text-[#FFD700] hover:underline transition-colors inline-flex items-center gap-1 group/copy"
+                          title="Haz click para copiar"
+                        >
+                          {mi.materialInstanceId.serialNumber}
+                          <Copy size={11} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+                        </button>
                       </p>
                     </div>
                     <button

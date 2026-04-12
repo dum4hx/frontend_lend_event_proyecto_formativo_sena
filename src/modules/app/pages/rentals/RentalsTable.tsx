@@ -6,9 +6,11 @@ import {
   HandCoins,
   CheckCircle,
   Loader2,
+  Copy,
 } from "lucide-react";
 import { Button, EntityLink } from "../../../../components/ui";
 import { useActionPermission } from "../../../../hooks/useActionPermission";
+import { useCopyToClipboard } from "../../../../hooks/useCopyToClipboard";
 import type { LoanView } from "./types";
 import {
   getLoanStatusBadgeStyle,
@@ -67,6 +69,7 @@ export function RentalsTable({
   isEs,
 }: RentalsTableProps) {
   const { guard } = useActionPermission(isEs ? "es" : "en");
+  const { copy } = useCopyToClipboard();
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -111,9 +114,14 @@ export function RentalsTable({
                 className="border-b border-[#333] hover:bg-[#1a1a1a] transition-colors"
               >
                 <td className="px-4 py-3">
-                  <span className="font-mono text-xs text-gray-300">
+                  <button
+                    onClick={() => copy(lv.loan.code ?? `#${lv.loan._id.slice(-8).toUpperCase()}`)}
+                    className="font-mono text-xs text-gray-300 hover:text-[#FFD700] transition-colors flex items-center gap-1 group/copy"
+                    title="Haz click para copiar"
+                  >
                     {lv.loan.code ?? `#${lv.loan._id.slice(-8).toUpperCase()}`}
-                  </span>
+                    <Copy size={12} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+                  </button>
                 </td>
                 <td className="px-4 py-3">
                   <EntityLink

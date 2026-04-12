@@ -285,3 +285,47 @@ export function filterBySearch(views: UnifiedLoanView[], searchTerm: string): Un
     return code.includes(normalized) || name.includes(normalized);
   });
 }
+
+export function filterByStates(
+  views: UnifiedLoanView[],
+  selectedStates: UnifiedLoanStatus[],
+): UnifiedLoanView[] {
+  if (selectedStates.length === 0) return views;
+  return views.filter((v) => selectedStates.includes(v.status));
+}
+
+export function filterByDateRange(
+  views: UnifiedLoanView[],
+  dateFrom: string | null,
+  dateTo: string | null,
+): UnifiedLoanView[] {
+  if (!dateFrom && !dateTo) return views;
+
+  return views.filter((v) => {
+    if (!v.request.createdAt) return false;
+
+    // Extract date portion (YYYY-MM-DD) from createdAt (handles ISO format YYYY-MM-DDTHH:mm:ss)
+    let createdDateStr = v.request.createdAt;
+    if (createdDateStr.includes('T')) {
+      createdDateStr = createdDateStr.split('T')[0];
+    }
+
+    // Ensure format is YYYY-MM-DD before comparison
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(createdDateStr)) {
+      console.warn(`Invalid date format from API: ${v.request.createdAt}`);
+      return true; // Include if we can't parse
+    }
+
+    // Check dateFrom: include if createdDate >= dateFrom
+    if (dateFrom && createdDateStr < dateFrom) {
+      return false;
+    }
+
+    // Check dateTo: include if createdDate <= dateTo
+    if (dateTo && createdDateStr > dateTo) {
+      return false;
+    }
+
+    return true;
+  });
+}

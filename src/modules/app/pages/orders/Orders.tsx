@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, X, CreditCard, Ban, RefreshCw } from "lucide-react";
+import { Plus, X, CreditCard, Ban, RefreshCw, Copy } from "lucide-react";
 import { Button, IconButton, PageHeader } from "../../../../components/ui";
+import { useCopyToClipboard } from "../../../../hooks/useCopyToClipboard";
 import type {
   Customer,
   CreateLoanRequestPayload,
@@ -53,6 +54,7 @@ export function Orders() {
   const { showError, showSuccess, AlertModal } = useAlertModal();
   const { hasPermission, hasAnyPermission } = usePermissions();
   const { language, t } = useLanguage();
+  const { copy } = useCopyToClipboard();
   const isEs = language === "es";
   const { guard } = useActionPermission(isEs ? "es" : "en");
 
@@ -682,9 +684,14 @@ export function Orders() {
             <div className="modal-body space-y-4">
               <p className="text-gray-300 text-sm">
                 {t("orders.rejectModal.bodyPrefix")}{" "}
-                <span className="text-white font-semibold">
+                <button
+                  onClick={() => copy(rejectTarget.request.code ?? rejectTarget.request._id)}
+                  className="text-white font-semibold hover:text-[#FFD700] hover:underline transition-colors inline-flex items-center gap-1 group/copy"
+                  title="Haz click para copiar"
+                >
                   {rejectTarget.request.code ?? rejectTarget.request._id}
-                </span>
+                  <Copy size={14} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+                </button>
                 .
               </p>
               <div className="form-group">
@@ -739,9 +746,14 @@ export function Orders() {
             <div className="modal-body space-y-4">
               <p className="text-gray-300 text-sm">
                 {t("orders.reactivateModal.bodyPrefix")}{" "}
-                <span className="text-white font-semibold">
+                <button
+                  onClick={() => copy(reactivateTarget.request.code ?? reactivateTarget.request._id)}
+                  className="text-white font-semibold hover:text-[#FFD700] hover:underline transition-colors inline-flex items-center gap-1 group/copy"
+                  title="Haz click para copiar"
+                >
                   {reactivateTarget.request.code ?? reactivateTarget.request._id}
-                </span>
+                  <Copy size={14} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+                </button>
                 .
               </p>
               <div className="form-group">
@@ -800,9 +812,14 @@ export function Orders() {
             <div className="modal-body space-y-4">
               <p className="text-gray-300 text-sm">
                 {t("orders.cancelModal.bodyPrefix")}{" "}
-                <span className="text-white font-semibold">
+                <button
+                  onClick={() => copy(cancelTarget.request.code ?? cancelTarget.request._id)}
+                  className="text-white font-semibold hover:text-[#FFD700] hover:underline transition-colors inline-flex items-center gap-1 group/copy"
+                  title="Haz click para copiar"
+                >
                   {cancelTarget.request.code ?? cancelTarget.request._id}
-                </span>
+                  <Copy size={14} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+                </button>
                 .
               </p>
               <div className="form-group">
@@ -866,10 +883,15 @@ export function Orders() {
             </h2>
             <p className="text-zinc-400 text-sm mb-4">
               {t("orders.depositModal.bodyPrefix")}{" "}
-              <span className="text-white font-medium">
+              <button
+                onClick={() => copy(paymentTarget.request.code ?? `#${paymentTarget.request._id.slice(-6).toUpperCase()}`)}
+                className="text-white font-medium hover:text-[#FFD700] hover:underline transition-colors inline-flex items-center gap-1 group/copy"
+                title="Haz click para copiar"
+              >
                 {paymentTarget.request.code ??
                   `#${paymentTarget.request._id.slice(-6).toUpperCase()}`}
-              </span>{" "}
+                <Copy size={14} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+              </button>{" "}
               {t("orders.depositModal.bodySuffix")}
             </p>
             {paymentTarget.request.depositAmount != null && (
@@ -918,10 +940,15 @@ export function Orders() {
             </h2>
             <p className="text-zinc-400 text-sm mb-4">
               {t("orders.rentalModal.bodyPrefix")}{" "}
-              <span className="text-white font-medium">
+              <button
+                onClick={() => copy(rentalPaymentTarget.request.code ?? `#${rentalPaymentTarget.request._id.slice(-6).toUpperCase()}`)}
+                className="text-white font-medium hover:text-[#FFD700] hover:underline transition-colors inline-flex items-center gap-1 group/copy"
+                title="Haz click para copiar"
+              >
                 {rentalPaymentTarget.request.code ??
                   `#${rentalPaymentTarget.request._id.slice(-6).toUpperCase()}`}
-              </span>{" "}
+                <Copy size={14} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+              </button>{" "}
               {t("orders.rentalModal.bodySuffix")}
             </p>
             {rentalPaymentTarget.request.totalAmount != null &&

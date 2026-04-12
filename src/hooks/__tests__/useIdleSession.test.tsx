@@ -2,13 +2,13 @@ import { renderHook } from "@testing-library/react";
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { useIdleSession } from "../useIdleSession";
 
-interface TestCallbacks {
-  onActivity: ReturnType<typeof vi.fn>;
-  onWarning: ReturnType<typeof vi.fn>;
-  onWarningClose: ReturnType<typeof vi.fn>;
-  onTimeout: ReturnType<typeof vi.fn>;
-  onVisible: ReturnType<typeof vi.fn>;
-}
+type TestCallbacks = {
+  onActivity: (timestamp: number) => void;
+  onWarning: () => void;
+  onWarningClose: () => void;
+  onTimeout: () => void;
+  onVisible: () => void;
+};
 
 function setupHook(callbacks: TestCallbacks) {
   return renderHook(() =>

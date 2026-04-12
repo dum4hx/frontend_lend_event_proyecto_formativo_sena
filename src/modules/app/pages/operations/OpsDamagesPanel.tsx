@@ -2,9 +2,10 @@
  * OpsDamagesPanel — Damage resolution queue: pending assessment, repair, and billing.
  */
 import { motion } from "framer-motion";
-import { Hammer, AlertTriangle, DollarSign, User } from "lucide-react";
+import { Hammer, AlertTriangle, DollarSign, User, Copy } from "lucide-react";
 import type { OpsDamageItem, OpsDamagesResponse } from "../../../../types/api";
 import { useLanguage } from "../../../../contexts/useLanguage";
+import { useCopyToClipboard } from "../../../../hooks/useCopyToClipboard";
 import { listItemVariants } from "../../../../lib/animations";
 
 interface OpsDamagesPanelProps {
@@ -50,6 +51,7 @@ function DamageRow({
   index: number;
 }) {
   const { language } = useLanguage();
+  const { copy } = useCopyToClipboard();
   const isEs = language === "es";
   const cfg = phaseConfig[phase];
 
@@ -72,7 +74,14 @@ function DamageRow({
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-zinc-200 truncate">{item.materialTypeName}</p>
         <div className="flex items-center gap-2 text-xs text-zinc-500 mt-0.5">
-          <span className="font-mono">{item.serialNumber}</span>
+          <button
+            onClick={() => copy(item.serialNumber)}
+            className="font-mono hover:text-[#FFD700] hover:underline transition-colors flex items-center gap-1 group/copy"
+            title="Haz click para copiar"
+          >
+            {item.serialNumber}
+            <Copy size={10} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+          </button>
           <span className="text-zinc-600">·</span>
           <User size={10} />
           <span className="truncate">{item.customerName}</span>
