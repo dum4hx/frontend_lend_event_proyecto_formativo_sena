@@ -337,14 +337,20 @@ export const INVOICE_STATUS_MAP: Record<InvoiceStatus, StatusLocale> = {
   draft: { en: "Draft", es: "Borrador" },
   pending: { en: "Pending", es: "Pendiente" },
   paid: { en: "Paid", es: "Pagado" },
+  partially_paid: { en: "Partially Paid", es: "Pago parcial" },
+  overdue: { en: "Overdue", es: "Vencida" },
   cancelled: { en: "Cancelled", es: "Cancelado" },
+  refunded: { en: "Refunded", es: "Reembolsado" },
 };
 
 export const INVOICE_STATUS_COLORS: Record<InvoiceStatus, string> = {
   draft: "badge-warning",
   pending: "badge-warning",
   paid: "badge-success",
+  partially_paid: "badge-info",
+  overdue: "badge-danger",
   cancelled: "badge-danger",
+  refunded: "badge-warning",
 };
 
 export function getInvoiceStatusLabel(status: InvoiceStatus, language: "en" | "es"): string {
@@ -511,6 +517,7 @@ export const CODE_SCHEME_ENTITY_TYPE_MAP: Record<CodeSchemeEntityType, StatusLoc
   incident: { en: "Incident", es: "Incidente" },
   maintenance_batch: { en: "Maintenance Batch", es: "Lote de Mantenimiento" },
   material_instance: { en: "Material Instance", es: "Instancia de Material" },
+  ticket: { en: "Ticket", es: "Ticket" },
 };
 
 export function getCodeSchemeEntityTypeLabel(

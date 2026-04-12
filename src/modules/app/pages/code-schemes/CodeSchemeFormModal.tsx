@@ -23,6 +23,7 @@ const ALL_ENTITY_TYPES: CodeSchemeEntityType[] = [
   "incident",
   "maintenance_batch",
   "material_instance",
+  "ticket",
 ];
 
 interface CodeSchemeFormModalProps {
@@ -183,6 +184,7 @@ export default function CodeSchemeFormModal({
       incident: t("settings.codeSchemes.tabIncident"),
       maintenance_batch: t("settings.codeSchemes.tabMaintenanceBatch"),
       material_instance: t("settings.codeSchemes.tabMaterialInstance"),
+      ticket: t("settings.codeSchemes.tabTicket"),
     };
     return map[et];
   };

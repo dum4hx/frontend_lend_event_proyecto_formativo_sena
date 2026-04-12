@@ -125,31 +125,27 @@ export function useTickets() {
   };
 
   const handleReview = async (id: string) => {
-    const res = await reviewTicket(id);
-    setState((prev) => ({ ...prev, selectedTicket: res.data }));
+    await reviewTicket(id);
+    await fetchDetail(id);
     await fetchTickets(state.page, state.statusFilter, state.typeFilter);
-    return res.data;
   };
 
   const handleApprove = async (id: string, payload?: ApproveTicketPayload) => {
-    const res = await approveTicket(id, payload);
-    setState((prev) => ({ ...prev, selectedTicket: res.data }));
+    await approveTicket(id, payload);
+    await fetchDetail(id);
     await fetchTickets(state.page, state.statusFilter, state.typeFilter);
-    return res.data;
   };
 
   const handleReject = async (id: string, payload: RejectTicketPayload) => {
-    const res = await rejectTicket(id, payload);
-    setState((prev) => ({ ...prev, selectedTicket: res.data }));
+    await rejectTicket(id, payload);
+    await fetchDetail(id);
     await fetchTickets(state.page, state.statusFilter, state.typeFilter);
-    return res.data;
   };
 
   const handleCancel = async (id: string) => {
-    const res = await cancelTicket(id);
-    setState((prev) => ({ ...prev, selectedTicket: res.data }));
+    await cancelTicket(id);
+    await fetchDetail(id);
     await fetchTickets(state.page, state.statusFilter, state.typeFilter);
-    return res.data;
   };
 
   return {

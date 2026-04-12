@@ -55,8 +55,8 @@ export const TicketRejectModal: React.FC<TicketRejectModalProps> = ({
               <XCircle size={18} className="text-red-400" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white">{t("tickets.reject")}</h2>
-              <p className="text-xs text-gray-500 font-mono">{ticketId.slice(0, 12)}…</p>
+              <h2 className="text-lg font-bold text-white">{t("tickets.action.rejectTitle")}</h2>
+              <p className="text-xs text-gray-500 font-mono">#{ticketId.slice(-8).toUpperCase()}</p>
             </div>
           </div>
           <button
@@ -68,7 +68,7 @@ export const TicketRejectModal: React.FC<TicketRejectModalProps> = ({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          <p className="text-sm text-gray-400">{t("tickets.confirmReject")}</p>
+          <p className="text-sm text-gray-400">{t("tickets.action.rejectConfirm")}</p>
 
           <div>
             <label className="block text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">
@@ -110,7 +110,7 @@ export const TicketRejectModal: React.FC<TicketRejectModalProps> = ({
                   : "bg-[#333] text-gray-500 cursor-not-allowed opacity-50"
               }`}
             >
-              {submitting ? t("common.saving") : t("tickets.reject")}
+              {submitting ? t("common.saving") : t("tickets.action.reject")}
             </button>
           </div>
         </form>

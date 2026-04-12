@@ -76,6 +76,7 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
   const [materialsError, setMaterialsError] = useState<string | null>(null);
   const [materialsReloadNonce, setMaterialsReloadNonce] = useState(0);
   const [inspectionNumber, setInspectionNumber] = useState<string | null>(null);
+  const [inspectionDate, setInspectionDate] = useState<string | null>(null);
   const [relatedInvoiceId, setRelatedInvoiceId] = useState<string | null>(null);
   const [invoiceLookupLoading, setInvoiceLookupLoading] = useState(false);
   const [invoiceLookupError, setInvoiceLookupError] = useState<string | null>(null);
@@ -114,10 +115,15 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
       try {
         const res = await getInspections({ loanId: view.loan!._id, limit: 1 });
         if (!cancelled && res.data.inspections.length > 0) {
-          setInspectionNumber(res.data.inspections[0].inspectionNumber ?? null);
+          const inspection = res.data.inspections[0];
+          setInspectionNumber(inspection.inspectionNumber ?? null);
+          setInspectionDate(inspection.createdAt ?? null);
         }
       } catch {
-        if (!cancelled) setInspectionNumber(null);
+        if (!cancelled) {
+          setInspectionNumber(null);
+          setInspectionDate(null);
+        }
       }
     }
     fetchInspection();
@@ -194,7 +200,11 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
       materialTypeId: materialsTypeId || undefined,
     };
 
-    const signature = JSON.stringify({ loanId: view.loan._id, params, reload: materialsReloadNonce });
+    const signature = JSON.stringify({
+      loanId: view.loan._id,
+      params,
+      reload: materialsReloadNonce,
+    });
     if (signature === requestSignatureRef.current) return;
     requestSignatureRef.current = signature;
 
@@ -415,6 +425,7 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
           <div className="p-6 md:p-7 space-y-5 max-h-[calc(92vh-84px)] overflow-y-auto">
             {/* Basic info grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Row 1 */}
               <div>
                 <p className="text-gray-500 text-sm">{t("loans.detail.loanCode")}</p>
                 <p className="text-white font-semibold break-all font-mono">{code}</p>
@@ -429,14 +440,6 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
                 />
               </div>
               <div>
-                <p className="text-gray-500 text-sm">{t("loans.detail.startDate")}</p>
-                <p className="text-gray-300">{formatDate(req.startDate)}</p>
-              </div>
-              <div>
-                <p className="text-gray-500 text-sm">{t("loans.detail.endDate")}</p>
-                <p className="text-gray-300">{formatDate(req.endDate)}</p>
-              </div>
-              <div>
                 <p className="text-gray-500 text-sm">{t("loans.detail.requestCreatedAt")}</p>
                 <p className="text-gray-300">
                   {req.createdAt ? (
@@ -446,6 +449,7 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
                   )}
                 </p>
               </div>
+              {/* Row 2 */}
               <div>
                 <p className="text-gray-500 text-sm">{t("loans.detail.createdBy")}</p>
                 <p className="text-gray-300">
@@ -476,16 +480,7 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
                   )}
                 </p>
               </div>
-              <div>
-                <p className="text-gray-500 text-sm">{t("loans.detail.loanCreatedAt")}</p>
-                <p className="text-gray-300">
-                  {loanDetail?.createdAt ? (
-                    formatDate(loanDetail.createdAt)
-                  ) : (
-                    <span className="text-gray-600 italic text-xs">{t("loans.detail.notSet")}</span>
-                  )}
-                </p>
-              </div>
+              {/* Row 3 */}
               <div>
                 <p className="text-gray-500 text-sm">{t("loans.detail.checkedOutAt")}</p>
                 <p className="text-gray-300">
@@ -507,16 +502,6 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
                 </p>
               </div>
               <div>
-                <p className="text-gray-500 text-sm">{t("loans.detail.preparedAt")}</p>
-                <p className="text-gray-300">
-                  {loanDetail?.preparedAt ? (
-                    formatDate(loanDetail.preparedAt)
-                  ) : (
-                    <span className="text-gray-600 italic text-xs">{t("loans.detail.notSet")}</span>
-                  )}
-                </p>
-              </div>
-              <div>
                 <p className="text-gray-500 text-sm">{t("loans.detail.preparedBy")}</p>
                 <p className="text-gray-300">
                   {loanDetail?.preparedBy ? (
@@ -526,21 +511,33 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
                   )}
                 </p>
               </div>
-              {inspectionNumber && (
+              {/* Row 4 */}
+              <div>
+                <p className="text-gray-500 text-sm">{t("loans.detail.startDate")}</p>
+                <p className="text-gray-300">{formatDate(req.startDate)}</p>
+              </div>
+              <div>
+                <p className="text-gray-500 text-sm">{t("loans.detail.endDate")}</p>
+                <p className="text-gray-300">{formatDate(req.endDate)}</p>
+              </div>
+              <div>
+                <p className="text-gray-500 text-sm">{t("loans.detail.inspectionDone")}</p>
+                {inspectionNumber ? (
+                  <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                    <span className="text-green-400 font-semibold">{isEs ? "S\u00ed" : "Yes"}</span>
+                    <span className="text-white font-semibold font-mono text-xs">
+                      {inspectionNumber}
+                    </span>
+                  </div>
+                ) : (
+                  <p className="text-gray-400 mt-0.5">{isEs ? "Pendiente" : "Pending"}</p>
+                )}
+              </div>
+              {/* Row 5 */}
+              {inspectionNumber && inspectionDate && (
                 <div>
-                  <p className="text-gray-500 text-sm">{t("loans.detail.inspectionDone")}</p>
-                  {inspectionNumber ? (
-                    <div className="flex items-center gap-2 flex-wrap mt-0.5">
-                      <span className="text-green-400 font-semibold">
-                        {isEs ? "S\u00ed" : "Yes"}
-                      </span>
-                      <span className="text-white font-semibold font-mono text-xs">
-                        {inspectionNumber}
-                      </span>
-                    </div>
-                  ) : (
-                    <p className="text-red-400 font-semibold">{isEs ? "No" : "No"}</p>
-                  )}
+                  <p className="text-gray-500 text-sm">{t("loans.detail.inspectionDate")}</p>
+                  <p className="text-gray-300">{formatDate(inspectionDate)}</p>
                 </div>
               )}
             </div>
@@ -775,7 +772,10 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between gap-3" data-help-id="loans-detail-materials-meta">
+                <div
+                  className="flex items-center justify-between gap-3"
+                  data-help-id="loans-detail-materials-meta"
+                >
                   <p className="text-xs text-gray-400">
                     {t("loans.detail.materials.totalResults", { count: materialsTotal })}
                   </p>
@@ -813,7 +813,9 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
 
                 {!materialsError && !materialsLoading && materials.length === 0 && (
                   <div className="rounded-lg border border-[#333] bg-[#171717] px-4 py-6 text-center">
-                    <p className="text-sm text-gray-300">{t("loans.detail.materials.emptyTitle")}</p>
+                    <p className="text-sm text-gray-300">
+                      {t("loans.detail.materials.emptyTitle")}
+                    </p>
                     <p className="mt-1 text-xs text-gray-500">
                       {t("loans.detail.materials.emptyDescription")}
                     </p>
@@ -829,11 +831,17 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
                       <table className="min-w-full text-sm">
                         <thead className="bg-[#1b1b1b] border-b border-[#333]">
                           <tr className="text-left text-xs uppercase tracking-wide text-gray-400">
-                            <th className="px-3 py-2">{t("loans.detail.materials.table.serial")}</th>
-                            <th className="px-3 py-2">{t("loans.detail.materials.table.barcode")}</th>
+                            <th className="px-3 py-2">
+                              {t("loans.detail.materials.table.serial")}
+                            </th>
+                            <th className="px-3 py-2">
+                              {t("loans.detail.materials.table.barcode")}
+                            </th>
                             <th className="px-3 py-2">{t("loans.detail.materials.table.name")}</th>
                             <th className="px-3 py-2">{t("loans.detail.materials.table.type")}</th>
-                            <th className="px-3 py-2">{t("loans.detail.materials.table.status")}</th>
+                            <th className="px-3 py-2">
+                              {t("loans.detail.materials.table.status")}
+                            </th>
                             <th className="px-3 py-2">
                               {t("loans.detail.materials.table.conditionAtCheckout")}
                             </th>
@@ -872,7 +880,9 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
                                     onClick={(event) => {
                                       event.preventDefault();
                                       event.stopPropagation();
-                                      void handleCopyValue(entry.materialInstanceId.barcode as string);
+                                      void handleCopyValue(
+                                        entry.materialInstanceId.barcode as string,
+                                      );
                                     }}
                                     className="text-[#E8E8E8] hover:text-[#FFD700] underline decoration-dotted underline-offset-2 transition-colors inline-flex items-center gap-1 group/copy cursor-pointer"
                                     title={t("loans.detail.materials.copyBarcode")}
@@ -889,16 +899,24 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
                                 )}
                               </td>
                               <td className="px-3 py-2">{getMaterialDisplayName(entry)}</td>
-                              <td className="px-3 py-2">{entry.materialType?.name ?? t("loans.detail.notSet")}</td>
+                              <td className="px-3 py-2">
+                                {entry.materialType?.name ?? t("loans.detail.notSet")}
+                              </td>
                               <td className="px-3 py-2">
                                 {getMaterialInstanceStatusLabel(
                                   entry.materialInstanceId.status as MaterialInstanceStatus,
                                   lang,
                                 )}
                               </td>
-                              <td className="px-3 py-2">{formatCondition(entry.conditionAtCheckout)}</td>
-                              <td className="px-3 py-2">{formatCondition(entry.conditionAtReturn)}</td>
-                              <td className="px-3 py-2">{entry.notes || t("loans.detail.notSet")}</td>
+                              <td className="px-3 py-2">
+                                {formatCondition(entry.conditionAtCheckout)}
+                              </td>
+                              <td className="px-3 py-2">
+                                {formatCondition(entry.conditionAtReturn)}
+                              </td>
+                              <td className="px-3 py-2">
+                                {entry.notes || t("loans.detail.notSet")}
+                              </td>
                             </tr>
                           ))}
                         </tbody>

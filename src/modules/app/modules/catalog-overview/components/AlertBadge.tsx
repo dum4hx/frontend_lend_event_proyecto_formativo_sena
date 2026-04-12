@@ -1,12 +1,13 @@
 import React from "react";
 import type { CatalogMaterialTypeAlert } from "../../../../../types/api";
+import { useLanguage } from "../../../../../contexts/useLanguage";
 
-/** Human-readable labels for each alert type. */
-const ALERT_LABELS: Record<CatalogMaterialTypeAlert["type"], string> = {
-  LOW_STOCK: "Low Stock",
-  HIGH_UTILIZATION: "High Use",
-  HIGH_DAMAGE_RATE: "Damage",
-  OVER_RESERVED: "Over-Reserved",
+/** Bilingual labels for each alert type. */
+const ALERT_LABELS: Record<CatalogMaterialTypeAlert["type"], { en: string; es: string }> = {
+  LOW_STOCK: { en: "Low Stock", es: "Stock bajo" },
+  HIGH_UTILIZATION: { en: "High Use", es: "Uso alto" },
+  HIGH_DAMAGE_RATE: { en: "Damage", es: "Daño" },
+  OVER_RESERVED: { en: "Over-Reserved", es: "Sobre-reservado" },
 };
 
 interface AlertBadgeProps {
@@ -21,7 +22,9 @@ interface AlertBadgeProps {
  * - `medium` severity → amber/yellow background
  */
 export const AlertBadge: React.FC<AlertBadgeProps> = ({ alert }) => {
+  const { language } = useLanguage();
   const isHigh = alert.severity === "high";
+  const lang = language === "es" ? "es" : "en";
 
   return (
     <span
@@ -29,7 +32,7 @@ export const AlertBadge: React.FC<AlertBadgeProps> = ({ alert }) => {
         isHigh ? "bg-red-500/20 text-red-400" : "bg-amber-500/20 text-amber-400"
       }`}
     >
-      {ALERT_LABELS[alert.type]}
+      {ALERT_LABELS[alert.type][lang]}
     </span>
   );
 };

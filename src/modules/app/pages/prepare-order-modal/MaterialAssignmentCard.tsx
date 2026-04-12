@@ -1,4 +1,4 @@
-import { CheckCircle2, Package as PackageIcon, Zap } from "lucide-react";
+import { CheckCircle2, Package as PackageIcon } from "lucide-react";
 import type { AvailableMaterialInstance } from "../../../../types/api";
 import type { MaterialTypeRow } from "./types";
 import { useLanguage } from "../../../../contexts/useLanguage";
@@ -7,14 +7,12 @@ interface MaterialAssignmentCardProps {
   row: MaterialTypeRow;
   selected: string[];
   onToggleInstance: (materialTypeId: string, instanceId: string, requiredQty: number) => void;
-  onAutoAssign: (row: MaterialTypeRow) => void;
 }
 
 export default function MaterialAssignmentCard({
   row,
   selected,
   onToggleInstance,
-  onAutoAssign,
 }: MaterialAssignmentCardProps) {
   const isFulfilled = selected.length >= row.quantity;
   const { t } = useLanguage();
@@ -80,13 +78,6 @@ export default function MaterialAssignmentCard({
             {selected.length}/{row.quantity}
           </span>
         </div>
-        <button
-          className="text-xs text-[#FFD700] hover:underline flex items-center gap-1 flex-shrink-0"
-          onClick={() => onAutoAssign(row)}
-        >
-          <Zap size={10} />
-          {t("orders.prepare.autoAssign")}
-        </button>
       </div>
 
       {/* Instance badges */}

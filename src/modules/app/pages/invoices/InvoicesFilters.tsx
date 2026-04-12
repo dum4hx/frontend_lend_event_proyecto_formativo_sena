@@ -81,9 +81,13 @@ export function InvoicesFilters({
             className="bg-[#121212] border border-[#222] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-[#FFD700] transition-all"
           >
             <option value="all">{isEs ? "Todos los estados" : "All Statuses"}</option>
+            <option value="draft">{isEs ? "Borrador" : "Draft"}</option>
             <option value="pending">{isEs ? "Pendiente" : "Pending"}</option>
             <option value="paid">{isEs ? "Pagado" : "Paid"}</option>
+            <option value="partially_paid">{isEs ? "Pago parcial" : "Partially Paid"}</option>
+            <option value="overdue">{isEs ? "Vencida" : "Overdue"}</option>
             <option value="cancelled">{isEs ? "Cancelado" : "Cancelled"}</option>
+            <option value="refunded">{isEs ? "Reembolsado" : "Refunded"}</option>
           </select>
 
           {/* Type */}

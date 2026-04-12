@@ -107,10 +107,16 @@ export interface OrganizationUsage {
   canAddSeat: boolean;
 }
 
+/** Charge mode for overdue loans. */
+export type LateFeeMode = "fixed" | "percentage";
+
 /** Organization policy settings managed via GET/PATCH /organizations/settings. */
 export interface OrganizationSettings {
   damageDueDays: number;
   requireFullPaymentBeforeCheckout: boolean;
+  lateFeeMode: LateFeeMode;
+  lateFeeValue: number;
+  lateFeeDueDays: number;
 }
 
 // ─── Subscription Types ────────────────────────────────────────────────────
@@ -853,7 +859,14 @@ export interface IncidentQueryParams {
 
 // ─── Invoices ──────────────────────────────────────────────────────────────
 
-export type InvoiceStatus = "draft" | "pending" | "paid" | "cancelled";
+export type InvoiceStatus =
+  | "draft"
+  | "pending"
+  | "paid"
+  | "partially_paid"
+  | "overdue"
+  | "cancelled"
+  | "refunded";
 export type InvoiceType = "rental" | "damage" | "deposit";
 
 export interface InvoiceLineItem {
@@ -1806,6 +1819,7 @@ export interface TransferRequestItem {
 /** A transfer request (planning stage). */
 export interface TransferRequest {
   _id: string;
+  code?: string;
   fromLocationId: string;
   toLocationId: string;
   requestedBy: string;
@@ -1833,6 +1847,7 @@ export interface ReceiveTransferItem {
 
 export interface Transfer {
   _id: string;
+  code?: string;
   requestId?: string;
   fromLocationId: string;
   toLocationId: string;
@@ -3171,7 +3186,8 @@ export type CodeSchemeEntityType =
   | "inspection"
   | "incident"
   | "maintenance_batch"
-  | "material_instance";
+  | "material_instance"
+  | "ticket";
 
 /** A code scheme returned by the API. */
 export interface CodeScheme {
@@ -3484,6 +3500,7 @@ export type TicketPayload =
 /** Full ticket entity returned by GET /tickets/:id. */
 export interface Ticket {
   _id: string;
+  code?: string;
   organizationId: string;
   locationId: string;
   type: TicketType;
@@ -3497,6 +3514,11 @@ export interface Ticket {
   reviewedBy?: string;
   reviewedAt?: string;
   resolutionNote?: string;
+  resolutionEntities?: {
+    entityId: string;
+    entityType: string;
+    _id: string;
+  }[];
   createdAt: string;
   updatedAt: string;
 }
@@ -3504,6 +3526,7 @@ export interface Ticket {
 /** Slim ticket item returned in GET /tickets list responses. */
 export interface TicketListItem {
   _id: string;
+  code?: string;
   type: TicketType;
   status: TicketStatus;
   title: string;
@@ -3540,6 +3563,27 @@ export interface ApproveTicketPayload {
 /** Body for PATCH /tickets/:id/reject. */
 export interface RejectTicketPayload {
   resolutionNote: string;
+}
+
+export interface TicketFulfillmentAvailableItem {
+  materialTypeId: string;
+  requestedQuantity: number;
+  availableQuantity: number;
+}
+
+export interface TicketFulfillmentOption {
+  location: {
+    _id: string;
+    name: string;
+    code?: string;
+  };
+  satisfiesAll: boolean;
+  availableItems: TicketFulfillmentAvailableItem[];
+}
+
+export interface CreateTicketTransferPayload {
+  fromLocationId: string;
+  notes?: string;
 }
 
 /** A single user entry returned by GET /tickets/:id/capable-users. */

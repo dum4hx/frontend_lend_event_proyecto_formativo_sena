@@ -38,6 +38,7 @@ const ENTITY_TABS: CodeSchemeEntityType[] = [
   "incident",
   "maintenance_batch",
   "material_instance",
+  "ticket",
 ];
 
 /**
@@ -196,6 +197,7 @@ export default function CodeSchemes() {
       incident: t("settings.codeSchemes.tabIncident"),
       maintenance_batch: t("settings.codeSchemes.tabMaintenanceBatch"),
       material_instance: t("settings.codeSchemes.tabMaterialInstance"),
+      ticket: t("settings.codeSchemes.tabTicket"),
     };
     return map[et];
   };

@@ -291,7 +291,14 @@ export function filterByStates(
   selectedStates: UnifiedLoanStatus[],
 ): UnifiedLoanView[] {
   if (selectedStates.length === 0) return views;
-  return views.filter((v) => selectedStates.includes(v.status));
+  return views.filter((v) => {
+    if (selectedStates.includes(v.status)) return true;
+    // Map "returned" filter to naturally include "inspected" since they share labels visually
+    if (selectedStates.includes("returned") && v.status === "inspected") return true;
+    // Map "approved" filter to naturally include "assigned" (Materiales Preparados)
+    if (selectedStates.includes("approved") && v.status === "assigned") return true;
+    return false;
+  });
 }
 
 export function filterByDateRange(
@@ -306,8 +313,8 @@ export function filterByDateRange(
 
     // Extract date portion (YYYY-MM-DD) from createdAt (handles ISO format YYYY-MM-DDTHH:mm:ss)
     let createdDateStr = v.request.createdAt;
-    if (createdDateStr.includes('T')) {
-      createdDateStr = createdDateStr.split('T')[0];
+    if (createdDateStr.includes("T")) {
+      createdDateStr = createdDateStr.split("T")[0];
     }
 
     // Ensure format is YYYY-MM-DD before comparison

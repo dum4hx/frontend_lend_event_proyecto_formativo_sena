@@ -1,9 +1,13 @@
-import React from "react";
-import { X, Eye, ClipboardCheck, CheckCircle, XCircle, Ban } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { X, Eye, ClipboardCheck, CheckCircle, XCircle, Ban, Package } from "lucide-react";
 import { StatusBadge, LoadingSpinner } from "../../../../../components/ui";
 import { useLanguage } from "../../../../../contexts/useLanguage";
 import { usePermissions } from "../../../../../contexts/usePermissions";
 import { useActionPermission } from "../../../../../hooks/useActionPermission";
+import { getLocations } from "../../../../../services/warehouseOperatorService";
+import { getMaterialTypes } from "../../../../../services/materialService";
+import { getTransferRequest, getTransfer } from "../../../../../services/transferService";
+import { TicketFulfillmentModal } from "./TicketFulfillmentModal";
 import type {
   Ticket,
   TicketTransferRequestPayload,
@@ -59,6 +63,45 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
   const canApprove = hasPermission("tickets:approve");
   const canReject = hasPermission("tickets:reject");
   const canCancel = hasPermission("tickets:cancel");
+  const canCreateTransfer = hasPermission("transfers:create");
+
+  const [showFulfillmentModal, setShowFulfillmentModal] = useState(false);
+
+  // Local dictionaries for resolving raw IDs if backend payload isn't populated
+  const [locationsStore, setLocationsStore] = useState<Record<string, string>>({});
+  const [materialsStore, setMaterialsStore] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadDictionaries = async () => {
+      try {
+        const [locRes, mtRes] = await Promise.all([
+          getLocations({ limit: 100 }),
+          getMaterialTypes({ limit: 100 }),
+        ]);
+        if (cancelled) return;
+
+        const locMap: Record<string, string> = {};
+        for (const loc of locRes.data.items ?? []) {
+          locMap[loc._id] = loc.name;
+        }
+
+        const mtMap: Record<string, string> = {};
+        for (const mt of mtRes.data.materialTypes ?? []) {
+          mtMap[mt._id] = mt.code ? `${mt.name} (${mt.code})` : mt.name;
+        }
+
+        setLocationsStore(locMap);
+        setMaterialsStore(mtMap);
+      } catch {
+        // Silently ignore dictionary load errors
+      }
+    };
+    loadDictionaries();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const isTerminal =
     ticket.status === "approved" ||
@@ -71,8 +114,8 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
    * Safely extracts a human-readable string from either a string ID or a
    * populated object { _id, name, code?, firstName?, firstSurname? }.
    */
-  const resolveDisplay = (val: unknown): string => {
-    if (typeof val === "string") return val;
+  const resolveDisplay = (val: unknown, dict?: Record<string, string>): string => {
+    if (typeof val === "string") return dict?.[val] || val;
     if (val && typeof val === "object") {
       const obj = val as Record<string, unknown>;
       // User-like object: { name: { firstName, firstSurname } }
@@ -84,9 +127,30 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
       if (typeof obj.name === "string") {
         return obj.code ? `${obj.name} (${obj.code})` : obj.name;
       }
-      if (typeof obj._id === "string") return obj._id;
+      if (typeof obj._id === "string") return dict?.[obj._id] || obj._id;
     }
     return String(val ?? "");
+  };
+
+  /**
+   * Specifically resolves a populated user and renders their name and email (if present).
+   */
+  const resolveUserDisplay = (val: unknown): React.ReactNode => {
+    const rawStr = resolveDisplay(val);
+    let email = "";
+    if (val && typeof val === "object") {
+      const obj = val as Record<string, unknown>;
+      if (typeof obj.email === "string") email = obj.email;
+    }
+
+    if (!email) return <span className="font-mono">{rawStr}</span>;
+
+    return (
+      <div className="flex flex-col">
+        <span>{rawStr}</span>
+        <span className="text-xs text-gray-500 font-mono mt-0.5">{email}</span>
+      </div>
+    );
   };
 
   const renderPayload = () => {
@@ -95,7 +159,11 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
         const p = ticket.payload as TicketTransferRequestPayload;
         return (
           <div className="space-y-2">
-            <InfoRow label={t("tickets.payload.toLocation")} value={resolveDisplay(p.toLocationId)} mono />
+            <InfoRow
+              label={t("tickets.payload.toLocation")}
+              value={resolveDisplay(p.toLocationId, locationsStore)}
+              mono
+            />
             {p.neededBy && (
               <InfoRow label={t("tickets.payload.neededBy")} value={formatDate(p.neededBy)} />
             )}
@@ -111,7 +179,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
                       className="text-xs text-gray-300 bg-[#0d0d0d] rounded px-3 py-1.5 flex justify-between"
                     >
                       <span className="font-mono">
-                        {resolveDisplay(item.materialTypeId)}
+                        {resolveDisplay(item.materialTypeId, materialsStore)}
                       </span>
                       <span className="text-white font-semibold">×{item.quantity}</span>
                     </div>
@@ -222,7 +290,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
             <div>
               <h2 className="text-lg font-bold text-white">{t("tickets.viewDetail")}</h2>
               <p className="text-xs text-gray-500 font-mono">
-                #{ticket._id.slice(-8).toUpperCase()}
+                #{ticket.code || ticket._id.slice(-8).toUpperCase()}
               </p>
             </div>
           </div>
@@ -252,50 +320,102 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
             </div>
 
             {/* Core fields */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <InfoRow label={t("tickets.field.title")} value={ticket.title} />
-              {ticket.description && (
-                <InfoRow label={t("tickets.field.description")} value={ticket.description} full />
-              )}
-              <InfoRow label={t("tickets.field.location")} value={resolveDisplay(ticket.locationId)} mono />
-              <InfoRow label={t("tickets.field.creator")} value={resolveDisplay(ticket.createdBy)} mono />
-              {ticket.assigneeId && (
-                <InfoRow label={t("tickets.field.assignee")} value={resolveDisplay(ticket.assigneeId)} mono />
-              )}
-              {ticket.responseDeadline && (
+            <div className="bg-[#111] border border-[#222] rounded-xl p-4">
+              <h3 className="text-sm font-bold text-white mb-4 border-b border-[#222] pb-2">
+                {t("tickets.field.generalInfo")}
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <InfoRow label={t("tickets.field.title")} value={ticket.title} />
                 <InfoRow
-                  label={t("tickets.field.responseDeadline")}
-                  value={formatDate(ticket.responseDeadline)}
+                  label={t("tickets.field.location")}
+                  value={resolveDisplay(ticket.locationId, locationsStore)}
+                  mono
                 />
-              )}
-              <InfoRow label={t("tickets.field.createdAt")} value={formatDate(ticket.createdAt)} />
-              <InfoRow label={t("tickets.field.updatedAt")} value={formatDate(ticket.updatedAt)} />
-              {ticket.reviewedBy && (
-                <InfoRow label={t("tickets.field.reviewedBy")} value={resolveDisplay(ticket.reviewedBy)} mono />
-              )}
-              {ticket.reviewedAt && (
+                {ticket.description && (
+                  <InfoRow label={t("tickets.field.description")} value={ticket.description} full />
+                )}
+                {ticket.responseDeadline && (
+                  <InfoRow
+                    label={t("tickets.field.responseDeadline")}
+                    value={formatDate(ticket.responseDeadline)}
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* Tracking / Metadata */}
+            <div className="bg-[#111] border border-[#222] rounded-xl p-4">
+              <h3 className="text-sm font-bold text-white mb-4 border-b border-[#222] pb-2">
+                {t("tickets.field.trackingInfo")}
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <InfoRow
-                  label={t("tickets.field.reviewedAt")}
-                  value={formatDate(ticket.reviewedAt)}
+                  label={t("tickets.field.creator")}
+                  value={resolveUserDisplay(ticket.createdBy)}
                 />
-              )}
-              {ticket.resolutionNote && (
+                {ticket.assigneeId && (
+                  <InfoRow
+                    label={t("tickets.field.assignee")}
+                    value={resolveUserDisplay(ticket.assigneeId)}
+                  />
+                )}
                 <InfoRow
-                  label={t("tickets.field.resolutionNote")}
-                  value={ticket.resolutionNote}
-                  full
+                  label={t("tickets.field.createdAt")}
+                  value={formatDate(ticket.createdAt)}
                 />
-              )}
+                <InfoRow
+                  label={t("tickets.field.updatedAt")}
+                  value={formatDate(ticket.updatedAt)}
+                />
+                {ticket.reviewedBy && (
+                  <InfoRow
+                    label={t("tickets.field.reviewedBy")}
+                    value={resolveUserDisplay(ticket.reviewedBy)}
+                  />
+                )}
+                {ticket.reviewedAt && (
+                  <InfoRow
+                    label={t("tickets.field.reviewedAt")}
+                    value={formatDate(ticket.reviewedAt)}
+                  />
+                )}
+                {ticket.resolutionNote && (
+                  <InfoRow
+                    label={t("tickets.field.resolutionNote")}
+                    value={ticket.resolutionNote}
+                    full
+                  />
+                )}
+              </div>
             </div>
 
             {/* Payload section */}
-            <div className="border-t border-[#222] pt-4">
-              <h3 className="text-sm font-bold text-white mb-3">{t("tickets.field.payload")}</h3>
+            <div className="bg-[#111] border border-[#222] rounded-xl p-4">
+              <h3 className="text-sm font-bold text-white mb-4 border-b border-[#222] pb-2">
+                {t("tickets.field.payload")}
+              </h3>
               {renderPayload()}
             </div>
 
+            {/* Resolution Entities */}
+            {ticket.resolutionEntities && ticket.resolutionEntities.length > 0 && (
+              <div className="bg-[#111] border border-[#222] rounded-xl p-4">
+                <h3 className="text-sm font-bold text-white mb-4 border-b border-[#222] pb-2">
+                  {t("tickets.field.resolutionEntities")}
+                </h3>
+                <div className="flex flex-col gap-2">
+                  {ticket.resolutionEntities.map((entity, idx) => {
+                    const idStr = resolveDisplay(entity.entityId);
+                    return (
+                      <ResolutionEntityRow key={idx} entity={entity} fallbackDisplay={idStr} />
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Actions */}
-            {!isTerminal && (
+            {!isTerminal ? (
               <div
                 className="flex flex-wrap gap-3 border-t border-[#222] pt-4"
                 data-help-id="tickets-detail-actions"
@@ -341,10 +461,106 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
                   </button>
                 )}
               </div>
+            ) : (
+              ticket.status === "approved" &&
+              ticket.type === "transfer_request" &&
+              canCreateTransfer && (
+                <div
+                  className="flex flex-wrap gap-3 border-t border-[#222] pt-4"
+                  data-help-id="tickets-detail-fulfillment-action"
+                >
+                  <button
+                    onClick={guard("transfers:create", () => setShowFulfillmentModal(true))}
+                    aria-disabled={!isAllowed("transfers:create")}
+                    className={`flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-semibold rounded-lg hover:bg-purple-700 transition-colors ${!isAllowed("transfers:create") ? "opacity-50 cursor-not-allowed" : ""}`}
+                  >
+                    <Package size={16} />
+                    {t("tickets.action.createTransfer")}
+                  </button>
+                </div>
+              )
             )}
           </div>
         )}
       </div>
+
+      {showFulfillmentModal && (
+        <TicketFulfillmentModal
+          ticketId={ticket._id}
+          onClose={() => setShowFulfillmentModal(false)}
+          onSuccess={() => {
+            setShowFulfillmentModal(false);
+            onClose();
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+const ResolutionEntityRow: React.FC<{
+  entity: { entityId: string; entityType: string };
+  fallbackDisplay: string;
+}> = ({ entity, fallbackDisplay }) => {
+  const { t } = useLanguage();
+  const [code, setCode] = useState<string | null>(null);
+
+  const safeType = String(
+    entity.entityType || (entity as Record<string, unknown>).entityModel || "",
+  ).toLowerCase();
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchCode = async () => {
+      try {
+        if (safeType === "transferrequest" || safeType === "transfer_request") {
+          const res = await getTransferRequest(entity.entityId);
+          if (!cancelled && res.request?.code) {
+            setCode(res.request.code);
+          }
+        } else if (safeType === "transfer") {
+          const res = await getTransfer(entity.entityId);
+          if (!cancelled && res.data?.transfer?.code) {
+            setCode(res.data.transfer.code);
+          }
+        }
+      } catch {
+        // Ignored
+      }
+    };
+    fetchCode();
+    return () => {
+      cancelled = true;
+    };
+  }, [entity.entityId, safeType]);
+
+  const rawKey = `tickets.resolutionEntity.${safeType}`;
+  let typeLabel = t(rawKey as Parameters<typeof t>[0]);
+  if (typeLabel === rawKey) {
+    if (safeType === "transferrequest" || safeType === "transfer_request") {
+      const explicitKey = t("tickets.resolutionEntity.transferRequest" as Parameters<typeof t>[0]);
+      typeLabel =
+        explicitKey !== "tickets.resolutionEntity.transferRequest"
+          ? explicitKey
+          : "Transfer Request";
+    } else if (safeType === "transfer") {
+      const explicitKey = t("tickets.resolutionEntity.transfer" as Parameters<typeof t>[0]);
+      typeLabel = explicitKey !== "tickets.resolutionEntity.transfer" ? explicitKey : "Transfer";
+    } else {
+      typeLabel =
+        entity.entityType ||
+        String((entity as Record<string, unknown>).entityModel || "Unknown Entity");
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-3">
+      <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">
+        {typeLabel}:
+      </span>
+      <span className="text-sm text-white font-mono bg-[#222] px-2 py-0.5 rounded">
+        {code || fallbackDisplay}
+      </span>
     </div>
   );
 };
@@ -352,12 +568,12 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
 /** Small helper to render a label/value pair. */
 const InfoRow: React.FC<{
   label: string;
-  value: string;
+  value: React.ReactNode;
   mono?: boolean;
   full?: boolean;
 }> = ({ label, value, mono, full }) => (
   <div className={full ? "col-span-full" : ""}>
     <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-0.5">{label}</p>
-    <p className={`text-sm text-gray-200 ${mono ? "font-mono" : ""} break-words`}>{value}</p>
+    <div className={`text-sm text-gray-200 ${mono ? "font-mono" : ""} break-words`}>{value}</div>
   </div>
 );

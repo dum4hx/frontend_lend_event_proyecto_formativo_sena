@@ -184,6 +184,13 @@ export const allNavItems: NavItem[] = [
 
   // -- Commerce --
   {
+    id: "loans",
+    label: "Loans",
+    path: "/app/loans",
+    requiredPermissions: ["loans:read"],
+    section: "Commerce",
+  },
+  {
     id: "invoices",
     label: "Invoices",
     path: "/app/invoices",

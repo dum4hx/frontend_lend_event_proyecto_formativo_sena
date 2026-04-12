@@ -69,6 +69,7 @@ const iconMap: Record<string, React.ReactNode> = {
   "stock-movements": <TrendingDown size={20} />,
   alerts: <AlertCircle size={20} />,
   // Commerce
+  loans: <Wallet size={20} />,
   invoices: <FileText size={20} />,
   reports: <BarChart3 size={20} />,
   pricing: <DollarSign size={20} />,

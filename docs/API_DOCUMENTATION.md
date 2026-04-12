@@ -1647,11 +1647,7 @@ Gets available subscription plans.
         "billingModel": "dynamic",
         "maxCatalogItems": 500,
         "maxSeats": 20,
-        "features": [
-          "Up to 20 team members",
-          "500 catalog items",
-          "Priority support"
-        ],
+        "features": ["Up to 20 team members", "500 catalog items", "Priority support"],
         "basePriceMonthly": 99,
         "pricePerSeat": 4
       }
@@ -1676,7 +1672,10 @@ Gets the current organization's policy settings.
   "data": {
     "settings": {
       "damageDueDays": 30,
-      "requireFullPaymentBeforeCheckout": false
+      "requireFullPaymentBeforeCheckout": false,
+      "lateFeeMode": "fixed",
+      "lateFeeValue": 25000,
+      "lateFeeDueDays": 30
     }
   }
 }
@@ -1684,10 +1683,13 @@ Gets the current organization's policy settings.
 
 **Settings reference:**
 
-| Field                              | Type    | Default | Description                                                                                                      |
-| ---------------------------------- | ------- | ------- | ---------------------------------------------------------------------------------------------------------------- |
-| `damageDueDays`                    | integer | `30`    | Number of days after inspection to set as the due date for damage invoices (1–365).                              |
-| `requireFullPaymentBeforeCheckout` | boolean | `false` | When `true`, `POST /loans/from-request/:requestId` will reject checkout unless the rental fee has been recorded. |
+| Field                              | Type    | Default   | Description                                                                                                       |
+| ---------------------------------- | ------- | --------- | ----------------------------------------------------------------------------------------------------------------- |
+| `damageDueDays`                    | integer | `30`      | Number of days after inspection to set as the due date for damage invoices (1–365).                               |
+| `requireFullPaymentBeforeCheckout` | boolean | `false`   | When `true`, `POST /loans/from-request/:requestId` will reject checkout unless the rental fee has been recorded.  |
+| `lateFeeMode`                      | string  | `"fixed"` | Charge mode for overdue loans: `"fixed"` (fixed amount per day) or `"percentage"` (% of rental subtotal per day). |
+| `lateFeeValue`                     | number  | `0`       | Late fee amount (in fixed mode: amount in cents per day; in percentage mode: decimal value like 0.05 for 5%).     |
+| `lateFeeDueDays`                   | integer | `30`      | Number of days after late fee invoice is generated to set as the due date (1–365).                                |
 
 ---
 
@@ -1697,10 +1699,13 @@ Updates the organization's policy settings. Only the fields provided in the body
 
 **Auth:** `authenticate` + `requirePermission("organization:update")`
 
-| Parameter                        | Location | Type    | Required | Description                                    |
-| -------------------------------- | -------- | ------- | -------- | ---------------------------------------------- |
-| damageDueDays                    | body     | integer | No       | Damage invoice due-date window in days (1–365) |
-| requireFullPaymentBeforeCheckout | body     | boolean | No       | Require rental fee payment before checkout     |
+| Parameter                        | Location | Type    | Required | Description                                                                      |
+| -------------------------------- | -------- | ------- | -------- | -------------------------------------------------------------------------------- |
+| damageDueDays                    | body     | integer | No       | Damage invoice due-date window in days (1–365)                                   |
+| requireFullPaymentBeforeCheckout | body     | boolean | No       | Require rental fee payment before checkout                                       |
+| lateFeeMode                      | body     | string  | No       | Overdue charge mode: `"fixed"` or `"percentage"`                                 |
+| lateFeeValue                     | body     | number  | No       | Late fee amount (cents per day if fixed; decimal if percentage, e.g., 0.05 = 5%) |
+| lateFeeDueDays                   | body     | integer | No       | Days to set as due date for late fee invoices (1–365)                            |
 
 **Response:** `200 OK`
 
@@ -1710,7 +1715,10 @@ Updates the organization's policy settings. Only the fields provided in the body
   "data": {
     "settings": {
       "damageDueDays": 15,
-      "requireFullPaymentBeforeCheckout": true
+      "requireFullPaymentBeforeCheckout": true,
+      "lateFeeMode": "percentage",
+      "lateFeeValue": 0.05,
+      "lateFeeDueDays": 14
     }
   }
 }
@@ -2669,15 +2677,9 @@ Platform usage metrics per organization: loans, users, materials, invoices, cust
         "invoices": 52.6,
         "customers": 21.33
       },
-      "topByLoans": [
-        { "orgName": "Acme Corp", "plan": "professional", "count": 520 }
-      ],
-      "topByInvoices": [
-        { "orgName": "Acme Corp", "plan": "professional", "count": 480 }
-      ],
-      "topByUsers": [
-        { "orgName": "Acme Corp", "plan": "professional", "count": 15 }
-      ],
+      "topByLoans": [{ "orgName": "Acme Corp", "plan": "professional", "count": 520 }],
+      "topByInvoices": [{ "orgName": "Acme Corp", "plan": "professional", "count": 480 }],
+      "topByUsers": [{ "orgName": "Acme Corp", "plan": "professional", "count": 15 }],
       "usageDistribution": [
         { "bucket": "0", "orgCount": 5 },
         { "bucket": "1-10", "orgCount": 20 },
@@ -4452,9 +4454,7 @@ GET /api/v1/materials/catalog/overview?categoryId=<id>&search=tent&page=1&limit=
         "materialTypeId": "64f1a2b3c4d5e6f7a8b9c0d1",
         "name": "Camping Tent 4-person",
         "pricePerDay": 25000,
-        "categories": [
-          { "categoryId": "64f1a2b3c4d5e6f7a8b9c0e1", "name": "Camping" }
-        ],
+        "categories": [{ "categoryId": "64f1a2b3c4d5e6f7a8b9c0e1", "name": "Camping" }],
         "totals": {
           "totalInstances": 20,
           "available": 12,
@@ -4861,9 +4861,7 @@ Returns the details of a single transfer request, with populated references for 
     },
     "fromLocationId": { "_id": "64ea01...", "name": "Bodega Central" },
     "toLocationId": { "_id": "64ea02...", "name": "Sede Norte" },
-    "items": [
-      { "modelId": "64eb11...", "quantity": 3, "fulfilledQuantity": 0 }
-    ],
+    "items": [{ "modelId": "64eb11...", "quantity": 3, "fulfilledQuantity": 0 }],
     "notes": "Urgente para evento del viernes",
     "neededBy": "2026-04-05T00:00:00.000Z",
     "createdAt": "2026-04-02T10:00:00.000Z",
@@ -5615,13 +5613,18 @@ Gets a specific loan with full details. The response includes populated `custome
 
 **Query Parameters:**
 
-| Parameter           | Type    | Required | Description                                                                   |
-| ------------------- | ------- | -------- | ----------------------------------------------------------------------------- |
-| groupByMaterialType | boolean | No       | If `true`, group material instances by material type ID (see response below). |
+| Parameter           | Type    | Required | Description                                                                         |
+| ------------------- | ------- | -------- | ----------------------------------------------------------------------------------- |
+| groupByMaterialType | boolean | No       | If `true`, group material instances by material type ID (see response below).       |
+| materialSearch      | string  | No       | Filtra materiales del préstamo por serial, barcode, nombre, ID de instancia o tipo. |
+
+**Regla de compatibilidad:**
+
+- `materialSearch` no se puede usar junto con `groupByMaterialType=true` (retorna `400 BAD_REQUEST`).
 
 **Fields populated in response:**
 
-- `materialInstances`: Array of instances (default behavior). Each instance includes `materialInstanceId` (with `serialNumber`, `status`, `modelId`, `name`), `materialTypeId`, and `materialType` (with `_id` and `name`).
+- `materialInstances`: Array of instances (default behavior). Cada instancia incluye `materialInstanceId` (con `_id`, `serialNumber`, `barcode`, `status`, `modelId`, `name`), `materialTypeId`, y `materialType` (con `_id` y `name`).
 - `materialInstancesByType`: Object with material type IDs as keys and arrays of instances as values (only when `groupByMaterialType=true`). The `materialInstances` field is omitted in this case. Each instance includes the same populated fields as above.
 
 **Example Response (default):**
@@ -5688,6 +5691,69 @@ When the loan has a deposit (`deposit.amount > 0`), the response includes two co
 | `deposit.refundableAmount` | number  | The remaining deposit amount after subtracting any applied damage charges                        |
 
 These fields are also included in `GET /loans` list responses.
+
+---
+
+#### GET /loans/:id/materials
+
+Lista únicamente los materiales asociados a un préstamo específico, con paginación y filtros para búsquedas en frontend.
+
+**Auth:** `authenticate` + `requireActiveOrganization` + `loans:read`
+
+| Parameter      | Location | Type   | Required | Description                                                                          |
+| -------------- | -------- | ------ | -------- | ------------------------------------------------------------------------------------ |
+| id             | path     | string | Yes      | ID del préstamo                                                                      |
+| page           | query    | number | No       | Número de página (default: `1`)                                                      |
+| limit          | query    | number | No       | Tamaño de página (default: `20`)                                                     |
+| search         | query    | string | No       | Búsqueda parcial por `serialNumber`, `barcode`, nombre de instancia o nombre de tipo |
+| status         | query    | string | No       | Estado de instancia de material (`available`, `loaned`, `returned`, etc.)            |
+| materialTypeId | query    | string | No       | Filtra por tipo de material                                                          |
+
+**Success (200):**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "loan": {
+      "_id": "680f...",
+      "code": "LOAN-00021",
+      "status": "returned"
+    },
+    "materials": [
+      {
+        "materialInstanceId": {
+          "_id": "6810...",
+          "serialNumber": "SN-DEP-001",
+          "barcode": "BC-DEP-001",
+          "status": "returned",
+          "modelId": "680a...",
+          "name": "Proyector Epson"
+        },
+        "materialTypeId": "680a...",
+        "materialType": {
+          "_id": "680a...",
+          "name": "Proyectores"
+        },
+        "conditionAtCheckout": "good",
+        "conditionAtReturn": "good",
+        "notes": "Sin novedades"
+      }
+    ],
+    "total": 1,
+    "page": 1,
+    "totalPages": 1
+  }
+}
+```
+
+**Common errors:**
+
+| Code              | Condition                                 |
+| ----------------- | ----------------------------------------- |
+| `400 BAD_REQUEST` | ID de préstamo o filtros inválidos        |
+| `403 FORBIDDEN`   | Usuario sin permiso `loans:read`          |
+| `404 NOT_FOUND`   | Préstamo no encontrado o fuera de alcance |
 
 ---
 
@@ -5876,9 +5942,7 @@ Lists all loans that have been returned but have not yet been inspected. This en
       {
         "_id": "65e2f3c0e1a2b3c4d5e6f7c3",
         "customerId": { "email": "client@example.com", "name": "Event Co" },
-        "materialInstances": [
-          { "_id": "65e2f3c0e1a2b3c4d5e6f7e5", "serialNumber": "SN-001" }
-        ],
+        "materialInstances": [{ "_id": "65e2f3c0e1a2b3c4d5e6f7e5", "serialNumber": "SN-001" }],
         "startDate": "2026-03-01T10:00:00.000Z",
         "endDate": "2026-03-05T10:00:00.000Z",
         "status": "returned"
@@ -6607,11 +6671,11 @@ Dismisses an open or acknowledged incident. Dismissal means the incident was a f
 
 Lists all invoices.
 
-| Parameter | Location | Type    | Required | Description                    |
-| --------- | -------- | ------- | -------- | ------------------------------ |
-| status    | query    | string  | No       | `pending`, `paid`, `cancelled` |
-| type      | query    | string  | No       | `rental`, `damage`, `deposit`  |
-| overdue   | query    | boolean | No       | Filter overdue invoices        |
+| Parameter | Location | Type    | Required | Description                                                                                                                          |
+| --------- | -------- | ------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| status    | query    | string  | No       | `pending`, `paid`, `partially_paid`, `overdue`, `cancelled`, `refunded`                                                              |
+| type      | query    | string  | No       | `damage`, `late_fee`, `deposit_shortfall`, `additional_service`, `penalty`. (Note: `rental` invoices are auto-generated at checkout) |
+| overdue   | query    | boolean | No       | Filter overdue invoices (status `pending` with `dueDate < now`)                                                                      |
 
 **Response:** `200 OK`
 
@@ -7376,9 +7440,7 @@ When `includeIds=false`, IDs are omitted and each material type includes enriche
           "damaged": 3,
           "maintenance": 2
         },
-        "locationBreakdown": [
-          { "locationName": "Bodega Principal", "count": 30 }
-        ],
+        "locationBreakdown": [{ "locationName": "Bodega Principal", "count": 30 }],
         "utilizationRate": 20.0,
         "availabilityRate": 70.0,
         "damageRate": 6.0,
@@ -8058,9 +8120,7 @@ GET /api/v1/reports/exports/locations?includeIds=false&status=available
       "avgOccupancyRate": 65.5,
       "totalCapacity": 1200,
       "totalOccupied": 786,
-      "topByOccupancy": [
-        { "name": "Bodega Norte", "code": "BN01", "occupancyRate": 95.2 }
-      ]
+      "topByOccupancy": [{ "name": "Bodega Norte", "code": "BN01", "occupancyRate": 95.2 }]
     }
   }
 }
@@ -8291,16 +8351,8 @@ These export endpoints return JSON. The frontend is responsible for converting t
    // Example with SheetJS
    import * as XLSX from "xlsx";
    const wb = XLSX.utils.book_new();
-   XLSX.utils.book_append_sheet(
-     wb,
-     XLSX.utils.json_to_sheet(data.loanRows),
-     "Loans",
-   );
-   XLSX.utils.book_append_sheet(
-     wb,
-     XLSX.utils.json_to_sheet(data.invoiceRows),
-     "Invoices",
-   );
+   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.loanRows), "Loans");
+   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.invoiceRows), "Invoices");
    XLSX.writeFile(wb, "sales-export.xlsx");
    ```
 4. **Period comparison** is automatic when `startDate` and `endDate` are both provided — the API compares against the immediately preceding period of equal duration.
@@ -10328,3 +10380,90 @@ Cancels a ticket. Only the **creator** of the ticket may cancel it.
 - `403` — User is not the creator of the ticket.
 - `404` — Ticket not found.
 - `409` — Invalid status transition (e.g. already approved/rejected/cancelled).
+
+### GET /tickets/:id/fulfillment-options
+
+Busca y devuelve todas las sedes que poseen suficiente inventario para suplir **todos** los requerimientos (`materials/items`) de una solicitud de transferencia (`transfer_request`).
+
+**Permission:** `transfers:create`
+
+**Params:**
+
+- `id` (path): The ticket ID.
+
+**Response `200`:**
+
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "location": {
+        "_id": "673...",
+        "name": "Sede Principal",
+        "code": "SP-001"
+      },
+      "satisfiesAll": true,
+      "availableItems": [
+        {
+          "materialTypeId": "63fa...",
+          "requestedQuantity": 2,
+          "availableQuantity": 5
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Errors:**
+
+- `400` — Invalid ticket ID, not a `transfer_request`, or no valid items payload.
+- `403` — User lacks `transfers:create` permission.
+- `404` — Ticket not found.
+
+### POST /tickets/:id/create-transfer
+
+Genera automáticamente un `TransferRequest` originario a partir de un ticket `transfer_request` previamente aprobado. Esta acción guarda registro de la transferencia generada den el array `resolutionEntities` del ticket.
+
+**Permission:** `transfers:create`
+
+**Request Body:**
+
+| Field          | Type   | Required | Description                                                    |
+| -------------- | ------ | -------- | -------------------------------------------------------------- |
+| fromLocationId | string | Yes      | ID de la sede origen (de donde saldrá el material solicitado). |
+| notes          | string | No       | Notas adicionales sobre la transferencia generada.             |
+
+**Response `201`:**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "ticket": {
+      "_id": "683a...",
+      "status": "approved",
+      "resolutionEntities": [
+        {
+          "entityId": "69fb...",
+          "entityType": "TransferRequest",
+          "_id": "6abc..."
+        }
+      ]
+    },
+    "transferRequest": {
+      "_id": "69fb...",
+      "status": "requested",
+      "fromLocationId": "...",
+      "toLocationId": "..."
+    }
+  }
+}
+```
+
+**Errors:**
+
+- `400` — Ticket no validado, tipo de ticket incorrecto o estado distinto a `approved`.
+- `403` — Carece de permisos para generar transferencias.
+- `404` — Ticket no encontrado.

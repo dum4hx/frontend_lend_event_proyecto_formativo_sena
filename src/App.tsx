@@ -89,6 +89,7 @@ import { TicketsCatalog } from "./modules/app/modules/tickets";
 import { CatalogOverview } from "./modules/app/modules/catalog-overview";
 import TransferRequests from "./modules/app/pages/TransferRequests";
 import OperationsDashboard from "./modules/app/pages/OperationsDashboard";
+import { Loans } from "./modules/app/pages/loans";
 
 // Super Admin — lazy-loaded for code-splitting
 const SuperAdminLayout = lazy(() => import("./modules/super-admin/layouts/SuperAdminLayout"));
@@ -183,6 +184,7 @@ export function AppRoutes() {
           <Route path="payment-methods" element={<PaymentMethods />} />
           <Route path="settings/code-schemes" element={<CodeSchemes />} />
           <Route path="reports" element={<Reports />} />
+          <Route path="loans" element={<Loans />} />
           <Route path="tickets" element={<TicketsCatalog />} />
           <Route path="settings" element={<Settings />} />
           <Route path="subscription" element={<SubscriptionManagement />} />
@@ -298,6 +300,7 @@ function App() {
                     <Route path="payment-methods" element={<PaymentMethods />} />
                     <Route path="settings/code-schemes" element={<CodeSchemes />} />
                     <Route path="reports" element={<Reports />} />
+                    <Route path="loans" element={<Loans />} />
                     <Route path="tickets" element={<TicketsCatalog />} />
                     <Route path="settings" element={<Settings />} />
                     <Route path="subscription" element={<SubscriptionManagement />} />

@@ -586,19 +586,19 @@ export function CreateOrderModal({
     } else if (
       formData.startDate &&
       formData.startDate.includes("T") &&
-      new Date(formData.depositDueDate) < new Date(formData.startDate)
+      new Date(formData.depositDueDate) > new Date(formData.startDate)
     ) {
       nextErrors.depositDueDate = isEs
-        ? "La fecha y hora límite del depósito no puede ser anterior a la fecha y hora de inicio."
-        : "Deposit due date and time cannot be before the start date and time.";
-    } else if (
-      formData.endDate &&
-      formData.endDate.includes("T") &&
-      new Date(formData.depositDueDate) > new Date(formData.endDate)
-    ) {
-      nextErrors.depositDueDate = isEs
-        ? "La fecha y hora límite del depósito no puede ser posterior a la fecha y hora de fin."
-        : "Deposit due date and time cannot be after the end date and time.";
+        ? "La fecha límite del depósito no puede ser posterior a la fecha de inicio."
+        : "Deposit due date cannot be after the start date.";
+    } else if (formData.startDate && formData.startDate.includes("T")) {
+      const minDepositDate = new Date(formData.startDate);
+      minDepositDate.setDate(minDepositDate.getDate() - 10);
+      if (new Date(formData.depositDueDate) < minDepositDate) {
+        nextErrors.depositDueDate = isEs
+          ? "La fecha límite del depósito no puede ser más de 10 días antes de la fecha de inicio."
+          : "Deposit due date cannot be more than 10 days before the start date.";
+      }
     }
 
     const depositAmountValidation = validateDepositAmount(formData.depositAmount);
@@ -683,15 +683,6 @@ export function CreateOrderModal({
           quantity: normalizedQuantity,
         };
       });
-
-    if (selectedPlanId) {
-      parsedItems.unshift({
-        type: "package" as const,
-        referenceId: selectedPlanId,
-        packageId: selectedPlanId,
-        quantity: 1,
-      });
-    }
 
     const payload: CreateLoanRequestPayload = {
       customerId: formData.customerId,
@@ -836,8 +827,16 @@ export function CreateOrderModal({
                     <input
                       type="datetime-local"
                       value={formData.depositDueDate}
-                      min={formData.startDate || undefined}
-                      max={formData.endDate || undefined}
+                      min={
+                        formData.startDate
+                          ? (() => {
+                              const d = new Date(formData.startDate);
+                              d.setDate(d.getDate() - 10);
+                              return d.toISOString().slice(0, 16);
+                            })()
+                          : undefined
+                      }
+                      max={formData.startDate || undefined}
                       onChange={(e) =>
                         setFormData((prev) => ({
                           ...prev,

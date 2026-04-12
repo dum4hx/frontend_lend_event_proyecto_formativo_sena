@@ -57,8 +57,8 @@ export const TicketApproveModal: React.FC<TicketApproveModalProps> = ({
               <CheckCircle size={18} className="text-green-400" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white">{t("tickets.approve")}</h2>
-              <p className="text-xs text-gray-500 font-mono">{ticketId.slice(0, 12)}…</p>
+              <h2 className="text-lg font-bold text-white">{t("tickets.action.approveTitle")}</h2>
+              <p className="text-xs text-gray-500 font-mono">#{ticketId.slice(-8).toUpperCase()}</p>
             </div>
           </div>
           <button
@@ -70,7 +70,7 @@ export const TicketApproveModal: React.FC<TicketApproveModalProps> = ({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          <p className="text-sm text-gray-400">{t("tickets.confirmApprove")}</p>
+          <p className="text-sm text-gray-400">{t("tickets.action.approveConfirm")}</p>
 
           <div>
             <label className="block text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">
@@ -113,7 +113,7 @@ export const TicketApproveModal: React.FC<TicketApproveModalProps> = ({
                   : "bg-[#333] text-gray-500 cursor-not-allowed opacity-50"
               }`}
             >
-              {submitting ? t("common.saving") : t("tickets.approve")}
+              {submitting ? t("common.saving") : t("tickets.action.approve")}
             </button>
           </div>
         </form>

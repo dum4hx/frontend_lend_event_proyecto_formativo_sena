@@ -45,7 +45,7 @@ export interface WorkflowStepDef {
 
 export const UNIFIED_WORKFLOW_STEPS: WorkflowStepDef[] = [
   { status: "pending", labelEn: "Request Created", labelEs: "Solicitud Creada" },
-  { status: "approved", labelEn: "Approved", labelEs: "Aprobada" },
+  { status: "approved", labelEn: "Confirmed", labelEs: "Confirmado" },
   { status: "assigned", labelEn: "Materials Prepared", labelEs: "Materiales Preparados" },
   { status: "ready", labelEn: "Ready for Checkout", labelEs: "Listo para Despacho" },
   { status: "active", labelEn: "Active Loan", labelEs: "Préstamo Activo" },

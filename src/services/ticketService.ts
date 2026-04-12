@@ -17,6 +17,8 @@ import type {
   UpdateTicketPayload,
   TicketCapableUsersData,
   PaginationMeta,
+  TicketFulfillmentOption,
+  CreateTicketTransferPayload,
 } from "../types/api";
 
 // ─── List ──────────────────────────────────────────────────────────────────
@@ -83,6 +85,18 @@ export async function cancelTicket(id: string): Promise<ApiSuccessResponse<Ticke
 // ─── Capable Users ────────────────────────────────────────────────────────
 
 /**
+ * Returns the list of active users in a location who hold the domain-specific
+ * permission needed to fulfill a given ticket type. Does not require an existing ticket.
+ * Endpoint: GET /tickets/capable-users
+ */
+export async function getCapableUsersByQuery(params: {
+  type: string;
+  locationId: string;
+}): Promise<ApiSuccessResponse<TicketCapableUsersData>> {
+  return get<TicketCapableUsersData>("/tickets/capable-users", params as Record<string, string>);
+}
+
+/**
  * Returns the list of active users in the ticket's location who hold the
  * domain-specific permission needed to fulfil the request.
  * Endpoint: GET /tickets/:id/capable-users
@@ -104,4 +118,28 @@ export async function updateTicket(
   payload: UpdateTicketPayload,
 ): Promise<ApiSuccessResponse<Ticket>> {
   return patch<Ticket, UpdateTicketPayload>(`/tickets/${id}`, payload);
+}
+
+// ─── Fulfillment Options ──────────────────────────────────────────────────
+
+/**
+ * Endpoint: GET /tickets/:id/fulfillment-options
+ */
+export async function getTicketFulfillmentOptions(
+  id: string,
+): Promise<ApiSuccessResponse<TicketFulfillmentOption[]>> {
+  return get<TicketFulfillmentOption[]>(`/tickets/${id}/fulfillment-options`);
+}
+
+/**
+ * Endpoint: POST /tickets/:id/create-transfer
+ */
+export async function createTransferFromTicket(
+  id: string,
+  payload: CreateTicketTransferPayload,
+): Promise<ApiSuccessResponse<Record<string, unknown>>> {
+  return post<Record<string, unknown>, CreateTicketTransferPayload>(
+    `/tickets/${id}/create-transfer`,
+    payload,
+  );
 }

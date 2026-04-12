@@ -241,17 +241,6 @@ export default function PrepareOrderModal({
     [],
   );
 
-  // ── Auto-assign available instances for a single row ──
-  const autoAssignRow = useCallback((row: MaterialTypeRow) => {
-    const available = row.currentUserInstances
-      .filter((i) => i.availability === "available")
-      .slice(0, row.quantity);
-    setSelections((prev) => ({
-      ...prev,
-      [row.materialTypeId]: available.map((i) => i._id),
-    }));
-  }, []);
-
   // ── Auto-assign all rows ──
   const autoAssignAll = useCallback(() => {
     const next: Record<string, string[]> = {};
@@ -472,7 +461,6 @@ export default function PrepareOrderModal({
                     row={row}
                     selected={selections[row.materialTypeId] ?? []}
                     onToggleInstance={toggleInstance}
-                    onAutoAssign={autoAssignRow}
                   />
                 ))}
               </div>

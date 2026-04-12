@@ -540,6 +540,126 @@ export default function SettingsModulePanel({
             <p className="text-gray-500 text-xs -mt-2 px-4">
               {t("settings.organization.requireFullPaymentHelp")}
             </p>
+
+            {/* ─── Late fee settings ─────────────────────────────────── */}
+            <div className="border-t border-[#333] pt-4 mt-2">
+              <h4 className="text-md font-semibold text-white mb-3">
+                {t("settings.organization.lateFeeTitle")}
+              </h4>
+              <p className="text-gray-400 text-sm mb-4">
+                {t("settings.organization.lateFeeDescription")}
+              </p>
+
+              {/* Late fee mode */}
+              <div
+                className="bg-[#1a1a1a] border border-[#333] rounded-lg p-4 mb-4"
+                data-help-id="org-late-fee-mode"
+              >
+                <label className="block text-gray-300 text-sm mb-2">
+                  {t("settings.organization.lateFeeModeLabel")}
+                </label>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      canEditOrganization &&
+                      onOrgSettingsChange((prev) =>
+                        prev ? { ...prev, lateFeeMode: "fixed", lateFeeValue: 0 } : prev,
+                      )
+                    }
+                    disabled={!canEditOrganization}
+                    className={`px-4 py-2 rounded-lg border text-sm font-medium transition ${
+                      orgSettings.lateFeeMode === "fixed"
+                        ? "border-[#FFD700] bg-[rgba(255,215,0,0.1)] text-[#FFD700]"
+                        : "border-[#333] text-gray-400 hover:border-[#FFD700]/50"
+                    } ${!canEditOrganization ? "opacity-60 cursor-not-allowed" : ""}`}
+                  >
+                    {t("settings.organization.lateFeeModeFixed")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      canEditOrganization &&
+                      onOrgSettingsChange((prev) =>
+                        prev ? { ...prev, lateFeeMode: "percentage", lateFeeValue: 0 } : prev,
+                      )
+                    }
+                    disabled={!canEditOrganization}
+                    className={`px-4 py-2 rounded-lg border text-sm font-medium transition ${
+                      orgSettings.lateFeeMode === "percentage"
+                        ? "border-[#FFD700] bg-[rgba(255,215,0,0.1)] text-[#FFD700]"
+                        : "border-[#333] text-gray-400 hover:border-[#FFD700]/50"
+                    } ${!canEditOrganization ? "opacity-60 cursor-not-allowed" : ""}`}
+                  >
+                    {t("settings.organization.lateFeeModePercentage")}
+                  </button>
+                </div>
+                <p className="text-gray-500 text-xs mt-2">
+                  {t("settings.organization.lateFeeModeHelp")}
+                </p>
+              </div>
+
+              {/* Late fee value */}
+              <div
+                className="bg-[#1a1a1a] border border-[#333] rounded-lg p-4 mb-4"
+                data-help-id="org-late-fee-value"
+              >
+                <label className="block text-gray-300 text-sm mb-2">
+                  {orgSettings.lateFeeMode === "fixed"
+                    ? t("settings.organization.lateFeeValueFixedLabel")
+                    : t("settings.organization.lateFeeValuePercentageLabel")}
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  step={orgSettings.lateFeeMode === "percentage" ? 0.01 : 1}
+                  value={orgSettings.lateFeeValue}
+                  disabled={!canEditOrganization}
+                  onChange={(e) => {
+                    const raw = Number(e.target.value);
+                    const value = Math.max(0, isNaN(raw) ? 0 : raw);
+                    onOrgSettingsChange((prev) => (prev ? { ...prev, lateFeeValue: value } : prev));
+                  }}
+                  className={`w-full px-4 py-2 bg-[#121212] border border-[#333] rounded text-white focus:outline-none focus:border-[#FFD700] ${
+                    !canEditOrganization ? "opacity-60 cursor-not-allowed" : ""
+                  }`}
+                />
+                <p className="text-gray-500 text-xs mt-1">
+                  {orgSettings.lateFeeMode === "fixed"
+                    ? t("settings.organization.lateFeeValueFixedHelp")
+                    : t("settings.organization.lateFeeValuePercentageHelp")}
+                </p>
+              </div>
+
+              {/* Late fee due days */}
+              <div
+                className="bg-[#1a1a1a] border border-[#333] rounded-lg p-4"
+                data-help-id="org-late-fee-due-days"
+              >
+                <label className="block text-gray-300 text-sm mb-2">
+                  {t("settings.organization.lateFeeDueDaysLabel")}
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={365}
+                  value={orgSettings.lateFeeDueDays}
+                  disabled={!canEditOrganization}
+                  onChange={(e) => {
+                    const value = Math.min(365, Math.max(1, Number(e.target.value) || 1));
+                    onOrgSettingsChange((prev) =>
+                      prev ? { ...prev, lateFeeDueDays: value } : prev,
+                    );
+                  }}
+                  className={`w-full px-4 py-2 bg-[#121212] border border-[#333] rounded text-white focus:outline-none focus:border-[#FFD700] ${
+                    !canEditOrganization ? "opacity-60 cursor-not-allowed" : ""
+                  }`}
+                />
+                <p className="text-gray-500 text-xs mt-1">
+                  {t("settings.organization.lateFeeDueDaysHelp")}
+                </p>
+              </div>
+            </div>
           </div>
         ) : null}
       </div>
@@ -595,7 +715,9 @@ function AccountModulePanel({
       .catch(() => {
         /* silently ignore — locations will remain empty */
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [user?.locations]);
 
   return (
@@ -615,15 +737,16 @@ function AccountModulePanel({
             <span className="inline-block px-2 py-0.5 rounded-full bg-[#FFD700]/10 border border-[#FFD700]/30 text-[#FFD700] text-xs font-medium">
               {user?.roleName}
             </span>
-            {locationNames.length > 0 && locationNames.map((name) => (
-              <span
-                key={name}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-medium"
-              >
-                <MapPin size={11} />
-                {name}
-              </span>
-            ))}
+            {locationNames.length > 0 &&
+              locationNames.map((name) => (
+                <span
+                  key={name}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-medium"
+                >
+                  <MapPin size={11} />
+                  {name}
+                </span>
+              ))}
           </div>
         </div>
       </div>

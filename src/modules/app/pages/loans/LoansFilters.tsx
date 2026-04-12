@@ -23,12 +23,10 @@ const DOT_COLOR: Record<UnifiedLoanStatus, string> = {
 const WORKFLOW_STATES: UnifiedLoanStatus[] = [
   "pending",
   "approved",
-  "assigned",
   "ready",
   "active",
   "overdue",
   "returned",
-  "inspected",
   "closed",
 ];
 
