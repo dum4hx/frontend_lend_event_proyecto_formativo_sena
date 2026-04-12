@@ -31,6 +31,7 @@ export const MaterialTypeCatalog: React.FC = () => {
     materialTypes,
     loading,
     error,
+    refetch,
     removeMaterialType,
     addMaterialType,
     updateMaterialType: updateMaterialTypeData,
@@ -277,7 +278,9 @@ export const MaterialTypeCatalog: React.FC = () => {
           <p className="text-sm text-red-200/80 mb-4">{error}</p>
           <button
             type="button"
-            onClick={() => window.location.reload()}
+            onClick={() => {
+              void refetch();
+            }}
             className="px-4 py-2 rounded-lg border border-[#B88A00] text-[#FFD700] hover:bg-[#FFD700]/10 transition-colors"
           >
             {t("materialTypes.retry")}

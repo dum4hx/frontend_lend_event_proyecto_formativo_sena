@@ -115,6 +115,7 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
           <h2 className="text-2xl font-bold text-white">{t("materialInstances.detail.title")}</h2>
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={handleRefresh}
               disabled={isRefreshing}
               className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-[#1a1a1a] rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
@@ -124,6 +125,7 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
               <RefreshCw size={20} className={isRefreshing ? "animate-spin" : ""} />
             </button>
             <button
+              type="button"
               onClick={onClose}
               className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-[#1a1a1a] rounded-lg"
             >

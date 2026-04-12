@@ -97,8 +97,8 @@ export default function AdminDashboard() {
           actions={
             <IconButton
               icon={RefreshCw}
-              onClick={() => window.location.reload()}
-              disabled={false}
+              onClick={refetch}
+              disabled={loading}
               ariaLabel={isEs ? "Recargar" : "Refresh"}
               title={isEs ? "Recargar" : "Refresh"}
             />

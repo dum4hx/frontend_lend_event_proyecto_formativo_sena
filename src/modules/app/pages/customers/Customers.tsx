@@ -90,8 +90,17 @@ export default function Customers() {
     documentType: docTypeFilter || undefined,
   };
 
-  const { data, isLoading: customersLoading, error: customersError } = useCustomers(queryParams);
-  const { data: documentTypes = [], isLoading: docTypesLoading } = useDocumentTypes();
+  const {
+    data,
+    isLoading: customersLoading,
+    error: customersError,
+    refetch: refetchCustomers,
+  } = useCustomers(queryParams);
+  const {
+    data: documentTypes = [],
+    isLoading: docTypesLoading,
+    refetch: refetchDocumentTypes,
+  } = useDocumentTypes();
 
   const createMutation = useCreateCustomer();
   const updateMutation = useUpdateCustomer();
@@ -271,8 +280,11 @@ export default function Customers() {
           actions={
             <IconButton
               icon={RefreshCw}
-              onClick={() => window.location.reload()}
-              disabled={false}
+              onClick={() => {
+                void refetchCustomers();
+                void refetchDocumentTypes();
+              }}
+              disabled={loading}
               ariaLabel={isEs ? "Recargar" : "Refresh"}
               title={isEs ? "Recargar" : "Refresh"}
             />

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Settings as SettingsIcon, Lock, Save, RotateCcw } from "lucide-react";
 import { StatCard } from "../../components";
@@ -81,6 +81,51 @@ export default function Settings() {
   const [pendingModule, setPendingModule] = useState<SettingsModuleId | null>(null);
   const restoredActiveModuleRef = useRef(false);
 
+  const fetchOrgData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await getOrganization();
+      const org = response.data.organization;
+
+      setOrgData({
+        name: org?.name || "",
+        email: org?.email || "",
+        phone: org?.phone || "",
+        legalName: org?.legalName || "",
+        taxId: org?.taxId || "",
+      });
+      setSavedOrgData({
+        name: org?.name || "",
+        email: org?.email || "",
+        phone: org?.phone || "",
+        legalName: org?.legalName || "",
+        taxId: org?.taxId || "",
+      });
+      setError(null);
+    } catch (err: unknown) {
+      const message = err instanceof ApiError ? err.message : "Failed to load organization data";
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const fetchOrgSettings = useCallback(async () => {
+    try {
+      setOrgSettingsLoading(true);
+      const response = await getOrganizationSettings();
+      const settings = response.data.settings;
+      setOrgSettings(settings);
+      setSavedOrgSettings(settings);
+      setError(null);
+    } catch (err: unknown) {
+      const message = err instanceof ApiError ? err.message : "Failed to load organization settings";
+      setError(message);
+    } finally {
+      setOrgSettingsLoading(false);
+    }
+  }, []);
+
   // ─── Module access ─────────────────────────────────────────────────────────
 
   const moduleAccess = useMemo(() => {
@@ -98,6 +143,13 @@ export default function Settings() {
     () => SETTING_MODULES.filter((item) => moduleAccess[item.id]),
     [moduleAccess],
   );
+
+  const handleRefresh = useCallback(async () => {
+    await fetchOrgData();
+    if (moduleAccess.organization) {
+      await fetchOrgSettings();
+    }
+  }, [fetchOrgData, fetchOrgSettings, moduleAccess.organization]);
 
   useEffect(() => {
     if (!moduleAccess[activeModule]) {
@@ -134,59 +186,13 @@ export default function Settings() {
   // ─── Data fetching ─────────────────────────────────────────────────────────
 
   useEffect(() => {
-    const fetchOrgData = async () => {
-      try {
-        setLoading(true);
-        const response = await getOrganization();
-        const org = response.data.organization;
-
-        setOrgData({
-          name: org?.name || "",
-          email: org?.email || "",
-          phone: org?.phone || "",
-          legalName: org?.legalName || "",
-          taxId: org?.taxId || "",
-        });
-        setSavedOrgData({
-          name: org?.name || "",
-          email: org?.email || "",
-          phone: org?.phone || "",
-          legalName: org?.legalName || "",
-          taxId: org?.taxId || "",
-        });
-        setError(null);
-      } catch (err: unknown) {
-        const message = err instanceof ApiError ? err.message : "Failed to load organization data";
-        setError(message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchOrgData();
-  }, []);
+    void fetchOrgData();
+  }, [fetchOrgData]);
 
   useEffect(() => {
     if (!moduleAccess.organization) return;
-
-    const fetchOrgSettings = async () => {
-      try {
-        setOrgSettingsLoading(true);
-        const response = await getOrganizationSettings();
-        const settings = response.data.settings;
-        setOrgSettings(settings);
-        setSavedOrgSettings(settings);
-      } catch (err: unknown) {
-        const message =
-          err instanceof ApiError ? err.message : "Failed to load organization settings";
-        setError(message);
-      } finally {
-        setOrgSettingsLoading(false);
-      }
-    };
-
-    fetchOrgSettings();
-  }, [moduleAccess.organization]);
+    void fetchOrgSettings();
+  }, [fetchOrgSettings, moduleAccess.organization]);
 
   // ─── Validation ────────────────────────────────────────────────────────────
 
@@ -442,10 +448,12 @@ export default function Settings() {
           actions={
             <IconButton
               icon={RefreshCw}
-              onClick={() => window.location.reload()}
-              disabled={loading}
+              onClick={() => {
+                void handleRefresh();
+              }}
+              disabled={loading || orgSettingsLoading}
               ariaLabel={t("common.refresh")}
-              className={loading ? "animate-spin" : ""}
+              className={loading || orgSettingsLoading ? "animate-spin" : ""}
               title={t("common.refresh")}
             />
           }

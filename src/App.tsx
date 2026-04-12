@@ -4,6 +4,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { ToastProvider } from "./contexts/ToastContext";
+import { SessionProvider } from "./contexts/SessionContext";
 import { RequirePermission } from "./utils/permissionGuard";
 import { RequireActiveSubscription } from "./utils/subscriptionGuard";
 import { LoadingSpinner } from "./components/ui";
@@ -230,9 +231,10 @@ function App() {
       <LanguageProvider>
         <ThemeProvider>
           <ToastProvider>
-            <BrowserRouter>
-              <ScrollToTop />
-              <Routes>
+            <SessionProvider>
+              <BrowserRouter>
+                <ScrollToTop />
+                <Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/packages" element={<Paquetes />} />
@@ -337,8 +339,9 @@ function App() {
                 {/* Fallback routes */}
                 <Route path="/unauthorized" element={<Unauthorized />} />
                 <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
+                </Routes>
+              </BrowserRouter>
+            </SessionProvider>
           </ToastProvider>
         </ThemeProvider>
       </LanguageProvider>
