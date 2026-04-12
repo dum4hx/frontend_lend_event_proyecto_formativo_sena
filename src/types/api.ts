@@ -57,26 +57,6 @@ export interface Address {
   postalCode?: string;
 }
 
-export type TraceabilityEventType =
-  | "checkout"
-  | "return_received"
-  | "sent"
-  | "received"
-  | (string & {});
-
-/** Material lifecycle event emitted during loans and transfers. */
-export interface TraceabilityEvent {
-  eventType: TraceabilityEventType;
-  occurredAt: string;
-  performedBy?: string;
-  performedByName?: string;
-  performedByEmail?: string;
-  notes?: string;
-}
-
-/** @deprecated Use TraceabilityEvent instead. */
-export type MaterialTraceabilityEvent = TraceabilityEvent;
-
 // ─── User ──────────────────────────────────────────────────────────────────
 
 export type UserStatus = "active" | "inactive" | "invited" | "suspended";
@@ -640,7 +620,6 @@ export interface Loan {
   checkedOutAt?: string;
   preparedBy?: PopulatedUserRef;
   preparedAt?: string;
-  traceabilityEvents?: MaterialTraceabilityEvent[];
   pricingSnapshot?: PricingSnapshotItem[];
   createdAt?: string;
   updatedAt?: string;
@@ -1861,7 +1840,6 @@ export interface Transfer {
   senderNotes?: string;
   receiverNotes?: string;
   status: TransferStatus;
-  traceabilityEvents?: MaterialTraceabilityEvent[];
   createdAt: string;
   updatedAt?: string;
 }

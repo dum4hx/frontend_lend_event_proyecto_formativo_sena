@@ -181,20 +181,6 @@ function mockLoanDetailGrouped() {
         startDate: "2026-04-01T08:00:00.000Z",
         endDate: "2026-04-03T08:00:00.000Z",
         deposit: { amount: 50000, status: "held", transactions: [] },
-        traceabilityEvents: [
-          {
-            eventType: "return_received",
-            occurredAt: "2026-04-12T12:00:00.000Z",
-            performedByName: "Warehouse User",
-            performedByEmail: "warehouse@example.com",
-            notes: "Items checked on arrival",
-          },
-          {
-            eventType: "checkout",
-            occurredAt: "2026-04-10T09:30:00.000Z",
-            performedByEmail: "operator@example.com",
-          },
-        ],
         materialInstancesByType: {
           "material-type-1": {
             instances: [
@@ -321,7 +307,7 @@ describe("LoanDetailModal materials integration", () => {
     expect(await screen.findByText("Inspection Done")).toBeInTheDocument();
     expect(screen.getByText("INSP-2026-001")).toBeInTheDocument();
     expect(screen.getByText("Inspection Date")).toBeInTheDocument();
-    expect(screen.getAllByText("2026", { exact: false }).length).toBeGreaterThan(0);
+    expect(screen.getByText("2026", { exact: false })).toBeInTheDocument();
   });
 
   it("sends search to server", async () => {
@@ -424,26 +410,6 @@ describe("LoanDetailModal materials integration", () => {
     renderModal();
 
     expect(await screen.findByText("No matching materials")).toBeInTheDocument();
-  });
-
-  it("renders traceability timeline events in ascending order", async () => {
-    renderModal();
-
-    expect(await screen.findByText("Retiro / entrega al cliente")).toBeInTheDocument();
-    expect(screen.getAllByText("Devolución recibida").length).toBeGreaterThan(0);
-    expect(screen.getByText("operator@example.com")).toBeInTheDocument();
-    expect(screen.getByText("warehouse@example.com")).toBeInTheDocument();
-    expect(screen.getByText("Items checked on arrival")).toBeInTheDocument();
-    expect(screen.getByTestId("traceability-kpi-total-events")).toHaveTextContent("2");
-
-    const labels = screen
-      .getAllByTestId("material-traceability-label")
-      .map((element) => element.textContent);
-
-    expect(labels.slice(0, 2)).toEqual([
-      "Retiro / entrega al cliente",
-      "Devolución recibida",
-    ]);
   });
 
   it("shows error state for backend errors", async () => {

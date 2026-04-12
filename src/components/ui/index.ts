@@ -92,6 +92,3 @@ export type { GreetingCardProps } from "./GreetingCard";
 export { BackupCodesModal } from "./BackupCodesModal";
 
 export { SessionTimeoutModal } from "./SessionTimeoutModal";
-
-export { MaterialTraceabilityTimeline } from "./MaterialTraceabilityTimeline";
-export type { MaterialTraceabilityTimelineProps } from "./MaterialTraceabilityTimeline";

@@ -17,7 +17,7 @@ import {
 import { useToast } from "../../../../contexts/ToastContext";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import { useCopyToClipboard } from "../../../../hooks/useCopyToClipboard";
-import { SearchableSelect, EntityLink, MaterialTraceabilityTimeline } from "../../../../components/ui";
+import { SearchableSelect, EntityLink } from "../../../../components/ui";
 import type { SelectOption } from "../../../../components/ui";
 import {
   createTransferRequest,
@@ -1548,11 +1548,6 @@ export const ShipmentDetailModal: React.FC<ShipmentDetailModalProps> = ({
               </div>
             </div>
           )}
-
-          <MaterialTraceabilityTimeline
-            events={shipment.traceabilityEvents ?? []}
-            entityType="transfer"
-          />
         </div>
 
         {/* Footer */}
