@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Check,
@@ -267,6 +267,46 @@ export default function Packages() {
   const [showActiveSubModal, setShowActiveSubModal] = useState(false);
   const [showActivationModal, setShowActivationModal] = useState(false);
 
+  const loadPlans = useCallback(async (cancelled: boolean) => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const res = await getAvailablePlans();
+      if (cancelled) return;
+      setPlans(res.data.plans);
+    } catch {
+      if (cancelled) return;
+      // Fallback: fetch subscription types publicly and map to AvailablePlan
+      try {
+        const alt = await getSubscriptionTypesPublic();
+        if (cancelled) return;
+        const mapped = alt.data.subscriptionTypes.map((t) => {
+          return {
+            name: t.plan,
+            displayName: t.displayName,
+            billingModel: t.billingModel,
+            maxCatalogItems: t.maxCatalogItems,
+            maxSeats: t.maxSeats,
+            features: t.features,
+            basePriceMonthly: t.basePriceMonthly,
+            pricePerSeat: t.pricePerSeat,
+            description: t.description,
+            durationDays: t.durationDays,
+          } as PublicPlan;
+        });
+        setPlans(mapped);
+        setError("");
+      } catch (err2) {
+        setError(
+          err2 instanceof ApiError ? err2.message : t("publicSite.packages.error.loadFailed"),
+        );
+      }
+    } finally {
+      if (!cancelled) setLoading(false);
+    }
+  }, [t]);
+
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const hasActivationQuery = params.get("activationModal") === "1";
@@ -319,50 +359,11 @@ export default function Packages() {
   useEffect(() => {
     let cancelled = false;
 
-    async function load() {
-      try {
-        const res = await getAvailablePlans();
-        if (cancelled) return;
-        setPlans(res.data.plans);
-      } catch {
-        if (cancelled) return;
-        // Fallback: fetch subscription types publicly and map to AvailablePlan
-        try {
-          const alt = await getSubscriptionTypesPublic();
-          if (cancelled) return;
-          const mapped = alt.data.subscriptionTypes.map((t) => {
-            return {
-              name: t.plan,
-              displayName: t.displayName,
-              billingModel: t.billingModel,
-              maxCatalogItems: t.maxCatalogItems,
-              maxSeats: t.maxSeats,
-              features: t.features,
-              basePriceMonthly: t.basePriceMonthly,
-              pricePerSeat: t.pricePerSeat,
-              description: t.description,
-              durationDays: t.durationDays,
-            } as PublicPlan;
-          });
-          setPlans(mapped);
-          setError("");
-        } catch (err2) {
-          setError(
-            err2 instanceof ApiError
-              ? err2.message
-              : t("publicSite.packages.error.loadFailed"),
-          );
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    void load();
+    void loadPlans(cancelled);
     return () => {
       cancelled = true;
     };
-  }, [t]);
+  }, [loadPlans]);
 
   const handleSelect = (plan: PublicPlan) => {
     // If unauthenticated, open login/register modal and remember selection
@@ -451,7 +452,10 @@ export default function Packages() {
               <AlertCircle className="w-10 h-10 text-red-400 mb-3" />
               <p className="text-red-400 mb-4">{error}</p>
               <button
-                onClick={() => window.location.reload()}
+                type="button"
+                onClick={() => {
+                  void loadPlans(false);
+                }}
                 className="text-sm text-yellow-400 underline hover:text-yellow-300"
               >
                 {t("publicSite.packages.retry")}

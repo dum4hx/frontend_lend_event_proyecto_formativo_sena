@@ -35,7 +35,7 @@ export interface ApiErrorResponse {
   status: "error" | "fail";
   message: string;
   code?: string;
-  details?: Record<string, unknown>;
+  details?: Record<string, unknown> & { code?: string };
 }
 
 /** Union type that covers every possible API response shape. */
@@ -106,11 +106,40 @@ interface RequestOptions<TBody = unknown> {
    * sent for authenticated flows. Public endpoints should use `omit`.
    */
   credentialsMode?: RequestCredentials;
+  /** Internal flag to ensure a single automatic retry after refresh. */
+  _retry?: boolean;
+  /** Optional AbortSignal to cancel in-flight requests. */
+  signal?: AbortSignal;
 }
 
 /** Determines whether the error is transient and retryable. */
 function isRetryableStatus(status: number): boolean {
   return status === 429 || status >= 500;
+}
+
+const NON_RECOVERABLE_AUTH_CODES = new Set<string>([
+  "INACTIVITY_TIMEOUT",
+  "SESSION_EXPIRED",
+  "SESSION_REVOKED",
+  "SESSION_NOT_FOUND",
+  "MISSING_REFRESH_TOKEN",
+]);
+
+function extractAuthCode(payload: ApiErrorResponse | null): string | undefined {
+  if (!payload) return undefined;
+  if (typeof payload.code === "string") return payload.code;
+  if (typeof payload.details?.code === "string") return payload.details.code;
+  return undefined;
+}
+
+async function safeParseErrorResponse(res: Response): Promise<ApiErrorResponse | null> {
+  try {
+    const payload = (await res.clone().json()) as ApiErrorResponse;
+    if (payload && typeof payload === "object") return payload;
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -140,6 +169,11 @@ let refreshQueue: Array<{
   reject: (reason: unknown) => void;
 }> = [];
 
+interface RefreshResult {
+  ok: boolean;
+  code?: string;
+}
+
 /**
  * Register a global callback used when the refresh flow fails.
  * The Auth provider uses this to clear local session state and redirect to login.
@@ -154,11 +188,14 @@ export function setAuthFailureHandler(handler: (() => void | Promise<void>) | nu
  * If a refresh is already in progress the caller is queued so only a
  * single network request is made.
  */
-async function refreshAccessToken(): Promise<boolean> {
+async function refreshAccessToken(): Promise<RefreshResult> {
   if (isRefreshing) {
     // Wait for the in-flight refresh to settle.
-    return new Promise<boolean>((resolve, reject) => {
-      refreshQueue.push({ resolve, reject });
+    return new Promise<RefreshResult>((resolve, reject) => {
+      refreshQueue.push({
+        resolve: (value) => resolve({ ok: value }),
+        reject,
+      });
     });
   }
 
@@ -172,13 +209,18 @@ async function refreshAccessToken(): Promise<boolean> {
     });
 
     const ok = res.ok;
+    let code: string | undefined;
+    if (!ok) {
+      const payload = await safeParseErrorResponse(res);
+      code = extractAuthCode(payload);
+    }
 
     // Flush waiting callers.
     refreshQueue.forEach((q) => q.resolve(ok));
-    return ok;
+    return { ok, code };
   } catch (err) {
     refreshQueue.forEach((q) => q.reject(err));
-    return false;
+    return { ok: false };
   } finally {
     isRefreshing = false;
     refreshQueue = [];
@@ -242,6 +284,8 @@ export async function request<TData, TBody = unknown>(
     maxRetries = 0,
     retryDelay = 1000,
     credentialsMode = "include",
+    _retry = false,
+    signal,
   } = options;
 
   const url = buildUrl(path, params);
@@ -254,6 +298,7 @@ export async function request<TData, TBody = unknown>(
       "Content-Type": "application/json",
       ...(headers as Record<string, string> | undefined),
     },
+    signal,
   };
 
   if (body !== undefined) {
@@ -280,10 +325,42 @@ export async function request<TData, TBody = unknown>(
 
     // -- Handle 401: attempt a silent token refresh then retry once. --------
     if (res.status === 401 && !skipRefresh && !path.includes("/auth/")) {
-      const refreshed = await refreshAccessToken();
+      const errorPayload = await safeParseErrorResponse(res);
+      const errorCode = extractAuthCode(errorPayload);
+      const isNonRecoverable =
+        typeof errorCode === "string" && NON_RECOVERABLE_AUTH_CODES.has(errorCode);
 
-      if (refreshed) {
-        return request<TData, TBody>(path, { ...options, skipRefresh: true });
+      if (isNonRecoverable || _retry) {
+        const error = new ApiError(
+          errorPayload?.message ?? "Sesion finalizada. Inicia sesion nuevamente.",
+          401,
+          errorCode ?? "UNAUTHORIZED",
+          errorPayload?.details,
+        );
+
+        const { emitSessionAuthFailure } = await import("./sessionEvents");
+        emitSessionAuthFailure({
+          code: (error.code ?? "UNAUTHORIZED") as
+            | "INACTIVITY_TIMEOUT"
+            | "SESSION_EXPIRED"
+            | "SESSION_REVOKED"
+            | "SESSION_NOT_FOUND"
+            | "MISSING_REFRESH_TOKEN"
+            | "UNAUTHORIZED"
+            | "MANUAL",
+          error,
+        });
+        throw error;
+      }
+
+      const refreshResult = await refreshAccessToken();
+
+      if (refreshResult.ok) {
+        return request<TData, TBody>(path, {
+          ...options,
+          skipRefresh: true,
+          _retry: true,
+        });
       }
 
       if (authFailureHandler) {
@@ -291,11 +368,26 @@ export async function request<TData, TBody = unknown>(
       }
 
       // Refresh failed — throw so the UI can redirect to /login.
-      throw new ApiError(
-        "Sesión expirada. Por favor, inicia sesión nuevamente.",
+      const error = new ApiError(
+        "Sesion expirada. Por favor, inicia sesion nuevamente.",
         401,
-        "UNAUTHORIZED",
+        refreshResult.code ?? "UNAUTHORIZED",
       );
+
+      const { emitSessionAuthFailure } = await import("./sessionEvents");
+      emitSessionAuthFailure({
+        code: (error.code ?? "UNAUTHORIZED") as
+          | "INACTIVITY_TIMEOUT"
+          | "SESSION_EXPIRED"
+          | "SESSION_REVOKED"
+          | "SESSION_NOT_FOUND"
+          | "MISSING_REFRESH_TOKEN"
+          | "UNAUTHORIZED"
+          | "MANUAL",
+        error,
+      });
+
+      throw error;
     }
 
     // -- Handle rate limiting: respect Retry-After when retrying. -----------
@@ -339,8 +431,9 @@ export async function request<TData, TBody = unknown>(
 export function get<TData>(
   path: string,
   params?: Record<string, string | number | boolean | undefined>,
+  options?: Pick<RequestOptions, "signal">,
 ) {
-  return request<TData>(path, { method: "GET", params });
+  return request<TData>(path, { method: "GET", params, ...options });
 }
 
 /** Perform a typed POST request. */
@@ -371,11 +464,13 @@ export function del<TData>(path: string) {
 export function publicGet<TData>(
   path: string,
   params?: Record<string, string | number | boolean | undefined>,
+  options?: Pick<RequestOptions, "signal">,
 ) {
   return request<TData>(path, {
     method: "GET",
     params,
     skipRefresh: true,
     credentialsMode: "omit",
+    ...options,
   });
 }

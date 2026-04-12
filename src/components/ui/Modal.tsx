@@ -51,12 +51,21 @@ export function Modal({
   className = "",
 }: ModalProps) {
   const contentRef = useRef<HTMLDivElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
+
+  const isTopMostModal = useCallback(() => {
+    const overlays = Array.from(
+      document.querySelectorAll<HTMLElement>("[data-modal-overlay='true']"),
+    );
+    if (overlays.length === 0) return true;
+    return overlays[overlays.length - 1] === overlayRef.current;
+  }, []);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape" && isTopMostModal()) onClose();
     },
-    [onClose],
+    [isTopMostModal, onClose],
   );
 
   useEffect(() => {
@@ -80,6 +89,8 @@ export function Modal({
     <AnimatePresence>
       {open && (
         <motion.div
+          ref={overlayRef}
+          data-modal-overlay="true"
           className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           variants={overlayVariants}
           initial="initial"
@@ -91,6 +102,7 @@ export function Modal({
         >
           <motion.div
             ref={contentRef}
+            onClick={(e) => e.stopPropagation()}
             className={`bg-[#121212] border border-[#333] rounded-xl ${sizeClasses[size]} w-full max-h-[90vh] flex flex-col shadow-2xl ${className}`}
             variants={modalVariants}
             initial="initial"
@@ -103,7 +115,10 @@ export function Modal({
               <div className="modal-header flex-shrink-0">
                 <h2 className="text-lg font-bold text-white">{title}</h2>
                 <button
-                  onClick={onClose}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onClose();
+                  }}
                   className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
                   aria-label="Close modal"
                 >

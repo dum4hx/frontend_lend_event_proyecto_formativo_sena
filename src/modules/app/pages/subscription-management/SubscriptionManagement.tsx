@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
-import { CreditCard, Users, XCircle, ExternalLink, Download } from "lucide-react";
+import { CreditCard, Users, XCircle, ExternalLink, Download, RefreshCw } from "lucide-react";
 import { StatCard } from "../../components";
-import { PageHeader } from "../../../../components/ui";
+import { PageHeader, IconButton } from "../../../../components/ui";
 import {
   getBillingHistory,
   createPortalSession,
@@ -480,14 +480,24 @@ export default function SubscriptionManagement() {
           title={t("subscription.title")}
           subtitle={t("subscription.subtitle")}
           actions={
-            <button
-              onClick={() => void handleExportXLSX()}
-              className="export-btn w-full sm:w-auto flex items-center justify-center gap-2"
-              disabled={history.length === 0 || exporting}
-            >
-              <Download size={18} />
-              {t("subscription.exportHistory")}
-            </button>
+            <div className="flex gap-2">
+              <IconButton
+                icon={RefreshCw}
+                onClick={() => void fetchData()}
+                disabled={loading}
+                ariaLabel={t("common.refresh")}
+                className={loading ? "animate-spin" : ""}
+                title={t("common.refresh")}
+              />
+              <button
+                onClick={() => void handleExportXLSX()}
+                className="export-btn w-full sm:w-auto flex items-center justify-center gap-2"
+                disabled={history.length === 0 || exporting}
+              >
+                <Download size={18} />
+                {t("subscription.exportHistory")}
+              </button>
+            </div>
           }
         />
       </div>

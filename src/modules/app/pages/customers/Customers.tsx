@@ -6,7 +6,7 @@
 
 import { useState, useCallback } from "react";
 import { Users, UserCheck, UserX, ShieldOff } from "lucide-react";
-import { PageHeader, Pagination } from "../../../../components/ui";
+import { PageHeader, Pagination, IconButton } from "../../../../components/ui"; import { RefreshCw } from "lucide-react";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import { usePermissions } from "../../../../contexts/usePermissions";
 import { useConfirmModal } from "../../../../hooks/useConfirmModal";
@@ -90,8 +90,17 @@ export default function Customers() {
     documentType: docTypeFilter || undefined,
   };
 
-  const { data, isLoading: customersLoading, error: customersError } = useCustomers(queryParams);
-  const { data: documentTypes = [], isLoading: docTypesLoading } = useDocumentTypes();
+  const {
+    data,
+    isLoading: customersLoading,
+    error: customersError,
+    refetch: refetchCustomers,
+  } = useCustomers(queryParams);
+  const {
+    data: documentTypes = [],
+    isLoading: docTypesLoading,
+    refetch: refetchDocumentTypes,
+  } = useDocumentTypes();
 
   const createMutation = useCreateCustomer();
   const updateMutation = useUpdateCustomer();
@@ -267,6 +276,18 @@ export default function Customers() {
             isEs
               ? "Gestiona los clientes de tu organización"
               : "Manage your organization's customers"
+          }
+          actions={
+            <IconButton
+              icon={RefreshCw}
+              onClick={() => {
+                void refetchCustomers();
+                void refetchDocumentTypes();
+              }}
+              disabled={loading}
+              ariaLabel={isEs ? "Recargar" : "Refresh"}
+              title={isEs ? "Recargar" : "Refresh"}
+            />
           }
         />
       </div>

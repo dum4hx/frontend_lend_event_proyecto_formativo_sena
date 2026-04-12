@@ -107,10 +107,16 @@ export interface OrganizationUsage {
   canAddSeat: boolean;
 }
 
+/** Charge mode for overdue loans. */
+export type LateFeeMode = "fixed" | "percentage";
+
 /** Organization policy settings managed via GET/PATCH /organizations/settings. */
 export interface OrganizationSettings {
   damageDueDays: number;
   requireFullPaymentBeforeCheckout: boolean;
+  lateFeeMode: LateFeeMode;
+  lateFeeValue: number;
+  lateFeeDueDays: number;
 }
 
 // ─── Subscription Types ────────────────────────────────────────────────────
@@ -353,6 +359,11 @@ export const MATERIAL_INSTANCE_STATUS_LABELS: Record<MaterialInstanceStatus, str
   in_use: "IN USE",
 };
 
+export interface MaterialInstanceLoanContext {
+  loanCode?: string | null;
+  requestCode?: string | null;
+}
+
 export interface MaterialInstance {
   _id: string;
   /**
@@ -386,6 +397,8 @@ export interface MaterialInstance {
   organizationId: string;
   /** Attributes array */
   attributes: MaterialTypeAttribute[];
+  /** Related loan/request codes included by the instance detail endpoint. */
+  loanContext?: MaterialInstanceLoanContext;
   /** Date when the instance was created (ISO date string) */
   createdAt: string;
   /** Date when the instance was last updated (ISO date string) */
@@ -396,7 +409,7 @@ export interface MaterialInstance {
 
 export interface CreateMaterialInstancePayload {
   modelId: string;
-  serialNumber: string;
+  serialNumber?: string;
   barcode?: string;
   locationId: string;
   purchaseDate?: string;
@@ -490,6 +503,22 @@ export interface LoanRequestItem {
   totalPrice?: number;
 }
 
+/** Populated user reference returned by the backend when user fields are populated. */
+export interface PopulatedUserRef {
+  _id: string;
+  email?: string;
+  name?: PersonName;
+}
+
+/** Material instance entry in assignedMaterials on a LoanRequest. */
+export interface AssignedMaterialEntry {
+  materialInstanceId: {
+    _id: string;
+    serialNumber: string;
+  };
+  itemIndex: number;
+}
+
 export interface LoanRequest {
   _id: string;
   code?: string;
@@ -512,6 +541,15 @@ export interface LoanRequest {
   totalDays?: number;
   rentalFeePaidAt?: string;
   loanId?: string;
+  locationId?: string;
+  createdBy?: PopulatedUserRef;
+  approvedBy?: PopulatedUserRef;
+  approvedAt?: string;
+  assignedBy?: PopulatedUserRef;
+  assignedAt?: string;
+  assignedMaterials?: AssignedMaterialEntry[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface CreateLoanRequestPayload {
@@ -548,6 +586,19 @@ export interface DepositTransaction {
   reference?: string;
 }
 
+/** Pricing snapshot item captured at checkout. */
+export interface PricingSnapshotItem {
+  itemType: string;
+  referenceId: string;
+  quantity: number;
+  strategyType: string;
+  configId?: string;
+  durationInDays: number;
+  basePricePerDay: number;
+  unitPrice: number;
+  totalPrice: number;
+}
+
 export interface Loan {
   _id: string;
   code?: string;
@@ -562,6 +613,7 @@ export interface Loan {
   totalAmount?: number;
   damageFees?: number;
   lateFees?: number;
+  extensionFees?: number;
   deposit: {
     amount: number;
     status: DepositStatus;
@@ -569,6 +621,14 @@ export interface Loan {
     refundAvailable?: boolean;
     refundableAmount?: number;
   };
+  locationId?: string;
+  checkedOutBy?: PopulatedUserRef;
+  checkedOutAt?: string;
+  preparedBy?: PopulatedUserRef;
+  preparedAt?: string;
+  pricingSnapshot?: PricingSnapshotItem[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 /** Loan from list endpoints (customerId is always populated as Customer). */
@@ -581,6 +641,7 @@ export interface LoanMaterialInstanceEntry {
   materialInstanceId: {
     _id: string;
     serialNumber: string;
+    barcode?: string;
     status: string;
     modelId: string;
     name: string;
@@ -590,6 +651,9 @@ export interface LoanMaterialInstanceEntry {
     _id: string;
     name: string;
   };
+  conditionAtCheckout?: string;
+  conditionAtReturn?: string;
+  notes?: string;
 }
 
 /** Detailed loan response (default — flat list of instances). */
@@ -606,6 +670,8 @@ export interface LoanDetailGrouped extends Omit<Loan, "customerId"> {
 
 export interface ExtendLoanPayload {
   newEndDate: string;
+  /** Extension fee amount in the organization's currency (>= 0). Required by API. */
+  extensionFee: number;
   notes?: string;
 }
 
@@ -629,6 +695,10 @@ export interface InspectionItemResponse {
     serialNumber: string;
     modelId: string;
   };
+  materialType: {
+    _id: string;
+    name: string;
+  };
   conditionBefore?: InspectionCondition;
   conditionAfter: InspectionCondition;
   conditionDegraded?: boolean;
@@ -647,6 +717,10 @@ export interface Inspection {
   inspectedBy: {
     email: string;
     profile: { firstName: string };
+    role?: {
+      _id: string;
+      name: string;
+    };
   };
   items: InspectionItemResponse[];
   notes?: string;
@@ -693,6 +767,10 @@ export interface PendingLoan {
       modelId: string;
     };
     materialTypeId: string;
+    materialType?: {
+      _id: string;
+      name: string;
+    };
   }>;
   startDate: string;
   endDate: string;
@@ -781,7 +859,14 @@ export interface IncidentQueryParams {
 
 // ─── Invoices ──────────────────────────────────────────────────────────────
 
-export type InvoiceStatus = "draft" | "pending" | "paid" | "cancelled";
+export type InvoiceStatus =
+  | "draft"
+  | "pending"
+  | "paid"
+  | "partially_paid"
+  | "overdue"
+  | "cancelled"
+  | "refunded";
 export type InvoiceType = "rental" | "damage" | "deposit";
 
 export interface InvoiceLineItem {
@@ -797,9 +882,12 @@ export interface InvoiceLineItem {
 export interface InvoicePayment {
   _id: string;
   amount: number;
-  paymentMethodId: string;
+  paymentMethodId?: string;
+  method?: string;
   reference?: string;
-  recordedAt: string;
+  notes?: string;
+  recordedAt?: string;
+  paidAt?: string;
 }
 
 export interface InvoiceCustomer {
@@ -813,11 +901,23 @@ export interface InvoiceCustomer {
   email?: string;
 }
 
+export interface InvoiceLoanMaterialInstance {
+  materialInstanceId: string | { _id: string; serialNumber?: string; name?: string };
+  materialTypeId: string | { _id: string; name?: string };
+  conditionAtCheckout?: string;
+}
+
 export interface InvoiceLoan {
   _id: string;
   code?: string;
   startDate?: string;
   endDate?: string;
+  materialInstances?: InvoiceLoanMaterialInstance[];
+}
+
+export interface InvoiceInspection {
+  _id: string;
+  inspectionNumber?: string;
 }
 
 export interface Invoice {
@@ -828,7 +928,7 @@ export interface Invoice {
   type: InvoiceType;
   customerId: InvoiceCustomer | string;
   loanId?: InvoiceLoan | string;
-  inspectionId?: string;
+  inspectionId?: InvoiceInspection | string;
   lineItems: InvoiceLineItem[];
   subtotal: number;
   taxRate: number;
@@ -1482,6 +1582,39 @@ export interface LoansQueryParams extends PaginationParams {
   overdue?: boolean;
 }
 
+export interface LoanMaterialsQueryParams extends PaginationParams {
+  search?: string;
+  status?: MaterialInstanceStatus;
+  materialTypeId?: string;
+}
+
+export interface LoanMaterialListItem {
+  materialInstanceId: {
+    _id: string;
+    serialNumber: string;
+    barcode?: string;
+    status: MaterialInstanceStatus | string;
+    modelId: string;
+    name: string;
+  };
+  materialTypeId: string;
+  materialType: {
+    _id: string;
+    name: string;
+  };
+  conditionAtCheckout?: string;
+  conditionAtReturn?: string;
+  notes?: string;
+}
+
+export interface LoanMaterialsResponse {
+  loan: Pick<Loan, "_id" | "code" | "status">;
+  materials: LoanMaterialListItem[];
+  total: number;
+  page: number;
+  totalPages: number;
+}
+
 export interface InvoicesQueryParams extends PaginationParams {
   status?: InvoiceStatus;
   type?: InvoiceType;
@@ -1686,6 +1819,7 @@ export interface TransferRequestItem {
 /** A transfer request (planning stage). */
 export interface TransferRequest {
   _id: string;
+  code?: string;
   fromLocationId: string;
   toLocationId: string;
   requestedBy: string;
@@ -1713,6 +1847,7 @@ export interface ReceiveTransferItem {
 
 export interface Transfer {
   _id: string;
+  code?: string;
   requestId?: string;
   fromLocationId: string;
   toLocationId: string;
@@ -3051,7 +3186,8 @@ export type CodeSchemeEntityType =
   | "inspection"
   | "incident"
   | "maintenance_batch"
-  | "material_instance";
+  | "material_instance"
+  | "ticket";
 
 /** A code scheme returned by the API. */
 export interface CodeScheme {
@@ -3293,4 +3429,178 @@ export interface AdminUsageDetailData {
 export interface AdminUsageSummaryData {
   summary: AdminUsageSummary;
   generatedAt: string;
+}
+
+// ─── Tickets (Solicitudes de Usuario) ─────────────────────────────────────
+
+export type TicketType =
+  | "transfer_request"
+  | "incident_report"
+  | "maintenance_request"
+  | "inspection_request"
+  | "generic";
+
+export type TicketStatus =
+  | "pending"
+  | "in_review"
+  | "approved"
+  | "rejected"
+  | "cancelled"
+  | "expired";
+
+export type TicketSeverity = "low" | "medium" | "high" | "critical";
+
+export type TicketIncidentContext = "transit" | "storage" | "loan" | "maintenance" | "other";
+
+export type TicketMaintenanceEntryReason = "damaged" | "other";
+
+/** Payload for ticket type `transfer_request`. */
+export interface TicketTransferRequestPayload {
+  toLocationId: string;
+  items: Array<{ materialTypeId: string; quantity: number }>;
+  neededBy?: string;
+}
+
+/** Payload for ticket type `incident_report`. */
+export interface TicketIncidentReportPayload {
+  materialInstanceIds?: string[];
+  loanId?: string;
+  severity: TicketSeverity;
+  context: TicketIncidentContext;
+  description?: string;
+}
+
+/** Payload for ticket type `maintenance_request`. */
+export interface TicketMaintenanceRequestPayload {
+  materialInstanceIds: string[];
+  entryReason: TicketMaintenanceEntryReason;
+  estimatedCost?: number;
+  notes?: string;
+}
+
+/** Payload for ticket type `inspection_request`. */
+export interface TicketInspectionRequestPayload {
+  loanId: string;
+  notes?: string;
+}
+
+/** Payload for ticket type `generic`. */
+export interface TicketGenericPayload {
+  details: string;
+}
+
+/** Discriminated union of all ticket payload shapes. */
+export type TicketPayload =
+  | TicketTransferRequestPayload
+  | TicketIncidentReportPayload
+  | TicketMaintenanceRequestPayload
+  | TicketInspectionRequestPayload
+  | TicketGenericPayload;
+
+/** Full ticket entity returned by GET /tickets/:id. */
+export interface Ticket {
+  _id: string;
+  code?: string;
+  organizationId: string;
+  locationId: string;
+  type: TicketType;
+  status: TicketStatus;
+  title: string;
+  description?: string;
+  createdBy: string;
+  assigneeId?: string;
+  responseDeadline?: string;
+  payload: TicketPayload;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  resolutionNote?: string;
+  resolutionEntities?: {
+    entityId: string;
+    entityType: string;
+    _id: string;
+  }[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Slim ticket item returned in GET /tickets list responses. */
+export interface TicketListItem {
+  _id: string;
+  code?: string;
+  type: TicketType;
+  status: TicketStatus;
+  title: string;
+  createdBy: string;
+  locationId: string;
+  createdAt: string;
+}
+
+/** Query parameters for GET /tickets. */
+export interface TicketQueryParams {
+  page?: number;
+  limit?: number;
+  status?: TicketStatus;
+  type?: TicketType;
+  locationId?: string;
+}
+
+/** Body for POST /tickets. */
+export interface CreateTicketPayload {
+  locationId: string;
+  type: TicketType;
+  title: string;
+  description?: string;
+  assigneeId?: string;
+  responseDeadline?: string;
+  payload: TicketPayload;
+}
+
+/** Body for PATCH /tickets/:id/approve. */
+export interface ApproveTicketPayload {
+  resolutionNote?: string;
+}
+
+/** Body for PATCH /tickets/:id/reject. */
+export interface RejectTicketPayload {
+  resolutionNote: string;
+}
+
+export interface TicketFulfillmentAvailableItem {
+  materialTypeId: string;
+  requestedQuantity: number;
+  availableQuantity: number;
+}
+
+export interface TicketFulfillmentOption {
+  location: {
+    _id: string;
+    name: string;
+    code?: string;
+  };
+  satisfiesAll: boolean;
+  availableItems: TicketFulfillmentAvailableItem[];
+}
+
+export interface CreateTicketTransferPayload {
+  fromLocationId: string;
+  notes?: string;
+}
+
+/** A single user entry returned by GET /tickets/:id/capable-users. */
+export interface TicketCapableUser {
+  _id: string;
+  name: { firstName: string; firstSurname: string };
+  email: string;
+  role: string;
+}
+
+/** Response data for GET /tickets/:id/capable-users. */
+export interface TicketCapableUsersData {
+  ticketType: TicketType;
+  users: TicketCapableUser[];
+}
+
+/** Body for PATCH /tickets/:id — general ticket update (e.g. set assignee). */
+export interface UpdateTicketPayload {
+  assigneeId?: string;
 }

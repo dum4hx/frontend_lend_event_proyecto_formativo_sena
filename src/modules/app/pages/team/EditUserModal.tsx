@@ -2,7 +2,7 @@
  * EditUserModal — Edit an existing team member's name, role, and locations.
  * Includes owner-promotion safety confirmation.
  */
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { FormModal } from "../../../../components/ui/FormModal";
 import { SearchableSelect } from "../../../../components/ui/SearchableSelect";
@@ -14,7 +14,7 @@ import { validateFirstName, validateLastName } from "../../../../utils/validator
 import type { TranslationKey } from "../../../../i18n/translations";
 import type { Role } from "../../../../types/api";
 import type { WarehouseLocation } from "../../../../services/warehouseOperatorService";
-import type { TeamMember } from "./types";
+import { isOwnerRoleName, type TeamMember } from "./types";
 
 interface EditUserModalProps {
   member: TeamMember | null;
@@ -94,11 +94,26 @@ export function EditUserModal({ member, availableRoles, onClose, onSuccess }: Ed
     setFormError(null);
   }, [member]);
 
-  const selectedRoleName = availableRoles.find((r) => r._id === form.roleId)?.name ?? "";
+  const selectedRoleName = useMemo(
+    () => availableRoles.find((r) => r._id === form.roleId)?.name ?? "",
+    [availableRoles, form.roleId],
+  );
+  const allowMultipleLocations = isOwnerRoleName(selectedRoleName);
   const isOwnerPromotion =
     !!member &&
-    member.roleName.toLowerCase() !== "propietario" &&
-    selectedRoleName.toLowerCase() === "propietario";
+    !isOwnerRoleName(member.roleName) &&
+    isOwnerRoleName(selectedRoleName);
+
+  useEffect(() => {
+    if (!allowMultipleLocations && form.locations.length > 1) {
+      setForm((prev) => ({ ...prev, locations: prev.locations.slice(0, 1) }));
+      setFormError(
+        isEs
+          ? "Este rol solo puede estar asociado a una sede."
+          : "This role can only be associated with one location.",
+      );
+    }
+  }, [allowMultipleLocations, form.locations.length, isEs]);
 
   const validateOwnerSecurity = useCallback((): Partial<Record<keyof OwnerSecurity, string>> => {
     const errs: Partial<Record<keyof OwnerSecurity, string>> = {};
@@ -154,9 +169,13 @@ export function EditUserModal({ member, availableRoles, onClose, onSuccess }: Ed
   function toggleLocation(locId: string) {
     setForm((prev) => ({
       ...prev,
-      locations: prev.locations.includes(locId)
-        ? prev.locations.filter((l) => l !== locId)
-        : [...prev.locations, locId],
+      locations: allowMultipleLocations
+        ? prev.locations.includes(locId)
+          ? prev.locations.filter((id) => id !== locId)
+          : [...prev.locations, locId]
+        : prev.locations[0] === locId
+          ? []
+          : [locId],
     }));
     setFormError(null);
   }
@@ -198,11 +217,20 @@ export function EditUserModal({ member, availableRoles, onClose, onSuccess }: Ed
       return;
     }
 
+    if (!allowMultipleLocations && form.locations.length > 1) {
+      setFormError(
+        isEs
+          ? "Este rol solo puede estar asociado a una sede."
+          : "This role can only be associated with one location.",
+      );
+      return;
+    }
+
     setSubmitting(true);
     try {
       await updateUser(member.id, {
         name: { firstName: form.firstName, firstSurname: form.firstSurname },
-        locations: form.locations,
+        locations: allowMultipleLocations ? form.locations : form.locations.slice(0, 1),
       });
       if (form.roleId !== member.roleId) {
         await updateUserRole(member.id, { roleId: form.roleId });
@@ -211,7 +239,16 @@ export function EditUserModal({ member, availableRoles, onClose, onSuccess }: Ed
       onClose();
     } catch (err) {
       if (err instanceof ApiError) {
-        setFormError(err.message);
+        const lowerMessage = err.message.toLowerCase();
+        if (lowerMessage.includes("location") || lowerMessage.includes("ubicaci")) {
+          setFormError(
+            isEs
+              ? "No se pudo guardar la asignación de sedes para este rol."
+              : "Could not save location assignment for this role.",
+          );
+        } else {
+          setFormError(err.message);
+        }
       } else {
         setFormError(isEs ? "Error inesperado." : "Unexpected error.");
       }
@@ -297,8 +334,23 @@ export function EditUserModal({ member, availableRoles, onClose, onSuccess }: Ed
         {availableLocations.length > 0 && (
           <div data-help-id="team-form-locations">
             <label className="block text-xs text-zinc-400 mb-2">
-              {isEs ? "Ubicaciones *" : "Locations *"}
+              {allowMultipleLocations
+                ? isEs
+                  ? "Ubicaciones *"
+                  : "Locations *"
+                : isEs
+                  ? "Ubicación *"
+                  : "Location *"}
             </label>
+            <p className="text-[11px] text-zinc-500 mb-2">
+              {allowMultipleLocations
+                ? isEs
+                  ? "El rol Dueño puede asociarse a múltiples sedes."
+                  : "Owner role can be associated with multiple locations."
+                : isEs
+                  ? "Este rol solo puede estar asociado a una sede. Si eliges otra, reemplazará la actual."
+                  : "This role can only be associated with one location. Selecting another will replace the current one."}
+            </p>
             <div className="flex flex-wrap gap-2">
               {availableLocations.map((loc) => {
                 const selected = form.locations.includes(loc._id);
@@ -318,11 +370,19 @@ export function EditUserModal({ member, availableRoles, onClose, onSuccess }: Ed
                 );
               })}
             </div>
-            {form.locations.length === 0 && formError?.toLowerCase().includes("location") && (
+            {((!allowMultipleLocations && form.locations.length > 1) || form.locations.length === 0) &&
+              (formError?.toLowerCase().includes("location") ||
+                formError?.toLowerCase().includes("ubicación")) && (
               <p className="text-xs text-red-400 mt-1">
-                {isEs ? "Selecciona al menos una ubicación." : "Select at least one location."}
+                {isEs
+                  ? form.locations.length === 0
+                    ? "Selecciona al menos una ubicación."
+                    : "Este rol solo puede estar asociado a una sede."
+                  : form.locations.length === 0
+                    ? "Select at least one location."
+                    : "This role can only be associated with one location."}
               </p>
-            )}
+              )}
           </div>
         )}
 

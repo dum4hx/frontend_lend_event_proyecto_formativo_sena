@@ -168,6 +168,33 @@ const settingsHelpContent: HelpModuleContent = {
       targetSelector: '[data-help-id="settings-panel"]',
     },
     {
+      id: "step-late-fee-mode",
+      title: { es: "Modo de cobro por mora", en: "Late fee charge mode" },
+      body: {
+        es: "Selecciona si la mora se cobra como monto fijo diario o como porcentaje del subtotal del alquiler.",
+        en: "Select whether late fees are charged as a fixed daily amount or as a percentage of the rental subtotal.",
+      },
+      targetSelector: '[data-help-id="org-late-fee-mode"]',
+    },
+    {
+      id: "step-late-fee-value",
+      title: { es: "Valor del recargo", en: "Late fee value" },
+      body: {
+        es: "Ingresa el valor del recargo. En modo fijo es un monto en centavos por dia; en modo porcentaje es un decimal (ej: 0.05 = 5%).",
+        en: "Enter the fee value. In fixed mode it is an amount in cents per day; in percentage mode it is a decimal (e.g., 0.05 = 5%).",
+      },
+      targetSelector: '[data-help-id="org-late-fee-value"]',
+    },
+    {
+      id: "step-late-fee-due-days",
+      title: { es: "Dias de vencimiento de factura por mora", en: "Late fee invoice due days" },
+      body: {
+        es: "Cantidad de dias tras generar la factura de mora para establecer su fecha de vencimiento.",
+        en: "Number of days after generating the late fee invoice to set its due date.",
+      },
+      targetSelector: '[data-help-id="org-late-fee-due-days"]',
+    },
+    {
       id: "step-5-actions",
       title: { es: "5) Guarda o restablece", en: "5) Save or reset" },
       body: {

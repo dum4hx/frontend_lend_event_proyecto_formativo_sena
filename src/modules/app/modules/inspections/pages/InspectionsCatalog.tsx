@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ClipboardCheck, History, Search, RefreshCcw, CheckCircle2, XCircle } from "lucide-react";
+import { ClipboardCheck, History, Search, RefreshCcw, CheckCircle2, XCircle, Copy, Check } from "lucide-react";
 import { useLanguage } from "../../../../../contexts/useLanguage";
 import { usePermissions } from "../../../../../contexts/usePermissions";
 import { useActionPermission } from "../../../../../hooks/useActionPermission";
@@ -37,6 +37,21 @@ export const InspectionsCatalog: React.FC = () => {
     inspectionNumber: string;
   } | null>(null);
   const [errorNotification, setErrorNotification] = useState<string | null>(null);
+  const [copiedInspectionCode, setCopiedInspectionCode] = useState<string | null>(null);
+
+  const handleCopyInspectionCode = async (inspectionNumber: string) => {
+    try {
+      await navigator.clipboard.writeText(inspectionNumber);
+      setCopiedInspectionCode(inspectionNumber);
+      window.setTimeout(() => {
+        setCopiedInspectionCode((current) =>
+          current === inspectionNumber ? null : current,
+        );
+      }, 2500);
+    } catch {
+      setErrorNotification(t("inspections.copyCodeFailed"));
+    }
+  };
 
   const handleSaveInspection = async (payload: CreateInspectionPayload): Promise<Inspection> => {
     try {
@@ -60,9 +75,11 @@ export const InspectionsCatalog: React.FC = () => {
 
   const filteredHistory = inspections.filter((i) => {
     const loanIdStr = typeof i.loanId === "string" ? i.loanId : i.loanId._id;
+    const searchLower = searchTerm.toLowerCase();
     return (
-      i._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      loanIdStr.toLowerCase().includes(searchTerm.toLowerCase())
+      i._id.toLowerCase().includes(searchLower) ||
+      (i.inspectionNumber?.toLowerCase().includes(searchLower) ?? false) ||
+      loanIdStr.toLowerCase().includes(searchLower)
     );
   });
 
@@ -102,7 +119,8 @@ export const InspectionsCatalog: React.FC = () => {
             onClick={refetch}
             disabled={loading}
             className="p-3 bg-[#1a1a1a] border border-[#333] text-gray-400 hover:text-white hover:border-[#444] rounded-xl transition-all disabled:opacity-50"
-            title="Refresh lists"
+            title={t("inspections.refreshLists")}
+            aria-label={t("inspections.refreshLists")}
           >
             <RefreshCcw className={`w-5 h-5 ${loading ? "animate-spin" : ""}`} />
           </button>
@@ -118,11 +136,30 @@ export const InspectionsCatalog: React.FC = () => {
             <p className="text-sm mt-1 text-green-400/80">
               {t("inspections.saveSuccessBody", { code: successNotification.inspectionNumber })}
             </p>
+            <div className="mt-3">
+              <button
+                type="button"
+                onClick={() => void handleCopyInspectionCode(successNotification.inspectionNumber)}
+                className="inline-flex items-center gap-2 rounded-lg border border-green-400/30 bg-green-950/30 px-3 py-1.5 text-xs font-semibold text-green-200 hover:bg-green-900/40 transition-colors"
+              >
+                {copiedInspectionCode === successNotification.inspectionNumber ? (
+                  <Check className="w-3.5 h-3.5 text-green-300" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5" />
+                )}
+                {copiedInspectionCode === successNotification.inspectionNumber
+                  ? t("inspections.codeCopied")
+                  : t("inspections.copyCode")}
+              </button>
+            </div>
           </div>
           <button
-            onClick={() => setSuccessNotification(null)}
+            onClick={() => {
+              setSuccessNotification(null);
+              setCopiedInspectionCode(null);
+            }}
             className="text-green-500 hover:text-green-300 transition-colors flex-shrink-0"
-            aria-label="Dismiss"
+            aria-label={t("inspections.dismissToast")}
           >
             <XCircle className="w-4 h-4" />
           </button>
@@ -139,7 +176,7 @@ export const InspectionsCatalog: React.FC = () => {
           <button
             onClick={() => setErrorNotification(null)}
             className="text-red-500 hover:text-red-300 transition-colors flex-shrink-0"
-            aria-label="Dismiss"
+            aria-label={t("inspections.dismissToast")}
           >
             <XCircle className="w-4 h-4" />
           </button>
@@ -184,7 +221,7 @@ export const InspectionsCatalog: React.FC = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 group-focus-within:text-[#FFD700] transition-colors" />
             <input
               type="text"
-              placeholder="Filter by ID or customer..."
+              placeholder={t("inspections.filterByCustomer")}
               className="w-full bg-[#121212] border border-[#222] rounded-lg pl-10 pr-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#FFD700] focus:ring-1 focus:ring-[#FFD700]/20 transition-all font-mono"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}

@@ -90,3 +90,5 @@ export { GreetingCard } from "./GreetingCard";
 export type { GreetingCardProps } from "./GreetingCard";
 
 export { BackupCodesModal } from "./BackupCodesModal";
+
+export { SessionTimeoutModal } from "./SessionTimeoutModal";

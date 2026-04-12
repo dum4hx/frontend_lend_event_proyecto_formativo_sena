@@ -8,15 +8,17 @@ import {
   ShoppingCart,
   FileText,
   UserCircle,
-  Package,
   ArrowRight,
   CheckCircle2,
+  Copy,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { StatCard, AdminTable } from "../components";
-import { PageHeader, GreetingCard } from "../../../components/ui";
+import { PageHeader, GreetingCard, IconButton } from "../../../components/ui";
+import { RefreshCw } from "lucide-react";
 import { useDashboardStats } from "../hooks/useDashboardStats";
 import { useLanguage } from "../../../contexts/useLanguage";
+import { useCopyToClipboard } from "../../../hooks/useCopyToClipboard";
 import { getLoanRequestStatusLabel, getLoanStatusLabel } from "../../../utils/statusLabels";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -58,6 +60,7 @@ const LOAN_BADGE: Record<string, string> = {
 
 export default function AdminDashboard() {
   const { language, locale } = useLanguage();
+  const { copy } = useCopyToClipboard();
   const isEs = language === "es";
   const location = useLocation();
   const [showGreeting, setShowGreeting] = useState(
@@ -93,6 +96,15 @@ export default function AdminDashboard() {
               : isEs
                 ? "Bienvenido de nuevo. Aqui tienes tu resumen"
                 : "Welcome back! Here's your overview"
+          }
+          actions={
+            <IconButton
+              icon={RefreshCw}
+              onClick={refetch}
+              disabled={loading}
+              ariaLabel={isEs ? "Recargar" : "Refresh"}
+              title={isEs ? "Recargar" : "Refresh"}
+            />
           }
         />
       </div>
@@ -166,7 +178,7 @@ export default function AdminDashboard() {
               {isEs ? "Solicitudes pendientes" : "Pending Requests"}
             </h2>
             <Link
-              to="/app/orders"
+              to="/app/loans"
               className="text-xs text-[#FFD700] hover:underline flex items-center gap-1"
             >
               {isEs ? "Ver todo" : "View all"} <ArrowRight size={12} />
@@ -204,9 +216,21 @@ export default function AdminDashboard() {
                     className="border-b border-[#222] hover:bg-[#1a1a1a] transition-colors text-sm"
                   >
                     <td className="px-4 py-3 font-mono font-medium">
-                      <Link to="/app/orders" className="entity-link">
-                        {req.code ?? shortId(req._id)}
-                      </Link>
+                      <span className="flex items-center gap-2 group/copy">
+                        <Link
+                          to="/app/loans"
+                          className="entity-link hover:text-[#FFD700] transition-colors"
+                        >
+                          {req.code ?? shortId(req._id)}
+                        </Link>
+                        <button
+                          onClick={() => copy(req.code ?? shortId(req._id))}
+                          className="hover:text-[#FFD700] transition-colors opacity-0 group-hover/copy:opacity-100"
+                          title={isEs ? "Copiar código" : "Copy code"}
+                        >
+                          <Copy size={14} />
+                        </button>
+                      </span>
                     </td>
                     <td className="px-4 py-3 text-gray-300">
                       {req.items.length}{" "}
@@ -313,14 +337,9 @@ export default function AdminDashboard() {
             <div className="grid grid-cols-2 gap-2">
               {[
                 {
-                  label: isEs ? "Pedidos" : "Orders",
-                  to: "/app/orders",
+                  label: isEs ? "Prestamos" : "Loans",
+                  to: "/app/loans",
                   icon: <ShoppingCart size={16} />,
-                },
-                {
-                  label: isEs ? "Alquileres" : "Rentals",
-                  to: "/app/rentals",
-                  icon: <Package size={16} />,
                 },
                 {
                   label: isEs ? "Clientes" : "Customers",
@@ -358,7 +377,7 @@ export default function AdminDashboard() {
               </h2>
             </div>
             <Link
-              to="/app/rentals"
+              to="/app/loans"
               className="text-xs text-red-400 hover:underline flex items-center gap-1"
             >
               {isEs ? "Ver todo" : "View all"} <ArrowRight size={12} />
@@ -380,9 +399,21 @@ export default function AdminDashboard() {
                   className="border-b border-[#222] hover:bg-[#1a1a1a] transition-colors text-sm"
                 >
                   <td className="px-4 py-3 font-mono font-medium">
-                    <Link to="/app/rentals" className="entity-link">
-                      {loan.code ?? shortId(loan._id)}
-                    </Link>
+                    <span className="flex items-center gap-2 group/copy">
+                      <Link
+                        to="/app/loans"
+                        className="entity-link hover:text-[#FFD700] transition-colors"
+                      >
+                        {loan.code ?? shortId(loan._id)}
+                      </Link>
+                      <button
+                        onClick={() => copy(loan.code ?? shortId(loan._id))}
+                        className="hover:text-[#FFD700] transition-colors opacity-0 group-hover/copy:opacity-100"
+                        title={isEs ? "Copiar código" : "Copy code"}
+                      >
+                        <Copy size={14} />
+                      </button>
+                    </span>
                   </td>
                   <td className="px-4 py-3 text-gray-400">{fmtDate(loan.endDate, locale)}</td>
                   <td className="px-4 py-3 text-red-400 font-medium">

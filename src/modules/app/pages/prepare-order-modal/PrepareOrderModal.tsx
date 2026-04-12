@@ -19,6 +19,7 @@ import Button from "../../../../components/ui/Button";
 import { useConfirmModal } from "../../../../hooks/useConfirmModal";
 import { useToast } from "../../../../contexts/ToastContext";
 import { useAuth } from "../../../../contexts/useAuth";
+import { useLanguage } from "../../../../contexts/useLanguage";
 import { getAvailableMaterials, assignMaterials } from "../../../../services/loanService";
 import { createTransferRequest } from "../../../../services/transferService";
 import {
@@ -45,6 +46,7 @@ export default function PrepareOrderModal({
   const { user } = useAuth();
   const { showConfirm, ConfirmModal } = useConfirmModal();
   const { showToast } = useToast();
+  const { t } = useLanguage();
 
   // ── Fetch state ──
   const [loading, setLoading] = useState(false);
@@ -80,13 +82,11 @@ export default function PrepareOrderModal({
       setAvailableMaterials(availRes.data);
       setAllLocations(locRes.data.items ?? []);
     } catch (err) {
-      setFetchError(
-        err instanceof Error ? err.message : "Failed to load available materials. Please retry.",
-      );
+      setFetchError(err instanceof Error ? err.message : t("orders.prepare.errorTitle"));
     } finally {
       setLoading(false);
     }
-  }, [requestId]);
+  }, [requestId, t]);
 
   useEffect(() => {
     if (isOpen) {
@@ -241,17 +241,6 @@ export default function PrepareOrderModal({
     [],
   );
 
-  // ── Auto-assign available instances for a single row ──
-  const autoAssignRow = useCallback((row: MaterialTypeRow) => {
-    const available = row.currentUserInstances
-      .filter((i) => i.availability === "available")
-      .slice(0, row.quantity);
-    setSelections((prev) => ({
-      ...prev,
-      [row.materialTypeId]: available.map((i) => i._id),
-    }));
-  }, []);
-
   // ── Auto-assign all rows ──
   const autoAssignAll = useCallback(() => {
     const next: Record<string, string[]> = {};
@@ -271,9 +260,12 @@ export default function PrepareOrderModal({
 
     if (partial) {
       const confirmed = await showConfirm({
-        title: "Partial Preparation",
-        message: `Only ${fullyAssignedRows.length} of ${materialTypeRows.length} material type(s) will be assigned — the others are not fully stocked. The order will still move to "ready" with the assigned items. Continue?`,
-        confirmText: "Prepare Partially",
+        title: t("orders.prepare.partialConfirm.title"),
+        message: t("orders.prepare.partialConfirm.message", {
+          fulfilled: fullyAssignedRows.length,
+          total: materialTypeRows.length,
+        }),
+        confirmText: t("orders.prepare.partialConfirm.confirm"),
         variant: "warning",
       });
       if (!confirmed) return;
@@ -287,21 +279,29 @@ export default function PrepareOrderModal({
     );
 
     if (assignments.length === 0) {
-      showToast("error", "No assignments to submit.", "Preparation Error");
+      showToast(
+        "error",
+        t("orders.prepare.toasts.noAssignments"),
+        t("orders.prepare.toasts.preparationError"),
+      );
       return;
     }
 
     setSubmittingAssign(true);
     try {
       await assignMaterials(requestId, assignments);
-      showToast("success", "Order prepared and moved to ready status.", "Order Prepared");
+      showToast(
+        "success",
+        t("orders.prepare.toasts.prepared"),
+        t("orders.prepare.toasts.preparedTitle"),
+      );
       onClose();
       await onSuccess();
     } catch (err) {
       showToast(
         "error",
-        err instanceof Error ? err.message : "Failed to prepare order.",
-        "Preparation Error",
+        err instanceof Error ? err.message : t("orders.prepare.toasts.prepareFailed"),
+        t("orders.prepare.toasts.preparationError"),
       );
     } finally {
       setSubmittingAssign(false);
@@ -311,11 +311,11 @@ export default function PrepareOrderModal({
   // ── Create transfer request(s) for shortfall ──
   const handleCreateTransferRequests = async () => {
     if (!destinationLocationId) {
-      showToast("error", "Please select a destination location.", "Validation");
+      showToast("error", t("orders.prepare.toasts.selectDestination"), t("common.validation"));
       return;
     }
     if (destinationConflict) {
-      showToast("error", "Destination cannot be the same as a source location.", "Validation");
+      showToast("error", t("orders.prepare.shortfall.destinationConflict"), t("common.validation"));
       return;
     }
     if (shortfallGroups.length === 0) return;
@@ -323,17 +323,18 @@ export default function PrepareOrderModal({
     const destName =
       userLocations.find((l) => l._id === destinationLocationId)?.name ?? destinationLocationId;
 
+    const from = t("orders.prepare.shortfall.from");
     const summary = shortfallGroups
       .map(
         (g) =>
-          `• From ${g.fromLocationName}: ${g.items.map((i) => `${i.quantity}× ${i.materialTypeName}`).join(", ")}`,
+          `• ${from} ${g.fromLocationName}: ${g.items.map((i) => `${i.quantity}× ${i.materialTypeName}`).join(", ")}`,
       )
       .join("\n");
 
     const confirmed = await showConfirm({
-      title: `Create ${shortfallGroups.length} Transfer Request${shortfallGroups.length > 1 ? "s" : ""}`,
-      message: `Transfer to ${destName}:\n\n${summary}`,
-      confirmText: "Create Requests",
+      title: t("orders.prepare.transferConfirm.title", { count: shortfallGroups.length }),
+      message: `${t("orders.prepare.transferConfirm.toMessage", { destName })}\n\n${summary}`,
+      confirmText: t("orders.prepare.transferConfirm.confirm"),
       variant: "info",
     });
     if (!confirmed) return;
@@ -355,14 +356,14 @@ export default function PrepareOrderModal({
       );
       showToast(
         "success",
-        `${shortfallGroups.length} transfer request${shortfallGroups.length > 1 ? "s" : ""} created.`,
-        "Transfer Requests Created",
+        t("orders.prepare.toasts.transfersCreated", { count: shortfallGroups.length }),
+        t("orders.prepare.toasts.transferCreatedTitle"),
       );
     } catch (err) {
       showToast(
         "error",
-        err instanceof Error ? err.message : "Failed to create transfer request.",
-        "Transfer Error",
+        err instanceof Error ? err.message : t("orders.prepare.toasts.transferFailed"),
+        t("orders.prepare.toasts.transferError"),
       );
     } finally {
       setSubmittingTransfer(false);
@@ -376,13 +377,13 @@ export default function PrepareOrderModal({
       className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
       role="dialog"
       aria-modal="true"
-      aria-label="Prepare Order"
+      aria-label={t("orders.prepare.title")}
     >
       <div className="bg-[#1a1a1a] border border-[#333] rounded-[12px] w-full max-w-3xl max-h-[90vh] flex flex-col">
         {/* ── Header ── */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#333] flex-shrink-0">
           <div>
-            <h2 className="text-xl font-bold text-white">Prepare Order</h2>
+            <h2 className="text-xl font-bold text-white">{t("orders.prepare.title")}</h2>
             <p className="text-sm text-gray-400 mt-0.5">{customerName}</p>
           </div>
           <div className="flex items-center gap-3">
@@ -396,13 +397,16 @@ export default function PrepareOrderModal({
                       : "bg-red-500/20 text-red-300"
                 }`}
               >
-                {stockSummary.fulfilled}/{stockSummary.total} types assigned
+                {t("orders.prepare.typesAssigned", {
+                  fulfilled: stockSummary.fulfilled,
+                  total: stockSummary.total,
+                })}
               </span>
             )}
             <button
               className="text-gray-400 hover:text-white transition-colors"
               onClick={onClose}
-              aria-label="Close modal"
+              aria-label={t("common.close")}
             >
               <X size={20} />
             </button>
@@ -415,22 +419,20 @@ export default function PrepareOrderModal({
           {loading && (
             <div className="flex items-center justify-center py-16 gap-3">
               <Loader2 className="animate-spin text-[#FFD700]" size={28} />
-              <span className="text-gray-400">Loading available materials…</span>
+              <span className="text-gray-400">{t("orders.prepare.loading")}</span>
             </div>
           )}
 
           {/* Fetch error */}
           {!loading && fetchError && (
             <div className="rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 space-y-2">
-              <p className="text-sm font-semibold text-red-300">
-                Failed to load available materials
-              </p>
+              <p className="text-sm font-semibold text-red-300">{t("orders.prepare.errorTitle")}</p>
               <p className="text-sm text-red-400">{fetchError}</p>
               <button
                 className="text-sm text-[#FFD700] hover:underline"
                 onClick={() => void loadData()}
               >
-                Retry
+                {t("common.retry")}
               </button>
             </div>
           )}
@@ -440,16 +442,14 @@ export default function PrepareOrderModal({
             <>
               {/* Auto-assign all toolbar */}
               <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-400">
-                  Select instances to assign per material type.
-                </p>
+                <p className="text-sm text-gray-400">{t("orders.prepare.subtitle")}</p>
                 <Button
                   size="sm"
                   leftIcon={Zap}
                   onClick={autoAssignAll}
                   className="bg-[#FFD700]/10 text-[#FFD700] border-[#FFD700]/30 hover:bg-[#FFD700]/20"
                 >
-                  Auto-assign All Available
+                  {t("orders.prepare.autoAssignAll")}
                 </Button>
               </div>
 
@@ -461,7 +461,6 @@ export default function PrepareOrderModal({
                     row={row}
                     selected={selections[row.materialTypeId] ?? []}
                     onToggleInstance={toggleInstance}
-                    onAutoAssign={autoAssignRow}
                   />
                 ))}
               </div>
@@ -493,7 +492,7 @@ export default function PrepareOrderModal({
               onClick={onClose}
               disabled={submittingAssign}
             >
-              Cancel
+              {t("common.cancel")}
             </button>
             <div className="flex items-center gap-3">
               {canPreparePartial && (
@@ -503,8 +502,8 @@ export default function PrepareOrderModal({
                   className="bg-violet-500/15 text-violet-300 border-violet-500/40 hover:bg-violet-500/25"
                 >
                   {submittingAssign
-                    ? "Preparing…"
-                    : `Prepare Available (${fullyAssignedRows.length} type${fullyAssignedRows.length !== 1 ? "s" : ""})`}
+                    ? t("orders.prepare.preparing")
+                    : t("orders.prepare.preparePartial", { count: fullyAssignedRows.length })}
                 </Button>
               )}
               <Button
@@ -513,7 +512,7 @@ export default function PrepareOrderModal({
                 disabled={submittingAssign || !canPrepareAll}
                 className="bg-emerald-500/15 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/25 disabled:opacity-50"
               >
-                {submittingAssign ? "Preparing…" : "Prepare All"}
+                {submittingAssign ? t("orders.prepare.preparing") : t("orders.prepare.prepareAll")}
               </Button>
             </div>
           </div>

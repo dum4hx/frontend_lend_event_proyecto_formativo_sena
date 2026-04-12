@@ -1,9 +1,10 @@
-import { lazy, Suspense } from "react";
+﻿import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { ToastProvider } from "./contexts/ToastContext";
+import { SessionProvider } from "./contexts/SessionContext";
 import { RequirePermission } from "./utils/permissionGuard";
 import { RequireActiveSubscription } from "./utils/subscriptionGuard";
 import { PublicOnlyRoute, RequireAuthenticatedRoute } from "./utils/authGuards";
@@ -71,8 +72,7 @@ import RoleManagement from "./modules/app/pages/RoleManagement";
 import Locations from "./modules/app/pages/Locations";
 import Attributes from "./modules/app/pages/Attributes";
 import Plans from "./modules/app/pages/Plans";
-import Orders from "./modules/app/pages/Orders";
-import Rentals from "./modules/app/pages/Rentals";
+
 import Invoices from "./modules/app/pages/Invoices";
 import PaymentMethods from "./modules/app/pages/PaymentMethods";
 import CodeSchemes from "./modules/app/pages/code-schemes";
@@ -86,11 +86,13 @@ import { MaterialInstanceCatalog } from "./modules/app/modules/material-instance
 import { InspectionsCatalog } from "./modules/app/modules/inspections";
 import { IncidentsCatalog } from "./modules/app/modules/incidents";
 import { MaintenanceCatalog, BatchRepairView } from "./modules/app/modules/maintenance";
+import { TicketsCatalog } from "./modules/app/modules/tickets";
 import { CatalogOverview } from "./modules/app/modules/catalog-overview";
 import TransferRequests from "./modules/app/pages/TransferRequests";
 import OperationsDashboard from "./modules/app/pages/OperationsDashboard";
+import { Loans } from "./modules/app/pages/loans";
 
-// Super Admin — lazy-loaded for code-splitting
+// Super Admin â€” lazy-loaded for code-splitting
 const SuperAdminLayout = lazy(() => import("./modules/super-admin/layouts/SuperAdminLayout"));
 const SalesOverview = lazy(() => import("./modules/super-admin/pages/SalesOverview"));
 const UserManagement = lazy(() => import("./modules/super-admin/pages/UserManagement"));
@@ -103,178 +105,243 @@ const OrganizationManagement = lazy(
 );
 const AdminReports = lazy(() => import("./modules/super-admin/pages/AdminReports"));
 
-function App() {
+/**
+ * AppRoutes â€” Main routes component that must be inside AuthProvider.
+ *
+ * Permissions are kept in sync automatically:
+ * - On login/logout (AuthContext handles this)
+ * - On mutations (services invalidate/refresh as needed)
+ * - No polling â€” only real changes sync
+ */
+export function AppRoutes() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <LanguageProvider>
-          <ThemeProvider>
-            <ToastProvider>
-              <ScrollToTop />
-              <Routes>
-                {/* Public Routes */}
-                <Route
-                  path="/"
-                  element={
-                    <PublicOnlyRoute>
-                      <Dashboard />
-                    </PublicOnlyRoute>
-                  }
-                />
-                <Route path="/packages" element={<Paquetes />} />
-                <Route path="/about" element={<AboutPage />} />
-                <Route
-                  path="/login"
-                  element={
-                    <PublicOnlyRoute>
-                      <Login />
-                    </PublicOnlyRoute>
-                  }
-                />
-                <Route
-                  path="/sign-up"
-                  element={
-                    <PublicOnlyRoute>
-                      <SignUp />
-                    </PublicOnlyRoute>
-                  }
-                />
-                <Route
-                  path="/password-recovery"
-                  element={
-                    <PublicOnlyRoute>
-                      <PasswordRecovery />
-                    </PublicOnlyRoute>
-                  }
-                />
-                <Route
-                  path="/accept-invite"
-                  element={
-                    <PublicOnlyRoute>
-                      <AcceptInvite />
-                    </PublicOnlyRoute>
-                  }
-                />
-                <Route
-                  path="/verify-email"
-                  element={
-                    <PublicOnlyRoute>
-                      <EmailVerification />
-                    </PublicOnlyRoute>
-                  }
-                />
-                <Route
-                  path="/auth/verify-otp"
-                  element={
-                    <PublicOnlyRoute>
-                      <LoginOtp />
-                    </PublicOnlyRoute>
-                  }
-                />
-                {/* Checkout — public for unauthenticated, allowed for authenticated too */}
-                <Route path="/checkout" element={<Checkout />} />
-                <Route path="/checkout/success" element={<CheckoutSuccess />} />
-                <Route path="/export-demo" element={<ExportDemo />} />
-                <Route path="/contact" element={<ContactPage />} />
-                <Route path="/billing" element={<BillingPage />} />
-                <Route path="/about-company" element={<Navigate to="/about" replace />} />
-                <Route path="/business" element={<BusinessPage />} />
-                <Route path="/pricing" element={<PricingPage />} />
-                <Route path="/blog" element={<BlogPage />} />
-                <Route path="/book-demo" element={<BookDemoPage />} />
-                <Route path="/whats-new" element={<WhatsNewPage />} />
-                <Route path="/help-center" element={<HelpCenterPage />} />
-                <Route path="/terms-of-service" element={<TermsOfServicePage />} />
-                <Route path="/cookie-policy" element={<CookiePolicyPage />} />
+      <ScrollToTop />
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/packages" element={<Paquetes />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/sign-up" element={<SignUp />} />
+        <Route path="/password-recovery" element={<PasswordRecovery />} />
+        <Route path="/accept-invite" element={<AcceptInvite />} />
+        <Route path="/verify-email" element={<EmailVerification />} />
+        <Route path="/auth/verify-otp" element={<LoginOtp />} />
+        <Route path="/checkout" element={<Checkout />} />
+        <Route path="/checkout/success" element={<CheckoutSuccess />} />
+        <Route path="/export-demo" element={<ExportDemo />} />
+        <Route path="/contact" element={<ContactPage />} />
+        <Route path="/billing" element={<BillingPage />} />
+        <Route path="/about-company" element={<Navigate to="/about" replace />} />
+        <Route path="/business" element={<BusinessPage />} />
+        <Route path="/pricing" element={<PricingPage />} />
+        <Route path="/blog" element={<BlogPage />} />
+        <Route path="/book-demo" element={<BookDemoPage />} />
+        <Route path="/whats-new" element={<WhatsNewPage />} />
+        <Route path="/help-center" element={<HelpCenterPage />} />
+        <Route path="/terms-of-service" element={<TermsOfServicePage />} />
+        <Route path="/cookie-policy" element={<CookiePolicyPage />} />
 
-                {/* Unified /app routes — visibility controlled by permissions */}
-                <Route
-                  path="/app"
-                  element={
-                    <RequireAuthenticatedRoute>
+        {/* Unified /app routes â€” visibility controlled by permissions */}
+        <Route
+          path="/app"
+          element={
+            <RequirePermission
+              requiredPermissions={[
+                "analytics:read",
+                "organization:read",
+                "materials:read",
+                "customers:read",
+              ]}
+            >
+              <RequireActiveSubscription>
+                <AppLayout />
+              </RequireActiveSubscription>
+            </RequirePermission>
+          }
+        >
+          <Route index element={<AppIndexRedirect />} />
+          <Route path="customers" element={<Customers />} />
+          <Route path="team" element={<Team />} />
+          <Route path="roles" element={<RoleManagement />} />
+          <Route path="material-categories" element={<CategoryCatalog />} />
+          <Route path="material-categories/create" element={<CreateCategory />} />
+          <Route path="material-types" element={<MaterialTypeCatalog />} />
+          <Route path="material-types/create" element={<CreateMaterialType />} />
+          <Route path="material-instances" element={<MaterialInstanceCatalog />} />
+          <Route path="inspections" element={<InspectionsCatalog />} />
+          <Route path="incidents" element={<IncidentsCatalog />} />
+          <Route path="maintenance" element={<MaintenanceCatalog />} />
+          <Route path="maintenance/:batchId/repair" element={<BatchRepairView />} />
+          <Route path="catalog-overview" element={<CatalogOverview />} />
+          <Route path="transfer-requests" element={<TransferRequests />} />
+          <Route path="operations" element={<OperationsDashboard />} />
+          <Route path="attributes" element={<Attributes />} />
+          <Route path="plans" element={<Plans />} />
+          <Route path="locations" element={<Locations />} />
+          <Route path="pricing" element={<PricingConfigs />} />
+          <Route path="invoices" element={<Invoices />} />
+          <Route path="payment-methods" element={<PaymentMethods />} />
+          <Route path="settings/code-schemes" element={<CodeSchemes />} />
+          <Route path="reports" element={<Reports />} />
+          <Route path="loans" element={<Loans />} />
+          <Route path="tickets" element={<TicketsCatalog />} />
+          <Route path="settings" element={<Settings />} />
+          <Route path="subscription" element={<SubscriptionManagement />} />
+        </Route>
+
+        {/* Super Admin routes â€” require platform:manage permission */}
+        <Route
+          path="/super-admin"
+          element={
+            <RequirePermission requiredPermissions={["platform:manage"]}>
+              <Suspense fallback={<LoadingSpinner />}>
+                <SuperAdminLayout />
+              </Suspense>
+            </RequirePermission>
+          }
+        >
+          <Route index element={<SalesOverview />} />
+          <Route path="clients" element={<UserManagement />} />
+          <Route path="organizations" element={<OrganizationManagement />} />
+          <Route path="subscriptions" element={<SuperAdminSubscriptionManagement />} />
+          <Route path="reports" element={<AdminReports />} />
+          <Route path="settings" element={<SystemSettings />} />
+        </Route>
+
+        {/* Legacy redirects â€” old role-based URLs â†’ unified /app */}
+        <Route path="/admin/*" element={<Navigate to="/app" replace />} />
+        <Route path="/warehouse-operator/*" element={<Navigate to="/app" replace />} />
+        <Route path="/location-manager/*" element={<Navigate to="/app" replace />} />
+        <Route path="/commercial-advisor/*" element={<Navigate to="/app" replace />} />
+
+        {/* Fallback routes */}
+        <Route path="/unauthorized" element={<Unauthorized />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <LanguageProvider>
+        <ThemeProvider>
+          <ToastProvider>
+            <SessionProvider>
+              <BrowserRouter>
+                <ScrollToTop />
+                <Routes>
+                  {/* Public Routes */}
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/packages" element={<Paquetes />} />
+                  <Route path="/about" element={<AboutPage />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/sign-up" element={<SignUp />} />
+                  <Route path="/password-recovery" element={<PasswordRecovery />} />
+                  <Route path="/accept-invite" element={<AcceptInvite />} />
+                  <Route path="/verify-email" element={<EmailVerification />} />
+                  <Route path="/auth/verify-otp" element={<LoginOtp />} />
+                  <Route path="/checkout" element={<Checkout />} />
+                  <Route path="/checkout/success" element={<CheckoutSuccess />} />
+                  <Route path="/export-demo" element={<ExportDemo />} />
+                  <Route path="/contact" element={<ContactPage />} />
+                  <Route path="/billing" element={<BillingPage />} />
+                  <Route path="/about-company" element={<Navigate to="/about" replace />} />
+                  <Route path="/business" element={<BusinessPage />} />
+                  <Route path="/pricing" element={<PricingPage />} />
+                  <Route path="/blog" element={<BlogPage />} />
+                  <Route path="/book-demo" element={<BookDemoPage />} />
+                  <Route path="/whats-new" element={<WhatsNewPage />} />
+                  <Route path="/help-center" element={<HelpCenterPage />} />
+                  <Route path="/terms-of-service" element={<TermsOfServicePage />} />
+                  <Route path="/cookie-policy" element={<CookiePolicyPage />} />
+
+                  {/* Unified /app routes â€” visibility controlled by permissions */}
+                  <Route
+                    path="/app"
+                    element={
                       <RequirePermission
                         requiredPermissions={[
                           "analytics:read",
                           "organization:read",
                           "materials:read",
                           "customers:read",
-                          "loans:read",
-                          "requests:read",
                         ]}
                       >
                         <RequireActiveSubscription>
                           <AppLayout />
                         </RequireActiveSubscription>
                       </RequirePermission>
-                    </RequireAuthenticatedRoute>
-                  }
-                >
-                  <Route index element={<AppIndexRedirect />} />
-                  <Route path="customers" element={<Customers />} />
-                  <Route path="team" element={<Team />} />
-                  <Route path="roles" element={<RoleManagement />} />
-                  <Route path="material-categories" element={<CategoryCatalog />} />
-                  <Route path="material-categories/create" element={<CreateCategory />} />
-                  <Route path="material-types" element={<MaterialTypeCatalog />} />
-                  <Route path="material-types/create" element={<CreateMaterialType />} />
-                  <Route path="material-instances" element={<MaterialInstanceCatalog />} />
-                  <Route path="inspections" element={<InspectionsCatalog />} />
-                  <Route path="incidents" element={<IncidentsCatalog />} />
-                  <Route path="maintenance" element={<MaintenanceCatalog />} />
-                  <Route path="maintenance/:batchId/repair" element={<BatchRepairView />} />
-                  <Route path="catalog-overview" element={<CatalogOverview />} />
-                  <Route path="transfer-requests" element={<TransferRequests />} />
-                  <Route path="operations" element={<OperationsDashboard />} />
-                  <Route path="attributes" element={<Attributes />} />
-                  <Route path="plans" element={<Plans />} />
-                  <Route path="locations" element={<Locations />} />
-                  <Route path="orders" element={<Orders />} />
-                  <Route path="rentals" element={<Rentals />} />
-                  <Route path="pricing" element={<PricingConfigs />} />
-                  <Route path="invoices" element={<Invoices />} />
-                  <Route path="payment-methods" element={<PaymentMethods />} />
-                  <Route path="settings/code-schemes" element={<CodeSchemes />} />
-                  <Route path="reports" element={<Reports />} />
-                  <Route path="settings" element={<Settings />} />
-                  <Route path="subscription" element={<SubscriptionManagement />} />
-                </Route>
+                    }
+                  >
+                    <Route index element={<AppIndexRedirect />} />
+                    <Route path="customers" element={<Customers />} />
+                    <Route path="team" element={<Team />} />
+                    <Route path="roles" element={<RoleManagement />} />
+                    <Route path="material-categories" element={<CategoryCatalog />} />
+                    <Route path="material-categories/create" element={<CreateCategory />} />
+                    <Route path="material-types" element={<MaterialTypeCatalog />} />
+                    <Route path="material-types/create" element={<CreateMaterialType />} />
+                    <Route path="material-instances" element={<MaterialInstanceCatalog />} />
+                    <Route path="inspections" element={<InspectionsCatalog />} />
+                    <Route path="incidents" element={<IncidentsCatalog />} />
+                    <Route path="maintenance" element={<MaintenanceCatalog />} />
+                    <Route path="maintenance/:batchId/repair" element={<BatchRepairView />} />
+                    <Route path="catalog-overview" element={<CatalogOverview />} />
+                    <Route path="transfer-requests" element={<TransferRequests />} />
+                    <Route path="operations" element={<OperationsDashboard />} />
+                    <Route path="attributes" element={<Attributes />} />
+                    <Route path="plans" element={<Plans />} />
+                    <Route path="locations" element={<Locations />} />
+                    <Route path="pricing" element={<PricingConfigs />} />
+                    <Route path="invoices" element={<Invoices />} />
+                    <Route path="payment-methods" element={<PaymentMethods />} />
+                    <Route path="settings/code-schemes" element={<CodeSchemes />} />
+                    <Route path="reports" element={<Reports />} />
+                    <Route path="loans" element={<Loans />} />
+                    <Route path="tickets" element={<TicketsCatalog />} />
+                    <Route path="settings" element={<Settings />} />
+                    <Route path="subscription" element={<SubscriptionManagement />} />
+                  </Route>
 
-                {/* Super Admin routes — require platform:manage permission */}
-                <Route
-                  path="/super-admin"
-                  element={
-                    <RequireAuthenticatedRoute>
+                  {/* Super Admin routes â€” require platform:manage permission */}
+                  <Route
+                    path="/super-admin"
+                    element={
                       <RequirePermission requiredPermissions={["platform:manage"]}>
                         <Suspense fallback={<LoadingSpinner />}>
                           <SuperAdminLayout />
                         </Suspense>
                       </RequirePermission>
-                    </RequireAuthenticatedRoute>
-                  }
-                >
-                  <Route index element={<SalesOverview />} />
-                  <Route path="clients" element={<UserManagement />} />
-                  <Route path="organizations" element={<OrganizationManagement />} />
-                  <Route path="subscriptions" element={<SuperAdminSubscriptionManagement />} />
-                  <Route path="reports" element={<AdminReports />} />
-                  <Route path="settings" element={<SystemSettings />} />
-                </Route>
+                    }
+                  >
+                    <Route index element={<SalesOverview />} />
+                    <Route path="clients" element={<UserManagement />} />
+                    <Route path="organizations" element={<OrganizationManagement />} />
+                    <Route path="subscriptions" element={<SuperAdminSubscriptionManagement />} />
+                    <Route path="reports" element={<AdminReports />} />
+                    <Route path="settings" element={<SystemSettings />} />
+                  </Route>
 
-                {/* Legacy redirects — old role-based URLs → unified /app */}
-                <Route path="/admin/*" element={<Navigate to="/app" replace />} />
-                <Route path="/warehouse-operator/*" element={<Navigate to="/app" replace />} />
-                <Route path="/location-manager/*" element={<Navigate to="/app" replace />} />
-                <Route path="/commercial-advisor/*" element={<Navigate to="/app" replace />} />
+                  {/* Legacy redirects â€” old role-based URLs â†’ unified /app */}
+                  <Route path="/admin/*" element={<Navigate to="/app" replace />} />
+                  <Route path="/warehouse-operator/*" element={<Navigate to="/app" replace />} />
+                  <Route path="/location-manager/*" element={<Navigate to="/app" replace />} />
+                  <Route path="/commercial-advisor/*" element={<Navigate to="/app" replace />} />
 
-                {/* Fallback routes */}
-                <Route path="/unauthorized" element={<Unauthorized />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </ToastProvider>
-          </ThemeProvider>
-        </LanguageProvider>
-      </AuthProvider>
-    </BrowserRouter>
+                  {/* Fallback routes */}
+                  <Route path="/unauthorized" element={<Unauthorized />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+            </SessionProvider>
+          </ToastProvider>
+        </ThemeProvider>
+      </LanguageProvider>
+    </AuthProvider>
   );
 }
 

@@ -784,6 +784,28 @@ export const validateCategoryDescription = (description?: string): ValidationRes
 };
 
 /**
+ * Extension fee validation for loan extend action.
+ * Rules:
+ * - Required (value must be present)
+ * - Must be a finite number
+ * - Must be >= 0 (no negative fees)
+ * Example: 0 (no fee), 50000 (COP fee amount)
+ */
+export const validateExtensionFee = (value: string): ValidationResult => {
+  if (value === "" || value === undefined) {
+    return { isValid: false, message: "common.validation.extensionFeeRequired" };
+  }
+  const num = Number(value);
+  if (!Number.isFinite(num)) {
+    return { isValid: false, message: "common.validation.extensionFeeInvalid" };
+  }
+  if (num < 0) {
+    return { isValid: false, message: "common.validation.extensionFeeNonNegative" };
+  }
+  return { isValid: true };
+};
+
+/**
  * Code scheme name validation (1-100 chars, non-empty).
  * Returns i18n keys so callers can translate via t().
  */
@@ -865,6 +887,171 @@ export const validateDateRange = (from: string, to: string): ValidationResult =>
 export const validateSearchQuery = (query: string): ValidationResult => {
   if (query.length > 100) {
     return { isValid: false, message: "reports.filter.searchTooLong" };
+  }
+  return { isValid: true };
+};
+/**
+ * Deposit due date validation for loan requests.
+ * Ensures depositDueDate falls between startDate and endDate (inclusive).
+ * @example validateDepositDueDate("2025-06-15", "2025-06-01", "2025-06-30") // { isValid: true }
+ * @example validateDepositDueDate("2025-05-01", "2025-06-01", "2025-06-30") // { isValid: false }
+ */
+export const validateDepositDueDate = (
+  depositDueDate: string,
+  startDate: string,
+  endDate: string,
+): ValidationResult => {
+  if (!depositDueDate) {
+    return { isValid: false, message: "loans.validation.depositDueDateRequired" };
+  }
+  if (!startDate || !endDate) {
+    return { isValid: true };
+  }
+  if (depositDueDate < startDate) {
+    return { isValid: false, message: "loans.validation.depositDueDateBeforeStart" };
+  }
+  if (depositDueDate > endDate) {
+    return { isValid: false, message: "loans.validation.depositDueDateAfterEnd" };
+  }
+  return { isValid: true };
+};
+
+/**
+ * Deposit amount validation for order/request forms.
+ * Requires a numeric value greater than zero.
+ */
+export const validateDepositAmount = (
+  value: string | number | null | undefined,
+): ValidationResult => {
+  if (value === "" || value === null || value === undefined) {
+    return { isValid: false, message: "orders.depositAmountRequired" };
+  }
+
+  const numericValue = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(numericValue) || numericValue <= 0) {
+    return { isValid: false, message: "orders.depositAmountMustBeGreaterThanZero" };
+  }
+
+  return { isValid: true };
+};
+
+// ─── Ticket Validators ────────────────────────────────────────────────────
+
+/**
+ * Ticket title validation.
+ * Required, 1–200 characters.
+ * @example validateTicketTitle("Transfer chairs") // { isValid: true }
+ */
+export const validateTicketTitle = (value: string): ValidationResult => {
+  if (!value.trim()) {
+    return { isValid: false, message: "tickets.validation.titleRequired" };
+  }
+  if (value.length > 200) {
+    return { isValid: false, message: "tickets.validation.titleMaxLength" };
+  }
+  return { isValid: true };
+};
+
+/**
+ * Ticket description validation.
+ * Optional, max 2000 characters.
+ * @example validateTicketDescription("") // { isValid: true }
+ */
+export const validateTicketDescription = (value: string): ValidationResult => {
+  if (value.length > 2000) {
+    return { isValid: false, message: "tickets.validation.descriptionMaxLength" };
+  }
+  return { isValid: true };
+};
+
+/**
+ * Resolution note validation (required — used for reject).
+ * 1–1000 characters.
+ * @example validateResolutionNote("Not enough inventory") // { isValid: true }
+ */
+export const validateResolutionNote = (value: string): ValidationResult => {
+  if (!value.trim()) {
+    return { isValid: false, message: "tickets.validation.resolutionNoteRequired" };
+  }
+  if (value.length > 1000) {
+    return { isValid: false, message: "tickets.validation.resolutionNoteMaxLength" };
+  }
+  return { isValid: true };
+};
+
+/**
+ * Optional resolution note validation (used for approve).
+ * Max 1000 characters when provided.
+ * @example validateOptionalResolutionNote("") // { isValid: true }
+ */
+export const validateOptionalResolutionNote = (value: string): ValidationResult => {
+  if (value.length > 1000) {
+    return { isValid: false, message: "tickets.validation.resolutionNoteMaxLength" };
+  }
+  return { isValid: true };
+};
+
+/**
+ * Generic ticket details validation (required for generic type payload).
+ * 1–2000 characters.
+ * @example validateGenericDetails("Need access to...") // { isValid: true }
+ */
+export const validateGenericDetails = (value: string): ValidationResult => {
+  if (!value.trim()) {
+    return { isValid: false, message: "tickets.validation.detailsRequired" };
+  }
+  if (value.length > 2000) {
+    return { isValid: false, message: "tickets.validation.detailsMaxLength" };
+  }
+  return { isValid: true };
+};
+
+/**
+ * Estimated cost validation for maintenance request tickets.
+ * Optional, non-negative number.
+ * @example validateEstimatedCost(100) // { isValid: true }
+ * @example validateEstimatedCost(-5) // { isValid: false }
+ */
+export const validateEstimatedCost = (value: string | number): ValidationResult => {
+  if (value === "" || value === undefined || value === null) {
+    return { isValid: true };
+  }
+  const num = Number(value);
+  if (isNaN(num)) {
+    return { isValid: false, message: "tickets.validation.estimatedCostInvalid" };
+  }
+  if (num < 0) {
+    return { isValid: false, message: "tickets.validation.estimatedCostNegative" };
+  }
+  return { isValid: true };
+};
+
+/**
+ * Ticket notes validation (optional, max 1000 characters).
+ * Used for maintenance_request and inspection_request payloads.
+ * @example validateTicketNotes("Check the left arm") // { isValid: true }
+ */
+export const validateTicketNotes = (value: string): ValidationResult => {
+  if (value.length > 1000) {
+    return { isValid: false, message: "tickets.validation.notesMaxLength" };
+  }
+  return { isValid: true };
+};
+
+/**
+ * Future-date validator.
+ * Ensures the provided ISO/date string is strictly in the future.
+ * @example validateFutureDate("2099-01-01") // { isValid: true }
+ * @example validateFutureDate("2000-01-01") // { isValid: false }
+ */
+export const validateFutureDate = (value: string): ValidationResult => {
+  if (!value) return { isValid: true };
+  const date = new Date(value);
+  if (isNaN(date.getTime())) {
+    return { isValid: false, message: "tickets.validation.deadlinePast" };
+  }
+  if (date.getTime() <= Date.now()) {
+    return { isValid: false, message: "tickets.validation.deadlinePast" };
   }
   return { isValid: true };
 };

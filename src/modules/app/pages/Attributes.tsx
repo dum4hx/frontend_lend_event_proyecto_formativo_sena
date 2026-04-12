@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Plus, Edit2, Trash2, Search } from "lucide-react";
+import { Plus, Edit2, Trash2, Search, RefreshCw } from "lucide-react";
 import { useApiQuery } from "../../../hooks/useApiQuery";
 import { useLanguage } from "../../../contexts/useLanguage";
 import {
@@ -10,7 +10,7 @@ import {
 } from "../../../services/materialService";
 import { MaterialAttributeForm } from "../modules/material-attributes/components/AttributeForm";
 import { useToast } from "../../../contexts/ToastContext";
-import { ConfirmDialog, PermissionGuardedButton } from "../../../components/ui";
+import { ConfirmDialog, PermissionGuardedButton, IconButton } from "../../../components/ui";
 import { LoadingSpinner } from "../../../components/ui/LoadingSpinner";
 import { ErrorDisplay } from "../../../components/ui/ErrorDisplay";
 import { PageHeader } from "../../../components/ui/PageHeader";
@@ -117,17 +117,27 @@ export default function Attributes() {
               : "Define reusable metrics for material catalog items"
           }
           actions={
-            <button
-              onClick={guard("material_attributes:create", () => {
-                setSelectedAttribute(undefined);
-                setIsModalOpen(true);
-              })}
-              aria-disabled={!isAllowed("material_attributes:create")}
-              className={`flex items-center gap-2 px-4 py-2 bg-[#FFD700] text-black rounded-[8px] font-semibold hover:bg-[#FFC700] transition-all ${!isAllowed("material_attributes:create") ? "opacity-50 cursor-not-allowed" : ""}`}
-            >
-              <Plus size={20} />
-              {isEs ? "Agregar Atributo" : "Add Attribute"}
-            </button>
+            <div className="flex gap-2">
+              <IconButton
+                icon={RefreshCw}
+                onClick={() => void refetchAttributes()}
+                disabled={isLoadingAttributes}
+                ariaLabel={isEs ? "Actualizar" : "Refresh"}
+                className={isLoadingAttributes ? "animate-spin" : ""}
+                title={isEs ? "Actualizar" : "Refresh"}
+              />
+              <button
+                onClick={guard("material_attributes:create", () => {
+                  setSelectedAttribute(undefined);
+                  setIsModalOpen(true);
+                })}
+                aria-disabled={!isAllowed("material_attributes:create")}
+                className={`flex items-center gap-2 px-4 py-2 bg-[#FFD700] text-black rounded-[8px] font-semibold hover:bg-[#FFC700] transition-all ${!isAllowed("material_attributes:create") ? "opacity-50 cursor-not-allowed" : ""}`}
+              >
+                <Plus size={20} />
+                {isEs ? "Agregar Atributo" : "Add Attribute"}
+              </button>
+            </div>
           }
         />
       </div>

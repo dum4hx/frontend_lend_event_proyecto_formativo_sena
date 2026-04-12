@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AnimatedPage, PageHeader } from "../../../../components/ui";
+import { RefreshCw } from "lucide-react";
+import { AnimatedPage, PageHeader, IconButton } from "../../../../components/ui";
 import {
   getLoans,
   extendLoan,
@@ -138,6 +139,7 @@ export function Rentals() {
     try {
       const payload: ExtendLoanPayload = {
         newEndDate: `${newEndDate}T00:00:00.000Z`,
+        extensionFee: 0,
         ...(extendNotes.trim() ? { notes: extendNotes.trim() } : {}),
       };
       await extendLoan(extendTarget.loan._id, payload);
@@ -266,6 +268,16 @@ export function Rentals() {
               isEs
                 ? "Haz seguimiento de prestamos activos y devoluciones"
                 : "Track active loans and manage returns"
+            }
+            actions={
+              <IconButton
+                icon={RefreshCw}
+                onClick={() => fetchData()}
+                disabled={loading}
+                ariaLabel={isEs ? "Recargar" : "Refresh"}
+                className={loading ? "animate-spin" : ""}
+                title={isEs ? "Recargar" : "Refresh"}
+              />
             }
           />
         </div>

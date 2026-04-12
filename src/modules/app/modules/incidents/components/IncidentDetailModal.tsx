@@ -1,8 +1,9 @@
 import React, { useState } from "react";
-import { X, AlertTriangle, CheckCircle, XCircle, Eye } from "lucide-react";
+import { X, AlertTriangle, CheckCircle, XCircle, Eye, Copy } from "lucide-react";
 import type { Incident } from "../../../../../types/api";
 import { EntityLink, StatusBadge } from "../../../../../components/ui";
 import { useLanguage } from "../../../../../contexts/useLanguage";
+import { useCopyToClipboard } from "../../../../../hooks/useCopyToClipboard";
 
 interface IncidentDetailModalProps {
   /** The incident to display */
@@ -31,6 +32,7 @@ export const IncidentDetailModal: React.FC<IncidentDetailModalProps> = ({
   onDismiss,
 }) => {
   const { t, formatDate, formatCurrency } = useLanguage();
+  const { copy } = useCopyToClipboard();
   const [resolution, setResolution] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState("");
@@ -106,7 +108,7 @@ export const IncidentDetailModal: React.FC<IncidentDetailModalProps> = ({
 
           {/* Info Grid */}
           <div className="grid grid-cols-2 gap-4">
-            {loanIdValue && <InfoField label={t("incidents.loanId")} value={loanIdValue} mono />}
+            {loanIdValue && <InfoField label={t("incidents.loanId")} value={loanIdValue} mono onCopy={copy} />}
             {incident.locationId && (
               <InfoField
                 label={t("incidents.location")}
@@ -285,13 +287,25 @@ export const IncidentDetailModal: React.FC<IncidentDetailModalProps> = ({
 };
 
 /* Internal helper */
-const InfoField: React.FC<{ label: string; value: string; mono?: boolean }> = ({
+const InfoField: React.FC<{ label: string; value: string; mono?: boolean; onCopy?: (value: string) => void }> = ({
   label,
   value,
   mono,
+  onCopy,
 }) => (
   <div>
     <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">{label}</p>
-    <p className={`text-sm text-gray-300 ${mono ? "font-mono" : ""}`}>{value}</p>
+    {onCopy ? (
+      <button
+        onClick={() => onCopy(value)}
+        className="text-sm text-gray-300 hover:text-[#FFD700] hover:underline transition-colors flex items-center gap-1 group/copy"
+        title="Haz click para copiar"
+      >
+        <span className={mono ? "font-mono" : ""}>{value}</span>
+        <Copy size={12} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+      </button>
+    ) : (
+      <p className={`text-sm text-gray-300 ${mono ? "font-mono" : ""}`}>{value}</p>
+    )}
   </div>
 );

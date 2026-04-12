@@ -40,6 +40,8 @@ import type {
   MaintenanceItemStatus,
 } from "../types/api";
 
+import type { UnifiedLoanStatus } from "../modules/app/pages/loans/types";
+
 // ─── Primitives ────────────────────────────────────────────────────────────
 
 /** Bilingual label pair used in every status map. */
@@ -335,14 +337,20 @@ export const INVOICE_STATUS_MAP: Record<InvoiceStatus, StatusLocale> = {
   draft: { en: "Draft", es: "Borrador" },
   pending: { en: "Pending", es: "Pendiente" },
   paid: { en: "Paid", es: "Pagado" },
+  partially_paid: { en: "Partially Paid", es: "Pago parcial" },
+  overdue: { en: "Overdue", es: "Vencida" },
   cancelled: { en: "Cancelled", es: "Cancelado" },
+  refunded: { en: "Refunded", es: "Reembolsado" },
 };
 
 export const INVOICE_STATUS_COLORS: Record<InvoiceStatus, string> = {
   draft: "badge-warning",
   pending: "badge-warning",
   paid: "badge-success",
+  partially_paid: "badge-info",
+  overdue: "badge-danger",
   cancelled: "badge-danger",
+  refunded: "badge-warning",
 };
 
 export function getInvoiceStatusLabel(status: InvoiceStatus, language: "en" | "es"): string {
@@ -509,6 +517,7 @@ export const CODE_SCHEME_ENTITY_TYPE_MAP: Record<CodeSchemeEntityType, StatusLoc
   incident: { en: "Incident", es: "Incidente" },
   maintenance_batch: { en: "Maintenance Batch", es: "Lote de Mantenimiento" },
   material_instance: { en: "Material Instance", es: "Instancia de Material" },
+  ticket: { en: "Ticket", es: "Ticket" },
 };
 
 export function getCodeSchemeEntityTypeLabel(
@@ -572,7 +581,7 @@ export const WORKFLOW_STATUS_MAP: Record<WorkflowStatus, StatusLocale> = {
   order_created: { en: "Order Created", es: "Pedido creado" },
   order_deposit_pending: { en: "Deposit Pending", es: "Depósito pendiente" },
   order_approved: { en: "Order Approved", es: "Pedido aprobado" },
-  order_assigned: { en: "Materials Assigned", es: "Materiales asignados" },
+  order_assigned: { en: "Materials Prepared", es: "Materiales preparados" },
   order_shipped: { en: "Ready for Checkout", es: "Listo para despacho" },
   order_in_use: { en: "Order In Use / Loaned", es: "Pedido en uso / prestado" },
   order_completed: { en: "Order Completed / Delivered", es: "Pedido completado / entregado" },
@@ -654,4 +663,43 @@ export function getMaintenanceItemStatusLabel(
   language: "en" | "es",
 ): string {
   return getLabel(MAINTENANCE_ITEM_STATUS_MAP, status, language);
+}
+
+// ─── Unified Loan Status (Loans module) ────────────────────────────────────
+
+export const UNIFIED_LOAN_STATUS_MAP: Record<UnifiedLoanStatus, StatusLocale> = {
+  pending: { en: "Pending", es: "Pendiente" },
+  approved: { en: "Approved", es: "Aprobado" },
+  assigned: { en: "Assigned", es: "Asignado" },
+  ready: { en: "Ready", es: "Listo" },
+  active: { en: "Active", es: "Activo" },
+  overdue: { en: "Overdue", es: "Vencido" },
+  returned: { en: "Returned", es: "Devuelto" },
+  inspected: { en: "Returned", es: "Devuelto" },
+  closed: { en: "Closed", es: "Cerrado" },
+  rejected: { en: "Rejected", es: "Rechazado" },
+  cancelled: { en: "Cancelled", es: "Cancelado" },
+  expired: { en: "Expired", es: "Expirado" },
+};
+
+export const UNIFIED_LOAN_STATUS_COLORS: Record<UnifiedLoanStatus, string> = {
+  pending: "badge-warning",
+  approved: "badge-success",
+  assigned: "badge-info",
+  ready: "badge-info",
+  active: "badge-success",
+  overdue: "badge-danger",
+  returned: "badge-info",
+  inspected: "badge-info",
+  closed: "badge-success",
+  rejected: "badge-danger",
+  cancelled: "badge-danger",
+  expired: "badge-warning",
+};
+
+export function getUnifiedLoanStatusLabel(
+  status: UnifiedLoanStatus,
+  language: "en" | "es",
+): string {
+  return getLabel(UNIFIED_LOAN_STATUS_MAP, status, language);
 }

@@ -1,6 +1,7 @@
 import React from "react";
-import { History, Eye, CheckCircle, AlertTriangle, XCircle, FileText } from "lucide-react";
+import { History, Eye, CheckCircle, AlertTriangle, XCircle, FileText, Copy } from "lucide-react";
 import { useLanguage } from "../../../../../contexts/useLanguage";
+import { useCopyToClipboard } from "../../../../../hooks/useCopyToClipboard";
 import type { InspectionListItem, InspectionItemResponse } from "../../../../../types/api";
 
 interface CompletedInspectionsTableProps {
@@ -15,7 +16,8 @@ export const CompletedInspectionsTable: React.FC<CompletedInspectionsTableProps>
   inspections,
   onView,
 }) => {
-  const { t } = useLanguage();
+  const { t, formatDate } = useLanguage();
+  const { copy } = useCopyToClipboard();
 
   if (inspections.length === 0) {
     return (
@@ -35,6 +37,12 @@ export const CompletedInspectionsTable: React.FC<CompletedInspectionsTableProps>
     return { icon: CheckCircle, color: "text-green-500", text: t("inspections.allGood") };
   };
 
+  const sortedInspections = [...inspections].sort((a, b) => {
+    const dateA = new Date(a.createdAt).getTime();
+    const dateB = new Date(b.createdAt).getTime();
+    return dateB - dateA; // Descendente: más reciente primero
+  });
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse">
@@ -45,6 +53,9 @@ export const CompletedInspectionsTable: React.FC<CompletedInspectionsTableProps>
             </th>
             <th className="text-left py-4 px-6 text-gray-400 font-semibold text-xs uppercase tracking-wider font-mono">
               {t("inspections.loanRef")}
+            </th>
+            <th className="text-left py-4 px-6 text-gray-400 font-semibold text-xs uppercase tracking-wider">
+              {t("common.date") || "Fecha"}
             </th>
             <th className="text-left py-4 px-6 text-gray-400 font-semibold text-xs uppercase tracking-wider">
               {t("inspections.statusSummary")}
@@ -58,7 +69,7 @@ export const CompletedInspectionsTable: React.FC<CompletedInspectionsTableProps>
           </tr>
         </thead>
         <tbody className="divide-y divide-[#222]">
-          {[...inspections].reverse().map((inspection) => {
+          {sortedInspections.map((inspection) => {
             const status = getOverallCondition(inspection.items);
             const StatusIcon = status.icon;
 
@@ -69,17 +80,36 @@ export const CompletedInspectionsTable: React.FC<CompletedInspectionsTableProps>
               >
                 <td className="py-5 px-6">
                   <div className="flex flex-col">
-                    <span className="text-white font-mono text-xs group-hover:text-[#FFD700] transition-colors">
+                    <button
+                      onClick={() => copy(inspection.inspectionNumber ?? `${inspection._id.slice(-8).toUpperCase()}`)}
+                      className="text-white font-mono text-xs group-hover:text-[#FFD700] hover:underline transition-colors flex items-center gap-1 group/copy w-fit"
+                      title="Haz click para copiar"
+                    >
                       {inspection.inspectionNumber ?? `#${inspection._id.slice(-8).toUpperCase()}`}
-                    </span>
+                      <Copy size={11} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+                    </button>
                   </div>
                 </td>
                 <td className="py-5 px-6">
-                  <span className="text-gray-400 font-mono text-xs group-hover:text-gray-300">
+                  <button
+                    onClick={() => copy(
+                      typeof inspection.loanId === "string"
+                        ? inspection.loanId
+                        : (inspection.loanId.code ?? `${inspection.loanId._id.slice(-8).toUpperCase()}`)
+                    )}
+                    className="text-gray-400 font-mono text-xs group-hover:text-[#FFD700] hover:underline transition-colors flex items-center gap-1 group/copy"
+                    title="Haz click para copiar"
+                  >
                     {typeof inspection.loanId === "string"
                       ? inspection.loanId
                       : (inspection.loanId.code ??
                         `#${inspection.loanId._id.slice(-8).toUpperCase()}`)}
+                    <Copy size={11} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+                  </button>
+                </td>
+                <td className="py-5 px-6">
+                  <span className="text-gray-400 text-xs">
+                    {formatDate(inspection.createdAt)}
                   </span>
                 </td>
                 <td className="py-5 px-6">
@@ -100,7 +130,8 @@ export const CompletedInspectionsTable: React.FC<CompletedInspectionsTableProps>
                   <button
                     onClick={() => onView(inspection)}
                     className="p-2 text-gray-400 hover:text-[#FFD700] hover:bg-[#333] rounded-lg transition-all"
-                    title="View details"
+                    title={t("inspections.viewDetails")}
+                    aria-label={t("inspections.viewDetails")}
                   >
                     <Eye size={18} />
                   </button>

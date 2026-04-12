@@ -9,13 +9,14 @@ import {
   Trash2,
   ToggleLeft,
   ToggleRight,
+  RefreshCw,
 } from "lucide-react";
 import { useApiQuery } from "../../../../hooks/useApiQuery";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import { useActionPermission } from "../../../../hooks/useActionPermission";
 import { usePermissions } from "../../../../contexts/usePermissions";
 import { useToast } from "../../../../contexts/ToastContext";
-import { PageHeader, ConfirmDialog, PermissionGuardedButton } from "../../../../components/ui";
+import { PageHeader, ConfirmDialog, PermissionGuardedButton, IconButton } from "../../../../components/ui";
 import {
   getPackages,
   deletePackage,
@@ -115,14 +116,24 @@ export default function MaterialPlans() {
           title={t("plans.title")}
           subtitle={t("plans.subtitle")}
           actions={
-            <button
-              onClick={guard("packages:create", () => setShowCreate(true))}
-              aria-disabled={!isAllowed("packages:create")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-[8px] font-semibold transition-all gold-action-btn ${!isAllowed("packages:create") ? "opacity-50 cursor-not-allowed" : ""}`}
-            >
-              <Plus size={20} />
-              {t("plans.addPlan")}
-            </button>
+            <div className="flex gap-2">
+              <IconButton
+                icon={RefreshCw}
+                onClick={() => refetch()}
+                disabled={isLoading}
+                ariaLabel={t("common.refresh")}
+                className={isLoading ? "animate-spin" : ""}
+                title={t("common.refresh")}
+              />
+              <button
+                onClick={guard("packages:create", () => setShowCreate(true))}
+                aria-disabled={!isAllowed("packages:create")}
+                className={`flex items-center gap-2 px-4 py-2 rounded-[8px] font-semibold transition-all gold-action-btn ${!isAllowed("packages:create") ? "opacity-50 cursor-not-allowed" : ""}`}
+              >
+                <Plus size={20} />
+                {t("plans.addPlan")}
+              </button>
+            </div>
           }
         />
       </div>

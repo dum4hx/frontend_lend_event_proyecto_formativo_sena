@@ -17,6 +17,9 @@ export default function LocationDetailLauncher({ id, onClose }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Check if we're coming from inspections module
+  const isFromInspection = window.location.pathname.includes("/inspections");
+
   useEffect(() => {
     let cancelled = false;
     Promise.all([getLocation(id), getMaterialTypes(), getMaterialCategories()])
@@ -66,6 +69,7 @@ export default function LocationDetailLauncher({ id, onClose }: Props) {
       location={location}
       materialTypes={materialTypes}
       categories={categories}
+      hideCapacities={isFromInspection}
     />
   );
 }

@@ -87,6 +87,7 @@ export function AlertCard({
   className = "",
   visible: controlledVisible,
 }: AlertCardProps) {
+  const { t } = useLanguage();
   const [internalVisible, setInternalVisible] = useState(true);
   const [paused, setPaused] = useState(false);
   const [progress, setProgress] = useState(100);
@@ -170,11 +171,10 @@ export function AlertCard({
     }
   }, [shouldAutoClose]);
 
-  if (!isVisible) return null;
-
   const Icon = ICONS[type];
-  const { t } = useLanguage();
   const ariaLabel = title ?? t(`alert.${type}`) ?? type;
+
+  if (!isVisible) return null;
 
   return (
     <div

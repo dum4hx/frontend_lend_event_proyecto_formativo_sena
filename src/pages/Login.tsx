@@ -210,11 +210,11 @@ export default function Login() {
                       const lower = v.toLowerCase(); // normalize
                       setEmail(lower);
                       const res = validateEmail(lower);
-                      setErrorFor("email", res.isValid ? undefined : res.message);
+                      setErrorFor("email", res.isValid ? undefined : t(res.message as TranslationKey));
                     }}
                     onBlur={() => {
                       const res = validateEmail(email);
-                      setErrorFor("email", res.isValid ? undefined : res.message);
+                      setErrorFor("email", res.isValid ? undefined : t(res.message as TranslationKey));
                     }}
                     disabled={loading}
                     className={inputClass(!!fieldErrors.email, true)}

@@ -1,14 +1,20 @@
-import React, { useState } from "react";
-import { X, Save, AlertCircle } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { X, Save, AlertCircle, Eye, Copy } from "lucide-react";
 import { useLanguage } from "../../../../../contexts/useLanguage";
+import { useAuth } from "../../../../../contexts/useAuth";
+import { useCopyToClipboard } from "../../../../../hooks/useCopyToClipboard";
 import { validateDamageDescription } from "../../../../../utils";
 import type {
   PendingLoan,
   InspectionItemInput,
   InspectionCondition,
+  MaterialInstance,
+  MaterialType,
 } from "../../../../../types/api";
 import { ConditionPicker } from "./ConditionPicker";
 import Button from "../../../../../components/ui/Button";
+import { MaterialInstanceDetailModal } from "../../../modules/material-instances/components/MaterialInstanceDetailModal";
+import { getMaterialInstance, getMaterialTypes } from "../../../../../services/materialService";
 
 interface InspectionFormModalProps {
   loan: PendingLoan;
@@ -31,6 +37,8 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
   onSave,
 }) => {
   const { t } = useLanguage();
+  const { user } = useAuth();
+  const { copy } = useCopyToClipboard();
   const [items, setItems] = useState<InspectionItemInput[]>(
     loan.materialInstances.map((mi) => ({
       materialInstanceId: mi.materialInstanceId._id,
@@ -41,9 +49,32 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
     })),
   );
   const [overallNotes, setOverallNotes] = useState("");
-  const [dueDate, setDueDate] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // For material instance preview
+  const [selectedInstance, setSelectedInstance] = useState<MaterialInstance | null>(null);
+  const [loadingInstance, setLoadingInstance] = useState(false);
+
+  // Material types map for enriching loan data
+  const [materialTypesMap, setMaterialTypesMap] = useState<Record<string, MaterialType>>({});
+
+  // Load material types on mount to enrich loan data with names
+  useEffect(() => {
+    const loadMaterialTypes = async () => {
+      try {
+        const res = await getMaterialTypes();
+        const typeMap: Record<string, MaterialType> = {};
+        (res.data.materialTypes || []).forEach((type) => {
+          typeMap[type._id] = type;
+        });
+        setMaterialTypesMap(typeMap);
+      } catch (err) {
+        console.error("Failed to load material types:", err);
+      }
+    };
+    loadMaterialTypes();
+  }, []);;
 
   // Derive per-item description errors: required when damaged or lost
   const descriptionErrors = items.map(
@@ -53,10 +84,29 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
   );
   const hasDescriptionErrors = descriptionErrors.some(Boolean);
 
-  // Check if any item is damaged or lost (for conditional dueDate display)
-  const hasDamagedOrLostItems = items.some(
-    (item) => item.condition === "damaged" || item.condition === "lost",
+  // Damage cost is required and must be > 0 when item is damaged or lost
+  const damageCostErrors = items.map(
+    (item) =>
+      (item.condition === "damaged" || item.condition === "lost") &&
+      ((item.damageCost ?? 0) <= 0),
   );
+  const hasDamageCostErrors = damageCostErrors.some(Boolean);
+
+  const handleViewDetails = async (instanceId: string) => {
+    setLoadingInstance(true);
+    try {
+      const res = await getMaterialInstance(instanceId);
+      setSelectedInstance(res.data.instance);
+    } catch (err) {
+      console.error("Failed to load material instance details:", err);
+    } finally {
+      setLoadingInstance(false);
+    }
+  };
+
+  const handleCloseDetails = () => {
+    setSelectedInstance(null);
+  };
 
   const handleItemChange = <K extends keyof InspectionItemInput>(
     index: number,
@@ -78,7 +128,6 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
         loanId: loan._id,
         items,
         overallNotes,
-        ...(dueDate && { dueDate }),
       });
       onClose();
     } catch (err) {
@@ -93,30 +142,47 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
       className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
       data-help-id="inspections-form-create"
     >
-      <div className="bg-[#121212] border border-[#333] rounded-xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl">
+      <div className="bg-[#121212] border border-[#333] rounded-xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl">
         {/* Header */}
         <div className="p-6 border-b border-[#333] flex items-center justify-between bg-[#1a1a1a] rounded-t-xl">
-          <div>
+          <div className="flex-1">
             <h2 className="text-xl font-bold text-white">{t("inspections.performInspection")}</h2>
             <p className="text-sm text-gray-400 mt-1">
               {t("inspections.loanIdLabel")}:{" "}
-              <span className="text-gray-300 font-mono">{loan.code ?? loan._id}</span> •{" "}
+              <button
+                onClick={() => copy(loan.code ?? loan._id)}
+                className="text-gray-300 font-mono hover:text-[#FFD700] hover:underline transition-colors inline-flex items-center gap-1 group/copy"
+                title="Haz click para copiar"
+              >
+                {loan.code ?? loan._id}
+                <Copy size={12} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+              </button>
+              {" "} •{" "}
               {t("inspections.customerLabel")}:{" "}
               <span className="text-gray-300">
                 {`${loan.customerId.name.firstName} ${loan.customerId.name.firstSurname}`}
               </span>
             </p>
+            {user && (
+              <p className="text-xs text-gray-500 mt-2">
+                <span className="text-gray-400">{user.name.firstName} {user.name.firstSurname}</span>
+                <span className="text-gray-600 mx-1">•</span>
+                <span className="text-gray-500 text-[10px] uppercase tracking-tight">{user.roleName}</span>
+                <span className="text-gray-600 mx-1">•</span>
+                <span className="text-gray-400">{user.email}</span>
+              </p>
+            )}
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-[#333] rounded-lg"
+            className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-[#333] rounded-lg flex-shrink-0"
           >
             <X size={20} />
           </button>
         </div>
 
         {/* Content */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-8">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
           {error && (
             <div className="bg-red-900/30 border border-red-500/50 text-red-200 p-4 rounded-lg flex items-center space-x-3">
               <AlertCircle className="w-5 h-5 flex-shrink-0" />
@@ -132,14 +198,44 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
             {loan.materialInstances.map((mi, index) => (
               <div
                 key={mi.materialInstanceId._id}
-                className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-5 space-y-4 hover:border-[#333] transition-colors"
+                className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4 space-y-3 hover:border-[#333] transition-colors"
               >
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#2a2a2a] pb-4">
-                  <div>
-                    <p className="text-white font-medium">{mi.materialInstanceId.serialNumber}</p>
-                    <p className="text-xs text-gray-500 font-mono mt-0.5">
-                      ID: {mi.materialInstanceId._id}
-                    </p>
+                  <div className="flex items-center gap-3">
+                    <div>
+                      <p className="text-white font-medium">
+                        {(() => {
+                          // Try to get material type name from API response first, then from loaded map
+                          const typeName =
+                            mi.materialType?.name ||
+                            materialTypesMap[mi.materialTypeId]?.name;
+                          
+                          return typeName || mi.materialInstanceId.serialNumber;
+                        })()}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        {t("inspections.serialNumber")}: 
+                        <button
+                          type="button"
+                          onClick={() => copy(mi.materialInstanceId.serialNumber)}
+                          className="ml-1 font-mono text-gray-300 hover:text-[#FFD700] hover:underline transition-colors inline-flex items-center gap-1 group/copy"
+                          title="Haz click para copiar"
+                        >
+                          {mi.materialInstanceId.serialNumber}
+                          <Copy size={11} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+                        </button>
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleViewDetails(mi.materialInstanceId._id)}
+                      disabled={loadingInstance}
+                      className="p-2 text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      title={t("inspections.viewMaterialInstance")}
+                      aria-label={t("inspections.viewMaterialInstance")}
+                    >
+                      <Eye size={18} />
+                    </button>
                   </div>
                   <ConditionPicker
                     value={items[index].condition}
@@ -183,18 +279,36 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
                       </div>
                       <div className="md:col-span-1">
                         <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase">
-                          {t("inspections.damageCost")}
+                          {t("inspections.damageCost")} <span className="text-red-500">*</span>
                         </label>
                         <input
                           data-help-id="inspections-form-damage-cost"
                           type="number"
-                          placeholder="0"
-                          className="w-full bg-[#0a0a0a] border border-[#333] rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-[#FFD700]"
+                          min={0.01}
+                          step={0.01}
+                          placeholder="0.00"
+                          className={`w-full bg-[#0a0a0a] border rounded-md px-3 py-2 text-sm text-white focus:outline-none ${
+                            damageCostErrors[index]
+                              ? "border-red-500 bg-red-500/10 focus:border-red-400"
+                              : "border-[#333] focus:border-[#FFD700]"
+                          }`}
                           value={items[index].damageCost || 0}
                           onChange={(e) =>
-                            handleItemChange(index, "damageCost", parseInt(e.target.value) || 0)
+                            handleItemChange(index, "damageCost", parseFloat(e.target.value) || 0)
+                          }
+                          aria-invalid={damageCostErrors[index]}
+                          aria-describedby={
+                            damageCostErrors[index] ? `damage-cost-error-${index}` : undefined
                           }
                         />
+                        {damageCostErrors[index] && (
+                          <p
+                            id={`damage-cost-error-${index}`}
+                            className="text-red-400 text-xs mt-1"
+                          >
+                            {t("inspections.damageCostRequired")}
+                          </p>
+                        )}
                       </div>
                     </>
                   )}
@@ -218,7 +332,7 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
             ))}
           </div>
 
-          <div className="border-t border-[#333] pt-6 space-y-6">
+          <div className="border-t border-[#333] pt-4 space-y-4">
             <div>
               <label className="block text-sm font-semibold text-white mb-2 uppercase tracking-wide">
                 {t("inspections.overallNotes")}
@@ -226,31 +340,11 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
               <textarea
                 data-help-id="inspections-form-overall-notes"
                 placeholder={t("inspections.overallNotesPlaceholder")}
-                className="w-full bg-[#1a1a1a] border border-[#333] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#FFD700] min-h-[100px]"
+                className="w-full bg-[#1a1a1a] border border-[#333] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#FFD700] min-h-[80px]"
                 value={overallNotes}
                 onChange={(e) => setOverallNotes(e.target.value)}
               />
             </div>
-
-            {hasDamagedOrLostItems && (
-              <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-4 space-y-3">
-                <label className="block text-sm font-semibold text-white uppercase tracking-wide">
-                  {t("inspections.invoiceDueDate")}{" "}
-                  <span className="text-gray-500 font-normal text-xs">
-                    ({t("inspections.optional")})
-                  </span>
-                </label>
-                <p className="text-xs text-gray-400">{t("inspections.invoiceDueDateHelp")}</p>
-                <input
-                  data-help-id="inspections-form-due-date"
-                  type="datetime-local"
-                  placeholder={t("inspections.selectDueDate")}
-                  className="w-full bg-[#0a0a0a] border border-[#333] rounded-md px-4 py-2 text-sm text-white focus:outline-none focus:border-[#FFD700]"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                />
-              </div>
-            )}
           </div>
         </form>
 
@@ -268,7 +362,7 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
           <Button
             type="submit"
             onClick={handleSubmit}
-            disabled={isSubmitting || hasDescriptionErrors}
+            disabled={isSubmitting || hasDescriptionErrors || hasDamageCostErrors}
             data-help-id="inspections-form-submit"
             className="bg-[#FFD700] text-black hover:bg-[#e6c200] font-bold"
           >
@@ -277,6 +371,11 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
           </Button>
         </div>
       </div>
+
+      {/* Material Instance Detail Preview */}
+      {selectedInstance && (
+        <MaterialInstanceDetailModal instance={selectedInstance} onClose={handleCloseDetails} />
+      )}
     </div>
   );
 };

@@ -3,9 +3,10 @@
  */
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ClipboardCheck, Barcode, Tag, User, ExternalLink } from "lucide-react";
+import { ClipboardCheck, Barcode, Tag, User, ExternalLink, Copy } from "lucide-react";
 import type { OpsInspectionsResponse, OpsInspectionItem } from "../../../../types/api";
 import { useLanguage } from "../../../../contexts/useLanguage";
+import { useCopyToClipboard } from "../../../../hooks/useCopyToClipboard";
 import { getLoan } from "../../../../services/loanService";
 import { LoanDetailModal } from "../rentals/RentalModals";
 import type { LoanView } from "../rentals/types";
@@ -24,13 +25,14 @@ function InspectionRow({
   index: number;
   onLoanClick: (loanId: string) => void;
 }) {
+  const { copy } = useCopyToClipboard();
   return (
     <motion.div
       variants={listItemVariants}
       initial="initial"
       animate="animate"
       custom={index}
-      className="flex flex-col gap-2 px-3 py-3 rounded-lg bg-zinc-800/40 border border-zinc-700/30"
+      className="flex flex-col gap-2 px-3 py-3 rounded-lg bg-zinc-800/40 border border-zinc-700/30 group"
     >
       {/* Row header: loan code + customer */}
       <div className="flex items-center justify-between gap-2">
@@ -43,6 +45,17 @@ function InspectionRow({
           >
             <ExternalLink className="w-3 h-3 opacity-60" />
             {item.loanCode ?? `#${item.loanId.slice(-6).toUpperCase()}`}
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              copy(item.loanCode ?? item.loanId);
+            }}
+            className="hidden group-hover:inline text-zinc-500 hover:text-[#FFD700] transition-colors"
+            title="Copiar código de préstamo"
+          >
+            <Copy size={12} />
           </button>
         </div>
         <div className="flex items-center gap-1.5 text-xs text-zinc-400 shrink-0">
@@ -57,12 +70,22 @@ function InspectionRow({
           <Tag size={11} className="text-zinc-500" />
           {item.materialTypeName}
         </span>
-        <span className="flex items-center gap-1 text-xs text-zinc-500 font-mono">
+        <button
+          onClick={() => copy(item.instanceId)}
+          className="flex items-center gap-1 text-xs text-zinc-500 font-mono hover:text-[#FFD700] hover:underline transition-colors group/copy"
+          title="Haz click para copiar"
+        >
           ID: {item.instanceId.slice(-8).toUpperCase()}
-        </span>
-        <span className="flex items-center gap-1 text-xs text-zinc-500 font-mono">
+          <Copy size={11} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+        </button>
+        <button
+          onClick={() => copy(item.serialNumber)}
+          className="flex items-center gap-1 text-xs text-zinc-500 font-mono hover:text-[#FFD700] hover:underline transition-colors group/copy"
+          title="Haz click para copiar"
+        >
           <Barcode size={11} /> {item.serialNumber}
-        </span>
+          <Copy size={11} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+        </button>
       </div>
     </motion.div>
   );

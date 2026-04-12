@@ -1,21 +1,21 @@
-import { CheckCircle2, Package as PackageIcon, Zap } from "lucide-react";
+import { CheckCircle2, Package as PackageIcon } from "lucide-react";
 import type { AvailableMaterialInstance } from "../../../../types/api";
 import type { MaterialTypeRow } from "./types";
+import { useLanguage } from "../../../../contexts/useLanguage";
 
 interface MaterialAssignmentCardProps {
   row: MaterialTypeRow;
   selected: string[];
   onToggleInstance: (materialTypeId: string, instanceId: string, requiredQty: number) => void;
-  onAutoAssign: (row: MaterialTypeRow) => void;
 }
 
 export default function MaterialAssignmentCard({
   row,
   selected,
   onToggleInstance,
-  onAutoAssign,
 }: MaterialAssignmentCardProps) {
   const isFulfilled = selected.length >= row.quantity;
+  const { t } = useLanguage();
 
   const renderInstanceBadge = (inst: AvailableMaterialInstance) => {
     const isSelected = selected.includes(inst._id);
@@ -47,7 +47,9 @@ export default function MaterialAssignmentCard({
             isAvailNow ? "bg-[#FFD700]/20 text-[#FFD700]" : "bg-gray-700/80 text-gray-400"
           }`}
         >
-          {isAvailNow ? "available" : "upcoming"}
+          {isAvailNow
+            ? t("orders.prepare.availability.available")
+            : t("orders.prepare.availability.upcoming")}
         </span>
       </button>
     );
@@ -76,18 +78,11 @@ export default function MaterialAssignmentCard({
             {selected.length}/{row.quantity}
           </span>
         </div>
-        <button
-          className="text-xs text-[#FFD700] hover:underline flex items-center gap-1 flex-shrink-0"
-          onClick={() => onAutoAssign(row)}
-        >
-          <Zap size={10} />
-          Auto-assign
-        </button>
       </div>
 
       {/* Instance badges */}
       {row.currentUserInstances.length === 0 ? (
-        <p className="text-xs text-gray-500 italic">No instances in your accessible locations.</p>
+        <p className="text-xs text-gray-500 italic">{t("orders.prepare.noInstances")}</p>
       ) : (
         <div className="flex flex-wrap gap-2">
           {row.currentUserInstances.map(renderInstanceBadge)}

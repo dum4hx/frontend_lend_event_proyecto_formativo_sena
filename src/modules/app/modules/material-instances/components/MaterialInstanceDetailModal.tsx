@@ -1,29 +1,37 @@
 import React, { useState, useEffect } from "react";
-import { X, Info } from "lucide-react";
+import { X, Info, RefreshCw, Copy } from "lucide-react";
 import {
   type MaterialInstance,
   type MaterialAttribute,
   type MaterialType,
 } from "../../../../../types/api";
+import type { WarehouseLocation } from "../../../../../services/warehouseOperatorService";
 import { getMaterialInstanceStatusLabel } from "../../../../../utils/statusLabels";
 import { useLanguage } from "../../../../../contexts/useLanguage";
+import { useCopyToClipboard } from "../../../../../hooks/useCopyToClipboard";
 import { MaterialBarcode } from "./MaterialBarcode";
 import { getMaterialAttributes, getMaterialTypes } from "../../../../../services/materialService";
+import { getLocation } from "../../../../../services/warehouseOperatorService";
 import { EntityLink } from "../../../../../components/ui";
 
 interface MaterialInstanceDetailModalProps {
   instance: MaterialInstance;
   onClose: () => void;
+  onRefreshData?: (instance: MaterialInstance) => Promise<MaterialInstance | null>;
 }
 
 export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalProps> = ({
   instance,
   onClose,
+  onRefreshData,
 }) => {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
+  const { copy } = useCopyToClipboard();
   const [attributeDefinitions, setAttributeDefinitions] = useState<MaterialAttribute[]>([]);
   const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
   const [loadingAttributes, setLoadingAttributes] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [location, setLocation] = useState<WarehouseLocation | null>(null);
 
   useEffect(() => {
     async function loadResources() {
@@ -41,12 +49,58 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
     loadResources();
   }, []);
 
+  // Load location if name is missing
+  useEffect(() => {
+    if (instance.locationId?._id && !instance.locationId?.name) {
+      const loadLocationData = async () => {
+        try {
+          const res = await getLocation(instance.locationId._id);
+          setLocation(res.data);
+        } catch (error) {
+          console.error("Failed to load location:", error);
+        }
+      };
+      loadLocationData();
+    }
+  }, [instance.locationId]);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      if (onRefreshData) {
+        await onRefreshData(instance);
+      } else {
+        // Reload attributes and material types
+        const [attrRes, typeRes] = await Promise.all([getMaterialAttributes(), getMaterialTypes()]);
+        setAttributeDefinitions(attrRes.data.attributes);
+        setMaterialTypes(typeRes.data.materialTypes || []);
+      }
+    } catch (error) {
+      console.error("Failed to refresh data:", error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   // Use instance attributes if present, otherwise fallback to material type attributes
   const typeAttributes = materialTypes.find((t) => t._id === instance.model?._id)?.attributes || [];
   const activeAttributes =
     instance.attributes && instance.attributes.length > 0 ? instance.attributes : typeAttributes;
 
   const resolvedCode = instance.barcode?.trim() || instance.serialNumber.trim();
+  const relatedCodeLabel =
+    instance.status === "loaned"
+      ? t("materialInstances.detail.loanCode")
+      : instance.status === "reserved"
+        ? t("materialInstances.detail.requestCode")
+        : null;
+  const relatedCodeValue =
+    instance.status === "loaned"
+      ? instance.loanContext?.loanCode?.trim() ?? ""
+      : instance.status === "reserved"
+        ? instance.loanContext?.requestCode?.trim() ?? ""
+        : "";
+  const shouldShowRelatedCode = relatedCodeLabel !== null && relatedCodeValue.length > 0;
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
@@ -67,25 +121,45 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
       <div className="bg-[#121212] border border-[#333] rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="sticky top-0 bg-[#121212] border-b border-[#333] p-6 flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-white">Material Instance Details</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-[#1a1a1a] rounded-lg"
-          >
-            <X size={24} />
-          </button>
+          <h2 className="text-2xl font-bold text-white">{t("materialInstances.detail.title")}</h2>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-[#1a1a1a] rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              title={t("materialInstances.detail.refreshData")}
+              aria-label={t("materialInstances.detail.refreshData")}
+            >
+              <RefreshCw size={20} className={isRefreshing ? "animate-spin" : ""} />
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-[#1a1a1a] rounded-lg"
+            >
+              <X size={24} />
+            </button>
+          </div>
         </div>
 
         {/* Content */}
         <div className="p-6 space-y-6">
           <div className="grid grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">Serial Number</label>
-              <p className="text-white font-mono font-semibold text-lg">{instance.serialNumber}</p>
+              <label className="block text-sm font-medium text-gray-400 mb-2">{t("materialInstances.detail.serialNumber")}</label>
+              <button
+                onClick={() => copy(instance.serialNumber)}
+                className="text-white font-mono font-semibold text-lg hover:text-[#FFD700] transition-colors flex items-center gap-1 group/copy"
+                title="Haz click para copiar"
+              >
+                {instance.serialNumber}
+                <Copy size={16} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+              </button>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">Status</label>
+              <label className="block text-sm font-medium text-gray-400 mb-2">{t("materialInstances.detail.status")}</label>
               <p className={`font-bold text-lg ${getStatusColor(instance.status)}`}>
                 {getMaterialInstanceStatusLabel(instance.status, language)}
               </p>
@@ -93,7 +167,7 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
           </div>
 
           <div className="rounded-xl border border-[#333] bg-[#171717] p-4">
-            <label className="block text-sm font-medium text-gray-400 mb-3">Barcode</label>
+            <label className="block text-sm font-medium text-gray-400 mb-3">{t("materialInstances.detail.barcode")}</label>
             <div className="rounded-lg bg-white p-4">
               <MaterialBarcode
                 value={resolvedCode}
@@ -103,30 +177,29 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
                 showCodeLabel={false}
               />
             </div>
-            <p className="mt-3 text-white font-mono break-all">{resolvedCode || "Not assigned"}</p>
             {!instance.barcode && (
               <p className="mt-2 text-xs text-[#FFD700]">
-                Using serial number as barcode fallback.
+                {t("materialInstances.detail.barcodeUsingSerial")}
               </p>
             )}
           </div>
 
           <div className="grid grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">Material Type</label>
+              <label className="block text-sm font-medium text-gray-400 mb-2">{t("materialInstances.detail.materialType")}</label>
               <EntityLink
                 entityType="materialType"
                 entityId={instance.model?._id ?? ""}
-                label={instance.model?.name || "Unknown"}
+                label={instance.model?.name || t("common.noResults")}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">Location</label>
+              <label className="block text-sm font-medium text-gray-400 mb-2">{t("materialInstances.detail.location")}</label>
               <EntityLink
                 entityType="location"
                 entityId={instance.locationId?._id ?? ""}
-                label={instance.locationId?.name || "Unknown"}
+                label={location?.name?.trim() || instance.locationId?.name?.trim() ? location?.name ?? instance.locationId?.name : t("common.unknownLocation")}
               />
             </div>
           </div>
@@ -136,7 +209,7 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-sm font-semibold text-[#FFD700] uppercase tracking-wider">
                 <Info size={16} />
-                <span>Technical Specifications</span>
+                <span>{t("materialInstances.detail.technicalSpecifications")}</span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {activeAttributes.map((attr) => {
@@ -160,14 +233,27 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
                 })}
               </div>
               {loadingAttributes && (
-                <p className="text-xs text-gray-500 animate-pulse">Loading specifications...</p>
+                <p className="text-xs text-gray-500 animate-pulse">{t("materialInstances.detail.loadingSpecifications")}</p>
               )}
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-400 mb-2">Instance ID</label>
-            <p className="text-gray-400 text-sm font-mono">{instance._id}</p>
+            <label className="block text-sm font-medium text-gray-400 mb-2">
+              {relatedCodeLabel ?? t("materialInstances.detail.loanCode")}
+            </label>
+            {shouldShowRelatedCode ? (
+              <button
+                onClick={() => copy(relatedCodeValue)}
+                className="text-gray-400 text-sm font-mono hover:text-[#FFD700] transition-colors flex items-center gap-1 group/copy"
+                title="Haz click para copiar"
+              >
+                {relatedCodeValue}
+                <Copy size={14} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+              </button>
+            ) : (
+              <p className="text-gray-400 text-sm font-mono">{t("materialInstances.detail.notAssigned")}</p>
+            )}
           </div>
         </div>
 
@@ -177,7 +263,7 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
             onClick={onClose}
             className="w-full px-6 py-3 bg-[#1a1a1a] text-white font-semibold rounded-lg hover:bg-[#222] transition-colors border border-[#333]"
           >
-            Close
+            {t("materialInstances.detail.close")}
           </button>
         </div>
       </div>

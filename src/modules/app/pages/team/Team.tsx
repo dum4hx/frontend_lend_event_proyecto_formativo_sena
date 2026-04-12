@@ -5,10 +5,10 @@
  * Supports invite, edit, deactivate, reactivate actions.
  */
 import { useState, useMemo } from "react";
-import { Users, UserPlus } from "lucide-react";
+import { Users, UserPlus, RefreshCw } from "lucide-react";
 import { motion } from "framer-motion";
 import { AnimatedPage } from "../../../../components/ui/AnimatedPage";
-import { PageHeader } from "../../../../components/ui/PageHeader";
+import { PageHeader, IconButton } from "../../../../components/ui";
 import { Pagination } from "../../../../components/ui/Pagination";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import { pageVariants } from "../../../../lib/animations";
@@ -194,29 +194,39 @@ export function Team() {
                 : "Manage your organization's members."
             }
             actions={
-              <button
-                onClick={guard(
-                  "users:create",
-                  () => setShowInvite(true),
-                  isEs
-                    ? "Necesitas el permiso users:create para invitar miembros."
-                    : "You need users:create permission to invite members.",
-                )}
-                aria-disabled={!canInvite}
-                title={
-                  canInvite
-                    ? isEs
-                      ? "Invitar miembro"
-                      : "Invite Member"
-                    : isEs
-                      ? "Sin permiso: users:create"
-                      : "Missing permission: users:create"
-                }
-                className={`w-full sm:w-auto shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 font-semibold rounded-lg transition gold-action-btn ${!canInvite ? "opacity-50 cursor-not-allowed" : ""}`}
-              >
-                <UserPlus size={16} />
-                {isEs ? "Invitar miembro" : "Invite Member"}
-              </button>
+              <div className="flex items-center gap-2">
+                <IconButton
+                  icon={RefreshCw}
+                  onClick={() => usersQuery.refetch()}
+                  disabled={usersQuery.isLoading}
+                  ariaLabel={isEs ? "Recargar" : "Refresh"}
+                  className={usersQuery.isLoading ? "animate-spin" : ""}
+                  title={isEs ? "Recargar" : "Refresh"}
+                />
+                <button
+                  onClick={guard(
+                    "users:create",
+                    () => setShowInvite(true),
+                    isEs
+                      ? "Necesitas el permiso users:create para invitar miembros."
+                      : "You need users:create permission to invite members.",
+                  )}
+                  aria-disabled={!canInvite}
+                  title={
+                    canInvite
+                      ? isEs
+                        ? "Invitar miembro"
+                        : "Invite Member"
+                      : isEs
+                        ? "Sin permiso: users:create"
+                        : "Missing permission: users:create"
+                  }
+                  className={`w-full sm:w-auto shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 font-semibold rounded-lg transition gold-action-btn ${!canInvite ? "opacity-50 cursor-not-allowed" : ""}`}
+                >
+                  <UserPlus size={16} />
+                  {isEs ? "Invitar miembro" : "Invite Member"}
+                </button>
+              </div>
             }
           />
         </div>

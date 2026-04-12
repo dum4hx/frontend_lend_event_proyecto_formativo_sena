@@ -86,6 +86,13 @@ export const allNavItems: NavItem[] = [
     requiredPermissions: ["organization:read"],
     section: "Organization",
   },
+  {
+    id: "tickets",
+    label: "Tickets",
+    path: "/app/tickets",
+    requiredPermissions: ["tickets:read"],
+    section: "Organization",
+  },
 
   // -- Materials --
   {
@@ -177,16 +184,9 @@ export const allNavItems: NavItem[] = [
 
   // -- Commerce --
   {
-    id: "orders",
-    label: "Orders",
-    path: "/app/orders",
-    requiredPermissions: ["requests:read"],
-    section: "Commerce",
-  },
-  {
-    id: "rentals",
-    label: "Rentals",
-    path: "/app/rentals",
+    id: "loans",
+    label: "Loans",
+    path: "/app/loans",
     requiredPermissions: ["loans:read"],
     section: "Commerce",
   },
@@ -310,9 +310,9 @@ export interface RoutePermission {
 
 /** Additional sub-routes not present in sidebar navigation. */
 const additionalRoutePermissions: RoutePermission[] = [
-  { path: "/app/material-categories/create", requiredPermissions: ["materials:create"] },
-  { path: "/app/material-types/create", requiredPermissions: ["materials:create"] },
-  { path: "/app/material-instances/create", requiredPermissions: ["materials:create"] },
+  { path: "/app/material-categories/create", requiredPermissions: ["categories:create"] },
+  { path: "/app/material-types/create", requiredPermissions: ["material_types:create"] },
+  { path: "/app/material-instances/create", requiredPermissions: ["material_instances:create"] },
 ];
 
 export const routePermissions: RoutePermission[] = [

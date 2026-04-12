@@ -1,9 +1,10 @@
 import React, { useEffect, useRef } from "react";
-import { Eye, Edit, Printer, Trash2 } from "lucide-react";
+import { Eye, Edit, Printer, Trash2, Copy } from "lucide-react";
 import type { MaterialInstance } from "../../../../../types/api";
 import { AdminTable } from "../../../components";
 import { MaterialBarcode } from "./MaterialBarcode";
 import { useLanguage } from "../../../../../contexts/useLanguage";
+import { useCopyToClipboard } from "../../../../../hooks/useCopyToClipboard";
 import { getMaterialInstanceStatusLabel } from "../../../../../utils/statusLabels";
 import { PermissionGuardedButton } from "../../../../../components/ui";
 
@@ -31,6 +32,7 @@ export const MaterialInstanceList: React.FC<MaterialInstanceListProps> = ({
   onToggleSelectAll,
 }) => {
   const { t, language } = useLanguage();
+  const { copy } = useCopyToClipboard();
   const selectAllRef = useRef<HTMLInputElement | null>(null);
 
   const getStatusColor = (status: string) => {
@@ -119,7 +121,16 @@ export const MaterialInstanceList: React.FC<MaterialInstanceListProps> = ({
                 aria-label={`Select instance ${instance.serialNumber}`}
               />
             </td>
-            <td className="py-4 px-4 text-white font-mono font-medium">{instance.serialNumber}</td>
+            <td className="py-4 px-4 text-white font-mono font-medium">
+              <button
+                onClick={() => copy(instance.serialNumber)}
+                className="hover:text-[#FFD700] hover:underline transition-colors flex items-center gap-1 group/copy"
+                title="Haz click para copiar"
+              >
+                {instance.serialNumber}
+                <Copy size={13} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+              </button>
+            </td>
             <td className="py-4 px-4 text-gray-300 font-mono align-top">
               {showBarcodePreview ? (
                 <div className="space-y-2">

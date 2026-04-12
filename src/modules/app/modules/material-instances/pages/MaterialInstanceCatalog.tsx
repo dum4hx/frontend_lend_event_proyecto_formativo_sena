@@ -21,6 +21,7 @@ import {
   getLocations,
   type WarehouseLocation,
 } from "../../../../../services/warehouseOperatorService";
+import { getMaterialInstance } from "../../../../../services/materialService";
 import type {
   MaterialInstance,
   CreateMaterialInstancePayload,
@@ -54,6 +55,7 @@ export const MaterialInstanceCatalog: React.FC = () => {
   const [isBarcodePrintModalOpen, setIsBarcodePrintModalOpen] = useState(false);
   const [barcodePrintSelection, setBarcodePrintSelection] = useState<MaterialInstance[]>([]);
   const [selectedInstanceIds, setSelectedInstanceIds] = useState<string[]>([]);
+  const [isLoadingSelectedInstanceDetail, setIsLoadingSelectedInstanceDetail] = useState(false);
   const pageSize = 10;
   const searchInputId = "material-instances-search";
   const scannerInputId = "material-instances-scanner";
@@ -156,7 +158,7 @@ export const MaterialInstanceCatalog: React.FC = () => {
     try {
       await addInstance({
         ...data,
-        serialNumber: data.serialNumber.trim(),
+        serialNumber: data.serialNumber?.trim() || undefined,
         barcode: data.barcode?.trim() || undefined,
       });
       showToast("success", t("materialInstances.toast.createSuccess"), t("common.success"));
@@ -205,6 +207,39 @@ export const MaterialInstanceCatalog: React.FC = () => {
       return Array.from(nextIds);
     });
   };
+
+  const loadInstanceDetail = useCallback(async (instance: MaterialInstance) => {
+    try {
+      const response = await getMaterialInstance(instance._id);
+      return response.data.instance;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const handleViewInstance = useCallback(
+    async (instance: MaterialInstance) => {
+      setIsLoadingSelectedInstanceDetail(true);
+      try {
+        const detail = await loadInstanceDetail(instance);
+        setSelectedInstance(detail ?? instance);
+      } finally {
+        setIsLoadingSelectedInstanceDetail(false);
+      }
+    },
+    [loadInstanceDetail],
+  );
+
+  const handleRefreshSelectedInstance = useCallback(
+    async (instance: MaterialInstance) => {
+      const detail = await loadInstanceDetail(instance);
+      if (detail) {
+        setSelectedInstance(detail);
+      }
+      return detail;
+    },
+    [loadInstanceDetail],
+  );
 
   interface ImportRow {
     modelId?: string;
@@ -496,17 +531,17 @@ export const MaterialInstanceCatalog: React.FC = () => {
               filename="material-instances"
               onImport={FEATURE_FLAGS.ENABLE_DATA_IMPORT ? handleImportInstances : undefined}
               importDisabled={
-                FEATURE_FLAGS.ENABLE_DATA_IMPORT ? !isAllowed("materials:create") : undefined
+                FEATURE_FLAGS.ENABLE_DATA_IMPORT ? !isAllowed("material_instances:create") : undefined
               }
               onImportDenied={
-                FEATURE_FLAGS.ENABLE_DATA_IMPORT ? guard("materials:create", () => {}) : undefined
+                FEATURE_FLAGS.ENABLE_DATA_IMPORT ? guard("material_instances:create", () => {}) : undefined
               }
               showLabels={true}
             />
             <button
-              onClick={guard("materials:create", handleOpenCreateModal)}
-              aria-disabled={!isAllowed("materials:create")}
-              className={`flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 font-semibold rounded-lg transition-colors whitespace-nowrap gold-action-btn col-span-2 sm:col-span-1 text-sm sm:text-base ${!isAllowed("materials:create") ? "opacity-50 cursor-not-allowed" : ""}`}
+              onClick={guard("material_instances:create", handleOpenCreateModal)}
+              aria-disabled={!isAllowed("material_instances:create")}
+              className={`flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 font-semibold rounded-lg transition-colors whitespace-nowrap gold-action-btn col-span-2 sm:col-span-1 text-sm sm:text-base ${!isAllowed("material_instances:create") ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               <Plus size={20} />
               {t("materialInstances.newInstance")}
@@ -674,7 +709,9 @@ export const MaterialInstanceCatalog: React.FC = () => {
           <MaterialInstanceList
             instances={pagedInstances}
             selectedInstanceIds={selectedInstanceIds}
-            onView={setSelectedInstance}
+            onView={(instance) => {
+              void handleViewInstance(instance);
+            }}
             onPrint={(instance) => handleOpenBarcodePrintModal([instance])}
             onEdit={() => {
               showToast(
@@ -815,8 +852,17 @@ export const MaterialInstanceCatalog: React.FC = () => {
         {selectedInstance && (
           <MaterialInstanceDetailModal
             instance={selectedInstance}
+            onRefreshData={handleRefreshSelectedInstance}
             onClose={() => setSelectedInstance(null)}
           />
+        )}
+
+        {isLoadingSelectedInstanceDetail && (
+          <div className="fixed inset-0 z-[55] flex items-center justify-center bg-black/40">
+            <div className="rounded-lg border border-[#333] bg-[#121212] px-4 py-3 text-sm text-gray-300">
+              {t("common.loading")}...
+            </div>
+          </div>
         )}
 
         <BarcodePrintModal

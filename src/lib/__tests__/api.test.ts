@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Tests for the core fetch wrapper (`src/lib/api.ts`).
  *
  * Uses MSW to intercept `fetch` calls so no real HTTP traffic occurs.
@@ -165,6 +165,71 @@ describe("request()", () => {
 
     await expect(request("/test/unauth-handler")).rejects.toThrow(ApiError);
     expect(handlerRuns).toBe(1);
+  it("retries the original request only once after a successful refresh", async () => {
+    let protectedCalls = 0;
+    let refreshCalls = 0;
+
+    server.use(
+      http.get(`${BASE}/test/retry-once`, () => {
+        protectedCalls += 1;
+        return HttpResponse.json({ status: "error", message: "Unauthorized" }, { status: 401 });
+      }),
+      http.post(`${BASE}/auth/refresh`, () => {
+        refreshCalls += 1;
+        return HttpResponse.json({ status: "success", data: {} });
+      }),
+    );
+
+    await expect(request("/test/retry-once")).rejects.toThrow(ApiError);
+    expect(refreshCalls).toBe(1);
+    expect(protectedCalls).toBe(2);
+  });
+
+  it("does not call refresh for non-recoverable auth codes", async () => {
+    let refreshCalls = 0;
+
+    server.use(
+      http.get(`${BASE}/test/non-recoverable`, () =>
+        HttpResponse.json(
+          {
+            status: "error",
+            message: "Session closed by inactivity",
+            code: "INACTIVITY_TIMEOUT",
+          },
+          { status: 401 },
+        ),
+      ),
+      http.post(`${BASE}/auth/refresh`, () => {
+        refreshCalls += 1;
+        return HttpResponse.json({ status: "success", data: {} });
+      }),
+    );
+
+    await expect(request("/test/non-recoverable")).rejects.toMatchObject({
+      code: "INACTIVITY_TIMEOUT",
+      statusCode: 401,
+    });
+    expect(refreshCalls).toBe(0);
+  });
+
+  it("maps SESSION_EXPIRED from details.code when code is absent", async () => {
+    server.use(
+      http.get(`${BASE}/test/session-expired`, () =>
+        HttpResponse.json(
+          {
+            status: "error",
+            message: "Session expired",
+            details: { code: "SESSION_EXPIRED" },
+          },
+          { status: 401 },
+        ),
+      ),
+    );
+
+    await expect(request("/test/session-expired")).rejects.toMatchObject({
+      code: "SESSION_EXPIRED",
+      statusCode: 401,
+    });
   });
 });
 

@@ -362,7 +362,7 @@ When the access token expires, call the refresh endpoint:
 POST /api/v1/auth/refresh
 ```
 
-The server reads the `refresh_token` cookie and issues new tokens automatically.
+The server reads the `refresh_token` cookie, validates that it is still active in server-side session storage, rotates it, and issues a new token pair.
 
 ### Logout
 
@@ -370,7 +370,15 @@ The server reads the `refresh_token` cookie and issues new tokens automatically.
 POST /api/v1/auth/logout
 ```
 
-Clears both authentication cookies.
+Revokes the current refresh session on the server and clears both authentication cookies.
+
+### Cache-Control for Authenticated Responses
+
+All authentication responses and authenticated API responses include anti-cache headers to avoid storing sensitive content in browser/proxy caches:
+
+- `Cache-Control: no-store, no-cache, must-revalidate, private`
+- `Pragma: no-cache`
+- `Expires: 0`
 
 ### Role-Based Access Control (RBAC)
 
@@ -390,7 +398,7 @@ Clears both authentication cookies.
   "organization": ["organization:read", "organization:update"],
   "users": ["users:create", "users:read", "users:update", "users:delete"],
   "customers": ["customers:create", "customers:read", "customers:update", "customers:delete"],
-  "materials": ["materials:create", "materials:read", "materials:update", "materials:delete", "materials:state:update"],
+  "materials": ["material_types:create", "categories:create", "material_instances:create", "materials:read", "materials:update", "materials:delete", "materials:state:update"],
   "loans": ["loans:create", "loans:read", "loans:update", "loans:checkout", "loans:return"],
   "invoices": ["invoices:create", "invoices:read", "invoices:update"],
   "subscription_types": ["subscription_types:create", "subscription_types:read", "subscription_types:update", "subscription_types:delete"]
@@ -655,31 +663,60 @@ Re-validates credentials and sends a new OTP to the user's email. Use when the o
 
 Refreshes access token using refresh token cookie.
 
-**Request:** No body required. `refresh_token` cookie must be present.
+**Request:** No body required. `refresh_token` cookie must be present and active.
 
 **Response:** `200 OK`
 
 ```json
 {
   "status": "success",
-  "message": "Tokens refreshed"
+  "message": "Tokens actualizados"
 }
 ```
+
+**Error Responses:**
+
+| Status | Condition                                           |
+| ------ | --------------------------------------------------- |
+| 401    | Missing, expired, revoked, or invalid refresh token |
 
 ---
 
 #### POST /auth/logout
 
-Clears authentication cookies.
+Revokes the current refresh session and clears authentication cookies.
 
 **Response:** `200 OK`
 
 ```json
 {
   "status": "success",
-  "message": "Logged out successfully"
+  "message": "Sesión cerrada exitosamente"
 }
 ```
+
+---
+
+#### POST /auth/logout-all
+
+Revokes all active refresh sessions for the authenticated user and clears local auth cookies.
+
+**Auth:** Required (`access_token` cookie)
+
+**Response:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "message": "Todas las sesiones activas fueron cerradas exitosamente"
+}
+```
+
+**Error Responses:**
+
+| Status | Condition               |
+| ------ | ----------------------- |
+| 401    | Unauthenticated request |
 
 ---
 
@@ -1039,6 +1076,8 @@ Invites a new user to the organization. Sends an invitation email with a time-li
 - The invite link expires after 48 hours by default (configurable via `INVITE_EXPIRY_HOURS` env var).
 - The invited user must click the link and set a password to activate their account via `POST /auth/accept-invite`.
 - `locations` must contain valid Location MongoDB ObjectId strings representing organization locations the user will be associated with.
+- Only owner role users can be assigned to multiple locations.
+- For non-owner roles (including custom roles), exactly one location must be provided.
 - `roleId` is required and must be a valid role identifier for the organization; the API response returns the resolved role name in the `role` field.
 
 ---
@@ -1074,6 +1113,13 @@ Resends the invitation email for a user still in `invited` status.
 Updates a user's profile.
 
 **Permission Required:** `users:update`
+
+**Notes:**
+
+- If `locations` is included, all provided IDs must belong to the organization.
+- Role-location constraints are enforced server-side on update as well:
+- Only owner role users can have multiple locations.
+- Non-owner roles are restricted to a single location.
 
 ---
 
@@ -1626,7 +1672,10 @@ Gets the current organization's policy settings.
   "data": {
     "settings": {
       "damageDueDays": 30,
-      "requireFullPaymentBeforeCheckout": false
+      "requireFullPaymentBeforeCheckout": false,
+      "lateFeeMode": "fixed",
+      "lateFeeValue": 25000,
+      "lateFeeDueDays": 30
     }
   }
 }
@@ -1634,10 +1683,13 @@ Gets the current organization's policy settings.
 
 **Settings reference:**
 
-| Field                              | Type    | Default | Description                                                                                                      |
-| ---------------------------------- | ------- | ------- | ---------------------------------------------------------------------------------------------------------------- |
-| `damageDueDays`                    | integer | `30`    | Number of days after inspection to set as the due date for damage invoices (1–365).                              |
-| `requireFullPaymentBeforeCheckout` | boolean | `false` | When `true`, `POST /loans/from-request/:requestId` will reject checkout unless the rental fee has been recorded. |
+| Field                              | Type    | Default   | Description                                                                                                       |
+| ---------------------------------- | ------- | --------- | ----------------------------------------------------------------------------------------------------------------- |
+| `damageDueDays`                    | integer | `30`      | Number of days after inspection to set as the due date for damage invoices (1–365).                               |
+| `requireFullPaymentBeforeCheckout` | boolean | `false`   | When `true`, `POST /loans/from-request/:requestId` will reject checkout unless the rental fee has been recorded.  |
+| `lateFeeMode`                      | string  | `"fixed"` | Charge mode for overdue loans: `"fixed"` (fixed amount per day) or `"percentage"` (% of rental subtotal per day). |
+| `lateFeeValue`                     | number  | `0`       | Late fee amount (in fixed mode: amount in cents per day; in percentage mode: decimal value like 0.05 for 5%).     |
+| `lateFeeDueDays`                   | integer | `30`      | Number of days after late fee invoice is generated to set as the due date (1–365).                                |
 
 ---
 
@@ -1647,10 +1699,13 @@ Updates the organization's policy settings. Only the fields provided in the body
 
 **Auth:** `authenticate` + `requirePermission("organization:update")`
 
-| Parameter                        | Location | Type    | Required | Description                                    |
-| -------------------------------- | -------- | ------- | -------- | ---------------------------------------------- |
-| damageDueDays                    | body     | integer | No       | Damage invoice due-date window in days (1–365) |
-| requireFullPaymentBeforeCheckout | body     | boolean | No       | Require rental fee payment before checkout     |
+| Parameter                        | Location | Type    | Required | Description                                                                      |
+| -------------------------------- | -------- | ------- | -------- | -------------------------------------------------------------------------------- |
+| damageDueDays                    | body     | integer | No       | Damage invoice due-date window in days (1–365)                                   |
+| requireFullPaymentBeforeCheckout | body     | boolean | No       | Require rental fee payment before checkout                                       |
+| lateFeeMode                      | body     | string  | No       | Overdue charge mode: `"fixed"` or `"percentage"`                                 |
+| lateFeeValue                     | body     | number  | No       | Late fee amount (cents per day if fixed; decimal if percentage, e.g., 0.05 = 5%) |
+| lateFeeDueDays                   | body     | integer | No       | Days to set as due date for late fee invoices (1–365)                            |
 
 **Response:** `200 OK`
 
@@ -1660,7 +1715,10 @@ Updates the organization's policy settings. Only the fields provided in the body
   "data": {
     "settings": {
       "damageDueDays": 15,
-      "requireFullPaymentBeforeCheckout": true
+      "requireFullPaymentBeforeCheckout": true,
+      "lateFeeMode": "percentage",
+      "lateFeeValue": 0.05,
+      "lateFeeDueDays": 14
     }
   }
 }
@@ -3057,6 +3115,14 @@ Manage physical locations such as warehouses, offices, and operation points with
 
 **Location Code:** Each location has a unique alphanumeric `code` (1-10 characters, uppercase) that serves as a business identifier and can be referenced in loan and request documents. This code must be provided by the user when creating or updating a location and is unique within the organization.
 
+**Regla obligatoria de gerente de sede:**
+
+- Ninguna ubicación puede existir sin `managerId`.
+- La relación es many-to-one: un mismo gerente puede administrar múltiples ubicaciones.
+- El gerente debe existir, pertenecer a la misma organización, estar activo y tener un rol válido de gerente.
+- **Solo los roles "Gerente" (Manager) pueden ser asignados como managers de sedes.** El rol Owner (Propietario) tiene acceso global a todas las sedes pero no puede ser asignado como manager específico de una sede.
+- El backend es la fuente de verdad para esta validación.
+
 ### GET /locations
 
 Retrieves a paginated list of all locations in the organization.
@@ -3079,7 +3145,7 @@ Retrieves a paginated list of all locations in the organization.
 ```json
 {
   "status": "success",
-  "message": "Locations fetched successfully",
+  "message": "Ubicaciones obtenidas exitosamente",
   "data": {
     "items": [
       {
@@ -3087,6 +3153,18 @@ Retrieves a paginated list of all locations in the organization.
         "code": "BOG01",
         "name": "Bodega Principal",
         "organizationId": "507f1f77bcf86cd799439012",
+        "managerId": "507f1f77bcf86cd799439099",
+        "manager": {
+          "_id": "507f1f77bcf86cd799439099",
+          "email": "gerente@empresa.com",
+          "roleId": "507f1f77bcf86cd799439020",
+          "roleName": "Gerente",
+          "name": {
+            "firstName": "Laura",
+            "firstSurname": "Pérez"
+          },
+          "status": "active"
+        },
         "address": {
           "streetType": "Calle",
           "primaryNumber": "10",
@@ -3097,6 +3175,12 @@ Retrieves a paginated list of all locations in the organization.
           "additionalDetails": "Piso 2"
         },
         "isActive": true,
+        "occupied": 12,
+        "occupancySummary": {
+          "totalCapacity": 40,
+          "occupied": 12,
+          "occupancyRate": 30
+        },
         "createdAt": "2026-02-20T10:30:00.000Z",
         "updatedAt": "2026-02-20T10:30:00.000Z"
       }
@@ -3110,6 +3194,13 @@ Retrieves a paginated list of all locations in the organization.
   }
 }
 ```
+
+**Fuente de verdad de ocupación:**
+
+- `occupied` es la fuente de verdad para la ocupación total de la sede.
+- `occupancySummary.occupied` siempre refleja el mismo valor que `occupied`.
+- `materialCapacities[].currentQuantity` se expone como desglose por tipo cuando existe configuración de capacidades.
+- Si una sede tiene inventario pero no tiene entrada de capacidad para un tipo de material, `occupied` sigue reflejando correctamente la ocupación total.
 
 ---
 
@@ -3131,19 +3222,38 @@ Retrieves a single location by its ID.
 ```json
 {
   "status": "success",
-  "message": "Location fetched successfully",
+  "message": "Ubicación obtenida exitosamente",
   "data": {
     "_id": "507f1f77bcf86cd799439011",
     "code": "BOG01",
     "name": "Bodega Principal",
     "organizationId": "507f1f77bcf86cd799439012",
+    "managerId": "507f1f77bcf86cd799439099",
+    "manager": {
+      "_id": "507f1f77bcf86cd799439099",
+      "email": "gerente@empresa.com",
+      "roleId": "507f1f77bcf86cd799439020",
+      "roleName": "Gerente",
+      "name": {
+        "firstName": "Laura",
+        "firstSurname": "Pérez"
+      },
+      "status": "active"
+    },
     "address": {
-      "country": "CO",
-      "state": "Cundinamarca",
+      "streetType": "Calle",
+      "primaryNumber": "10",
+      "secondaryNumber": "45",
+      "complementaryNumber": "20",
+      "department": "Cundinamarca",
       "city": "Bogotá",
-      "street": "Calle 10",
-      "propertyNumber": "45-20",
-      "additionalInfo": "Piso 2"
+      "additionalDetails": "Piso 2"
+    },
+    "occupied": 12,
+    "occupancySummary": {
+      "totalCapacity": 40,
+      "occupied": 12,
+      "occupancyRate": 30
     },
     "createdAt": "2026-02-20T10:30:00.000Z",
     "updatedAt": "2026-02-20T10:30:00.000Z"
@@ -3167,21 +3277,22 @@ Creates a new location in the organization.
 
 #### Request Body
 
-| Field                               | Type     | Required | Constraints        | Description                                                                                           |
-| ----------------------------------- | -------- | -------- | ------------------ | ----------------------------------------------------------------------------------------------------- |
-| code                                | string   | Yes      | 1-10 chars, regex  | Unique alphanumeric code (uppercase only, pattern `^[A-Z0-9]+$`). Business identifier for location.   |
-| name                                | string   | Yes      | 1-100 characters   | Location name                                                                                         |
-| address.streetType                  | string   | Yes      | Enum (9 values)    | One of: Calle, Carrera, Avenida, Avenida Calle, Avenida Carrera, Diagonal, Transversal, Circular, Via |
-| address.primaryNumber               | string   | Yes      | 1-20 characters    | Primary street/road number                                                                            |
-| address.secondaryNumber             | string   | Yes      | 1-20 characters    | Cross street number                                                                                   |
-| address.complementaryNumber         | string   | Yes      | 1-20 characters    | Complement identifier, e.g. apartment/office number                                                   |
-| address.department                  | string   | Yes      | 1-100 characters   | Colombian department                                                                                  |
-| address.city                        | string   | Yes      | 1-100 characters   | City name                                                                                             |
-| address.additionalDetails           | string   | No       | Max 300 characters | Floor, suite, or any additional free-text details                                                     |
-| address.postalCode                  | string   | No       | Max 20 characters  | Postal code                                                                                           |
-| materialCapacities                  | object[] | No       | Array of mappings  | Defines max quantity of specific material types in location                                           |
-| materialCapacities[].materialTypeId | string   | Yes      | Valid ObjectId     | ID of the material type to set capacity for                                                           |
-| materialCapacities[].maxQuantity    | number   | Yes      | Min 0              | Maximum number of items of this type allowed here                                                     |
+| Field                               | Type     | Required | Constraints        | Description                                                                                                                 |
+| ----------------------------------- | -------- | -------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| code                                | string   | Yes      | 1-10 chars, regex  | Unique alphanumeric code (uppercase only, pattern `^[A-Z0-9]+$`). Business identifier for location.                         |
+| name                                | string   | Yes      | 1-100 characters   | Location name                                                                                                               |
+| managerId                           | string   | Yes      | Valid ObjectId     | Usuario gerente asignado a la sede. Debe existir, estar activo, pertenecer a la organización y tener rol válido de gerente. |
+| address.streetType                  | string   | Yes      | Enum (9 values)    | One of: Calle, Carrera, Avenida, Avenida Calle, Avenida Carrera, Diagonal, Transversal, Circular, Via                       |
+| address.primaryNumber               | string   | Yes      | 1-20 characters    | Primary street/road number                                                                                                  |
+| address.secondaryNumber             | string   | Yes      | 1-20 characters    | Cross street number                                                                                                         |
+| address.complementaryNumber         | string   | Yes      | 1-20 characters    | Complement identifier, e.g. apartment/office number                                                                         |
+| address.department                  | string   | Yes      | 1-100 characters   | Colombian department                                                                                                        |
+| address.city                        | string   | Yes      | 1-100 characters   | City name                                                                                                                   |
+| address.additionalDetails           | string   | No       | Max 300 characters | Floor, suite, or any additional free-text details                                                                           |
+| address.postalCode                  | string   | No       | Max 20 characters  | Postal code                                                                                                                 |
+| materialCapacities                  | object[] | No       | Array of mappings  | Defines max quantity of specific material types in location                                                                 |
+| materialCapacities[].materialTypeId | string   | Yes      | Valid ObjectId     | ID of the material type to set capacity for                                                                                 |
+| materialCapacities[].maxQuantity    | number   | Yes      | Min 0              | Maximum number of items of this type allowed here                                                                           |
 
 **Note:** `currentQuantity` for each capacity entry is managed automatically by the inventory system and cannot be provided via the API.
 
@@ -3191,6 +3302,7 @@ Creates a new location in the organization.
 {
   "code": "MDE01",
   "name": "Bodega Norte",
+  "managerId": "507f1f77bcf86cd799439099",
   "address": {
     "streetType": "Carrera",
     "primaryNumber": "50",
@@ -3214,19 +3326,32 @@ Creates a new location in the organization.
 ```json
 {
   "status": "success",
-  "message": "Location created successfully",
+  "message": "Ubicación creada exitosamente",
   "data": {
     "_id": "507f1f77bcf86cd799439013",
     "code": "MDE01",
     "name": "Bodega Norte",
     "organizationId": "507f1f77bcf86cd799439012",
+    "managerId": "507f1f77bcf86cd799439099",
+    "manager": {
+      "_id": "507f1f77bcf86cd799439099",
+      "email": "gerente@empresa.com",
+      "roleId": "507f1f77bcf86cd799439020",
+      "roleName": "Gerente",
+      "name": {
+        "firstName": "Laura",
+        "firstSurname": "Pérez"
+      },
+      "status": "active"
+    },
     "address": {
-      "country": "Colombia",
-      "state": "Antioquia",
+      "streetType": "Carrera",
+      "primaryNumber": "50",
+      "secondaryNumber": "32",
+      "complementaryNumber": "10",
+      "department": "Antioquia",
       "city": "Medellín",
-      "street": "Carrera 50",
-      "propertyNumber": "32-10",
-      "additionalInfo": "Bodega 3, entrada por el costado"
+      "additionalDetails": "Bodega 3, entrada por el costado"
     },
     "createdAt": "2026-02-27T15:45:00.000Z",
     "updatedAt": "2026-02-27T15:45:00.000Z"
@@ -3237,7 +3362,8 @@ Creates a new location in the organization.
 #### Error Responses
 
 - **400 Bad Request** – Validation errors (missing required fields, invalid format, invalid code format)
-- **409 Conflict** – Location with the same name or code already exists in the organization
+- **404 Not Found** – `managerId` no existe
+- **409 Conflict** – Location with the same name/code already exists, o `managerId` no cumple organización/rol/estado
 
 ---
 
@@ -3258,21 +3384,22 @@ Updates an existing location (partial update).
 
 Same fields as POST, but all are optional. Only provided fields will be updated.
 
-| Field              | Type     | Required | Constraints       | Description                                                                                                    |
-| ------------------ | -------- | -------- | ----------------- | -------------------------------------------------------------------------------------------------------------- |
-| code               | string   | No       | 1-10 chars, regex | Unique alphanumeric code (uppercase only). If provided and conflicts with another location, returns 409 error. |
-| name               | string   | No       | 1-100 characters  | Location name                                                                                                  |
-| address            | object   | No       | -                 | Address fields (all optional)                                                                                  |
-| materialCapacities | object[] | No       | -                 | Array of material capacity mappings                                                                            |
+| Field              | Type     | Required | Constraints       | Description                                                                                                                        |
+| ------------------ | -------- | -------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| code               | string   | No       | 1-10 chars, regex | Unique alphanumeric code (uppercase only). If provided and conflicts with another location, returns 409 error.                     |
+| name               | string   | No       | 1-100 characters  | Location name                                                                                                                      |
+| managerId          | string   | No       | Valid ObjectId    | Si se envía, se valida igual que en creación. Si no se envía, se conserva el actual; no se permite dejar la ubicación sin gerente. |
+| address            | object   | No       | -                 | Address fields (all optional)                                                                                                      |
+| materialCapacities | object[] | No       | -                 | Array of material capacity mappings                                                                                                |
 
 #### Example Request
 
 ```json
 {
-  "code": "MDE02",
+  "managerId": "507f1f77bcf86cd799439099",
   "address": {
-    "state": "Cundinamarca",
-    "additionalInfo": "Piso 3, oficina 301"
+    "department": "Cundinamarca",
+    "additionalDetails": "Piso 3, oficina 301"
   }
 }
 ```
@@ -3282,19 +3409,32 @@ Same fields as POST, but all are optional. Only provided fields will be updated.
 ```json
 {
   "status": "success",
-  "message": "Location updated successfully",
+  "message": "Ubicación actualizada exitosamente",
   "data": {
     "_id": "507f1f77bcf86cd799439011",
     "code": "BOG01",
     "name": "Bodega Principal",
     "organizationId": "507f1f77bcf86cd799439012",
+    "managerId": "507f1f77bcf86cd799439099",
+    "manager": {
+      "_id": "507f1f77bcf86cd799439099",
+      "email": "gerente@empresa.com",
+      "roleId": "507f1f77bcf86cd799439020",
+      "roleName": "Gerente",
+      "name": {
+        "firstName": "Laura",
+        "firstSurname": "Pérez"
+      },
+      "status": "active"
+    },
     "address": {
-      "country": "CO",
-      "state": "Cundinamarca",
+      "streetType": "Calle",
+      "primaryNumber": "10",
+      "secondaryNumber": "45",
+      "complementaryNumber": "20",
+      "department": "Cundinamarca",
       "city": "Bogotá",
-      "street": "Calle 10",
-      "propertyNumber": "45-20",
-      "additionalInfo": "Piso 3, oficina 301"
+      "additionalDetails": "Piso 3, oficina 301"
     },
     "createdAt": "2026-02-20T10:30:00.000Z",
     "updatedAt": "2026-02-27T16:00:00.000Z"
@@ -3306,7 +3446,58 @@ Same fields as POST, but all are optional. Only provided fields will be updated.
 
 - **400 Bad Request** – Invalid location ID, validation errors, or invalid code format
 - **404 Not Found** – Location does not exist
-- **409 Conflict** – Code already exists in the organization (when updating code field)
+- **409 Conflict** – Code already exists, o manager inválido (rol/estado/organización), o ubicación legacy sin gerente pendiente de corrección
+
+---
+
+### POST /locations/import
+
+Importa múltiples ubicaciones en una sola solicitud.
+
+**Authentication Required:** Yes  
+**Permission Required:** `locations:create`
+
+#### Request Body
+
+| Field                    | Type     | Required    | Description                                                                           |
+| ------------------------ | -------- | ----------- | ------------------------------------------------------------------------------------- |
+| rows                     | object[] | Yes         | Filas a importar                                                                      |
+| rows[].name              | string   | Yes         | Nombre de ubicación                                                                   |
+| rows[].code              | string   | Yes         | Código único por organización                                                         |
+| rows[].managerId         | string   | Conditional | Requerido si no se envía `managerEmail`                                               |
+| rows[].managerEmail      | string   | Conditional | Requerido si no se envía `managerId`; se resuelve al usuario de la misma organización |
+| rows[].address           | object   | Yes         | Dirección de la ubicación                                                             |
+| rows[].status            | string   | No          | Estado de ubicación                                                                   |
+| rows[].additionalDetails | string   | No          | Detalles adicionales                                                                  |
+
+#### Success Response (200 OK)
+
+```json
+{
+  "status": "success",
+  "message": "Importación de ubicaciones procesada",
+  "data": {
+    "totalRows": 3,
+    "createdCount": 1,
+    "failedCount": 2,
+    "results": [
+      {
+        "row": 1,
+        "status": "created",
+        "locationId": "507f1f77bcf86cd799439013"
+      },
+      {
+        "row": 2,
+        "status": "failed",
+        "error": {
+          "code": "BAD_REQUEST",
+          "message": "Cada fila debe incluir managerId o managerEmail"
+        }
+      }
+    ]
+  }
+}
+```
 
 ---
 
@@ -3433,7 +3624,7 @@ curl -X GET https://api.test.local/api/v1/materials/categories \
 
 Creates a new category. Categories define which attributes are available to material types within them.
 
-**Permission Required:** `materials:create`
+**Permission Required:** `categories:create`
 
 | Parameter   | Location | Type     | Required | Description                                                                                               |
 | ----------- | -------- | -------- | -------- | --------------------------------------------------------------------------------------------------------- |
@@ -4012,7 +4203,7 @@ Creates a new material type. Validates against organization's catalog item limit
 - Each attribute can be independently marked as required or optional for this material type. Required attributes must have non-empty values.
 - When an attribute is assigned to a material type, the value must be one of the attribute's `allowedValues` (if the attribute has constraints).
 
-**Permission Required:** `materials:create`
+**Permission Required:** `material_types:create`
 
 | Parameter                | Location | Type     | Required | Description                                                                                                                                              |
 | ------------------------ | -------- | -------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -4455,13 +4646,62 @@ Gets a specific material instance.
 
 **Permission Required:** `materials:read`
 
+**Response (200):**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "instance": {
+      "_id": "6614db5e22111f21ef33af10",
+      "serialNumber": "SN-1001",
+      "status": "reserved",
+      "model": {
+        "_id": "6614db5e22111f21ef33af00",
+        "name": "Canon EOS",
+        "description": "Camera",
+        "pricePerDay": 1000,
+        "categoryId": "6614db5e22111f21ef33ae90"
+      },
+      "loanContext": {
+        "loanId": null,
+        "loanCode": null,
+        "requestId": "6614db5e22111f21ef33b000",
+        "requestCode": "REQ-2026-0012",
+        "source": "request"
+      }
+    }
+  }
+}
+```
+
+`loanContext` contract:
+
+| Field       | Type                        | Description                                                                           |
+| ----------- | --------------------------- | ------------------------------------------------------------------------------------- |
+| loanId      | string \| null              | Loan ID when a direct active/overdue loan relation exists                             |
+| loanCode    | string \| null              | Loan code when `loanId` exists                                                        |
+| requestId   | string \| null              | Related request ID (from the loan's request or fallback assignment lookup)            |
+| requestCode | string \| null              | Related request code                                                                  |
+| source      | `loan` \| `request` \| null | Indicates whether relation was resolved from a loan (`loan`) or directly from request |
+
+Behavior by material instance status:
+
+- `reserved` and `loaned`: backend resolves and returns `loanContext` relation values when found.
+- Any other status (`available`, `returned`, `maintenance`, `damaged`, `lost`, `retired`): `loanContext` is returned with `null` values.
+
+Resolution order used by backend:
+
+1. Direct loan relation (`loans.materialInstances.materialInstanceId`) scoped by `organizationId`.
+2. Fallback request relation (`requests.assignedMaterials.materialInstanceId`) scoped by `organizationId` and request state.
+
 ---
 
 #### POST /materials/instances
 
 Creates a new material instance.
 
-**Permission Required:** `materials:create`
+**Permission Required:** `material_instances:create`
 
 | Parameter          | Location | Type    | Required | Description                                                                                 |
 | ------------------ | -------- | ------- | -------- | ------------------------------------------------------------------------------------------- |
@@ -5031,6 +5271,29 @@ Creates a new package (bundle of materials).
 
 ### Loan Request Endpoints
 
+**Request lifecycle:**
+
+```
+pending (create + pricing) → pay deposit → pay rental fee → auto-approved
+  → assign materials (auto-ready) → dispatch (creates loan) → shipped
+    → return loan → completed
+```
+
+1. **Create** – Request is created in `pending` status. Pricing (`subtotal`, `totalAmount`, per-item prices) is calculated immediately.
+2. **Payments** – Both deposit and rental fee must be recorded while the request is `pending`. Once both are paid, the request transitions to `approved` automatically.
+3. **Assign materials** – Warehouse assigns inventory instances. The request transitions through `assigned` → `ready` automatically in a single operation.
+4. **Dispatch** – Creates a loan from the ready request, transitioning the request to `shipped` and the loan to `active`.
+5. **Return** – Returning the loan transitions it to `returned` and automatically marks the request as `completed`.
+
+**Location-based filtering:** All GET endpoints in this section only return requests whose `locationId` matches at least one of the authenticated user's assigned locations. If the user has no matching location, no results are returned.
+
+**Populated user references:** All request endpoints populate the following user reference fields when present:
+
+| Field        | Type   | Description                                                       |
+| ------------ | ------ | ----------------------------------------------------------------- |
+| `createdBy`  | object | User who created the request. Populated with `name` and `email`.  |
+| `approvedBy` | object | User who approved the request. Populated with `name` and `email`. |
+
 #### GET /requests
 
 Lists all loan requests in the organization.
@@ -5047,15 +5310,29 @@ Lists all loan requests in the organization.
 
 Creates a new loan request (commercial advisor action).
 
-| Parameter      | Location | Type   | Required | Description                                                                       |
-| -------------- | -------- | ------ | -------- | --------------------------------------------------------------------------------- |
-| customerId     | body     | string | Yes      | Customer ID                                                                       |
-| items          | body     | array  | Yes      | Array of request items                                                            |
-| startDate      | body     | string | Yes      | Loan start date (ISO 8601)                                                        |
-| endDate        | body     | string | Yes      | Loan end date (ISO 8601). Must be after `startDate`.                              |
-| depositDueDate | body     | string | Yes      | Date by which deposit must be paid (ISO 8601). Cannot be after `startDate`.       |
-| depositAmount  | body     | number | Yes      | Deposit amount in the organization's currency. Use `0` if no deposit is required. |
-| notes          | body     | string | No       | Additional notes                                                                  |
+**Auth:** `authenticate` + `requireActiveOrganization` + `requests:create`
+
+| Parameter      | Location | Type   | Required | Description                                                                 |
+| -------------- | -------- | ------ | -------- | --------------------------------------------------------------------------- |
+| customerId     | body     | string | Yes      | Customer ID                                                                 |
+| items          | body     | array  | Yes      | Array of request items                                                      |
+| startDate      | body     | string | Yes      | Loan start date (ISO 8601)                                                  |
+| endDate        | body     | string | Yes      | Loan end date (ISO 8601). Must be after `startDate`.                        |
+| depositDueDate | body     | string | Yes      | Date by which deposit must be paid (ISO 8601). Cannot be after `startDate`. |
+| depositAmount  | body     | number | Yes      | Deposit amount in the organization's currency. Must be greater than zero.   |
+| notes          | body     | string | No       | Additional notes                                                            |
+
+**Automatic Fields:**
+
+The following fields are automatically populated by the server:
+
+| Field      | Type   | Description                                                                                                                                                           |
+| ---------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| code       | string | Unique request identifier, auto-generated from the organization's `loan` code scheme (e.g. `LO-2026-001`)                                                             |
+| locationId | string | Organization location ID of the authenticated user (extracted from `user.locations[0]`)                                                                               |
+| pricing    | —      | `subtotal`, `totalAmount`, and per-item `pricePerDay` / `totalPrice` are calculated automatically at creation time based on the organization's pricing configuration. |
+
+**Note:** Requests and Loans share the same code scheme (`loan`). When a loan is created from a request, it inherits the request's code.
 
 `items[]` contract (recommended):
 
@@ -5084,7 +5361,9 @@ Validation and resolution behavior:
 
 #### POST /requests/:id/approve
 
-Approves a loan request (warehouse operator action).
+Approves a loan request (warehouse operator action). Approval requires that both the deposit and rental fee have been paid beforehand; otherwise the endpoint returns `400 BAD_REQUEST`.
+
+When both payments are recorded while the request is still in `pending` status, the system **automatically** transitions the request to `approved` — so manual approval via this endpoint is only needed as a fallback.
 
 **Auth:** `authenticate` + `requireActiveOrganization` + `requests:approve`
 
@@ -5116,6 +5395,7 @@ This endpoint performs assignment + ready transition atomically:
 - Each instance must match the provided `materialTypeId`
 - Availability is enforced at write-time (`status=available`) to prevent race conditions
 - On conflict/error, all updates are rolled back
+- **Auto-mask:** After assignment, the request is automatically transitioned from `assigned` → `ready`
 
 | Parameter   | Location | Type  | Required | Description                                       |
 | ----------- | -------- | ----- | -------- | ------------------------------------------------- |
@@ -5172,10 +5452,11 @@ Records that the deposit for a request has been paid manually (cash, bank transf
 
 **Auth:** `authenticate` + `requireActiveOrganization` + `requests:update`
 
-Valid request states: `approved`, `deposit_pending`, `assigned`, `ready`
+Valid request states: `pending`, `approved`, `deposit_pending`, `assigned`, `ready`
 
 - Requires `depositAmount > 0`; returns `400` if the request has no deposit.
 - Returns `409 CONFLICT` if the deposit was already recorded as paid.
+- **Auto-approve:** If both the deposit and rental fee are now paid and the request is still `pending`, it will automatically transition to `approved`.
 
 **Errors:**
 
@@ -5193,10 +5474,11 @@ Records that the rental fee for a request has been paid manually (cash, bank tra
 
 **Auth:** `authenticate` + `requireActiveOrganization` + `requests:update`
 
-Valid request states: `approved`, `deposit_pending`, `assigned`, `ready`
+Valid request states: `pending`, `approved`, `deposit_pending`, `assigned`, `ready`
 
 - Requires `totalAmount > 0`; returns `400` if the request has no rental amount.
 - Returns `409 CONFLICT` if the rental fee was already recorded as paid.
+- **Auto-approve:** If both the deposit and rental fee are now paid and the request is still `pending`, it will automatically transition to `approved`.
 
 **Response:** `200 OK`
 
@@ -5230,14 +5512,9 @@ Returns material instances that can fulfil the request's material-type needs, cl
 
 **Auth:** `authenticate` + `requireActiveOrganization` + `requests:read`
 
-Each returned instance carries an `availability` tag:
+Only instances whose current status is `available` are returned. Each instance carries an `availability` field set to `"available"`.
 
-| Tag         | Meaning                                                                              |
-| ----------- | ------------------------------------------------------------------------------------ |
-| `available` | Instance status is currently `available` — can be assigned immediately               |
-| `upcoming`  | Instance is `reserved` or `loaned` but will be free before the request's `startDate` |
-
-Instances that are `damaged`, `maintenance`, `retired`, `lost`, or won't be free in time are excluded.
+Instances that are `reserved`, `loaned`, `damaged`, `maintenance`, `retired`, or `lost` are excluded.
 
 **Response shape** (same split as `GET /materials/instances?byUserAccessibleLocation=true`):
 
@@ -5249,8 +5526,7 @@ Instances that are `damaged`, `maintenance`, `retired`, `lost`, or won't be free
       {
         "location": { "_id": "...", "name": "Warehouse A" },
         "instances": [
-          { "_id": "...", "serialNumber": "SN-001", "status": "available", "availability": "available", "model": { ... } },
-          { "_id": "...", "serialNumber": "SN-002", "status": "reserved", "availability": "upcoming", "model": { ... } }
+          { "_id": "...", "serialNumber": "SN-001", "status": "available", "availability": "available", "model": { ... } }
         ]
       }
     ],
@@ -5305,6 +5581,14 @@ Cancels a loan request and releases any assigned materials back to available sta
 
 ### Loan Endpoints
 
+**Location-based filtering:** All GET endpoints in this section only return loans whose `locationId` matches at least one of the authenticated user's assigned locations. If the user has no matching location, no results are returned.
+
+**Populated user references:** All loan endpoints populate the following user reference fields when present:
+
+| Field          | Type   | Description                                                                |
+| -------------- | ------ | -------------------------------------------------------------------------- |
+| `checkedOutBy` | object | User who checked out the loan (pickup). Populated with `name` and `email`. |
+
 #### GET /loans
 
 Lists all loans in the organization.
@@ -5325,17 +5609,22 @@ Gets all overdue loans (auto-updates overdue status).
 
 #### GET /loans/:id
 
-Gets a specific loan with full details. The response includes populated `customerId`, `requestId`, and `materialInstances`.
+Gets a specific loan with full details. The response includes populated `customerId`, `requestId`, `checkedOutBy`, and `materialInstances`.
 
 **Query Parameters:**
 
-| Parameter           | Type    | Required | Description                                                                   |
-| ------------------- | ------- | -------- | ----------------------------------------------------------------------------- |
-| groupByMaterialType | boolean | No       | If `true`, group material instances by material type ID (see response below). |
+| Parameter           | Type    | Required | Description                                                                         |
+| ------------------- | ------- | -------- | ----------------------------------------------------------------------------------- |
+| groupByMaterialType | boolean | No       | If `true`, group material instances by material type ID (see response below).       |
+| materialSearch      | string  | No       | Filtra materiales del préstamo por serial, barcode, nombre, ID de instancia o tipo. |
+
+**Regla de compatibilidad:**
+
+- `materialSearch` no se puede usar junto con `groupByMaterialType=true` (retorna `400 BAD_REQUEST`).
 
 **Fields populated in response:**
 
-- `materialInstances`: Array of instances (default behavior). Each instance includes `materialInstanceId` (with `serialNumber`, `status`, `modelId`, `name`), `materialTypeId`, and `materialType` (with `_id` and `name`).
+- `materialInstances`: Array of instances (default behavior). Cada instancia incluye `materialInstanceId` (con `_id`, `serialNumber`, `barcode`, `status`, `modelId`, `name`), `materialTypeId`, y `materialType` (con `_id` y `name`).
 - `materialInstancesByType`: Object with material type IDs as keys and arrays of instances as values (only when `groupByMaterialType=true`). The `materialInstances` field is omitted in this case. Each instance includes the same populated fields as above.
 
 **Example Response (default):**
@@ -5405,6 +5694,69 @@ These fields are also included in `GET /loans` list responses.
 
 ---
 
+#### GET /loans/:id/materials
+
+Lista únicamente los materiales asociados a un préstamo específico, con paginación y filtros para búsquedas en frontend.
+
+**Auth:** `authenticate` + `requireActiveOrganization` + `loans:read`
+
+| Parameter      | Location | Type   | Required | Description                                                                          |
+| -------------- | -------- | ------ | -------- | ------------------------------------------------------------------------------------ |
+| id             | path     | string | Yes      | ID del préstamo                                                                      |
+| page           | query    | number | No       | Número de página (default: `1`)                                                      |
+| limit          | query    | number | No       | Tamaño de página (default: `20`)                                                     |
+| search         | query    | string | No       | Búsqueda parcial por `serialNumber`, `barcode`, nombre de instancia o nombre de tipo |
+| status         | query    | string | No       | Estado de instancia de material (`available`, `loaned`, `returned`, etc.)            |
+| materialTypeId | query    | string | No       | Filtra por tipo de material                                                          |
+
+**Success (200):**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "loan": {
+      "_id": "680f...",
+      "code": "LOAN-00021",
+      "status": "returned"
+    },
+    "materials": [
+      {
+        "materialInstanceId": {
+          "_id": "6810...",
+          "serialNumber": "SN-DEP-001",
+          "barcode": "BC-DEP-001",
+          "status": "returned",
+          "modelId": "680a...",
+          "name": "Proyector Epson"
+        },
+        "materialTypeId": "680a...",
+        "materialType": {
+          "_id": "680a...",
+          "name": "Proyectores"
+        },
+        "conditionAtCheckout": "good",
+        "conditionAtReturn": "good",
+        "notes": "Sin novedades"
+      }
+    ],
+    "total": 1,
+    "page": 1,
+    "totalPages": 1
+  }
+}
+```
+
+**Common errors:**
+
+| Code              | Condition                                 |
+| ----------------- | ----------------------------------------- |
+| `400 BAD_REQUEST` | ID de préstamo o filtros inválidos        |
+| `403 FORBIDDEN`   | Usuario sin permiso `loans:read`          |
+| `404 NOT_FOUND`   | Préstamo no encontrado o fuera de alcance |
+
+---
+
 #### POST /loans/from-request/:requestId
 
 Creates a loan from a ready request (pickup / checkout action).
@@ -5420,6 +5772,8 @@ Creates a loan from a ready request (pickup / checkout action).
 On success:
 
 - A new `Loan` is created with `status: "active"`.
+- The loan **inherits the request's `code`** (both use the organization's `loan` code scheme).
+- The loan **inherits the request's `locationId`** (the user's assigned location at creation time).
 - The source request transitions to `status: "shipped"` and its `loanId` field is populated with the new loan's ID.
 - All assigned material instances are marked as `loaned`.
 - Each material instance's `conditionAtCheckout` is captured from the instance's current condition.
@@ -5604,12 +5958,29 @@ Lists all loans that have been returned but have not yet been inspected. This en
 
 #### POST /loans/:id/extend
 
-Extends a loan's end date.
+Extends a loan's end date and applies an extension fee.
 
-| Parameter  | Location | Type   | Required | Description             |
-| ---------- | -------- | ------ | -------- | ----------------------- |
-| newEndDate | body     | string | Yes      | New end date (ISO 8601) |
-| notes      | body     | string | No       | Extension notes         |
+**Auth:** `authenticate` + `requireActiveOrganization` + `loans:update`
+
+| Parameter    | Location | Type   | Required | Description                     |
+| ------------ | -------- | ------ | -------- | ------------------------------- |
+| newEndDate   | body     | string | Yes      | New end date (ISO 8601)         |
+| extensionFee | body     | number | Yes      | Extension fee amount (>= 0)     |
+| notes        | body     | string | No       | Extension notes (max 500 chars) |
+
+**Behavior:**
+
+- The `extensionFee` is accumulated in the loan's `extensionFees` field (supports multiple extensions).
+- The loan's `totalAmount` is incremented by the `extensionFee`.
+- If the loan is `overdue`, it transitions back to `active`.
+
+**Errors:**
+
+| Code              | Condition                                          |
+| ----------------- | -------------------------------------------------- |
+| `400 BAD_REQUEST` | New end date is not after the current end date     |
+| `400 BAD_REQUEST` | Extension fee is negative                          |
+| `404 NOT_FOUND`   | Loan not found or not in `active`/`overdue` status |
 
 ---
 
@@ -5626,6 +5997,13 @@ Marks a loan as returned and initiates the inspection process.
 **Preconditions:**
 
 The loan must be in `active` or `overdue` status.
+
+**Side effects:**
+
+- Material instances are transitioned to `returned` status (pending inspection).
+- If the loan has a deposit with `status: "held"`, it transitions to `"refund_pending"`.
+- Late fees are calculated and applied if the loan was returned past its end date.
+- **The linked loan request is automatically transitioned from `shipped` → `completed`.**
 
 **Response:** `200 OK`
 
@@ -6293,11 +6671,59 @@ Dismisses an open or acknowledged incident. Dismissal means the incident was a f
 
 Lists all invoices.
 
-| Parameter | Location | Type    | Required | Description                    |
-| --------- | -------- | ------- | -------- | ------------------------------ |
-| status    | query    | string  | No       | `pending`, `paid`, `cancelled` |
-| type      | query    | string  | No       | `rental`, `damage`, `deposit`  |
-| overdue   | query    | boolean | No       | Filter overdue invoices        |
+| Parameter | Location | Type    | Required | Description                                                                                                                          |
+| --------- | -------- | ------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| status    | query    | string  | No       | `pending`, `paid`, `partially_paid`, `overdue`, `cancelled`, `refunded`                                                              |
+| type      | query    | string  | No       | `damage`, `late_fee`, `deposit_shortfall`, `additional_service`, `penalty`. (Note: `rental` invoices are auto-generated at checkout) |
+| overdue   | query    | boolean | No       | Filter overdue invoices (status `pending` with `dueDate < now`)                                                                      |
+
+**Response:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "invoices": [
+      {
+        "_id": "65e2f3c0e1a2b3c4d5e6f7a1",
+        "organizationId": "65e2f3c0e1a2b3c4d5e6f7b2",
+        "customerId": {
+          "_id": "65e2f3c0e1a2b3c4d5e6f7c3",
+          "email": "client@example.com",
+          "name": "Event Co"
+        },
+        "loanId": {
+          "_id": "65e2f3c0e1a2b3c4d5e6f7d4",
+          "startDate": "2026-03-01T10:00:00.000Z",
+          "endDate": "2026-03-05T10:00:00.000Z",
+          "code": "LOAN-2026-001"
+        },
+        "invoiceNumber": "INV-2026-00001",
+        "type": "damage",
+        "lineItems": [
+          {
+            "description": "Material dañado",
+            "quantity": 1,
+            "unitPrice": 50000,
+            "totalPrice": 50000
+          }
+        ],
+        "subtotal": 50000,
+        "taxAmount": 0,
+        "totalAmount": 50000,
+        "amountPaid": 0,
+        "amountDue": 50000,
+        "status": "pending",
+        "dueDate": "2026-04-04T10:00:00.000Z",
+        "createdAt": "2026-03-10T14:20:00.000Z"
+      }
+    ],
+    "total": 1,
+    "page": 1,
+    "totalPages": 1
+  }
+}
+```
 
 ---
 
@@ -9330,19 +9756,21 @@ Base path: `/api/v1/code-schemes`
 
 All endpoints require `authenticate` + active organization middleware.
 
-Code schemes define patterns used to auto-generate human-readable codes for multiple entities: Loans, Loan Requests, Invoices, Inspections, Incidents, Maintenance Batches, and Material Instances (e.g. `LO-2026-0001`, `INV-2026-0012`, `MI-000042`).
+Code schemes define patterns used to auto-generate human-readable codes for multiple entities: Loans (which include both loans and loan requests), Invoices, Inspections, Incidents, Maintenance Batches, and Material Instances (e.g. `LO-2026-0001`, `INV-2026-0012`, `MI-000042`).
+
+**Important:** Loan Requests and Loans now share the same `loan` code scheme. When a loan is created from a request, it inherits the request's code. There is no separate `loan_request` entity type.
 
 ### Supported Entity Types
 
 | Entity Type         | Default Pattern       | Auto-generated Field                        |
 | ------------------- | --------------------- | ------------------------------------------- |
-| `loan`              | `LO-{YYYY}-{SEQ:4}`   | `code`                                      |
-| `loan_request`      | `REQ-{YYYY}-{SEQ:4}`  | `code`                                      |
+| `loan`              | `LO-{YYYY}-{SEQ:4}`   | `code` (for both loans and loan requests)   |
 | `invoice`           | `INV-{YYYY}-{SEQ:4}`  | `invoiceNumber`                             |
 | `inspection`        | `INSP-{YYYY}-{SEQ:4}` | `inspectionNumber`                          |
 | `incident`          | `INC-{YYYY}-{SEQ:4}`  | `incidentNumber`                            |
 | `maintenance_batch` | `MNT-{YYYY}-{SEQ:4}`  | `batchNumber`                               |
 | `material_instance` | `MI-{SEQ:6}`          | `serialNumber` (fallback when not provided) |
+| `ticket`            | `TKT-{YYYY}-{SEQ:4}`  | `code`                                      |
 
 ### Supported Pattern Tokens
 
@@ -9556,3 +9984,486 @@ Sets a code scheme as the default for its entity type and scope. For `material_i
 
 - `400` — Cannot set an inactive scheme as default.
 - `404` — Scheme not found.
+
+## Tickets (Solicitudes de Usuario)
+
+Base path: `/api/v1/tickets`
+
+All endpoints require `authenticate` middleware. Tickets are internal requests created by users who lack certain permissions, aimed at users (assignees) who can act on those requests. Tickets are scoped to an organization and optionally to a location.
+
+### Ticket Types
+
+| Type                  | Description                                          |
+| --------------------- | ---------------------------------------------------- |
+| `transfer_request`    | Solicitud de transferencia de material               |
+| `incident_report`     | Reporte de incidente con materiales o préstamos      |
+| `maintenance_request` | Solicitud de mantenimiento de instancias de material |
+| `inspection_request`  | Solicitud de inspección de un préstamo               |
+| `generic`             | Solicitud genérica con texto libre                   |
+
+### Ticket Statuses
+
+| Status      | Description                                        |
+| ----------- | -------------------------------------------------- |
+| `pending`   | Recién creado, esperando revisión                  |
+| `in_review` | Siendo revisado por un asignado                    |
+| `approved`  | Aprobado                                           |
+| `rejected`  | Rechazado (con nota de resolución)                 |
+| `cancelled` | Cancelado por el creador o por cambio de ubicación |
+| `expired`   | Expirado por pasar la fecha límite de respuesta    |
+
+---
+
+### POST /tickets
+
+Creates a new ticket. The creator must belong to the specified location. The optional assignee must also belong to the same location.
+
+**Permission:** `tickets:create`
+
+**Request body:**
+
+| Field            | Type   | Required | Description                                                                                           |
+| ---------------- | ------ | -------- | ----------------------------------------------------------------------------------------------------- |
+| locationId       | string | Yes      | ObjectId of the location this ticket belongs to                                                       |
+| type             | string | Yes      | One of: `transfer_request`, `incident_report`, `maintenance_request`, `inspection_request`, `generic` |
+| title            | string | Yes      | Ticket title (max 200 chars)                                                                          |
+| description      | string | No       | Extended description (max 2000 chars)                                                                 |
+| assigneeId       | string | No       | ObjectId of the assigned user (must share location)                                                   |
+| responseDeadline | string | No       | ISO date-time for auto-expiration                                                                     |
+| payload          | object | Yes      | Type-specific data (see Payload Schemas below)                                                        |
+
+**Payload schemas per type:**
+
+**`transfer_request`:**
+
+| Field                  | Type   | Required | Description                   |
+| ---------------------- | ------ | -------- | ----------------------------- |
+| toLocationId           | string | Yes      | Destination location ObjectId |
+| items                  | array  | Yes      | At least 1 item               |
+| items[].materialTypeId | string | Yes      | Material type ObjectId        |
+| items[].quantity       | number | Yes      | Integer ≥ 1                   |
+| neededBy               | string | No       | ISO date-time                 |
+
+**`incident_report`:**
+
+| Field               | Type     | Required | Description                                             |
+| ------------------- | -------- | -------- | ------------------------------------------------------- |
+| materialInstanceIds | string[] | No       | Array of material instance ObjectIds                    |
+| loanId              | string   | No       | Loan ObjectId                                           |
+| severity            | string   | Yes      | `low`, `medium`, `high`, or `critical`                  |
+| context             | string   | Yes      | `transit`, `storage`, `loan`, `maintenance`, or `other` |
+| description         | string   | No       | Max 2000 chars                                          |
+
+**`maintenance_request`:**
+
+| Field               | Type     | Required | Description                           |
+| ------------------- | -------- | -------- | ------------------------------------- |
+| materialInstanceIds | string[] | Yes      | At least 1 material instance ObjectId |
+| entryReason         | string   | Yes      | `damaged` or `other`                  |
+| estimatedCost       | number   | No       | Non-negative number                   |
+| notes               | string   | No       | Max 1000 chars                        |
+
+**`inspection_request`:**
+
+| Field  | Type   | Required | Description    |
+| ------ | ------ | -------- | -------------- |
+| loanId | string | Yes      | Loan ObjectId  |
+| notes  | string | No       | Max 1000 chars |
+
+**`generic`:**
+
+| Field   | Type   | Required | Description                  |
+| ------- | ------ | -------- | ---------------------------- |
+| details | string | Yes      | Free-text details (max 2000) |
+
+**Response `201`:**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "_id": "683a...",
+    "organizationId": "680a...",
+    "locationId": "681b...",
+    "type": "transfer_request",
+    "status": "pending",
+    "title": "Solicitud de transferencia de sillas",
+    "description": "Necesitamos 10 sillas en la sede norte",
+    "createdBy": "682c...",
+    "assigneeId": "682d...",
+    "responseDeadline": "2026-07-01T00:00:00.000Z",
+    "payload": {
+      "toLocationId": "681e...",
+      "items": [{ "materialTypeId": "680f...", "quantity": 10 }]
+    },
+    "code": "TKT-2026-0001",
+    "createdAt": "2026-06-15T10:00:00.000Z",
+    "updatedAt": "2026-06-15T10:00:00.000Z"
+  }
+}
+```
+
+**Errors:**
+
+- `400` — Validation error (invalid type, missing payload fields, past deadline, etc.).
+- `403` — Creator does not belong to the specified location.
+- `400` — Assignee does not belong to the same location.
+
+---
+
+### GET /tickets
+
+Lists tickets where the authenticated user is either the creator or the assignee. Supports pagination and optional filters. Automatically marks overdue tickets as `expired`.
+
+**Permission:** `tickets:read`
+
+**Query params:**
+
+| Param      | Type   | Required | Description                 |
+| ---------- | ------ | -------- | --------------------------- |
+| page       | number | No       | Page number (default 1)     |
+| limit      | number | No       | Items per page (default 20) |
+| status     | string | No       | Filter by status            |
+| type       | string | No       | Filter by ticket type       |
+| locationId | string | No       | Filter by location ObjectId |
+
+**Response `200`:**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "tickets": [
+      {
+        "_id": "683a...",
+        "type": "transfer_request",
+        "status": "pending",
+        "title": "Solicitud de transferencia de sillas",
+        "createdBy": "682c...",
+        "locationId": "681b...",
+        "createdAt": "2026-06-15T10:00:00.000Z"
+      }
+    ],
+    "pagination": { "total": 1, "page": 1, "limit": 20, "pages": 1 }
+  }
+}
+```
+
+---
+
+### GET /tickets/:id
+
+Retrieves a single ticket by ID. Only the creator or the assignee may view it.
+
+**Permission:** `tickets:read`
+
+**Response `200`:**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "_id": "683a...",
+    "organizationId": "680a...",
+    "locationId": "681b...",
+    "type": "transfer_request",
+    "status": "pending",
+    "title": "Solicitud de transferencia de sillas",
+    "description": "...",
+    "createdBy": "682c...",
+    "assigneeId": "682d...",
+    "payload": { ... },
+    "createdAt": "2026-06-15T10:00:00.000Z",
+    "updatedAt": "2026-06-15T10:00:00.000Z"
+  }
+}
+```
+
+**Errors:**
+
+- `400` — Invalid ticket ID format.
+- `403` — User is neither the creator nor the assignee.
+- `404` — Ticket not found.
+
+---
+
+### GET /tickets/capable-users
+
+**Smart endpoint.** Returns the list of active users in a location whose role holds the domain-specific permission needed to _fulfill_ a given ticket type. **Does not require an existing ticket** — useful for pre-populating an assignee picker before creating a ticket.
+
+The calling user is excluded from the results (you cannot assign a ticket to yourself).
+
+The permission looked up per ticket type is:
+
+| Ticket type           | Required domain permission |
+| --------------------- | -------------------------- |
+| `transfer_request`    | `transfers:create`         |
+| `incident_report`     | `incidents:create`         |
+| `maintenance_request` | `maintenance:create`       |
+| `inspection_request`  | `inspections:create`       |
+| `generic`             | `tickets:approve`          |
+
+**Permission:** `tickets:read`
+
+**Query parameters:**
+
+| Param      | Type   | Required | Description                                                                                           |
+| ---------- | ------ | -------- | ----------------------------------------------------------------------------------------------------- |
+| type       | string | Yes      | One of: `transfer_request`, `incident_report`, `maintenance_request`, `inspection_request`, `generic` |
+| locationId | string | Yes      | ObjectId of the location to search users in                                                           |
+
+**Response `200`:**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "ticketType": "transfer_request",
+    "requiredPermission": "transfers:create",
+    "users": [
+      {
+        "_id": "682d...",
+        "name": { "firstName": "Ana", "firstSurname": "Gómez" },
+        "email": "ana.gomez@example.com",
+        "roleId": "681f...",
+        "roleName": "Gerente"
+      }
+    ]
+  }
+}
+```
+
+**Errors:**
+
+- `400` — Invalid `locationId` format or unsupported ticket type.
+- `404` — Location not found or inactive.
+
+---
+
+### GET /tickets/:id/capable-users
+
+**Smart endpoint.** Same as `GET /tickets/capable-users`, but derives the ticket type and location from an existing ticket. Only the ticket creator or assignee may call this endpoint. The ticket creator is excluded from results.
+
+**Permission:** `tickets:read`
+
+**Response `200`:** Same shape as `GET /tickets/capable-users`.
+
+**Errors:**
+
+- `400` — Invalid ticket ID format.
+- `403`/`404` — Ticket not found or user is neither creator nor assignee.
+
+---
+
+### PATCH /tickets/:id/review
+
+Moves a ticket to `in_review` status. The reviewer must be the assignee or a member of the same location (and not the creator).
+
+**Permission:** `tickets:review`
+
+**Response `200`:**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "_id": "683a...",
+    "status": "in_review",
+    "reviewedBy": "682d...",
+    "reviewedAt": "2026-06-16T09:00:00.000Z"
+  }
+}
+```
+
+**Errors:**
+
+- `400` — Invalid ticket ID.
+- `403` — Reviewer is the ticket creator (cannot review own ticket) or does not belong to the same location.
+- `404` — Ticket not found.
+- `409` — Invalid status transition.
+
+---
+
+### PATCH /tickets/:id/approve
+
+Approves a ticket. Optional resolution note. Same reviewer rules as `/review`.
+
+**Permission:** `tickets:approve`
+
+**Request body:**
+
+| Field          | Type   | Required | Description                    |
+| -------------- | ------ | -------- | ------------------------------ |
+| resolutionNote | string | No       | Optional note (max 1000 chars) |
+
+**Response `200`:**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "_id": "683a...",
+    "status": "approved",
+    "reviewedBy": "682d...",
+    "reviewedAt": "2026-06-16T10:00:00.000Z",
+    "resolutionNote": "Transferencia autorizada"
+  }
+}
+```
+
+**Errors:**
+
+- `400` — Invalid ticket ID.
+- `403` — Reviewer is the creator or not in the same location.
+- `404` — Ticket not found.
+- `409` — Invalid status transition.
+
+---
+
+### PATCH /tickets/:id/reject
+
+Rejects a ticket. A resolution note is **required**.
+
+**Permission:** `tickets:reject`
+
+**Request body:**
+
+| Field          | Type   | Required | Description                           |
+| -------------- | ------ | -------- | ------------------------------------- |
+| resolutionNote | string | Yes      | Reason for rejection (max 1000 chars) |
+
+**Response `200`:**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "_id": "683a...",
+    "status": "rejected",
+    "reviewedBy": "682d...",
+    "reviewedAt": "2026-06-16T11:00:00.000Z",
+    "resolutionNote": "No hay inventario disponible"
+  }
+}
+```
+
+**Errors:**
+
+- `400` — Invalid ticket ID or missing resolution note.
+- `403` — Reviewer is the creator or not in the same location.
+- `404` — Ticket not found.
+- `409` — Invalid status transition.
+
+---
+
+### PATCH /tickets/:id/cancel
+
+Cancels a ticket. Only the **creator** of the ticket may cancel it.
+
+**Permission:** `tickets:cancel`
+
+**Response `200`:**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "_id": "683a...",
+    "status": "cancelled"
+  }
+}
+```
+
+**Errors:**
+
+- `400` — Invalid ticket ID.
+- `403` — User is not the creator of the ticket.
+- `404` — Ticket not found.
+- `409` — Invalid status transition (e.g. already approved/rejected/cancelled).
+
+### GET /tickets/:id/fulfillment-options
+
+Busca y devuelve todas las sedes que poseen suficiente inventario para suplir **todos** los requerimientos (`materials/items`) de una solicitud de transferencia (`transfer_request`).
+
+**Permission:** `transfers:create`
+
+**Params:**
+
+- `id` (path): The ticket ID.
+
+**Response `200`:**
+
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "location": {
+        "_id": "673...",
+        "name": "Sede Principal",
+        "code": "SP-001"
+      },
+      "satisfiesAll": true,
+      "availableItems": [
+        {
+          "materialTypeId": "63fa...",
+          "requestedQuantity": 2,
+          "availableQuantity": 5
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Errors:**
+
+- `400` — Invalid ticket ID, not a `transfer_request`, or no valid items payload.
+- `403` — User lacks `transfers:create` permission.
+- `404` — Ticket not found.
+
+### POST /tickets/:id/create-transfer
+
+Genera automáticamente un `TransferRequest` originario a partir de un ticket `transfer_request` previamente aprobado. Esta acción guarda registro de la transferencia generada den el array `resolutionEntities` del ticket.
+
+**Permission:** `transfers:create`
+
+**Request Body:**
+
+| Field          | Type   | Required | Description                                                    |
+| -------------- | ------ | -------- | -------------------------------------------------------------- |
+| fromLocationId | string | Yes      | ID de la sede origen (de donde saldrá el material solicitado). |
+| notes          | string | No       | Notas adicionales sobre la transferencia generada.             |
+
+**Response `201`:**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "ticket": {
+      "_id": "683a...",
+      "status": "approved",
+      "resolutionEntities": [
+        {
+          "entityId": "69fb...",
+          "entityType": "TransferRequest",
+          "_id": "6abc..."
+        }
+      ]
+    },
+    "transferRequest": {
+      "_id": "69fb...",
+      "status": "requested",
+      "fromLocationId": "...",
+      "toLocationId": "..."
+    }
+  }
+}
+```
+
+**Errors:**
+
+- `400` — Ticket no validado, tipo de ticket incorrecto o estado distinto a `approved`.
+- `403` — Carece de permisos para generar transferencias.
+- `404` — Ticket no encontrado.

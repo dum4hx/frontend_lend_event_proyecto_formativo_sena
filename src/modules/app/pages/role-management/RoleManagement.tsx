@@ -9,8 +9,9 @@ import {
   Eye,
   ChevronUp,
   ChevronDown,
+  RefreshCw,
 } from "lucide-react";
-import { ErrorDisplay, PageHeader } from "../../../../components/ui";
+import { ErrorDisplay, PageHeader, IconButton } from "../../../../components/ui";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import { useApiQuery } from "../../../../hooks/useApiQuery";
 import { useConfirmModal } from "../../../../hooks/useConfirmModal";
@@ -229,13 +230,23 @@ export default function RoleManagement() {
             title={t("roles.title")}
             subtitle={t("roles.subtitle")}
             actions={
-              <button
-                onClick={() => setModal({ type: "create" })}
-                className="w-full sm:w-auto shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 font-semibold rounded-lg transition gold-action-btn"
-              >
-                <Plus size={18} />
-                {t("roles.newRole")}
-              </button>
+              <div className="flex gap-2">
+                <IconButton
+                  icon={RefreshCw}
+                  onClick={() => void refetchRoles()}
+                  disabled={rolesLoading}
+                  ariaLabel={t("common.refresh")}
+                  className={rolesLoading ? "animate-spin" : ""}
+                  title={t("common.refresh")}
+                />
+                <button
+                  onClick={() => setModal({ type: "create" })}
+                  className="w-full sm:w-auto shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 font-semibold rounded-lg transition gold-action-btn"
+                >
+                  <Plus size={18} />
+                  {t("roles.newRole")}
+                </button>
+              </div>
             }
           />
         </div>

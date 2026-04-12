@@ -16,11 +16,9 @@ const HELP_LOADERS: Record<string, HelpLoader> = {
   "material-instances": () => import("./materialInstancesHelp"),
   "material-types": () => import("./materialTypesHelp"),
   operations: () => import("./operationsHelp"),
-  orders: () => import("./ordersHelp"),
   "payment-methods": () => import("./paymentMethodsHelp"),
   plans: () => import("./plansHelp"),
   pricing: () => import("./pricingHelp"),
-  rentals: () => import("./rentalsHelp"),
   reports: () => import("./reportsHelp"),
   roles: () => import("./rolesHelp"),
   settings: () => import("./settingsHelp"),
@@ -28,6 +26,7 @@ const HELP_LOADERS: Record<string, HelpLoader> = {
   "super-admin-reports": () => import("./superAdminReportsHelp"),
   "super-admin-settings": () => import("./superAdminSettingsHelp"),
   team: () => import("./teamHelp"),
+  tickets: () => import("./ticketsHelp"),
   "transfer-requests": () => import("./transferRequestsHelp"),
 };
 

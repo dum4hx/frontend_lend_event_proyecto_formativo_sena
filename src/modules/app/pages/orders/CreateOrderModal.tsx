@@ -43,6 +43,7 @@ import {
   toSafeStartDateIso,
   toSafeEndDateIso,
 } from "./helpers";
+import { validateDepositAmount } from "../../../../utils/validators";
 
 interface CreateOrderModalProps {
   open: boolean;
@@ -575,20 +576,41 @@ export function CreateOrderModal({
       nextErrors.depositDueDate = isEs
         ? "Selecciona la fecha límite del depósito."
         : "Select a deposit due date.";
-    } else if (isDatetimeIncomplete(formData.depositDueDate)) {
+    } else if (
+      isDatetimeIncomplete(formData.depositDueDate) ||
+      !formData.depositDueDate.includes("T")
+    ) {
       nextErrors.depositDueDate = isEs
         ? "Establece tanto la fecha como la hora límite del depósito."
         : "Please set both date and hour for the deposit due date.";
-    } else if (formData.depositDueDate > formData.startDate) {
+    } else if (
+      formData.startDate &&
+      formData.startDate.includes("T") &&
+      new Date(formData.depositDueDate) > new Date(formData.startDate)
+    ) {
       nextErrors.depositDueDate = isEs
-        ? "La fecha límite del depósito debe ser anterior o igual a la fecha de inicio."
-        : "Deposit due date must be before or on the start date.";
+        ? "La fecha límite del depósito no puede ser posterior a la fecha de inicio."
+        : "Deposit due date cannot be after the start date.";
+    } else if (formData.startDate && formData.startDate.includes("T")) {
+      const minDepositDate = new Date(formData.startDate);
+      minDepositDate.setDate(minDepositDate.getDate() - 10);
+      if (new Date(formData.depositDueDate) < minDepositDate) {
+        nextErrors.depositDueDate = isEs
+          ? "La fecha límite del depósito no puede ser más de 10 días antes de la fecha de inicio."
+          : "Deposit due date cannot be more than 10 days before the start date.";
+      }
     }
 
-    if (formData.depositAmount === "") {
-      nextErrors.depositAmount = isEs
-        ? "Ingresa el monto del depósito (o 0 si no aplica)."
-        : "Please enter a deposit amount (or 0 for no deposit conditions).";
+    const depositAmountValidation = validateDepositAmount(formData.depositAmount);
+    if (!depositAmountValidation.isValid) {
+      nextErrors.depositAmount =
+        depositAmountValidation.message === "orders.depositAmountMustBeGreaterThanZero"
+          ? isEs
+            ? "El monto del depósito debe ser mayor a 0."
+            : "Deposit amount must be greater than 0."
+          : isEs
+            ? "El monto del depósito es obligatorio."
+            : "Deposit amount is required.";
     }
 
     const draftRowsToValidate = formItems.filter((item) => !isFormDraftItemEmpty(item));
@@ -643,6 +665,7 @@ export function CreateOrderModal({
       Boolean(validationErrors.startDate) ||
       Boolean(validationErrors.endDate) ||
       Boolean(validationErrors.depositDueDate) ||
+      Boolean(validationErrors.depositAmount) ||
       Boolean(validationErrors.items) ||
       Object.keys(validationErrors.rows).length > 0;
 
@@ -660,15 +683,6 @@ export function CreateOrderModal({
           quantity: normalizedQuantity,
         };
       });
-
-    if (selectedPlanId) {
-      parsedItems.unshift({
-        type: "package" as const,
-        referenceId: selectedPlanId,
-        packageId: selectedPlanId,
-        quantity: 1,
-      });
-    }
 
     const payload: CreateLoanRequestPayload = {
       customerId: formData.customerId,
@@ -813,6 +827,15 @@ export function CreateOrderModal({
                     <input
                       type="datetime-local"
                       value={formData.depositDueDate}
+                      min={
+                        formData.startDate
+                          ? (() => {
+                              const d = new Date(formData.startDate);
+                              d.setDate(d.getDate() - 10);
+                              return d.toISOString().slice(0, 16);
+                            })()
+                          : undefined
+                      }
                       max={formData.startDate || undefined}
                       onChange={(e) =>
                         setFormData((prev) => ({
