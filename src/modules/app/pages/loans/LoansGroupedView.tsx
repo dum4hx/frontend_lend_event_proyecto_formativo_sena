@@ -10,6 +10,7 @@ import {
   CalendarRange,
   Copy,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { PermissionGuardedButton } from "../../../../components/ui/PermissionGuardedButton";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import { useCopyToClipboard } from "../../../../hooks/useCopyToClipboard";
@@ -35,6 +36,8 @@ interface LoansGroupedViewProps {
   onRefund: (v: UnifiedLoanView) => void;
   onComplete: (v: UnifiedLoanView) => void;
 }
+
+type TranslationFn = (key: string, params?: Record<string, string | number>) => string;
 
 /** Group loans by date (last 24h, last 7d, older) */
 function groupByDate(loans: UnifiedLoanView[]) {
@@ -115,7 +118,7 @@ const STATUS_ORDER: UnifiedLoanStatus[] = [
 
 /** Get action icon and color for status */
 function getStatusActionIcon(status: UnifiedLoanStatus) {
-  const iconMap: Record<UnifiedLoanStatus, { Icon: any; color: string }> = {
+  const iconMap: Record<UnifiedLoanStatus, { Icon: LucideIcon; color: string }> = {
     pending: { Icon: AlertCircle, color: "text-amber-500" },
     approved: { Icon: CheckCircle, color: "text-blue-500" },
     assigned: { Icon: Package, color: "text-purple-500" },
@@ -151,7 +154,7 @@ function DateGroup({
   title: string;
   loans: UnifiedLoanView[];
   lang: "en" | "es";
-  t: any;
+  t: TranslationFn;
   onViewDetail: (v: UnifiedLoanView) => void;
   onCancel: (v: UnifiedLoanView) => void;
   onPrepare: (v: UnifiedLoanView) => void;
@@ -236,7 +239,7 @@ function LoanCard({
   onComplete,
 }: {
   loan: UnifiedLoanView;
-  t: any;
+  t: TranslationFn;
   onViewDetail: (v: UnifiedLoanView) => void;
   onCancel: (v: UnifiedLoanView) => void;
   onPrepare: (v: UnifiedLoanView) => void;

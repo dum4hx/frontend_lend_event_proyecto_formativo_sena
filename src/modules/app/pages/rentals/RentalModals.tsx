@@ -585,7 +585,6 @@ export function RefundDepositModal({
   submitting,
   isEs,
 }: RefundDepositModalProps) {
-  const { copy } = useCopyToClipboard();
   if (!show || !target) return null;
 
   return (
@@ -666,7 +665,6 @@ export function CompleteLoanModal({
   submitting,
   isEs,
 }: CompleteLoanModalProps) {
-  const { copy } = useCopyToClipboard();
   if (!show || !target) return null;
 
   const depositResolved =

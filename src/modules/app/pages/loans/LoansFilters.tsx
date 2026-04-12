@@ -185,9 +185,7 @@ export function LoansFilters({
         )}
       </div>
 
-      {dateError && (
-        <p className="text-xs text-red-400">{t("loans.filter.dateError")}</p>
-      )}
+      {dateError && <p className="text-xs text-red-400">{t("loans.filter.dateError")}</p>}
 
       {/* ── Status chips ── */}
       <div className="space-y-2" data-help-id="loans-state-filters">
