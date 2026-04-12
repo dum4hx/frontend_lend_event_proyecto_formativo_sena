@@ -16,11 +16,8 @@ import {
   createRequest,
   getRequests,
   getLoans,
-  approveRequest,
-  rejectRequest,
   cancelRequest,
   updateRequest,
-  markRequestReady,
   createLoanFromRequest,
   extendLoan,
   returnLoan,
@@ -51,7 +48,6 @@ import { LoansTable } from "./LoansTable";
 import { LoanDetailModal } from "./LoanDetailModal";
 import { CreateOrderModal } from "../orders/CreateOrderModal";
 import {
-  RejectLoanModal,
   CancelLoanModal,
   ReactivateLoanModal,
   RecordPaymentModal,
@@ -102,8 +98,6 @@ export function Loans() {
   const [activeView, setActiveView] = useState<UnifiedLoanView | null>(null);
 
   // Pre-checkout modals
-  const [showRejectModal, setShowRejectModal] = useState(false);
-  const [rejectTarget, setRejectTarget] = useState<UnifiedLoanView | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<UnifiedLoanView | null>(null);
   const [showReactivateModal, setShowReactivateModal] = useState(false);
@@ -251,45 +245,6 @@ export function Loans() {
     }
   };
 
-  const handleApprove = async (v: UnifiedLoanView) => {
-    setSubmitting(true);
-    try {
-      await approveRequest(v.request._id, "Aprovado desde el modulo de prestamos.");
-      showSuccess(t("loans.approveSuccess"), t("loans.updated"));
-      await refreshData();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : t("loans.approveError");
-      showError(message, t("loans.approveErrorTitle"));
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleOpenReject = (v: UnifiedLoanView) => {
-    setRejectTarget(v);
-    setShowRejectModal(true);
-  };
-
-  const handleReject = async (reason: string) => {
-    if (!rejectTarget || !reason) {
-      showError(t("loans.rejectReasonRequired"), t("loans.validationError"));
-      return;
-    }
-    setSubmitting(true);
-    try {
-      await rejectRequest(rejectTarget.request._id, reason);
-      showSuccess(t("loans.rejectSuccess"), t("loans.updated"));
-      setShowRejectModal(false);
-      setRejectTarget(null);
-      await refreshData();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : t("loans.rejectError");
-      showError(message, t("loans.rejectErrorTitle"));
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   const handleOpenCancel = (v: UnifiedLoanView) => {
     setCancelTarget(v);
     setShowCancelModal(true);
@@ -397,20 +352,6 @@ export function Loans() {
     } catch (error) {
       const message = error instanceof Error ? error.message : t("loans.rentalRecordError");
       showError(message, t("loans.paymentErrorTitle"));
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleShip = async (v: UnifiedLoanView) => {
-    setSubmitting(true);
-    try {
-      await markRequestReady(v.request._id);
-      showSuccess(t("loans.shipSuccess"), t("loans.updated"));
-      await refreshData();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : t("loans.shipError");
-      showError(message, t("loans.shipErrorTitle"));
     } finally {
       setSubmitting(false);
     }
@@ -589,13 +530,10 @@ export function Loans() {
           loading={loading}
           submitting={submitting}
           onViewDetail={handleViewDetail}
-          onApprove={handleApprove}
-          onReject={handleOpenReject}
           onCancel={handleOpenCancel}
           onPrepare={handlePrepare}
           onRecordPayment={handleRecordPayment}
           onRecordRentalPayment={handleRecordRentalPayment}
-          onShip={handleShip}
           onStartLoan={handleStartLoan}
           onExtend={handleOpenExtend}
           onReturn={handleOpenReturn}
@@ -631,17 +569,6 @@ export function Loans() {
           view={activeView}
         />
       )}
-
-      <RejectLoanModal
-        show={showRejectModal}
-        onClose={() => {
-          setShowRejectModal(false);
-          setRejectTarget(null);
-        }}
-        target={rejectTarget}
-        onSubmit={handleReject}
-        submitting={submitting}
-      />
 
       <CancelLoanModal
         show={showCancelModal}

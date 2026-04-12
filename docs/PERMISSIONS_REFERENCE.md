@@ -79,6 +79,12 @@ Each section explains the purpose of a permission and the action it allows.
 - [`roles:update`](#rolesupdate)
 - [`subscription:manage`](#subscriptionmanage)
 - [`subscription_types:create`](#subscription_typescreate)
+- [`tickets:read`](#ticketsread)
+- [`tickets:create`](#ticketscreate)
+- [`tickets:review`](#ticketsreview)
+- [`tickets:approve`](#ticketsapprove)
+- [`tickets:reject`](#ticketsreject)
+- [`tickets:cancel`](#ticketscancel)
 - [`subscription_types:delete`](#subscription_typesdelete)
 - [`subscription_types:read`](#subscription_typesread)
 - [`subscription_types:update`](#subscription_typesupdate)
@@ -1037,3 +1043,76 @@ Each section explains the purpose of a permission and the action it allows.
 - **Allowed Action:** View aggregated operational data for a location.
 - **Resource Target:** Operations Dashboard
 - **Roles:** super_admin, owner, manager, warehouse_operator
+
+## Tickets
+
+### `tickets:read`
+
+- **Display Name:** Ver tickets
+- **Category:** Tickets
+- **Scope:** Organization
+- **Active:** Yes
+- **Purpose:** Permite ver los tickets (solicitudes de usuario) creados en la organización.
+- **Allowed Action:** Listar y ver detalle de tickets propios.
+- **Resource Target:** Ticket
+- **Roles:** super_admin, owner, manager, warehouse_operator, commercial_advisor
+
+### `tickets:create`
+
+- **Display Name:** Crear tickets
+- **Category:** Tickets
+- **Scope:** Organization
+- **Active:** Yes
+- **Requires:** `tickets:read`
+- **Purpose:** Permite crear nuevos tickets (solicitudes de transferencia, reporte de incidentes, solicitud de mantenimiento, solicitud de inspección, genérico).
+- **Allowed Action:** Crear un ticket en una ubicación del usuario.
+- **Resource Target:** Ticket
+- **Roles:** super_admin, owner, manager, warehouse_operator, commercial_advisor
+
+### `tickets:review`
+
+- **Display Name:** Revisar tickets
+- **Category:** Tickets
+- **Scope:** Organization
+- **Active:** Yes
+- **Requires:** `tickets:read`
+- **Purpose:** Permite mover un ticket al estado "en revisión".
+- **Allowed Action:** Cambiar el estado de un ticket a in_review.
+- **Resource Target:** Ticket
+- **Roles:** super_admin, owner, manager
+
+### `tickets:approve`
+
+- **Display Name:** Aprobar tickets
+- **Category:** Tickets
+- **Scope:** Organization
+- **Active:** Yes
+- **Requires:** `tickets:read`
+- **Purpose:** Permite aprobar un ticket (solicitud de usuario).
+- **Allowed Action:** Cambiar el estado de un ticket a approved.
+- **Resource Target:** Ticket
+- **Roles:** super_admin, owner, manager
+
+### `tickets:reject`
+
+- **Display Name:** Rechazar tickets
+- **Category:** Tickets
+- **Scope:** Organization
+- **Active:** Yes
+- **Requires:** `tickets:read`
+- **Purpose:** Permite rechazar un ticket incluyendo una nota de resolución.
+- **Allowed Action:** Cambiar el estado de un ticket a rejected con nota.
+- **Resource Target:** Ticket
+- **Roles:** super_admin, owner, manager
+
+### `tickets:cancel`
+
+- **Display Name:** Cancelar tickets
+- **Category:** Tickets
+- **Scope:** Organization
+- **Active:** Yes
+- **Requires:** `tickets:read`
+- **Purpose:** Permite al creador cancelar su propio ticket pendiente o en revisión.
+- **Allowed Action:** Cambiar el estado de un ticket propio a cancelled.
+- **Resource Target:** Ticket
+- **Roles:** super_admin, owner, manager, warehouse_operator, commercial_advisor

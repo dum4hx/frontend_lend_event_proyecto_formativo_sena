@@ -10,6 +10,11 @@ import type {
 import type { UnifiedLoanStatus, UnifiedLoanView, LoanFilterTab, LoanSubFilter } from "./types";
 import { UNIFIED_WORKFLOW_STEPS } from "./types";
 
+/** Whether a returned loan has damage fees recorded. */
+export function hasReturnDamage(loan?: Loan): boolean {
+  return !!loan && typeof loan.damageFees === "number" && loan.damageFees > 0;
+}
+
 // ─── Status derivation ─────────────────────────────────────────────────────
 
 export function getUnifiedStatus(request: LoanRequest, loan?: Loan): UnifiedLoanStatus {
@@ -36,7 +41,20 @@ export function getUnifiedStatus(request: LoanRequest, loan?: Loan): UnifiedLoan
 
 // ─── Status label ───────────────────────────────────────────────────────────
 
-export function getUnifiedStatusLabel(status: UnifiedLoanStatus, language: "en" | "es"): string {
+export function getUnifiedStatusLabel(
+  status: UnifiedLoanStatus,
+  language: "en" | "es",
+  loan?: Loan,
+): string {
+  // Dynamic label for returned/inspected loans based on damage
+  if (status === "returned" || status === "inspected") {
+    if (hasReturnDamage(loan)) {
+      return language === "es" ? "Devuelto Da\u00f1ado" : "Returned Damaged";
+    }
+    const step = UNIFIED_WORKFLOW_STEPS.find((s) => s.status === "returned");
+    return step ? (language === "es" ? step.labelEs : step.labelEn) : "Returned";
+  }
+
   const step = UNIFIED_WORKFLOW_STEPS.find((s) => s.status === status);
   if (step) return language === "es" ? step.labelEs : step.labelEn;
 
@@ -50,7 +68,7 @@ export function getUnifiedStatusLabel(status: UnifiedLoanStatus, language: "en" 
 
 // ─── Badge styles ───────────────────────────────────────────────────────────
 
-export function getUnifiedStatusBadgeStyle(status: UnifiedLoanStatus): string {
+export function getUnifiedStatusBadgeStyle(status: UnifiedLoanStatus, loan?: Loan): string {
   switch (status) {
     case "pending":
       return "bg-yellow-500/20 text-yellow-300 border border-yellow-500/30";
@@ -65,8 +83,14 @@ export function getUnifiedStatusBadgeStyle(status: UnifiedLoanStatus): string {
     case "overdue":
       return "bg-red-500/20 text-red-400 border border-red-500/30";
     case "returned":
+      if (hasReturnDamage(loan)) {
+        return "bg-red-500/20 text-red-400 border border-red-500/30";
+      }
       return "bg-blue-500/20 text-blue-400 border border-blue-500/30";
     case "inspected":
+      if (hasReturnDamage(loan)) {
+        return "bg-red-500/20 text-red-400 border border-red-500/30";
+      }
       return "bg-purple-500/20 text-purple-400 border border-purple-500/30";
     case "closed":
       return "bg-zinc-500/20 text-zinc-300 border border-zinc-500/30";
@@ -200,7 +224,7 @@ export function buildUnifiedLoanViews(
   return requests.map((request) => {
     const relatedLoan = findRelatedLoan(request, loans);
     const status = getUnifiedStatus(request, relatedLoan);
-    const statusLabel = getUnifiedStatusLabel(status, language);
+    const statusLabel = getUnifiedStatusLabel(status, language, relatedLoan);
     const customerId = extractCustomerIdFromRequest(request);
     const customer = customerId ? customers.find((entry) => entry._id === customerId) : undefined;
 

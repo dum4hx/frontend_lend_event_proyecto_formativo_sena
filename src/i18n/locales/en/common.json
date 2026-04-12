@@ -1112,6 +1112,7 @@
   "loans.actions.recordRentalPayment": "Record rental payment",
   "loans.actions.ship": "Mark as ready",
   "loans.actions.startLoan": "Start loan",
+  "loans.actions.dispatch": "Dispatch",
   "loans.actions.extend": "Extend loan",
   "loans.actions.return": "Return loan",
   "loans.actions.refund": "Refund deposit",
