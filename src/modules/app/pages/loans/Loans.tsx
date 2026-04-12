@@ -41,14 +41,14 @@ import { useLanguage } from "../../../../contexts/useLanguage";
 import PrepareOrderModal from "../PrepareOrderModal";
 import Unauthorized from "../../../../pages/Unauthorized";
 
-import type { UnifiedLoanView, LoanFilterTab, LoanSubFilter } from "./types";
+import type { UnifiedLoanView } from "./types";
 import {
   buildUnifiedLoanViews,
-  filterByTabAndSubFilter,
-  filterBySearch,
   filterByStates,
   filterByDateRange,
+  filterBySearch,
 } from "./helpers";
+import type { UnifiedLoanStatus } from "./types";
 import { LoansFilters } from "./LoansFilters";
 import { LoansTable } from "./LoansTable";
 import { LoanDetailModal } from "./LoanDetailModal";
@@ -94,12 +94,10 @@ export function Loans() {
   const [_requireFullPayment, setRequireFullPayment] = useState(false);
 
   // ── Filters ────────────────────────────────────────────────────────────
-  const [activeTab, setActiveTab] = useState<LoanFilterTab>("all");
-  const [subFilter, setSubFilter] = useState<LoanSubFilter>("all");
-  const [searchTerm, setSearchTerm] = useState("");
   const [selectedStates, setSelectedStates] = useState<string[]>([]);
   const [dateFrom, setDateFrom] = useState<string | null>(null);
   const [dateTo, setDateTo] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   // ── Modal state ────────────────────────────────────────────────────────
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -229,20 +227,11 @@ export function Loans() {
   );
 
   const filteredViews = useMemo(() => {
-    let result = filterByTabAndSubFilter(unifiedViews, activeTab, subFilter);
-    result = filterBySearch(result, searchTerm);
-    result = filterByStates(result, selectedStates as any);
+    let result = filterByStates(unifiedViews, selectedStates as UnifiedLoanStatus[]);
     result = filterByDateRange(result, dateFrom, dateTo);
-
-    // Sort by creation date (newest first)
-    result = result.sort((a, b) => {
-      const dateA = a.request.createdAt ? new Date(a.request.createdAt).getTime() : 0;
-      const dateB = b.request.createdAt ? new Date(b.request.createdAt).getTime() : 0;
-      return dateB - dateA;
-    });
-
+    result = filterBySearch(result, searchTerm);
     return result;
-  }, [unifiedViews, activeTab, subFilter, searchTerm, selectedStates, dateFrom, dateTo]);
+  }, [unifiedViews, selectedStates, dateFrom, dateTo, searchTerm]);
 
   // ── Action handlers ────────────────────────────────────────────────────
 
@@ -547,40 +536,12 @@ export function Loans() {
             setSelectedStates([]);
             setDateFrom(null);
             setDateTo(null);
+            setSearchTerm("");
           }}
         />
       </div>
 
-      {/* Results summary */}
-      <div className="mb-4 flex items-center justify-between px-1">
-        <div className="text-sm text-gray-400">
-          {searchTerm && (
-            <span>{t("loans.table.searchResults", { count: filteredViews.length })} • </span>
-          )}
-          <span>
-            {filteredViews.length}{" "}
-            {filteredViews.length === 1
-              ? t("loans.table.resultSingular")
-              : t("loans.table.resultPlural")}
-          </span>
-          {unifiedViews.length > filteredViews.length && (
-            <span className="text-gray-500"> (de {unifiedViews.length} totales)</span>
-          )}
-        </div>
-        {(selectedStates.length > 0 || dateFrom || dateTo) && (
-          <div className="text-xs text-gray-500">
-            {selectedStates.length > 0 && <span>{selectedStates.length} estado(s)</span>}
-            {selectedStates.length > 0 && (dateFrom || dateTo) && <span className="mx-1">•</span>}
-            {(dateFrom || dateTo) && (
-              <span>
-                {dateFrom} {dateTo && `→ ${dateTo}`}
-              </span>
-            )}
-          </div>
-        )}
-      </div>
-
-      <div data-help-id="loans-content">
+      <div data-help-id="loans-table">
         <LoansTable
           loans={filteredViews}
           totalCount={unifiedViews.length}
@@ -592,7 +553,6 @@ export function Loans() {
           onRecordPayment={handleRecordPayment}
           onRecordRentalPayment={handleRecordRentalPayment}
           onStartLoan={handleStartLoan}
-          onExtend={handleOpenExtend}
           onReturn={handleOpenReturn}
           onRefund={handleOpenRefund}
           onComplete={handleOpenComplete}

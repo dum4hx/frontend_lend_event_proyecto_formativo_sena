@@ -80,7 +80,7 @@ export function RejectLoanModal({
           {t("loans.actions.rejectMessage")}:{" "}
           <button
             onClick={() => copy(target.request.code ?? target.request._id)}
-            className="text-white font-medium hover:text-[#FFD700] hover:underline transition-colors flex items-center gap-1 group/copy inline"
+            className="text-white font-medium hover:text-[#FFD700] hover:underline transition-colors inline-flex items-center gap-1 group/copy"
             title="Haz click para copiar"
           >
             {target.request.code ?? `#${target.request._id.slice(-8).toUpperCase()}`}
@@ -165,7 +165,7 @@ export function CancelLoanModal({
           {t("loans.actions.cancelMessage")}:{" "}
           <button
             onClick={() => copy(target.request.code ?? target.request._id)}
-            className="text-white font-medium hover:text-[#FFD700] hover:underline transition-colors flex items-center gap-1 group/copy inline"
+            className="text-white font-medium hover:text-[#FFD700] hover:underline transition-colors inline-flex items-center gap-1 group/copy"
             title="Haz click para copiar"
           >
             {target.request.code ?? `#${target.request._id.slice(-8).toUpperCase()}`}
@@ -250,7 +250,7 @@ export function ReactivateLoanModal({
           {t("loans.actions.reactivateMessage")}:{" "}
           <button
             onClick={() => copy(target.request.code ?? target.request._id)}
-            className="text-white font-medium hover:text-[#FFD700] hover:underline transition-colors flex items-center gap-1 group/copy inline"
+            className="text-white font-medium hover:text-[#FFD700] hover:underline transition-colors inline-flex items-center gap-1 group/copy"
             title="Haz click para copiar"
           >
             {target.request.code ?? `#${target.request._id.slice(-8).toUpperCase()}`}
@@ -334,7 +334,7 @@ export function RecordPaymentModal({
           {t("loans.actions.recordPaymentMessage")}:{" "}
           <button
             onClick={() => copy(target.request.code ?? target.request._id)}
-            className="text-white font-medium hover:text-[#FFD700] hover:underline transition-colors flex items-center gap-1 group/copy inline"
+            className="text-white font-medium hover:text-[#FFD700] hover:underline transition-colors inline-flex items-center gap-1 group/copy"
             title="Haz click para copiar"
           >
             {target.request.code ?? `#${target.request._id.slice(-8).toUpperCase()}`}
@@ -415,7 +415,7 @@ export function RecordRentalPaymentModal({
           {t("loans.actions.recordRentalPaymentMessage")}:{" "}
           <button
             onClick={() => copy(target.request.code ?? target.request._id)}
-            className="text-white font-medium hover:text-[#FFD700] hover:underline transition-colors flex items-center gap-1 group/copy inline"
+            className="text-white font-medium hover:text-[#FFD700] hover:underline transition-colors inline-flex items-center gap-1 group/copy"
             title="Haz click para copiar"
           >
             {target.request.code ?? `#${target.request._id.slice(-8).toUpperCase()}`}
@@ -511,7 +511,7 @@ export function ExtendLoanModal({
           {t("loans.actions.extendMessage")}:{" "}
           <button
             onClick={() => copy(target!.loan!.code ?? target!.loan!._id)}
-            className="text-white font-medium hover:text-[#FFD700] hover:underline transition-colors flex items-center gap-1 group/copy inline"
+            className="text-white font-medium hover:text-[#FFD700] hover:underline transition-colors inline-flex items-center gap-1 group/copy"
             title="Haz click para copiar"
           >
             {target.loan.code ?? `#${target.loan._id.slice(-8).toUpperCase()}`}
@@ -637,7 +637,7 @@ export function ReturnLoanModal({
           {t("loans.table.code")}:{" "}
           <button
             onClick={() => copy(target!.loan!.code ?? target!.loan!._id)}
-            className="text-white font-medium hover:text-[#FFD700] hover:underline transition-colors flex items-center gap-1 group/copy inline"
+            className="text-white font-medium hover:text-[#FFD700] hover:underline transition-colors inline-flex items-center gap-1 group/copy"
             title="Haz click para copiar"
           >
             {target.loan.code ?? `#${target.loan._id.slice(-8).toUpperCase()}`}
@@ -684,7 +684,6 @@ export function RefundDepositModal({
   submitting,
 }: RefundDepositModalProps) {
   const { t } = useLanguage();
-  const { copy } = useCopyToClipboard();
 
   if (!show || !target || !target.loan) return null;
 
@@ -778,7 +777,7 @@ export function CompleteLoanModal({
           {t("loans.actions.completeMessage")}:{" "}
           <button
             onClick={() => copy(target!.loan!.code ?? target!.loan!._id)}
-            className="text-white font-medium hover:text-[#FFD700] hover:underline transition-colors flex items-center gap-1 group/copy inline"
+            className="text-white font-medium hover:text-[#FFD700] hover:underline transition-colors inline-flex items-center gap-1 group/copy"
             title="Haz click para copiar"
           >
             {target.loan.code ?? `#${target.loan._id.slice(-8).toUpperCase()}`}

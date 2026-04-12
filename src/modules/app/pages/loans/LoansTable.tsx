@@ -11,12 +11,10 @@ import {
   Truck,
   AlertCircle,
   FileX,
-  Copy,
 } from "lucide-react";
 import { Button, EntityLink } from "../../../../components/ui";
 import { PermissionGuardedButton } from "../../../../components/ui/PermissionGuardedButton";
 import { useLanguage } from "../../../../contexts/useLanguage";
-import { useCopyToClipboard } from "../../../../hooks/useCopyToClipboard";
 import type { UnifiedLoanView } from "./types";
 import {
   getUnifiedStatusBadgeStyle,
@@ -70,7 +68,6 @@ export function LoansTable({
 }: LoansTableProps) {
   const { language, t } = useLanguage();
   const lang = language === "es" ? "es" : "en";
-  const { copy } = useCopyToClipboard();
 
   if (loading) {
     return (
@@ -98,7 +95,6 @@ export function LoansTable({
         <thead>
           <tr className="bg-[#1a1a1a] text-gray-400 border-b border-[#333]">
             <th className="text-left px-4 py-3 font-semibold">{t("loans.table.code")}</th>
-            <th className="text-left px-4 py-3 font-semibold text-xs">Creado</th>
             <th className="text-left px-4 py-3 font-semibold">{t("loans.table.customer")}</th>
             <th className="text-left px-4 py-3 font-semibold">{t("loans.table.dateRange")}</th>
             <th className="text-left px-4 py-3 font-semibold">{t("loans.table.items")}</th>
@@ -120,22 +116,7 @@ export function LoansTable({
               >
                 {/* Code */}
                 <td className="px-4 py-3">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      copy(code);
-                    }}
-                    className="font-mono text-xs text-gray-300 hover:text-[#FFD700] hover:underline transition-colors cursor-pointer flex items-center gap-1 group/copy"
-                    title="Haz click para copiar"
-                  >
-                    {code}
-                    <Copy size={12} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
-                  </button>
-                </td>
-
-                {/* Created date */}
-                <td className="px-4 py-3 text-gray-400 text-xs">
-                  {v.request.createdAt ? formatDate(v.request.createdAt) : "—"}
+                  <span className="font-mono text-xs text-gray-300">{code}</span>
                 </td>
 
                 {/* Customer */}
