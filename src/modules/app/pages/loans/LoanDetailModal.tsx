@@ -2,7 +2,12 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useDebounce } from "use-debounce";
 import { X, Package, DollarSign, FileText, Copy } from "lucide-react";
-import { IconButton, EntityLink, Pagination } from "../../../../components/ui";
+import {
+  IconButton,
+  EntityLink,
+  Pagination,
+  MaterialTraceabilityTimeline,
+} from "../../../../components/ui";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import { useCopyToClipboard } from "../../../../hooks/useCopyToClipboard";
 import type { UnifiedLoanView } from "./types";
@@ -64,6 +69,7 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
   const isEs = lang === "es";
 
   const [loanDetail, setLoanDetail] = useState<LoanDetailGrouped | null>(null);
+  const [loanDetailLoading, setLoanDetailLoading] = useState(false);
   const [materials, setMaterials] = useState<LoanMaterialListItem[]>([]);
   const [materialsTotal, setMaterialsTotal] = useState(0);
   const [materialsPage, setMaterialsPage] = useState(1);
@@ -94,11 +100,14 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
     if (!open || !view.loan) return;
     let cancelled = false;
     async function fetchDetail() {
+      if (!cancelled) setLoanDetailLoading(true);
       try {
         const res = await getLoanDetailGrouped(view.loan!._id);
         if (!cancelled) setLoanDetail(res.data.loan);
       } catch {
         if (!cancelled) setLoanDetail(null);
+      } finally {
+        if (!cancelled) setLoanDetailLoading(false);
       }
     }
     fetchDetail();
@@ -993,6 +1002,12 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
                   : `This loan is in a terminal state: ${getUnifiedStatusLabel(view.status, "en", view.loan)}`}
               </p>
             )}
+
+            <MaterialTraceabilityTimeline
+              events={loanDetail?.traceabilityEvents ?? []}
+              entityType="loan"
+              isLoading={loanDetailLoading}
+            />
           </aside>
         </div>
       </div>

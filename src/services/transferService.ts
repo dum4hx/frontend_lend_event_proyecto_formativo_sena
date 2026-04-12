@@ -10,6 +10,7 @@ import { get, post, patch, type ApiSuccessResponse } from "../lib/api";
 import type {
   TransferRequest,
   Transfer,
+  MaterialTraceabilityEvent,
   CreateTransferRequestPayload,
   RespondTransferRequestPayload,
   UpdateTransferRequestPayload,
@@ -203,6 +204,7 @@ export async function getTransfers(): Promise<ApiSuccessResponse<{ transfers: Tr
     senderNotes?: string;
     receiverNotes?: string;
     status?: Transfer["status"];
+    traceabilityEvents?: MaterialTraceabilityEvent[];
     createdAt?: string;
     updatedAt?: string;
   };
@@ -233,6 +235,7 @@ export async function getTransfers(): Promise<ApiSuccessResponse<{ transfers: Tr
       senderNotes: r.senderNotes,
       receiverNotes: r.receiverNotes,
       status: r.status ?? "in_transit",
+      traceabilityEvents: r.traceabilityEvents ?? [],
       createdAt: r.createdAt ?? new Date().toISOString(),
       updatedAt: r.updatedAt,
     };
