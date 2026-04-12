@@ -92,6 +92,7 @@ function getStatusLabel(status: string | undefined, isEs: boolean): string | und
     open: "Abierto",
     closed: "Cerrado",
     paid: "Pagado",
+    partially_paid: "Pagado Parcialmente",
     overdue: "Vencido",
   };
 

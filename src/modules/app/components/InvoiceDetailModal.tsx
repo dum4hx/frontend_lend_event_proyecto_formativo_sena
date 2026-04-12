@@ -180,6 +180,7 @@ export function InvoiceDetailModal({
 
   const getStatusLabel = (status: string) => {
     if (status === "paid") return isEs ? "Pagado" : "Paid";
+    if (status === "partially_paid") return isEs ? "Pagado Parcialmente" : "Partially Paid";
     if (status === "pending") return isEs ? "Pendiente" : "Pending";
     if (status === "cancelled") return isEs ? "Cancelado" : "Cancelled";
     return status;
@@ -187,6 +188,7 @@ export function InvoiceDetailModal({
 
   const getStatusColor = (status: string) => {
     if (status === "paid") return "text-green-400";
+    if (status === "partially_paid") return "text-yellow-400";
     if (status === "pending") return "text-yellow-400";
     return "text-gray-400";
   };
