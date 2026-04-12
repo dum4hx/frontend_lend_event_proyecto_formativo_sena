@@ -353,6 +353,11 @@ export const MATERIAL_INSTANCE_STATUS_LABELS: Record<MaterialInstanceStatus, str
   in_use: "IN USE",
 };
 
+export interface MaterialInstanceLoanContext {
+  loanCode?: string | null;
+  requestCode?: string | null;
+}
+
 export interface MaterialInstance {
   _id: string;
   /**
@@ -386,6 +391,8 @@ export interface MaterialInstance {
   organizationId: string;
   /** Attributes array */
   attributes: MaterialTypeAttribute[];
+  /** Related loan/request codes included by the instance detail endpoint. */
+  loanContext?: MaterialInstanceLoanContext;
   /** Date when the instance was created (ISO date string) */
   createdAt: string;
   /** Date when the instance was last updated (ISO date string) */

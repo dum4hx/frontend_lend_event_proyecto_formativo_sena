@@ -18,6 +18,7 @@ import type {
   CreateMaterialAttributePayload,
   UpdateMaterialAttributePayload,
   MaterialInstance,
+  MaterialInstanceLoanContext,
   CreateMaterialInstancePayload,
   UpdateMaterialInstanceStatusPayload,
   MaterialTypesQueryParams,
@@ -45,6 +46,11 @@ interface MaterialInstanceApiLocation {
   name?: string;
 }
 
+interface MaterialInstanceApiLoanContext {
+  loanCode?: string | null;
+  requestCode?: string | null;
+}
+
 interface MaterialInstanceApiPayload {
   _id: string;
   serialNumber?: string;
@@ -56,6 +62,7 @@ interface MaterialInstanceApiPayload {
   locationId?: MaterialInstanceApiLocation | string;
   organizationId?: string;
   attributes?: unknown[];
+  loanContext?: MaterialInstanceApiLoanContext | null;
   createdAt?: string;
   updatedAt?: string;
   __v?: number;
@@ -126,6 +133,19 @@ function normalizeMaterialLocation(
   };
 }
 
+function normalizeMaterialInstanceLoanContext(
+  loanContext?: MaterialInstanceApiLoanContext | null,
+): MaterialInstanceLoanContext | undefined {
+  if (!loanContext) {
+    return undefined;
+  }
+
+  return {
+    loanCode: typeof loanContext.loanCode === "string" ? loanContext.loanCode : null,
+    requestCode: typeof loanContext.requestCode === "string" ? loanContext.requestCode : null,
+  };
+}
+
 function normalizeMaterialInstance(
   instance: MaterialInstanceApiPayload,
   fallbackLocation?: MaterialInstanceApiLocation,
@@ -143,6 +163,7 @@ function normalizeMaterialInstance(
     attributes: (Array.isArray(instance.attributes)
       ? instance.attributes
       : []) as MaterialTypeAttribute[],
+    loanContext: normalizeMaterialInstanceLoanContext(instance.loanContext),
     createdAt: instance.createdAt ?? "",
     updatedAt: instance.updatedAt ?? "",
     __v: instance.__v ?? 0,

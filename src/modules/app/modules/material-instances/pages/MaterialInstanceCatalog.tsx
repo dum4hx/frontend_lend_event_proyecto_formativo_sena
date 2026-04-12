@@ -21,10 +21,10 @@ import {
   getLocations,
   type WarehouseLocation,
 } from "../../../../../services/warehouseOperatorService";
+import { getMaterialInstance } from "../../../../../services/materialService";
 import type {
   MaterialInstance,
   CreateMaterialInstancePayload,
-  MaterialInstanceStatus,
 } from "../../../../../types/api";
 
 export const MaterialInstanceCatalog: React.FC = () => {
@@ -54,6 +54,7 @@ export const MaterialInstanceCatalog: React.FC = () => {
   const [isBarcodePrintModalOpen, setIsBarcodePrintModalOpen] = useState(false);
   const [barcodePrintSelection, setBarcodePrintSelection] = useState<MaterialInstance[]>([]);
   const [selectedInstanceIds, setSelectedInstanceIds] = useState<string[]>([]);
+  const [isLoadingSelectedInstanceDetail, setIsLoadingSelectedInstanceDetail] = useState(false);
   const pageSize = 10;
   const searchInputId = "material-instances-search";
   const scannerInputId = "material-instances-scanner";
@@ -205,6 +206,39 @@ export const MaterialInstanceCatalog: React.FC = () => {
       return Array.from(nextIds);
     });
   };
+
+  const loadInstanceDetail = useCallback(async (instance: MaterialInstance) => {
+    try {
+      const response = await getMaterialInstance(instance._id);
+      return response.data.instance;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const handleViewInstance = useCallback(
+    async (instance: MaterialInstance) => {
+      setIsLoadingSelectedInstanceDetail(true);
+      try {
+        const detail = await loadInstanceDetail(instance);
+        setSelectedInstance(detail ?? instance);
+      } finally {
+        setIsLoadingSelectedInstanceDetail(false);
+      }
+    },
+    [loadInstanceDetail],
+  );
+
+  const handleRefreshSelectedInstance = useCallback(
+    async (instance: MaterialInstance) => {
+      const detail = await loadInstanceDetail(instance);
+      if (detail) {
+        setSelectedInstance(detail);
+      }
+      return detail;
+    },
+    [loadInstanceDetail],
+  );
 
   interface ImportRow {
     modelId?: string;
@@ -674,7 +708,9 @@ export const MaterialInstanceCatalog: React.FC = () => {
           <MaterialInstanceList
             instances={pagedInstances}
             selectedInstanceIds={selectedInstanceIds}
-            onView={setSelectedInstance}
+            onView={(instance) => {
+              void handleViewInstance(instance);
+            }}
             onPrint={(instance) => handleOpenBarcodePrintModal([instance])}
             onEdit={() => {
               showToast(
@@ -815,8 +851,17 @@ export const MaterialInstanceCatalog: React.FC = () => {
         {selectedInstance && (
           <MaterialInstanceDetailModal
             instance={selectedInstance}
+            onRefreshData={handleRefreshSelectedInstance}
             onClose={() => setSelectedInstance(null)}
           />
+        )}
+
+        {isLoadingSelectedInstanceDetail && (
+          <div className="fixed inset-0 z-[55] flex items-center justify-center bg-black/40">
+            <div className="rounded-lg border border-[#333] bg-[#121212] px-4 py-3 text-sm text-gray-300">
+              {t("common.loading")}...
+            </div>
+          </div>
         )}
 
         <BarcodePrintModal

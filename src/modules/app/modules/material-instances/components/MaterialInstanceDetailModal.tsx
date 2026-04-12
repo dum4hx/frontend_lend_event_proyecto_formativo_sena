@@ -17,14 +17,12 @@ import { EntityLink } from "../../../../../components/ui";
 interface MaterialInstanceDetailModalProps {
   instance: MaterialInstance;
   onClose: () => void;
-  loanCode?: string;
   onRefreshData?: (instance: MaterialInstance) => Promise<MaterialInstance | null>;
 }
 
 export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalProps> = ({
   instance,
   onClose,
-  loanCode,
   onRefreshData,
 }) => {
   const { language, t } = useLanguage();
@@ -90,6 +88,19 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
     instance.attributes && instance.attributes.length > 0 ? instance.attributes : typeAttributes;
 
   const resolvedCode = instance.barcode?.trim() || instance.serialNumber.trim();
+  const relatedCodeLabel =
+    instance.status === "loaned"
+      ? t("materialInstances.detail.loanCode")
+      : instance.status === "reserved"
+        ? t("materialInstances.detail.requestCode")
+        : null;
+  const relatedCodeValue =
+    instance.status === "loaned"
+      ? instance.loanContext?.loanCode?.trim() ?? ""
+      : instance.status === "reserved"
+        ? instance.loanContext?.requestCode?.trim() ?? ""
+        : "";
+  const shouldShowRelatedCode = relatedCodeLabel !== null && relatedCodeValue.length > 0;
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {

@@ -894,6 +894,25 @@ export const validateDepositDueDate = (
   return { isValid: true };
 };
 
+/**
+ * Deposit amount validation for order/request forms.
+ * Requires a numeric value greater than zero.
+ */
+export const validateDepositAmount = (
+  value: string | number | null | undefined,
+): ValidationResult => {
+  if (value === "" || value === null || value === undefined) {
+    return { isValid: false, message: "orders.depositAmountRequired" };
+  }
+
+  const numericValue = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(numericValue) || numericValue <= 0) {
+    return { isValid: false, message: "orders.depositAmountMustBeGreaterThanZero" };
+  }
+
+  return { isValid: true };
+};
+
 // ─── Ticket Validators ────────────────────────────────────────────────────
 
 /**

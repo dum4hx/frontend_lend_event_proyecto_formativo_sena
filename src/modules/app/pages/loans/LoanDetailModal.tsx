@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Package, ChevronDown, ChevronUp, DollarSign, Copy } from "lucide-react";
+import { X, Package, ChevronDown, ChevronUp, DollarSign, Copy, FileText } from "lucide-react";
 import { IconButton, EntityLink } from "../../../../components/ui";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import { useCopyToClipboard } from "../../../../hooks/useCopyToClipboard";
@@ -17,9 +17,14 @@ import type {
   MaterialInstanceStatus,
   DepositStatus,
   PopulatedUserRef,
+  PricingSnapshotItem,
+  PricingStrategyType,
+  Invoice,
 } from "../../../../types/api";
 import { getLoanDetailGrouped } from "../../../../services/loanService";
 import { getInspections } from "../../../../services/inspectionService";
+import { getInvoices } from "../../../../services/invoiceService";
+import InvoiceDetailModal from "../../components/InvoiceDetailModal";
 import {
   getDepositStatusLabel,
   getMaterialInstanceStatusLabel,
@@ -31,6 +36,20 @@ interface LoanDetailModalProps {
   open: boolean;
   onClose: () => void;
   view: UnifiedLoanView;
+}
+
+function getInvoiceLoanId(invoice: Invoice): string | null {
+  if (!invoice.loanId) return null;
+  return typeof invoice.loanId === "string" ? invoice.loanId : invoice.loanId._id;
+}
+
+function pickLoanInvoice(invoices: Invoice[], loanId: string): Invoice | null {
+  const relatedInvoices = invoices.filter((invoice) => getInvoiceLoanId(invoice) === loanId);
+
+  if (relatedInvoices.length === 0) return null;
+
+  const prioritizedInvoice = relatedInvoices.find((invoice) => invoice.type === "rental");
+  return prioritizedInvoice ?? relatedInvoices[0];
 }
 
 // ─── Component ──────────────────────────────────────────────────────────
@@ -45,6 +64,10 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [inspectionNumber, setInspectionNumber] = useState<string | null>(null);
+  const [relatedInvoiceId, setRelatedInvoiceId] = useState<string | null>(null);
+  const [invoiceLookupLoading, setInvoiceLookupLoading] = useState(false);
+  const [invoiceLookupError, setInvoiceLookupError] = useState<string | null>(null);
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
 
   // Fetch grouped detail when a loan exists
   useEffect(() => {
@@ -89,6 +112,13 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
     };
   }, [open, view.loan, view.status]);
 
+  useEffect(() => {
+    setRelatedInvoiceId(null);
+    setInvoiceLookupError(null);
+    setInvoiceLookupLoading(false);
+    setShowInvoiceModal(false);
+  }, [open, view.loan?._id]);
+
   if (!open) return null;
 
   const req = view.request;
@@ -115,6 +145,58 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
       return full || ref.email || t("loans.detail.notSet");
     }
     return ref.email || t("loans.detail.notSet");
+  };
+
+  const strategyLabels: Record<PricingStrategyType, string> = {
+    per_day: isEs ? "Por día" : "Per day",
+    weekly_monthly: isEs ? "Semanal/Mensual" : "Weekly-Monthly",
+    fixed: isEs ? "Fijo" : "Fixed",
+  };
+
+  const pricingSnapshot: PricingSnapshotItem[] = loanDetail?.pricingSnapshot ?? [];
+
+  const handleOpenInvoiceDetail = async () => {
+    if (!loan || invoiceLookupLoading) return;
+
+    if (relatedInvoiceId) {
+      setInvoiceLookupError(null);
+      setShowInvoiceModal(true);
+      return;
+    }
+
+    try {
+      setInvoiceLookupLoading(true);
+      setInvoiceLookupError(null);
+
+      let page = 1;
+      let totalPages = 1;
+      let matchedInvoiceId: string | null = null;
+
+      while (page <= totalPages && !matchedInvoiceId) {
+        const res = await getInvoices({ page, limit: 100 });
+        totalPages = Math.max(res.data.totalPages ?? 1, 1);
+        const matchedInvoice = pickLoanInvoice(res.data.invoices, loan._id);
+
+        if (matchedInvoice) {
+          matchedInvoiceId = matchedInvoice._id;
+          break;
+        }
+
+        page += 1;
+      }
+
+      if (!matchedInvoiceId) {
+        setInvoiceLookupError(t("loans.detail.invoiceUnavailable"));
+        return;
+      }
+
+      setRelatedInvoiceId(matchedInvoiceId);
+      setShowInvoiceModal(true);
+    } catch {
+      setInvoiceLookupError(t("loans.detail.invoiceLookupError"));
+    } finally {
+      setInvoiceLookupLoading(false);
+    }
   };
 
   return (
@@ -292,10 +374,28 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
               req.depositAmount != null ||
               loan?.totalAmount != null ||
               loan?.deposit?.amount != null) && (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-sm font-semibold text-[#FFD700] uppercase tracking-wider">
-                  <DollarSign size={14} />
-                  <span>{t("loans.detail.loanFinancials")}</span>
+              <div className="space-y-3" data-help-id="loans-detail-financial-summary">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-[#FFD700] uppercase tracking-wider">
+                    <DollarSign size={14} />
+                    <span>{t("loans.detail.loanFinancials")}</span>
+                  </div>
+                  {loan && (
+                    <button
+                      type="button"
+                      onClick={handleOpenInvoiceDetail}
+                      disabled={invoiceLookupLoading}
+                      data-help-id="loans-detail-view-invoice"
+                      className="inline-flex items-center gap-2 rounded-lg border border-[#7a6510] bg-[#1f1a08] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[#FFD700] transition-colors hover:bg-[#2a220a] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <FileText size={14} />
+                      <span>
+                        {invoiceLookupLoading
+                          ? t("loans.detail.loadingInvoice")
+                          : t("loans.detail.viewInvoice")}
+                      </span>
+                    </button>
+                  )}
                 </div>
                 <div className="border border-[#2a2a2a] rounded-xl p-4 bg-[#171717]">
                   <div className="grid grid-cols-2 gap-3 text-sm">
@@ -391,6 +491,91 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
                     )}
                   </div>
                 </div>
+                {invoiceLookupError && loan && (
+                  <p className="text-xs text-red-400">{invoiceLookupError}</p>
+                )}
+              </div>
+            )}
+
+            {/* Pricing Breakdown (collapsable) */}
+            {loan && (
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={() => toggleCollapse("__pricing__")}
+                  className="w-full flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-2 text-sm font-semibold text-[#FFD700] uppercase tracking-wider">
+                    <DollarSign size={14} />
+                    <span>{t("loans.detail.pricingBreakdown")}</span>
+                    <span className="text-xs text-gray-500 font-normal normal-case">
+                      ({pricingSnapshot.length})
+                    </span>
+                  </div>
+                  {collapsed["__pricing__"] ? (
+                    <ChevronDown size={14} className="text-gray-500 shrink-0" />
+                  ) : (
+                    <ChevronUp size={14} className="text-gray-500 shrink-0" />
+                  )}
+                </button>
+
+                {!collapsed["__pricing__"] && (
+                  <div className="border border-[#2a2a2a] rounded-xl p-4 bg-[#171717]">
+                    {pricingSnapshot.length === 0 ? (
+                      <p className="text-gray-500 text-sm">{t("loans.detail.noBreakdown")}</p>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left">
+                          <thead>
+                            <tr className="text-gray-500 text-xs uppercase tracking-wider border-b border-[#333]">
+                              <th className="pb-2 pr-3 font-medium">Type</th>
+                              <th className="pb-2 pr-3 font-medium">
+                                {t("loans.detail.pricingStrategy")}
+                              </th>
+                              <th className="pb-2 pr-3 font-medium text-center">
+                                {t("loans.detail.pricingQuantity")}
+                              </th>
+                              <th className="pb-2 pr-3 font-medium text-center">
+                                {t("loans.detail.pricingDuration")}
+                              </th>
+                              <th className="pb-2 pr-3 font-medium text-right">
+                                {t("loans.detail.pricingBasePricePerDay")}
+                              </th>
+                              <th className="pb-2 pr-3 font-medium text-right">
+                                {t("loans.detail.pricingUnitPrice")}
+                              </th>
+                              <th className="pb-2 font-medium text-right">
+                                {t("loans.detail.pricingTotal")}
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[#2a2a2a]">
+                            {pricingSnapshot.map((item, idx) => (
+                              <tr key={idx} className="text-gray-300">
+                                <td className="py-2 pr-3 capitalize">{item.itemType}</td>
+                                <td className="py-2 pr-3">
+                                  {strategyLabels[item.strategyType as PricingStrategyType] ??
+                                    item.strategyType}
+                                </td>
+                                <td className="py-2 pr-3 text-center">{item.quantity}</td>
+                                <td className="py-2 pr-3 text-center">{item.durationInDays}</td>
+                                <td className="py-2 pr-3 text-right">
+                                  ${item.basePricePerDay.toLocaleString()}
+                                </td>
+                                <td className="py-2 pr-3 text-right">
+                                  ${item.unitPrice.toLocaleString()}
+                                </td>
+                                <td className="py-2 text-right text-white font-semibold">
+                                  ${item.totalPrice.toLocaleString()}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
@@ -540,6 +725,13 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
           </aside>
         </div>
       </div>
+
+      <InvoiceDetailModal
+        isOpen={showInvoiceModal && relatedInvoiceId !== null}
+        invoiceId={relatedInvoiceId}
+        onClose={() => setShowInvoiceModal(false)}
+        showActions={false}
+      />
     </div>
   );
 }

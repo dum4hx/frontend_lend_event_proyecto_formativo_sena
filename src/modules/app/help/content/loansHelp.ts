@@ -79,6 +79,10 @@ const loansHelpContent: HelpModuleContent = {
           es: "Para reembolsar depósito: use la opción de reembolso y confirme el monto.",
           en: "To refund deposit: use the refund option and confirm the amount.",
         },
+        {
+          es: "Dentro del detalle del préstamo, use 'Ver factura' en el resumen financiero para abrir la factura de alquiler asociada sin salir del flujo.",
+          en: "Inside loan detail, use 'View invoice' in the financial summary to open the related rental invoice without leaving the workflow.",
+        },
       ],
       bestPractices: [
         {
@@ -189,6 +193,19 @@ const loansHelpContent: HelpModuleContent = {
       warning: {
         es: "Antes de cambiar el estado de un registro, valide el cliente, los ítems y la etapa actual del flujo.",
         en: "Before changing a record status, validate the customer, items, and current workflow stage.",
+      },
+    },
+    {
+      id: "step-5-loan-detail-financials",
+      title: { es: "5) Revisa la factura del préstamo", en: "5) Review the loan invoice" },
+      body: {
+        es: "Cuando abras el detalle del préstamo, este bloque resume cobros, depósito y cargos adicionales. Desde aquí también puedes abrir la factura de alquiler relacionada para validar el cobro exacto.",
+        en: "When you open loan detail, this block summarizes charges, deposit, and extra fees. From here you can also open the related rental invoice to validate the exact billing.",
+      },
+      targetSelector: '[data-help-id="loans-detail-financial-summary"]',
+      tip: {
+        es: "Usa el botón 'Ver factura' antes de cerrar el ciclo si necesitas confirmar total, saldo pendiente o líneas facturadas.",
+        en: "Use the 'View invoice' button before closing the cycle if you need to confirm total, remaining balance, or billed line items.",
       },
     },
   ],

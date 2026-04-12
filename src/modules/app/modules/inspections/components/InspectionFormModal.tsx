@@ -374,11 +374,7 @@ export const InspectionFormModal: React.FC<InspectionFormModalProps> = ({
 
       {/* Material Instance Detail Preview */}
       {selectedInstance && (
-        <MaterialInstanceDetailModal
-          instance={selectedInstance}
-          loanCode={loan.code || loan._id}
-          onClose={handleCloseDetails}
-        />
+        <MaterialInstanceDetailModal instance={selectedInstance} onClose={handleCloseDetails} />
       )}
     </div>
   );
