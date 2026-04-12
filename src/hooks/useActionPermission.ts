@@ -35,11 +35,10 @@ export interface ActionPermissionGuard {
   isAllowed: (permission: string) => boolean;
 }
 
-export function useActionPermission(locale?: "en" | "es"): ActionPermissionGuard {
+export function useActionPermission(_locale?: "en" | "es"): ActionPermissionGuard {
   const { hasPermission } = usePermissions();
   const { showToast } = useToast();
-  const { t, language } = useLanguage();
-  const effectiveLocale = locale ?? language;
+  const { t } = useLanguage();
 
   const isAllowed = useCallback(
     (permission: string): boolean => hasPermission(permission),
@@ -61,7 +60,7 @@ export function useActionPermission(locale?: "en" | "es"): ActionPermissionGuard
         }
       };
     },
-    [hasPermission, showToast, effectiveLocale, t],
+    [hasPermission, showToast, t],
   );
 
   return { guard, isAllowed };

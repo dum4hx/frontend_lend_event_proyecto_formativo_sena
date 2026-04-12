@@ -84,7 +84,7 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
     }
 
     return errors;
-  }, [formData, touched, isEditing]);
+  }, [formData, touched, isEditing, t]);
 
   const isFormValid = useMemo(() => {
     const nameValidation = validateCategoryName(formData.name);

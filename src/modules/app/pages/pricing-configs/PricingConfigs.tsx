@@ -180,7 +180,7 @@ export default function PricingConfigs() {
     } finally {
       setLoading(false);
     }
-  }, [showError]);
+  }, [showError, t]);
 
   useEffect(() => {
     void fetchConfigs();
