@@ -88,10 +88,11 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
     };
   }, [open, view.loan]);
 
-  // Fetch inspection number when status is "inspected" or beyond
+  // Fetch inspection number when status is "returned", "inspected", or "closed"
   useEffect(() => {
     if (!open || !view.loan) return;
-    if (view.status !== "inspected" && view.status !== "closed") return;
+    if (view.status !== "returned" && view.status !== "inspected" && view.status !== "closed")
+      return;
     let cancelled = false;
     async function fetchInspection() {
       try {
@@ -311,10 +312,41 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
                   )}
                 </p>
               </div>
+              <div>
+                <p className="text-gray-500 text-sm">{t("loans.detail.preparedAt")}</p>
+                <p className="text-gray-300">
+                  {loanDetail?.preparedAt ? (
+                    formatDate(loanDetail.preparedAt)
+                  ) : (
+                    <span className="text-gray-600 italic text-xs">{t("loans.detail.notSet")}</span>
+                  )}
+                </p>
+              </div>
+              <div>
+                <p className="text-gray-500 text-sm">{t("loans.detail.preparedBy")}</p>
+                <p className="text-gray-300">
+                  {loanDetail?.preparedBy ? (
+                    formatUserName(loanDetail.preparedBy)
+                  ) : (
+                    <span className="text-gray-600 italic text-xs">{t("loans.detail.notSet")}</span>
+                  )}
+                </p>
+              </div>
               {inspectionNumber && (
                 <div>
-                  <p className="text-gray-500 text-sm">{t("loans.detail.inspectionNumber")}</p>
-                  <p className="text-white font-semibold font-mono">{inspectionNumber}</p>
+                  <p className="text-gray-500 text-sm">{t("loans.detail.inspectionDone")}</p>
+                  {inspectionNumber ? (
+                    <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                      <span className="text-green-400 font-semibold">
+                        {isEs ? "S\u00ed" : "Yes"}
+                      </span>
+                      <span className="text-white font-semibold font-mono text-xs">
+                        {inspectionNumber}
+                      </span>
+                    </div>
+                  ) : (
+                    <p className="text-red-400 font-semibold">{isEs ? "No" : "No"}</p>
+                  )}
                 </div>
               )}
             </div>

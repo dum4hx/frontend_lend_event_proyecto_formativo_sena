@@ -86,6 +86,13 @@ export const allNavItems: NavItem[] = [
     requiredPermissions: ["organization:read"],
     section: "Organization",
   },
+  {
+    id: "tickets",
+    label: "Tickets",
+    path: "/app/tickets",
+    requiredPermissions: ["tickets:read"],
+    section: "Organization",
+  },
 
   // -- Materials --
   {

@@ -1,11 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "./useAuth";
 import { useToast } from "./ToastContext";
 import { useLanguage } from "./useLanguage";
@@ -64,7 +57,9 @@ export function SessionProvider({ children }: SessionProviderProps) {
       };
 
       const translationKey =
-        reason === "UNAUTHORIZED" ? keyByReason.DEFAULT : keyByReason[reason] ?? keyByReason.DEFAULT;
+        reason === "UNAUTHORIZED"
+          ? keyByReason.DEFAULT
+          : (keyByReason[reason] ?? keyByReason.DEFAULT);
 
       showToast("warning", t(translationKey), t("session.warningTitle"), {
         duration: 6500,
@@ -159,28 +154,39 @@ export function SessionProvider({ children }: SessionProviderProps) {
     }
   }, [isLoggedIn]);
 
+  // Memoize idle session callbacks to prevent infinite update loops
+  const onActivityCallback = useCallback((timestamp: number) => {
+    setLastActivityAt(timestamp);
+    setWarningOpen(false);
+    setSessionStatus("authenticated");
+  }, []);
+
+  const onWarningCallback = useCallback(() => {
+    setWarningOpen(true);
+  }, []);
+
+  const onWarningCloseCallback = useCallback(() => {
+    setWarningOpen(false);
+  }, []);
+
+  const onTimeoutCallback = useCallback(() => {
+    void logout("INACTIVITY_TIMEOUT");
+  }, [logout]);
+
+  const onVisibleCallback = useCallback(() => {
+    void refreshSession();
+  }, [refreshSession]);
+
   useIdleSession({
     enabled: isLoggedIn,
     idleTimeoutMs: SESSION_CONFIG.idleTimeoutMs,
     warningBeforeMs: SESSION_CONFIG.warningBeforeMs,
     throttleMs: SESSION_CONFIG.activityThrottleMs,
-    onActivity: (timestamp) => {
-      setLastActivityAt(timestamp);
-      setWarningOpen(false);
-      setSessionStatus("authenticated");
-    },
-    onWarning: () => {
-      setWarningOpen(true);
-    },
-    onWarningClose: () => {
-      setWarningOpen(false);
-    },
-    onTimeout: () => {
-      void logout("INACTIVITY_TIMEOUT");
-    },
-    onVisible: () => {
-      void refreshSession();
-    },
+    onActivity: onActivityCallback,
+    onWarning: onWarningCallback,
+    onWarningClose: onWarningCloseCallback,
+    onTimeout: onTimeoutCallback,
+    onVisible: onVisibleCallback,
   });
 
   useEffect(() => {

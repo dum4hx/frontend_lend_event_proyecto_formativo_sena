@@ -86,6 +86,10 @@ const HELP_MODULE_DEFINITIONS: HelpModuleDefinition[] = [
     routePrefixes: ["/app/customers"],
   },
   {
+    moduleId: "tickets",
+    routePrefixes: ["/app/tickets"],
+  },
+  {
     moduleId: "admin-dashboard",
     routePrefixes: ["/app"],
   },
