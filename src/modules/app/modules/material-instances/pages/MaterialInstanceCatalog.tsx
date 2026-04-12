@@ -156,7 +156,7 @@ export const MaterialInstanceCatalog: React.FC = () => {
     try {
       await addInstance({
         ...data,
-        serialNumber: data.serialNumber.trim(),
+        serialNumber: data.serialNumber?.trim() || undefined,
         barcode: data.barcode?.trim() || undefined,
       });
       showToast("success", t("materialInstances.toast.createSuccess"), t("common.success"));
@@ -496,17 +496,17 @@ export const MaterialInstanceCatalog: React.FC = () => {
               filename="material-instances"
               onImport={FEATURE_FLAGS.ENABLE_DATA_IMPORT ? handleImportInstances : undefined}
               importDisabled={
-                FEATURE_FLAGS.ENABLE_DATA_IMPORT ? !isAllowed("materials:create") : undefined
+                FEATURE_FLAGS.ENABLE_DATA_IMPORT ? !isAllowed("material_instances:create") : undefined
               }
               onImportDenied={
-                FEATURE_FLAGS.ENABLE_DATA_IMPORT ? guard("materials:create", () => {}) : undefined
+                FEATURE_FLAGS.ENABLE_DATA_IMPORT ? guard("material_instances:create", () => {}) : undefined
               }
               showLabels={true}
             />
             <button
-              onClick={guard("materials:create", handleOpenCreateModal)}
-              aria-disabled={!isAllowed("materials:create")}
-              className={`flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 font-semibold rounded-lg transition-colors whitespace-nowrap gold-action-btn col-span-2 sm:col-span-1 text-sm sm:text-base ${!isAllowed("materials:create") ? "opacity-50 cursor-not-allowed" : ""}`}
+              onClick={guard("material_instances:create", handleOpenCreateModal)}
+              aria-disabled={!isAllowed("material_instances:create")}
+              className={`flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 font-semibold rounded-lg transition-colors whitespace-nowrap gold-action-btn col-span-2 sm:col-span-1 text-sm sm:text-base ${!isAllowed("material_instances:create") ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               <Plus size={20} />
               {t("materialInstances.newInstance")}

@@ -5,12 +5,9 @@ import {
   HandCoins,
   CheckCircle,
   Loader2,
-  ThumbsUp,
-  ThumbsDown,
   Ban,
   Banknote,
   Package,
-  PackageCheck,
   CreditCard,
   Truck,
   AlertCircle,
@@ -41,13 +38,10 @@ interface LoansTableProps {
   /** Detail view callback. */
   onViewDetail: (v: UnifiedLoanView) => void;
   /** Pre-checkout action callbacks. */
-  onApprove: (v: UnifiedLoanView) => void;
-  onReject: (v: UnifiedLoanView) => void;
   onCancel: (v: UnifiedLoanView) => void;
   onPrepare: (v: UnifiedLoanView) => void;
   onRecordPayment: (v: UnifiedLoanView) => void;
   onRecordRentalPayment: (v: UnifiedLoanView) => void;
-  onShip: (v: UnifiedLoanView) => void;
   onStartLoan: (v: UnifiedLoanView) => void;
   /** Post-checkout action callbacks. */
   onExtend: (v: UnifiedLoanView) => void;
@@ -64,13 +58,10 @@ export function LoansTable({
   loading,
   submitting: _submitting,
   onViewDetail,
-  onApprove,
-  onReject,
   onCancel,
   onPrepare,
   onRecordPayment,
   onRecordRentalPayment,
-  onShip,
   onStartLoan,
   onExtend,
   onReturn,
@@ -176,9 +167,9 @@ export function LoansTable({
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-1.5">
                     <span
-                      className={`px-2 py-0.5 rounded-full text-xs font-semibold ${getUnifiedStatusBadgeStyle(v.status)}`}
+                      className={`px-2 py-0.5 rounded-full text-xs font-semibold ${getUnifiedStatusBadgeStyle(v.status, v.loan)}`}
                     >
-                      {getUnifiedStatusLabel(v.status, lang)}
+                      {getUnifiedStatusLabel(v.status, lang, v.loan)}
                     </span>
                     {v.status === "overdue" && <AlertCircle size={14} className="text-red-400" />}
                   </div>
@@ -202,20 +193,6 @@ export function LoansTable({
                     {v.status === "pending" && (
                       <>
                         <PermissionGuardedButton
-                          icon={ThumbsUp}
-                          intent="approve"
-                          ariaLabel={t("loans.actions.approve")}
-                          requiredPermission="requests:approve"
-                          onClick={() => onApprove(v)}
-                        />
-                        <PermissionGuardedButton
-                          icon={ThumbsDown}
-                          intent="delete"
-                          ariaLabel={t("loans.actions.reject")}
-                          requiredPermission="requests:approve"
-                          onClick={() => onReject(v)}
-                        />
-                        <PermissionGuardedButton
                           icon={Ban}
                           intent="delete"
                           ariaLabel={t("loans.actions.cancel")}
@@ -226,54 +203,33 @@ export function LoansTable({
                     )}
 
                     {v.status === "approved" && (
-                      <>
-                        <PermissionGuardedButton
-                          icon={Package}
-                          intent="edit"
-                          ariaLabel={t("loans.actions.prepare")}
-                          requiredPermission="requests:assign"
-                          onClick={() => onPrepare(v)}
-                        />
-                        {!v.request.depositPaidAt && (
-                          <PermissionGuardedButton
-                            icon={CreditCard}
-                            intent="edit"
-                            ariaLabel={t("loans.actions.recordPayment")}
-                            requiredPermission="requests:update"
-                            onClick={() => onRecordPayment(v)}
-                          />
-                        )}
-                      </>
+                      <PermissionGuardedButton
+                        icon={Package}
+                        intent="edit"
+                        ariaLabel={t("loans.actions.prepare")}
+                        requiredPermission="requests:assign"
+                        onClick={() => onPrepare(v)}
+                      />
                     )}
 
-                    {v.status === "assigned" && (
-                      <>
-                        {!v.request.depositPaidAt && (
-                          <PermissionGuardedButton
-                            icon={CreditCard}
-                            intent="edit"
-                            ariaLabel={t("loans.actions.recordPayment")}
-                            requiredPermission="requests:update"
-                            onClick={() => onRecordPayment(v)}
-                          />
-                        )}
-                        {!v.request.rentalFeePaidAt && (
-                          <PermissionGuardedButton
-                            icon={Banknote}
-                            intent="approve"
-                            ariaLabel={t("loans.actions.recordRentalPayment")}
-                            requiredPermission="requests:update"
-                            onClick={() => onRecordRentalPayment(v)}
-                          />
-                        )}
-                        <PermissionGuardedButton
-                          icon={PackageCheck}
-                          intent="edit"
-                          ariaLabel={t("loans.actions.ship")}
-                          requiredPermission="requests:ready"
-                          onClick={() => onShip(v)}
-                        />
-                      </>
+                    {/* Payment actions — only shown when status is pending */}
+                    {v.status === "pending" && !v.request.depositPaidAt && (
+                      <PermissionGuardedButton
+                        icon={CreditCard}
+                        intent="edit"
+                        ariaLabel={t("loans.actions.recordPayment")}
+                        requiredPermission="requests:update"
+                        onClick={() => onRecordPayment(v)}
+                      />
+                    )}
+                    {v.status === "pending" && !v.request.rentalFeePaidAt && (
+                      <PermissionGuardedButton
+                        icon={Banknote}
+                        intent="approve"
+                        ariaLabel={t("loans.actions.recordRentalPayment")}
+                        requiredPermission="requests:update"
+                        onClick={() => onRecordRentalPayment(v)}
+                      />
                     )}
 
                     {v.status === "ready" && (
@@ -281,7 +237,7 @@ export function LoansTable({
                         <PermissionGuardedButton
                           icon={Truck}
                           intent="approve"
-                          ariaLabel={t("loans.actions.startLoan")}
+                          ariaLabel={t("loans.actions.dispatch")}
                           requiredPermission="loans:create"
                           onClick={() => onStartLoan(v)}
                         />

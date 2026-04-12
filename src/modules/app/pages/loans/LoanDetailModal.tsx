@@ -576,9 +576,9 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
                 {t("loans.detail.currentStatus")}
               </p>
               <span
-                className={`inline-flex mt-2 px-3 py-1 rounded-full text-xs font-semibold ${getUnifiedStatusBadgeStyle(view.status)}`}
+                className={`inline-flex mt-2 px-3 py-1 rounded-full text-xs font-semibold ${getUnifiedStatusBadgeStyle(view.status, view.loan)}`}
               >
-                {getUnifiedStatusLabel(view.status, lang)}
+                {getUnifiedStatusLabel(view.status, lang, view.loan)}
               </span>
             </div>
 
@@ -586,8 +586,8 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
             {isTerminal && (
               <p className="text-red-300 text-sm">
                 {isEs
-                  ? `Este préstamo está en estado terminal: ${getUnifiedStatusLabel(view.status, "es")}`
-                  : `This loan is in a terminal state: ${getUnifiedStatusLabel(view.status, "en")}`}
+                  ? `Este préstamo está en estado terminal: ${getUnifiedStatusLabel(view.status, "es", view.loan)}`
+                  : `This loan is in a terminal state: ${getUnifiedStatusLabel(view.status, "en", view.loan)}`}
               </p>
             )}
           </aside>

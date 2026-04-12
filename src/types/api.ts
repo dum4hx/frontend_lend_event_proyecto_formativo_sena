@@ -396,7 +396,7 @@ export interface MaterialInstance {
 
 export interface CreateMaterialInstancePayload {
   modelId: string;
-  serialNumber: string;
+  serialNumber?: string;
   barcode?: string;
   locationId: string;
   purchaseDate?: string;

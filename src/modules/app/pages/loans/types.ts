@@ -44,10 +44,9 @@ export interface WorkflowStepDef {
 }
 
 export const UNIFIED_WORKFLOW_STEPS: WorkflowStepDef[] = [
-  { status: "pending", labelEn: "Request Created", labelEs: "Solicitud Creada" },
-  { status: "approved", labelEn: "Approved", labelEs: "Aprobada" },
-  { status: "assigned", labelEn: "Materials Assigned", labelEs: "Materiales Asignados" },
-  { status: "ready", labelEn: "Ready for Checkout", labelEs: "Listo para Despacho" },
+  { status: "pending", labelEn: "Request Created", labelEs: "Petición Por Confirmar" },
+  { status: "approved", labelEn: "Approved", labelEs: "Confirmado" },
+  { status: "ready", labelEn: "Ready for Checkout", labelEs: "Bodega Preparando" },
   { status: "active", labelEn: "Active (In Use)", labelEs: "Activo (En Uso)" },
   { status: "overdue", labelEn: "Overdue", labelEs: "Vencido" },
   { status: "returned", labelEn: "Returned", labelEs: "Devuelto" },
@@ -68,7 +67,6 @@ export const TAB_SUB_FILTERS: Record<LoanFilterTab, UnifiedLoanStatus[]> = {
   all: [
     "pending",
     "approved",
-    "assigned",
     "ready",
     "rejected",
     "cancelled",
@@ -79,7 +77,7 @@ export const TAB_SUB_FILTERS: Record<LoanFilterTab, UnifiedLoanStatus[]> = {
     "inspected",
     "closed",
   ],
-  request: ["pending", "approved", "assigned", "ready", "rejected", "cancelled", "expired"],
+  request: ["pending", "approved", "ready", "rejected", "cancelled", "expired"],
   active_loan: ["active", "overdue"],
   completed: ["returned", "inspected", "closed"],
 };

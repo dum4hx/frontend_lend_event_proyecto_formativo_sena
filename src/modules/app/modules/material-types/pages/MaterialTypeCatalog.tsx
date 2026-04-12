@@ -333,17 +333,17 @@ export const MaterialTypeCatalog: React.FC = () => {
                 filename="material-types"
                 onImport={FEATURE_FLAGS.ENABLE_DATA_IMPORT ? handleImportMaterialTypes : undefined}
                 importDisabled={
-                  FEATURE_FLAGS.ENABLE_DATA_IMPORT ? !isAllowed("materials:create") : undefined
+                  FEATURE_FLAGS.ENABLE_DATA_IMPORT ? !isAllowed("material_types:create") : undefined
                 }
                 onImportDenied={
-                  FEATURE_FLAGS.ENABLE_DATA_IMPORT ? guard("materials:create", () => {}) : undefined
+                  FEATURE_FLAGS.ENABLE_DATA_IMPORT ? guard("material_types:create", () => {}) : undefined
                 }
                 showLabels={true}
               />
               <button
-                onClick={guard("materials:create", () => setIsFormOpen(true))}
-                aria-disabled={!isAllowed("materials:create")}
-                className={`flex items-center gap-2 px-6 py-3 font-semibold rounded-lg transition-colors whitespace-nowrap border border-[#B88A00] text-[#FFD700] hover:bg-[#FFD700]/10 ${!isAllowed("materials:create") ? "opacity-50 cursor-not-allowed" : ""}`}
+                onClick={guard("material_types:create", () => setIsFormOpen(true))}
+                aria-disabled={!isAllowed("material_types:create")}
+                className={`flex items-center gap-2 px-6 py-3 font-semibold rounded-lg transition-colors whitespace-nowrap border border-[#B88A00] text-[#FFD700] hover:bg-[#FFD700]/10 ${!isAllowed("material_types:create") ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 <Plus size={20} />
                 {t("materialTypes.newMaterialType")}
@@ -446,9 +446,9 @@ export const MaterialTypeCatalog: React.FC = () => {
               {!searchTerm && selectedCategoryIds.size === 0 && (
                 <button
                   type="button"
-                  onClick={guard("materials:create", () => setIsFormOpen(true))}
-                  aria-disabled={!isAllowed("materials:create")}
-                  className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-[#B88A00] text-[#FFD700] hover:bg-[#FFD700]/10 transition-colors ${!isAllowed("materials:create") ? "opacity-50 cursor-not-allowed" : ""}`}
+                  onClick={guard("material_types:create", () => setIsFormOpen(true))}
+                  aria-disabled={!isAllowed("material_types:create")}
+                  className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-[#B88A00] text-[#FFD700] hover:bg-[#FFD700]/10 transition-colors ${!isAllowed("material_types:create") ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   <Plus size={18} />
                   {t("materialTypes.createMaterialType")}

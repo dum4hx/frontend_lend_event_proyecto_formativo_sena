@@ -70,7 +70,7 @@ export const MaterialTypeForm: React.FC<MaterialTypeFormProps> = ({
     refetch: refetchAttributes,
   } = useMaterialAttributes();
 
-  const canCreateCategory = hasPermission("materials:create");
+  const canCreateCategory = hasPermission("categories:create");
 
   // ── Currency input hook for pricePerDay ───────────────────────────────
   const pricePerDayInput = useCurrencyInput(formData.pricePerDay, (val) => {
