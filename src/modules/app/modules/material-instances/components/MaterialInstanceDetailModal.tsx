@@ -9,7 +9,7 @@ import type { WarehouseLocation } from "../../../../../services/warehouseOperato
 import { getMaterialInstanceStatusLabel } from "../../../../../utils/statusLabels";
 import { useLanguage } from "../../../../../contexts/useLanguage";
 import { MaterialBarcode } from "./MaterialBarcode";
-import { getMaterialAttributes, getMaterialTypes, getMaterialInstance } from "../../../../../services/materialService";
+import { getMaterialAttributes, getMaterialTypes } from "../../../../../services/materialService";
 import { getLocation } from "../../../../../services/warehouseOperatorService";
 import { EntityLink } from "../../../../../components/ui";
 
@@ -32,7 +32,6 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
   const [loadingAttributes, setLoadingAttributes] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [location, setLocation] = useState<WarehouseLocation | null>(null);
-  const [loadingLocation, setLoadingLocation] = useState(false);
 
   useEffect(() => {
     async function loadResources() {
@@ -54,14 +53,11 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
   useEffect(() => {
     if (instance.locationId?._id && !instance.locationId?.name) {
       const loadLocationData = async () => {
-        setLoadingLocation(true);
         try {
           const res = await getLocation(instance.locationId._id);
           setLocation(res.data);
         } catch (error) {
           console.error("Failed to load location:", error);
-        } finally {
-          setLoadingLocation(false);
         }
       };
       loadLocationData();
