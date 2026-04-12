@@ -15,7 +15,7 @@ import { TruncatedText } from "../../../../components/ui/TruncatedText";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import { listItemVariants } from "../../../../lib/animations";
 import type { ColumnDef } from "../../../../components/ui/DataTable";
-import type { TeamMember } from "./types";
+import { isOwnerRoleName, type TeamMember } from "./types";
 
 const STATUS_COLOR_MAP: Record<string, string> = {
   active: "bg-green-500/15 text-green-400 border-green-500/25",
@@ -101,77 +101,86 @@ export function TeamMemberTable({
     {
       key: "id",
       header: isEs ? "Acciones" : "Actions",
-      render: (m) => (
-        <div className="flex items-center gap-1.5">
-          <PermissionGuardedButton
-            icon={Eye}
-            ariaLabel={isEs ? "Ver detalle" : "View detail"}
-            intent="view"
-            requiredPermission="users:read"
-            deniedMessage={
-              isEs
-                ? "Necesitas el permiso users:read para ver detalles."
-                : "You need users:read permission to view details."
-            }
-            onClick={() => onView(m)}
-          />
-          <PermissionGuardedButton
-            icon={Pencil}
-            ariaLabel={isEs ? "Editar" : "Edit"}
-            intent="edit"
-            requiredPermission="users:update"
-            deniedMessage={
-              isEs
-                ? "Necesitas el permiso users:update para editar miembros."
-                : "You need users:update permission to edit members."
-            }
-            onClick={() => onEdit(m)}
-          />
-          {m.status === "active" || m.status === "invited" ? (
-            <>
-              {m.status === "invited" && (
-                <PermissionGuardedButton
-                  icon={MailCheck}
-                  ariaLabel={isEs ? "Reenviar invitación" : "Resend invitation"}
-                  intent="approve"
-                  requiredPermission="users:create"
-                  deniedMessage={
-                    isEs
-                      ? "Necesitas el permiso users:create para reenviar invitaciones."
-                      : "You need users:create permission to resend invitations."
-                  }
-                  onClick={() => onResendInvite(m)}
-                />
-              )}
-              <PermissionGuardedButton
-                icon={UserX}
-                ariaLabel={isEs ? "Desactivar" : "Deactivate"}
-                intent="delete"
-                requiredPermission="users:update"
-                deniedMessage={
-                  isEs
-                    ? "Necesitas el permiso users:update para desactivar miembros."
-                    : "You need users:update permission to deactivate members."
-                }
-                onClick={() => onDeactivate(m)}
-              />
-            </>
-          ) : (
+      render: (m) => {
+        const isOwnerMember = isOwnerRoleName(m.roleName);
+
+        return (
+          <div className="flex items-center gap-1.5">
             <PermissionGuardedButton
-              icon={UserCheck}
-              ariaLabel={isEs ? "Reactivar" : "Reactivate"}
-              intent="approve"
-              requiredPermission="users:update"
+              icon={Eye}
+              ariaLabel={isEs ? "Ver detalle" : "View detail"}
+              intent="view"
+              requiredPermission="users:read"
               deniedMessage={
                 isEs
-                  ? "Necesitas el permiso users:update para reactivar miembros."
-                  : "You need users:update permission to reactivate members."
+                  ? "Necesitas el permiso users:read para ver detalles."
+                  : "You need users:read permission to view details."
               }
-              onClick={() => onReactivate(m)}
+              onClick={() => onView(m)}
             />
-          )}
-        </div>
-      ),
+
+            {!isOwnerMember && (
+              <>
+                <PermissionGuardedButton
+                  icon={Pencil}
+                  ariaLabel={isEs ? "Editar" : "Edit"}
+                  intent="edit"
+                  requiredPermission="users:update"
+                  deniedMessage={
+                    isEs
+                      ? "Necesitas el permiso users:update para editar miembros."
+                      : "You need users:update permission to edit members."
+                  }
+                  onClick={() => onEdit(m)}
+                />
+                {m.status === "active" || m.status === "invited" ? (
+                  <>
+                    {m.status === "invited" && (
+                      <PermissionGuardedButton
+                        icon={MailCheck}
+                        ariaLabel={isEs ? "Reenviar invitación" : "Resend invitation"}
+                        intent="approve"
+                        requiredPermission="users:create"
+                        deniedMessage={
+                          isEs
+                            ? "Necesitas el permiso users:create para reenviar invitaciones."
+                            : "You need users:create permission to resend invitations."
+                        }
+                        onClick={() => onResendInvite(m)}
+                      />
+                    )}
+                    <PermissionGuardedButton
+                      icon={UserX}
+                      ariaLabel={isEs ? "Desactivar" : "Deactivate"}
+                      intent="delete"
+                      requiredPermission="users:update"
+                      deniedMessage={
+                        isEs
+                          ? "Necesitas el permiso users:update para desactivar miembros."
+                          : "You need users:update permission to deactivate members."
+                      }
+                      onClick={() => onDeactivate(m)}
+                    />
+                  </>
+                ) : (
+                  <PermissionGuardedButton
+                    icon={UserCheck}
+                    ariaLabel={isEs ? "Reactivar" : "Reactivate"}
+                    intent="approve"
+                    requiredPermission="users:update"
+                    deniedMessage={
+                      isEs
+                        ? "Necesitas el permiso users:update para reactivar miembros."
+                        : "You need users:update permission to reactivate members."
+                    }
+                    onClick={() => onReactivate(m)}
+                  />
+                )}
+              </>
+            )}
+          </div>
+        );
+      },
     },
   ];
 
