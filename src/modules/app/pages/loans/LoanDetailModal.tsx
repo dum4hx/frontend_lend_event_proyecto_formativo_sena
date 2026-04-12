@@ -429,14 +429,6 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
                 />
               </div>
               <div>
-                <p className="text-gray-500 text-sm">{t("loans.detail.startDate")}</p>
-                <p className="text-gray-300">{formatDate(req.startDate)}</p>
-              </div>
-              <div>
-                <p className="text-gray-500 text-sm">{t("loans.detail.endDate")}</p>
-                <p className="text-gray-300">{formatDate(req.endDate)}</p>
-              </div>
-              <div>
                 <p className="text-gray-500 text-sm">{t("loans.detail.requestCreatedAt")}</p>
                 <p className="text-gray-300">
                   {req.createdAt ? (
@@ -467,30 +459,10 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
                 </p>
               </div>
               <div>
-                <p className="text-gray-500 text-sm">{t("loans.detail.approvedBy")}</p>
-                <p className="text-gray-300">
-                  {req.approvedBy ? (
-                    formatUserName(req.approvedBy)
-                  ) : (
-                    <span className="text-gray-600 italic text-xs">{t("loans.detail.notSet")}</span>
-                  )}
-                </p>
-              </div>
-              <div>
                 <p className="text-gray-500 text-sm">{t("loans.detail.loanCreatedAt")}</p>
                 <p className="text-gray-300">
                   {loanDetail?.createdAt ? (
                     formatDate(loanDetail.createdAt)
-                  ) : (
-                    <span className="text-gray-600 italic text-xs">{t("loans.detail.notSet")}</span>
-                  )}
-                </p>
-              </div>
-              <div>
-                <p className="text-gray-500 text-sm">{t("loans.detail.checkedOutAt")}</p>
-                <p className="text-gray-300">
-                  {loanDetail?.checkedOutAt ? (
-                    formatDate(loanDetail.checkedOutAt)
                   ) : (
                     <span className="text-gray-600 italic text-xs">{t("loans.detail.notSet")}</span>
                   )}
@@ -525,6 +497,14 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
                     <span className="text-gray-600 italic text-xs">{t("loans.detail.notSet")}</span>
                   )}
                 </p>
+              </div>
+              <div>
+                <p className="text-gray-500 text-sm">{t("loans.detail.startDate")}</p>
+                <p className="text-gray-300">{formatDate(req.startDate)}</p>
+              </div>
+              <div>
+                <p className="text-gray-500 text-sm">{t("loans.detail.endDate")}</p>
+                <p className="text-gray-300">{formatDate(req.endDate)}</p>
               </div>
               {inspectionNumber && (
                 <div>
