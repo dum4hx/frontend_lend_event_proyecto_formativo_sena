@@ -1,6 +1,8 @@
-import { useState, useEffect } from "react";
-import { X, Package, ChevronDown, ChevronUp, DollarSign, Copy, FileText } from "lucide-react";
-import { IconButton, EntityLink } from "../../../../components/ui";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
+import { useDebounce } from "use-debounce";
+import { X, Package, DollarSign, FileText, Copy } from "lucide-react";
+import { IconButton, EntityLink, Pagination } from "../../../../components/ui";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import { useCopyToClipboard } from "../../../../hooks/useCopyToClipboard";
 import type { UnifiedLoanView } from "./types";
@@ -13,13 +15,15 @@ import {
 } from "./helpers";
 import type {
   LoanDetailGrouped,
-  LoanMaterialInstanceEntry,
+  LoanMaterialListItem,
+  LoanMaterialsQueryParams,
   MaterialInstanceStatus,
   DepositStatus,
   PopulatedUserRef,
   Invoice,
 } from "../../../../types/api";
-import { getLoanDetailGrouped } from "../../../../services/loanService";
+import { ApiError } from "../../../../lib/api";
+import { getLoanDetailGrouped, getLoanMaterials } from "../../../../services/loanService";
 import { getInspections } from "../../../../services/inspectionService";
 import { getInvoices } from "../../../../services/invoiceService";
 import InvoiceDetailModal from "../../components/InvoiceDetailModal";
@@ -55,31 +59,43 @@ function pickLoanInvoice(invoices: Invoice[], loanId: string): Invoice | null {
 export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
   const { language, t } = useLanguage();
   const { copy } = useCopyToClipboard();
+  const [searchParams, setSearchParams] = useSearchParams();
   const lang = language === "es" ? "es" : "en";
   const isEs = lang === "es";
 
   const [loanDetail, setLoanDetail] = useState<LoanDetailGrouped | null>(null);
-  const [loadingDetail, setLoadingDetail] = useState(false);
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [materials, setMaterials] = useState<LoanMaterialListItem[]>([]);
+  const [materialsTotal, setMaterialsTotal] = useState(0);
+  const [materialsPage, setMaterialsPage] = useState(1);
+  const [materialsLimit, setMaterialsLimit] = useState(20);
+  const [materialsTotalPages, setMaterialsTotalPages] = useState(1);
+  const [materialsSearch, setMaterialsSearch] = useState("");
+  const [materialsTypeId, setMaterialsTypeId] = useState("");
+  const [materialsLoading, setMaterialsLoading] = useState(false);
+  const [materialsLoadedOnce, setMaterialsLoadedOnce] = useState(false);
+  const [materialsError, setMaterialsError] = useState<string | null>(null);
+  const [materialsReloadNonce, setMaterialsReloadNonce] = useState(0);
   const [inspectionNumber, setInspectionNumber] = useState<string | null>(null);
   const [relatedInvoiceId, setRelatedInvoiceId] = useState<string | null>(null);
   const [invoiceLookupLoading, setInvoiceLookupLoading] = useState(false);
   const [invoiceLookupError, setInvoiceLookupError] = useState<string | null>(null);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [debouncedMaterialsSearch] = useDebounce(materialsSearch, 400);
+
+  const requestSignatureRef = useRef<string>("");
+  const requestControllerRef = useRef<AbortController | null>(null);
+  const initializedFiltersLoanRef = useRef<string | null>(null);
 
   // Fetch grouped detail when a loan exists
   useEffect(() => {
     if (!open || !view.loan) return;
     let cancelled = false;
     async function fetchDetail() {
-      setLoadingDetail(true);
       try {
         const res = await getLoanDetailGrouped(view.loan!._id);
         if (!cancelled) setLoanDetail(res.data.loan);
       } catch {
         if (!cancelled) setLoanDetail(null);
-      } finally {
-        if (!cancelled) setLoadingDetail(false);
       }
     }
     fetchDetail();
@@ -117,6 +133,199 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
     setShowInvoiceModal(false);
   }, [open, view.loan?._id]);
 
+  useEffect(() => {
+    if (!open || !view.loan) return;
+
+    if (initializedFiltersLoanRef.current === view.loan._id) return;
+
+    const pageParam = Number(searchParams.get("loanMaterialsPage") ?? "1");
+    const limitParam = Number(searchParams.get("loanMaterialsLimit") ?? "20");
+
+    setMaterialsSearch(searchParams.get("loanMaterialsSearch") ?? "");
+    setMaterialsTypeId(searchParams.get("loanMaterialsType") ?? "");
+    setMaterialsPage(Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1);
+    setMaterialsLimit(Number.isFinite(limitParam) && limitParam > 0 ? limitParam : 20);
+
+    initializedFiltersLoanRef.current = view.loan._id;
+  }, [open, view.loan, searchParams]);
+
+  useEffect(() => {
+    if (!open || !view.loan) return;
+
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+
+        const updateParam = (key: string, value: string | number, defaultValue: string) => {
+          if (String(value) === defaultValue) {
+            next.delete(key);
+            return;
+          }
+          next.set(key, String(value));
+        };
+
+        updateParam("loanMaterialsSearch", materialsSearch.trim(), "");
+        next.delete("loanMaterialsStatus");
+        updateParam("loanMaterialsType", materialsTypeId, "");
+        updateParam("loanMaterialsPage", materialsPage, "1");
+        updateParam("loanMaterialsLimit", materialsLimit, "20");
+
+        return next;
+      },
+      { replace: true },
+    );
+  }, [
+    open,
+    view.loan,
+    materialsSearch,
+    materialsTypeId,
+    materialsPage,
+    materialsLimit,
+    setSearchParams,
+  ]);
+
+  useEffect(() => {
+    if (!open || !view.loan) return;
+
+    const params: LoanMaterialsQueryParams = {
+      page: materialsPage,
+      limit: materialsLimit,
+      search: debouncedMaterialsSearch.trim() || undefined,
+      materialTypeId: materialsTypeId || undefined,
+    };
+
+    const signature = JSON.stringify({ loanId: view.loan._id, params, reload: materialsReloadNonce });
+    if (signature === requestSignatureRef.current) return;
+    requestSignatureRef.current = signature;
+
+    requestControllerRef.current?.abort();
+    const controller = new AbortController();
+    requestControllerRef.current = controller;
+
+    setMaterialsLoading(true);
+    setMaterialsError(null);
+
+    getLoanMaterials(view.loan._id, params, controller.signal)
+      .then((res) => {
+        if (controller.signal.aborted) return;
+
+        setMaterials(res.data.materials ?? []);
+        setMaterialsTotal(res.data.total ?? 0);
+        setMaterialsPage(res.data.page ?? 1);
+        setMaterialsTotalPages(Math.max(res.data.totalPages ?? 1, 1));
+        setMaterialsLoadedOnce(true);
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+
+        if (error instanceof ApiError) {
+          if (error.statusCode === 400) {
+            setMaterialsError(t("loans.detail.materials.error400"));
+          } else if (error.statusCode === 403) {
+            setMaterialsError(t("loans.detail.materials.error403"));
+          } else if (error.statusCode === 404) {
+            setMaterialsError(t("loans.detail.materials.error404"));
+          } else if (error.statusCode === 0) {
+            setMaterialsError(t("loans.detail.materials.errorNetwork"));
+          } else {
+            setMaterialsError(t("loans.detail.materials.errorGeneric"));
+          }
+        } else {
+          setMaterialsError(t("loans.detail.materials.errorNetwork"));
+        }
+
+        setMaterialsLoadedOnce(true);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setMaterialsLoading(false);
+        }
+      });
+
+    return () => {
+      requestSignatureRef.current = "";
+      controller.abort();
+    };
+  }, [
+    open,
+    view.loan,
+    materialsPage,
+    materialsLimit,
+    debouncedMaterialsSearch,
+    materialsTypeId,
+    materialsReloadNonce,
+    t,
+  ]);
+
+  useEffect(() => {
+    if (!open) {
+      initializedFiltersLoanRef.current = null;
+      requestSignatureRef.current = "";
+      requestControllerRef.current?.abort();
+    }
+  }, [open]);
+
+  const materialTypeOptions = useMemo(() => {
+    const byType = loanDetail?.materialInstancesByType ?? {};
+    const options = Object.entries(byType)
+      .map(([fallbackId, group]) => ({
+        id: group.instances[0]?.materialType?._id ?? fallbackId,
+        name: group.instances[0]?.materialType?.name ?? fallbackId,
+      }))
+      .filter((option) => option.id.trim().length > 0);
+
+    const deduped = Array.from(new Map(options.map((option) => [option.id, option])).values());
+    return deduped.sort((a, b) => a.name.localeCompare(b.name));
+  }, [loanDetail]);
+
+  useEffect(() => {
+    if (!materialsTypeId) return;
+    const isValidType = materialTypeOptions.some((option) => option.id === materialsTypeId);
+    if (!isValidType) {
+      setMaterialsTypeId("");
+      setMaterialsPage(1);
+    }
+  }, [materialsTypeId, materialTypeOptions]);
+
+  const formatCondition = (condition?: string) => {
+    if (!condition) return t("loans.detail.materials.condition.notSet");
+
+    const normalized = condition.toLowerCase();
+    if (normalized === "good") return t("loans.detail.materials.condition.good");
+    if (normalized === "damaged") return t("loans.detail.materials.condition.damaged");
+    if (normalized === "lost") return t("loans.detail.materials.condition.lost");
+    return condition;
+  };
+
+  const getMaterialDisplayName = (entry: LoanMaterialListItem): string => {
+    const instanceName = entry.materialInstanceId.name?.trim();
+    if (instanceName) return instanceName;
+
+    const typeName = entry.materialType?.name?.trim();
+    if (typeName) return typeName;
+
+    const modelId = entry.materialInstanceId.modelId?.trim();
+    if (modelId) return modelId;
+
+    return t("loans.detail.notSet");
+  };
+
+  const handleCopyValue = async (value: string) => {
+    const copied = await copy(value);
+    if (copied) return;
+
+    // Last-resort fallback for restrictive browser contexts.
+    try {
+      await navigator.clipboard.writeText(value);
+    } catch {
+      // no-op: useCopyToClipboard already reports failure to the user.
+    }
+  };
+
+  const resetMaterialsPage = () => {
+    setMaterialsPage(1);
+  };
+
   if (!open) return null;
 
   const req = view.request;
@@ -124,13 +333,6 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
   const code = req.code ?? `#${req._id.slice(-8).toUpperCase()}`;
   const activeStepIndex = getStepIndex(view.status);
   const isTerminal = TERMINAL_STATUSES.map((s) => s.status).includes(view.status);
-
-  // Material instances grouped by type (from loan detail)
-  const typeEntries = Object.entries(loanDetail?.materialInstancesByType ?? {});
-
-  function toggleCollapse(typeId: string) {
-    setCollapsed((prev) => ({ ...prev, [typeId]: !prev[typeId] }));
-  }
 
   const formatUserName = (ref: PopulatedUserRef | undefined): string => {
     if (!ref) return t("loans.detail.notSet");
@@ -488,94 +690,233 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
               </div>
             )}
 
-            {/* Material instances grouped by type (loan detail) */}
+            {/* Material instances list with server-side search/filter/pagination */}
             {loan && (
-              <div className="space-y-4">
+              <div className="space-y-4" data-help-id="loans-detail-materials-section">
                 <div className="flex items-center gap-2 text-sm font-semibold text-[#FFD700] uppercase tracking-wider">
                   <Package size={16} />
                   <span>{t("loans.detail.assignedMaterials")}</span>
                 </div>
 
-                {loadingDetail && (
-                  <p className="text-xs text-gray-500 animate-pulse">{t("common.loading")}</p>
-                )}
-
-                {!loadingDetail && typeEntries.length === 0 && (
-                  <p className="text-gray-500 text-sm">{t("loans.detail.noMaterials")}</p>
-                )}
-
-                {typeEntries.map(([typeId, group]) => {
-                  const instances: LoanMaterialInstanceEntry[] = group.instances;
-                  const typeName =
-                    instances[0]?.materialType?.name ?? typeId.slice(-8).toUpperCase();
-                  const isCollapsed = collapsed[typeId] === true;
-
-                  return (
-                    <div
-                      key={typeId}
-                      className="rounded-xl border border-[#333] bg-[#171717] overflow-hidden"
+                <div
+                  className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3"
+                  data-help-id="loans-detail-materials-filters"
+                >
+                  <div className="xl:col-span-2">
+                    <label
+                      htmlFor="loan-materials-search"
+                      className="text-xs font-semibold uppercase tracking-wide text-gray-400"
                     >
-                      <button
-                        type="button"
-                        onClick={() => toggleCollapse(typeId)}
-                        className="w-full flex items-center justify-between px-4 py-3 bg-[#1a1a1a] border-b border-[#333] hover:bg-[#222] transition-colors"
-                      >
-                        <p className="text-xs font-bold text-gray-300 uppercase tracking-wide text-left">
-                          {typeName}
-                          <span className="ml-2 text-gray-500 font-normal normal-case">
-                            ({instances.length})
-                          </span>
-                        </p>
-                        {isCollapsed ? (
-                          <ChevronDown size={14} className="text-gray-500 shrink-0" />
-                        ) : (
-                          <ChevronUp size={14} className="text-gray-500 shrink-0" />
-                        )}
-                      </button>
-                      {!isCollapsed && (
-                        <div className="divide-y divide-[#2a2a2a]">
-                          {instances.map((entry) => (
-                            <div
-                              key={entry.materialInstanceId._id}
-                              className="flex items-center gap-3 px-4 py-3"
-                            >
-                              <button
-                                onClick={() => copy(entry.materialInstanceId.serialNumber)}
-                                className="text-white font-mono text-sm flex-1 hover:text-[#FFD700] hover:underline transition-colors flex items-center gap-1 group/copy text-left"
-                                title="Haz click para copiar"
-                              >
-                                {entry.materialInstanceId.serialNumber}
-                                <Copy size={13} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
-                              </button>
-                              {entry.conditionAtCheckout && (
-                                <span
-                                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                                    entry.conditionAtCheckout === "good"
-                                      ? "bg-green-500/20 text-green-400"
-                                      : entry.conditionAtCheckout === "damaged"
-                                        ? "bg-amber-500/20 text-amber-400"
-                                        : entry.conditionAtCheckout === "lost"
-                                          ? "bg-red-500/20 text-red-400"
-                                          : "bg-gray-500/20 text-gray-400"
-                                  }`}
+                      {t("loans.detail.materials.searchLabel")}
+                    </label>
+                    <input
+                      id="loan-materials-search"
+                      type="search"
+                      value={materialsSearch}
+                      onChange={(event) => {
+                        setMaterialsSearch(event.target.value);
+                        resetMaterialsPage();
+                      }}
+                      className="mt-1 w-full rounded-lg border border-[#333] bg-[#171717] px-3 py-2 text-sm text-white outline-none transition-colors focus:border-[#FFD700]/60"
+                      placeholder={t("loans.detail.materials.searchPlaceholder")}
+                      data-help-id="loans-detail-materials-search"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="loan-materials-type"
+                      className="text-xs font-semibold uppercase tracking-wide text-gray-400"
+                    >
+                      {t("loans.detail.materials.typeLabel")}
+                    </label>
+                    <select
+                      id="loan-materials-type"
+                      value={materialsTypeId}
+                      onChange={(event) => {
+                        setMaterialsTypeId(event.target.value);
+                        resetMaterialsPage();
+                      }}
+                      className="mt-1 w-full rounded-lg border border-[#333] bg-[#171717] px-3 py-2 text-sm text-white outline-none transition-colors focus:border-[#FFD700]/60"
+                      data-help-id="loans-detail-materials-type"
+                    >
+                      <option value="">{t("loans.detail.materials.typeAll")}</option>
+                      {materialTypeOptions.map((typeOption) => (
+                        <option key={typeOption.id} value={typeOption.id}>
+                          {typeOption.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="loan-materials-limit"
+                      className="text-xs font-semibold uppercase tracking-wide text-gray-400"
+                    >
+                      {t("loans.detail.materials.limitLabel")}
+                    </label>
+                    <select
+                      id="loan-materials-limit"
+                      value={materialsLimit}
+                      onChange={(event) => {
+                        const nextLimit = Number(event.target.value);
+                        setMaterialsLimit(nextLimit);
+                        setMaterialsPage(1);
+                      }}
+                      className="mt-1 w-full rounded-lg border border-[#333] bg-[#171717] px-3 py-2 text-sm text-white outline-none transition-colors focus:border-[#FFD700]/60"
+                    >
+                      {[10, 20, 50].map((size) => (
+                        <option key={size} value={size}>
+                          {size}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-3" data-help-id="loans-detail-materials-meta">
+                  <p className="text-xs text-gray-400">
+                    {t("loans.detail.materials.totalResults", { count: materialsTotal })}
+                  </p>
+                  {materialsLoading && materialsLoadedOnce && (
+                    <p className="text-xs text-gray-500 animate-pulse">
+                      {t("loans.detail.materials.updating")}
+                    </p>
+                  )}
+                </div>
+
+                {materialsError && (
+                  <div
+                    className="rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3"
+                    role="alert"
+                  >
+                    <p className="text-sm text-red-300">{materialsError}</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        requestSignatureRef.current = "";
+                        setMaterialsReloadNonce((prev) => prev + 1);
+                      }}
+                      className="mt-2 rounded-md border border-red-400/40 px-3 py-1 text-xs font-semibold text-red-200 hover:bg-red-500/20 transition-colors"
+                    >
+                      {t("loans.detail.materials.retry")}
+                    </button>
+                  </div>
+                )}
+
+                {!materialsError && materialsLoading && !materialsLoadedOnce && (
+                  <p className="text-xs text-gray-500 animate-pulse">
+                    {t("loans.detail.materials.loading")}
+                  </p>
+                )}
+
+                {!materialsError && !materialsLoading && materials.length === 0 && (
+                  <div className="rounded-lg border border-[#333] bg-[#171717] px-4 py-6 text-center">
+                    <p className="text-sm text-gray-300">{t("loans.detail.materials.emptyTitle")}</p>
+                    <p className="mt-1 text-xs text-gray-500">
+                      {t("loans.detail.materials.emptyDescription")}
+                    </p>
+                  </div>
+                )}
+
+                {!materialsError && materials.length > 0 && (
+                  <div
+                    className="rounded-xl border border-[#333] bg-[#171717] overflow-hidden"
+                    data-help-id="loans-detail-materials-table"
+                  >
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-sm">
+                        <thead className="bg-[#1b1b1b] border-b border-[#333]">
+                          <tr className="text-left text-xs uppercase tracking-wide text-gray-400">
+                            <th className="px-3 py-2">{t("loans.detail.materials.table.serial")}</th>
+                            <th className="px-3 py-2">{t("loans.detail.materials.table.barcode")}</th>
+                            <th className="px-3 py-2">{t("loans.detail.materials.table.name")}</th>
+                            <th className="px-3 py-2">{t("loans.detail.materials.table.type")}</th>
+                            <th className="px-3 py-2">{t("loans.detail.materials.table.status")}</th>
+                            <th className="px-3 py-2">
+                              {t("loans.detail.materials.table.conditionAtCheckout")}
+                            </th>
+                            <th className="px-3 py-2">
+                              {t("loans.detail.materials.table.conditionAtReturn")}
+                            </th>
+                            <th className="px-3 py-2">{t("loans.detail.materials.table.notes")}</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#2a2a2a]">
+                          {materials.map((entry) => (
+                            <tr key={entry.materialInstanceId._id} className="text-gray-200">
+                              <td className="px-3 py-2 font-mono text-xs">
+                                <button
+                                  type="button"
+                                  onClick={(event) => {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    void handleCopyValue(entry.materialInstanceId.serialNumber);
+                                  }}
+                                  className="text-[#E8E8E8] hover:text-[#FFD700] underline decoration-dotted underline-offset-2 transition-colors inline-flex items-center gap-1 group/copy cursor-pointer"
+                                  title={t("loans.detail.materials.copySerial")}
+                                  aria-label={t("loans.detail.materials.copySerial")}
                                 >
-                                  {entry.conditionAtCheckout.charAt(0).toUpperCase() +
-                                    entry.conditionAtCheckout.slice(1)}
-                                </span>
-                              )}
-                              <span className="text-xs text-gray-400">
+                                  {entry.materialInstanceId.serialNumber}
+                                  <Copy
+                                    size={12}
+                                    className="opacity-80 group-hover/copy:opacity-100 transition-opacity"
+                                  />
+                                </button>
+                              </td>
+                              <td className="px-3 py-2 font-mono text-xs">
+                                {entry.materialInstanceId.barcode ? (
+                                  <button
+                                    type="button"
+                                    onClick={(event) => {
+                                      event.preventDefault();
+                                      event.stopPropagation();
+                                      void handleCopyValue(entry.materialInstanceId.barcode as string);
+                                    }}
+                                    className="text-[#E8E8E8] hover:text-[#FFD700] underline decoration-dotted underline-offset-2 transition-colors inline-flex items-center gap-1 group/copy cursor-pointer"
+                                    title={t("loans.detail.materials.copyBarcode")}
+                                    aria-label={t("loans.detail.materials.copyBarcode")}
+                                  >
+                                    {entry.materialInstanceId.barcode}
+                                    <Copy
+                                      size={12}
+                                      className="opacity-80 group-hover/copy:opacity-100 transition-opacity"
+                                    />
+                                  </button>
+                                ) : (
+                                  t("loans.detail.notSet")
+                                )}
+                              </td>
+                              <td className="px-3 py-2">{getMaterialDisplayName(entry)}</td>
+                              <td className="px-3 py-2">{entry.materialType?.name ?? t("loans.detail.notSet")}</td>
+                              <td className="px-3 py-2">
                                 {getMaterialInstanceStatusLabel(
                                   entry.materialInstanceId.status as MaterialInstanceStatus,
                                   lang,
                                 )}
-                              </span>
-                            </div>
+                              </td>
+                              <td className="px-3 py-2">{formatCondition(entry.conditionAtCheckout)}</td>
+                              <td className="px-3 py-2">{formatCondition(entry.conditionAtReturn)}</td>
+                              <td className="px-3 py-2">{entry.notes || t("loans.detail.notSet")}</td>
+                            </tr>
                           ))}
-                        </div>
-                      )}
+                        </tbody>
+                      </table>
                     </div>
-                  );
-                })}
+
+                    <div className="border-t border-[#333] px-3 py-3">
+                      <Pagination
+                        page={materialsPage}
+                        totalPages={materialsTotalPages}
+                        onPageChange={(nextPage) => {
+                          if (nextPage < 1 || nextPage > materialsTotalPages) return;
+                          setMaterialsPage(nextPage);
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

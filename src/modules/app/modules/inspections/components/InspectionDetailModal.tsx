@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { X, CheckCircle, AlertTriangle, XCircle, FileText, User, Clock, Eye, Copy } from "lucide-react";
 import { useLanguage } from "../../../../../contexts/useLanguage";
 import { useCopyToClipboard } from "../../../../../hooks/useCopyToClipboard";
-import { EntityLink } from "../../../../../components/ui";
 import type { InspectionListItem, MaterialInstance } from "../../../../../types/api";
 import { getMaterialInstance } from "../../../../../services/materialService";
 import { MaterialInstanceDetailModal } from "../../material-instances/components/MaterialInstanceDetailModal";

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { LoadingSpinner } from "../../components/ui";
 import { useLanguage } from "../useLanguage";
-import type { Customer, Loan, LoanRequest, LoanRequestStatus, Package, MaterialType } from "../../types/api";
+import type { Customer, Loan, LoanRequest, LoanRequestStatus } from "../../types/api";
 import { getLoan, getRequests } from "../../services/loanService";
 import { getCustomer } from "../../services/customerService";
 import { getMaterialTypes, getPackages } from "../../services/materialService";

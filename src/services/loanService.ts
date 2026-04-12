@@ -19,6 +19,8 @@ import type {
   ExtendLoanPayload,
   LoanRequestsQueryParams,
   LoansQueryParams,
+  LoanMaterialsQueryParams,
+  LoanMaterialsResponse,
   PaginationMeta,
 } from "../types/api";
 
@@ -133,6 +135,19 @@ export async function getLoanDetailGrouped(
   loanId: string,
 ): Promise<ApiSuccessResponse<{ loan: LoanDetailGrouped }>> {
   return get<{ loan: LoanDetailGrouped }>(`/loans/${loanId}`, { groupByMaterialType: true });
+}
+
+/** List a loan's material instances with server-side pagination and filters. */
+export async function getLoanMaterials(
+  loanId: string,
+  params: LoanMaterialsQueryParams = {},
+  signal?: AbortSignal,
+): Promise<ApiSuccessResponse<LoanMaterialsResponse>> {
+  return get<LoanMaterialsResponse>(
+    `/loans/${loanId}/materials`,
+    params as Record<string, string | number | boolean | undefined>,
+    { signal },
+  );
 }
 
 /** Get all overdue loans (auto-updates overdue status). */

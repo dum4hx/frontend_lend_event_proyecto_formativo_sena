@@ -635,6 +635,7 @@ export interface LoanMaterialInstanceEntry {
   materialInstanceId: {
     _id: string;
     serialNumber: string;
+    barcode?: string;
     status: string;
     modelId: string;
     name: string;
@@ -645,6 +646,8 @@ export interface LoanMaterialInstanceEntry {
     name: string;
   };
   conditionAtCheckout?: string;
+  conditionAtReturn?: string;
+  notes?: string;
 }
 
 /** Detailed loan response (default — flat list of instances). */
@@ -1564,6 +1567,39 @@ export interface LoansQueryParams extends PaginationParams {
   status?: LoanStatus;
   customerId?: string;
   overdue?: boolean;
+}
+
+export interface LoanMaterialsQueryParams extends PaginationParams {
+  search?: string;
+  status?: MaterialInstanceStatus;
+  materialTypeId?: string;
+}
+
+export interface LoanMaterialListItem {
+  materialInstanceId: {
+    _id: string;
+    serialNumber: string;
+    barcode?: string;
+    status: MaterialInstanceStatus | string;
+    modelId: string;
+    name: string;
+  };
+  materialTypeId: string;
+  materialType: {
+    _id: string;
+    name: string;
+  };
+  conditionAtCheckout?: string;
+  conditionAtReturn?: string;
+  notes?: string;
+}
+
+export interface LoanMaterialsResponse {
+  loan: Pick<Loan, "_id" | "code" | "status">;
+  materials: LoanMaterialListItem[];
+  total: number;
+  page: number;
+  totalPages: number;
 }
 
 export interface InvoicesQueryParams extends PaginationParams {
