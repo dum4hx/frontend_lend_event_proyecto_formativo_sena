@@ -66,13 +66,36 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
     ticket.status === "cancelled" ||
     ticket.status === "expired";
 
+  /**
+   * Backend may return populated objects instead of plain ID strings.
+   * Safely extracts a human-readable string from either a string ID or a
+   * populated object { _id, name, code?, firstName?, firstSurname? }.
+   */
+  const resolveDisplay = (val: unknown): string => {
+    if (typeof val === "string") return val;
+    if (val && typeof val === "object") {
+      const obj = val as Record<string, unknown>;
+      // User-like object: { name: { firstName, firstSurname } }
+      if (obj.name && typeof obj.name === "object") {
+        const n = obj.name as Record<string, unknown>;
+        if (n.firstName) return `${n.firstName} ${n.firstSurname ?? ""}`;
+      }
+      // Named entity: { name: string, code?: string }
+      if (typeof obj.name === "string") {
+        return obj.code ? `${obj.name} (${obj.code})` : obj.name;
+      }
+      if (typeof obj._id === "string") return obj._id;
+    }
+    return String(val ?? "");
+  };
+
   const renderPayload = () => {
     switch (ticket.type) {
       case "transfer_request": {
         const p = ticket.payload as TicketTransferRequestPayload;
         return (
           <div className="space-y-2">
-            <InfoRow label={t("tickets.payload.toLocation")} value={p.toLocationId} mono />
+            <InfoRow label={t("tickets.payload.toLocation")} value={resolveDisplay(p.toLocationId)} mono />
             {p.neededBy && (
               <InfoRow label={t("tickets.payload.neededBy")} value={formatDate(p.neededBy)} />
             )}
@@ -88,7 +111,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
                       className="text-xs text-gray-300 bg-[#0d0d0d] rounded px-3 py-1.5 flex justify-between"
                     >
                       <span className="font-mono">
-                        {item.materialTypeId.slice(-8).toUpperCase()}
+                        {resolveDisplay(item.materialTypeId)}
                       </span>
                       <span className="text-white font-semibold">×{item.quantity}</span>
                     </div>
@@ -234,10 +257,10 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
               {ticket.description && (
                 <InfoRow label={t("tickets.field.description")} value={ticket.description} full />
               )}
-              <InfoRow label={t("tickets.field.location")} value={ticket.locationId} mono />
-              <InfoRow label={t("tickets.field.creator")} value={ticket.createdBy} mono />
+              <InfoRow label={t("tickets.field.location")} value={resolveDisplay(ticket.locationId)} mono />
+              <InfoRow label={t("tickets.field.creator")} value={resolveDisplay(ticket.createdBy)} mono />
               {ticket.assigneeId && (
-                <InfoRow label={t("tickets.field.assignee")} value={ticket.assigneeId} mono />
+                <InfoRow label={t("tickets.field.assignee")} value={resolveDisplay(ticket.assigneeId)} mono />
               )}
               {ticket.responseDeadline && (
                 <InfoRow
@@ -248,7 +271,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
               <InfoRow label={t("tickets.field.createdAt")} value={formatDate(ticket.createdAt)} />
               <InfoRow label={t("tickets.field.updatedAt")} value={formatDate(ticket.updatedAt)} />
               {ticket.reviewedBy && (
-                <InfoRow label={t("tickets.field.reviewedBy")} value={ticket.reviewedBy} mono />
+                <InfoRow label={t("tickets.field.reviewedBy")} value={resolveDisplay(ticket.reviewedBy)} mono />
               )}
               {ticket.reviewedAt && (
                 <InfoRow

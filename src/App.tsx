@@ -71,9 +71,7 @@ import RoleManagement from "./modules/app/pages/RoleManagement";
 import Locations from "./modules/app/pages/Locations";
 import Attributes from "./modules/app/pages/Attributes";
 import Plans from "./modules/app/pages/Plans";
-import Orders from "./modules/app/pages/Orders";
-import Rentals from "./modules/app/pages/Rentals";
-import { Loans } from "./modules/app/pages/loans";
+
 import Invoices from "./modules/app/pages/Invoices";
 import PaymentMethods from "./modules/app/pages/PaymentMethods";
 import CodeSchemes from "./modules/app/pages/code-schemes";
@@ -153,8 +151,6 @@ export function AppRoutes() {
                 "organization:read",
                 "materials:read",
                 "customers:read",
-                "loans:read",
-                "requests:read",
               ]}
             >
               <RequireActiveSubscription>
@@ -182,8 +178,6 @@ export function AppRoutes() {
           <Route path="attributes" element={<Attributes />} />
           <Route path="plans" element={<Plans />} />
           <Route path="locations" element={<Locations />} />
-          <Route path="orders" element={<Orders />} />
-          <Route path="rentals" element={<Rentals />} />
           <Route path="pricing" element={<PricingConfigs />} />
           <Route path="invoices" element={<Invoices />} />
           <Route path="payment-methods" element={<PaymentMethods />} />
@@ -272,8 +266,6 @@ function App() {
                           "organization:read",
                           "materials:read",
                           "customers:read",
-                          "loans:read",
-                          "requests:read",
                         ]}
                       >
                         <RequireActiveSubscription>
@@ -301,9 +293,6 @@ function App() {
                     <Route path="attributes" element={<Attributes />} />
                     <Route path="plans" element={<Plans />} />
                     <Route path="locations" element={<Locations />} />
-                    <Route path="orders" element={<Orders />} />
-                    <Route path="rentals" element={<Rentals />} />
-                    <Route path="loans" element={<Loans />} />
                     <Route path="pricing" element={<PricingConfigs />} />
                     <Route path="invoices" element={<Invoices />} />
                     <Route path="payment-methods" element={<PaymentMethods />} />

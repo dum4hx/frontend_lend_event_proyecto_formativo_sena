@@ -1647,7 +1647,11 @@ Gets available subscription plans.
         "billingModel": "dynamic",
         "maxCatalogItems": 500,
         "maxSeats": 20,
-        "features": ["Up to 20 team members", "500 catalog items", "Priority support"],
+        "features": [
+          "Up to 20 team members",
+          "500 catalog items",
+          "Priority support"
+        ],
         "basePriceMonthly": 99,
         "pricePerSeat": 4
       }
@@ -2665,9 +2669,15 @@ Platform usage metrics per organization: loans, users, materials, invoices, cust
         "invoices": 52.6,
         "customers": 21.33
       },
-      "topByLoans": [{ "orgName": "Acme Corp", "plan": "professional", "count": 520 }],
-      "topByInvoices": [{ "orgName": "Acme Corp", "plan": "professional", "count": 480 }],
-      "topByUsers": [{ "orgName": "Acme Corp", "plan": "professional", "count": 15 }],
+      "topByLoans": [
+        { "orgName": "Acme Corp", "plan": "professional", "count": 520 }
+      ],
+      "topByInvoices": [
+        { "orgName": "Acme Corp", "plan": "professional", "count": 480 }
+      ],
+      "topByUsers": [
+        { "orgName": "Acme Corp", "plan": "professional", "count": 15 }
+      ],
       "usageDistribution": [
         { "bucket": "0", "orgCount": 5 },
         { "bucket": "1-10", "orgCount": 20 },
@@ -4442,7 +4452,9 @@ GET /api/v1/materials/catalog/overview?categoryId=<id>&search=tent&page=1&limit=
         "materialTypeId": "64f1a2b3c4d5e6f7a8b9c0d1",
         "name": "Camping Tent 4-person",
         "pricePerDay": 25000,
-        "categories": [{ "categoryId": "64f1a2b3c4d5e6f7a8b9c0e1", "name": "Camping" }],
+        "categories": [
+          { "categoryId": "64f1a2b3c4d5e6f7a8b9c0e1", "name": "Camping" }
+        ],
         "totals": {
           "totalInstances": 20,
           "available": 12,
@@ -4849,7 +4861,9 @@ Returns the details of a single transfer request, with populated references for 
     },
     "fromLocationId": { "_id": "64ea01...", "name": "Bodega Central" },
     "toLocationId": { "_id": "64ea02...", "name": "Sede Norte" },
-    "items": [{ "modelId": "64eb11...", "quantity": 3, "fulfilledQuantity": 0 }],
+    "items": [
+      { "modelId": "64eb11...", "quantity": 3, "fulfilledQuantity": 0 }
+    ],
     "notes": "Urgente para evento del viernes",
     "neededBy": "2026-04-05T00:00:00.000Z",
     "createdAt": "2026-04-02T10:00:00.000Z",
@@ -5500,14 +5514,9 @@ Returns material instances that can fulfil the request's material-type needs, cl
 
 **Auth:** `authenticate` + `requireActiveOrganization` + `requests:read`
 
-Each returned instance carries an `availability` tag:
+Only instances whose current status is `available` are returned. Each instance carries an `availability` field set to `"available"`.
 
-| Tag         | Meaning                                                                              |
-| ----------- | ------------------------------------------------------------------------------------ |
-| `available` | Instance status is currently `available` — can be assigned immediately               |
-| `upcoming`  | Instance is `reserved` or `loaned` but will be free before the request's `startDate` |
-
-Instances that are `damaged`, `maintenance`, `retired`, `lost`, or won't be free in time are excluded.
+Instances that are `reserved`, `loaned`, `damaged`, `maintenance`, `retired`, or `lost` are excluded.
 
 **Response shape** (same split as `GET /materials/instances?byUserAccessibleLocation=true`):
 
@@ -5519,8 +5528,7 @@ Instances that are `damaged`, `maintenance`, `retired`, `lost`, or won't be free
       {
         "location": { "_id": "...", "name": "Warehouse A" },
         "instances": [
-          { "_id": "...", "serialNumber": "SN-001", "status": "available", "availability": "available", "model": { ... } },
-          { "_id": "...", "serialNumber": "SN-002", "status": "reserved", "availability": "upcoming", "model": { ... } }
+          { "_id": "...", "serialNumber": "SN-001", "status": "available", "availability": "available", "model": { ... } }
         ]
       }
     ],
@@ -5868,7 +5876,9 @@ Lists all loans that have been returned but have not yet been inspected. This en
       {
         "_id": "65e2f3c0e1a2b3c4d5e6f7c3",
         "customerId": { "email": "client@example.com", "name": "Event Co" },
-        "materialInstances": [{ "_id": "65e2f3c0e1a2b3c4d5e6f7e5", "serialNumber": "SN-001" }],
+        "materialInstances": [
+          { "_id": "65e2f3c0e1a2b3c4d5e6f7e5", "serialNumber": "SN-001" }
+        ],
         "startDate": "2026-03-01T10:00:00.000Z",
         "endDate": "2026-03-05T10:00:00.000Z",
         "status": "returned"
@@ -7366,7 +7376,9 @@ When `includeIds=false`, IDs are omitted and each material type includes enriche
           "damaged": 3,
           "maintenance": 2
         },
-        "locationBreakdown": [{ "locationName": "Bodega Principal", "count": 30 }],
+        "locationBreakdown": [
+          { "locationName": "Bodega Principal", "count": 30 }
+        ],
         "utilizationRate": 20.0,
         "availabilityRate": 70.0,
         "damageRate": 6.0,
@@ -8046,7 +8058,9 @@ GET /api/v1/reports/exports/locations?includeIds=false&status=available
       "avgOccupancyRate": 65.5,
       "totalCapacity": 1200,
       "totalOccupied": 786,
-      "topByOccupancy": [{ "name": "Bodega Norte", "code": "BN01", "occupancyRate": 95.2 }]
+      "topByOccupancy": [
+        { "name": "Bodega Norte", "code": "BN01", "occupancyRate": 95.2 }
+      ]
     }
   }
 }
@@ -8277,8 +8291,16 @@ These export endpoints return JSON. The frontend is responsible for converting t
    // Example with SheetJS
    import * as XLSX from "xlsx";
    const wb = XLSX.utils.book_new();
-   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.loanRows), "Loans");
-   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.invoiceRows), "Invoices");
+   XLSX.utils.book_append_sheet(
+     wb,
+     XLSX.utils.json_to_sheet(data.loanRows),
+     "Loans",
+   );
+   XLSX.utils.book_append_sheet(
+     wb,
+     XLSX.utils.json_to_sheet(data.invoiceRows),
+     "Invoices",
+   );
    XLSX.writeFile(wb, "sales-export.xlsx");
    ```
 4. **Period comparison** is automatic when `startDate` and `endDate` are both provided — the API compares against the immediately preceding period of equal duration.
@@ -9696,6 +9718,7 @@ Code schemes define patterns used to auto-generate human-readable codes for mult
 | `incident`          | `INC-{YYYY}-{SEQ:4}`  | `incidentNumber`                            |
 | `maintenance_batch` | `MNT-{YYYY}-{SEQ:4}`  | `batchNumber`                               |
 | `material_instance` | `MI-{SEQ:6}`          | `serialNumber` (fallback when not provided) |
+| `ticket`            | `TKT-{YYYY}-{SEQ:4}`  | `code`                                      |
 
 ### Supported Pattern Tokens
 
@@ -10021,6 +10044,7 @@ Creates a new ticket. The creator must belong to the specified location. The opt
       "toLocationId": "681e...",
       "items": [{ "materialTypeId": "680f...", "quantity": 10 }]
     },
+    "code": "TKT-2026-0001",
     "createdAt": "2026-06-15T10:00:00.000Z",
     "updatedAt": "2026-06-15T10:00:00.000Z"
   }
@@ -10111,9 +10135,11 @@ Retrieves a single ticket by ID. Only the creator or the assignee may view it.
 
 ---
 
-### GET /tickets/:id/capable-users
+### GET /tickets/capable-users
 
-**Smart endpoint.** Returns the list of active users in the ticket's location whose role holds the domain-specific permission needed to _fulfill_ the request. Only the ticket creator or assignee may call this endpoint.
+**Smart endpoint.** Returns the list of active users in a location whose role holds the domain-specific permission needed to _fulfill_ a given ticket type. **Does not require an existing ticket** — useful for pre-populating an assignee picker before creating a ticket.
+
+The calling user is excluded from the results (you cannot assign a ticket to yourself).
 
 The permission looked up per ticket type is:
 
@@ -10126,6 +10152,13 @@ The permission looked up per ticket type is:
 | `generic`             | `tickets:approve`          |
 
 **Permission:** `tickets:read`
+
+**Query parameters:**
+
+| Param      | Type   | Required | Description                                                                                           |
+| ---------- | ------ | -------- | ----------------------------------------------------------------------------------------------------- |
+| type       | string | Yes      | One of: `transfer_request`, `incident_report`, `maintenance_request`, `inspection_request`, `generic` |
+| locationId | string | Yes      | ObjectId of the location to search users in                                                           |
 
 **Response `200`:**
 
@@ -10147,6 +10180,21 @@ The permission looked up per ticket type is:
   }
 }
 ```
+
+**Errors:**
+
+- `400` — Invalid `locationId` format or unsupported ticket type.
+- `404` — Location not found or inactive.
+
+---
+
+### GET /tickets/:id/capable-users
+
+**Smart endpoint.** Same as `GET /tickets/capable-users`, but derives the ticket type and location from an existing ticket. Only the ticket creator or assignee may call this endpoint. The ticket creator is excluded from results.
+
+**Permission:** `tickets:read`
+
+**Response `200`:** Same shape as `GET /tickets/capable-users`.
 
 **Errors:**
 

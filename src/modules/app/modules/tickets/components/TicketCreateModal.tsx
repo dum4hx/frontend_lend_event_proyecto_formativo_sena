@@ -126,17 +126,8 @@ export const TicketCreateModal: React.FC<TicketCreateModalProps> = ({ onClose, o
     };
   }, [user?.locations]);
 
-  // Destination location options: user's locations minus the selected origin
-  const toLocationOptions = useMemo(
-    () => locationOptions.filter((loc) => loc.value !== locationId),
-    [locationOptions, locationId],
-  );
-
-  useEffect(() => {
-    if (toLocationId && toLocationId === locationId) {
-      setToLocationId("");
-    }
-  }, [locationId, toLocationId]);
+  // Destination location options: all user locations (same origin allowed)
+  const toLocationOptions = locationOptions;
 
   const isFormValid = useMemo(() => {
     if (!title || validateTicketTitle(title).message) return false;
@@ -157,11 +148,11 @@ export const TicketCreateModal: React.FC<TicketCreateModalProps> = ({ onClose, o
       type: "transfer_request" as const,
       title: title.trim(),
       ...(description.trim() && { description: description.trim() }),
-      ...(responseDeadline && { responseDeadline }),
+      ...(responseDeadline && { responseDeadline: new Date(responseDeadline).toISOString() }),
       payload: {
         toLocationId,
         items: transferItems.filter((i) => i.materialTypeId),
-        ...(neededBy && { neededBy }),
+        ...(neededBy && { neededBy: new Date(neededBy).toISOString() }),
       },
     };
   };
@@ -390,7 +381,7 @@ export const TicketCreateModal: React.FC<TicketCreateModalProps> = ({ onClose, o
                       {t("tickets.payload.neededBy")}
                     </label>
                     <input
-                      type="date"
+                      type="datetime-local"
                       value={neededBy}
                       onChange={(e) => setNeededBy(e.target.value)}
                       className={`w-full bg-[#121212] border rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-[#FFD700] ${neededByError ? "border-error bg-error/10" : "border-[#333]"}`}

@@ -19,7 +19,6 @@ import {
   MapPin,
   TrendingDown,
   AlertCircle,
-  ShoppingCart,
   FileText,
   Tag,
   BookOpen,
@@ -70,10 +69,6 @@ const iconMap: Record<string, React.ReactNode> = {
   "stock-movements": <TrendingDown size={20} />,
   alerts: <AlertCircle size={20} />,
   // Commerce
-  orders: <ShoppingCart size={20} />,
-  contracts: <FileText size={20} />,
-  rentals: <Package size={20} />,
-  loans: <Package size={20} />,
   invoices: <FileText size={20} />,
   reports: <BarChart3 size={20} />,
   pricing: <DollarSign size={20} />,

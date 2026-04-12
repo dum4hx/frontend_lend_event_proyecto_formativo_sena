@@ -1,6 +1,38 @@
-import { Search, Calendar } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { useLanguage } from "../../../../contexts/useLanguage";
-import { getUnifiedStatusLabel } from "./helpers";
+import { getUnifiedStatusBadgeStyle } from "./helpers";
+import type { UnifiedLoanStatus } from "./types";
+
+// ─── Status dot colors (filter-chip indicator) ─────────────────────────
+
+const DOT_COLOR: Record<UnifiedLoanStatus, string> = {
+  pending: "bg-yellow-400",
+  approved: "bg-emerald-400",
+  assigned: "bg-indigo-400",
+  ready: "bg-cyan-400",
+  active: "bg-green-400",
+  overdue: "bg-red-400",
+  returned: "bg-blue-400",
+  inspected: "bg-purple-400",
+  closed: "bg-zinc-400",
+  rejected: "bg-rose-400",
+  cancelled: "bg-zinc-500",
+  expired: "bg-orange-400",
+};
+
+const WORKFLOW_STATES: UnifiedLoanStatus[] = [
+  "pending",
+  "approved",
+  "assigned",
+  "ready",
+  "active",
+  "overdue",
+  "returned",
+  "inspected",
+  "closed",
+];
+
+const TERMINAL_STATES: UnifiedLoanStatus[] = ["rejected", "cancelled", "expired"];
 
 // ─── Props ──────────────────────────────────────────────────────────────
 
@@ -25,10 +57,6 @@ interface LoansFiltersProps {
   onClearFilters: () => void;
 }
 
-// ─── Category options ───────────────────────────────────────────────────
-
-// Removed: filters now handled only by status buttons and date range
-
 // ─── Component ──────────────────────────────────────────────────────────
 
 export function LoansFilters({
@@ -42,27 +70,24 @@ export function LoansFilters({
   onDateToChange,
   onClearFilters,
 }: LoansFiltersProps) {
-  const { language, t } = useLanguage();
-  const lang = language === "es" ? "es" : "en";
+  const { t } = useLanguage();
 
-  // All possible states for toggle buttons
-  const ALL_STATES = [
-    "pending",
-    "approved",
-    "assigned",
-    "ready",
-    "active",
-    "overdue",
-    "returned",
-    "inspected",
-    "closed",
-    "rejected",
-    "cancelled",
-    "expired",
-  ] as const;
-
-  const hasActiveFilters = selectedStates.length > 0 || dateFrom || dateTo;
+  const today = new Date().toISOString().split("T")[0];
+  const hasActiveFilters = selectedStates.length > 0 || !!dateFrom || !!dateTo;
   const dateError = dateFrom && dateTo && new Date(dateTo) < new Date(dateFrom);
+
+  const handleDateFromChange = (value: string | null) => {
+    if (value && value > today) return;
+    onDateFromChange(value);
+    if (value && dateTo && dateTo < value) {
+      onDateToChange(null);
+    }
+  };
+
+  const handleDateToChange = (value: string | null) => {
+    if (value && dateFrom && value < dateFrom) return;
+    onDateToChange(value);
+  };
 
   const toggleState = (state: string) => {
     if (selectedStates.includes(state)) {
@@ -72,108 +97,116 @@ export function LoansFilters({
     }
   };
 
-  const handleDateToChange = (value: string) => {
-    if (!dateFrom || !value || new Date(value) >= new Date(dateFrom)) {
-      onDateToChange(value || null);
-    }
+  const renderChip = (state: UnifiedLoanStatus) => {
+    const selected = selectedStates.includes(state);
+    const badgeStyle = selected ? getUnifiedStatusBadgeStyle(state) : "";
+
+    return (
+      <button
+        key={state}
+        onClick={() => toggleState(state)}
+        className={`px-2 py-1 text-xs rounded-md flex items-center gap-1.5 transition-all ${
+          selected
+            ? badgeStyle
+            : "bg-transparent border border-zinc-700 text-zinc-400 hover:border-zinc-500"
+        }`}
+      >
+        <span
+          className={`inline-block w-2 h-2 rounded-full shrink-0 ${DOT_COLOR[state]} ${
+            selected ? "" : "opacity-40"
+          }`}
+        />
+        {t(`loans.filter.${state}` as Parameters<typeof t>[0])}
+      </button>
+    );
   };
 
   return (
-    <div className="space-y-4" data-help-id="loans-filters">
-      {/* Search bar */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search
-            size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
-          />
-          <input
-            type="text"
-            placeholder={t("loans.filter.searchPlaceholder")}
-            value={searchTerm}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-[#1a1a1a] border border-[#333] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#FFD700] transition-all text-sm"
-            data-help-id="loans-search"
-          />
+    <div className="space-y-3" data-help-id="loans-filters">
+      {/* ── Search + Date range row ── */}
+      <div className="flex flex-col lg:flex-row lg:items-end gap-3">
+        {/* Search */}
+        <div className="flex flex-col flex-1">
+          <label className="text-xs text-zinc-500 mb-1 lg:invisible">&nbsp;</label>
+          <div className="relative">
+            <Search
+              size={16}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
+            />
+            <input
+              type="text"
+              placeholder={t("loans.filter.searchPlaceholder")}
+              value={searchTerm}
+              onChange={(e) => onSearchChange(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-[#1a1a1a] border border-[#333] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#FFD700] transition-all text-sm"
+              data-help-id="loans-search"
+            />
+          </div>
         </div>
-      </div>
 
-      {/* State filter buttons */}
-      <div className="space-y-2" data-help-id="loans-state-filters">
-        <label className="text-xs font-semibold text-gray-400 uppercase">
-          {t("loans.filter.status") || "Estado"}
-        </label>
-        <div className="flex flex-wrap gap-2">
-          {ALL_STATES.map((state) => (
-            <button
-              key={state}
-              onClick={() => toggleState(state)}
-              className={`px-3 py-1.5 text-xs rounded border transition-all ${
-                selectedStates.includes(state)
-                  ? "bg-gray-700 border-gray-600 text-white"
-                  : "bg-transparent border-gray-600 text-gray-400 hover:border-gray-500"
+        {/* Date range — side by side */}
+        <div className="flex items-end gap-2 w-full lg:w-auto" data-help-id="loans-date-filters">
+          <div className="flex flex-col flex-1 lg:flex-none">
+            <label className="text-xs text-zinc-500 mb-1">{t("loans.filter.dateFrom")}</label>
+            <input
+              type="date"
+              value={dateFrom || ""}
+              max={today}
+              onChange={(e) => handleDateFromChange(e.target.value || null)}
+              className={`px-2.5 py-2 bg-[#1a1a1a] border rounded-lg text-white text-sm focus:outline-none focus:border-[#FFD700] transition-all w-full lg:w-36 ${
+                dateError ? "border-red-600" : "border-[#333]"
               }`}
-            >
-              {getUnifiedStatusLabel(state as any, lang)}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Date range filters */}
-      <div className="space-y-3" data-help-id="loans-date-filters">
-        <label className="text-xs font-semibold text-gray-400 uppercase">
-          {t("loans.filter.dateRange") || "Rango de Fechas"}
-        </label>
-        <div className="space-y-2">
-          {/* Desde (inicio) */}
-          <div className="flex items-center gap-2">
-            <Calendar size={14} className="text-[#FFD700]" />
-            <label className="text-xs text-gray-500 font-medium">
-              {t("loans.filter.dateFrom") || "Desde (Inicio)"}
-            </label>
+            />
           </div>
-          <input
-            type="date"
-            value={dateFrom || ""}
-            onChange={(e) => onDateFromChange(e.target.value || null)}
-            placeholder="Fecha de inicio"
-            className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded text-white text-sm focus:outline-none focus:border-[#FFD700] transition-all"
-          />
-
-          {/* Hasta (fin) */}
-          <div className="flex items-center gap-2 mt-3">
-            <Calendar size={14} className="text-[#FFD700]" />
-            <label className="text-xs text-gray-500 font-medium">
-              {t("loans.filter.dateTo") || "Hasta (Fin)"}
-            </label>
+          <span className="text-zinc-600 pb-2.5 text-sm">–</span>
+          <div className="flex flex-col flex-1 lg:flex-none">
+            <label className="text-xs text-zinc-500 mb-1">{t("loans.filter.dateTo")}</label>
+            <input
+              type="date"
+              value={dateTo || ""}
+              min={dateFrom || undefined}
+              onChange={(e) => handleDateToChange(e.target.value || null)}
+              className={`px-2.5 py-2 bg-[#1a1a1a] border rounded-lg text-white text-sm focus:outline-none focus:border-[#FFD700] transition-all w-full lg:w-36 ${
+                dateError ? "border-red-600" : "border-[#333]"
+              }`}
+            />
           </div>
-          <input
-            type="date"
-            value={dateTo || ""}
-            onChange={(e) => handleDateToChange(e.target.value)}
-            disabled={!dateFrom}
-            min={dateFrom || undefined}
-            placeholder="Fecha de fin"
-            className={`w-full px-3 py-2 bg-[#1a1a1a] border rounded text-sm focus:outline-none transition-all ${
-              dateError ? "border-red-600 text-red-300 focus:border-red-500" : "border-[#333] text-white focus:border-[#FFD700]"
-            } ${!dateFrom ? "opacity-50 cursor-not-allowed" : ""}`}
-          />
         </div>
-        {dateError && dateTo && (
-          <p className="text-xs text-red-400 mt-1">{t("loans.filter.dateError") || "End date must be after start date"}</p>
+
+        {/* Clear filters */}
+        {hasActiveFilters && (
+          <button
+            onClick={onClearFilters}
+            className="flex items-center justify-center gap-1 px-3 py-2 mb-px text-xs font-medium rounded-lg border border-zinc-700 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-all w-full lg:w-auto"
+          >
+            <X size={12} />
+            {t("loans.filter.clearFilters")}
+          </button>
         )}
       </div>
 
-      {/* Clear filters button */}
-      {hasActiveFilters && (
-        <button
-          onClick={onClearFilters}
-          className="w-full px-3 py-1.5 text-xs font-medium rounded bg-gray-800 border border-gray-700 text-gray-300 hover:bg-gray-700 transition-all"
-        >
-          {t("loans.filter.clearFilters") || "Borrar filtros"}
-        </button>
+      {dateError && (
+        <p className="text-xs text-red-400">{t("loans.filter.dateError")}</p>
       )}
+
+      {/* ── Status chips ── */}
+      <div className="space-y-2" data-help-id="loans-state-filters">
+        {/* Workflow group */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider mr-0.5">
+            {t("loans.filter.groupWorkflow")}
+          </span>
+          {WORKFLOW_STATES.map(renderChip)}
+        </div>
+
+        {/* Terminal group */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider mr-0.5">
+            {t("loans.filter.groupTerminal")}
+          </span>
+          {TERMINAL_STATES.map(renderChip)}
+        </div>
+      </div>
     </div>
   );
 }

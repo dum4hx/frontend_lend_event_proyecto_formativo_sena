@@ -22,14 +22,6 @@ const HELP_MODULE_DEFINITIONS: HelpModuleDefinition[] = [
     routePrefixes: ["/app/invoices"],
   },
   {
-    moduleId: "rentals",
-    routePrefixes: ["/app/rentals"],
-  },
-  {
-    moduleId: "loans",
-    routePrefixes: ["/app/loans"],
-  },
-  {
     moduleId: "inspections",
     routePrefixes: ["/app/inspections"],
   },
@@ -92,10 +84,6 @@ const HELP_MODULE_DEFINITIONS: HelpModuleDefinition[] = [
   {
     moduleId: "admin-dashboard",
     routePrefixes: ["/app"],
-  },
-  {
-    moduleId: "orders",
-    routePrefixes: ["/app/orders"],
   },
   {
     moduleId: "reports",
