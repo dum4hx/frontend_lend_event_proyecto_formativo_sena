@@ -853,7 +853,7 @@ export interface IncidentQueryParams {
 
 // ─── Invoices ──────────────────────────────────────────────────────────────
 
-export type InvoiceStatus = "draft" | "pending" | "paid" | "cancelled";
+export type InvoiceStatus = "draft" | "pending" | "partially_paid" | "paid" | "cancelled";
 export type InvoiceType = "rental" | "damage" | "deposit";
 
 export interface InvoiceLineItem {

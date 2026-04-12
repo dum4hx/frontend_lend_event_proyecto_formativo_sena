@@ -1,4 +1,5 @@
 import { Search } from "lucide-react";
+import { useLanguage } from "../../../../contexts/useLanguage";
 import type { InvoiceTab, InvoiceStatus, InvoiceType } from "./types";
 
 // ─── Props ──────────────────────────────────────────────────────────────
@@ -24,8 +25,6 @@ interface InvoicesFiltersProps {
   overdueOnly: boolean;
   /** Overdue-only toggle callback. */
   onOverdueChange: (value: boolean) => void;
-  /** Whether Spanish locale is active. */
-  isEs: boolean;
 }
 
 // ─── Component ──────────────────────────────────────────────────────────
@@ -41,14 +40,14 @@ export function InvoicesFilters({
   onTypeFilterChange,
   overdueOnly,
   onOverdueChange,
-  isEs,
 }: InvoicesFiltersProps) {
+  const { t } = useLanguage();
   const tabs: InvoiceTab[] = ["all", "pending", "overdue"];
 
   const tabLabels: Record<InvoiceTab, string> = {
-    all: isEs ? "Todas" : "All",
-    pending: isEs ? "Pendientes" : "Pending",
-    overdue: isEs ? "Vencidas" : "Overdue",
+    all: t("invoices.tabs.all"),
+    pending: t("invoices.tabs.pending"),
+    overdue: t("invoices.tabs.overdue"),
   };
 
   return (
@@ -80,10 +79,10 @@ export function InvoicesFilters({
             onChange={(e) => onStatusFilterChange(e.target.value as InvoiceStatus | "all")}
             className="bg-[#121212] border border-[#222] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-[#FFD700] transition-all"
           >
-            <option value="all">{isEs ? "Todos los estados" : "All Statuses"}</option>
-            <option value="pending">{isEs ? "Pendiente" : "Pending"}</option>
-            <option value="paid">{isEs ? "Pagado" : "Paid"}</option>
-            <option value="cancelled">{isEs ? "Cancelado" : "Cancelled"}</option>
+            <option value="all">{t("invoices.filters.allStatuses")}</option>
+            <option value="pending">{t("invoices.filters.pending")}</option>
+            <option value="paid">{t("invoices.filters.paid")}</option>
+            <option value="cancelled">{t("invoices.filters.cancelled")}</option>
           </select>
 
           {/* Type */}
@@ -92,10 +91,10 @@ export function InvoicesFilters({
             onChange={(e) => onTypeFilterChange(e.target.value as InvoiceType | "all")}
             className="bg-[#121212] border border-[#222] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-[#FFD700] transition-all"
           >
-            <option value="all">{isEs ? "Todos los tipos" : "All Types"}</option>
-            <option value="rental">{isEs ? "Alquiler" : "Rental"}</option>
-            <option value="damage">{isEs ? "Daño" : "Damage"}</option>
-            <option value="deposit">{isEs ? "Depósito" : "Deposit"}</option>
+            <option value="all">{t("invoices.filters.allTypes")}</option>
+            <option value="rental">{t("invoices.filters.rental")}</option>
+            <option value="damage">{t("invoices.filters.damage")}</option>
+            <option value="deposit">{t("invoices.filters.deposit")}</option>
           </select>
 
           {/* Overdue Checkbox */}
@@ -106,7 +105,7 @@ export function InvoicesFilters({
               onChange={(e) => onOverdueChange(e.target.checked)}
               className="accent-[#FFD700] w-4 h-4"
             />
-            <span className="text-gray-300">{isEs ? "Solo vencidas" : "Overdue Only"}</span>
+            <span className="text-gray-300">{t("invoices.tabs.overdue")}</span>
           </label>
         </div>
       </div>
@@ -116,9 +115,7 @@ export function InvoicesFilters({
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 group-focus-within:text-[#FFD700] transition-colors" />
         <input
           type="text"
-          placeholder={
-            isEs ? "Buscar por ID de factura o cliente..." : "Search by invoice ID or customer..."
-          }
+          placeholder={t("invoices.table.searchPlaceholder")}
           className="w-full bg-[#121212] border border-[#222] rounded-lg pl-10 pr-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#FFD700] focus:ring-1 focus:ring-[#FFD700]/20 transition-all"
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}

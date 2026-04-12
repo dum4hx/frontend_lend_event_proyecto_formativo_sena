@@ -228,20 +228,20 @@ export function Invoices() {
         {summary && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4" data-help-id="invoices-stats">
             <StatCard
-              label={isEs ? "Facturas Pendientes" : "Pending Invoices"}
+              label={t("invoices.stats.pending")}
               value={summary.pending.count}
               icon={<FileText size={18} />}
               trend={formatCurrency(summary.pending.total)}
             />
             <StatCard
-              label={isEs ? "Facturas Pagadas" : "Paid Invoices"}
+              label={t("invoices.stats.paid")}
               value={summary.paid.count}
               icon={<DollarSign size={18} />}
               trend={formatCurrency(summary.paid.total)}
               trendUp
             />
             <StatCard
-              label={isEs ? "Facturas Vencidas" : "Overdue Invoices"}
+              label={t("invoices.stats.overdue")}
               value={summary.overdueCount}
               icon={<Filter size={18} />}
             />
@@ -261,7 +261,6 @@ export function Invoices() {
             onTypeFilterChange={setTypeFilter}
             overdueOnly={overdueOnly}
             onOverdueChange={setOverdueOnly}
-            isEs={isEs}
           />
         </div>
 

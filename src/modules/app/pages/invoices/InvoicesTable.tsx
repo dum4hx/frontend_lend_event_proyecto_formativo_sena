@@ -1,6 +1,7 @@
 import { FileText, DollarSign, Eye, Download, Trash2 } from "lucide-react";
 import { EmptyState, EntityLink } from "../../../../components/ui";
 import { useActionPermission } from "../../../../hooks/useActionPermission";
+import { useLanguage } from "../../../../contexts/useLanguage";
 import type { Invoice } from "./types";
 import {
   getStatusColor,
@@ -43,7 +44,8 @@ export function InvoicesTable({
   locale,
   isEs,
 }: InvoicesTableProps) {
-  const { guard, isAllowed } = useActionPermission(isEs ? "es" : "en");
+  const { t, language } = useLanguage();
+  const { guard, isAllowed } = useActionPermission(language === "es" ? "es" : "en");
 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat(locale, {
@@ -57,12 +59,8 @@ export function InvoicesTable({
       <div className="bg-[#121212] border border-[#222] rounded-2xl overflow-hidden shadow-2xl">
         <div className="p-20 text-center border-t border-[#222]">
           <EmptyState
-            title={isEs ? "No se encontraron facturas" : "No invoices found"}
-            description={
-              isEs
-                ? "Prueba ajustando tus filtros de búsqueda o crea una nueva factura."
-                : "Try adjusting your search filters or create a new invoice."
-            }
+            title={t("invoices.table.noInvoices")}
+            description={t("invoices.table.noInvoicesHint")}
             icon={FileText}
           />
         </div>

@@ -336,6 +336,7 @@ export function getIncidentTypeLabel(type: IncidentType, language: "en" | "es"):
 export const INVOICE_STATUS_MAP: Record<InvoiceStatus, StatusLocale> = {
   draft: { en: "Draft", es: "Borrador" },
   pending: { en: "Pending", es: "Pendiente" },
+  partially_paid: { en: "Partially Paid", es: "Pagado Parcialmente" },
   paid: { en: "Paid", es: "Pagado" },
   cancelled: { en: "Cancelled", es: "Cancelado" },
 };
@@ -343,6 +344,7 @@ export const INVOICE_STATUS_MAP: Record<InvoiceStatus, StatusLocale> = {
 export const INVOICE_STATUS_COLORS: Record<InvoiceStatus, string> = {
   draft: "badge-warning",
   pending: "badge-warning",
+  partially_paid: "badge-warning",
   paid: "badge-success",
   cancelled: "badge-danger",
 };
