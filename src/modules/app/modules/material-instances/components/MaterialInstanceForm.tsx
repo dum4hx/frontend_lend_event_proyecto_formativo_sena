@@ -59,7 +59,7 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
       console.error("Error fetching locations:", error);
       showToast("error", t("materialInstances.form.toast.loadLocationsError"));
     }
-  }, [showToast]);
+  }, [showToast, t]);
 
   useEffect(() => {
     fetchLocations();
@@ -166,7 +166,7 @@ export const MaterialInstanceForm: React.FC<MaterialInstanceFormProps> = ({
     }
     if (!data.locationId) newErrors.locationId = t("materialInstances.form.validation.locationRequired");
     return newErrors;
-  }, [useBarcodeAsSerial]);
+  }, [useBarcodeAsSerial, t]);
 
   useEffect(() => {
     const validationErrors = validate(formData);

@@ -554,9 +554,10 @@ export function ReturnLoanModal({
         className="bg-zinc-900 border border-zinc-700 rounded-xl p-6 w-full max-w-md shadow-2xl space-y-4"
         data-help-id="loans-return-form"
       >
-        <h2 className="text-xl font-semibold text-white">{t("loans.actions.returnTitle")}</h2>
+        <h2 className="text-xl font-semibold text-white">{t("loans.modal.return.title")}</h2>
+        <p className="text-zinc-400 text-sm">{t("loans.modal.return.subtitle")}</p>
         <p className="text-zinc-400 text-sm">
-          {t("loans.actions.returnMessage")}:{" "}
+          {t("loans.table.code")}: {" "}
           <span className="text-white font-medium">
             {target.loan.code ?? `#${target.loan._id.slice(-8).toUpperCase()}`}
           </span>
@@ -571,7 +572,7 @@ export function ReturnLoanModal({
             disabled={submitting}
             className="bg-green-500 hover:bg-green-600 text-white border-transparent"
           >
-            {submitting ? t("common.processing") : t("loans.actions.confirmReturn")}
+            {submitting ? t("loans.modal.return.submitting") : t("loans.modal.return.submit")}
           </Button>
         </div>
       </div>

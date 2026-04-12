@@ -730,7 +730,7 @@ export default function SignUp() {
 
       return validationErrors;
     },
-    [touched, submitted, selectedState, selectedCity, isNormalizedEqual, isEs],
+    [touched, submitted, selectedState, selectedCity, isNormalizedEqual, isEs, t],
   );
 
   const runValidation = useCallback(

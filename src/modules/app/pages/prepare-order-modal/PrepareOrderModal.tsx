@@ -86,7 +86,7 @@ export default function PrepareOrderModal({
     } finally {
       setLoading(false);
     }
-  }, [requestId]);
+  }, [requestId, t]);
 
   useEffect(() => {
     if (isOpen) {
