@@ -239,7 +239,9 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-400 mb-2">{t("materialInstances.detail.loanCode")}</label>
+            <label className="block text-sm font-medium text-gray-400 mb-2">
+              {relatedCodeLabel ?? t("materialInstances.detail.loanCode")}
+            </label>
             {shouldShowRelatedCode ? (
               <button
                 onClick={() => copy(relatedCodeValue)}

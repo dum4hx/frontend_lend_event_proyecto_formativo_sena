@@ -108,6 +108,8 @@ interface RequestOptions<TBody = unknown> {
   credentialsMode?: RequestCredentials;
   /** Internal flag to ensure a single automatic retry after refresh. */
   _retry?: boolean;
+  /** Optional AbortSignal to cancel in-flight requests. */
+  signal?: AbortSignal;
 }
 
 /** Determines whether the error is transient and retryable. */
@@ -272,6 +274,7 @@ export async function request<TData, TBody = unknown>(
     retryDelay = 1000,
     credentialsMode = "include",
     _retry = false,
+    signal,
   } = options;
 
   const url = buildUrl(path, params);
@@ -284,6 +287,7 @@ export async function request<TData, TBody = unknown>(
       "Content-Type": "application/json",
       ...(headers as Record<string, string> | undefined),
     },
+    signal,
   };
 
   if (body !== undefined) {
@@ -412,8 +416,9 @@ export async function request<TData, TBody = unknown>(
 export function get<TData>(
   path: string,
   params?: Record<string, string | number | boolean | undefined>,
+  options?: Pick<RequestOptions, "signal">,
 ) {
-  return request<TData>(path, { method: "GET", params });
+  return request<TData>(path, { method: "GET", params, ...options });
 }
 
 /** Perform a typed POST request. */
@@ -444,11 +449,13 @@ export function del<TData>(path: string) {
 export function publicGet<TData>(
   path: string,
   params?: Record<string, string | number | boolean | undefined>,
+  options?: Pick<RequestOptions, "signal">,
 ) {
   return request<TData>(path, {
     method: "GET",
     params,
     skipRefresh: true,
     credentialsMode: "omit",
+    ...options,
   });
 }

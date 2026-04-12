@@ -83,6 +83,10 @@ const loansHelpContent: HelpModuleContent = {
           es: "Dentro del detalle del préstamo, use 'Ver factura' en el resumen financiero para abrir la factura de alquiler asociada sin salir del flujo.",
           en: "Inside loan detail, use 'View invoice' in the financial summary to open the related rental invoice without leaving the workflow.",
         },
+        {
+          es: "Dentro del detalle del préstamo, use la búsqueda y filtro por tipo para localizar instancias específicas con paginación en servidor.",
+          en: "Inside loan detail, use materials search and type filter to locate specific instances with server-side pagination.",
+        },
       ],
       bestPractices: [
         {
@@ -206,6 +210,19 @@ const loansHelpContent: HelpModuleContent = {
       tip: {
         es: "Usa el botón 'Ver factura' antes de cerrar el ciclo si necesitas confirmar total, saldo pendiente o líneas facturadas.",
         en: "Use the 'View invoice' button before closing the cycle if you need to confirm total, remaining balance, or billed line items.",
+      },
+    },
+    {
+      id: "step-6-loan-detail-materials",
+      title: { es: "6) Filtra materiales del préstamo", en: "6) Filter loan materials" },
+      body: {
+        es: "En este bloque puedes buscar por serial o código de barras, filtrar por tipo y navegar páginas para revisar materiales asociados al préstamo.",
+        en: "In this block you can search by serial or barcode, filter by type, and navigate pages to review materials linked to the loan.",
+      },
+      targetSelector: '[data-help-id="loans-detail-materials-filters"]',
+      tip: {
+        es: "Los filtros se guardan en la URL para compartir la misma vista con tu equipo.",
+        en: "Filters are persisted in the URL so you can share the same view with your team.",
       },
     },
   ],

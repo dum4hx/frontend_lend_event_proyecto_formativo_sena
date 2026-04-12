@@ -1,6 +1,7 @@
 import { Search, Calendar } from "lucide-react";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import { getUnifiedStatusLabel } from "./helpers";
+import type { UnifiedLoanStatus } from "./types";
 
 // ─── Props ──────────────────────────────────────────────────────────────
 
@@ -114,7 +115,7 @@ export function LoansFilters({
                   : "bg-transparent border-gray-600 text-gray-400 hover:border-gray-500"
               }`}
             >
-              {getUnifiedStatusLabel(state as any, lang)}
+              {getUnifiedStatusLabel(state as UnifiedLoanStatus, lang)}
             </button>
           ))}
         </div>

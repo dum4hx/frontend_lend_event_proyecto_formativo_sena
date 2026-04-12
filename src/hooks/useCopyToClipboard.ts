@@ -32,7 +32,7 @@ export function useCopyToClipboard(options?: UseCopyToClipboardOptions) {
 
       showToast("success", options?.successMessage || "Copiado al portapapeles");
       return true;
-    } catch (error) {
+    } catch {
       showToast("error", options?.errorMessage || "No se pudo copiar");
       return false;
     }
