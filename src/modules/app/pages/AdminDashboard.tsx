@@ -11,12 +11,14 @@ import {
   Package,
   ArrowRight,
   CheckCircle2,
+  Copy,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { StatCard, AdminTable } from "../components";
 import { PageHeader, GreetingCard, IconButton } from "../../../components/ui"; import { RefreshCw } from "lucide-react";
 import { useDashboardStats } from "../hooks/useDashboardStats";
 import { useLanguage } from "../../../contexts/useLanguage";
+import { useCopyToClipboard } from "../../../hooks/useCopyToClipboard";
 import { getLoanRequestStatusLabel, getLoanStatusLabel } from "../../../utils/statusLabels";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -58,6 +60,7 @@ const LOAN_BADGE: Record<string, string> = {
 
 export default function AdminDashboard() {
   const { language, locale } = useLanguage();
+  const { copy } = useCopyToClipboard();
   const isEs = language === "es";
   const location = useLocation();
   const [showGreeting, setShowGreeting] = useState(
@@ -213,8 +216,18 @@ export default function AdminDashboard() {
                     className="border-b border-[#222] hover:bg-[#1a1a1a] transition-colors text-sm"
                   >
                     <td className="px-4 py-3 font-mono font-medium">
-                      <Link to="/app/orders" className="entity-link">
-                        {req.code ?? shortId(req._id)}
+                      <Link to="/app/orders" className="entity-link flex items-center gap-2 group/copy">
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            copy(req.code ?? shortId(req._id));
+                          }}
+                          className="hover:text-[#FFD700] transition-colors"
+                          title="Haz click para copiar"
+                        >
+                          {req.code ?? shortId(req._id)}
+                          <Copy size={14} className="opacity-0 group-hover/copy:opacity-100 transition-opacity inline" />
+                        </button>
                       </Link>
                     </td>
                     <td className="px-4 py-3 text-gray-300">
@@ -389,8 +402,18 @@ export default function AdminDashboard() {
                   className="border-b border-[#222] hover:bg-[#1a1a1a] transition-colors text-sm"
                 >
                   <td className="px-4 py-3 font-mono font-medium">
-                    <Link to="/app/rentals" className="entity-link">
-                      {loan.code ?? shortId(loan._id)}
+                    <Link to="/app/rentals" className="entity-link flex items-center gap-2 group/copy">
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          copy(loan.code ?? shortId(loan._id));
+                        }}
+                        className="hover:text-[#FFD700] transition-colors"
+                        title="Haz click para copiar"
+                      >
+                        {loan.code ?? shortId(loan._id)}
+                        <Copy size={14} className="opacity-0 group-hover/copy:opacity-100 transition-opacity inline" />
+                      </button>
                     </Link>
                   </td>
                   <td className="px-4 py-3 text-gray-400">{fmtDate(loan.endDate, locale)}</td>

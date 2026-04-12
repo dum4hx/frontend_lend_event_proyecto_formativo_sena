@@ -12,9 +12,11 @@ import {
   User,
   FileText,
   Info,
+  Copy,
 } from "lucide-react";
 import { useToast } from "../../../../contexts/ToastContext";
 import { useLanguage } from "../../../../contexts/useLanguage";
+import { useCopyToClipboard } from "../../../../hooks/useCopyToClipboard";
 import { SearchableSelect, EntityLink } from "../../../../components/ui";
 import type { SelectOption } from "../../../../components/ui";
 import {
@@ -858,6 +860,7 @@ export const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
 }) => {
   const { showToast } = useToast();
   const { language } = useLanguage();
+  const { copy } = useCopyToClipboard();
   const isEs = language === "es";
   const [instances, setInstances] = useState<MaterialInstance[]>([]);
   const [selectedItems, setSelectedItems] = useState<TransferItem[]>([]);
@@ -1033,9 +1036,17 @@ export const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
                           className="accent-[#FFD700] w-4 h-4 shrink-0"
                         />
                         <div className="flex flex-col min-w-0">
-                          <span className="text-sm text-gray-200 font-medium truncate">
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              copy(inst.serialNumber);
+                            }}
+                            className="text-sm text-gray-200 font-medium truncate hover:text-[#FFD700] hover:underline transition-colors flex items-center gap-1 group/copy"
+                            title="Haz click para copiar"
+                          >
                             {inst.serialNumber}
-                          </span>
+                            <Copy size={13} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+                          </button>
                           <span className="text-xs text-gray-500">
                             {getInstanceModelName(inst, isEs)}
                           </span>
@@ -1218,9 +1229,16 @@ export const InitiateShipmentModal: React.FC<InitiateShipmentModalProps> = ({
                               return (
                                 <div
                                   key={inst._id}
-                                  className="flex items-center justify-between text-xs"
+                                  className="flex items-center justify-between text-xs gap-2"
                                 >
-                                  <span className="text-gray-300">{inst.serialNumber}</span>
+                                  <button
+                                    onClick={() => copy(inst.serialNumber)}
+                                    className="text-gray-300 hover:text-[#FFD700] hover:underline transition-colors flex items-center gap-1 group/copy"
+                                    title="Haz click para copiar"
+                                  >
+                                    {inst.serialNumber}
+                                    <Copy size={11} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+                                  </button>
                                   {condition && (
                                     <span className="text-gray-500">
                                       {getConditionLabel(condition, language)}

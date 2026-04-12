@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { FileText, X, DollarSign, Package, ClipboardList } from "lucide-react";
+import { FileText, X, DollarSign, Package, ClipboardList, Copy } from "lucide-react";
 import { useLanguage } from "../../../contexts/useLanguage";
+import { useCopyToClipboard } from "../../../hooks/useCopyToClipboard";
 import { LoadingSpinner, ErrorDisplay, EntityLink } from "../../../components/ui";
 import Button from "../../../components/ui/Button";
 import { getInvoiceById } from "../../../services/invoiceService";
@@ -82,6 +83,7 @@ export function InvoiceDetailModal({
   showActions = true,
 }: InvoiceDetailModalProps) {
   const { language, locale } = useLanguage();
+  const { copy } = useCopyToClipboard();
   const isEs = language === "es";
 
   const [detail, setDetail] = useState<Invoice | null>(null);
@@ -212,7 +214,14 @@ export function InvoiceDetailModal({
                 {isEs ? "Detalles de Factura" : "Invoice Details"}
               </h2>
               {detail && (
-                <p className="text-xs text-gray-500 font-mono mt-0.5">{detail.invoiceNumber}</p>
+                <button
+                  onClick={() => copy(detail.invoiceNumber)}
+                  className="text-xs text-gray-500 font-mono mt-0.5 hover:text-[#FFD700] transition-colors flex items-center gap-1 group/copy"
+                  title="Haz click para copiar"
+                >
+                  {detail.invoiceNumber}
+                  <Copy size={12} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+                </button>
               )}
             </div>
           </div>
@@ -247,7 +256,14 @@ export function InvoiceDetailModal({
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-[#1a1a1a] border border-[#222] rounded-lg p-4">
                   <p className="text-gray-400 text-xs mb-1">{isEs ? "# Factura" : "Invoice #"}</p>
-                  <p className="text-white font-mono text-sm">{detail.invoiceNumber}</p>
+                  <button
+                    onClick={() => copy(detail.invoiceNumber)}
+                    className="text-white font-mono text-sm hover:text-[#FFD700] transition-colors flex items-center gap-1 group/copy"
+                    title="Haz click para copiar"
+                  >
+                    {detail.invoiceNumber}
+                    <Copy size={14} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+                  </button>
                 </div>
                 <div className="bg-[#1a1a1a] border border-[#222] rounded-lg p-4">
                   <p className="text-gray-400 text-xs mb-1">{isEs ? "Tipo" : "Type"}</p>
@@ -279,7 +295,14 @@ export function InvoiceDetailModal({
                       <Package size={12} className="inline mr-1" />
                       {isEs ? "Préstamo" : "Loan"}
                     </p>
-                    <p className="text-white font-mono text-sm">{getLoanCode(detail.loanId)}</p>
+                    <button
+                      onClick={() => copy(getLoanCode(detail.loanId) || "")}
+                      className="text-white font-mono text-sm hover:text-[#FFD700] hover:underline transition-colors flex items-center gap-1 group/copy"
+                      title="Haz click para copiar"
+                    >
+                      {getLoanCode(detail.loanId)}
+                      <Copy size={12} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+                    </button>
                   </div>
                 )}
                 {getInspectionNumber(detail.inspectionId) && (
@@ -288,9 +311,14 @@ export function InvoiceDetailModal({
                       <ClipboardList size={12} className="inline mr-1" />
                       {isEs ? "Inspección" : "Inspection"}
                     </p>
-                    <p className="text-white font-mono text-sm">
+                    <button
+                      onClick={() => copy(getInspectionNumber(detail.inspectionId) || "")}
+                      className="text-white font-mono text-sm hover:text-[#FFD700] hover:underline transition-colors flex items-center gap-1 group/copy"
+                      title="Haz click para copiar"
+                    >
                       {getInspectionNumber(detail.inspectionId)}
-                    </p>
+                      <Copy size={12} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+                    </button>
                   </div>
                 )}
                 {detail.dueDate && (

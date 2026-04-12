@@ -1,6 +1,7 @@
 import React from "react";
-import { History, Eye, CheckCircle, AlertTriangle, XCircle, FileText } from "lucide-react";
+import { History, Eye, CheckCircle, AlertTriangle, XCircle, FileText, Copy } from "lucide-react";
 import { useLanguage } from "../../../../../contexts/useLanguage";
+import { useCopyToClipboard } from "../../../../../hooks/useCopyToClipboard";
 import type { InspectionListItem, InspectionItemResponse } from "../../../../../types/api";
 
 interface CompletedInspectionsTableProps {
@@ -16,6 +17,7 @@ export const CompletedInspectionsTable: React.FC<CompletedInspectionsTableProps>
   onView,
 }) => {
   const { t, formatDate } = useLanguage();
+  const { copy } = useCopyToClipboard();
 
   if (inspections.length === 0) {
     return (
@@ -78,18 +80,32 @@ export const CompletedInspectionsTable: React.FC<CompletedInspectionsTableProps>
               >
                 <td className="py-5 px-6">
                   <div className="flex flex-col">
-                    <span className="text-white font-mono text-xs group-hover:text-[#FFD700] transition-colors">
+                    <button
+                      onClick={() => copy(inspection.inspectionNumber ?? `${inspection._id.slice(-8).toUpperCase()}`)}
+                      className="text-white font-mono text-xs group-hover:text-[#FFD700] hover:underline transition-colors flex items-center gap-1 group/copy w-fit"
+                      title="Haz click para copiar"
+                    >
                       {inspection.inspectionNumber ?? `#${inspection._id.slice(-8).toUpperCase()}`}
-                    </span>
+                      <Copy size={11} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+                    </button>
                   </div>
                 </td>
                 <td className="py-5 px-6">
-                  <span className="text-gray-400 font-mono text-xs group-hover:text-gray-300">
+                  <button
+                    onClick={() => copy(
+                      typeof inspection.loanId === "string"
+                        ? inspection.loanId
+                        : (inspection.loanId.code ?? `${inspection.loanId._id.slice(-8).toUpperCase()}`)
+                    )}
+                    className="text-gray-400 font-mono text-xs group-hover:text-[#FFD700] hover:underline transition-colors flex items-center gap-1 group/copy"
+                    title="Haz click para copiar"
+                  >
                     {typeof inspection.loanId === "string"
                       ? inspection.loanId
                       : (inspection.loanId.code ??
                         `#${inspection.loanId._id.slice(-8).toUpperCase()}`)}
-                  </span>
+                    <Copy size={11} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+                  </button>
                 </td>
                 <td className="py-5 px-6">
                   <span className="text-gray-400 text-xs">

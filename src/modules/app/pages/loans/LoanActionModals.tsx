@@ -7,9 +7,11 @@ import {
   Ban,
   RotateCcw,
   CreditCard,
+  Copy,
 } from "lucide-react";
 import { Button } from "../../../../components/ui";
 import { useLanguage } from "../../../../contexts/useLanguage";
+import { useCopyToClipboard } from "../../../../hooks/useCopyToClipboard";
 import type { UnifiedLoanView } from "./types";
 import { formatDate } from "./helpers";
 import { validateExtensionFee } from "../../../../utils/validators";
@@ -50,6 +52,7 @@ export function RejectLoanModal({
   submitting,
 }: RejectLoanModalProps) {
   const { t } = useLanguage();
+  const { copy } = useCopyToClipboard();
   const [reason, setReason] = useState("");
 
   if (!show || !target) return null;
@@ -75,9 +78,14 @@ export function RejectLoanModal({
 
         <p className="text-zinc-400 text-sm">
           {t("loans.actions.rejectMessage")}:{" "}
-          <span className="text-white font-medium">
+          <button
+            onClick={() => copy(target.request.code ?? target.request._id)}
+            className="text-white font-medium hover:text-[#FFD700] hover:underline transition-colors flex items-center gap-1 group/copy inline"
+            title="Haz click para copiar"
+          >
             {target.request.code ?? `#${target.request._id.slice(-8).toUpperCase()}`}
-          </span>
+            <Copy size={14} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+          </button>
         </p>
 
         <div>
@@ -129,6 +137,7 @@ export function CancelLoanModal({
   submitting,
 }: CancelLoanModalProps) {
   const { t } = useLanguage();
+  const { copy } = useCopyToClipboard();
   const [reason, setReason] = useState("");
 
   if (!show || !target) return null;
@@ -154,9 +163,14 @@ export function CancelLoanModal({
 
         <p className="text-zinc-400 text-sm">
           {t("loans.actions.cancelMessage")}:{" "}
-          <span className="text-white font-medium">
+          <button
+            onClick={() => copy(target.request.code ?? target.request._id)}
+            className="text-white font-medium hover:text-[#FFD700] hover:underline transition-colors flex items-center gap-1 group/copy inline"
+            title="Haz click para copiar"
+          >
             {target.request.code ?? `#${target.request._id.slice(-8).toUpperCase()}`}
-          </span>
+            <Copy size={14} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+          </button>
         </p>
 
         <div>
@@ -208,6 +222,7 @@ export function ReactivateLoanModal({
   submitting,
 }: ReactivateLoanModalProps) {
   const { t } = useLanguage();
+  const { copy } = useCopyToClipboard();
   const [reason, setReason] = useState("");
 
   if (!show || !target) return null;
@@ -233,9 +248,14 @@ export function ReactivateLoanModal({
 
         <p className="text-zinc-400 text-sm">
           {t("loans.actions.reactivateMessage")}:{" "}
-          <span className="text-white font-medium">
+          <button
+            onClick={() => copy(target.request.code ?? target.request._id)}
+            className="text-white font-medium hover:text-[#FFD700] hover:underline transition-colors flex items-center gap-1 group/copy inline"
+            title="Haz click para copiar"
+          >
             {target.request.code ?? `#${target.request._id.slice(-8).toUpperCase()}`}
-          </span>
+            <Copy size={14} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+          </button>
         </p>
 
         <div>
@@ -287,6 +307,7 @@ export function RecordPaymentModal({
   submitting,
 }: RecordPaymentModalProps) {
   const { t } = useLanguage();
+  const { copy } = useCopyToClipboard();
 
   if (!show || !target) return null;
 
@@ -311,9 +332,14 @@ export function RecordPaymentModal({
 
         <p className="text-zinc-400 text-sm">
           {t("loans.actions.recordPaymentMessage")}:{" "}
-          <span className="text-white font-medium">
+          <button
+            onClick={() => copy(target.request.code ?? target.request._id)}
+            className="text-white font-medium hover:text-[#FFD700] hover:underline transition-colors flex items-center gap-1 group/copy inline"
+            title="Haz click para copiar"
+          >
             {target.request.code ?? `#${target.request._id.slice(-8).toUpperCase()}`}
-          </span>
+            <Copy size={14} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+          </button>
         </p>
 
         {target.request.depositAmount != null && (
@@ -362,6 +388,7 @@ export function RecordRentalPaymentModal({
   submitting,
 }: RecordRentalPaymentModalProps) {
   const { t } = useLanguage();
+  const { copy } = useCopyToClipboard();
 
   if (!show || !target) return null;
 
@@ -386,9 +413,14 @@ export function RecordRentalPaymentModal({
 
         <p className="text-zinc-400 text-sm">
           {t("loans.actions.recordRentalPaymentMessage")}:{" "}
-          <span className="text-white font-medium">
+          <button
+            onClick={() => copy(target.request.code ?? target.request._id)}
+            className="text-white font-medium hover:text-[#FFD700] hover:underline transition-colors flex items-center gap-1 group/copy inline"
+            title="Haz click para copiar"
+          >
             {target.request.code ?? `#${target.request._id.slice(-8).toUpperCase()}`}
-          </span>
+            <Copy size={14} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+          </button>
         </p>
 
         {target.request.totalAmount != null && (
@@ -449,6 +481,7 @@ export function ExtendLoanModal({
   submitting,
 }: ExtendLoanModalProps) {
   const { t } = useLanguage();
+  const { copy } = useCopyToClipboard();
 
   if (!show || !target || !target.loan) return null;
 
@@ -476,9 +509,14 @@ export function ExtendLoanModal({
 
         <p className="text-zinc-400 text-sm">
           {t("loans.actions.extendMessage")}:{" "}
-          <span className="text-white font-medium">
+          <button
+            onClick={() => copy(target!.loan!.code ?? target!.loan!._id)}
+            className="text-white font-medium hover:text-[#FFD700] hover:underline transition-colors flex items-center gap-1 group/copy inline"
+            title="Haz click para copiar"
+          >
             {target.loan.code ?? `#${target.loan._id.slice(-8).toUpperCase()}`}
-          </span>
+            <Copy size={14} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+          </button>
           {" — "}
           <span className="text-white font-medium">{target.customerName}</span>
         </p>
@@ -583,6 +621,7 @@ export function ReturnLoanModal({
   submitting,
 }: ReturnLoanModalProps) {
   const { t } = useLanguage();
+  const { copy } = useCopyToClipboard();
 
   if (!show || !target || !target.loan) return null;
 
@@ -596,9 +635,14 @@ export function ReturnLoanModal({
         <p className="text-zinc-400 text-sm">{t("loans.modal.return.subtitle")}</p>
         <p className="text-zinc-400 text-sm">
           {t("loans.table.code")}:{" "}
-          <span className="text-white font-medium">
+          <button
+            onClick={() => copy(target!.loan!.code ?? target!.loan!._id)}
+            className="text-white font-medium hover:text-[#FFD700] hover:underline transition-colors flex items-center gap-1 group/copy inline"
+            title="Haz click para copiar"
+          >
             {target.loan.code ?? `#${target.loan._id.slice(-8).toUpperCase()}`}
-          </span>
+            <Copy size={14} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+          </button>
         </p>
 
         <div className="flex gap-3 justify-end">
@@ -640,6 +684,7 @@ export function RefundDepositModal({
   submitting,
 }: RefundDepositModalProps) {
   const { t } = useLanguage();
+  const { copy } = useCopyToClipboard();
 
   if (!show || !target || !target.loan) return null;
 
@@ -711,6 +756,7 @@ export function CompleteLoanModal({
   submitting,
 }: CompleteLoanModalProps) {
   const { t } = useLanguage();
+  const { copy } = useCopyToClipboard();
 
   if (!show || !target || !target.loan) return null;
 
@@ -730,9 +776,14 @@ export function CompleteLoanModal({
         <h2 className="text-xl font-semibold text-white">{t("loans.actions.completeTitle")}</h2>
         <p className="text-zinc-400 text-sm">
           {t("loans.actions.completeMessage")}:{" "}
-          <span className="text-white font-medium">
+          <button
+            onClick={() => copy(target!.loan!.code ?? target!.loan!._id)}
+            className="text-white font-medium hover:text-[#FFD700] hover:underline transition-colors flex items-center gap-1 group/copy inline"
+            title="Haz click para copiar"
+          >
             {target.loan.code ?? `#${target.loan._id.slice(-8).toUpperCase()}`}
-          </span>
+            <Copy size={14} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+          </button>
           {" — "}
           <span className="text-white font-medium">{target.customerName}</span>
         </p>

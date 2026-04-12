@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { CalendarRange, X, Package, ChevronDown, ChevronUp, CheckCircle } from "lucide-react";
+import { CalendarRange, X, Package, ChevronDown, ChevronUp, CheckCircle, Copy } from "lucide-react";
 import { Button } from "../../../../components/ui";
+import { useCopyToClipboard } from "../../../../hooks/useCopyToClipboard";
 import type { LoanView } from "./types";
 import type { LoanDetailGrouped, LoanMaterialInstanceEntry } from "../../../../types/api";
 import { getLoanDetailGrouped } from "../../../../services/loanService";
@@ -119,6 +120,7 @@ function formatDateLocal(dateStr: string, locale: string): string {
 }
 
 export function LoanDetailModal({ show, onClose, target, locale, isEs }: LoanDetailModalProps) {
+  const { copy } = useCopyToClipboard();
   const [loanDetail, setLoanDetail] = useState<LoanDetailGrouped | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
@@ -180,9 +182,14 @@ export function LoanDetailModal({ show, onClose, target, locale, isEs }: LoanDet
               <label className="block text-xs font-medium text-gray-400 mb-1 uppercase tracking-wide">
                 {isEs ? "Código préstamo" : "Loan Code"}
               </label>
-              <p className="text-white font-mono font-semibold">
+              <button
+                onClick={() => copy(target.loan.code ?? `#${target.loan._id.slice(-8).toUpperCase()}`)}
+                className="text-white font-mono font-semibold hover:text-[#FFD700] transition-colors flex items-center gap-1 group/copy"
+                title="Haz click para copiar"
+              >
                 {target.loan.code ?? `#${target.loan._id.slice(-8).toUpperCase()}`}
-              </p>
+                <Copy size={14} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+              </button>
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-400 mb-1 uppercase tracking-wide">
@@ -205,10 +212,15 @@ export function LoanDetailModal({ show, onClose, target, locale, isEs }: LoanDet
                 <label className="block text-xs font-medium text-gray-400 mb-1 uppercase tracking-wide">
                   {isEs ? "Código solicitud" : "Request Code"}
                 </label>
-                <p className="text-white font-mono text-xs">
+                <button
+                  onClick={() => copy(target.loan.requestCode ?? `#${String(target.loan.requestId).slice(-8).toUpperCase()}`)}
+                  className="text-white font-mono text-xs hover:text-[#FFD700] transition-colors flex items-center gap-1 group/copy"
+                  title="Haz click para copiar"
+                >
                   {target.loan.requestCode ??
                     `#${String(target.loan.requestId).slice(-8).toUpperCase()}`}
-                </p>
+                  <Copy size={12} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+                </button>
               </div>
             )}
             <div>
@@ -359,9 +371,14 @@ export function LoanDetailModal({ show, onClose, target, locale, isEs }: LoanDet
                           key={entry.materialInstanceId._id}
                           className="flex items-center justify-between px-4 py-3"
                         >
-                          <span className="text-white font-mono text-sm">
+                          <button
+                            onClick={() => copy(entry.materialInstanceId.serialNumber)}
+                            className="text-white font-mono text-sm hover:text-[#FFD700] hover:underline transition-colors flex items-center gap-1 group/copy"
+                            title="Haz click para copiar"
+                          >
                             {entry.materialInstanceId.serialNumber}
-                          </span>
+                            <Copy size={13} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+                          </button>
                           <span className="text-xs text-gray-400 capitalize">
                             {entry.materialInstanceId.status}
                           </span>
@@ -403,6 +420,7 @@ export function ExtendLoanModal({
   submitting,
   isEs,
 }: ExtendLoanModalProps) {
+  const { copy } = useCopyToClipboard();
   if (!show || !target) return null;
 
   return (
@@ -419,9 +437,14 @@ export function ExtendLoanModal({
         </h2>
         <p className="text-zinc-400 text-sm">
           {isEs ? "Extendiendo prestamo" : "Extending loan"}{" "}
-          <span className="text-white font-medium">
+          <button
+            onClick={() => copy(target.loan.code ?? `#${target.loan._id.slice(-8).toUpperCase()}`)}
+            className="text-white font-medium hover:text-[#FFD700] transition-colors inline-flex items-center gap-1 group/copy"
+            title="Haz click para copiar"
+          >
             {target.loan.code ?? `#${target.loan._id.slice(-8).toUpperCase()}`}
-          </span>{" "}
+            <Copy size={14} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+          </button>{" "}
           {isEs ? "para" : "for"}{" "}
           <span className="text-white font-medium">{customerFullName(target.customer)}</span>
         </p>
@@ -494,6 +517,7 @@ export function ReturnLoanModal({
   submitting,
   isEs,
 }: ReturnLoanModalProps) {
+  const { copy } = useCopyToClipboard();
   if (!show || !target) return null;
 
   return (
@@ -510,9 +534,14 @@ export function ReturnLoanModal({
         </h2>
         <p className="text-zinc-400 text-sm">
           {isEs ? "Marcar prestamo" : "Mark loan"}{" "}
-          <span className="text-white font-medium">
+          <button
+            onClick={() => copy(target.loan.code ?? `#${target.loan._id.slice(-8).toUpperCase()}`)}
+            className="text-white font-medium hover:text-[#FFD700] transition-colors inline-flex items-center gap-1 group/copy"
+            title="Haz click para copiar"
+          >
             {target.loan.code ?? `#${target.loan._id.slice(-8).toUpperCase()}`}
-          </span>{" "}
+            <Copy size={14} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+          </button>{" "}
           {isEs ? "como devuelto?" : "as returned?"}
         </p>
         <div className="flex gap-3 justify-end">
@@ -556,6 +585,7 @@ export function RefundDepositModal({
   submitting,
   isEs,
 }: RefundDepositModalProps) {
+  const { copy } = useCopyToClipboard();
   if (!show || !target) return null;
 
   return (
@@ -636,6 +666,7 @@ export function CompleteLoanModal({
   submitting,
   isEs,
 }: CompleteLoanModalProps) {
+  const { copy } = useCopyToClipboard();
   if (!show || !target) return null;
 
   const depositResolved =

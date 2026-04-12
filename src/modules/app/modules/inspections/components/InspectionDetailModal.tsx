@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { X, CheckCircle, AlertTriangle, XCircle, FileText, User, Clock, Eye } from "lucide-react";
+import { X, CheckCircle, AlertTriangle, XCircle, FileText, User, Clock, Eye, Copy } from "lucide-react";
 import { useLanguage } from "../../../../../contexts/useLanguage";
+import { useCopyToClipboard } from "../../../../../hooks/useCopyToClipboard";
 import { EntityLink } from "../../../../../components/ui";
 import type { InspectionListItem, MaterialInstance } from "../../../../../types/api";
 import { getMaterialInstance } from "../../../../../services/materialService";
@@ -19,6 +20,7 @@ export const InspectionDetailModal: React.FC<InspectionDetailModalProps> = ({
   onClose,
 }) => {
   const { t, formatCurrency: formatCurrencyLocale } = useLanguage();
+  const { copy } = useCopyToClipboard();
   const [selectedInstance, setSelectedInstance] = useState<MaterialInstance | null>(null);
   const [loadingInstance, setLoadingInstance] = useState(false);
 
@@ -139,12 +141,14 @@ export const InspectionDetailModal: React.FC<InspectionDetailModalProps> = ({
                 <label className="block text-xs text-gray-400 mb-1 uppercase">
                   {t("inspections.loanIdDetail")}
                 </label>
-                <EntityLink
-                  entityType="loan"
-                  entityId={inspection.loanId._id}
-                  label={inspection.loanId.code ?? inspection.loanId._id}
-                  className="font-mono break-all font-medium"
-                />
+                <button
+                  onClick={() => copy(inspection.loanId.code ?? inspection.loanId._id)}
+                  className="font-mono break-all font-medium text-blue-400 hover:text-[#FFD700] hover:underline transition-colors flex items-center gap-1 group/copy inline"
+                  title="Haz click para copiar"
+                >
+                  {inspection.loanId.code ?? inspection.loanId._id}
+                  <Copy size={12} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+                </button>
               </div>
             </div>
           </div>
@@ -174,11 +178,21 @@ export const InspectionDetailModal: React.FC<InspectionDetailModalProps> = ({
                               {item.materialType?.name || t("inspections.notAvailable")}
                             </p>
                             <p className="text-xs text-gray-400 font-mono mt-2">
-                              {t("inspections.serialNumber")}: <span className="text-gray-300 font-medium">
+                              {t("inspections.serialNumber")}: 
+                              <button
+                                onClick={() => copy(
+                                  typeof item.materialInstanceId === "string"
+                                    ? item.materialInstanceId
+                                    : item.materialInstanceId.serialNumber
+                                )}
+                                className="ml-1 text-gray-300 font-medium hover:text-[#FFD700] hover:underline transition-colors inline-flex items-center gap-1 group/copy"
+                                title="Haz click para copiar"
+                              >
                                 {typeof item.materialInstanceId === "string"
                                   ? item.materialInstanceId
                                   : item.materialInstanceId.serialNumber}
-                              </span>
+                                <Copy size={11} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+                              </button>
                             </p>
                             <p className="text-xs text-gray-500 italic">{status.label}</p>
                           </div>

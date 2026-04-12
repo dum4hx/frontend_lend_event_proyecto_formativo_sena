@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { X, Package, ChevronDown, ChevronUp, DollarSign, FileText } from "lucide-react";
+import { X, Package, ChevronDown, ChevronUp, DollarSign, Copy, FileText } from "lucide-react";
 import { IconButton, EntityLink } from "../../../../components/ui";
 import { useLanguage } from "../../../../contexts/useLanguage";
+import { useCopyToClipboard } from "../../../../hooks/useCopyToClipboard";
 import type { UnifiedLoanView } from "./types";
 import { UNIFIED_WORKFLOW_STEPS, TERMINAL_STATUSES } from "./types";
 import {
@@ -53,6 +54,7 @@ function pickLoanInvoice(invoices: Invoice[], loanId: string): Invoice | null {
 
 export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
   const { language, t } = useLanguage();
+  const { copy } = useCopyToClipboard();
   const lang = language === "es" ? "es" : "en";
   const isEs = lang === "es";
 
@@ -537,9 +539,14 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
                               key={entry.materialInstanceId._id}
                               className="flex items-center gap-3 px-4 py-3"
                             >
-                              <span className="text-white font-mono text-sm flex-1">
+                              <button
+                                onClick={() => copy(entry.materialInstanceId.serialNumber)}
+                                className="text-white font-mono text-sm flex-1 hover:text-[#FFD700] hover:underline transition-colors flex items-center gap-1 group/copy text-left"
+                                title="Haz click para copiar"
+                              >
                                 {entry.materialInstanceId.serialNumber}
-                              </span>
+                                <Copy size={13} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+                              </button>
                               {entry.conditionAtCheckout && (
                                 <span
                                   className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
