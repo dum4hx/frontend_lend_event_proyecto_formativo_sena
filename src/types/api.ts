@@ -610,6 +610,8 @@ export interface Loan {
   locationId?: string;
   checkedOutBy?: PopulatedUserRef;
   checkedOutAt?: string;
+  preparedBy?: PopulatedUserRef;
+  preparedAt?: string;
   pricingSnapshot?: PricingSnapshotItem[];
   createdAt?: string;
   updatedAt?: string;

@@ -51,7 +51,7 @@ export const WORKFLOW_STEPS: Array<{ status: WorkflowStatus; labelEn: string; la
   { status: "order_created", labelEn: "Order Created", labelEs: "Pedido creado" },
   { status: "order_deposit_pending", labelEn: "Deposit Pending", labelEs: "Depósito pendiente" },
   { status: "order_approved", labelEn: "Order Approved", labelEs: "Pedido aprobado" },
-  { status: "order_assigned", labelEn: "Materials Assigned", labelEs: "Materiales asignados" },
+  { status: "order_assigned", labelEn: "Materials Prepared", labelEs: "Materiales preparados" },
   { status: "order_shipped", labelEn: "Ready for Checkout", labelEs: "Listo para despacho" },
   { status: "order_in_use", labelEn: "Order In Use / Loaned", labelEs: "Pedido en uso / prestado" },
   {
