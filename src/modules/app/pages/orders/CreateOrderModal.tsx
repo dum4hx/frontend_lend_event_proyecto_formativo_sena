@@ -602,8 +602,15 @@ export function CreateOrderModal({
 
     if (formData.depositAmount === "") {
       nextErrors.depositAmount = isEs
-        ? "Ingresa el monto del depósito (o 0 si no aplica)."
-        : "Please enter a deposit amount (or 0 for no deposit conditions).";
+        ? "El monto del depósito es obligatorio."
+        : "Deposit amount is required.";
+    } else {
+      const depositAmountNum = Number(formData.depositAmount);
+      if (!Number.isFinite(depositAmountNum) || depositAmountNum <= 0) {
+        nextErrors.depositAmount = isEs
+          ? "El monto del depósito debe ser mayor a 0."
+          : "Deposit amount must be greater than 0.";
+      }
     }
 
     const draftRowsToValidate = formItems.filter((item) => !isFormDraftItemEmpty(item));

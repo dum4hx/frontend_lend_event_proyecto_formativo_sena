@@ -6,6 +6,7 @@ export type EntityType =
   | "materialInstance"
   | "location"
   | "category"
+  | "loan"
   | "transferRequest";
 
 export interface EntityDetailContextValue {

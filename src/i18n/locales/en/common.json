@@ -752,6 +752,8 @@
   "orders.shipError": "Failed to ship order",
   "orders.shipErrorTitle": "Ship Error",
   "orders.validationErrorTitle": "Validation Error",
+  "orders.depositAmountRequired": "Deposit amount is required.",
+  "orders.depositAmountMustBeGreaterThanZero": "Deposit amount must be greater than 0.",
   "orders.loadWarning": "Some data could not be loaded: {sources}. {reason}",
   "orders.loadWarningFallback": "Request failed",
   "orders.loadError": "Failed to load orders",

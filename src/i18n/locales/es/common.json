@@ -756,6 +756,8 @@
   "orders.shipError": "No se pudo despachar el pedido",
   "orders.shipErrorTitle": "Error de despacho",
   "orders.validationErrorTitle": "Error de validación",
+  "orders.depositAmountRequired": "El monto del depósito es obligatorio.",
+  "orders.depositAmountMustBeGreaterThanZero": "El monto del depósito debe ser mayor a 0.",
   "orders.loadWarning": "Algunos datos no pudieron cargarse: {sources}. {reason}",
   "orders.loadWarningFallback": "La solicitud falló",
   "orders.loadError": "No se pudieron cargar los pedidos",

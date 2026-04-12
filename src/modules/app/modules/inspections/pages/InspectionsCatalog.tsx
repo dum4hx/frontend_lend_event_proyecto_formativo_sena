@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ClipboardCheck, History, Search, RefreshCcw, CheckCircle2, XCircle } from "lucide-react";
+import { ClipboardCheck, History, Search, RefreshCcw, CheckCircle2, XCircle, Copy, Check } from "lucide-react";
 import { useLanguage } from "../../../../../contexts/useLanguage";
 import { usePermissions } from "../../../../../contexts/usePermissions";
 import { useActionPermission } from "../../../../../hooks/useActionPermission";
@@ -37,6 +37,21 @@ export const InspectionsCatalog: React.FC = () => {
     inspectionNumber: string;
   } | null>(null);
   const [errorNotification, setErrorNotification] = useState<string | null>(null);
+  const [copiedInspectionCode, setCopiedInspectionCode] = useState<string | null>(null);
+
+  const handleCopyInspectionCode = async (inspectionNumber: string) => {
+    try {
+      await navigator.clipboard.writeText(inspectionNumber);
+      setCopiedInspectionCode(inspectionNumber);
+      window.setTimeout(() => {
+        setCopiedInspectionCode((current) =>
+          current === inspectionNumber ? null : current,
+        );
+      }, 2500);
+    } catch {
+      setErrorNotification(t("inspections.copyCodeFailed"));
+    }
+  };
 
   const handleSaveInspection = async (payload: CreateInspectionPayload): Promise<Inspection> => {
     try {
@@ -121,9 +136,28 @@ export const InspectionsCatalog: React.FC = () => {
             <p className="text-sm mt-1 text-green-400/80">
               {t("inspections.saveSuccessBody", { code: successNotification.inspectionNumber })}
             </p>
+            <div className="mt-3">
+              <button
+                type="button"
+                onClick={() => void handleCopyInspectionCode(successNotification.inspectionNumber)}
+                className="inline-flex items-center gap-2 rounded-lg border border-green-400/30 bg-green-950/30 px-3 py-1.5 text-xs font-semibold text-green-200 hover:bg-green-900/40 transition-colors"
+              >
+                {copiedInspectionCode === successNotification.inspectionNumber ? (
+                  <Check className="w-3.5 h-3.5 text-green-300" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5" />
+                )}
+                {copiedInspectionCode === successNotification.inspectionNumber
+                  ? t("inspections.codeCopied")
+                  : t("inspections.copyCode")}
+              </button>
+            </div>
           </div>
           <button
-            onClick={() => setSuccessNotification(null)}
+            onClick={() => {
+              setSuccessNotification(null);
+              setCopiedInspectionCode(null);
+            }}
             className="text-green-500 hover:text-green-300 transition-colors flex-shrink-0"
             aria-label={t("inspections.dismissToast")}
           >

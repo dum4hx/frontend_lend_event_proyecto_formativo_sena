@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { X, CheckCircle, AlertTriangle, XCircle, FileText, User, Clock, Eye } from "lucide-react";
 import { useLanguage } from "../../../../../contexts/useLanguage";
+import { EntityLink } from "../../../../../components/ui";
 import type { InspectionListItem, MaterialInstance } from "../../../../../types/api";
 import { getMaterialInstance } from "../../../../../services/materialService";
 import { MaterialInstanceDetailModal } from "../../material-instances/components/MaterialInstanceDetailModal";
@@ -138,9 +139,12 @@ export const InspectionDetailModal: React.FC<InspectionDetailModalProps> = ({
                 <label className="block text-xs text-gray-400 mb-1 uppercase">
                   {t("inspections.loanIdDetail")}
                 </label>
-                <p className="text-white font-mono break-all font-medium">
-                  {inspection.loanId.code ?? inspection.loanId._id}
-                </p>
+                <EntityLink
+                  entityType="loan"
+                  entityId={inspection.loanId._id}
+                  label={inspection.loanId.code ?? inspection.loanId._id}
+                  className="font-mono break-all font-medium"
+                />
               </div>
             </div>
           </div>
