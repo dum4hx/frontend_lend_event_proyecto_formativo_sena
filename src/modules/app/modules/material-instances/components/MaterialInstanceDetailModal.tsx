@@ -17,6 +17,7 @@ interface MaterialInstanceDetailModalProps {
   instance: MaterialInstance;
   onClose: () => void;
   loanCode?: string;
+  isLoanCodeLoading?: boolean;
   onRefreshData?: (instance: MaterialInstance) => Promise<MaterialInstance | null>;
 }
 
@@ -24,6 +25,7 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
   instance,
   onClose,
   loanCode,
+  isLoanCodeLoading = false,
   onRefreshData,
 }) => {
   const { language, t } = useLanguage();
@@ -88,6 +90,7 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
     instance.attributes && instance.attributes.length > 0 ? instance.attributes : typeAttributes;
 
   const resolvedCode = instance.barcode?.trim() || instance.serialNumber.trim();
+  const shouldShowLoanCode = instance.status === "loaned" || instance.status === "reserved";
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
@@ -218,10 +221,16 @@ export const MaterialInstanceDetailModal: React.FC<MaterialInstanceDetailModalPr
             </div>
           )}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-400 mb-2">{t("materialInstances.detail.loanCode")}</label>
-            <p className="text-gray-400 text-sm font-mono">{loanCode || t("materialInstances.detail.notAssigned")}</p>
-          </div>
+          {shouldShowLoanCode && (
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-2">{t("materialInstances.detail.loanCode")}</label>
+              <p className="text-gray-400 text-sm font-mono">
+                {isLoanCodeLoading
+                  ? `${t("common.loading")}...`
+                  : loanCode || t("materialInstances.detail.notAssigned")}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Footer */}
