@@ -893,3 +893,106 @@ export const validateDepositDueDate = (
   }
   return { isValid: true };
 };
+
+// ─── Ticket Validators ────────────────────────────────────────────────────
+
+/**
+ * Ticket title validation.
+ * Required, 1–200 characters.
+ * @example validateTicketTitle("Transfer chairs") // { isValid: true }
+ */
+export const validateTicketTitle = (value: string): ValidationResult => {
+  if (!value.trim()) {
+    return { isValid: false, message: "tickets.validation.titleRequired" };
+  }
+  if (value.length > 200) {
+    return { isValid: false, message: "tickets.validation.titleMaxLength" };
+  }
+  return { isValid: true };
+};
+
+/**
+ * Ticket description validation.
+ * Optional, max 2000 characters.
+ * @example validateTicketDescription("") // { isValid: true }
+ */
+export const validateTicketDescription = (value: string): ValidationResult => {
+  if (value.length > 2000) {
+    return { isValid: false, message: "tickets.validation.descriptionMaxLength" };
+  }
+  return { isValid: true };
+};
+
+/**
+ * Resolution note validation (required — used for reject).
+ * 1–1000 characters.
+ * @example validateResolutionNote("Not enough inventory") // { isValid: true }
+ */
+export const validateResolutionNote = (value: string): ValidationResult => {
+  if (!value.trim()) {
+    return { isValid: false, message: "tickets.validation.resolutionNoteRequired" };
+  }
+  if (value.length > 1000) {
+    return { isValid: false, message: "tickets.validation.resolutionNoteMaxLength" };
+  }
+  return { isValid: true };
+};
+
+/**
+ * Optional resolution note validation (used for approve).
+ * Max 1000 characters when provided.
+ * @example validateOptionalResolutionNote("") // { isValid: true }
+ */
+export const validateOptionalResolutionNote = (value: string): ValidationResult => {
+  if (value.length > 1000) {
+    return { isValid: false, message: "tickets.validation.resolutionNoteMaxLength" };
+  }
+  return { isValid: true };
+};
+
+/**
+ * Generic ticket details validation (required for generic type payload).
+ * 1–2000 characters.
+ * @example validateGenericDetails("Need access to...") // { isValid: true }
+ */
+export const validateGenericDetails = (value: string): ValidationResult => {
+  if (!value.trim()) {
+    return { isValid: false, message: "tickets.validation.detailsRequired" };
+  }
+  if (value.length > 2000) {
+    return { isValid: false, message: "tickets.validation.detailsMaxLength" };
+  }
+  return { isValid: true };
+};
+
+/**
+ * Estimated cost validation for maintenance request tickets.
+ * Optional, non-negative number.
+ * @example validateEstimatedCost(100) // { isValid: true }
+ * @example validateEstimatedCost(-5) // { isValid: false }
+ */
+export const validateEstimatedCost = (value: string | number): ValidationResult => {
+  if (value === "" || value === undefined || value === null) {
+    return { isValid: true };
+  }
+  const num = Number(value);
+  if (isNaN(num)) {
+    return { isValid: false, message: "tickets.validation.estimatedCostInvalid" };
+  }
+  if (num < 0) {
+    return { isValid: false, message: "tickets.validation.estimatedCostNegative" };
+  }
+  return { isValid: true };
+};
+
+/**
+ * Ticket notes validation (optional, max 1000 characters).
+ * Used for maintenance_request and inspection_request payloads.
+ * @example validateTicketNotes("Check the left arm") // { isValid: true }
+ */
+export const validateTicketNotes = (value: string): ValidationResult => {
+  if (value.length > 1000) {
+    return { isValid: false, message: "tickets.validation.notesMaxLength" };
+  }
+  return { isValid: true };
+};

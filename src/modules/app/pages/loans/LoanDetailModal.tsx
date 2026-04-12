@@ -16,8 +16,6 @@ import type {
   MaterialInstanceStatus,
   DepositStatus,
   PopulatedUserRef,
-  PricingSnapshotItem,
-  PricingStrategyType,
 } from "../../../../types/api";
 import { getLoanDetailGrouped } from "../../../../services/loanService";
 import { getInspections } from "../../../../services/inspectionService";
@@ -67,10 +65,11 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
     };
   }, [open, view.loan]);
 
-  // Fetch inspection number when status is "inspected" or beyond
+  // Fetch inspection number when status is "returned", "inspected", or "closed"
   useEffect(() => {
     if (!open || !view.loan) return;
-    if (view.status !== "inspected" && view.status !== "closed") return;
+    if (view.status !== "returned" && view.status !== "inspected" && view.status !== "closed")
+      return;
     let cancelled = false;
     async function fetchInspection() {
       try {
@@ -115,14 +114,6 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
     }
     return ref.email || t("loans.detail.notSet");
   };
-
-  const strategyLabels: Record<PricingStrategyType, string> = {
-    per_day: isEs ? "Por día" : "Per day",
-    weekly_monthly: isEs ? "Semanal/Mensual" : "Weekly-Monthly",
-    fixed: isEs ? "Fijo" : "Fixed",
-  };
-
-  const pricingSnapshot: PricingSnapshotItem[] = loanDetail?.pricingSnapshot ?? [];
 
   return (
     <div
@@ -239,10 +230,23 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
                   )}
                 </p>
               </div>
-              {inspectionNumber && (
+              {(view.status === "returned" ||
+                view.status === "inspected" ||
+                view.status === "closed") && (
                 <div>
-                  <p className="text-gray-500 text-sm">{t("loans.detail.inspectionNumber")}</p>
-                  <p className="text-white font-semibold font-mono">{inspectionNumber}</p>
+                  <p className="text-gray-500 text-sm">{t("loans.detail.inspectionDone")}</p>
+                  {inspectionNumber ? (
+                    <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                      <span className="text-green-400 font-semibold">
+                        {isEs ? "S\u00ed" : "Yes"}
+                      </span>
+                      <span className="text-white font-semibold font-mono text-xs">
+                        {inspectionNumber}
+                      </span>
+                    </div>
+                  ) : (
+                    <p className="text-red-400 font-semibold">{isEs ? "No" : "No"}</p>
+                  )}
                 </div>
               )}
             </div>
@@ -367,88 +371,6 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
                     )}
                   </div>
                 </div>
-              </div>
-            )}
-
-            {/* Pricing Breakdown (collapsable) */}
-            {loan && (
-              <div className="space-y-3">
-                <button
-                  type="button"
-                  onClick={() => toggleCollapse("__pricing__")}
-                  className="w-full flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-2 text-sm font-semibold text-[#FFD700] uppercase tracking-wider">
-                    <DollarSign size={14} />
-                    <span>{t("loans.detail.pricingBreakdown")}</span>
-                    <span className="text-xs text-gray-500 font-normal normal-case">
-                      ({pricingSnapshot.length})
-                    </span>
-                  </div>
-                  {collapsed["__pricing__"] ? (
-                    <ChevronDown size={14} className="text-gray-500 shrink-0" />
-                  ) : (
-                    <ChevronUp size={14} className="text-gray-500 shrink-0" />
-                  )}
-                </button>
-
-                {!collapsed["__pricing__"] && (
-                  <div className="border border-[#2a2a2a] rounded-xl p-4 bg-[#171717]">
-                    {pricingSnapshot.length === 0 ? (
-                      <p className="text-gray-500 text-sm">{t("loans.detail.noBreakdown")}</p>
-                    ) : (
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left">
-                          <thead>
-                            <tr className="text-gray-500 text-xs uppercase tracking-wider border-b border-[#333]">
-                              <th className="pb-2 pr-3 font-medium">Type</th>
-                              <th className="pb-2 pr-3 font-medium">
-                                {t("loans.detail.pricingStrategy")}
-                              </th>
-                              <th className="pb-2 pr-3 font-medium text-center">
-                                {t("loans.detail.pricingQuantity")}
-                              </th>
-                              <th className="pb-2 pr-3 font-medium text-center">
-                                {t("loans.detail.pricingDuration")}
-                              </th>
-                              <th className="pb-2 pr-3 font-medium text-right">
-                                {t("loans.detail.pricingBasePricePerDay")}
-                              </th>
-                              <th className="pb-2 pr-3 font-medium text-right">
-                                {t("loans.detail.pricingUnitPrice")}
-                              </th>
-                              <th className="pb-2 font-medium text-right">
-                                {t("loans.detail.pricingTotal")}
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-[#2a2a2a]">
-                            {pricingSnapshot.map((item, idx) => (
-                              <tr key={idx} className="text-gray-300">
-                                <td className="py-2 pr-3 capitalize">{item.itemType}</td>
-                                <td className="py-2 pr-3">
-                                  {strategyLabels[item.strategyType as PricingStrategyType] ??
-                                    item.strategyType}
-                                </td>
-                                <td className="py-2 pr-3 text-center">{item.quantity}</td>
-                                <td className="py-2 pr-3 text-center">{item.durationInDays}</td>
-                                <td className="py-2 pr-3 text-right">
-                                  ${item.basePricePerDay.toLocaleString()}
-                                </td>
-                                <td className="py-2 pr-3 text-right">
-                                  ${item.unitPrice.toLocaleString()}
-                                </td>
-                                <td className="py-2 text-right text-white font-semibold">
-                                  ${item.totalPrice.toLocaleString()}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
             )}
 

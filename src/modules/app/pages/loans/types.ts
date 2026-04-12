@@ -51,7 +51,7 @@ export const UNIFIED_WORKFLOW_STEPS: WorkflowStepDef[] = [
   { status: "overdue", labelEn: "Overdue", labelEs: "Vencido" },
   { status: "returned", labelEn: "Returned", labelEs: "Devuelto" },
   { status: "inspected", labelEn: "Inspected", labelEs: "Inspeccionado" },
-  { status: "closed", labelEn: "Closed", labelEs: "Cerrado" },
+  { status: "closed", labelEn: "Loan Closed", labelEs: "Préstamo Cerrado" },
 ];
 
 export const TERMINAL_STATUSES: WorkflowStepDef[] = [

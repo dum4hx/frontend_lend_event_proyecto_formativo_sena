@@ -3366,3 +3366,130 @@ export interface AdminUsageSummaryData {
   summary: AdminUsageSummary;
   generatedAt: string;
 }
+
+// ─── Tickets (Solicitudes de Usuario) ─────────────────────────────────────
+
+export type TicketType =
+  | "transfer_request"
+  | "incident_report"
+  | "maintenance_request"
+  | "inspection_request"
+  | "generic";
+
+export type TicketStatus =
+  | "pending"
+  | "in_review"
+  | "approved"
+  | "rejected"
+  | "cancelled"
+  | "expired";
+
+export type TicketSeverity = "low" | "medium" | "high" | "critical";
+
+export type TicketIncidentContext = "transit" | "storage" | "loan" | "maintenance" | "other";
+
+export type TicketMaintenanceEntryReason = "damaged" | "other";
+
+/** Payload for ticket type `transfer_request`. */
+export interface TicketTransferRequestPayload {
+  toLocationId: string;
+  items: Array<{ materialTypeId: string; quantity: number }>;
+  neededBy?: string;
+}
+
+/** Payload for ticket type `incident_report`. */
+export interface TicketIncidentReportPayload {
+  materialInstanceIds?: string[];
+  loanId?: string;
+  severity: TicketSeverity;
+  context: TicketIncidentContext;
+  description?: string;
+}
+
+/** Payload for ticket type `maintenance_request`. */
+export interface TicketMaintenanceRequestPayload {
+  materialInstanceIds: string[];
+  entryReason: TicketMaintenanceEntryReason;
+  estimatedCost?: number;
+  notes?: string;
+}
+
+/** Payload for ticket type `inspection_request`. */
+export interface TicketInspectionRequestPayload {
+  loanId: string;
+  notes?: string;
+}
+
+/** Payload for ticket type `generic`. */
+export interface TicketGenericPayload {
+  details: string;
+}
+
+/** Discriminated union of all ticket payload shapes. */
+export type TicketPayload =
+  | TicketTransferRequestPayload
+  | TicketIncidentReportPayload
+  | TicketMaintenanceRequestPayload
+  | TicketInspectionRequestPayload
+  | TicketGenericPayload;
+
+/** Full ticket entity returned by GET /tickets/:id. */
+export interface Ticket {
+  _id: string;
+  organizationId: string;
+  locationId: string;
+  type: TicketType;
+  status: TicketStatus;
+  title: string;
+  description?: string;
+  createdBy: string;
+  assigneeId?: string;
+  responseDeadline?: string;
+  payload: TicketPayload;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  resolutionNote?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Slim ticket item returned in GET /tickets list responses. */
+export interface TicketListItem {
+  _id: string;
+  type: TicketType;
+  status: TicketStatus;
+  title: string;
+  createdBy: string;
+  locationId: string;
+  createdAt: string;
+}
+
+/** Query parameters for GET /tickets. */
+export interface TicketQueryParams {
+  page?: number;
+  limit?: number;
+  status?: TicketStatus;
+  type?: TicketType;
+  locationId?: string;
+}
+
+/** Body for POST /tickets. */
+export interface CreateTicketPayload {
+  locationId: string;
+  type: TicketType;
+  title: string;
+  description?: string;
+  assigneeId?: string;
+  responseDeadline?: string;
+  payload: TicketPayload;
+}
+
+/** Body for PATCH /tickets/:id/approve. */
+export interface ApproveTicketPayload {
+  resolutionNote?: string;
+}
+
+/** Body for PATCH /tickets/:id/reject. */
+export interface RejectTicketPayload {
+  resolutionNote: string;
+}

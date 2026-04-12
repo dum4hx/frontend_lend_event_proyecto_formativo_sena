@@ -21,6 +21,8 @@ export function getUnifiedStatus(request: LoanRequest, loan?: Loan): UnifiedLoan
   if (request.status === "rejected") return "rejected";
   if (request.status === "cancelled") return "cancelled";
   if (request.status === "expired") return "expired";
+  // completed is a terminal request state — takes priority over loan sub-states
+  if (request.status === "completed") return "closed";
 
   if (loan) {
     if (loan.status === "closed") return "closed";
@@ -29,8 +31,6 @@ export function getUnifiedStatus(request: LoanRequest, loan?: Loan): UnifiedLoan
     if (loan.status === "overdue") return "overdue";
     if (loan.status === "active") return "active";
   }
-
-  if (request.status === "completed") return "closed";
   if (request.status === "shipped") return "active";
   if (request.status === "ready") return "ready";
   if (request.status === "assigned") return "assigned";

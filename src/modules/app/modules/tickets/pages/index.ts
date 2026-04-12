@@ -1,0 +1,1 @@
+export { TicketsCatalog } from "./TicketsCatalog";
