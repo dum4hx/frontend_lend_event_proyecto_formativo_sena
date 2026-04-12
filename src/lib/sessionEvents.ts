@@ -1,4 +1,5 @@
 import type { ApiError } from "./api";
+import { traceSession } from "./sessionTrace";
 
 export type SessionLogoutReason =
   | "INACTIVITY_TIMEOUT"
@@ -25,6 +26,16 @@ export function registerSessionEventHandlers(nextHandlers: SessionEventHandlers)
 }
 
 export function emitSessionAuthFailure(event: SessionAuthFailureEvent): void {
+  traceSession(
+    "auth-failure-emitted",
+    {
+      code: event.code,
+      statusCode: event.error.statusCode,
+      message: event.error.message,
+      errorCode: event.error.code,
+    },
+    "warn",
+  );
   handlers.onAuthFailure?.(event);
 }
 

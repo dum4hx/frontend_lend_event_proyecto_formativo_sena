@@ -13,6 +13,7 @@ import {
   registerSessionEventHandlers,
   type SessionLogoutReason,
 } from "../lib/sessionEvents";
+import { traceSession } from "../lib/sessionTrace";
 import { useIdleSession } from "../hooks/useIdleSession";
 import { SessionTimeoutModal } from "../components/ui/SessionTimeoutModal";
 
@@ -31,7 +32,7 @@ function normalizeLogoutReason(reason?: string): SessionLogoutReason {
 }
 
 export function SessionProvider({ children }: SessionProviderProps) {
-  const { isLoggedIn, checkAuth } = useAuth();
+  const { isLoggedIn, checkAuth, ensureSession } = useAuth();
   const { showToast } = useToast();
   const { t } = useLanguage();
 
@@ -64,7 +65,7 @@ export function SessionProvider({ children }: SessionProviderProps) {
       showToast("warning", t(translationKey), t("session.warningTitle"), {
         duration: 6500,
       });
-      console.info("[Session] Logout reason:", reason);
+      traceSession("logout-feedback", { reason, translationKey }, "warn");
     },
     [showToast, t],
   );
@@ -76,6 +77,7 @@ export function SessionProvider({ children }: SessionProviderProps) {
       /* storage unavailable */
     }
 
+    traceSession("cleanup-and-redirect", { target: APP_ROUTES.login });
     await checkAuth();
     window.location.replace(APP_ROUTES.login);
   }, [checkAuth]);
@@ -83,12 +85,14 @@ export function SessionProvider({ children }: SessionProviderProps) {
   const logout = useCallback(
     async (reason: SessionLogoutReason = "MANUAL") => {
       if (logoutInFlightRef.current) {
+        traceSession("logout-skipped-inflight", { reason });
         await logoutInFlightRef.current;
         return;
       }
 
       const task = (async () => {
         const resolvedReason = normalizeLogoutReason(reason);
+        traceSession("logout-start", { requestedReason: reason, resolvedReason }, "warn");
 
         if (resolvedReason === "INACTIVITY_TIMEOUT") {
           setSessionStatus("idle-timeout");
@@ -101,9 +105,10 @@ export function SessionProvider({ children }: SessionProviderProps) {
 
         try {
           await logoutUser();
+          traceSession("logout-request-succeeded", { resolvedReason });
         } catch (error) {
           if (!(error instanceof ApiError)) {
-            console.warn("[Session] Logout request failed:", error);
+            traceSession("logout-request-failed", { resolvedReason, error }, "warn");
           }
         } finally {
           await cleanupAndRedirect();
@@ -124,10 +129,12 @@ export function SessionProvider({ children }: SessionProviderProps) {
     if (!isLoggedIn) return false;
 
     setSessionStatus("refreshing");
+    traceSession("refresh-session-start", { source: "SessionContext" });
     try {
       await refreshToken();
       await checkAuth();
       setSessionStatus("authenticated");
+      traceSession("refresh-session-succeeded", { source: "SessionContext" });
       return true;
     } catch (error) {
       const reason =
@@ -137,6 +144,16 @@ export function SessionProvider({ children }: SessionProviderProps) {
                 (typeof error.details?.code === "string" ? error.details.code : undefined),
             )
           : "UNAUTHORIZED";
+
+      traceSession(
+        "refresh-session-failed",
+        {
+          source: "SessionContext",
+          reason,
+          error,
+        },
+        "warn",
+      );
 
       emitSessionAuthFailure({
         code: reason,
@@ -163,6 +180,10 @@ export function SessionProvider({ children }: SessionProviderProps) {
 
   const onWarningCallback = useCallback(() => {
     setWarningOpen(true);
+    traceSession("idle-warning-opened", {
+      idleTimeoutMs: SESSION_CONFIG.idleTimeoutMs,
+      warningBeforeMs: SESSION_CONFIG.warningBeforeMs,
+    });
   }, []);
 
   const onWarningCloseCallback = useCallback(() => {
@@ -170,12 +191,19 @@ export function SessionProvider({ children }: SessionProviderProps) {
   }, []);
 
   const onTimeoutCallback = useCallback(() => {
+    traceSession("idle-timeout-reached", { idleTimeoutMs: SESSION_CONFIG.idleTimeoutMs }, "warn");
     void logout("INACTIVITY_TIMEOUT");
   }, [logout]);
 
   const onVisibleCallback = useCallback(() => {
-    void refreshSession();
-  }, [refreshSession]);
+    if (!isLoggedIn) return;
+
+    // Returning to the tab should not force a token refresh. A stale-aware
+    // validation avoids spurious logouts when the focus event happens but the
+    // refresh endpoint is momentarily unavailable.
+    traceSession("tab-visible-session-check", { source: "visibilitychange" });
+    void ensureSession();
+  }, [ensureSession, isLoggedIn]);
 
   useIdleSession({
     enabled: isLoggedIn,
@@ -202,6 +230,12 @@ export function SessionProvider({ children }: SessionProviderProps) {
   useEffect(() => {
     registerSessionEventHandlers({
       onAuthFailure: (event) => {
+        traceSession("session-handler-auth-failure", {
+          code: event.code,
+          statusCode: event.error.statusCode,
+          message: event.error.message,
+          errorCode: event.error.code,
+        }, "warn");
         void logout(event.code);
       },
     });

@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { getCurrentUser, refreshToken } from "../services/authService";
 import { ApiError } from "../lib/api";
 import { setAuthFailureHandler } from "../lib/api";
+import { traceSession } from "../lib/sessionTrace";
 import type { User } from "../types/api";
 import { queryClient } from "../lib/queryClient";
 import {
@@ -130,6 +131,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const hasBootstrappedRef = useRef(false);
 
   const applySession = useCallback((nextUser: User, nextPermissions: string[]) => {
+    traceSession("session-applied", {
+      userId: nextUser.id,
+      roleName: nextUser.roleName,
+      permissionCount: nextPermissions.length,
+    });
     setUser(nextUser);
     setPermissions(nextPermissions);
     setLastValidatedAt(Date.now());
@@ -137,6 +143,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   const clearSession = useCallback(() => {
+    traceSession("session-cleared", { pathname: sessionRef.current.pathname }, "warn");
     setUser(null);
     setPermissions([]);
     setLastValidatedAt(null);
@@ -160,6 +167,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return { user: fetchedUser, permissions: fetchedPermissions };
     } catch (error: unknown) {
       if (error instanceof ApiError && error.statusCode === 401) {
+        traceSession("auth-me-401-refresh-attempt", {
+          code: error.code,
+          message: error.message,
+        }, "warn");
         // /auth/me returned 401. Attempt a single refresh, then retry once.
         // If refresh fails, treat as definitively unauthenticated — no more retries.
         try {
@@ -168,13 +179,32 @@ export function AuthProvider({ children }: AuthProviderProps) {
           const fetchedUser = retryResponse.data.user;
           const fetchedPermissions =
             retryResponse.data.permissions ?? fetchedUser.permissions ?? [];
+          traceSession("auth-me-refresh-retry-succeeded", {
+            userId: fetchedUser.id,
+            permissionCount: fetchedPermissions.length,
+          });
           return { user: fetchedUser, permissions: fetchedPermissions };
-        } catch {
+        } catch (refreshError) {
+          traceSession(
+            "auth-me-refresh-retry-failed",
+            {
+              originalCode: error.code,
+              refreshError,
+            },
+            "warn",
+          );
           return { user: null, permissions: [] };
         }
       }
 
       // Network or server error — deny access defensively.
+      traceSession(
+        "auth-me-non401-failure",
+        {
+          error,
+        },
+        "warn",
+      );
       return { user: null, permissions: [] };
     }
   }, []);
@@ -212,6 +242,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         snap.user !== null;
 
       if (isFresh) {
+        traceSession("validate-session-used-cache", {
+          staleMs,
+          pathname: snap.pathname,
+        });
         return { user: snap.user, permissions: snap.permissions };
       }
 
@@ -229,6 +263,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // and so callers who await the returned promise see it resolve after cleanup.
       const pending = (async (): Promise<SessionResult> => {
         try {
+          traceSession("validate-session-fetch-start", {
+            force,
+            staleMs,
+            pathname: sessionRef.current.pathname,
+            blocking: shouldBlock,
+          });
           const result = await fetchSession();
           if (result.user) {
             applySession(result.user, result.permissions);
@@ -238,6 +278,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
               });
             }
           } else {
+            traceSession("validate-session-no-user", {
+              pathname: sessionRef.current.pathname,
+              redirectIfUnauthenticated,
+            }, "warn");
             clearSession();
             // Read pathname from ref at this point (user may have navigated).
             if (redirectIfUnauthenticated && isPrivatePath(sessionRef.current.pathname)) {
@@ -313,6 +357,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Reads pathname from sessionRef at the time of failure — no location dep needed.
   useEffect(() => {
     setAuthFailureHandler(async () => {
+      traceSession("auth-failure-handler-invoked", {
+        pathname: sessionRef.current.pathname,
+      }, "warn");
       clearSession();
       if (isPrivatePath(sessionRef.current.pathname)) {
         navigate("/login", { replace: true, state: null });
