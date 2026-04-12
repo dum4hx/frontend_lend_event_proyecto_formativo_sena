@@ -26,7 +26,6 @@ import type {
   MaterialInstance,
   MaterialInstanceStatus,
   CreateMaterialInstancePayload,
-  MaterialInstanceStatus,
 } from "../../../../../types/api";
 
 export const MaterialInstanceCatalog: React.FC = () => {
