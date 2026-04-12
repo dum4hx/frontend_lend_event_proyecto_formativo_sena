@@ -255,7 +255,7 @@ export function LoansTable({
                       </>
                     )}
 
-                    {(v.status === "returned" || v.status === "inspected") && v.loan && (
+                    {v.status === "returned" && v.loan && (
                       <>
                         {v.loan.deposit?.refundAvailable && (
                           <PermissionGuardedButton

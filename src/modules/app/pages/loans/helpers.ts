@@ -21,16 +21,18 @@ export function getUnifiedStatus(request: LoanRequest, loan?: Loan): UnifiedLoan
   if (request.status === "rejected") return "rejected";
   if (request.status === "cancelled") return "cancelled";
   if (request.status === "expired") return "expired";
-  // completed is a terminal request state — takes priority over loan sub-states
-  if (request.status === "completed") return "closed";
 
+  // Check loan sub-states first — they carry more granular info than request.status
   if (loan) {
     if (loan.status === "closed") return "closed";
-    if (loan.status === "inspected") return "inspected";
+    // inspected is visually shown as "returned" (Devuelto)
+    if (loan.status === "inspected") return "returned";
     if (loan.status === "returned") return "returned";
     if (loan.status === "overdue") return "overdue";
     if (loan.status === "active") return "active";
   }
+
+  if (request.status === "completed") return "closed";
   if (request.status === "shipped") return "active";
   if (request.status === "ready") return "ready";
   if (request.status === "assigned") return "assigned";
@@ -46,8 +48,8 @@ export function getUnifiedStatusLabel(
   language: "en" | "es",
   loan?: Loan,
 ): string {
-  // Dynamic label for returned/inspected loans based on damage
-  if (status === "returned" || status === "inspected") {
+  // Dynamic label for returned loans based on damage
+  if (status === "returned") {
     if (hasReturnDamage(loan)) {
       return language === "es" ? "Devuelto Da\u00f1ado" : "Returned Damaged";
     }
@@ -87,11 +89,6 @@ export function getUnifiedStatusBadgeStyle(status: UnifiedLoanStatus, loan?: Loa
         return "bg-red-500/20 text-red-400 border border-red-500/30";
       }
       return "bg-blue-500/20 text-blue-400 border border-blue-500/30";
-    case "inspected":
-      if (hasReturnDamage(loan)) {
-        return "bg-red-500/20 text-red-400 border border-red-500/30";
-      }
-      return "bg-purple-500/20 text-purple-400 border border-purple-500/30";
     case "closed":
       return "bg-zinc-500/20 text-zinc-300 border border-zinc-500/30";
     case "rejected":
@@ -256,7 +253,6 @@ export function getFilterTab(status: UnifiedLoanStatus): LoanFilterTab {
     case "overdue":
       return "active_loan";
     case "returned":
-    case "inspected":
     case "closed":
       return "completed";
     default:
@@ -293,8 +289,7 @@ export function filterByStates(
   if (selectedStates.length === 0) return views;
   return views.filter((v) => {
     if (selectedStates.includes(v.status)) return true;
-    // Map "returned" filter to naturally include "inspected" since they share labels visually
-    if (selectedStates.includes("returned") && v.status === "inspected") return true;
+
     // Map "approved" filter to naturally include "assigned" (Materiales Preparados)
     if (selectedStates.includes("approved") && v.status === "assigned") return true;
     return false;

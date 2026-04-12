@@ -105,11 +105,10 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
     };
   }, [open, view.loan]);
 
-  // Fetch inspection number when status is "returned", "inspected", or "closed"
+  // Fetch inspection number when status is "returned" or "closed"
   useEffect(() => {
     if (!open || !view.loan) return;
-    if (view.status !== "returned" && view.status !== "inspected" && view.status !== "closed")
-      return;
+    if (view.status !== "returned" && view.status !== "closed") return;
     let cancelled = false;
     async function fetchInspection() {
       try {

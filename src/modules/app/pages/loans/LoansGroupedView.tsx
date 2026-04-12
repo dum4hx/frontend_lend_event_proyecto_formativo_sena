@@ -15,11 +15,7 @@ import { PermissionGuardedButton } from "../../../../components/ui/PermissionGua
 import { useLanguage } from "../../../../contexts/useLanguage";
 import { useCopyToClipboard } from "../../../../hooks/useCopyToClipboard";
 import type { UnifiedLoanView, UnifiedLoanStatus } from "./types";
-import {
-  getUnifiedStatusBadgeStyle,
-  getUnifiedStatusLabel,
-  formatDate,
-} from "./helpers";
+import { getUnifiedStatusBadgeStyle, getUnifiedStatusLabel, formatDate } from "./helpers";
 
 interface LoansGroupedViewProps {
   loans: UnifiedLoanView[];
@@ -86,7 +82,6 @@ function groupByStatus(loans: UnifiedLoanView[]) {
     active: [],
     overdue: [],
     returned: [],
-    inspected: [],
     closed: [],
     rejected: [],
     cancelled: [],
@@ -109,7 +104,6 @@ const STATUS_ORDER: UnifiedLoanStatus[] = [
   "active",
   "overdue",
   "returned",
-  "inspected",
   "closed",
   "rejected",
   "cancelled",
@@ -126,7 +120,6 @@ function getStatusActionIcon(status: UnifiedLoanStatus) {
     active: { Icon: Truck, color: "text-green-500" },
     overdue: { Icon: AlertCircle, color: "text-red-500" },
     returned: { Icon: CheckCircle, color: "text-emerald-500" },
-    inspected: { Icon: Eye, color: "text-indigo-500" },
     closed: { Icon: CheckCircle, color: "text-gray-500" },
     rejected: { Icon: RotateCcw, color: "text-red-600" },
     cancelled: { Icon: AlertCircle, color: "text-gray-600" },
@@ -173,9 +166,7 @@ function DateGroup({
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 mb-4 px-1">
-        <h3 className="text-sm font-semibold text-[#FFD700] uppercase tracking-wider">
-          {title}
-        </h3>
+        <h3 className="text-sm font-semibold text-[#FFD700] uppercase tracking-wider">{title}</h3>
         <span className="px-2 py-1 rounded-full bg-[#FFD700]/10 text-[#FFD700] text-xs font-medium">
           {loans.length}
         </span>
@@ -272,7 +263,10 @@ function LoanCard({
               title="Haz click para copiar"
             >
               {loan.request.code}
-              <Copy size={14} className="opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+              <Copy
+                size={14}
+                className="opacity-0 group-hover/copy:opacity-100 transition-opacity"
+              />
             </button>
             <span className="text-xs text-gray-400">{loan.customerName}</span>
           </div>
@@ -284,7 +278,9 @@ function LoanCard({
             {loan.request.startDate && (
               <>
                 <span>•</span>
-                <span>{t("loans.table.start")}: {formatDate(loan.request.startDate)}</span>
+                <span>
+                  {t("loans.table.start")}: {formatDate(loan.request.startDate)}
+                </span>
               </>
             )}
           </div>
