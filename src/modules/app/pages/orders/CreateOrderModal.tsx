@@ -43,6 +43,7 @@ import {
   toSafeStartDateIso,
   toSafeEndDateIso,
 } from "./helpers";
+import { validateDepositAmount } from "../../../../utils/validators";
 
 interface CreateOrderModalProps {
   open: boolean;
@@ -600,17 +601,16 @@ export function CreateOrderModal({
         : "Deposit due date and time cannot be after the end date and time.";
     }
 
-    if (formData.depositAmount === "") {
-      nextErrors.depositAmount = isEs
-        ? "El monto del depósito es obligatorio."
-        : "Deposit amount is required.";
-    } else {
-      const depositAmountNum = Number(formData.depositAmount);
-      if (!Number.isFinite(depositAmountNum) || depositAmountNum <= 0) {
-        nextErrors.depositAmount = isEs
-          ? "El monto del depósito debe ser mayor a 0."
-          : "Deposit amount must be greater than 0.";
-      }
+    const depositAmountValidation = validateDepositAmount(formData.depositAmount);
+    if (!depositAmountValidation.isValid) {
+      nextErrors.depositAmount =
+        depositAmountValidation.message === "orders.depositAmountMustBeGreaterThanZero"
+          ? isEs
+            ? "El monto del depósito debe ser mayor a 0."
+            : "Deposit amount must be greater than 0."
+          : isEs
+            ? "El monto del depósito es obligatorio."
+            : "Deposit amount is required.";
     }
 
     const draftRowsToValidate = formItems.filter((item) => !isFormDraftItemEmpty(item));
@@ -665,6 +665,7 @@ export function CreateOrderModal({
       Boolean(validationErrors.startDate) ||
       Boolean(validationErrors.endDate) ||
       Boolean(validationErrors.depositDueDate) ||
+      Boolean(validationErrors.depositAmount) ||
       Boolean(validationErrors.items) ||
       Object.keys(validationErrors.rows).length > 0;
 
