@@ -1,10 +1,12 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   getMaterialInstances,
   createMaterialInstance,
   updateMaterialInstanceStatus,
   deleteMaterialInstance,
 } from "../../../../../services/materialService";
+import { useAuth } from "../../../../../contexts/useAuth";
+import { isOwnerRoleName } from "../../../pages/team/types";
 import type {
   MaterialInstance,
   CreateMaterialInstancePayload,
@@ -15,15 +17,22 @@ export function useMaterialInstances() {
   const [instances, setInstances] = useState<MaterialInstance[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
 
-  const fetchInstances = async () => {
+  const fetchInstances = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await getMaterialInstances({ byLocation: true });
-      const instanceList =
-        response.data.instances ?? response.data.byLocation?.flatMap((group) => group.instances) ?? [];
-      setInstances(instanceList);
+      const response = await getMaterialInstances({ byUserAccessibleLocation: true });
+      const isOwner = user ? isOwnerRoleName(user.roleName) : false;
+
+      const currentUserInstances =
+        response.data.currentUserLocations?.flatMap((group) => group.instances) ?? [];
+      const otherInstances = isOwner
+        ? (response.data.otherLocations?.flatMap((group) => group.instances) ?? [])
+        : [];
+
+      setInstances([...currentUserInstances, ...otherInstances]);
     } catch (err) {
       const error = err as Error;
       setError(error.message || "Error fetching material instances");
@@ -31,11 +40,11 @@ export function useMaterialInstances() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     fetchInstances();
-  }, []);
+  }, [fetchInstances]);
 
   const addInstance = async (payload: CreateMaterialInstancePayload, skipFetch = false) => {
     const response = await createMaterialInstance(payload);

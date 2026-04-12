@@ -1562,7 +1562,7 @@ export interface MaterialTypesQueryParams extends PaginationParams {
   search?: string;
 }
 
-export interface MaterialInstancesQueryParams {
+export interface MaterialInstancesQueryParams extends PaginationParams {
   status?: MaterialInstanceStatus;
   materialTypeId?: string;
   search?: string;

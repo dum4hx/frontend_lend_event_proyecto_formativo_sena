@@ -226,12 +226,12 @@ export function AppRoutes() {
 
 function App() {
   return (
-    <AuthProvider>
-      <LanguageProvider>
-        <ThemeProvider>
-          <ToastProvider>
-            <SessionProvider>
-              <BrowserRouter>
+    <BrowserRouter>
+      <AuthProvider>
+        <LanguageProvider>
+          <ThemeProvider>
+            <ToastProvider>
+              <SessionProvider>
                 <ScrollToTop />
                 <Routes>
                   {/* Public Routes */}
@@ -336,12 +336,12 @@ function App() {
                   <Route path="/unauthorized" element={<Unauthorized />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
-              </BrowserRouter>
-            </SessionProvider>
-          </ToastProvider>
-        </ThemeProvider>
-      </LanguageProvider>
-    </AuthProvider>
+              </SessionProvider>
+            </ToastProvider>
+          </ThemeProvider>
+        </LanguageProvider>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
 
