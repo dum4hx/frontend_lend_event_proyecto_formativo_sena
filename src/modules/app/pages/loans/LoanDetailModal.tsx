@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Package, ChevronDown, ChevronUp, DollarSign } from "lucide-react";
+import { X, Package, ChevronDown, ChevronUp, DollarSign, FileText } from "lucide-react";
 import { IconButton, EntityLink } from "../../../../components/ui";
 import { useLanguage } from "../../../../contexts/useLanguage";
 import type { UnifiedLoanView } from "./types";
@@ -18,9 +18,12 @@ import type {
   PopulatedUserRef,
   PricingSnapshotItem,
   PricingStrategyType,
+  Invoice,
 } from "../../../../types/api";
 import { getLoanDetailGrouped } from "../../../../services/loanService";
 import { getInspections } from "../../../../services/inspectionService";
+import { getInvoices } from "../../../../services/invoiceService";
+import InvoiceDetailModal from "../../components/InvoiceDetailModal";
 import {
   getDepositStatusLabel,
   getMaterialInstanceStatusLabel,
@@ -34,6 +37,20 @@ interface LoanDetailModalProps {
   view: UnifiedLoanView;
 }
 
+function getInvoiceLoanId(invoice: Invoice): string | null {
+  if (!invoice.loanId) return null;
+  return typeof invoice.loanId === "string" ? invoice.loanId : invoice.loanId._id;
+}
+
+function pickLoanInvoice(invoices: Invoice[], loanId: string): Invoice | null {
+  const relatedInvoices = invoices.filter((invoice) => getInvoiceLoanId(invoice) === loanId);
+
+  if (relatedInvoices.length === 0) return null;
+
+  const prioritizedInvoice = relatedInvoices.find((invoice) => invoice.type === "rental");
+  return prioritizedInvoice ?? relatedInvoices[0];
+}
+
 // ─── Component ──────────────────────────────────────────────────────────
 
 export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
@@ -45,6 +62,10 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [inspectionNumber, setInspectionNumber] = useState<string | null>(null);
+  const [relatedInvoiceId, setRelatedInvoiceId] = useState<string | null>(null);
+  const [invoiceLookupLoading, setInvoiceLookupLoading] = useState(false);
+  const [invoiceLookupError, setInvoiceLookupError] = useState<string | null>(null);
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
 
   // Fetch grouped detail when a loan exists
   useEffect(() => {
@@ -88,6 +109,13 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
     };
   }, [open, view.loan, view.status]);
 
+  useEffect(() => {
+    setRelatedInvoiceId(null);
+    setInvoiceLookupError(null);
+    setInvoiceLookupLoading(false);
+    setShowInvoiceModal(false);
+  }, [open, view.loan?._id]);
+
   if (!open) return null;
 
   const req = view.request;
@@ -123,6 +151,50 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
   };
 
   const pricingSnapshot: PricingSnapshotItem[] = loanDetail?.pricingSnapshot ?? [];
+
+  const handleOpenInvoiceDetail = async () => {
+    if (!loan || invoiceLookupLoading) return;
+
+    if (relatedInvoiceId) {
+      setInvoiceLookupError(null);
+      setShowInvoiceModal(true);
+      return;
+    }
+
+    try {
+      setInvoiceLookupLoading(true);
+      setInvoiceLookupError(null);
+
+      let page = 1;
+      let totalPages = 1;
+      let matchedInvoiceId: string | null = null;
+
+      while (page <= totalPages && !matchedInvoiceId) {
+        const res = await getInvoices({ page, limit: 100 });
+        totalPages = Math.max(res.data.totalPages ?? 1, 1);
+        const matchedInvoice = pickLoanInvoice(res.data.invoices, loan._id);
+
+        if (matchedInvoice) {
+          matchedInvoiceId = matchedInvoice._id;
+          break;
+        }
+
+        page += 1;
+      }
+
+      if (!matchedInvoiceId) {
+        setInvoiceLookupError(t("loans.detail.invoiceUnavailable"));
+        return;
+      }
+
+      setRelatedInvoiceId(matchedInvoiceId);
+      setShowInvoiceModal(true);
+    } catch {
+      setInvoiceLookupError(t("loans.detail.invoiceLookupError"));
+    } finally {
+      setInvoiceLookupLoading(false);
+    }
+  };
 
   return (
     <div
@@ -268,10 +340,28 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
               req.depositAmount != null ||
               loan?.totalAmount != null ||
               loan?.deposit?.amount != null) && (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-sm font-semibold text-[#FFD700] uppercase tracking-wider">
-                  <DollarSign size={14} />
-                  <span>{t("loans.detail.loanFinancials")}</span>
+              <div className="space-y-3" data-help-id="loans-detail-financial-summary">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-[#FFD700] uppercase tracking-wider">
+                    <DollarSign size={14} />
+                    <span>{t("loans.detail.loanFinancials")}</span>
+                  </div>
+                  {loan && (
+                    <button
+                      type="button"
+                      onClick={handleOpenInvoiceDetail}
+                      disabled={invoiceLookupLoading}
+                      data-help-id="loans-detail-view-invoice"
+                      className="inline-flex items-center gap-2 rounded-lg border border-[#7a6510] bg-[#1f1a08] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[#FFD700] transition-colors hover:bg-[#2a220a] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <FileText size={14} />
+                      <span>
+                        {invoiceLookupLoading
+                          ? t("loans.detail.loadingInvoice")
+                          : t("loans.detail.viewInvoice")}
+                      </span>
+                    </button>
+                  )}
                 </div>
                 <div className="border border-[#2a2a2a] rounded-xl p-4 bg-[#171717]">
                   <div className="grid grid-cols-2 gap-3 text-sm">
@@ -367,6 +457,9 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
                     )}
                   </div>
                 </div>
+                {invoiceLookupError && loan && (
+                  <p className="text-xs text-red-400">{invoiceLookupError}</p>
+                )}
               </div>
             )}
 
@@ -593,6 +686,13 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
           </aside>
         </div>
       </div>
+
+      <InvoiceDetailModal
+        isOpen={showInvoiceModal && relatedInvoiceId !== null}
+        invoiceId={relatedInvoiceId}
+        onClose={() => setShowInvoiceModal(false)}
+        showActions={false}
+      />
     </div>
   );
 }

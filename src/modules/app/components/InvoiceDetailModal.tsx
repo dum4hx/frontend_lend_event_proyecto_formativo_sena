@@ -68,8 +68,9 @@ export interface InvoiceDetailModalProps {
   isOpen: boolean;
   invoiceId: string | null;
   onClose: () => void;
-  onRecordPayment: (invoiceId: string) => void;
-  onVoid: (invoiceId: string) => void;
+  onRecordPayment?: (invoiceId: string) => void;
+  onVoid?: (invoiceId: string) => void;
+  showActions?: boolean;
 }
 
 export function InvoiceDetailModal({
@@ -78,6 +79,7 @@ export function InvoiceDetailModal({
   onClose,
   onRecordPayment,
   onVoid,
+  showActions = true,
 }: InvoiceDetailModalProps) {
   const { language, locale } = useLanguage();
   const isEs = language === "es";
@@ -529,12 +531,12 @@ export function InvoiceDetailModal({
         )}
 
         {/* Actions */}
-        {detail && !loading && !error && (
+        {showActions && detail && !loading && !error && (
           <div className="flex gap-3 p-6 border-t border-[#333] bg-[#0d0d0d] shrink-0">
             <Button onClick={onClose} variant="secondary" size="md" className="flex-1">
               {isEs ? "Cerrar" : "Close"}
             </Button>
-            {detail.status !== "paid" && detail.status !== "cancelled" && (
+            {detail.status !== "paid" && detail.status !== "cancelled" && onRecordPayment && (
               <Button
                 onClick={() => {
                   onRecordPayment(detail._id);
@@ -548,7 +550,7 @@ export function InvoiceDetailModal({
                 {isEs ? "Registrar Pago" : "Record Payment"}
               </Button>
             )}
-            {detail.status !== "cancelled" && (
+            {detail.status !== "cancelled" && onVoid && (
               <Button
                 onClick={() => {
                   onVoid(detail._id);
@@ -562,6 +564,14 @@ export function InvoiceDetailModal({
                 {isEs ? "Anular" : "Void"}
               </Button>
             )}
+          </div>
+        )}
+
+        {!showActions && detail && !loading && !error && (
+          <div className="p-6 border-t border-[#333] bg-[#0d0d0d] shrink-0">
+            <Button onClick={onClose} variant="secondary" size="md" className="w-full">
+              {isEs ? "Cerrar" : "Close"}
+            </Button>
           </div>
         )}
       </div>
