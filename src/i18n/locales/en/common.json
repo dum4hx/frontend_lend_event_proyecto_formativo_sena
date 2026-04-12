@@ -1094,6 +1094,7 @@
   "loans.detail.preparedBy": "Prepared By",
   "loans.detail.inspectionNumber": "Inspection Number",
   "loans.detail.inspectionDone": "Inspection Done",
+  "loans.detail.inspectionDate": "Inspection Date",
   "loans.detail.conditionAtCheckout": "Condition at Checkout",
   "loans.detail.pricingBreakdown": "Pricing Breakdown",
   "loans.detail.pricingStrategy": "Strategy",
