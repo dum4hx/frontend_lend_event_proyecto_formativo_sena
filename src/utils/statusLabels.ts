@@ -675,7 +675,7 @@ export const UNIFIED_LOAN_STATUS_MAP: Record<UnifiedLoanStatus, StatusLocale> = 
   active: { en: "Active", es: "Activo" },
   overdue: { en: "Overdue", es: "Vencido" },
   returned: { en: "Returned", es: "Devuelto" },
-  inspected: { en: "Inspected", es: "Inspeccionado" },
+  inspected: { en: "Returned", es: "Devuelto" },
   closed: { en: "Closed", es: "Cerrado" },
   rejected: { en: "Rejected", es: "Rechazado" },
   cancelled: { en: "Cancelled", es: "Cancelado" },

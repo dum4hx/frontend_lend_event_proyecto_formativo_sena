@@ -25,8 +25,7 @@ export function getUnifiedStatus(request: LoanRequest, loan?: Loan): UnifiedLoan
   // Check loan sub-states first — they carry more granular info than request.status
   if (loan) {
     if (loan.status === "closed") return "closed";
-    // inspected is visually shown as "returned" (Devuelto)
-    if (loan.status === "inspected") return "returned";
+    if (loan.status === "inspected") return "inspected";
     if (loan.status === "returned") return "returned";
     if (loan.status === "overdue") return "overdue";
     if (loan.status === "active") return "active";
@@ -89,6 +88,8 @@ export function getUnifiedStatusBadgeStyle(status: UnifiedLoanStatus, loan?: Loa
         return "bg-red-500/20 text-red-400 border border-red-500/30";
       }
       return "bg-blue-500/20 text-blue-400 border border-blue-500/30";
+    case "inspected":
+      return "bg-teal-500/20 text-teal-300 border border-teal-500/30";
     case "closed":
       return "bg-zinc-500/20 text-zinc-300 border border-zinc-500/30";
     case "rejected":
@@ -253,6 +254,7 @@ export function getFilterTab(status: UnifiedLoanStatus): LoanFilterTab {
     case "overdue":
       return "active_loan";
     case "returned":
+    case "inspected":
     case "closed":
       return "completed";
     default:
@@ -292,6 +294,8 @@ export function filterByStates(
 
     // Map "approved" filter to naturally include "assigned" (Materiales Preparados)
     if (selectedStates.includes("approved") && v.status === "assigned") return true;
+    // Map "returned" filter to also include "inspected" (both show as Devuelto)
+    if (selectedStates.includes("returned") && v.status === "inspected") return true;
     return false;
   });
 }

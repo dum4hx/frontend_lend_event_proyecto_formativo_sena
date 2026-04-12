@@ -13,6 +13,7 @@ const DOT_COLOR: Record<UnifiedLoanStatus, string> = {
   active: "bg-green-400",
   overdue: "bg-red-400",
   returned: "bg-blue-400",
+  inspected: "bg-teal-400",
   closed: "bg-zinc-400",
   rejected: "bg-rose-400",
   cancelled: "bg-zinc-500",

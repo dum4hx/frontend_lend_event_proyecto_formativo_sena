@@ -11,6 +11,7 @@ export type UnifiedLoanStatus =
   | "active"
   | "overdue"
   | "returned"
+  | "inspected"
   | "closed"
   | "rejected"
   | "cancelled"
@@ -50,6 +51,7 @@ export const UNIFIED_WORKFLOW_STEPS: WorkflowStepDef[] = [
   { status: "active", labelEn: "Active Loan", labelEs: "Préstamo Activo" },
   { status: "overdue", labelEn: "Overdue", labelEs: "Vencido" },
   { status: "returned", labelEn: "Returned", labelEs: "Devuelto" },
+  { status: "inspected", labelEn: "Returned", labelEs: "Devuelto" },
   { status: "closed", labelEn: "Loan Closed", labelEs: "Préstamo Cerrado" },
 ];
 
@@ -73,11 +75,12 @@ export const TAB_SUB_FILTERS: Record<LoanFilterTab, UnifiedLoanStatus[]> = {
     "active",
     "overdue",
     "returned",
+    "inspected",
     "closed",
   ],
   request: ["pending", "approved", "ready", "rejected", "cancelled", "expired"],
   active_loan: ["active", "overdue"],
-  completed: ["returned", "closed"],
+  completed: ["returned", "inspected", "closed"],
 };
 
 // ─── Backend filter mapping types ──────────────────────────────────────────
