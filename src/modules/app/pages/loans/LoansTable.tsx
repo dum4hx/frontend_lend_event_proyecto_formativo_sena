@@ -11,10 +11,12 @@ import {
   Truck,
   AlertCircle,
   FileX,
+  Copy,
 } from "lucide-react";
 import { Button, EntityLink } from "../../../../components/ui";
 import { PermissionGuardedButton } from "../../../../components/ui/PermissionGuardedButton";
 import { useLanguage } from "../../../../contexts/useLanguage";
+import { useCopyToClipboard } from "../../../../hooks/useCopyToClipboard";
 import type { UnifiedLoanView } from "./types";
 import {
   getUnifiedStatusBadgeStyle,
@@ -67,6 +69,7 @@ export function LoansTable({
   onComplete,
 }: LoansTableProps) {
   const { language, t } = useLanguage();
+  const { copy } = useCopyToClipboard();
   const lang = language === "es" ? "es" : "en";
 
   if (loading) {
@@ -116,7 +119,21 @@ export function LoansTable({
               >
                 {/* Code */}
                 <td className="px-4 py-3">
-                  <span className="font-mono text-xs text-gray-300">{code}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs text-gray-300">{code}</span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        copy(code);
+                      }}
+                      title={t("common.copy")}
+                      className="p-1 hover:bg-[#222] rounded transition-colors flex-shrink-0"
+                      aria-label={t("common.copy")}
+                    >
+                      <Copy size={14} className="text-gray-400 hover:text-[#FFD700]" />
+                    </button>
+                  </div>
                 </td>
 
                 {/* Customer */}
@@ -130,32 +147,51 @@ export function LoansTable({
                 </td>
 
                 {/* Date range */}
-                <td className="px-4 py-3 text-gray-300 text-xs">
-                  <div>{formatDate(v.request.startDate)}</div>
-                  <div className="text-gray-500">{formatDate(v.request.endDate)}</div>
-                  {isLive && (
-                    <span
-                      className={`text-xs ${
-                        remaining < 0
-                          ? "text-red-400 font-semibold"
-                          : remaining <= 2
-                            ? "text-yellow-400"
-                            : "text-gray-500"
-                      }`}
-                    >
-                      {remaining < 0
-                        ? lang === "es"
-                          ? `${Math.abs(remaining)}d vencido`
-                          : `${Math.abs(remaining)}d overdue`
-                        : remaining === 0
-                          ? lang === "es"
-                            ? "Vence hoy"
-                            : "Due today"
-                          : lang === "es"
-                            ? `${remaining}d restantes`
-                            : `${remaining}d left`}
+                <td className="px-4 py-3 text-gray-300 text-xs leading-relaxed">
+                  <div className="grid grid-cols-2 gap-x-2 gap-y-0.5">
+                    {/* Creation date */}
+                    <span className="text-gray-500">{t("loans.table.createdLabel")}</span>
+                    <span className="font-semibold text-gray-200">
+                      {v.request.createdAt ? formatDate(v.request.createdAt) : "—"}
                     </span>
-                  )}
+
+                    {/* Start date */}
+                    <span className="text-gray-500">{t("loans.table.startLabel")}</span>
+                    <span className="text-gray-300">{formatDate(v.request.startDate)}</span>
+
+                    {/* End date */}
+                    <span className="text-gray-500">{t("loans.table.endLabel")}</span>
+                    <span className="text-gray-300">{formatDate(v.request.endDate)}</span>
+
+                    {/* Days remaining - spans both columns if present */}
+                    {isLive && (
+                      <>
+                        <span className="col-span-2 text-xs block pt-0.5">
+                          <span
+                            className={`${
+                              remaining < 0
+                                ? "text-red-400 font-semibold"
+                                : remaining <= 2
+                                  ? "text-yellow-400"
+                                  : "text-gray-500"
+                            }`}
+                          >
+                            {remaining < 0
+                              ? lang === "es"
+                                ? `${Math.abs(remaining)}d vencido`
+                                : `${Math.abs(remaining)}d overdue`
+                              : remaining === 0
+                                ? lang === "es"
+                                  ? "Vence hoy"
+                                  : "Due today"
+                                : lang === "es"
+                                  ? `${remaining}d restantes`
+                                  : `${remaining}d left`}
+                          </span>
+                        </span>
+                      </>
+                    )}
+                  </div>
                 </td>
 
                 {/* Items */}

@@ -429,7 +429,18 @@ export function LoanDetailModal({ open, onClose, view }: LoanDetailModalProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <p className="text-gray-500 text-sm">{t("loans.detail.loanCode")}</p>
-                <p className="text-white font-semibold break-all font-mono">{code}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-white font-semibold break-all font-mono flex-1">{code}</p>
+                  <button
+                    type="button"
+                    onClick={() => copy(code)}
+                    title={t("common.copy")}
+                    className="p-1.5 hover:bg-[#222] rounded transition-colors flex-shrink-0"
+                    aria-label={t("common.copy")}
+                  >
+                    <Copy size={16} className="text-gray-400 hover:text-[#FFD700]" />
+                  </button>
+                </div>
               </div>
               <div>
                 <p className="text-gray-500 text-sm">{t("loans.detail.customer")}</p>
