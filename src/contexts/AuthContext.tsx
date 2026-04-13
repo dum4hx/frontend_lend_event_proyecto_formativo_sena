@@ -132,7 +132,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const applySession = useCallback((nextUser: User, nextPermissions: string[]) => {
     traceSession("session-applied", {
-      userId: nextUser.id,
+      userId: nextUser._id,
       roleName: nextUser.roleName,
       permissionCount: nextPermissions.length,
     });
@@ -167,10 +167,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return { user: fetchedUser, permissions: fetchedPermissions };
     } catch (error: unknown) {
       if (error instanceof ApiError && error.statusCode === 401) {
-        traceSession("auth-me-401-refresh-attempt", {
-          code: error.code,
-          message: error.message,
-        }, "warn");
+        traceSession(
+          "auth-me-401-refresh-attempt",
+          {
+            code: error.code,
+            message: error.message,
+          },
+          "warn",
+        );
         // /auth/me returned 401. Attempt a single refresh, then retry once.
         // If refresh fails, treat as definitively unauthenticated — no more retries.
         try {
@@ -180,7 +184,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           const fetchedPermissions =
             retryResponse.data.permissions ?? fetchedUser.permissions ?? [];
           traceSession("auth-me-refresh-retry-succeeded", {
-            userId: fetchedUser.id,
+            userId: fetchedUser._id,
             permissionCount: fetchedPermissions.length,
           });
           return { user: fetchedUser, permissions: fetchedPermissions };
@@ -278,10 +282,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
               });
             }
           } else {
-            traceSession("validate-session-no-user", {
-              pathname: sessionRef.current.pathname,
-              redirectIfUnauthenticated,
-            }, "warn");
+            traceSession(
+              "validate-session-no-user",
+              {
+                pathname: sessionRef.current.pathname,
+                redirectIfUnauthenticated,
+              },
+              "warn",
+            );
             clearSession();
             // Read pathname from ref at this point (user may have navigated).
             if (redirectIfUnauthenticated && isPrivatePath(sessionRef.current.pathname)) {
@@ -321,22 +329,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
   );
 
   // STABLE: reads from sessionRef so it needs no state in dep array.
-  const isSessionStale = useCallback(
-    (staleMs = DEFAULT_STALE_MS): boolean => {
-      const ts = sessionRef.current.lastValidatedAt;
-      if (ts === null) return true;
-      return Date.now() - ts > staleMs;
-    },
-    [],
-  );
+  const isSessionStale = useCallback((staleMs = DEFAULT_STALE_MS): boolean => {
+    const ts = sessionRef.current.lastValidatedAt;
+    if (ts === null) return true;
+    return Date.now() - ts > staleMs;
+  }, []);
 
   // Initial session check — run exactly ONCE on mount.
-  // Empty dep array is intentional: validateSession is stable, but we still
-  // use [] to make it explicit that this must never re-fire due to state changes.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // validateSession is stable (no state in its dep array), so including it
+  // here does not cause re-fires.
   useEffect(() => {
     void validateSession({ force: true, blocking: true });
-  }, []);
+  }, [validateSession]);
 
   useEffect(() => {
     if (loading) {
@@ -357,9 +361,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Reads pathname from sessionRef at the time of failure — no location dep needed.
   useEffect(() => {
     setAuthFailureHandler(async () => {
-      traceSession("auth-failure-handler-invoked", {
-        pathname: sessionRef.current.pathname,
-      }, "warn");
+      traceSession(
+        "auth-failure-handler-invoked",
+        {
+          pathname: sessionRef.current.pathname,
+        },
+        "warn",
+      );
       clearSession();
       if (isPrivatePath(sessionRef.current.pathname)) {
         navigate("/login", { replace: true, state: null });
