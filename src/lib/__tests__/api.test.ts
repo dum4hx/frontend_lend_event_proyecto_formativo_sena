@@ -7,7 +7,16 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/mocks/server";
-import { request, get, post, patch, del, ApiError, isApiError, setAuthFailureHandler } from "../api";
+import {
+  request,
+  get,
+  post,
+  patch,
+  del,
+  ApiError,
+  isApiError,
+  setAuthFailureHandler,
+} from "../api";
 
 const BASE = "http://localhost:3000/api/v1";
 
@@ -165,6 +174,8 @@ describe("request()", () => {
 
     await expect(request("/test/unauth-handler")).rejects.toThrow(ApiError);
     expect(handlerRuns).toBe(1);
+  });
+
   it("retries the original request only once after a successful refresh", async () => {
     let protectedCalls = 0;
     let refreshCalls = 0;

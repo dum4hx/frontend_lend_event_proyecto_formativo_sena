@@ -7,7 +7,6 @@ import { ToastProvider } from "./contexts/ToastContext";
 import { SessionProvider } from "./contexts/SessionContext";
 import { RequirePermission } from "./utils/permissionGuard";
 import { RequireActiveSubscription } from "./utils/subscriptionGuard";
-import { PublicOnlyRoute, RequireAuthenticatedRoute } from "./utils/authGuards";
 import { LoadingSpinner } from "./components/ui";
 import ScrollToTop from "./components/ScrollToTop";
 import { usePermissions } from "./contexts/usePermissions";
